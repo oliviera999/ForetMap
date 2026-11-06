@@ -8,6 +8,7 @@
  */
 
 const express = require('express');
+const { effectiveTaskFormat } = require('../../lib/shared/taskTaxonomyCore');
 const crypto = require('node:crypto');
 const { queryOne, execute, withTransaction } = require('../../database');
 const { requirePermission } = require('../../middleware/requireTeacher');
@@ -60,8 +61,8 @@ router.post(
           id, title, description, map_id, project_id, zone_id, marker_id,
           start_date, due_date, required_students, completion_mode, danger_level,
           difficulty_level, importance_level, recurrence, sort_order, status, created_at,
-          group_id, pedago_session_id
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'available', ?, ?, ?)`,
+          group_id, pedago_session_id, category, format, project_phase
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'available', ?, ?, ?, ?, ?, ?)`,
         [
           newId,
           title,
@@ -82,6 +83,11 @@ router.post(
           nowDbTimestamp(),
           src.group_id || null,
           src.pedago_session_id || null,
+          // Taxonomie (migration 329). L'auteur d'une proposition n'est pas copié : une copie
+          // est une décision de l'adulte, et « Semeur d'idées » ne doit compter l'idée qu'une fois.
+          src.category || null,
+          effectiveTaskFormat(src.recurrence, src.format || null),
+          src.project_id ? src.project_phase || null : null,
         ],
       );
       for (const [table, col] of [

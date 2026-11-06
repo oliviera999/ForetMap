@@ -5,6 +5,11 @@ import { TaskFiltersFields } from './TaskFiltersFields.jsx';
 import { useTaskFiltersPanel } from '../../hooks/useTaskFiltersPanel.js';
 import { activeTaskFilterChips } from '../../utils/taskFilterSummary.js';
 import {
+  EMPTY_TASK_TAXONOMY_FILTERS,
+  clearTaxonomyFilter,
+  taxonomyFilterChips,
+} from '../../utils/taskTaxonomyFilters.js';
+import {
   IconClose,
   IconFileText,
   IconFilter,
@@ -68,13 +73,16 @@ export function TaskFiltersBar({
   setHasTouchedStatusFilter,
   filterRecurrence = '',
   setFilterRecurrence = () => {},
+  taxonomyFilters = EMPTY_TASK_TAXONOMY_FILTERS,
+  setTaxonomyFilters = () => {},
   resultCount = null,
 }) {
   const { compact, open, toggle, close } = useTaskFiltersPanel();
 
   const chips = useMemo(
-    () =>
-      activeTaskFilterChips({
+    () => [
+      ...taxonomyFilterChips(taxonomyFilters),
+      ...activeTaskFilterChips({
         filterMap,
         maps,
         filterZone,
@@ -89,7 +97,9 @@ export function TaskFiltersBar({
         filterStatus,
         filterRecurrence,
       }),
+    ],
     [
+      taxonomyFilters,
       filterMap,
       maps,
       filterZone,
@@ -107,6 +117,9 @@ export function TaskFiltersBar({
   );
 
   const clearFilter = (key) => {
+    if (key === 'quick' || key === 'category' || key === 'format') {
+      setTaxonomyFilters((f) => clearTaxonomyFilter(f, key));
+    }
     if (key === 'map') setFilterMap('active');
     if (key === 'zone') {
       setFilterZone('');
@@ -163,6 +176,8 @@ export function TaskFiltersBar({
       setHasTouchedStatusFilter={setHasTouchedStatusFilter}
       filterRecurrence={filterRecurrence}
       setFilterRecurrence={setFilterRecurrence}
+      taxonomyFilters={taxonomyFilters}
+      setTaxonomyFilters={setTaxonomyFilters}
     />
   );
 
@@ -197,6 +212,15 @@ export function TaskFiltersBar({
               {chips.length}
             </span>
           )}
+        </button>
+        <button
+          type="button"
+          className={`btn btn-sm task-quick-toggle ${taxonomyFilters.quick ? 'btn-primary' : 'btn-ghost'}`}
+          aria-pressed={taxonomyFilters.quick}
+          onClick={() => setTaxonomyFilters((f) => ({ ...f, quick: !f.quick }))}
+          title="Tâches Flash (moins de 15 min) encore disponibles"
+        >
+          <span aria-hidden="true">⚡</span> J’ai 15 minutes
         </button>
         <div className="tasks-view-switch" role="group" aria-label="Mode d'affichage des tâches">
           {VIEW_MODE_BUTTONS.map((mode) => (

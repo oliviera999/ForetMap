@@ -87,6 +87,10 @@ export function buildInitialTaskForm({
           : '',
       recurrence: editTask.recurrence || '',
       pedago_session_id: editTask.pedago_session_id || '',
+      // Taxonomie (migration 329) : '' = non renseigné.
+      category: editTask.category || '',
+      format: editTask.format || '',
+      project_phase: editTask.project_phase || '',
       living_beings: orderedLivingBeingsForForm(
         editTask.living_beings_list || editTask.living_beings,
         '',
@@ -113,6 +117,9 @@ export function buildInitialTaskForm({
     importance_level: '',
     recurrence: '',
     pedago_session_id: '',
+    category: '',
+    format: '',
+    project_phase: '',
     assign_student_ids: [],
   };
 }
@@ -172,6 +179,14 @@ export function buildTaskSavePayload({
       ),
     ],
   };
+  // Taxonomie (migration 329) : envoyée seulement si le formulaire la porte (anciens appels).
+  // La phase n'est transmise que pour une tâche rattachée à un projet : le serveur la remet
+  // de toute façon à NULL au détachement, et un proposeur ne peut pas la modifier.
+  if (form.category !== undefined) payload.category = form.category || null;
+  if (form.format !== undefined) payload.format = form.format || null;
+  if (form.project_phase !== undefined && payload.project_id) {
+    payload.project_phase = form.project_phase || null;
+  }
   if (!payload.map_id && (payload.zone_ids.length || payload.marker_ids.length)) {
     payload.map_id = mapFromLinks();
   }

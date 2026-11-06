@@ -14,6 +14,8 @@ import { TaskFormReferentsField } from './TaskFormReferentsField.jsx';
 import { TaskFormTutorialsField } from './TaskFormTutorialsField.jsx';
 import { TaskFormLevelsField } from './TaskFormLevelsField.jsx';
 import { TaskFormPedagoSessionField } from './TaskFormPedagoSessionField.jsx';
+import { TaskFormTaxonomyField } from './TaskFormTaxonomyField.jsx';
+import { resolveTaskTaxonomyFormState } from '../../utils/taskTaxonomyForm.js';
 import {
   LocationPickList,
   filterSelectableZones,
@@ -103,6 +105,24 @@ function TaskFormModal({
   } = useTutorialSearch(tutorials);
   const [referentSearch, setReferentSearch] = useState('');
   const [assignInitialSearch, setAssignInitialSearch] = useState('');
+  // Métier / format (migration 329) : la suggestion pré-remplit tant que le champ n'a pas
+  // été touché ; une tâche existante n'est jamais modifiée sans choix explicite.
+  const [taxonomyTouched, setTaxonomyTouched] = useState({ category: false, format: false });
+  const isNewTask = !editTask || isDuplicate;
+  const taxonomyState = useMemo(
+    () =>
+      resolveTaskTaxonomyFormState({
+        form,
+        isNew: isNewTask,
+        isProposal,
+        touched: taxonomyTouched,
+      }),
+    [form, isNewTask, isProposal, taxonomyTouched],
+  );
+  const chooseTaxonomy = (key) => (value) => {
+    setTaxonomyTouched((t) => ({ ...t, [key]: true }));
+    setForm((f) => ({ ...f, [key]: value }));
+  };
 
   const set = (k) => (e) => {
     const value = e.target.value;
@@ -300,8 +320,9 @@ function TaskFormModal({
 
   const submit = async () => {
     if (!form.title.trim()) return setErr('Le titre est requis');
+    if (taxonomyState.missingError) return setErr(taxonomyState.missingError);
     const payload = buildTaskSavePayload({
-      form,
+      form: { ...form, category: taxonomyState.category, format: taxonomyState.format },
       zones,
       markers,
       normalizedTutorialIds,
@@ -492,6 +513,14 @@ function TaskFormModal({
           </select>
         </div>
       )}
+      <TaskFormTaxonomyField
+        state={taxonomyState}
+        phase={form.project_phase || ''}
+        required={isNewTask && !isProposal}
+        onCategory={chooseTaxonomy('category')}
+        onFormat={chooseTaxonomy('format')}
+        onPhase={(value) => setForm((f) => ({ ...f, project_phase: value }))}
+      />
       <div className="field">
         <label>Zones et repères (plusieurs possibles)</label>
         <LocationPickList

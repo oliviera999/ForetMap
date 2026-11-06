@@ -273,6 +273,8 @@ const WRITE_ROUTES = Object.freeze({
   'PUT /api/quiz/admin/questions/:code': 'permission:plants.manage',
   'POST /api/quiz/questions/:code/answer':
     'publique : réponse au quiz libre, jeton de présentation à usage unique',
+  'POST /api/rewards/award': 'permission:rewards.award',
+  'POST /api/rewards/me/seen': 'auth',
   'POST /api/rbac/profiles': 'permission:admin.roles.manage',
   'DELETE /api/rbac/profiles/:id': 'permission:admin.roles.manage',
   'PATCH /api/rbac/profiles/:id': 'permission:admin.roles.manage',

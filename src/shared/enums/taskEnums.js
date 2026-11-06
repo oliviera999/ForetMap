@@ -88,3 +88,64 @@ export const TASK_RECURRENCE_ENUM = defineEnum('TASK_RECURRENCE_ENUM', {
   },
   columns: ['tasks.recurrence'],
 });
+
+/**
+ * Métier d'une tâche (NULL = non classée) : ce qu'on fait avec les mains. Ordre d'affichage.
+ * Emoji, description et validation : `src/shared/taskTaxonomyCore.js` (migration 329).
+ */
+export const TASK_CATEGORY_ENUM = defineEnum('TASK_CATEGORY_ENUM', {
+  values: [
+    'jardinage',
+    'animaux',
+    'entretien',
+    'bricolage',
+    'terrassement',
+    'rangement',
+    'electronique',
+    'communication',
+  ],
+  labels: {
+    jardinage: 'Jardinage',
+    animaux: 'Soin aux animaux',
+    entretien: 'Entretien du lieu',
+    bricolage: 'Bricolage',
+    terrassement: 'Terrassement',
+    rangement: 'Rangement et logistique',
+    electronique: 'Électronique et code',
+    communication: 'Communication',
+  },
+  columns: ['tasks.category'],
+});
+
+/** Format d'une tâche (NULL = non renseigné) : durée et forme. */
+export const TASK_FORMAT_ENUM = defineEnum('TASK_FORMAT_ENUM', {
+  values: ['flash', 'routine', 'seance'],
+  labels: { flash: 'Flash', routine: 'Routine', seance: 'Séance' },
+  columns: ['tasks.format'],
+});
+
+/** Phase d'une tâche dans son projet (NULL hors projet), dans l'ordre de la démarche. */
+export const TASK_PROJECT_PHASE_ENUM = defineEnum('TASK_PROJECT_PHASE_ENUM', {
+  values: ['concevoir', 'preparer', 'realiser', 'tester', 'transmettre'],
+  labels: {
+    concevoir: 'Concevoir',
+    preparer: 'Préparer',
+    realiser: 'Réaliser',
+    tester: 'Tester',
+    transmettre: 'Transmettre',
+  },
+  columns: ['tasks.project_phase'],
+});
+
+/** Type d'un projet de tâches (NULL = non renseigné). */
+export const TASK_PROJECT_TYPE_ENUM = defineEnum('TASK_PROJECT_TYPE_ENUM', {
+  values: ['amenagement', 'construction', 'dispositif_technique', 'evenement', 'campagne'],
+  labels: {
+    amenagement: 'Aménagement',
+    construction: 'Construction',
+    dispositif_technique: 'Dispositif technique',
+    evenement: 'Événement',
+    campagne: 'Campagne',
+  },
+  columns: ['task_projects.project_type'],
+});

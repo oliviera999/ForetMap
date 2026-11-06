@@ -209,9 +209,15 @@ test('dailyJobs : liste nommée et lancement à la demande tracé', async () => 
   const { DAILY_JOB_NAMES, listDailyJobs, runJobNow } = require('../lib/dailyJobs');
   assert.deepEqual(
     [...DAILY_JOB_NAMES],
-    ['recurring_tasks', 'auto_archive', 'notifications_purge', 'task_deadline_reminders'],
+    [
+      'recurring_tasks',
+      'auto_archive',
+      'notifications_purge',
+      'task_deadline_reminders',
+      'rewards_evaluate',
+    ],
   );
-  assert.equal(listDailyJobs().length, 4);
+  assert.equal(listDailyJobs().length, 5);
   const before = await queryOne(
     "SELECT COALESCE(MAX(id), 0) AS id FROM scheduled_job_runs WHERE job = 'notifications_purge'",
   );

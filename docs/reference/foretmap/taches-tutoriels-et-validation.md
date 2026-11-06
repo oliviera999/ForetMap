@@ -45,29 +45,82 @@ Le statut « **terminé** » d'un projet est **automatique** : dès que toutes s
 faites ou validées, le projet passe terminé — et il redevient actif si une nouvelle tâche
 s'y ajoute. La **validation** d'un projet, elle, est une décision manuelle du professeur.
 
+### Le type d'un projet et ses cinq phases
+
+À la création ou à la modification d'un projet, le professeur peut choisir son **type** :
+**Aménagement** (transformer un lieu), **Construction** (fabriquer un objet ou une structure
+durable), **Dispositif technique** (capteurs, pompe, énergie…), **Événement** (visite,
+journée) ou **Campagne** (une même action répétée sur une période). Le formulaire rappelle
+aussi les **cinq phases** d'un projet, dans l'ordre :
+
+| Phase          | Ce qu'on y fait                                       |
+| -------------- | ----------------------------------------------------- |
+| 📐 Concevoir   | observer, mesurer, proposer, décider                  |
+| 🧰 Préparer    | réunir le matériel, faire les plans, dégager la place |
+| 🏗️ Réaliser    | faire le travail lui-même                             |
+| 🧪 Tester      | vérifier, mesurer, ajuster                            |
+| 🗣️ Transmettre | documenter, étiqueter, expliquer, guider              |
+
+**Découper un projet en phases** : dans le formulaire d'une tâche, dès qu'un projet est
+choisi, un champ « **Phase dans le projet** » apparaît. Une tâche sans projet n'a pas de phase,
+et une tâche qui quitte son projet perd la sienne.
+
+**Lire la frise** : dans la case du projet, une frise de cinq segments montre, pour chaque
+phase, le nombre de tâches **validées sur le total**. La **phase en cours** — la première qui
+n'est pas terminée — est mise en évidence (▸). Une phase **sans aucune tâche** apparaît en
+**pointillé**, avec l'infobulle « Aucune tâche prévue pour cette phase » : c'est un signal
+pédagogique, la phase « Transmettre » étant la plus souvent oubliée. Quand la case est
+dépliée, les tâches sont **regroupées par phase**, puis « Sans phase ». La frise ne s'affiche
+que si au moins une tâche du projet a une phase.
+
 ## La fiche d'une tâche
 
 Chaque tâche décrit précisément le travail attendu :
 
-| Élément              | Détail                                                                                                                                                                   |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Titre et description | Le titre est obligatoire ; la description accepte la mise en forme.                                                                                                      |
-| Image                | Une photo de couverture illustrative (facultative).                                                                                                                      |
-| Lieux                | Une ou **plusieurs** zones et repères de la même carte — la tâche apparaît sur ces lieux.                                                                                |
-| Niveau de danger     | Sans danger · Danger potentiel · Dangereux · Très dangereux.                                                                                                             |
-| Niveau de difficulté | Facile · Moyen · Compliqué · Super compliqué.                                                                                                                            |
-| Degré d'importance   | Pas important · Peu important · Modéré · Important · Urgent ! (l'importance sert au tri de la liste ; « Urgent ! » ouvre en plus l'encart du même nom, voir ci-dessous). |
-| Élèves requis        | Le nombre de places : quand elles sont prises, plus personne ne peut s'inscrire.                                                                                         |
-| Mode de validation   | **Individuel** (un élève termine la tâche pour tous) ou **collectif** (chaque inscrit doit marquer sa part faite).                                                       |
-| Dates                | Une **date de départ** (avant elle, impossible de s'inscrire) et une **date limite** (affichée en « Dans N jours / En retard »).                                         |
-| Référents            | Des professeurs (ou élèves expérimentés) « à qui s'adresser » ; recommandés si la tâche est difficile ou dangereuse.                                                     |
-| Tutoriels liés       | Les fiches pratiques à lire avant de commencer.                                                                                                                          |
-| Espèces liées        | Les êtres vivants du catalogue concernés par la tâche.                                                                                                                   |
-| Séance liée          | Optionnel : une séance pédagogique à suivre ; la carte de la tâche affiche « Lancer la séance ». Terminer la séance ne valide pas la tâche.                              |
-| Récurrence           | Aucune (tâche unique), hebdomadaire, toutes les 2 semaines, ou mensuelle.                                                                                                |
+| Élément              | Détail                                                                                                                                                                                               |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Titre et description | Le titre est obligatoire ; la description accepte la mise en forme.                                                                                                                                  |
+| Image                | Une photo de couverture illustrative (facultative).                                                                                                                                                  |
+| Lieux                | Une ou **plusieurs** zones et repères de la même carte — la tâche apparaît sur ces lieux.                                                                                                            |
+| Niveau de danger     | Sans danger · Danger potentiel · Dangereux · Très dangereux.                                                                                                                                         |
+| Niveau de difficulté | Facile · Moyen · Compliqué · Super compliqué.                                                                                                                                                        |
+| Degré d'importance   | Pas important · Peu important · Modéré · Important · Urgent ! (l'importance sert au tri de la liste ; « Urgent ! » ouvre en plus l'encart du même nom, voir ci-dessous).                             |
+| Élèves requis        | Le nombre de places : quand elles sont prises, plus personne ne peut s'inscrire.                                                                                                                     |
+| Mode de validation   | **Individuel** (un élève termine la tâche pour tous) ou **collectif** (chaque inscrit doit marquer sa part faite).                                                                                   |
+| Dates                | Une **date de départ** (avant elle, impossible de s'inscrire) et une **date limite** (affichée en « Dans N jours / En retard »).                                                                     |
+| Référents            | Des professeurs (ou élèves expérimentés) « à qui s'adresser » ; recommandés si la tâche est difficile ou dangereuse.                                                                                 |
+| Tutoriels liés       | Les fiches pratiques à lire avant de commencer.                                                                                                                                                      |
+| Espèces liées        | Les êtres vivants du catalogue concernés par la tâche.                                                                                                                                               |
+| Séance liée          | Optionnel : une séance pédagogique à suivre ; la carte de la tâche affiche « Lancer la séance ». Terminer la séance ne valide pas la tâche.                                                          |
+| Récurrence           | Aucune (tâche unique), hebdomadaire, toutes les 2 semaines, ou mensuelle.                                                                                                                            |
+| Métier               | Ce qu'on fait avec les mains : 🪴 Jardinage · 🐞 Soin aux animaux · 🧽 Entretien du lieu · 🔨 Bricolage · ⛏️ Terrassement · 📦 Rangement et logistique · 🔌 Électronique et code · 📣 Communication. |
+| Format               | La durée et la forme : ⚡ **Flash** (moins de 15 min) · 🔁 **Routine** (régulière, consigne connue) · 🛠 **Séance** (environ une heure).                                                              |
+| Phase                | Seulement pour une tâche d'un projet : sa place dans la démarche (voir ci-dessus).                                                                                                                   |
 
 Si une tâche compliquée ou dangereuse n'a pas de référent, un avertissement invite
 l'élève à demander l'accord de l'équipe pédagogique avant de commencer.
+
+### Choisir un métier et un format
+
+À la **création** d'une tâche, le métier (grille de huit boutons) et le format (trois
+boutons) sont **obligatoires**. Ils sont **pré-remplis** d'après le titre et la description,
+avec la mention « **suggéré** » tant que le professeur n'y a pas touché : « Nettoyer les gants »
+propose 🧽 Entretien du lieu et ⚡ Flash, « Réparer les bordures » ⛏️ Terrassement et 🛠 Séance.
+Un appui sur un autre bouton remplace la suggestion. La suggestion n'est jamais une décision :
+un titre qu'elle ne reconnaît pas ne reçoit aucune proposition.
+
+- Une tâche **récurrente** est toujours une **Routine** : les deux autres formats sont grisés.
+- En **modifiant** une tâche ancienne qui n'a pas encore de métier, la suggestion s'affiche à
+  côté du champ (« Suggestion : 🪴 Jardinage — Appliquer ») sans être imposée ni bloquer
+  l'enregistrement.
+- Si une **Séance** demande **6 élèves ou plus**, ou si sa description dépasse 1 500
+  caractères, le formulaire suggère, sans bloquer : « Cette tâche ressemble à un projet : la
+  découper en étapes ? »
+- Sur les tuiles, deux **étiquettes** discrètes rappellent le métier et le format
+  (« 🪴 Jardinage · ⚡ Flash »), avant les pastilles de niveau. Le mot « badge » est réservé
+  aux récompenses (voir [badges.md](badges.md)).
+- Une proposition d'élève peut porter un métier et un format suggérés ; le professeur les
+  vérifie en l'acceptant.
 
 ## L'encart « 🚨 Urgent ! »
 
@@ -114,6 +167,12 @@ faire défiler la page.
   permet de la tirer en plein écran ou de la réduire, la glisser vers le bas — ou le bouton
   retour du téléphone — la referme, et « Voir les N tâches » applique. Aucun filtre n'a
   disparu : ils sont simplement rangés.
+- **Métier et format** : dans les filtres, deux rangées de boutons permettent d'en choisir
+  **plusieurs** (par exemple 🪴 Jardinage et 🐞 Soin aux animaux). Ces choix sont gardés
+  tant que l'onglet du navigateur reste ouvert.
+- **« ⚡ J'ai 15 minutes »** : ce raccourci, toujours visible dans la barre, ne garde que les
+  tâches **Flash encore disponibles** — à faire, avec des places libres. Idéal pour un élève
+  qui a un moment entre deux activités.
 - **Le nombre de filtres posés** s'affiche sur le bouton, et chaque filtre actif apparaît
   en **étiquette** sous la barre (« Lieu : 🐝 Ruche », « Statut : Terminée (à valider) »…).
   Un appui sur l'étiquette retire ce filtre ; « Tout effacer » les retire tous. C'est le

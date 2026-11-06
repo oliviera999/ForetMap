@@ -1,6 +1,7 @@
 import { dueDateChip, TaskDifficultyAndRiskChips } from '../../utils/badges';
 import { normalizeDateOnly } from '../../utils/taskListHelpers.js';
 import { completionModeLabel } from '../../utils/taskComputations.js';
+import { TaskTaxonomyTags } from './TaskTaxonomyTags.jsx';
 import {
   IconCheck,
   IconClock,
@@ -97,6 +98,7 @@ export function TaskTileMeta({
       <span className="task-chip">
         <IconPuzzle size={12} /> {completionModeLabel(completionMode)}
       </span>
+      <TaskTaxonomyTags category={t.category} format={t.format} />
       <TaskDifficultyAndRiskChips task={t} />
       {isCollectiveCompletion && (
         <span className="task-chip">

@@ -216,6 +216,8 @@ function TasksViewImpl({
     setFilterUrgentCategory,
     filterRecurrence,
     setFilterRecurrence,
+    taxonomyFilters,
+    setTaxonomyFilters,
   } = useTaskFilters(activeMapId, mapLocationFocus);
   // Sans préférence mémorisée, les petits écrans démarrent en « condensé » : une tâche
   // y tient en ~48 px, donc la liste reste visible sans défiler (O6bis).
@@ -645,6 +647,7 @@ function TasksViewImpl({
         filterGroupId,
         filterUrgentCategory,
         filterRecurrence,
+        taxonomyFilters,
       }),
     [
       sourceTasks,
@@ -657,6 +660,7 @@ function TasksViewImpl({
       filterGroupId,
       filterUrgentCategory,
       filterRecurrence,
+      taxonomyFilters,
     ],
   );
   /**
@@ -1198,6 +1202,8 @@ function TasksViewImpl({
         setHasTouchedStatusFilter={setHasTouchedStatusFilter}
         filterRecurrence={filterRecurrence}
         setFilterRecurrence={setFilterRecurrence}
+        taxonomyFilters={taxonomyFilters}
+        setTaxonomyFilters={setTaxonomyFilters}
         resultCount={allFiltered.length}
       />
 

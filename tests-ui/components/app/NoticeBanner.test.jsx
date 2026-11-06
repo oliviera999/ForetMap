@@ -19,11 +19,16 @@ describe('NoticeBanner', () => {
     expect(banner.style.fontSize).toBe('var(--text-base)');
   });
 
+  // Propriétés détaillées (`backgroundColor`, `borderTopColor`…) plutôt que les raccourcis :
+  // depuis jsdom 30, le style calculé développe `background` (« rgb(…) none repeat scroll… »),
+  // qui ne correspond plus à une couleur seule.
   test('tone=warning : palette ambre (identique à l’ancien bandeau serverDown)', () => {
     render(<NoticeBanner tone="warning">Alerte</NoticeBanner>);
     expect(screen.getByRole('alert')).toHaveStyle({
-      background: '#fef3c7',
-      border: '1px solid #f59e0b',
+      backgroundColor: '#fef3c7',
+      borderTopWidth: '1px',
+      borderTopStyle: 'solid',
+      borderTopColor: '#f59e0b',
       color: '#78350f',
     });
   });
@@ -31,15 +36,17 @@ describe('NoticeBanner', () => {
   test('tone=info : palette bleue (identique à l’ancien bandeau sessionValidationError)', () => {
     render(<NoticeBanner tone="info">Info</NoticeBanner>);
     expect(screen.getByRole('alert')).toHaveStyle({
-      background: '#eff6ff',
-      border: '1px solid #93c5fd',
+      backgroundColor: '#eff6ff',
+      borderTopWidth: '1px',
+      borderTopStyle: 'solid',
+      borderTopColor: '#93c5fd',
       color: '#1e3a8a',
     });
   });
 
   test('tone inconnu ou absent : retombe sur warning', () => {
     render(<NoticeBanner>Défaut</NoticeBanner>);
-    expect(screen.getByRole('alert')).toHaveStyle({ background: '#fef3c7' });
+    expect(screen.getByRole('alert')).toHaveStyle({ backgroundColor: '#fef3c7' });
   });
 
   test('action : bouton .btn.btn-sm rendu et câblé, absent sans action', () => {

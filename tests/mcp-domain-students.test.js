@@ -273,3 +273,22 @@ test('domaine désactivé : outil absent et appel refusé', async () => {
   const r = await call('foretmap_students', { action: 'list' });
   assert.equal(r.isError, true);
 });
+
+test('badges : fiche décrite (titre, palier, mot) et élèves proches d’un palier par groupe', async () => {
+  await execute(
+    `INSERT IGNORE INTO user_rewards (user_id, reward_key, source_type, awarded_at, note)
+     VALUES (?, 'metier.jardinage.1', 'task', NOW(), NULL), (?, 'manuel.guide.1', 'manual', NOW(), 'Merci')`,
+    [s1.id, s1.id],
+  );
+  const r = await call('foretmap_students', { action: 'get', student_id: s1.id });
+  assert.equal(r.isError, false, r.text);
+  const jardinage = r.data.rewards.find((x) => x.reward_key === 'metier.jardinage.1');
+  assert.equal(jardinage.title, 'Main verte');
+  assert.equal(jardinage.tier, 1);
+  assert.equal(r.data.rewards.find((x) => x.reward_key === 'manuel.guide.1').note, 'Merci');
+  const near = await call('foretmap_students', { action: 'rewards_near', group_id: groupId });
+  assert.equal(near.isError, false, near.text);
+  assert.equal(near.data.group.id, groupId);
+  assert.ok(Array.isArray(near.data.near));
+  await execute('DELETE FROM user_rewards WHERE user_id = ?', [s1.id]);
+});

@@ -1541,7 +1541,7 @@ Le forum et le carnet gardent leur convention propre (module éteint → fermé 
 | Clés d'identification (`ui.modules.id_keys_enabled`) — `503 'Clés d’identification désactivées'` | `id_keys.manage` | `GET /api/id-keys`, `GET /api/id-keys/:idOrSlug` | ces lectures (brouillons compris) ; `POST` / `PUT` / `DELETE` clé, couplets, leads |
 | Individus suivis (`ui.modules.individuals_enabled`) — `503 'Suivi des individus désactivé'` | `individuals.manage` | `GET /api/individuals`, `GET /api/individuals/:id`, `POST /api/individuals/:id/measurements` (paliers élève `individuals.measure`) | ces routes ; `POST` / `PUT` / `DELETE` individu, `DELETE` mesure |
 | Séances (`ui.modules.pedago_sessions_enabled`) — `503 'Séances pédagogiques désactivées'` | `plants.manage` | `GET /api/pedago-sessions`, `GET /api/pedago-sessions/:idOrSlug` (lien direct, QR), `GET /me/runs`, `POST /:idOrSlug/runs/start`, `POST /:idOrSlug/runs/complete` | ces routes (démonstration) ; `?all=1`, `POST`, `PUT`, `GET /stats`, `GET /:idOrSlug/runs`, `GET /:idOrSlug/share` |
-| Récompenses (`ui.modules.rewards_enabled`) — `503 'Récompenses désactivées'` | — (aucune route de gestion) | `GET /api/rewards/me` (pour tous) | — |
+| Récompenses (`ui.modules.rewards_enabled`) — `503 'Récompenses désactivées'` | `POST /api/rewards/award` (badge manuel, `rewards.award`) | `GET /api/rewards/me`, `POST /api/rewards/me/seen`, `GET /api/rewards/students/:id`, `GET /api/rewards/groups/:id` (pour tous) | — |
 
 Front (`resolvePedagoModuleAccess`, `src/utils/appAccess.js`, miroir de la garde) : module
 éteint → onglet masqué, vue non montée et onglet ouvert replié (`useTabNavigationGuards`, vers
@@ -2478,6 +2478,42 @@ Query optionnelle de `GET /api/school-calendar` : `from`, `to` (`AAAA-MM-JJ`). S
 
 ---
 
+### Métier, format et phase d'une tâche (migration 329)
+
+Colonnes `tasks.category`, `tasks.format`, `tasks.project_phase` (VARCHAR, sans ENUM SQL) ;
+valeurs et libellés : référentiel `src/shared/enums/taskEnums.js` et noyau
+`src/shared/taskTaxonomyCore.js` (miroirs `lib/shared/`).
+
+| Champ           | Valeurs                                                                                                     |
+| --------------- | ----------------------------------------------------------------------------------------------------------- |
+| `category`      | `jardinage`, `animaux`, `entretien`, `bricolage`, `terrassement`, `rangement`, `electronique`, `communication` |
+| `format`        | `flash` (moins de 15 min), `routine` (régulière), `seance` (environ une heure)                              |
+| `project_phase` | `concevoir`, `preparer`, `realiser`, `tester`, `transmettre` (`null` hors projet)                           |
+
+- **Écriture** (`POST /api/tasks`, `PUT /api/tasks/:id`, `POST /api/tasks/proposals`,
+  duplication, import) : clé ou libellé acceptés (casse et accents ignorés) ; valeur inconnue
+  → **400** `{ error: 'Métier inconnu « … » (valeurs : …)' }`, jamais un NULL silencieux.
+  `category` et `format` sont **facultatifs** à l'API (import, connecteur, anciens clients) ;
+  le formulaire les exige à la création.
+- `recurrence` non nulle ⇒ `format = 'routine'` (forcé par le serveur).
+- `project_phase` refusée (400) sans `project_id` ; remise à `null` quand la tâche quitte son
+  projet. Un proposeur n3beur ne peut pas la modifier (403, comme `project_id`).
+- **Propagation** : occurrence récurrente (métier, phase et auteur copiés, format `routine`),
+  `POST /api/tasks/:id/duplicate`, duplication de projet, import CSV/XLSX (colonnes
+  `Métier`, `Format (flash|routine|seance)`, `Phase de projet` ; alias `metier`, `category`,
+  `format`, `phase`, `project_phase` ; une phase exige un projet).
+- **Lecture** : `GET /api/tasks` et `GET /api/tasks/:id` renvoient `category`, `format`,
+  `project_phase` ; filtres `GET /api/tasks?category=a,b&format=…&project_phase=…` (valeurs
+  multiples séparées par des virgules, valeur inconnue → 400).
+- **Auteur d'une proposition** : `tasks.proposed_by_user_id` (FK `users`, `ON DELETE SET NULL`)
+  est rempli par `POST /api/tasks/proposals` à partir du jeton ; il n'est **jamais** lu dans un
+  corps de requête ni renvoyé (l'identité reste exposée par `proposed_by_student_id`, masqué
+  selon le lecteur). Reprise des propositions existantes depuis `audit_log` par la migration.
+- **Statistiques** (`foretmap_tasks stats`) : `by_category` et `by_format`
+  (`{ category|format, label, n, validated }`, `null` = non classée).
+- Reprise des tâches existantes : `node scripts/backfill-task-taxonomy.js` (dry-run → CSV
+  relu → `--apply --file`), cf. `CHANGELOG.md`.
+
 ## Projets de tâches (`/api/task-projects`)
 
 Regroupe plusieurs tâches sous un même projet (carte, titre, description, statut). Les liaisons **zones / repères / tutoriels** décrivent où et avec quelles ressources pédagogiques le projet s’inscrit sur la carte.
@@ -2510,6 +2546,17 @@ Regroupe plusieurs tâches sous un même projet (carte, titre, description, stat
 **Archivage (soft-delete)** — tâches et projets exposent une colonne `archived_at` (`null` = actif, horodatage = archivé). L’archivage **masque** l’entité des listes actives sans la supprimer et reste **réversible**. Il n’altère ni le statut ni les données liées (assignations, journaux, zones, tutoriels). Une **tâche archivée est exclue** du calcul de complétion automatique du projet (`completed` / retour `active`). Côté client, seuls les profils `tasks.manage` peuvent lister et manipuler les archives ; les vues n3beurs ne les voient jamais. Une tâche archivée n’accepte plus les actions n3beur (`assign`, `assign-group`, `done` → `400`). En revanche elle **continue de compter** dans la progression et les statistiques de l’élève quand elle est validée : archiver range une liste, cela ne retire pas un travail accompli (cf. [docs/AUDIT_ARCHIVAGE_TACHES_2026-08.md](AUDIT_ARCHIVAGE_TACHES_2026-08.md) §6.1).
 
 ---
+
+### Type de projet et avancement par phase (migration 329)
+
+- `task_projects.project_type` : `amenagement`, `construction`, `dispositif_technique`,
+  `evenement`, `campagne` (ou `null`). Accepté par `POST` et `PUT /api/task-projects`
+  (clé ou libellé ; valeur inconnue → 400), copié par `POST /api/task-projects/:id/duplicate`
+  (avec le métier, le format et la phase de chaque tâche copiée).
+- `GET /api/task-projects/:id` ajoute
+  `phase_progress: { phases: [{ key, label, total, validated }], current_phase, without_phase }` :
+  tâches actives par phase (dans l'ordre concevoir → transmettre), phase courante = première
+  phase non terminée, nombre de tâches sans phase.
 
 ## Texte enrichi (Markdown léger)
 
@@ -4102,17 +4149,42 @@ modification (`docs/reference/exploitation/durees-de-conservation.md`).
 
 ### Badges (`/api/rewards`)
 
-Migration `285`, table `user_rewards` (un badge par utilisateur, attribué une seule fois). Les
-règles sont côté serveur (`lib/rewards.js`) ; aujourd’hui alimentées par les fins de séance
-(`session_first`, `session_three`, `session_replay`, `session_lycee`).
+Migrations `285` et `329`, table `user_rewards` (clé primaire `(user_id, reward_key)`,
+colonnes `source_type`, `source_ref`, `awarded_at`, `awarded_by_user_id`, `note`, `seen_at`).
+Catalogue et règles côté serveur (`lib/rewards/`) : 34 entrées — métiers (8), formats et
+engagement (Colibri, Fidèle au poste, Parole tenue), démarche de projet (5 phases + Cycle
+complet), Écotone, savoirs naturalistes (Herbier vivant, Entomologiste, Lecteur de terrain,
+Notion maîtrisée), temps long (Phénologue, Racines), collectif (Semeur d'idées, Tuteur),
+séances et fresque (clés historiques inchangées), badges manuels (Sauveteur, Guide, Coup de
+main).
 
-Module `ui.modules.rewards_enabled` éteint : **503** `{ error: 'Récompenses désactivées' }` pour
-tous ; les badges mérités sont tout de même enregistrés (sans annonce, `rewards: []`) et
-apparaissent au rallumage.
+- **Paliers** 🌸 Bourgeon, 🌼 Fleur, 🍎 Fruit : une ligne par palier, clé `<badge>.<n>`
+  (ex. `metier.jardinage.2`) ; badge unique : clé seule (`temps.racines`, `projet.cycle_complet`) ;
+  badge manuel : `manuel.<type>.<n>` (`n` incrémenté). Clés ≤ 64 caractères.
+- **Règle de crédit** d'une tâche (seule source des badges de tâches) : `status = 'validated'`,
+  `validated_at` non nul, élève inscrit (`task_assignments.student_id`), part faite en mode
+  `all_assignees_done`, titre différent de « test » ; une tâche archivée après validation
+  compte.
+- **Attribution** : évaluateur commun (`INSERT IGNORE`, jamais de retrait), lancé sans attendre
+  après la validation d'une tâche ou d'un projet, l'acceptation d'une proposition, une
+  observation validée, une réponse au quiz, la lecture d'un tutoriel, une fin de séance ;
+  passe de nuit `rewards_evaluate` (élèves actifs sur 30 jours) ; rattrapage
+  `node scripts/rewards-backfill.js [--all] [--apply]`. Badges de tâches, projets, savoirs et
+  collectif réservés aux comptes élèves au profil n3beur ; badges de séance : tout compte.
+- **Annonce** : notification `kind = 'reward'` (regroupée par action ; une seule
+  récapitulative au rattrapage) si le module est allumé.
+
+Module `ui.modules.rewards_enabled` éteint : **503** `{ error: 'Récompenses désactivées' }` sur
+toutes les routes (badge manuel compris) ; les badges automatiques sont tout de même
+enregistrés (sans annonce, `rewards: []` en fin de séance) et apparaissent au rallumage.
 
 | Méthode | URL | Auth | Description |
 | ------- | --- | ---- | ----------- |
-| GET | `/api/rewards/me` | connecté | `{ rewards: [{ key, emoji, title, description, awardedAt }], catalogue: [{ key, emoji, title, description }] }` |
+| GET | `/api/rewards/me` | connecté | `{ rewards: [{ key, baseKey, family, emoji, title, description, tier, occurrence, awardedAt, note, seen }], progress: [{ key, family, value, tier, nextTier, nextThreshold, remaining }], catalogue: [{ key, family, emoji, title, description, unit, source, tiers: [{ n, emoji, label, threshold }] \| null }], families: [{ key, label }], tiers }` — rétrocompatible (champs ajoutés) |
+| POST | `/api/rewards/me/seen` | connecté | Pose `seen_at` sur les badges non vus → `{ seen }` |
+| GET | `/api/rewards/students/:id` | personnel qui lit les inscriptions (`tasks.manage`, `tasks.validate`, `stats.read.*`) + élève du périmètre (`canAccessStudentId`) | Même forme que `/me` + `studentId` ; **403** hors périmètre |
+| GET | `/api/rewards/groups/:id` | idem, groupe du périmètre | `{ group, families, students: [{ id, name, families: { <famille>: n }, total }], near: [{ studentId, name, key, title, emoji, value, nextThreshold, nextTier, remaining }] }` — tri **alphabétique**, aucun classement ; `near` = à 1 du palier suivant ; **403** / **404** |
+| POST | `/api/rewards/award` | `rewards.award` (admin, prof) + élève du périmètre | `{ studentId, type: 'sauveteur'\|'guide'\|'coup_de_main', note }` — `note` obligatoire (≤ 280 caractères) ; **201** `{ reward }` ; journal `audit_log` `reward_award` ; notification à l'élève |
 
 Preuve légère (migration `283`, table `pedago_session_runs`) : une ligne par couple
 (séance, utilisateur) avec compteurs cumulés de démarrages et de fins. Les visiteurs non

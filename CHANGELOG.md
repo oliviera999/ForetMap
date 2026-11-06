@@ -9,6 +9,96 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — Tâches : métiers, formats, phases de projet ; badges automatiques
+
+- **Lot A — migration 329** (`migrations/329_task_taxonomy_rewards.sql`) : colonnes
+  `tasks.category`, `tasks.format`, `tasks.project_phase`, `tasks.proposed_by_user_id`
+  (FK `users`, `ON DELETE SET NULL`), `task_projects.project_type`,
+  `user_rewards.awarded_by_user_id` / `note` / `seen_at` ; index ; reprise des auteurs de
+  propositions depuis `audit_log` (`propose_task`, plus ancienne ligne) ; permission
+  `rewards.award` (admin, prof). Aucun classement des tâches existantes dans la migration.
+- **Lot B — taxonomie, source unique, règles serveur** : référentiel `taskEnums.js`
+  (`TASK_CATEGORY_ENUM`, `TASK_FORMAT_ENUM`, `TASK_PROJECT_PHASE_ENUM`,
+  `TASK_PROJECT_TYPE_ENUM`) et noyau partagé `src/shared/taskTaxonomyCore.js` (miroir CJS) ;
+  valeur inconnue refusée en 400 ; récurrence ⇒ format `routine` ; phase seulement dans un
+  projet (remise à NULL au détachement) ; propagation à l'occurrence récurrente, à la
+  duplication de tâche et de projet, à l'import (colonnes Métier, Format, Phase) ; filtres
+  `category`, `format`, `project_phase` sur `GET /api/tasks` ; avancement par phase dans
+  `GET /api/task-projects/:id` ; statistiques par métier et par format ; auteur d'une
+  proposition (`proposed_by_user_id`) renseigné par la route de proposition, jamais par l'API ;
+  suggestion automatique de métier et de format (`lib/tasks/taskCategoryGuess.js`, règles
+  partagées avec le formulaire) ; test anti-littéraux.
+- **Lot C — interface des tâches et des projets** : formulaire de tâche avec **métier**
+  (grille de 8 boutons) et **format** (3 boutons) obligatoires à la création, pré-remplis par
+  la suggestion (mention « suggéré »), format verrouillé sur Routine pour une tâche
+  récurrente, champ **phase** visible seulement avec un projet ; suggestion affichée sans
+  être appliquée sur une tâche ancienne ; garde-fou non bloquant « Cette tâche ressemble à un
+  projet » (Séance à 6 élèves ou plus, ou description de plus de 1 500 caractères) ;
+  formulaire de projet avec **type** et rappel des cinq phases ; étiquettes
+  « 🪴 Jardinage · ⚡ Flash » sur les tuiles ; filtres métier et format (sélection multiple)
+  et raccourci « ⚡ J'ai 15 minutes » (Flash disponibles), mémorisés pour la session
+  d'onglet ; frise des phases dans les projets (phase courante, phase vide en pointillé) et
+  tâches regroupées par phase.
+- **Lot D — classement des tâches existantes** : `scripts/backfill-task-taxonomy.js`
+  (dry-run par défaut → `tmp/task-taxonomy-proposal.csv` ; `--apply --file` n'applique que
+  le CSV relu, en une transaction, une ligne `audit_log` `task_taxonomy_backfill` ; champs
+  NULL seulement sauf `--overwrite` ; jamais de statut ni d'avancement). Projets et phases
+  depuis `scripts/data/task-taxonomy-annex2.json` (préfixes vérifiés, arrêt si ambigu) ;
+  candidats « projet » et récurrence suspecte signalés à part, sans transformation.
+- **Lot E — moteur de badges** : `lib/rewards.js` devient `lib/rewards/` (API publique
+  conservée) — catalogue (`catalog.js`, 34 entrées : métiers, formats et engagement, démarche
+  de projet, Écotone, savoirs naturalistes, temps long, collectif, séances et fresque
+  inchangés, badges manuels), paliers 🌸 Bourgeon / 🌼 Fleur / 🍎 Fruit en clés
+  `<badge>.<n>` ; règle de crédit unique (`creditedTasks.js`) ; mesures agrégées
+  (`metrics.js`) ; évaluateur (`INSERT IGNORE`, jamais de retrait, comptes élèves n3beur
+  seulement, jamais bloquant) ; annonce (notification regroupée, silencieuse module
+  éteint) ; points d'appel : validation de tâche et de projet, proposition acceptée,
+  observation validée, réponse de quiz, lecture de tutoriel, fin de séance ; passe de nuit
+  `rewards_evaluate` ; rattrapage `scripts/rewards-backfill.js` (dry-run par défaut, une
+  notification récapitulative par élève). `nature.cle` non créé (aucun suivi des parcours de
+  clé de détermination). « Lecteur de terrain » lit les liens question ↔ tutoriel de la
+  source unique `resource_question_links` (liens approuvés), pas la table historique
+  `quiz_question_tutorials` en cours de retrait.
+  Phénologue et Racines datent une tâche par l'inscription de l'élève (repli : validation) :
+  les validations en bloc de fin d'année plaçaient tout le travail du printemps en été.
+- **Lot F — interfaces des badges** : `GET /api/rewards/me` enrichi (progression vers le
+  palier suivant, catalogue complet avec paliers, familles ; rétrocompatible),
+  `POST /api/rewards/me/seen`, `GET /api/rewards/students/:id` et
+  `GET /api/rewards/groups/:id` (périmètre des inscrits, 403 sinon, tri alphabétique sans
+  classement), `POST /api/rewards/award` (permission `rewards.award`, mot obligatoire de
+  280 caractères au plus, journal `reward_award`). « Mes badges » regroupé par famille
+  (paliers obtenus en couleur, à venir en gris, progression, date, mot de l'adulte),
+  célébration regroupée des badges non vus (sans animation si `prefers-reduced-motion`),
+  vitrine du groupe filtré dans les statistiques n3boss (« Qui est proche d'un palier ? »),
+  bouton « Décerner un badge » sur la ligne d'un élève, dans la vitrine et sur les comptes
+  rendus d'une tâche.
+- **Lot G — connecteur MCP** : `foretmap_tasks` (filtres `category`, `format`,
+  `project_phase` sur `list`, champs acceptés par `create` / `update` / `bulk_create`,
+  `stats` par métier et par format) ; `foretmap_task_projects get` (type de projet,
+  avancement par phase) ; `foretmap_students get` (badges décrits : titre, palier, mot de
+  l'adulte) et nouvelle action nominative `rewards_near` (élèves à un palier près, par
+  groupe, par la même route que la vitrine) ; job `rewards_evaluate` lançable par
+  `foretmap_ops run_cron`.
+- **Lot H — données personnelles** : notice « Vos données » de la forêt enrichie d'une
+  section « Tes badges » (sources du calcul, qui les voit, durée, export) ; badges
+  conservés exactement aussi longtemps que le compte (cascade, `ACCOUNT_LIFETIME_TABLES`
+  dans `lib/retention/policy.js`, ligne ajoutée à `durees-de-conservation.md`) ; fusion de
+  comptes : date la plus ancienne gardée en cas de doublon, badges manuels renumérotés
+  (`lib/rewards/merge.js`) ; export RGPD : badges et mot de l'adulte, sans l'identifiant de
+  l'adulte. Aucun affichage public des badges.
+- **Corrigé — avatar par défaut** : `@dicebear/core` revient en 9.4.3, la version qu'exige le
+  style `@dicebear/adventurer-neutral` 9.4.3 (dépendance « peer » `^9`) ; le passage seul du
+  cœur en 10.x (#612) avait retiré `createAvatar` et cassé `tests/default-avatar.test.js` sur
+  `main`. Dependabot ne propose plus seul une montée majeure `@dicebear/*`.
+- **Lot I — documentation** : `docs/API.md` (métier, format, phase, filtres, avancement par
+  phase, `/api/rewards` complet, permission `rewards.award`), `docs/MCP.md` ; docs de
+  référence : `taches-tutoriels-et-validation.md` (choisir un métier et un format, type et
+  phases d'un projet, frise, filtres, « J'ai 15 minutes »), nouveaux `badges.md` (côté prof
+  et côté élève) et `badges-intentions.md` (note pédagogique), `vos-donnees.md`,
+  `durees-de-conservation.md`. Scénario e2e `tasks-taxonomy-badges.spec.js` (métier suggéré,
+  étiquettes, badge après validation) ; helper e2e de création de tâche adapté aux champs
+  obligatoires.
+
 ### Ajouté — Connecteur Claude : outils de domaine (suite)
 
 - **Lot D (2/4) — personnes et pédagogie** : `foretmap_students` (nominatif ; remplace

@@ -16,6 +16,7 @@ import {
 } from './LocationPickList.jsx';
 import { useTutorialSearch } from './useTutorialSearch.js';
 import { IconClose } from '../../shared/icons.jsx';
+import { PROJECT_TYPES, PROJECT_PHASES, projectTypeInfo } from '../../shared/taskTaxonomyCore.js';
 
 const var_alert = 'var(--alert)';
 
@@ -34,6 +35,7 @@ function buildInitialProjectForm(editProject, defaultMapId) {
       marker_ids: [],
       tutorial_ids: [],
       status: 'active',
+      project_type: '',
     };
   }
   return {
@@ -43,6 +45,7 @@ function buildInitialProjectForm(editProject, defaultMapId) {
     zone_ids: initialLocationIds(editProject, 'zone_ids', 'zone_id'),
     marker_ids: initialLocationIds(editProject, 'marker_ids', 'marker_id'),
     tutorial_ids: normalizeTutorialIds(editProject.tutorial_ids || []),
+    project_type: editProject.project_type || '',
     status:
       editProject.status === 'on_hold'
         ? 'on_hold'
@@ -123,6 +126,7 @@ function TaskProjectFormModal({
           ...new Set(form.marker_ids.map((id) => String(id || '').trim()).filter(Boolean)),
         ],
         tutorial_ids: normalizedTutorialIds,
+        project_type: form.project_type || null,
       };
       if (editProject && (form.status === 'active' || form.status === 'on_hold')) {
         payload.status = form.status;
@@ -172,6 +176,40 @@ function TaskProjectFormModal({
           placeholder="Objectif du projet, consignes générales…"
         />
       </div>
+      <div className="field">
+        <label htmlFor="task-project-type">Type de projet</label>
+        <select
+          id="task-project-type"
+          value={form.project_type}
+          onChange={(e) => setForm((f) => ({ ...f, project_type: e.target.value }))}
+        >
+          <option value="">Non précisé</option>
+          {PROJECT_TYPES.map((t) => (
+            <option key={t.key} value={t.key}>
+              {t.label}
+            </option>
+          ))}
+        </select>
+        {projectTypeInfo(form.project_type) && (
+          <p className="task-taxo-hint">{projectTypeInfo(form.project_type).description}</p>
+        )}
+      </div>
+      <details className="task-project-phases-reminder" data-testid="project-phases-reminder">
+        <summary>Les cinq phases d’un projet</summary>
+        <ol>
+          {PROJECT_PHASES.map((p) => (
+            <li key={p.key}>
+              <strong>
+                <span aria-hidden="true">{p.emoji}</span> {p.label}
+              </strong>{' '}
+              : {p.phrase}
+            </li>
+          ))}
+        </ol>
+        <p className="task-taxo-hint">
+          Chaque tâche du projet peut être rattachée à une phase depuis son formulaire.
+        </p>
+      </details>
       <div className="field">
         <label>Carte</label>
         <select

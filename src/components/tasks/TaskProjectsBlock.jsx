@@ -1,9 +1,11 @@
-import { useCallback, useState } from 'react';
+import { Fragment, useCallback, useState } from 'react';
 import { mapLabelFromMaps, normalizeProjectUiStatus } from '../../utils/taskListHelpers.js';
 import { ContextComments } from '../context-comments';
 import { MarkdownContent } from '../MarkdownContent.jsx';
 import { tutorialPreviewCanEmbed } from '../TutorialPreviewModal';
 import { TaskTileCard } from './TaskTileCard.jsx';
+import { TaskPhaseTimeline, groupTasksByPhase } from './TaskPhaseTimeline.jsx';
+import { projectTypeInfo } from '../../shared/taskTaxonomyCore.js';
 import {
   IconArchive,
   IconCheck,
@@ -188,10 +190,14 @@ function TaskProjectsBlock({
                       )}
                     </div>
                     <div style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}>
+                      {projectTypeInfo(p.project_type) && (
+                        <>{projectTypeInfo(p.project_type).label} · </>
+                      )}
                       {p.map_label || mapLabelFromMaps(p.map_id, maps)} · {projectTasksCount} tâche
                       {projectTasksCount > 1 ? 's' : ''}
                       {!expanded && projectTasksCount > 0 ? ' · appuyer pour afficher' : ''}
                     </div>
+                    <TaskPhaseTimeline tasks={projectTasks} />
                     {expanded && !!(p.description || '').trim() && (
                       <MarkdownContent className="task-desc" style={{ marginTop: 8 }}>
                         {String(p.description).trim()}
@@ -474,31 +480,40 @@ function TaskProjectsBlock({
                         </p>
                       ) : (
                         <div className={sectionListClass}>
-                          {projectTasks.map((t, idx) => (
-                            <div
-                              key={t.id}
-                              className={`task-project-drop-slot ${canReceiveTaskDrop && taskDropHint?.projectId === projectDropId && taskDropHint?.beforeTaskId === String(t.id) ? 'task-project-drop-slot--active' : ''}`}
-                              onDragOver={(event) => {
-                                if (!canReceiveTaskDrop) return;
-                                event.preventDefault();
-                                event.stopPropagation();
-                                event.dataTransfer.dropEffect = 'move';
-                                onProjectTaskDragOver?.(projectDropId, String(t.id));
-                              }}
-                              onDrop={(event) => {
-                                if (!canReceiveTaskDrop) return;
-                                event.preventDefault();
-                                event.stopPropagation();
-                                onDropTaskToProject?.(projectDropId, String(t.id));
-                              }}
-                            >
-                              <TaskTileCard
-                                {...tileCardProps}
-                                {...(getTaskTileVolatileProps ? getTaskTileVolatileProps(t) : null)}
-                                t={t}
-                                index={idx}
-                              />
-                            </div>
+                          {groupTasksByPhase(projectTasks).map((group) => (
+                            <Fragment key={`phase-${group.key || 'none'}`}>
+                              {group.label && (
+                                <h4 className="task-project-phase-heading">{group.label}</h4>
+                              )}
+                              {group.tasks.map((t) => (
+                                <div
+                                  key={t.id}
+                                  className={`task-project-drop-slot ${canReceiveTaskDrop && taskDropHint?.projectId === projectDropId && taskDropHint?.beforeTaskId === String(t.id) ? 'task-project-drop-slot--active' : ''}`}
+                                  onDragOver={(event) => {
+                                    if (!canReceiveTaskDrop) return;
+                                    event.preventDefault();
+                                    event.stopPropagation();
+                                    event.dataTransfer.dropEffect = 'move';
+                                    onProjectTaskDragOver?.(projectDropId, String(t.id));
+                                  }}
+                                  onDrop={(event) => {
+                                    if (!canReceiveTaskDrop) return;
+                                    event.preventDefault();
+                                    event.stopPropagation();
+                                    onDropTaskToProject?.(projectDropId, String(t.id));
+                                  }}
+                                >
+                                  <TaskTileCard
+                                    {...tileCardProps}
+                                    {...(getTaskTileVolatileProps
+                                      ? getTaskTileVolatileProps(t)
+                                      : null)}
+                                    t={t}
+                                    index={projectTasks.indexOf(t)}
+                                  />
+                                </div>
+                              ))}
+                            </Fragment>
                           ))}
                         </div>
                       )}
