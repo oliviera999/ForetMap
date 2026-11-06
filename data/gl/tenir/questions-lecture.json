@@ -1,0 +1,509 @@
+{
+  "format": "questions-lecture v1 — une question de lecture par zone de chasse, 4 choix, niveau 6e, sur le contenu de la page",
+  "questions": [
+    {
+      "zone_key": "cz-p1-01",
+      "feuillet_code": "ren-jungle-01",
+      "question": "Que fait le calao avec les fruits du moabi ?",
+      "choix": {
+        "A": "Il les enterre au pied de l'arbre pour l'hiver",
+        "B": "Il les gobe, les promène dans son ventre et sème les graines plus loin",
+        "C": "Il les donne aux éléphants en échange de leur protection",
+        "D": "Il les casse avec son casque pour en manger le noyau"
+      },
+      "reponse": "B",
+      "feedback_correct": "Oui : du sucre contre un voyage. L'arbre ne marche pas, l'oiseau lui prête ses ailes.",
+      "feedback_incorrect": "Pas encore. Relis le deuxième paragraphe : l'oiseau gobe les fruits, et les graines voyagent dans son ventre."
+    },
+    {
+      "zone_key": "cz-p1-02",
+      "feuillet_code": "ren-jungle-02",
+      "question": "D'après la page, à quoi la langue de l'okapi est-elle assez longue pour servir ?",
+      "choix": {
+        "A": "À attraper des poissons dans la rivière",
+        "B": "À siffler pour appeler les autres",
+        "C": "À creuser le sol pour trouver des racines",
+        "D": "À se laver les yeux"
+      },
+      "reponse": "D",
+      "feedback_correct": "Exactement : une langue assez longue pour se laver les yeux. Et des pattes de zèbre sur un corps de cheval sombre.",
+      "feedback_incorrect": "Pas encore. La toute première phrase de la page donne la réponse : regarde ce que l'okapi fait avec sa langue."
+    },
+    {
+      "zone_key": "cz-p1-03",
+      "feuillet_code": "sort-jungle-01",
+      "question": "Dans la pénombre du sous-bois, à quoi ressemble un pangolin roulé en boule ?",
+      "choix": {
+        "A": "À une pomme de pin géante",
+        "B": "À un gros caillou gris",
+        "C": "À un nid d'oiseau tombé",
+        "D": "À une termitière"
+      },
+      "reponse": "A",
+      "feedback_correct": "Oui, une pomme de pin géante. C'est pour ça qu'on passe sans le voir : la corne sert à regarder, pas à frapper.",
+      "feedback_incorrect": "Pas encore. Relis le premier paragraphe : la page compare le pangolin à quelque chose qui pousse sur les pins."
+    },
+    {
+      "zone_key": "cz-p1-04",
+      "feuillet_code": "ep-I-colonne",
+      "question": "Où la voyageuse attend-elle que la colonne de fourmis soit passée ?",
+      "choix": {
+        "A": "Dans la rivière, avec de l'eau jusqu'au cou",
+        "B": "En haut d'un arbre, pendant trois heures",
+        "C": "Sous une grosse pierre plate",
+        "D": "Dans sa tente, bien fermée"
+      },
+      "reponse": "B",
+      "feedback_correct": "Oui : trois heures perchée dans le premier arbre, à regarder le fleuve noir s'écouler. Une bête faite de mille bêtes.",
+      "feedback_incorrect": "Pas encore. La page dit qu'elle a grimpé quelque part, les premières fourmis déjà sur ses bottes. Relis le deuxième paragraphe."
+    },
+    {
+      "zone_key": "cz-p1-05",
+      "feuillet_code": "ep-I-01",
+      "question": "Pour la voyageuse, la savane de ce premier matin est-elle la même que celle d'hier ?",
+      "choix": {
+        "A": "Oui : la savane ne change jamais, c'est ce qui la rend belle",
+        "B": "Oui, sauf pendant la saison des pluies",
+        "C": "Non : elle change sans arrêt, et c'est normal",
+        "D": "Non, parce qu'un incendie est passé dans la nuit"
+      },
+      "reponse": "C",
+      "feedback_correct": "Oui. Il n'y a pas de « comme il doit être » : la nature n'est jamais deux fois la même, et ce n'est pas une maladie.",
+      "feedback_incorrect": "Pas encore. Relis la première phrase de la page : la savane de cette aube n'est pas celle d'hier, ni celle de demain."
+    },
+    {
+      "zone_key": "cz-p1-06",
+      "feuillet_code": "ren-savane-01",
+      "question": "Comment la girafe arrive-t-elle à manger l'acacia malgré ses épines de sept centimètres ?",
+      "choix": {
+        "A": "Elle casse les branches avec ses petites cornes",
+        "B": "Elle attend que les épines tombent en saison sèche",
+        "C": "Elle ne mange que les fleurs, qui n'ont pas d'épines",
+        "D": "Avec sa longue langue noire, qui se faufile entre les pointes sans se blesser"
+      },
+      "reponse": "D",
+      "feedback_correct": "Oui : cinquante centimètres de langue noire et calleuse. Match nul entre l'arbre et la girafe depuis des millions d'années.",
+      "feedback_incorrect": "Pas encore. Relis le premier paragraphe : la girafe a un « truc » pour passer entre les épines, et il est dans sa bouche."
+    },
+    {
+      "zone_key": "cz-p1-07",
+      "feuillet_code": "ren-savane-02",
+      "question": "Que fait la sentinelle pendant que le reste du clan fouille le sable ?",
+      "choix": {
+        "A": "Elle mange la première, parce qu'elle est la plus vieille",
+        "B": "Elle se tient debout, droite, et surveille le ciel",
+        "C": "Elle creuse le terrier pour toute la famille",
+        "D": "Elle dort au soleil en attendant son tour"
+      },
+      "reponse": "B",
+      "feedback_correct": "Oui. Droite comme un piquet, les yeux au ciel. Si un rapace approche, un cri, et tout le clan disparaît sous terre.",
+      "feedback_incorrect": "Pas encore. Relis le début de la page : l'un d'eux ne mange pas, il regarde quelque chose au-dessus de lui."
+    },
+    {
+      "zone_key": "cz-p1-08",
+      "feuillet_code": "sort-savane-01",
+      "question": "Comment la vieille matriarche trouve-t-elle un point d'eau pendant l'année de sécheresse ?",
+      "choix": {
+        "A": "Elle suit le vol des oiseaux qui vont boire",
+        "B": "Elle creuse au hasard avec ses défenses",
+        "C": "Elle s'en souvient : elle l'avait visité enfant, trente ans plus tôt",
+        "D": "Elle sent la pluie qui arrive de très loin"
+      },
+      "reponse": "C",
+      "feedback_correct": "Oui. Sa mémoire était la carte. Quand une matriarche s'en va, c'est toute une bibliothèque de chemins qui part.",
+      "feedback_incorrect": "Pas encore. Relis le deuxième paragraphe : le point d'eau, la matriarche l'a déjà vu, il y a très longtemps."
+    },
+    {
+      "zone_key": "cz-p2-01",
+      "feuillet_code": "ren-sahara-01",
+      "question": "D'où le fennec tire-t-il presque toute son eau ?",
+      "choix": {
+        "A": "Des rivières du désert, la nuit",
+        "B": "De la rosée qu'il lèche sur les pierres",
+        "C": "De ce qu'il mange : il « boit » ses proies",
+        "D": "Des oasis, où il va une fois par semaine"
+      },
+      "reponse": "C",
+      "feedback_correct": "Oui. Il ne boit pas, ou presque : toute son eau vient de ce qu'il mange. Le désert ne lui offre pas de rivière.",
+      "feedback_incorrect": "Pas encore. Relis le deuxième paragraphe : « le plus fou, c'est qu'il ne boit pas ». Alors d'où vient son eau ?"
+    },
+    {
+      "zone_key": "cz-p2-02",
+      "feuillet_code": "ren-sahara-02",
+      "question": "Que se passe-t-il quand on pose la rose de Jéricho dans l'eau ?",
+      "choix": {
+        "A": "Elle se déplie comme une main qui s'ouvre, et le vert revient",
+        "B": "Elle fond et disparaît en quelques minutes",
+        "C": "Elle flotte, sèche, et ne change pas",
+        "D": "Elle devient rouge et se met à sentir fort"
+      },
+      "reponse": "A",
+      "feedback_correct": "Oui : en quelques heures, la boule grise s'ouvre et reverdit. Elle n'était pas morte, elle attendait.",
+      "feedback_incorrect": "Pas encore. Relis le passage où la voyageuse fait ce que le naturaliste lui a conseillé : la boule change de forme et de couleur."
+    },
+    {
+      "zone_key": "cz-p2-03",
+      "feuillet_code": "sort-sahara-01",
+      "question": "Pourquoi l'oryx, vu de profil, semble-t-il n'avoir qu'une seule corne ?",
+      "choix": {
+        "A": "Il n'en a vraiment qu'une, comme la licorne",
+        "B": "Une de ses deux cornes tombe chaque été",
+        "C": "Il cache la seconde sous son oreille",
+        "D": "Ses deux cornes droites se superposent dans l'air qui tremble de chaleur"
+      },
+      "reponse": "D",
+      "feedback_correct": "Oui. Les anciens voyageurs n'avaient pas rêvé, ils avaient mal compté : de cette erreur est née une légende.",
+      "feedback_incorrect": "Pas encore. Relis le premier paragraphe : l'oryx a bien deux cornes, mais de profil, quelque chose les fait se confondre."
+    },
+    {
+      "zone_key": "cz-p2-04",
+      "feuillet_code": "ep-I-05",
+      "question": "Quand la Grise arrive, qu'est-ce qui s'en va en premier ?",
+      "choix": {
+        "A": "Les animaux, qui partent vers le nord",
+        "B": "Les couleurs : l'or vire au cendré, les fleurs déteignent",
+        "C": "L'eau des rivières et des mares",
+        "D": "Le vent, qui s'arrête de souffler"
+      },
+      "reponse": "B",
+      "feedback_correct": "Oui : les couleurs partent les premières, comme un linge lavé trop de fois. Et personne ne s'alarme, on croit qu'il a fait sec.",
+      "feedback_incorrect": "Pas encore. Relis la page : « ce n'est pas encore la mort, c'est avant ». Qu'est-ce qui part en premier ?"
+    },
+    {
+      "zone_key": "cz-p2-05",
+      "feuillet_code": "ren-medit-01",
+      "question": "Que font les chèvres perchées dans les branches de l'arganier ?",
+      "choix": {
+        "A": "Elles dorment à l'abri des renards",
+        "B": "Elles se cachent du soleil de midi",
+        "C": "Elles broutent les fruits, là où les humains ne montent pas",
+        "D": "Elles font tomber les épines pour les agneaux"
+      },
+      "reponse": "C",
+      "feedback_correct": "Oui, de vraies chèvres en équilibre à trois mètres du sol, qui broutent les fruits. La première fois, on croit à une farce.",
+      "feedback_incorrect": "Pas encore. Relis le deuxième paragraphe : les chèvres sont montées pour manger quelque chose."
+    },
+    {
+      "zone_key": "cz-p2-06",
+      "feuillet_code": "ren-medit-02",
+      "question": "Qu'ont de particulier les magots qui vivent sous le vieux cèdre ?",
+      "choix": {
+        "A": "Ils ont une très longue queue qui leur sert de balancier",
+        "B": "Ils vivent surtout dans l'eau des torrents",
+        "C": "Ils volent de branche en branche comme des écureuils",
+        "D": "Ils n'ont pas de queue, et ce sont les seuls singes sauvages du Maghreb et d'Europe"
+      },
+      "reponse": "D",
+      "feedback_correct": "Oui : des macaques sans queue, chez eux dans les forêts de cèdres du Moyen Atlas, jusqu'à 2 500 mètres d'altitude.",
+      "feedback_incorrect": "Pas encore. Relis le premier paragraphe : la page dit ce que ces singes n'ont pas, et pourquoi ils sont uniques dans la région."
+    },
+    {
+      "zone_key": "cz-p2-07",
+      "feuillet_code": "sort-medit-01",
+      "question": "Qu'est-ce qui ouvre d'un coup les cônes fermés du pin d'Alep ?",
+      "choix": {
+        "A": "La pluie d'automne qui les ramollit",
+        "B": "La chaleur de l'incendie",
+        "C": "Les dents des écureuils",
+        "D": "Le gel de l'hiver qui les fend"
+      },
+      "reponse": "B",
+      "feedback_correct": "Oui : des cônes serrés comme des poings pendant des années, et c'est le feu qui les ouvre, sur un sol enfin nettoyé.",
+      "feedback_incorrect": "Pas encore. Relis le deuxième paragraphe : le pin gardait ses cônes fermés, et un événement brûlant les a ouverts."
+    },
+    {
+      "zone_key": "cz-p2-08",
+      "feuillet_code": "ep-I-08",
+      "question": "D'après la voyageuse, que se passe-t-il quand elle nomme une bête avec soin ?",
+      "choix": {
+        "A": "La page tient : la ligne ne pâlit pas dans la nuit",
+        "B": "La bête s'enfuit et ne revient plus",
+        "C": "La bête devient visible seulement la nuit",
+        "D": "Son crayon s'use deux fois plus vite"
+      },
+      "reponse": "A",
+      "feedback_correct": "Oui. Le nom juste, ce qu'elle mange, qui la mange, l'heure où elle chante : alors la page tient. Nommer, c'est garder.",
+      "feedback_incorrect": "Pas encore. Relis le premier paragraphe : la voyageuse compare ce qui arrive quand elle nomme avec soin, et quand elle passe trop vite."
+    },
+    {
+      "zone_key": "cz-p3-01",
+      "feuillet_code": "ren-caduc-01",
+      "question": "Combien de glands le geai des chênes peut-il enterrer en un seul automne ?",
+      "choix": {
+        "A": "Une cinquantaine",
+        "B": "Cinq cents",
+        "C": "Jusqu'à cinq mille",
+        "D": "Plus d'un million"
+      },
+      "reponse": "C",
+      "feedback_correct": "Oui, jusqu'à cinq mille, un par un. Et il en oublie une partie : chaque gland oublié devient un petit chêne.",
+      "feedback_incorrect": "Pas encore. Relis la première phrase de la page : le nombre y est écrit en toutes lettres."
+    },
+    {
+      "zone_key": "cz-p3-02",
+      "feuillet_code": "ren-caduc-02",
+      "question": "Pourquoi les anémones et les jacinthes se dépêchent-elles de fleurir en mars ?",
+      "choix": {
+        "A": "Parce qu'il fait trop chaud pour elles en été",
+        "B": "Parce que les feuilles des arbres vont bientôt leur faire de l'ombre",
+        "C": "Parce que les cerfs les mangent dès le mois d'avril",
+        "D": "Parce que la neige les protège jusqu'en mars seulement"
+      },
+      "reponse": "B",
+      "feedback_correct": "Oui. Six semaines de lumière, pas plus, avant que le sous-bois devienne une cave verte. Elles n'en gaspillent pas un jour.",
+      "feedback_incorrect": "Pas encore. Relis le deuxième paragraphe : que vont déployer les chênes et les hêtres, et quel effet cela a-t-il sur le sol ?"
+    },
+    {
+      "zone_key": "cz-p3-03",
+      "feuillet_code": "sort-caduc-01",
+      "question": "Que font les champignons minuscules qui enveloppent les racines des arbres ?",
+      "choix": {
+        "A": "Ils mangent les racines et font mourir les arbres",
+        "B": "Ils empêchent les jeunes plants de pousser",
+        "C": "Ils relient les arbres entre eux et font circuler l'eau, le sucre et des signaux",
+        "D": "Ils font pourrir la mousse pour la transformer en terre"
+      },
+      "reponse": "C",
+      "feedback_correct": "Oui : « la toile sous les bois ». Un vieux chêne peut même nourrir un jeune plant resté à l'ombre, à travers ce réseau.",
+      "feedback_incorrect": "Pas encore. Relis le deuxième paragraphe : les racines « ne sont pas seules », et quelque chose circule entre les arbres."
+    },
+    {
+      "zone_key": "cz-p3-04",
+      "feuillet_code": "ep-III-05",
+      "question": "Pourquoi le petit-fils ne pleure-t-il pas les oiseaux dont parle son grand-père ?",
+      "choix": {
+        "A": "Parce que les oiseaux sont revenus l'année suivante",
+        "B": "Parce qu'il n'aime pas les oiseaux",
+        "C": "Parce qu'il n'écoute jamais son grand-père",
+        "D": "Parce qu'il n'a jamais connu un ciel plein d'oiseaux : pour lui, le ciel presque vide est normal"
+      },
+      "reponse": "D",
+      "feedback_correct": "Oui. On ne pleure pas ce qu'on n'a jamais connu. C'est pour ça que la voyageuse note tout : pour qu'on ne prenne pas le vide pour le plein.",
+      "feedback_incorrect": "Pas encore. Relis le premier paragraphe : pour l'enfant, le ciel « avait toujours été ce ciel-ci »."
+    },
+    {
+      "zone_key": "cz-p3-05",
+      "feuillet_code": "ren-landes-01",
+      "question": "D'après la voyageuse, que sentent les fleurs jaunes de l'ajonc ?",
+      "choix": {
+        "A": "La menthe fraîche",
+        "B": "La noix de coco",
+        "C": "Le citron",
+        "D": "Le miel chaud"
+      },
+      "reponse": "B",
+      "feedback_correct": "Oui, la noix de coco, « je le jure ». Et elles fleurissent presque toute l'année, même en plein hiver.",
+      "feedback_incorrect": "Pas encore. Relis le deuxième paragraphe, là où la voyageuse s'agenouille dans la forêt naine : l'ajonc a une odeur surprenante."
+    },
+    {
+      "zone_key": "cz-p3-06",
+      "feuillet_code": "ren-landes-02",
+      "question": "Comment la drosera attrape-t-elle un moucheron ?",
+      "choix": {
+        "A": "Avec une fleur qui se referme d'un coup sec",
+        "B": "Avec ses racines, qui le saisissent dans le sol",
+        "C": "Avec des poils gluants qui ressemblent à de la rosée, et se replient lentement sur lui",
+        "D": "En le faisant tomber dans un puits rempli d'eau"
+      },
+      "reponse": "C",
+      "feedback_correct": "Oui. Le moucheron croit boire, reste collé, et la plante met sept à dix jours à le digérer, comme un estomac minuscule.",
+      "feedback_incorrect": "Pas encore. Relis le deuxième paragraphe : la rosette rouge porte quelque chose qui brille comme de la rosée."
+    },
+    {
+      "zone_key": "cz-p3-07",
+      "feuillet_code": "sort-landes-01",
+      "question": "À quoi a servi la sphaigne pendant les guerres, quand les pansements manquaient ?",
+      "choix": {
+        "A": "À faire du feu dans les tranchées",
+        "B": "À nourrir les chevaux",
+        "C": "À fabriquer des cordes",
+        "D": "À panser les blessés"
+      },
+      "reponse": "D",
+      "feedback_correct": "Oui. On la ramassait par tonnes : elle absorbe et elle empêche les microbes de prospérer. Une mousse de marais a sauvé des hommes.",
+      "feedback_incorrect": "Pas encore. Relis le deuxième paragraphe, celui qui a « bouleversé » la voyageuse : la sphaigne remplaçait quelque chose qui manquait."
+    },
+    {
+      "zone_key": "cz-p3-08",
+      "feuillet_code": "sc-landes-nuit",
+      "question": "D'où venait le bruit de moteur dans la nuit de la lande ?",
+      "choix": {
+        "A": "D'une vraie machine, loin derrière la colline",
+        "B": "D'un oiseau, l'engoulevent, qui chasse les insectes la nuit",
+        "C": "Du vent qui sifflait dans la bruyère",
+        "D": "D'un troupeau de moutons en train de brouter"
+      },
+      "reponse": "B",
+      "feedback_correct": "Oui : un oiseau couleur d'écorce, large gueule ouverte, qui attrape les moucherons en plein vol. Le bruit le plus effrayant de la lande, c'est quelqu'un qui dîne.",
+      "feedback_incorrect": "Pas encore. Relis le deuxième paragraphe : la voyageuse finit par voir décoller ce qui faisait ce bruit."
+    },
+    {
+      "zone_key": "cz-p3-09",
+      "feuillet_code": "ep-I-07",
+      "question": "Au réveil, qu'est-ce qui manque à la voyageuse, et qu'elle met une heure à comprendre ?",
+      "choix": {
+        "A": "Son crayon, tombé pendant la nuit",
+        "B": "Le chant des oiseaux : pas un seul",
+        "C": "Son sac de croûtons",
+        "D": "Le soleil, caché par la brume"
+      },
+      "reponse": "B",
+      "feedback_correct": "Oui. Pas un chant, pas un seul. Le Silence ne fait pas de bruit, c'est sa ruse : il enlève, et on ne s'en aperçoit pas tout de suite.",
+      "feedback_incorrect": "Pas encore. Relis la première ligne de la page : ce qui manque, c'est quelque chose qu'on entend."
+    },
+    {
+      "zone_key": "cz-p3-10",
+      "feuillet_code": "ep-VII-tourb-1",
+      "question": "Dans quoi le petit s'enfonce-t-il jusqu'aux cuisses, au troisième bond ?",
+      "choix": {
+        "A": "Dans la neige fraîche",
+        "B": "Dans le sable mou d'une dune",
+        "C": "Dans la tourbe : des plantes mortes que le sol froid n'a jamais digérées",
+        "D": "Dans une rivière cachée sous les herbes"
+      },
+      "reponse": "C",
+      "feedback_correct": "Oui. Ni eau ni terre : de la tourbe, mille ans de plantes mortes, refermée sur sa jambe comme une main molle.",
+      "feedback_incorrect": "Pas encore. Relis le premier paragraphe : la page explique de quoi est faite cette « bouillie noire qui sentait la cave »."
+    },
+    {
+      "zone_key": "cz-p4-01",
+      "feuillet_code": "ren-taiga-01",
+      "question": "Comment le lièvre variable court-il sur la neige sans s'enfoncer ?",
+      "choix": {
+        "A": "Ses grandes pattes arrière s'élargissent en raquettes",
+        "B": "Il saute très haut d'un rocher à l'autre",
+        "C": "Il ne court que sur la glace des lacs",
+        "D": "Il creuse des tunnels sous la neige"
+      },
+      "reponse": "A",
+      "feedback_correct": "Oui : manteau blanc et raquettes naturelles. Le lynx qui le suit porte les mêmes, et leurs deux vies montent et descendent sur un seul rythme.",
+      "feedback_incorrect": "Pas encore. Relis la première phrase : le lièvre change de manteau, et ses pattes aussi changent."
+    },
+    {
+      "zone_key": "cz-p4-02",
+      "feuillet_code": "ren-taiga-02",
+      "question": "Pourquoi les dents du castor sont-elles oranges ?",
+      "choix": {
+        "A": "Parce qu'il mange des carottes sauvages",
+        "B": "Parce qu'elles contiennent du fer, ce qui les rend dures comme des ciseaux",
+        "C": "Parce qu'il les frotte sur l'écorce rouge des pins",
+        "D": "Parce qu'il ne les lave jamais"
+      },
+      "reponse": "B",
+      "feedback_correct": "Oui : du fer dans les dents, dures comme des ciseaux. Avec ça, il coupe des arbres et barre le ruisseau.",
+      "feedback_incorrect": "Pas encore. Relis la première phrase de la page : la couleur des dents vient de ce qu'elles contiennent."
+    },
+    {
+      "zone_key": "cz-p4-03",
+      "feuillet_code": "sort-taiga-01",
+      "question": "Que deviennent les saumons morts au bord de la rivière ?",
+      "choix": {
+        "A": "Ils sont emportés par le courant jusqu'à la mer",
+        "B": "Ils gèlent et se conservent jusqu'au printemps",
+        "C": "Ils flottent jusqu'au lac le plus proche",
+        "D": "Leur corps nourrit le sol, et les arbres de la berge en profitent"
+      },
+      "reponse": "D",
+      "feedback_correct": "Oui. Les ours et les oiseaux les traînent sous les arbres, et jusqu'à un quart de l'azote des conifères vient de la mer. Des arbres faits de saumon.",
+      "feedback_incorrect": "Pas encore. Relis le deuxième paragraphe : la voyageuse croyait à une fin triste, puis on lui a montré « le prolongement »."
+    },
+    {
+      "zone_key": "cz-p4-04",
+      "feuillet_code": "ep-I-11",
+      "question": "Dans le Détricotage, que se passe-t-il quand l'abeille vient à manquer ?",
+      "choix": {
+        "A": "Rien ne change : les autres insectes la remplacent",
+        "B": "Les fleurs deviennent plus grandes pour attirer les oiseaux",
+        "C": "La fleur ne donne plus de fruit, puis l'oiseau s'en va, puis le renard",
+        "D": "Les oiseaux viennent plus nombreux manger les fleurs"
+      },
+      "reponse": "C",
+      "feedback_correct": "Oui : un fil cède et cent autres suivent. Tout se tenait, et c'est par là que tout se défait.",
+      "feedback_incorrect": "Pas encore. Relis le premier paragraphe : la page raconte une chaîne, maillon après maillon, en partant de l'abeille."
+    },
+    {
+      "zone_key": "cz-p4-05",
+      "feuillet_code": "ren-toundra-01",
+      "question": "Pourquoi fait-il plus chaud à l'intérieur de la fleur du pavot arctique qu'autour d'elle ?",
+      "choix": {
+        "A": "Parce que la fleur est noire et absorbe la lumière",
+        "B": "Parce que le bourdon la réchauffe avec ses muscles",
+        "C": "Parce qu'elle pousse sous une couche de neige isolante",
+        "D": "Parce que sa fleur suit le soleil comme une petite parabole et concentre sa chaleur"
+      },
+      "reponse": "D",
+      "feedback_correct": "Oui : jusqu'à huit degrés de plus à l'intérieur. Un minuscule pot de fleurs solaire, où le bourdon polaire vient se réchauffer.",
+      "feedback_incorrect": "Pas encore. Relis le premier paragraphe : la fleur jaune a une forme particulière, et elle bouge pendant le jour sans fin."
+    },
+    {
+      "zone_key": "cz-p4-06",
+      "feuillet_code": "ren-toundra-02",
+      "question": "Combien d'œufs le harfang pond-il une année où les lemmings manquent ?",
+      "choix": {
+        "A": "Onze, comme chaque année",
+        "B": "Deux ou trois, pas plus",
+        "C": "Aucun : il attend",
+        "D": "Un seul, qu'il couve tout l'hiver"
+      },
+      "reponse": "C",
+      "feedback_correct": "Oui, aucun, pas un. Il ne fait pas naître des petits qu'il ne pourrait pas nourrir. Toute la toundra tient sur le dos d'un rongeur de quelques grammes.",
+      "feedback_incorrect": "Pas encore. Relis le deuxième paragraphe : le harfang règle sa vie sur celle des lemmings, les bonnes années comme les maigres."
+    },
+    {
+      "zone_key": "cz-p4-07",
+      "feuillet_code": "ren-toundra-03",
+      "question": "Que font les bœufs musqués quand les loups arctiques approchent ?",
+      "choix": {
+        "A": "Ils s'enfuient chacun de son côté dans la neige",
+        "B": "Ils forment un cercle serré, cornes vers l'extérieur, les petits au milieu",
+        "C": "Ils se couchent dans la neige pour se faire oublier",
+        "D": "Ils grimpent sur les rochers les plus hauts"
+      },
+      "reponse": "B",
+      "feedback_correct": "Oui. Fuir seul dans la neige, c'est mourir ; ensemble, ils sont imprenables. Le loup tourne autour et ne trouve aucune prise.",
+      "feedback_incorrect": "Pas encore. Relis le deuxième paragraphe : « ils ne fuient pas ». Que font-ils à la place ?"
+    },
+    {
+      "zone_key": "cz-p4-08",
+      "feuillet_code": "sort-toundra-01",
+      "question": "De combien pousse le lichen des rennes en une année ?",
+      "choix": {
+        "A": "De trois à cinq centimètres",
+        "B": "D'environ un mètre",
+        "C": "Il ne pousse plus une fois qu'il a été brouté",
+        "D": "De trois à cinq millimètres"
+      },
+      "reponse": "D",
+      "feedback_correct": "Oui, trois millimètres. Un tapis épais a vu passer des siècles ; s'il est déchiré, il faut des dizaines d'années pour qu'il revienne.",
+      "feedback_incorrect": "Pas encore. Relis le deuxième paragraphe : « voici ce qu'on oublie en marchant dessus ». Le chiffre est tout petit."
+    },
+    {
+      "zone_key": "cz-p4-09",
+      "feuillet_code": "ep-III-03",
+      "question": "D'après la voyageuse, que signifie un feuillet vide dans son carnet ?",
+      "choix": {
+        "A": "Qu'elle a oublié d'écrire ce jour-là",
+        "B": "Que c'est du papier neuf, gardé pour plus tard",
+        "C": "Que quelque chose y était écrit, et que cela a été repris",
+        "D": "Qu'il faut le jeter, parce qu'il ne sert plus à rien"
+      },
+      "reponse": "C",
+      "feedback_correct": "Oui. Ce blanc-là était plein : une bête, un lieu, un lien. Il faut le garder et dire « regardez, il y avait quelque chose ici ».",
+      "feedback_incorrect": "Pas encore. Relis la dernière ligne de la page : « un feuillet vide n'est pas une page que je n'ai pas écrite »."
+    },
+    {
+      "zone_key": "cz-p4-10",
+      "feuillet_code": "ep-I-15",
+      "question": "Pourquoi la voyageuse continue-t-elle d'écrire, avec son crayon usé ?",
+      "choix": {
+        "A": "Pour qu'il reste une trace des bêtes qui ont existé",
+        "B": "Pour devenir célèbre quand on lira son carnet",
+        "C": "Pour sauver toutes les bêtes grâce à son crayon",
+        "D": "Pour finir le carnet avant l'arrivée de l'hiver"
+      },
+      "reponse": "A",
+      "feedback_correct": "Oui. Elle n'a pas le pouvoir de sauver les bêtes, seulement de les nommer : un nom tenu, c'est un être qu'on n'a pas tout à fait laissé partir.",
+      "feedback_incorrect": "Pas encore. Relis le deuxième paragraphe : « c'est contre l'Effacement que j'écris ». Pourquoi, exactement ?"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "format": "missions v1 — enveloppes secrètes, une par équipe et par chapitre ; déclarées à la fin du tour réussi ; validées par le prof → sceau + titre",
+  "missions": [
+    { "id": "mis-01", "texte": "Offrir une page trouvée à l'autre peuple (la lui faire tenir) sans qu'il l'ait demandée.", "type": "cooperative", "titre_sceau": "Ambassadeurs de l'Autre Peuple" },
+    { "id": "mis-02", "texte": "Faire rire une autre équipe pendant un tour, sans se moquer de personne.", "type": "cooperative", "titre_sceau": "Compagnie du Fou Rire Partagé" },
+    { "id": "mis-03", "texte": "Placer le mot « décomposeur » dans une phrase au Passeur, à voix haute, sans qu'il y ait de question dessus.", "type": "absurde", "titre_sceau": "Société des Décomposeurs Bavards" },
+    { "id": "mis-04", "texte": "Répondre à une question de case entièrement en rimes.", "type": "absurde", "titre_sceau": "Société des Rimes Approximatives" },
+    { "id": "mis-05", "texte": "Tenir une page que personne n'a ouverte depuis deux semaines.", "type": "cooperative", "titre_sceau": "Amis des Pages Oubliées" },
+    { "id": "mis-06", "texte": "Jeter un sort qui aide une autre équipe (Bourrasque, Abri, Relais, Cordée) alors qu'on est soi-même sous le voile.", "type": "cooperative", "titre_sceau": "Mains Tendues sous le Voile" },
+    { "id": "mis-07", "texte": "Lire une page à voix haute avec un accent de contrée lointaine, sans rire jusqu'au bout.", "type": "absurde", "titre_sceau": "Troupe de l'Accent Lointain" },
+    { "id": "mis-08", "texte": "Nommer cinq vivants du biome d'affilée, chaque membre en disant un, sans hésiter, au moment d'une case Souffle (même sans le sort Nommer).", "type": "cooperative", "titre_sceau": "Confrérie des Cinq Noms d'Affilée" },
+    { "id": "mis-09", "texte": "Fouiller un endroit que l'Éclaireur a choisi les yeux bandés, guidé par la voix de l'équipe.", "type": "cooperative", "titre_sceau": "Ordre du Chuchotement Prolongé" },
+    { "id": "mis-10", "texte": "Rapporter au Bestiaire une chimère née d'une réponse de votre propre équipe, et la nommer.", "type": "absurde", "titre_sceau": "Parrains et Marraines de Chimère" },
+    { "id": "mis-11", "texte": "Terminer un tour avec exactement 3 gemmes dans la bourse de chaque membre.", "type": "absurde", "titre_sceau": "Chevaliers de la Bourse Égale" },
+    { "id": "mis-12", "texte": "Faire dire « bravo » à une autre équipe pour quelque chose que vous avez fait pour elle.", "type": "cooperative", "titre_sceau": "Ordre du Bravo Mérité" },
+    { "id": "mis-13", "texte": "Trouver une page et la laisser lire par le Secrétaire d'une autre équipe.", "type": "cooperative", "titre_sceau": "Prêteurs de Pages" },
+    { "id": "mis-14", "texte": "Pendant tout un tour, parler uniquement par questions.", "type": "absurde", "titre_sceau": "Société des Points d'Interrogation" },
+    { "id": "mis-15", "texte": "Corriger Olu quand il se trompe (une fois par séance il se trompe exprès).", "type": "cooperative", "titre_sceau": "Correcteurs du Renard" },
+    { "id": "mis-16", "texte": "Finir dernier de la caravane à la fin d'un tour, puis premier à la fin d'un autre, dans le même chapitre.", "type": "absurde", "titre_sceau": "Compagnie du Dé Boiteux" },
+    { "id": "mis-17", "texte": "Inventer un cri de ralliement d'équipe de trois mots, et le crier (doucement) au moment de passer le seuil.", "type": "absurde", "titre_sceau": "Confrérie du Cri de Trois Mots" },
+    { "id": "mis-18", "texte": "Jouer un tour entier sans qu'aucun membre ne touche son téléphone, sa trousse ou son voisin. Oui, c'est une mission.", "type": "absurde", "titre_sceau": "Dompteurs de Trousse" },
+    { "id": "mis-19", "texte": "Écrire au Passeur une phrase du journal commençant par « Ce que j'ai vu aujourd'hui… », signée par les cinq.", "type": "cooperative", "titre_sceau": "Scribes de la Phrase à Cinq Mains" },
+    { "id": "mis-20", "texte": "Faire reculer le voile (carnet complet ou Lumière) au moins une fois dans le chapitre. Mission de toute la classe : si elle réussit, toutes les équipes la réussissent.", "type": "classe", "titre_sceau": "Gardiens de la Marée Reculée" }
+  ]
+}

@@ -1,0 +1,249 @@
+{
+  "format": "passeur-plateau4 v1 — pages de route (mode carnet_route, type scene) lues au mot du Passeur en phase souffle ; une page par tour, dans l'ordre ; plateaux 1-3 : la liste complète ; plateau 4 : 7 pages choisies sur 35, sans lore secret ni corbeau nommé",
+  "regle": "Le mot du Passeur affiche la page `ordre` = numéro du tour (modulo la longueur de la liste) ; une page déjà lue dans la partie n'est pas reprise tant qu'il en reste.",
+  "plateaux": {
+    "1": {
+      "nb": 7,
+      "pages": [
+        {
+          "feuillet_code": "ep-V-01",
+          "ordre_voyage": 1042,
+          "titre": "Premier pays, les premiers jours. La chaleur.",
+          "biome_slug": "jungle_afc",
+          "ordre": 1
+        },
+        {
+          "feuillet_code": "ep-I-sem",
+          "ordre_voyage": 1043,
+          "titre": "Premier pays. Un oiseau bleu.",
+          "biome_slug": "savane",
+          "ordre": 2
+        },
+        {
+          "feuillet_code": "ep-V-03",
+          "ordre_voyage": 1052,
+          "titre": "Encore les tropiques. La nuit du grand bruit.",
+          "biome_slug": "savane",
+          "ordre": 3
+        },
+        {
+          "feuillet_code": "ep-I-colonne",
+          "ordre_voyage": 1053,
+          "titre": "Tropiques. La colonne.",
+          "biome_slug": "jungle_afc",
+          "ordre": 4
+        },
+        {
+          "feuillet_code": "ep-seuil-1",
+          "ordre_voyage": 1085,
+          "titre": "Au bord des terres sèches.",
+          "biome_slug": "savane",
+          "ordre": 5
+        },
+        {
+          "feuillet_code": "ep-V-02",
+          "ordre_voyage": 6002,
+          "titre": "Toujours la chaleur. Une semaine plus tard, peut-être deux.",
+          "biome_slug": "jungle_afc",
+          "ordre": 6
+        },
+        {
+          "feuillet_code": "ep-VI-02",
+          "ordre_voyage": 7002,
+          "titre": "Comment faire taire un corbeau. Méthodes testées, par ordre d'échec croissant.",
+          "biome_slug": "jungle_afc",
+          "ordre": 7,
+          "avertissement": "le titre nomme le corbeau : afficher la page sans son titre côté élève, ou la passer"
+        }
+      ],
+      "note": "liste complète, ordre de voyage de la base ; ep-I-colonne est aussi la zone cz-p1-04 (double exposition acceptée)"
+    },
+    "2": {
+      "nb": 7,
+      "pages": [
+        {
+          "feuillet_code": "ep-V-04",
+          "ordre_voyage": 2035,
+          "titre": "Deuxième pays. Le sable, et plus une goutte d'eau.",
+          "biome_slug": "sahara",
+          "ordre": 1
+        },
+        {
+          "feuillet_code": "ep-I-oued-1",
+          "ordre_voyage": 2036,
+          "titre": "Deuxième pays. Le lit sec.",
+          "biome_slug": "sahara",
+          "ordre": 2
+        },
+        {
+          "feuillet_code": "ep-I-oued-2",
+          "ordre_voyage": 2037,
+          "titre": "Deuxième pays. Le cordon.",
+          "biome_slug": "sahara",
+          "ordre": 3
+        },
+        {
+          "feuillet_code": "ep-VI-03",
+          "ordre_voyage": 2045,
+          "titre": "Deuxième pays. Le jour des abeilles.",
+          "biome_slug": "foret_mediterraneenne",
+          "ordre": 4
+        },
+        {
+          "feuillet_code": "ep-V-05",
+          "ordre_voyage": 2052,
+          "titre": "Toujours le sable. La voyageuse.",
+          "biome_slug": "sahara",
+          "ordre": 5
+        },
+        {
+          "feuillet_code": "ep-seuil-2",
+          "ordre_voyage": 2085,
+          "titre": "Au bord des forêts qui perdent leurs feuilles.",
+          "biome_slug": "foret_mediterraneenne",
+          "ordre": 6
+        },
+        {
+          "feuillet_code": "ep-VI-01",
+          "ordre_voyage": 7001,
+          "titre": "Liste de ce que le corbeau m'a volé. Tenue à jour, faute de mieux.",
+          "biome_slug": "sahara",
+          "ordre": 7,
+          "avertissement": "le titre nomme le corbeau : afficher la page sans son titre côté élève, ou la passer"
+        }
+      ]
+    },
+    "3": {
+      "nb": 9,
+      "pages": [
+        {
+          "feuillet_code": "ep-VII-tourb-1",
+          "ordre_voyage": 3023,
+          "titre": "Les landes. Ni terre ni eau.",
+          "biome_slug": "landes",
+          "ordre": 1
+        },
+        {
+          "feuillet_code": "ep-VII-tourb-2",
+          "ordre_voyage": 3026,
+          "titre": "Les landes. À plat.",
+          "biome_slug": "landes",
+          "ordre": 2
+        },
+        {
+          "feuillet_code": "ep-V-06",
+          "ordre_voyage": 3045,
+          "titre": "Troisième pays. Les arbres perdent leurs feuilles. C'est l'automne, je crois — ça fait des mois.",
+          "biome_slug": "foret_caducifoliee",
+          "ordre": 3
+        },
+        {
+          "feuillet_code": "ep-V-07",
+          "ordre_voyage": 3055,
+          "titre": "Encore l'automne. La rivière.",
+          "biome_slug": "foret_caducifoliee",
+          "ordre": 4
+        },
+        {
+          "feuillet_code": "ep-VII-01",
+          "ordre_voyage": 3065,
+          "titre": "Troisième pays, vers la fin. Le petit veut venir.",
+          "biome_slug": "landes",
+          "ordre": 5
+        },
+        {
+          "feuillet_code": "ep-seuil-3",
+          "ordre_voyage": 3085,
+          "titre": "Au bord des grands froids.",
+          "biome_slug": "landes",
+          "ordre": 6
+        },
+        {
+          "feuillet_code": "ep-V-08",
+          "ordre_voyage": 6008,
+          "titre": "Le soir d'après. J'ai recompté mes gemmes.",
+          "biome_slug": "foret_caducifoliee",
+          "ordre": 7
+        },
+        {
+          "feuillet_code": "ep-VI-07",
+          "ordre_voyage": 7007,
+          "titre": "Mes griefs contre le corbeau. Pour mémoire, le jour où je l'étranglerai.",
+          "biome_slug": "landes",
+          "ordre": 8,
+          "avertissement": "le titre nomme le corbeau : afficher la page sans son titre côté élève, ou la passer"
+        },
+        {
+          "feuillet_code": "ep-VII-02",
+          "ordre_voyage": 8002,
+          "titre": "Les premiers jours à trois.",
+          "biome_slug": "foret_caducifoliee",
+          "ordre": 9
+        }
+      ],
+      "note": "liste complète, ordre de voyage de la base ; ep-VII-tourb-1 est aussi la zone cz-p3-10 (double exposition acceptée)"
+    },
+    "4": {
+      "nb": 7,
+      "pages": [
+        {
+          "feuillet_code": "ep-VII-04",
+          "ordre_voyage": 4042,
+          "titre": "Quatrième pays. Celui qui s'était assis.",
+          "biome_slug": "taiga",
+          "justification": "Scène fondatrice du chapitre : l'homme assis et son thé, le doute qui s'installe ; aucun nom d'oiseau, le Souffle seulement évoqué comme une idée.",
+          "ordre": 1
+        },
+        {
+          "feuillet_code": "ep-VII-08",
+          "ordre_voyage": 4075,
+          "titre": "Le lendemain. Court.",
+          "biome_slug": "taiga",
+          "justification": "Trois lignes de répit après la glace : le petit mange, la voyageuse n'a plus rien et se sent pleine ; ni lore secret, ni oiseau.",
+          "ordre": 2
+        },
+        {
+          "feuillet_code": "ep-VIII-08",
+          "ordre_voyage": 5055,
+          "titre": "Quelque part, une jeune voyageuse.",
+          "biome_slug": "toundra",
+          "justification": "La voyageuse donne la moitié de ce qu'elle a à une jeune inconnue : le cœur de « tenir à deux » ; l'oiseau n'est que « ridicule », sans nom.",
+          "ordre": 3
+        },
+        {
+          "feuillet_code": "ep-VI-09",
+          "ordre_voyage": 6415,
+          "titre": "Un soir sans histoire.",
+          "biome_slug": "taiga",
+          "justification": "Un soir sans histoire, le droit d'être bien sans raison ; page de respiration, sans aucun nom.",
+          "ordre": 4
+        },
+        {
+          "feuillet_code": "ep-VIII-05",
+          "ordre_voyage": 9005,
+          "titre": "Plus loin. L'endroit de l'homme assis.",
+          "biome_slug": "taiga",
+          "justification": "Retour à l'endroit de l'homme assis : la tasse posée droite, question laissée ouverte au petit ; pas de corbeau, rien de secret.",
+          "ordre": 5
+        },
+        {
+          "feuillet_code": "ep-VIII-06",
+          "ordre_voyage": 9006,
+          "titre": "Toundra. La nuit qui ne vient pas, puis qui ne s'en va plus.",
+          "biome_slug": "toundra",
+          "justification": "Le soleil qui ne se couche plus puis la nuit qui s'installe : la toundra expliquée par le regard du petit ; page de biome, sans oiseau.",
+          "ordre": 6
+        },
+        {
+          "feuillet_code": "ep-VIII-10",
+          "ordre_voyage": 9010,
+          "titre": "Avant-dernière. Courte.",
+          "biome_slug": "toundra",
+          "justification": "Avant-dernière, trois lignes : le blanc devant, « on y va surtout pour ça » ; ferme le chapitre sans rien révéler du bout de la route.",
+          "ordre": 7
+        }
+      ],
+      "ecartees": "les 28 autres pages de route du plateau 4 nomment le corbeau ou touchent au bout de la route (ep-VIII-09 Le nom, ep-VIII-11 Dernière de la route, ep-VII-09 La séparation, ep-VII-07…) ; elles restent lisibles dans le carnet mais ne sont pas tirées au mot du Passeur"
+    }
+  }
+}

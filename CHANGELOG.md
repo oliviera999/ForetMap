@@ -9,6 +9,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — G&L « Tenir à deux » v2 : données et règles de référence
+
+- Spécification `docs/GL_TENIR_A_DEUX_REGLES.md` (mouture C, asymétrie / coopération).
+- Jeu de données JSON sous `data/gl/tenir/` (zones de chasse, questions de lecture,
+  péripéties, missions, titres, badges, lignes Olu, parures, sorts, réglages, Passeur).
+- Contrôle `scripts/check-tenir-data.py` (`python -I scripts/check-tenir-data.py data/gl/tenir`).
+  Les polygones de zones restent à dessiner dans l'éditeur avant activation.
+
 ### Modifié — Badges : aussi pour les profs et les administrateurs
 
 - Les familles de badges réservées (tâches, projets, exploration, reportage, savoirs,

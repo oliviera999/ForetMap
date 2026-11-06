@@ -1,0 +1,96 @@
+{
+  "format": "badges v1 — badges individuels calculés par l'app (ou saisis par le prof), sans ressource, affichés dans Mes traversées",
+  "badges": [
+    {
+      "code": "premiere_page",
+      "nom": "Première page",
+      "critere": "Une première page du carnet de la classe est trouvée ou tenue par l'équipe de l'élève, en sa présence.",
+      "regle": { "type": "compteur", "seuil": 1, "source": "carnet_personnel_pages" },
+      "icone": "page"
+    },
+    {
+      "code": "lecteur",
+      "nom": "Lecteur",
+      "critere": "Dix pages du corpus lues (ouvertes entièrement), en tour ou en veillée.",
+      "regle": { "type": "compteur", "seuil": 10, "source": "feuillets_lus" },
+      "icone": "livre"
+    },
+    {
+      "code": "fouilleur",
+      "nom": "Fouilleur",
+      "critere": "Cinq fouilles au verdict « chaud » (ou dans une zone) faites par l'élève ou par son équipe en sa présence.",
+      "regle": { "type": "compteur", "seuil": 5, "source": "fouilles_chaudes" },
+      "icone": "loupe"
+    },
+    {
+      "code": "trouveur",
+      "nom": "Trouveur",
+      "critere": "Trois pages trouvées pendant un tour où l'élève était saisi comme Opérateur.",
+      "regle": { "type": "compteur", "seuil": 3, "source": "pages_trouvees_operateur" },
+      "icone": "carte"
+    },
+    {
+      "code": "mains_tendues",
+      "nom": "Mains tendues",
+      "critere": "Trois dons faits au Marché (ressource ou copie de page).",
+      "regle": { "type": "compteur", "seuil": 3, "source": "dons" },
+      "icone": "main"
+    },
+    {
+      "code": "veilleur",
+      "nom": "Veilleur",
+      "critere": "Quatre semaines de veillée d'affilée (au moins une ouverture de page, une étude ou une action de Marché par semaine).",
+      "regle": { "type": "serie_hebdo", "seuil": 4, "source": "veillee_semaines" },
+      "icone": "lune"
+    },
+    {
+      "code": "nommeur",
+      "nom": "Nommeur",
+      "critere": "Dix espèces étudiées (fiche consultée entièrement).",
+      "regle": { "type": "compteur", "seuil": 10, "source": "especes_etudiees" },
+      "icone": "feuille"
+    },
+    {
+      "code": "cartographe",
+      "nom": "Cartographe",
+      "critere": "Deux biomes étudiés (page biome inscrite au carnet personnel).",
+      "regle": { "type": "compteur", "seuil": 2, "source": "biomes_etudies" },
+      "icone": "boussole"
+    },
+    {
+      "code": "tisserand",
+      "nom": "Tisserand",
+      "critere": "Réservé : défis de la Trame (hors périmètre). Jamais attribué par l'app pour l'instant.",
+      "regle": { "type": "reserve", "seuil": null, "source": "defis_trame" },
+      "icone": "fil"
+    },
+    {
+      "code": "revelateur",
+      "nom": "Révélateur",
+      "critere": "Réservé : défis de la Trame (hors périmètre). Jamais attribué par l'app pour l'instant.",
+      "regle": { "type": "reserve", "seuil": null, "source": "defis_trame" },
+      "icone": "etoile"
+    },
+    {
+      "code": "chuchoteur",
+      "nom": "Chuchoteur",
+      "critere": "Une mission secrète réussie avec son équipe (saisie prof « mission réussie »).",
+      "regle": { "type": "saisie_prof", "seuil": 1, "source": "missions_reussies" },
+      "icone": "enveloppe"
+    },
+    {
+      "code": "correcteur_du_renard",
+      "nom": "Correcteur du renard",
+      "critere": "L'équipe de l'élève a corrigé l'erreur volontaire d'Olu (saisie prof « corrigé par »).",
+      "regle": { "type": "saisie_prof", "seuil": 1, "source": "olu_corrections" },
+      "icone": "renard"
+    },
+    {
+      "code": "passeur_de_seuil",
+      "nom": "Passeur de seuil",
+      "critere": "Quatre chapitres traversés (quatre parties closes avec l'élève inscrit).",
+      "regle": { "type": "compteur", "seuil": 4, "source": "chapitres_clos" },
+      "icone": "porte"
+    }
+  ]
+}

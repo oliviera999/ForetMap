@@ -175,6 +175,20 @@ Runtime — **accès** : les feuillets ne sont **pas lisibles par défaut**. Le 
 
 Runtime — **obtention** : découverte à l’entrée en zone (`POST /api/gl/lore/games/:id/feuillets/:code/present`), première étude d’espèce (`POST /api/gl/learning/species/:code` avec `gameId`), **ou** — si l'acquisition ③ est activée — toute **première consultation gatée** d'un élément consultable (`POST /api/gl/learning/mark/:type/:ref`, glossaire, tutoriel) qui attribue un feuillet du **pool du chapitre** à l'équipe (`feuilletRevealed`). Le **nom du découvreur** est mémorisé (`gl_game_feuillet_states.discovered_by_*`) et affiché (« Découvert par … »). Onglet joueur **Carnet de Sélène** ; réglages plateforme/partie (`gameplay.lore_*` dont `lore_feuillet_acquisition_enabled` / `_channels`, `modules.lore_carnet_enabled`). Détail : `docs/AUDIT_FEUILLETS_ACCES.md`.
 
+## « Tenir à deux » (données JSON)
+
+Répertoire `tenir/` : contenus de la mouture « Tenir à deux » (zones de chasse, questions de
+lecture, péripéties, missions, titres, badges, lignes Olu, parures, sorts, réglages, Passeur).
+Spécification : `docs/GL_TENIR_A_DEUX_REGLES.md`. Contrôle :
+
+```bash
+python -I scripts/check-tenir-data.py data/gl/tenir
+```
+
+Les polygones absents de `chasse-zones.json` doivent être dessinés dans l'éditeur de zones avant
+activation. Le chargeur d'import (`scripts/gl-import-tenir.js`) est livré avec l'implémentation
+runtime, pas avec ce jeu de données seul.
+
 ## Glossaire narratif (lore)
 
 Fichier de référence : `glossaire-lore-gnomes-et-licornes.xlsx` (feuille `glossaire`). **Distinct** du glossaire SVT (`gl_glossary_*`).
