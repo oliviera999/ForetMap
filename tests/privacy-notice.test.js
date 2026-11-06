@@ -116,3 +116,26 @@ test('notice du plan e-nov : celle du plan public, sous son propre nom', async (
   assert.equal(strip(enov), strip(plan));
   assert.equal(enov.product, 'plan', 'mise en page du plan public');
 });
+
+test('notice ForêtMap : section « Tes badges » (sources, qui les voit, durée), tutoyée', async () => {
+  const { buildPrivacyNotice, PRIVACY_RETENTION: R } = await loadNotice();
+  const notice = buildPrivacyNotice({ product: 'foret' });
+  const badges = notice.sections.find((s) => s.id === 'badges');
+  assert.ok(badges, 'section badges absente');
+  const text = [...badges.paragraphs, ...badges.items].join(' ');
+  for (const source of ['tâches validées', 'observations validées', 'quiz', 'tutoriels']) {
+    assert.ok(text.includes(source), `source manquante : ${source}`);
+  }
+  assert.match(text, /qui les voit/);
+  assert.match(text, /nulle part en public/);
+  assert.match(text, /autant que ton compte/);
+  assert.equal(R.accountMonthsAfterDeparture, 12);
+  assert.match(text, /1 an après ton départ/);
+  assert.doesNotMatch(text, /\bvous\b/i, 'texte élève tutoyé');
+  for (const product of ['gl', 'plan', 'staff']) {
+    assert.ok(
+      !buildPrivacyNotice({ product }).sections.some((s) => s.id === 'badges'),
+      `${product} : pas de section badges`,
+    );
+  }
+});

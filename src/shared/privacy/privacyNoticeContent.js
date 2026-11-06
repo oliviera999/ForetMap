@@ -288,6 +288,22 @@ export function buildPrivacyNotice({
     [],
     recipients[kind],
   );
+  // Badges (récompenses) des élèves : profil léger tiré de l'activité d'un mineur.
+  if (kind === 'foret') {
+    section(
+      'badges',
+      'Tes badges',
+      [
+        'Les badges sont calculés automatiquement à partir de ce que tu fais réellement : tes tâches validées par un adulte, tes observations validées, tes réponses au quiz et les tutoriels que tu lis. Un adulte peut aussi t’en décerner un, avec un mot.',
+        'Ils ne servent pas à te noter et ne te classent jamais par rapport aux autres élèves.',
+      ],
+      [
+        'qui les voit : toi, et les adultes qui voient déjà tes tâches (tes enseignants, dans leur périmètre) ; ils ne sont affichés nulle part en public ;',
+        `combien de temps : autant que ton compte (pendant ta scolarité, puis ${R.accountMonthsAfterDeparture === 12 ? '1 an' : `${R.accountMonthsAfterDeparture} mois`} après ton départ) ; ils sont effacés avec lui ;`,
+        'tu les retrouves dans l’export de tes données.',
+      ],
+    );
+  }
   section(
     'sous-traitants',
     'Les prestataires techniques',

@@ -75,6 +75,13 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   l'adulte) et nouvelle action nominative `rewards_near` (élèves à un palier près, par
   groupe, par la même route que la vitrine) ; job `rewards_evaluate` lançable par
   `foretmap_ops run_cron`.
+- **Lot H — données personnelles** : notice « Vos données » de la forêt enrichie d'une
+  section « Tes badges » (sources du calcul, qui les voit, durée, export) ; badges
+  conservés exactement aussi longtemps que le compte (cascade, `ACCOUNT_LIFETIME_TABLES`
+  dans `lib/retention/policy.js`, ligne ajoutée à `durees-de-conservation.md`) ; fusion de
+  comptes : date la plus ancienne gardée en cas de doublon, badges manuels renumérotés
+  (`lib/rewards/merge.js`) ; export RGPD : badges et mot de l'adulte, sans l'identifiant de
+  l'adulte. Aucun affichage public des badges.
 
 ### Ajouté — Connecteur Claude : outils de domaine (suite)
 
