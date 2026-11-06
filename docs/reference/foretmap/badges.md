@@ -22,10 +22,17 @@ faites : un badge ne récompense jamais la quantité brute, ni la prise de risqu
 | Le professeur    | La **vitrine** d'un groupe dans les statistiques, la **fiche de badges** d'un élève, le bouton « Décerner » |
 | L'administrateur | Les mêmes vues, et l'interrupteur du module « Récompenses » dans les paramètres                             |
 
-Les badges de tâches, de projets, d'exploration, de reportage, de savoirs et du collectif ne
-concernent que les **comptes
-élèves au palier n3beur** : ni les personnels, ni les comptes visiteurs. Les badges de
-séance gardent leur règle : tout compte qui termine une séance.
+Les badges de tâches, de projets, d'exploration, de reportage, de savoirs et du collectif
+concernent les **comptes élèves au palier n3beur** et l'**encadrement** : administrateurs
+(n3god), n3boss et profs de classe. Pas les comptes visiteurs, ni les comptes « personnel », ni
+le compte partagé « mode collectif ». Les badges de séance gardent leur règle : tout compte qui
+termine une séance.
+
+Un adulte ne s'inscrit pas aux tâches comme un élève : ses badges viennent surtout de ce qu'il
+fait par ailleurs — être **référent** d'une tâche menée par des élèves (🧭 Tuteur), découvrir
+les lieux et les espèces, mesurer les arbres, écrire dans son carnet ou le forum, répondre au
+quiz, faire valider ses observations. Il voit « Mes badges » et la célébration d'OLU comme un
+élève.
 
 ## Les paliers
 

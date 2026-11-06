@@ -264,17 +264,23 @@ describe('Savoirs et collectif', () => {
     assert.ok((await newKeys(s, ['collectif'])).includes('collectif.bonne_idee.1'));
   });
 
-  test('nouvelles familles réservées aux élèves n3beur', async () => {
+  test('nouvelles familles réservées aux comptes éligibles ; un prof en reçoit aussi', async () => {
     for (const family of ['exploration', 'reportage']) {
       assert.ok(STUDENT_ONLY_FAMILIES.has(family), family);
       assert.ok(foretRewards.restrictedFamilies.has(family), family);
     }
-    const teacher = await createUser({ type: 'teacher', role: null });
-    const values = await rewards.computeRewardValues(teacher, {
+    const blocked = await rewards.computeRewardValues(await createUser({ role: null }), {
       eligible: false,
       families: ['exploration', 'reportage'],
     });
-    assert.equal(values.length, 0);
+    assert.equal(blocked.length, 0);
+    // Un enseignant (prof de classe par défaut) qui écrit dans son carnet : Plume verte.
+    const teacher = await createUser({ type: 'teacher', role: null });
+    await execute(
+      'INSERT INTO user_journal_articles (user_id, title, body_markdown) VALUES (?, ?, ?)',
+      [teacher, 'Relevé', 'b'.repeat(JOURNAL_ARTICLE_MIN_LENGTH)],
+    );
+    assert.ok((await newKeys(teacher, ['reportage'])).includes('reportage.plume.1'));
   });
 });
 

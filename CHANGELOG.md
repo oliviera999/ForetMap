@@ -9,6 +9,15 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — Badges : aussi pour les profs et les administrateurs
+
+- Les familles de badges réservées (tâches, projets, exploration, reportage, savoirs,
+  collectif) vont désormais aux élèves n3beur **et à l'encadrement** : `admin` (n3god), `prof`
+  (n3boss), `prof_classe` (`isRewardEligibleAccount`, `lib/rewards/foretEngine.js`). Restent
+  exclus : visiteurs, `personnel`, compte partagé `mode_collectif`, profils G&L. Passe de nuit
+  et rattrapage (`scripts/rewards-backfill.js`) évaluent aussi les comptes enseignants actifs.
+  Docs : `docs/API.md`, `docs/reference/foretmap/badges.md`.
+
 ### Ajouté — Badges : nouvelles collections, célébration d'OLU, fiches ; moteur commun avec G&L
 
 - **Sept nouveaux badges** liés aux modules existants : exploration (🗺️ Cartographe — lieux de

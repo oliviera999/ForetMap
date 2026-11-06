@@ -4,7 +4,7 @@
  * Moteur de badges (lot E) : règle de crédit, familles aux seuils exacts (n - 1 → rien,
  * n → palier), suites « Fidèle au poste » et « Parole tenue », Cycle complet, Phénologue aux
  * bornes de saison, Notion maîtrisée, idempotence (`INSERT IGNORE`), jamais de retrait,
- * comptes non élèves exclus, module éteint (attribution sans annonce), erreur d'évaluation
+ * encadrement éligible et visiteurs exclus, module éteint (attribution sans annonce), erreur d'évaluation
  * sans effet sur l'action, longueur des clés.
  */
 
@@ -408,17 +408,37 @@ describe('Attribution', () => {
     assert.ok((await rewardKeys(s)).includes('metier.bricolage.1'), 'badge conservé');
   });
 
-  test('comptes non élèves exclus (enseignant, visiteur) ; séances gardent leur règle', async () => {
-    const teacher = await createUser({ type: 'teacher' });
-    const visitor = await createUser({ role: null });
-    for (const u of [teacher, visitor]) {
-      await creditedTask(u, { category: 'jardinage' });
-      await creditedTask(u, { category: 'jardinage' });
-      const got = await rewards.evaluateUser(u);
-      assert.ok(!got.some((r) => r.family !== 'seances'), `${u} : aucun badge de tâche`);
+  test('encadrement éligible (admin, prof, prof de classe) ; visiteur, personnel, mode collectif exclus', async () => {
+    const eligible = [];
+    for (const role of [null, 'admin', 'prof', 'prof_classe']) {
+      const id = await createUser({ type: 'teacher' });
+      // Sans profil attribué, un compte enseignant est « prof de classe » par défaut.
+      if (role) await setStudentPrimaryRole(id, role);
+      eligible.push([role || 'défaut', id]);
     }
-    assert.equal(await rewards.isRewardEligibleStudent(visitor), false);
-    assert.equal(await rewards.isRewardEligibleStudent(teacher), false);
+    const excluded = [['visiteur', await createUser({ role: null })]];
+    const personnel = await createUser({ type: 'teacher' });
+    await setStudentPrimaryRole(personnel, 'personnel');
+    excluded.push(['personnel', personnel]);
+    // Compte partagé « mode collectif » (rang 400, non semé en test) : ni encadrement, ni
+    // palier n3beur.
+    const roles = require('../lib/shared/n3beurRolesCore');
+    assert.equal(roles.isEncadrementRoleSlug('mode_collectif'), false);
+    assert.equal(roles.isN3beurTierSlug('mode_collectif', 400), false);
+    for (const [, u] of [...eligible, ...excluded]) {
+      await creditedTask(u, { category: 'jardinage' });
+      await creditedTask(u, { category: 'jardinage' });
+    }
+    for (const [label, u] of eligible) {
+      assert.equal(await rewards.isRewardEligibleStudent(u), true, label);
+      const keys = (await rewards.evaluateUser(u)).map((r) => r.key);
+      assert.ok(keys.includes('metier.jardinage.1'), `${label} : badge de tâche`);
+    }
+    for (const [label, u] of excluded) {
+      assert.equal(await rewards.isRewardEligibleStudent(u), false, label);
+      const got = await rewards.evaluateUser(u);
+      assert.ok(!got.some((r) => r.family !== 'seances'), `${label} : aucun badge de tâche`);
+    }
   });
 
   test('module éteint : attribution sans annonce ; allumé : une notification regroupée', async () => {
