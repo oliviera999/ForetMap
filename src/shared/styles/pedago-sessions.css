@@ -372,7 +372,7 @@
   gap: 0.4rem;
 }
 .reward-card__emoji {
-  font-size: 1.4rem;
+  font-size: var(--text-xl);
   font-family: var(--font-sans-with-emoji);
 }
 .reward-card__title {
@@ -445,7 +445,7 @@
 }
 .reward-celebration__title {
   font-weight: 700;
-  font-size: var(--text-lg, 1.1rem);
+  font-size: var(--text-lg);
   margin: 0 0 0.4rem;
   color: var(--forest);
 }
