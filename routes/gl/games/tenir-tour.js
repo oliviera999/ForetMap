@@ -31,6 +31,7 @@ const tour = require('../../../lib/glTour');
 const { issueProjectionToken, revokeProjectionToken } = require('../../../lib/glProjection');
 const { requireTenirGame } = require('./tenir');
 const { DICE_SIDES } = require('../../../lib/glDiceRoll');
+const glRandom = require('../../../lib/glRandom');
 
 const router = express.Router();
 
@@ -474,7 +475,7 @@ router.post(
         });
       } else {
         const { rollServerDice } = require('../../../lib/glDiceRoll');
-        const roll = rollServerDice(desCount);
+        const roll = rollServerDice(desCount, glRandom.forGame(gameId).randomInt);
         await withTransaction(async (tx) => {
           result = await tour.appliquerJetTx(tx, {
             gameId,

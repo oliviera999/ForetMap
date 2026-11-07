@@ -87,6 +87,8 @@ router.post(
           healthDelta,
           powerDelta,
           caps: rules.caps,
+          cause: 'geste_prof',
+          gameId,
         });
         await recordVitalityChangeEvent(tx, {
           gameId,
@@ -163,6 +165,7 @@ router.post(
           healthDelta,
           powerDelta,
           caps: rules.caps,
+          cause: 'geste_prof',
         });
         await recordVitalityChangeEvent(tx, {
           gameId,

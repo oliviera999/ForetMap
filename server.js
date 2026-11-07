@@ -212,6 +212,8 @@ app.use(
   }),
 );
 app.use(assignRequestId);
+// Horloge de simulation G&L : `X-GL-Sim-Clock` n'est lu que si GL_SIM_ALLOW=1 et hors production.
+app.use('/api/gl', require('./lib/glClock').simClockMiddleware);
 
 // Rate-limiting : limiteurs et helpers factorisés dans lib/rateLimit.js (montages inchangés).
 app.use('/api/', generalLimiter);
