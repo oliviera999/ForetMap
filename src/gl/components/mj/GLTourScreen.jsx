@@ -9,6 +9,7 @@ import { GLTourDesSaisie } from './GLTourDesSaisie.jsx';
 import { GLTourSouffle } from './GLTourSouffle.jsx';
 import { GLTeamSpiritPanel } from './GLTeamSpiritPanel.jsx';
 import { GLTourJournal } from './GLTourJournal.jsx';
+import { numeroCase } from '../../../shared/glCaseNumeroCore.js';
 
 const PHASE_LABELS = {
   ouverture: 'Ouverture',
@@ -32,7 +33,7 @@ function TeamCard({ team, round, surface, tenir, busy, onLancer, onSuivante, isA
           <small className="gl-hint"> · {team.type === 'unicorn' ? 'licornes' : 'gnomes'}</small>
         </h4>
         <span className="gl-hint">
-          case {team.pathIndex == null ? '—' : team.pathIndex + 1}
+          case {numeroCase(team.pathIndex) ?? '—'}
           {team.auCamp ? ' · au camp' : ''}
           {team.hasRolledDiceThisRound ? ' · dés lancés' : ''}
         </span>

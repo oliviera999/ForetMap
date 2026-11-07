@@ -7,6 +7,8 @@ const { normalizeEventRow, redactGameEventsForViewer } = require('../../lib/glGa
 const { viewerFromAuth } = require('../../lib/glTenirView');
 const { canAccessGlGame } = require('../../lib/glGameAccess');
 const { presentJournalEvent, buildTeamsById } = require('../../lib/glJournalPresent');
+const { getGameplaySettings } = require('../../lib/glSettings');
+const { isTenirGame } = require('../../lib/glTenir');
 const { z, validate } = require('../../lib/validate');
 
 const router = express.Router();
@@ -69,11 +71,21 @@ router.get('/games/:id', validate({ query: journalGameQuerySchema }), async (req
   }));
   const teamsById = buildTeamsById(teams);
   const viewer = viewerFromAuth(req.glAuth);
+  // Partie « Tenir à deux » : les libellés tenir priment (jets, sorts, cases, questions).
+  let tenir = false;
+  try {
+    const gameRow = await queryOne('SELECT id, tenir_profil FROM gl_games WHERE id = ? LIMIT 1', [
+      gameId,
+    ]);
+    tenir = isTenirGame(await getGameplaySettings(), gameRow);
+  } catch (_) {
+    tenir = false;
+  }
   const events = redactGameEventsForViewer(rows.map(normalizeEventRow), viewer).map(
     (normalized) => {
       return {
         ...normalized,
-        presentation: presentJournalEvent(normalized, { teamsById, forPlayer: true }),
+        presentation: presentJournalEvent(normalized, { teamsById, forPlayer: true, tenir }),
       };
     },
   );

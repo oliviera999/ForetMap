@@ -58,7 +58,8 @@ test('voile : avance, recul et sommeil sans personnification ; mauvaise réponse
     { from: 3, to: 7, teamsUnderVoile: [1, 2], pagesPalies: ['cz-1'] },
     null,
   );
-  assert.match(avance.body, /case 7/);
+  // `to` est un rang (0-based) : affiché en numéro humain (rang + 1), comme le bandeau.
+  assert.match(avance.body, /jusqu’à la case 8/);
   assert.match(avance.body, /2 équipes sous le voile/);
   assert.match(avance.body, /1 page pâlit/);
   const recul = present('voile_recul', { cases: 5, reason: 'lumiere' }, null);
