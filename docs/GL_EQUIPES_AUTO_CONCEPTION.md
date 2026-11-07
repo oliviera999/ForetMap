@@ -248,8 +248,11 @@ professeur fasse confiance à la fonctionnalité.
 - [x] 3. Pointeur global `gl_players.team_id` : **corrigé tout de suite** (lot 0) — plus
       écrit ni lu, appartenance résolue depuis `gl_team_members` par partie active
       (live > paused > draft > ended). Colonne conservée, suppression physique à planifier.
-- [x] 4. Nommage automatique puisé dans le chapitre (**titre, biomes, plateau**), repli sur
-      des racines neutres puis « Équipe N ».
+- [x] 4. Nommage automatique : **listes typées par peuple** depuis le 7 novembre 2026
+      (`GNOME_TEAM_NAMES` / `UNICORN_TEAM_NAMES`, `lib/gl/teamNaming.js` ; le titre du chapitre
+      donnait « Chapitre », « Plateau 1 », « Tropiques »), un nom ne sert qu'une fois par classe
+      et par année scolaire (`loadClassTeamNamesThisYear`) ; repli sur le vocabulaire du
+      chapitre, des racines neutres puis « Équipe N ». Le nom reste modifiable par le prof.
 - [x] 5. La reconduction `carry_over` copie aussi les **mascottes** (et noms, couleurs,
       peuples) ; les nouveaux joueurs rejoignent les équipes les moins fournies.
 
