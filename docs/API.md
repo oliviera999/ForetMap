@@ -1307,7 +1307,7 @@ Le client (`api()`) émet l’événement `foretmap_password_change_required` su
 ouvre « Mon profil ». Côté Gnomes & Licornes, le joueur a sa propre porte (`requireGlAuth`).
 
 **Anti-force-brute par compte** — en plus du limiteur d'IP (`FORETMAP_AUTH_RATE_LIMIT_PER_15MIN`,
-défaut 60 tentatives / 15 min), chaque identifiant est verrouillé après **5 échecs** : 30 s,
+défaut 300 tentatives / 15 min — une classe entière partage l'adresse publique du lycée), chaque identifiant est verrouillé après **5 échecs** : 30 s,
 doublés à chaque échec suivant, plafonnés à 15 min (`lib/loginThrottle.js`). Réponse
 `429 { error, retryAfterSeconds }` + en-tête `Retry-After`. Un succès remet le compteur à zéro.
 S'applique à `/api/auth/login`, `/api/gl/auth/login`, `/api/gl/auth/staff/login` et
