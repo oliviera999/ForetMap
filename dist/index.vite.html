@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+    <!-- PWA core -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#1a4731" />
+
+    <!-- iOS PWA -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="ForêtMap" />
+
+    <!-- Android / Chrome -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="application-name" content="ForêtMap" />
+
+    <!-- SEO / description -->
+    <meta name="description" content="Gestion et cartographie de la forêt comestible du Lycée Lyautey" />
+
+    <title>ForêtMap – Lycée Lyautey</title>
+
+    <!-- Icons -->
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/pwa-icon-192.png" />
+    <link rel="apple-touch-icon" sizes="192x192" href="/pwa-icon-192.png" />
+
+    <!-- Polices auto-hébergées (src/shared/fonts/) : aucun appel à Google Fonts (RGPD). -->
+    <!-- PAS de preload de la police emoji auto-hébergée : un preload de police est
+         inconditionnel et prioritaire (il part avant même l'analyse du CSS), ce qui annulait
+         l'`unicode-range` du @font-face et imposait 5,7 Mo à tous les appareils — dont ceux
+         qui, depuis que 'Apple Color Emoji' est en tête de pile, ne la demandent jamais.
+         Le FOUT que ce preload évitait ne concerne plus que le parc non-Apple, où
+         `font-display: swap` fait le travail. docs/AUDIT_EMOJIS_APPLE_2026-09-17.md § 4. -->
+    <script type="module" crossorigin src="/assets/main-BBrVywcW.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/rolldown-runtime-XKyaHtl9.js">
+    <link rel="modulepreload" crossorigin href="/assets/icons-Su2NvzhO.js">
+    <link rel="modulepreload" crossorigin href="/assets/react-vendor-B2Jsv3fP.js">
+    <link rel="modulepreload" crossorigin href="/assets/VisitMascotFallbackSvg-By3Flgsy.js">
+    <link rel="modulepreload" crossorigin href="/assets/dragReleaseClickGuard-K-5YokoN.js">
+    <link rel="modulepreload" crossorigin href="/assets/journalDraftQueue-Comx3jcY.js">
+    <link rel="modulepreload" crossorigin href="/assets/useBrandTheme-BxhLzNYL.js">
+    <link rel="modulepreload" crossorigin href="/assets/markdown-B5v0KHmz.js">
+    <link rel="modulepreload" crossorigin href="/assets/useAppVersion-D7qTfhb8.js">
+    <link rel="modulepreload" crossorigin href="/assets/preload-helper-BLdHbfdN.js">
+    <link rel="modulepreload" crossorigin href="/assets/spriteCutCatalogEntry-CMul-9KC.js">
+    <link rel="modulepreload" crossorigin href="/assets/mascotPack-vzl8pXo2.js">
+    <link rel="modulepreload" crossorigin href="/assets/visitMascotPackExtras-Bzp-3gJR.js">
+    <link rel="modulepreload" crossorigin href="/assets/PublicSettingsContext-CcqYt2FU.js">
+    <link rel="modulepreload" crossorigin href="/assets/journalUi-an-7nZL3.js">
+    <link rel="modulepreload" crossorigin href="/assets/useGatingSummary-ZcHLjwYH.js">
+    <link rel="modulepreload" crossorigin href="/assets/socket-io-DuHRd8Ke.js">
+    <link rel="modulepreload" crossorigin href="/assets/MarkdownTextarea-CXLES1Mx.js">
+    <link rel="modulepreload" crossorigin href="/assets/TotpChallenge-BKwfoTeo.js">
+    <link rel="modulepreload" crossorigin href="/assets/GlossaryMarkdown-CIhVNFS0.js">
+    <link rel="modulepreload" crossorigin href="/assets/GuidedTourOverlay-DA_ulKWk.js">
+    <link rel="modulepreload" crossorigin href="/assets/useLatestRequest-Bzcxatcn.js">
+    <link rel="modulepreload" crossorigin href="/assets/datetime-fr-Bx5Z0OCV.js">
+    <link rel="modulepreload" crossorigin href="/assets/downloadApiFile-COeu03pb.js">
+    <link rel="stylesheet" crossorigin href="/assets/dragReleaseClickGuard-XjQuBVie.css">
+    <link rel="stylesheet" crossorigin href="/assets/useBrandTheme-BpdSH9YF.css">
+    <link rel="stylesheet" crossorigin href="/assets/useAppVersion-BEZ_Ebgj.css">
+    <link rel="stylesheet" crossorigin href="/assets/visitMascotPackExtras-BxtquYrj.css">
+    <link rel="stylesheet" crossorigin href="/assets/main-BmFLNbaI.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
