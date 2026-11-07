@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { GLButton } from '../ui/GLButton.jsx';
 import { GLDataList } from '../ui/GLDataList.jsx';
+import { buildChapterOptions, hasChaptersHorsPlateau } from '../../utils/glChapterOptions.js';
 import { GLField } from '../ui/GLField.jsx';
 import { GLInput } from '../ui/GLInput.jsx';
 import { GLSelect } from '../ui/GLSelect.jsx';
@@ -24,6 +26,8 @@ export default function GLGameMasterConsoleParties({
   gameListRows,
   busy,
 }) {
+  // Sélecteur de chapitres : plateaux seulement, « hors plateau » (démo, test) sur demande.
+  const [horsPlateau, setHorsPlateau] = useState(false);
   return (
     <div className="gl-gameplay-block">
       <h3>Parties</h3>
@@ -66,12 +70,24 @@ export default function GLGameMasterConsoleParties({
               onChange={(event) => setCreateChapterId(event.target.value)}
             >
               <option value="">Choisir</option>
-              {chapters.map((chapter) => (
-                <option key={chapter.id} value={chapter.id}>
-                  {chapter.title}
-                </option>
-              ))}
+              {buildChapterOptions(chapters, { horsPlateau, selectedId: createChapterId }).map(
+                (chapter) => (
+                  <option key={chapter.id} value={chapter.id}>
+                    {chapter.label}
+                  </option>
+                ),
+              )}
             </GLSelect>
+            {hasChaptersHorsPlateau(chapters) ? (
+              <label className="gl-hint gl-chapter-hors-plateau">
+                <input
+                  type="checkbox"
+                  checked={horsPlateau}
+                  onChange={(event) => setHorsPlateau(event.target.checked)}
+                />{' '}
+                Afficher les chapitres hors plateau
+              </label>
+            ) : null}
           </GLField>
           <GLButton type="submit" disabled={busy}>
             Créer une partie

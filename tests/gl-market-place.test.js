@@ -151,18 +151,16 @@ test('don d’une page : copie à l’équipe du receveur, le découvreur garde 
   assert.ok(personal);
 });
 
-test('parure : débite le membre et habille son équipe ; asset null = non achetable', async () => {
+test('parure : débite le membre et habille son équipe ; asset null = achetable en pastille (C10)', async () => {
   await setPlayerBourses(a.id, 3, 3);
   const list = await request(app).get('/api/gl/market/parures').set(auth(a));
   assert.equal(list.status, 200, JSON.stringify(list.body));
   const buyable = list.body.catalogue.find((p) => p.disponible);
-  const notBuyable = list.body.catalogue.find((p) => !p.asset);
-  assert.ok(buyable && notBuyable);
-  const refused = await request(app)
-    .post(`/api/gl/market/parures/${notBuyable.code}/acheter`)
-    .set(auth(a))
-    .send({ ressource: 'gemmes' });
-  assert.equal(refused.status, 409);
+  const sansImage = list.body.catalogue.find((p) => !p.asset);
+  assert.ok(buyable && sansImage);
+  assert.equal(sansImage.achetable, true, 'une parure sans image reste achetable');
+  assert.equal(sansImage.typeEffectif, 'pastille');
+  assert.ok(sansImage.pastille?.texte, 'pastille texte (initiale) tant que l’asset est nul');
   const bought = await request(app)
     .post(`/api/gl/market/parures/${buyable.code}/acheter`)
     .set(auth(a))

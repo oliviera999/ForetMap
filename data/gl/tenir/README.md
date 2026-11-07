@@ -27,6 +27,20 @@ Chaque fichier a un chargeur **idempotent** : l'upsert se fait sur la clé indiq
 supprimées) quand une colonne `actif` existe, et **aucun état de partie** n'est touché
 (`gl_game_*`). Relancer un chargeur deux fois produit la même base.
 
+**Tolérance** (depuis la simulation du 7 novembre 2026) : une ligne invalide est **écartée et
+rapportée** (`errors[]`, compteur `ecartees`), les lignes valides sont écrites, un fichier ne
+bloque plus les suivants ; une ligne écartée n'est jamais désactivée en base. Une question de
+lecture dont la zone est absente ou inactive est écartée avec un avertissement. `--strict`
+(`npm run gl:import:tenir -- --fichier tous --strict`) garde le tout-ou-rien pour la CI de contenu.
+
+**Synchronisation au démarrage** (`lib/glTenirSync.js`) : après les migrations, l'empreinte
+SHA-256 de chaque fichier est comparée à celle mémorisée dans `gl_settings`
+(`content.tenir_catalogues_hash`) ; un fichier modifié est rechargé (import tolérant) et le rapport
+est journalisé (`gl.tenir.sync`, comptes seulement) et stocké (`content.tenir_catalogues_report`).
+`GL_TENIR_SYNC=0` désactive ; l'écran Contenus → Chapitres (carte « Catalogues Tenir à deux »)
+montre comptes, écarts et dernier rapport, et permet de resynchroniser (`POST
+/api/gl/admin/tenir/catalogues/sync`).
+
 | Fichier | Clé d'upsert | Nombre attendu |
 | --- | --- | --- |
 | `chasse-zones.json` | `zone_key` | 36 (8 / 8 / 10 / 10) |
@@ -62,7 +76,8 @@ Une zone :
 | `question_code` | string | question `gl_qcm_questions` active, niveau `6ème`, biome du feuillet, **unique sur les 36 zones** |
 | `theme_secours` | string | `categorie_slug` de la banque (`biome`, `ecosystemes`, `faune`, `flore`, `geologie`, `perturbations`) ; égal à la catégorie de `question_code` |
 | `ordre` | int | 1..N par plateau, sans trou ; le réglage `zones_par_plateau` active les N premières |
-| `actif` | bool | `true` partout dans ce fichier |
+| `especes` | `[code, …]` | 1 à 3 codes `gl_species` liés au dessin de la zone : **pistes de veillée** (étudier la fiche d'une de ces espèces révèle la zone) ; le chargeur retombe sur `lien_canal = 'espece'` du feuillet si la clé manque |
+| `actif` | bool | `true`, sauf une zone **en attente d'un autre feuillet** (`false` : écrite inactive, feuillet d'un autre plateau toléré avec avertissement ; sa question de lecture est désactivée) — au 7/11 : `cz-p2-08` (`ep-I-08` est au plateau 3) |
 
 Le chargeur exige `polygone` **ou** `polygone_ref` pour activer une zone ; une zone avec les deux à
 `null` est importée mais **refusée à l'activation** tant qu'Oliv n'a pas dessiné le polygone. Les
@@ -118,7 +133,9 @@ existantes. `icone` est un mot-clé, pas un fichier. Aucun badge ne donne de res
 - `variables` : sous-ensemble de `equipe`, `n`, `biome`, calculé depuis les `{…}` du texte.
 - `moment = oiseau` : ligne dite **après** le passage de l'oiseau (Olu se fige pendant).
 - `moment = erreur` : erreur volontaire d'Olu, une par séance au hasard ; `correction` est la phrase
-  dite quand une équipe corrige, ou en fin de tour si personne ne corrige.
+  dite quand une équipe corrige, ou en fin de tour si personne ne corrige ; `plateaux` (`[1-4]`
+  ou `"tous"`) : plateaux où l'erreur se tire — les élèves doivent pouvoir la corriger avec ce
+  qu'ils ont vu (le tirage filtre sur le plateau de la partie, repli sur `tous`).
 
 ## `parures.json`
 
@@ -156,7 +173,8 @@ l'état de la partie.
 
 `plateaux.<1-4>.pages[]` : `{ feuillet_code, ordre_voyage, titre, biome_slug, ordre, justification?, avertissement? }`.
 Plateaux 1-3 : toutes les pages de route (`mode_apparition = carnet_route`, type `scene`, statut
-`actif`) dans l'ordre de voyage de la base. Plateau 4 : 7 pages choisies (sur 35), sans lore secret
+`actif`) dans l'ordre de voyage de la base. Le chargeur du Passeur (seul) accepte une page d'un
+plateau **antérieur** avec un avertissement (`ep-VI-09`, plateau 2 en base, lu au plateau 4). Plateau 4 : 7 pages choisies (sur 35), sans lore secret
 ni corbeau nommé, chacune avec sa `justification` (réservée au prof). Le mot du Passeur affiche la
 page `ordre` = numéro du tour, modulo la longueur de la liste, sans reprendre une page déjà lue dans
 la partie. Une page marquée `avertissement` nomme le corbeau dans son **titre** : l'afficher sans

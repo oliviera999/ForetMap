@@ -212,6 +212,8 @@ app.use(
   }),
 );
 app.use(assignRequestId);
+// Horloge de simulation G&L : `X-GL-Sim-Clock` n'est lu que si GL_SIM_ALLOW=1 et hors production.
+app.use('/api/gl', require('./lib/glClock').simClockMiddleware);
 
 // Rate-limiting : limiteurs et helpers factorisés dans lib/rateLimit.js (montages inchangés).
 app.use('/api/', generalLimiter);
@@ -552,6 +554,8 @@ app.use('/api/gl/auth', glAuthRouter);
 app.use('/api/gl/admin/reference-docs', glReferenceDocsRouter);
 // « Tenir à deux » : exports CSV par classe (Team Spirit, badges), gl.game.manage.
 app.use('/api/gl/admin', require('./routes/gl/admin-tenir-exports'));
+// « Tenir à deux » : état et synchronisation des catalogues data/gl/tenir, gl.content.manage.
+app.use('/api/gl/admin', require('./routes/gl/admin-tenir-catalogues'));
 app.use('/api/gl/admin', glAdminRouter);
 app.use('/api/gl/content', glContentRouter);
 app.use('/api/gl/chapters', glChaptersRouter);

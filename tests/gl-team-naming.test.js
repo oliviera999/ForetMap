@@ -7,6 +7,8 @@ const { createSeededRng } = require('../lib/gl/teamComposition');
 const {
   MASCOT_POOL_TOO_SMALL,
   TEAM_COLOR_PALETTE,
+  GNOME_TEAM_NAMES,
+  UNICORN_TEAM_NAMES,
   buildTeamVocabulary,
   pickTeamNames,
   pickTeamColors,
@@ -93,4 +95,30 @@ test('typeFromTeamName déduit gnome / licorne du premier mot', () => {
   assert.equal(typeFromTeamName('Licornes des eaux'), 'unicorn');
   assert.equal(typeFromTeamName('  GNOME montagnards'), 'gnome');
   assert.equal(typeFromTeamName('Sources du nord'), null);
+});
+
+test('pickTeamNames typé : liste du peuple, jamais un nom déjà porté dans la classe, repli quand la liste est épuisée', () => {
+  const rng = createSeededRng(11);
+  const names = pickTeamNames({ count: 4, rng, types: ['gnome', 'unicorn', 'gnome', 'unicorn'] });
+  assert.equal(names.length, 4);
+  assert.ok(GNOME_TEAM_NAMES.includes(names[0]) && GNOME_TEAM_NAMES.includes(names[2]));
+  assert.ok(UNICORN_TEAM_NAMES.includes(names[1]) && UNICORN_TEAM_NAMES.includes(names[3]));
+  assert.equal(new Set(names).size, 4);
+  for (const n of names) assert.ok(!/chapitre|plateau|tropiques|africains/i.test(n));
+
+  // Les noms déjà portés dans la classe cette année sont exclus (même à la casse près).
+  const exclude = GNOME_TEAM_NAMES.slice(0, 11).map((n) => n.toUpperCase());
+  const reste = pickTeamNames({ count: 1, rng: createSeededRng(3), types: ['gnome'], exclude });
+  assert.deepEqual(reste, [GNOME_TEAM_NAMES[11]]);
+
+  // Liste épuisée : repli sur le vocabulaire puis « Équipe N », sans doublon.
+  const epuise = pickTeamNames({
+    count: 2,
+    rng: createSeededRng(5),
+    types: ['gnome', 'gnome'],
+    exclude: [...GNOME_TEAM_NAMES],
+    vocabulary: ['Clairière'],
+  });
+  assert.equal(epuise.length, 2);
+  assert.ok(!GNOME_TEAM_NAMES.includes(epuise[0]) && !GNOME_TEAM_NAMES.includes(epuise[1]));
 });

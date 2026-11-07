@@ -864,6 +864,15 @@ async function initSchema() {
   } catch (err) {
     logger.warn({ err }, 'Bascule de la visibilité des mascottes ignorée');
   }
+  // Catalogues « Tenir à deux » (data/gl/tenir/*.json) : chargés après les migrations dès
+  // qu'une empreinte diffère de celle mémorisée (lib/glTenirSync.js). Non bloquant,
+  // `GL_TENIR_SYNC=0` pour désactiver ; jamais d'état de partie touché.
+  try {
+    const { syncTenirCataloguesAtStartup } = require('./lib/glTenirSync');
+    await syncTenirCataloguesAtStartup({ queryAll, queryOne, execute });
+  } catch (err) {
+    logger.warn({ err }, 'Synchronisation des catalogues Tenir ignorée');
+  }
 }
 
 // Doublons de numéros HISTORIQUES (021_add_new_tutorials_seed / 021_visit_public_flow,

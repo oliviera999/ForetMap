@@ -142,7 +142,7 @@ def check_zones(d, rep, use_db, catalogue):
         rep.err(f"{name}: `zones` doit être une liste")
         return {}
     keys = ["zone_key", "plateau", "feuillet_code", "titre_prive", "indice", "polygone", "polygone_ref",
-            "rang_case", "question_code", "theme_secours", "ordre", "actif"]
+            "rang_case", "question_code", "theme_secours", "ordre", "actif", "especes"]
     by_key = {}
     seen_q = {}
     seen_f = {}
@@ -198,6 +198,13 @@ def check_zones(d, rep, use_db, catalogue):
             rep.err(f"{name} {zk}: polygone et polygone_ref à la fois")
         if poly is None and pref is None:
             rep.warn(f"{name} {zk}: ni polygone ni polygone_ref — à dessiner dans l'éditeur avant activation")
+        especes = z.get("especes")
+        if especes is not None:
+            if (not isinstance(especes, list) or not 1 <= len(especes) <= 3
+                    or not all(isinstance(c, str) and re.fullmatch(r"SP\d{4}", c) for c in especes)):
+                rep.err(f"{name} {zk}: especes attend 1 à 3 codes SPnnnn")
+            elif len(set(especes)) != len(especes):
+                rep.err(f"{name} {zk}: especes en double")
         if pref and catalogue is not None:
             cat = catalogue.get(pref)
             if cat is None:
@@ -219,8 +226,10 @@ def check_zones(d, rep, use_db, catalogue):
             seen_q[qc] = zk
         if z.get("theme_secours") not in CATEGORIES:
             rep.err(f"{name} {zk}: theme_secours {z.get('theme_secours')!r} hors catégories")
-        if z.get("actif") is not True:
-            rep.err(f"{name} {zk}: actif doit être true")
+        if z.get("actif") is False:
+            rep.warn(f"{name} {zk}: zone désactivée (en attente d'un autre feuillet)")
+        elif z.get("actif") is not True:
+            rep.err(f"{name} {zk}: actif doit être true ou false")
         if not isinstance(z.get("ordre"), int):
             rep.err(f"{name} {zk}: ordre doit être un entier")
     for pl, attendu in ZONES_PAR_PLATEAU.items():
@@ -526,7 +535,7 @@ def check_olu(d, rep):
     n_err = 0
     for l in items:
         lid = str(l.get("id", "?"))
-        allowed = ["id", "moment", "expression", "texte", "variables", "correction"]
+        allowed = ["id", "moment", "expression", "texte", "variables", "correction", "plateaux"]
         extra = [k for k in l if k not in allowed]
         missing = [k for k in allowed[:5] if k not in l]
         if extra or missing:
@@ -555,6 +564,12 @@ def check_olu(d, rep):
             n_err += 1
             if not isinstance(l.get("correction"), str) or not l["correction"].strip():
                 rep.err(f"{name} {lid}: une erreur volontaire doit avoir une correction")
+            pl = l.get("plateaux", "tous")
+            if pl != "tous" and (not isinstance(pl, list) or not pl
+                                 or any(x not in (1, 2, 3, 4) for x in pl)):
+                rep.err(f"{name} {lid}: plateaux attend \"tous\" ou une liste de plateaux 1-4")
+        elif "plateaux" in l:
+            rep.err(f"{name} {lid}: plateaux réservé au moment erreur")
         elif "correction" in l:
             rep.err(f"{name} {lid}: correction réservée au moment erreur")
     for m in MOMENTS - moments:

@@ -308,6 +308,18 @@ s'appliquent aussitôt ; ceux du prof (Question, Conseil, Pause, Nommer, Lettre�
 file : vous cochez « effet appliqué » quand c'est fait. Aucun sort ne crée de ressource, sauf
 « Nommer » qui rend un cœur à chaque Gnome de l'équipe qui répare une page.
 
+## Ajustements du 7 novembre 2026
+
+- **Progression** et **Relance** se lancent juste après le jet de l'équipe, avant qu'une autre
+  équipe ne joue ; Progression déplace d'une case sans appliquer la case d'arrivée (réglage
+  « Progression : appliquer la case d'arrivée »).
+- Une bonne réponse de case donne **une relance par équipe et par tour** ; ensuite, +1 case
+  seulement (réglage « Relances de case par équipe et par tour », 0 = sans limite).
+- Les cases positives à ressource du plateau donnent **+1 de la ressource du peuple**, comme la
+  Trame ; une case neutre ne retire jamais de ressource (réglage « Cases positives à ressource »).
+- Les **parures** sans image restent achetables : la mascotte porte une pastille texte.
+- Un élève en **retrait** lit et tient une page ; le Marché et le pot lui restent fermés.
+
 ## Pour aller plus loin
 
 [Présentation générale](presentation.md) · [Guide du MJ](guide-du-mj.md) · [Les deux peuples du seuil](lore-deux-peuples.md) · [Sommaire](../README.md)

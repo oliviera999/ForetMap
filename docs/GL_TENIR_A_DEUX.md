@@ -39,7 +39,7 @@ dés par surface (`resolveSurface`, `resolveDesMode`). Au passage `draft → liv
 numéroté est imposé, l'état de partie créé (chapardeur tiré entre les tours 2 et 4), les pages de
 chasse initialisées, les Héritages de la classe versés.
 
-## Tables (migrations 330 → 333)
+## Tables (migrations 330 → 335)
 
 | Migration | Tables / colonnes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -48,9 +48,16 @@ chasse initialisées, les Héritages de la classe versés.
 | 332       | `gl_game_chasse_pages` (`endormie → revelee → trouvee → tenue`, `palie → reparee`, pâlissement par équipe), `gl_game_chasse_ouvertures`, `gl_game_chasse_empreintes`, `gl_game_chasse_pistes`, `gl_game_chasse_questions_vues`                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | 333       | semis du grimoire v2 (25 sorts, ouvertures cumulatives par plateau) ; `gl_game_honneurs`, `gl_player_titres`, `gl_player_badges`, `gl_game_missions`, `gl_game_chimeres`, `gl_game_heritages`, `gl_voyageur_plumes` ; `gl_voyageur_spell_uses.last_used_game_id`                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 
-Le chargeur `npm run gl:import:tenir -- --fichier tous|<nom> [--dry-run] [--forcer]`
+| 334 | `gl_chasse_zones.especes_json` (pistes de veillée), `gl_tenir_olu_lignes.plateaux_json` (erreur du jour par plateau), `gl_game_rounds.dernier_jet_json` (fenêtre « après le jet »), `gl_resource_ledger` (grand livre des bourses), empreintes `content.tenir_catalogues_hash` |
+| 335 | contenu : descriptions des neuf cases de déplacement des plateaux 1-4 (gardées par l'ancien texte), case 217 → `order_index` 355 |
+
+Le chargeur `npm run gl:import:tenir -- --fichier tous|<nom> [--dry-run] [--forcer] [--strict]`
 (`lib/glTenirImport.js`, données `data/gl/tenir/`, README des clés) reste maître des catalogues ;
-la migration 333 ne pose `effet_auto_json` qu'à la création (COALESCE).
+la migration 333 ne pose `effet_auto_json` qu'à la création (COALESCE). Depuis la simulation du
+7 novembre 2026, les catalogues sont **synchronisés au démarrage** (`lib/glTenirSync.js`, après
+`initSchema` : empreinte SHA-256 par fichier dans `gl_settings`, import tolérant des fichiers
+modifiés, rapport `gl.tenir.sync`, `GL_TENIR_SYNC=0` pour désactiver) et depuis
+Contenus → Chapitres (`GET/POST /api/gl/admin/tenir/catalogues[/sync]`).
 
 ## Modules serveur
 
@@ -68,7 +75,13 @@ la migration 333 ne pose `effet_auto_json` qu'à la création (COALESCE).
 | `lib/glSpellCast.js`                                                                                                                     | coût par ressource, pacte, file du prof, intégration des effets                                                                                           |
 | `lib/glHonneurs.js`, `lib/glTenirBadges.js`, `lib/glHeritage.js`, `lib/glVoyageurPlume.js`, `lib/glTenirOlu.js`, `lib/glTenirExports.js` | honneurs / titres / missions, badges, Héritage, Plume / Lettre, Olu, exports CSV                                                                          |
 | `lib/glProjection.js`                                                                                                                    | jeton de projection (JWT `gl_guest`, 12 h, `sha256(jti)` révocable)                                                                                       |
-| `lib/glMarketPlace.js`                                                                                                                   | annonces, dons, parures                                                                                                                                   |
+| `lib/glMarketPlace.js`                                                                                                                   | annonces, dons, parures (sans image : pastille texte, achetable)                                                                                          |
+| `lib/glTenirSync.js`, `routes/gl/admin-tenir-catalogues.js`                                                                              | synchronisation des catalogues `data/gl/tenir/` (empreintes, import tolérant, rapport, écran d'administration)                                            |
+| `lib/glRandom.js`                                                                                                                        | aléa centralisé (`crypto` par défaut ; `GL_RANDOM_SEED` hors production → mulberry32, une graine par partie `seed ^ gameId`)                              |
+| `lib/glClock.js`                                                                                                                         | horloge injectable (`now()`, décalage de simulation par appel ou en-tête `X-GL-Sim-Clock` si `GL_SIM_ALLOW=1` hors production) ; semaines ISO, trimestres |
+| `lib/glBourses.js`                                                                                                                       | **seule** écriture des bourses (`applyBourseDeltaTx`) + grand livre `gl_resource_ledger` (delta, soldes après, cause, évènement)                          |
+| `lib/glTenirInvariants.js`                                                                                                               | invariants d'une partie (bourses, livre, pions, voile, pages, relances) : fonction pure + chargeur depuis la base                                         |
+| `src/shared/glCaseNumeroCore.js`                                                                                                         | numérotation humaine des cases (numéro = rang + 1), bandeau et journal alignés (miroir `lib/shared/`)                                                     |
 
 ## Routes
 
@@ -78,7 +91,7 @@ Toutes sous `/api/gl/games/:id/…` sauf mention (détail dans [`API.md`](API.md
 `tenir/tour/olu-corrige`, `tenir/peripetie/passer`, `projection-token`, `chasse/*`,
 `tenir/honneurs|missions|badges|chimeres|plumes`, `spell-casts/*` (v2), `/api/gl/market/annonces|dons|parures`,
 `/api/gl/voyageur/spells/flair|plume/cast`, `/api/gl/admin/classes/:classId/exports/*.csv`,
-`/api/gl/admin/chasse-zones`.
+`/api/gl/admin/chasse-zones`, `/api/gl/admin/tenir/catalogues[/sync]`.
 
 ## Événements du journal (`gl_game_events`)
 
@@ -93,11 +106,48 @@ Toutes sous `/api/gl/games/:id/…` sauf mention (détail dans [`API.md`](API.md
 `don`, `annonce_*`, `parure_*`.
 
 Libellés lisibles (élève / MJ / projection) : `lib/glJournalPresentTenir.js`, branché dans
-`lib/glJournalPresent.js` (repli générique pour tout type inconnu). Le modèle de vue client
+`lib/glJournalPresent.js` ; en partie tenir (`context.tenir`, posé par `routes/gl/journal.js`),
+les libellés tenir priment sur les classiques (`move`, `spell_cast`, `marker_effect`,
+`qcm_answer`…) et `tests/gl-journal-tenir-exhaustif.test.js` relève tous les types émis par le
+moteur : aucun ne tombe plus sur « Un évènement s'est produit ». Le modèle de vue client
 (`src/gl/utils/glAppShellHelpers.js › toGameViewModel`) conserve le bloc `tenir` de
 `GET /games/:id` ; sans lui, aucun écran tenir ne se monte.
 
+## Correctifs de la simulation du 7 novembre 2026
+
+Trois chapitres 1 joués de bout en bout (prof et 20 élèves virtuels, surfaces hybride et
+tablette, contenu réel : plateau 1, 931 QCM, 205 feuillets, 276 espèces, ~1 400 appels, aucun
+5xx). Choix faits par défaut, chacun réglable :
+
+| #   | Sujet              | Choix                                                                                                                         | Réglage                                        |
+| --- | ------------------ | ----------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| C1  | Progression        | ±1 case **sans** appliquer la case d'arrivée ; lançable seulement si le dernier jet du tour est celui de l'équipe             | `gameplay.tenir_progression_applique_case`     |
+| C2  | Relance            | même fenêtre que C1 (`gl_game_rounds.dernier_jet_json`)                                                                       | —                                              |
+| C3  | Relances de case   | une seule par équipe et par tour ; au-delà +1 case sans relance (`/qcm/answer` → `tenir.bonus { cases, relance }`)            | `gameplay.tenir_relances_max_par_tour` (0 = ∞) |
+| C4  | Cases positives    | +1 ressource du peuple, comme la Trame ; une perte neutre hors Souffle ne retire rien                                         | `gameplay.tenir_cases_positives`               |
+| C5  | Péripéties         | aussi sur les cases `behavior` sans effet de tonalité négative ou neutre ; jamais sur un Défi ; description de la case jointe | `gameplay.tenir_peripeties_cases_neutres`      |
+| C6  | Retrait            | l'élève en retrait ouvre et tient une page (gains d'équipe) ; Marché et pot inchangés                                         | —                                              |
+| C7  | Zone `cz-p2-08`    | `actif: false` (feuillet `ep-I-08` au plateau 3) ; question de lecture désactivée                                             | —                                              |
+| C8  | Passeur p4 ordre 4 | l'importeur du Passeur accepte un feuillet d'un plateau antérieur, avec avertissement                                         | —                                              |
+| C9  | Connexions         | limiteur d'authentification 300 / 15 min / IP (NAT du lycée), journal `auth_rate_limit_reached` par fenêtre                   | `FORETMAP_AUTH_RATE_LIMIT_PER_15MIN`           |
+| C10 | Parures sans image | achetables en pastille texte                                                                                                  | —                                              |
+
+Et aussi : pistes de veillée par `especes` de zone (35 zones renseignées), erreur d'Olu filtrée
+par plateau (`plateaux`), noms d'équipes typés par peuple (une fois par classe et par année),
+scripts `gl-import-*.js` (xlsx) réparés (`await`), descriptions des cases de déplacement
+(migration 335, contrôle `tests/content/gl-markers-coherence.test.js`).
+
+**Banc de simulation** (garde-fou) : il ne s'exécute jamais contre la base de prod — une base
+dont le nom ne finit pas par `_sim` ou `_test`, ou `NODE_ENV=production` sans `GL_SIM_ALLOW=1`,
+doit être refusée. Les briques livrées ici : aléa rejouable (`GL_RANDOM_SEED`), horloge
+(`X-GL-Sim-Clock`), grand livre et invariants ; le banc en série, ses scénarios et les outils
+MCP G&L restent à livrer (étapes 7 à 9 du prompt, tronquées).
+
 ## Captures
+
+Captures « après » du 7 novembre 2026 : `docs/captures/tenir-v2/apres-1-ecran-du-tour-1440x900.png`
+(console MJ, écran du tour visible sans défilement), `apres-3-projection-1920x1080.png` (plateau
+en lecture seule), `apres-2-ecran-equipe-tablette-1024x768.png`, `apres-5-ecran-equipe-telephone-390x844.png`.
 
 `docs/captures/tenir-v2/` : écran du tour projeté avec voile, écran d'équipe (tablette),
 projection, Marché (partie d'exemple anonyme, profil `complet`).

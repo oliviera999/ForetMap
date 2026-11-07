@@ -324,6 +324,9 @@ router.post('/games/:id/qcm/answer', requireGlAuth, async (req, res) => {
     tenir: tenirBonus
       ? {
           bonusCase: tenirBonus.applied,
+          // C3 : `{ cases: 1, relance: true|false }` — relance refusée au-delà de
+          // `tenir_relances_max_par_tour` (+1 case et case appliquée, dé non réarmé).
+          bonus: tenirBonus.bonus || null,
           target: tenirBonus.target || null,
           arrival: tenirBonus.arrival || null,
         }

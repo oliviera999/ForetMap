@@ -279,6 +279,21 @@ les dés physiques d'un clic. Les **absences** du jour retirent un élève du po
 carnet personnel du tour. Le **retrait** (conduite) se décide élève par élève : il joue, fouille et
 lit, mais ne verse pas au pot et ne voit pas le Marché, jusqu'à la levée ; le motif reste pour vous.
 
+**Depuis la simulation du 7 novembre 2026.** Une bonne réponse de case donne **une seule relance
+par équipe et par tour** ; les suivantes donnent +1 case sans relance. **Progression** et
+**Relance** ne se lancent que juste après le jet de l'équipe (si une autre équipe a joué depuis,
+le sort attend le prochain jet) et Progression déplace d'une case sans appliquer la case
+d'arrivée. Les cases « +2 cœurs » ou « +1 gemme » du plateau donnent **+1 de la ressource du
+peuple**, comme la Trame. Les **péripéties** sortent aussi sur les cases sans effet (Averse
+tropicale, Lion à l'affût…), avec la description de la case au-dessus. Un élève en **retrait**
+peut lire et tenir une page. Les **parures** sans image s'achètent quand même : une pastille sur
+la mascotte. Dans la console, pour une partie en cours, l'onglet **« Jouer le tour »** s'ouvre
+seul, les réglages hérités (popovers, feuillets…) sont repliés sous « Réglages hors Tenir », et
+le sélecteur de chapitres ne propose que les **plateaux** (case « Afficher les chapitres hors
+plateau » pour la démo et « test »). Les catalogues (zones, questions, péripéties, Olu, parures)
+se chargent seuls au démarrage ; Contenus → Chapitres → « Catalogues Tenir à deux » montre
+leur état et permet de les resynchroniser.
+
 À la **clôture** du chapitre (bouton « Clore »), la caravane porte les retardataires au camp, les
 honneurs, sceaux et titres s'attribuent, les parures reviennent au comptoir, les badges se
 calculent. La **projection** (bouton « Projeter ») donne un lien à ouvrir sur le vidéoprojecteur :

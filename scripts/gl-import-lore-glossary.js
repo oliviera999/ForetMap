@@ -37,7 +37,7 @@ function parseArgs(argv) {
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   const buffer = await fs.readFile(args.file);
-  const { glossaryRows } = parseLoreGlossaryWorkbook(buffer);
+  const { glossaryRows } = await parseLoreGlossaryWorkbook(buffer);
   await initSchema();
   const report = await applyLoreGlossaryImport({ queryAll, execute }, glossaryRows, {
     dryRun: args.dryRun,
@@ -51,10 +51,12 @@ async function main() {
 }
 
 if (require.main === module) {
-  main().catch((err) => {
-    console.error('[gl-import-lore-glossary] erreur:', err.message || err);
-    process.exit(1);
-  });
+  main()
+    .then(() => process.exit(0))
+    .catch((err) => {
+      console.error('[gl-import-lore-glossary] erreur:', err.message || err);
+      process.exit(1);
+    });
 }
 
 module.exports = { parseArgs };

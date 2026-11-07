@@ -406,6 +406,8 @@ une autre équipe ni vers une projection ; les payloads privés du journal sont 
 | GET     | `/api/gl/admin/classes/:classId/exports/team-spirit.csv` | —                                                                                  | `gl.game.manage`. CSV `;`, BOM UTF-8 : élève × séance (partie, chapitre, tour, date, équipe, peuple, cartes gardées, cartes nommées). Aucune bourse, aucun classement.                                                                                        |
 | GET     | `/api/gl/admin/classes/:classId/exports/badges.csv`  | —                                                                                      | `gl.game.manage`. Élève, badge, libellé, date, source, attribué par.                                                                                                                                                                                           |
 | GET/PUT | `/api/gl/admin/chasse-zones[?plateau=]`, `…/:zoneKey/polygone` | `{ polygone: [[x,y],…]\|null }`                                                | `gl.content.manage`. Géométrie des zones (centroïde, rang de case, `geometrie_prete`).                                                                                                                                                                         |
+| GET     | `/api/gl/admin/tenir/catalogues`                     | —                                                                                      | `gl.content.manage`. Catalogues `data/gl/tenir/*.json` : par fichier, table alimentée, lignes actives, empreinte SHA-256 du dépôt et celle mémorisée en base (`content.tenir_catalogues_hash`), `aJour` ; `ecarts[]`, dernier `rapport` (`content.tenir_catalogues_report`), `syncDesactivee` (`GL_TENIR_SYNC=0`). |
+| POST    | `/api/gl/admin/tenir/catalogues/sync`                | `{ dryRun?, fichier? }`                                                                | `gl.content.manage`. Rejoue la synchronisation (import **tolérant** : une ligne invalide est écartée et rapportée, le reste est écrit ; empreintes ignorées) sur un fichier (400 si inconnu) ou tous ; `dryRun` valide sans écrire. Réponse : `{ at, dryRun, files: [{ fichier, status: synchronise\|refuse\|dry_run\|a_jour\|absent, count, upserted, desactives, ecartees, errors[], warnings[] }] }`. Journalisé (audit). La même fonction tourne au démarrage après les migrations (`lib/glTenirSync.js`, log `gl.tenir.sync`). |
 
 Champs et comportements étendus en mode tenir : `POST /dice-roll` → 400 si `count ≠ tenir_des_count`,
 sinon 409 `TENIR_LANCER` (passer par `/tenir/lancer`) ; `POST /turn/next` → 409 `TENIR_TOUR` ;
@@ -1305,7 +1307,7 @@ Le client (`api()`) émet l’événement `foretmap_password_change_required` su
 ouvre « Mon profil ». Côté Gnomes & Licornes, le joueur a sa propre porte (`requireGlAuth`).
 
 **Anti-force-brute par compte** — en plus du limiteur d'IP (`FORETMAP_AUTH_RATE_LIMIT_PER_15MIN`,
-défaut 60 tentatives / 15 min), chaque identifiant est verrouillé après **5 échecs** : 30 s,
+défaut 300 tentatives / 15 min — une classe entière partage l'adresse publique du lycée), chaque identifiant est verrouillé après **5 échecs** : 30 s,
 doublés à chaque échec suivant, plafonnés à 15 min (`lib/loginThrottle.js`). Réponse
 `429 { error, retryAfterSeconds }` + en-tête `Retry-After`. Un succès remet le compteur à zéro.
 S'applique à `/api/auth/login`, `/api/gl/auth/login`, `/api/gl/auth/staff/login` et

@@ -170,11 +170,12 @@ test('preview random : proposition complète, déterministe, sans écriture ni s
   assert.ok(p.teams.every((t) => t.name && /^#[0-9a-f]{6}$/i.test(t.color) && t.mascotId));
   assert.equal(new Set(p.teams.map((t) => t.name)).size, 3);
   assert.equal(new Set(p.teams.map((t) => t.mascotId)).size, 3);
-  // Le vocabulaire du chapitre est utilisé.
-  assert.ok(
-    p.teams.some((t) => ['Sources', 'Nord'].includes(t.name)),
-    p.teams.map((t) => t.name),
-  );
+  // Noms typés par peuple (simulation du 7/11) : plus jamais « Chapitre », « Plateau 1 », « Sources ».
+  const { GNOME_TEAM_NAMES, UNICORN_TEAM_NAMES } = require('../lib/gl/teamNaming');
+  for (const t of p.teams) {
+    const liste = t.type === 'unicorn' ? UNICORN_TEAM_NAMES : GNOME_TEAM_NAMES;
+    assert.ok(liste.includes(t.name), `${t.type} : ${t.name}`);
+  }
   // Joueur inactif écarté et signalé.
   assert.equal(p.excluded.length, 1);
   assert.equal(Number(p.excluded[0].playerId), Number(players[10].id));

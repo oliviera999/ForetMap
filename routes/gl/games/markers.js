@@ -49,7 +49,7 @@ const {
 const { parseId } = require('../../../lib/shared/httpHelpers');
 const asyncHandler = require('../../../lib/asyncHandler');
 const { sendSafeError } = require('../../../lib/safeErrorResponse');
-const { isTenirGame } = require('../../../lib/glTenir');
+const { isTenirGame, resolveTenirSettings } = require('../../../lib/glTenir');
 
 const router = express.Router();
 
@@ -61,7 +61,9 @@ const {
 /** Contexte « Tenir à deux » d'une case : règles v2 actives ? Sentier posé pour l'équipe ? */
 async function resolveTenirMarkerContext(tx, settings, game, teamId) {
   if (!isTenirGame(settings, game)) return { tenir: false, sentierActif: false };
-  return resolveSentierContext(tx, game.id, teamId);
+  const ctx = await resolveSentierContext(tx, game.id, teamId);
+  // C4 : cases positives à ressource converties selon `tenir_cases_positives`.
+  return { ...ctx, casesPositives: resolveTenirSettings(settings, game).cases_positives };
 }
 
 async function loadChapterPathMarkers(tx, chapterId) {
@@ -412,6 +414,7 @@ router.post(
           skipIfAlreadyApplied: true,
           tenir: tenirCtx.tenir,
           sentierActif: tenirCtx.sentierActif,
+          casesPositives: tenirCtx.tenir ? tenirCtx.casesPositives : undefined,
         });
         if (vitalityPayload?.sentier) await consumeSentier(tx, gameId, teamId);
 
@@ -577,6 +580,7 @@ router.post(
           skipIfAlreadyApplied: true,
           tenir: tenirCtx.tenir,
           sentierActif: tenirCtx.sentierActif,
+          casesPositives: tenirCtx.tenir ? tenirCtx.casesPositives : undefined,
         });
         if (vitalityPayload?.sentier) await consumeSentier(tx, gameId, teamId);
 

@@ -9,9 +9,13 @@
  *   npm run gl:import:tenir -- --fichier tous --dry-run  # valide, n'écrit rien
  *   npm run gl:import:tenir -- --fichier reglages-defaut --forcer   # écrase les réglages
  *   npm run gl:import:tenir -- --fichier tous --dossier data/gl/tenir/exemple
+ *   npm run gl:import:tenir -- --fichier tous --strict   # tout ou rien (CI de contenu)
  *
  * Ordre : reglages-defaut → sorts → chasse-zones → questions-lecture → le reste.
- * Idempotent (voir lib/glTenirImport.js). Code de sortie 1 au premier fichier refusé.
+ * Idempotent (voir lib/glTenirImport.js). Tolérant par défaut : une ligne invalide est écartée
+ * et rapportée, les lignes valides sont écrites, un fichier ne bloque plus les suivants.
+ * `--strict` : ancien comportement (un fichier avec une erreur est refusé entier). Code de
+ * sortie 1 si un fichier est refusé (structure invalide, ou toute erreur en `--strict`).
  */
 
 const fs = require('node:fs');
@@ -24,12 +28,14 @@ function parseArgs(argv) {
   const args = {
     fichier: 'tous',
     dryRun: false,
+    strict: false,
     forcer: false,
     dossier: path.join(process.cwd(), 'data', 'gl', 'tenir'),
   };
   for (let i = 0; i < argv.length; i += 1) {
     const raw = argv[i];
     if (raw === '--dry-run') args.dryRun = true;
+    else if (raw === '--strict') args.strict = true;
     else if (raw === '--forcer') args.forcer = true;
     else if (raw === '--fichier') args.fichier = String(argv[i + 1] || 'tous');
     else if (raw.startsWith('--fichier=')) args.fichier = raw.slice('--fichier='.length);
@@ -50,7 +56,10 @@ function readJson(dossier, name) {
  * Charge une liste de fichiers avec `db` (module database ou transaction).
  * @returns {Promise<Array<object>>} rapports
  */
-async function runImports(db, { fichier = 'tous', dryRun = false, forcer = false, dossier }) {
+async function runImports(
+  db,
+  { fichier = 'tous', dryRun = false, strict = false, forcer = false, dossier },
+) {
   const names = fichier === 'tous' ? IMPORT_ORDER : [fichier];
   const reports = [];
   const titres = readJson(dossier, 'titres');
@@ -63,13 +72,15 @@ async function runImports(db, { fichier = 'tous', dryRun = false, forcer = false
       reports.push({
         fichier: name,
         errors: [`fichier ${name}.json absent de ${dossier}`],
+        warnings: [],
         count: 0,
+        ecartees: 0,
+        refuse: true,
       });
       continue;
     }
-    const rep = await importer(db, json, { dryRun, forcer, titres, zones });
+    const rep = await importer(db, json, { dryRun, strict, forcer, titres, zones });
     reports.push(rep);
-    if (rep.errors.length) break;
   }
   return reports;
 }
@@ -81,13 +92,16 @@ async function main() {
   const reports = await runImports(database, args);
   let failed = false;
   for (const rep of reports) {
-    const status = rep.errors.length ? 'REFUSÉ' : args.dryRun ? 'dry-run OK' : 'OK';
+    const ecartees = Number(rep.ecartees) || 0;
+    const status = rep.refuse
+      ? 'REFUSÉ'
+      : `${args.dryRun ? 'dry-run OK' : 'OK'}${ecartees ? ` (${ecartees} écartée${ecartees > 1 ? 's' : ''})` : ''}`;
     console.log(
       `[gl-import-tenir] ${rep.fichier}: ${status} — ${rep.count} lignes, ${rep.upserted || 0} écrites, ${rep.desactives || 0} désactivées`,
     );
     for (const w of rep.warnings || []) console.log(`  ⚠ ${w}`);
     for (const e of rep.errors) console.error(`  ✖ ${e}`);
-    if (rep.errors.length) failed = true;
+    if (rep.refuse) failed = true;
   }
   process.exit(failed ? 1 : 0);
 }

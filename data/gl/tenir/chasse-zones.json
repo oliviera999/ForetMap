@@ -1,5 +1,5 @@
 {
-  "format": "chasse-zones v1 — coords normalisées 0-1, origine haut-gauche",
+  "format": "chasse-zones v2 — coords normalisées 0-1, origine haut-gauche ; especes = codes gl_species (1 à 3) pour les pistes de veillée",
   "zones": [
     {
       "zone_key": "cz-p1-01",
@@ -46,7 +46,10 @@
       "question_code": "QCM0068",
       "theme_secours": "faune",
       "ordre": 1,
-      "actif": true
+      "actif": true,
+      "especes": [
+        "SP0033"
+      ]
     },
     {
       "zone_key": "cz-p1-02",
@@ -93,7 +96,10 @@
       "question_code": "QCM0063",
       "theme_secours": "faune",
       "ordre": 2,
-      "actif": true
+      "actif": true,
+      "especes": [
+        "SP0026"
+      ]
     },
     {
       "zone_key": "cz-p1-03",
@@ -140,7 +146,11 @@
       "question_code": "QCM0098",
       "theme_secours": "ecosystemes",
       "ordre": 3,
-      "actif": true
+      "actif": true,
+      "especes": [
+        "SP0029",
+        "SP0034"
+      ]
     },
     {
       "zone_key": "cz-p1-04",
@@ -187,7 +197,11 @@
       "question_code": "QCM0069",
       "theme_secours": "faune",
       "ordre": 4,
-      "actif": true
+      "actif": true,
+      "especes": [
+        "SP0109",
+        "SP0037"
+      ]
     },
     {
       "zone_key": "cz-p1-05",
@@ -201,7 +215,12 @@
       "question_code": "QCM0281",
       "theme_secours": "biome",
       "ordre": 5,
-      "actif": true
+      "actif": true,
+      "especes": [
+        "SP0116",
+        "SP0115",
+        "SP0110"
+      ]
     },
     {
       "zone_key": "cz-p1-06",
@@ -248,7 +267,12 @@
       "question_code": "QCM0251",
       "theme_secours": "flore",
       "ordre": 6,
-      "actif": true
+      "actif": true,
+      "especes": [
+        "SP0111",
+        "SP0110",
+        "SP0097"
+      ]
     },
     {
       "zone_key": "cz-p1-07",
@@ -295,7 +319,10 @@
       "question_code": "GQCM0766",
       "theme_secours": "faune",
       "ordre": 7,
-      "actif": true
+      "actif": true,
+      "especes": [
+        "SP0106"
+      ]
     },
     {
       "zone_key": "cz-p1-08",
@@ -342,7 +369,10 @@
       "question_code": "QCM0277",
       "theme_secours": "ecosystemes",
       "ordre": 8,
-      "actif": true
+      "actif": true,
+      "especes": [
+        "SP0096"
+      ]
     },
     {
       "zone_key": "cz-p2-01",
@@ -389,7 +419,10 @@
       "question_code": "QCM0009",
       "theme_secours": "faune",
       "ordre": 1,
-      "actif": true
+      "actif": true,
+      "especes": [
+        "SP0001"
+      ]
     },
     {
       "zone_key": "cz-p2-02",
@@ -436,7 +469,10 @@
       "question_code": "QCM0037",
       "theme_secours": "ecosystemes",
       "ordre": 2,
-      "actif": true
+      "actif": true,
+      "especes": [
+        "SP0019"
+      ]
     },
     {
       "zone_key": "cz-p2-03",
@@ -483,7 +519,11 @@
       "question_code": "QCM0005",
       "theme_secours": "faune",
       "ordre": 3,
-      "actif": true
+      "actif": true,
+      "especes": [
+        "SP0004",
+        "SP0003"
+      ]
     },
     {
       "zone_key": "cz-p2-04",
@@ -497,7 +537,11 @@
       "question_code": "QCM0051",
       "theme_secours": "perturbations",
       "ordre": 4,
-      "actif": true
+      "actif": true,
+      "especes": [
+        "SP0020",
+        "SP0014"
+      ]
     },
     {
       "zone_key": "cz-p2-05",
@@ -544,7 +588,10 @@
       "question_code": "QCM0467",
       "theme_secours": "biome",
       "ordre": 5,
-      "actif": true
+      "actif": true,
+      "especes": [
+        "SP0181"
+      ]
     },
     {
       "zone_key": "cz-p2-06",
@@ -591,7 +638,11 @@
       "question_code": "QCM0429",
       "theme_secours": "faune",
       "ordre": 6,
-      "actif": true
+      "actif": true,
+      "especes": [
+        "SP0180",
+        "SP0166"
+      ]
     },
     {
       "zone_key": "cz-p2-07",
@@ -638,7 +689,12 @@
       "question_code": "QCM0436",
       "theme_secours": "flore",
       "ordre": 7,
-      "actif": true
+      "actif": true,
+      "especes": [
+        "SP0179",
+        "SP0186",
+        "SP0177"
+      ]
     },
     {
       "zone_key": "cz-p2-08",
@@ -652,7 +708,10 @@
       "question_code": "QCM0451",
       "theme_secours": "ecosystemes",
       "ordre": 8,
-      "actif": true
+      "actif": false,
+      "especes": [
+        "SP0176"
+      ]
     },
     {
       "zone_key": "cz-p3-01",
@@ -699,7 +758,11 @@
       "question_code": "QCM0213",
       "theme_secours": "ecosystemes",
       "ordre": 1,
-      "actif": true
+      "actif": true,
+      "especes": [
+        "SP0079",
+        "SP0082"
+      ]
     },
     {
       "zone_key": "cz-p3-02",
@@ -746,7 +809,11 @@
       "question_code": "QCM0195",
       "theme_secours": "flore",
       "ordre": 2,
-      "actif": true
+      "actif": true,
+      "especes": [
+        "SP0092",
+        "SP0093"
+      ]
     },
     {
       "zone_key": "cz-p3-03",
@@ -793,7 +860,11 @@
       "question_code": "QCM0219",
       "theme_secours": "ecosystemes",
       "ordre": 3,
-      "actif": true
+      "actif": true,
+      "especes": [
+        "SP0261",
+        "SP0082"
+      ]
     },
     {
       "zone_key": "cz-p3-04",
@@ -807,7 +878,11 @@
       "question_code": "QCM0230",
       "theme_secours": "biome",
       "ordre": 4,
-      "actif": true
+      "actif": true,
+      "especes": [
+        "SP0258",
+        "SP0255"
+      ]
     },
     {
       "zone_key": "cz-p3-05",
@@ -854,7 +929,12 @@
       "question_code": "QCM0612",
       "theme_secours": "flore",
       "ordre": 5,
-      "actif": true
+      "actif": true,
+      "especes": [
+        "SP0243",
+        "SP0246",
+        "SP0244"
+      ]
     },
     {
       "zone_key": "cz-p3-06",
@@ -901,7 +981,10 @@
       "question_code": "QCM0636",
       "theme_secours": "ecosystemes",
       "ordre": 6,
-      "actif": true
+      "actif": true,
+      "especes": [
+        "SP0251"
+      ]
     },
     {
       "zone_key": "cz-p3-07",
@@ -948,7 +1031,10 @@
       "question_code": "QCM0618",
       "theme_secours": "flore",
       "ordre": 7,
-      "actif": true
+      "actif": true,
+      "especes": [
+        "SP0252"
+      ]
     },
     {
       "zone_key": "cz-p3-08",
@@ -995,7 +1081,10 @@
       "question_code": "QCM0605",
       "theme_secours": "faune",
       "ordre": 8,
-      "actif": true
+      "actif": true,
+      "especes": [
+        "SP0235"
+      ]
     },
     {
       "zone_key": "cz-p3-09",
@@ -1009,7 +1098,11 @@
       "question_code": "QCM0182",
       "theme_secours": "faune",
       "ordre": 9,
-      "actif": true
+      "actif": true,
+      "especes": [
+        "SP0255",
+        "SP0077"
+      ]
     },
     {
       "zone_key": "cz-p3-10",
@@ -1056,7 +1149,12 @@
       "question_code": "QCM0639",
       "theme_secours": "ecosystemes",
       "ordre": 10,
-      "actif": true
+      "actif": true,
+      "especes": [
+        "SP0252",
+        "SP0250",
+        "SP0249"
+      ]
     },
     {
       "zone_key": "cz-p4-01",
@@ -1103,7 +1201,11 @@
       "question_code": "QCM0364",
       "theme_secours": "faune",
       "ordre": 1,
-      "actif": true
+      "actif": true,
+      "especes": [
+        "SP0145",
+        "SP0140"
+      ]
     },
     {
       "zone_key": "cz-p4-02",
@@ -1150,7 +1252,10 @@
       "question_code": "QCM0396",
       "theme_secours": "ecosystemes",
       "ordre": 2,
-      "actif": true
+      "actif": true,
+      "especes": [
+        "SP0142"
+      ]
     },
     {
       "zone_key": "cz-p4-03",
@@ -1197,7 +1302,10 @@
       "question_code": "QCM0369",
       "theme_secours": "faune",
       "ordre": 3,
-      "actif": true
+      "actif": true,
+      "especes": [
+        "SP0150"
+      ]
     },
     {
       "zone_key": "cz-p4-04",
@@ -1211,7 +1319,11 @@
       "question_code": "QCM0397",
       "theme_secours": "ecosystemes",
       "ordre": 4,
-      "actif": true
+      "actif": true,
+      "especes": [
+        "SP0151",
+        "SP0137"
+      ]
     },
     {
       "zone_key": "cz-p4-05",
@@ -1258,7 +1370,10 @@
       "question_code": "QCM0138",
       "theme_secours": "flore",
       "ordre": 5,
-      "actif": true
+      "actif": true,
+      "especes": [
+        "SP0061"
+      ]
     },
     {
       "zone_key": "cz-p4-06",
@@ -1305,7 +1420,10 @@
       "question_code": "QCM0152",
       "theme_secours": "ecosystemes",
       "ordre": 6,
-      "actif": true
+      "actif": true,
+      "especes": [
+        "SP0054"
+      ]
     },
     {
       "zone_key": "cz-p4-07",
@@ -1352,7 +1470,10 @@
       "question_code": "QCM0124",
       "theme_secours": "faune",
       "ordre": 7,
-      "actif": true
+      "actif": true,
+      "especes": [
+        "SP0048"
+      ]
     },
     {
       "zone_key": "cz-p4-08",
@@ -1399,7 +1520,11 @@
       "question_code": "QCM0134",
       "theme_secours": "flore",
       "ordre": 8,
-      "actif": true
+      "actif": true,
+      "especes": [
+        "SP0058",
+        "SP0047"
+      ]
     },
     {
       "zone_key": "cz-p4-09",
@@ -1413,7 +1538,11 @@
       "question_code": "QCM0385",
       "theme_secours": "geologie",
       "ordre": 9,
-      "actif": true
+      "actif": true,
+      "especes": [
+        "SP0067",
+        "SP0062"
+      ]
     },
     {
       "zone_key": "cz-p4-10",
@@ -1427,7 +1556,11 @@
       "question_code": "QCM0176",
       "theme_secours": "perturbations",
       "ordre": 10,
-      "actif": true
+      "actif": true,
+      "especes": [
+        "SP0049",
+        "SP0050"
+      ]
     }
   ]
 }

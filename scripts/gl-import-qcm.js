@@ -34,7 +34,7 @@ function parseArgs(argv) {
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   const buffer = await fs.readFile(args.file);
-  const { categoryRows, questionRows } = parseQcmWorkbook(buffer);
+  const { categoryRows, questionRows } = await parseQcmWorkbook(buffer);
 
   await initSchema();
 
@@ -52,10 +52,12 @@ async function main() {
 }
 
 if (require.main === module) {
-  main().catch((err) => {
-    console.error('[gl-import-qcm] erreur:', err.message || err);
-    process.exit(1);
-  });
+  main()
+    .then(() => process.exit(0))
+    .catch((err) => {
+      console.error('[gl-import-qcm] erreur:', err.message || err);
+      process.exit(1);
+    });
 }
 
 module.exports = { parseArgs };

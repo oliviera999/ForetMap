@@ -20,7 +20,15 @@ const TENIR_FLAGS = [
   ['gameplay.tenir_cartes_vers_cases', 'Cartes Team Spirit → cases à l’ouverture suivante'],
   ['gameplay.tenir_chapardeur', 'Chapardeur (une fois par chapitre)'],
   ['gameplay.tenir_peripeties', 'Péripéties sur les cases événement sans texte'],
-  ['gameplay.tenir_olu_erreur_du_jour', 'Erreur du jour d’Olu'],
+  [
+    'gameplay.tenir_peripeties_cases_neutres',
+    'Péripéties aussi sur les cases sans effet (tonalité négative ou neutre)',
+  ],
+  ['gameplay.tenir_olu_erreur_du_jour', 'Erreur du jour d’Olu (filtrée par plateau)'],
+  [
+    'gameplay.tenir_progression_applique_case',
+    'Progression : appliquer la case d’arrivée (sinon ±1 case seulement)',
+  ],
   [
     'gameplay.feuillet_zone_traversal_enabled',
     'Ancien déclenchement des zones feuillets à la traversée',
@@ -30,6 +38,12 @@ const TENIR_FLAGS = [
 const TENIR_NUMBERS = [
   ['gameplay.tenir_des_count', 'Dés du geste Lancer', 1, 5],
   ['gameplay.tenir_vent_cases', 'Cases du vent', 1, 12],
+  [
+    'gameplay.tenir_relances_max_par_tour',
+    'Relances de case par équipe et par tour (0 = sans limite)',
+    0,
+    12,
+  ],
   ['gameplay.tenir_pistes_par_semaine', 'Pistes de veillée par semaine', 0, 20],
   ['gameplay.tenir_pages_veillee_par_semaine', 'Ouvertures gagnantes en veillée / semaine', 0, 20],
   ['gameplay.tenir_palissement_pct', 'Pâlissement par tour (%)', 0, 100],
@@ -119,6 +133,11 @@ export function GLTenirSettings({ settings, savingKey, onSaveSetting, onToggle }
   const surface = readSelectSetting(settings, 'gameplay.tenir_surface', 'tableau');
   const desMode = readSelectSetting(settings, 'gameplay.tenir_des_mode', 'physique');
   const validation = readSelectSetting(settings, 'gameplay.tenir_des_physiques_validation', 'prof');
+  const casesPositives = readSelectSetting(
+    settings,
+    'gameplay.tenir_cases_positives',
+    'ressource_peuple',
+  );
   return (
     <div className="gl-tenir-settings gl-form" data-testid="gl-tenir-settings">
       <h4>Tenir à deux (mouture v2)</h4>
@@ -174,6 +193,18 @@ export function GLTenirSettings({ settings, savingKey, onSaveSetting, onToggle }
         >
           <option value="prof">Un clic du prof</option>
           <option value="auto">Automatique</option>
+        </select>
+      </label>
+      <label>
+        Cases positives à ressource du plateau (mode tenir)
+        <select
+          value={casesPositives}
+          disabled={savingKey === 'gameplay.tenir_cases_positives'}
+          onChange={(event) => onSaveSetting('gameplay.tenir_cases_positives', event.target.value)}
+        >
+          <option value="ressource_peuple">+1 ressource du peuple (comme la Trame)</option>
+          <option value="neutre">Aucune ressource</option>
+          <option value="brut">Valeur du plateau (ancien comportement)</option>
         </select>
       </label>
       <div className="gl-tenir-settings__numbers">
