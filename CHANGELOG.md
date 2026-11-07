@@ -9,6 +9,33 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — G&L « Tenir à deux » : correctifs de la simulation du 7 novembre, banc de simulation (briques)
+
+Trois chapitres 1 joués de bout en bout sur une copie de la prod (prof et 20 élèves virtuels,
+931 QCM, 205 feuillets, 276 espèces, ~1 400 appels, aucun 5xx) : trois bloquants, six écarts de
+règles, une douzaine de défauts. Détail et choix par défaut : `docs/GL_TENIR_A_DEUX.md`.
+
+- **Catalogues en prod** : import tolérant ligne par ligne (`--strict` pour la CI de contenu),
+  synchronisation au démarrage par empreinte SHA-256 (`lib/glTenirSync.js`, `GL_TENIR_SYNC=0`),
+  carte « Catalogues Tenir à deux » (Contenus → Chapitres) et routes
+  `GET/POST /api/gl/admin/tenir/catalogues[/sync]` ; `cz-p2-08` désactivée (C7), Passeur
+  tolérant à un feuillet d'un plateau antérieur (C8) ; scripts `gl-import-*.js` (xlsx) réparés.
+- **Connexions de classe** : limiteur d'authentification 300 / 15 min / IP (NAT du lycée), une
+  ligne `auth_rate_limit_reached` par fenêtre (C9).
+- **Règles** : Progression et Relance seulement juste après le jet de l'équipe, Progression sans
+  application de la case (C1, C2) ; une relance de case par équipe et par tour, bonus signalé par
+  `/qcm/answer` (C3) ; cases positives → +1 ressource du peuple (C4) ; péripéties sur les cases
+  sans effet (C5) ; retrait : lecture et tenue permises (C6) ; parures sans image en pastille
+  (C10) ; pistes de veillée par `especes` de zone ; erreur d'Olu par plateau.
+- **Contenu** : descriptions des cases de déplacement (migration 335), case 217 renumérotée,
+  contrôle `tests/content/gl-markers-coherence` ; noms d'équipes typés par peuple.
+- **Écrans** : plateau en projection, libellés de journal pour tout type d'évènement, numérotation
+  des cases unifiée (rang + 1), console MJ (repli « Réglages hors Tenir », « Jouer le tour » par
+  défaut, pas de PUT parasite, chapitres par plateau) ; captures `docs/captures/tenir-v2/apres-*`.
+- **Instrumentation** : `lib/glRandom.js` (aléa rejouable, `GL_RANDOM_SEED`), `lib/glClock.js`
+  (`X-GL-Sim-Clock`, `GL_SIM_ALLOW`), grand livre `gl_resource_ledger` écrit par la seule
+  `applyBourseDeltaTx`, `lib/glTenirInvariants.js`. Migrations 334 et 335.
+
 ### Corrigé — G&L « Tenir à deux » v2 : relecture de code (passe 2)
 
 - **Temps réel** : les évènements privés (chapardeur, nid rendu, retrait, badge, héritage,
