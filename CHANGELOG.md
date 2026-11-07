@@ -9,6 +9,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — G&L chasse : un jeton de question ne s'essaie qu'une fois
+
+- `POST /chasse/repondre` et `POST /chasse/pages/:zoneKey/tenir` consommaient le jeton de
+  présentation puis ignoraient le refus `already_used`. Les quatre choix du même jeton
+  suffisaient à trouver ou tenir la page (feuillet, cœurs, ressource du peuple) sans nouvelle
+  fouille ni nouvelle carte. Rejeu → 409 `JETON_DEJA_UTILISE`. La carte jointe à un
+  « Pas encore » de lecture reste jouable.
+
 ### Corrigé — G&L « Tenir à deux » v2 : relecture de code (passe 2)
 
 - **Temps réel** : les évènements privés (chapardeur, nid rendu, retrait, badge, héritage,
