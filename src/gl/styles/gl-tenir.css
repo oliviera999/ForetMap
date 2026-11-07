@@ -310,7 +310,7 @@
 }
 
 /* Écran du tour (console MJ) : à 1440×900, bandeau, équipes et boutons d'action tiennent sans
-   défilement ; le journal passe en colonne latérale à partir de 1200px. */
+   défilement ; le journal passe en colonne latérale à partir de 1024px (seuil canonique). */
 .gl-tour-screen {
   display: grid;
   gap: 0.5rem;
@@ -361,7 +361,7 @@
   margin: 0 0 0.35rem;
   font-size: var(--text-md);
 }
-@media (min-width: 1200px) {
+@media (min-width: 1024px) {
   .gl-tour-screen__layout {
     grid-template-columns: minmax(0, 2fr) minmax(18rem, 1fr);
   }
