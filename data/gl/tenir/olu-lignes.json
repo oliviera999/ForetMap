@@ -1,5 +1,5 @@
 {
-  "format": "olu-lignes v1 — commentateur de match ; {equipe} nom d'équipe, {n} nombre, {biome} nom du biome ; moment `oiseau` = après le passage de l'oiseau (Olu se fige pendant) ; moment `erreur` = erreur volontaire avec sa correction",
+  "format": "olu-lignes v2 — commentateur de match ; {equipe} nom d'équipe, {n} nombre, {biome} nom du biome ; moment `oiseau` = après le passage de l'oiseau (Olu se fige pendant) ; moment `erreur` = erreur volontaire avec sa correction",
   "lignes": [
     {
       "id": "olu-01",
@@ -418,7 +418,10 @@
       "expression": "explique",
       "texte": "Le manchot vole très bien, c'est connu.",
       "variables": [],
-      "correction": "Le manchot ne vole pas ; il « vole » sous l'eau avec ses ailes."
+      "correction": "Le manchot ne vole pas ; il « vole » sous l'eau avec ses ailes.",
+      "plateaux": [
+        4
+      ]
     },
     {
       "id": "olu-56",
@@ -426,7 +429,10 @@
       "expression": "explique",
       "texte": "Le baobab est un animal très lent.",
       "variables": [],
-      "correction": "Le baobab est un arbre."
+      "correction": "Le baobab est un arbre.",
+      "plateaux": [
+        1
+      ]
     },
     {
       "id": "olu-57",
@@ -434,7 +440,10 @@
       "expression": "explique",
       "texte": "Le dromadaire stocke de l'eau dans sa bosse.",
       "variables": [],
-      "correction": "La bosse stocke de la graisse."
+      "correction": "La bosse stocke de la graisse.",
+      "plateaux": [
+        2
+      ]
     },
     {
       "id": "olu-58",
@@ -442,7 +451,8 @@
       "expression": "explique",
       "texte": "Les champignons sont des plantes.",
       "variables": [],
-      "correction": "Les champignons ne sont ni des plantes ni des animaux ; ce sont des décomposeurs."
+      "correction": "Les champignons ne sont ni des plantes ni des animaux ; ce sont des décomposeurs.",
+      "plateaux": "tous"
     },
     {
       "id": "olu-59",
@@ -450,7 +460,10 @@
       "expression": "explique",
       "texte": "Le renard des sables a de petites oreilles pour avoir moins chaud.",
       "variables": [],
-      "correction": "Le fennec a de grandes oreilles, qui évacuent la chaleur."
+      "correction": "Le fennec a de grandes oreilles, qui évacuent la chaleur.",
+      "plateaux": [
+        2
+      ]
     },
     {
       "id": "olu-60",
@@ -458,7 +471,10 @@
       "expression": "explique",
       "texte": "Le hérisson pond des œufs.",
       "variables": [],
-      "correction": "Le hérisson est un mammifère, il met bas."
+      "correction": "Le hérisson est un mammifère, il met bas.",
+      "plateaux": [
+        3
+      ]
     },
     {
       "id": "olu-61",
@@ -466,7 +482,10 @@
       "expression": "explique",
       "texte": "Les arbres de la taïga perdent toutes leurs feuilles en hiver.",
       "variables": [],
-      "correction": "La plupart sont des conifères à aiguilles persistantes ; seul le mélèze les perd."
+      "correction": "La plupart sont des conifères à aiguilles persistantes ; seul le mélèze les perd.",
+      "plateaux": [
+        4
+      ]
     },
     {
       "id": "olu-62",
@@ -474,7 +493,11 @@
       "expression": "explique",
       "texte": "Le lichen est une mousse.",
       "variables": [],
-      "correction": "Le lichen est une association d'un champignon et d'une algue."
+      "correction": "Le lichen est une association d'un champignon et d'une algue.",
+      "plateaux": [
+        3,
+        4
+      ]
     },
     {
       "id": "olu-63",
@@ -482,7 +505,10 @@
       "expression": "explique",
       "texte": "En été, la toundra reste dans la nuit.",
       "variables": [],
-      "correction": "En été, le soleil ne se couche pas ; la nuit polaire, c'est l'hiver."
+      "correction": "En été, le soleil ne se couche pas ; la nuit polaire, c'est l'hiver.",
+      "plateaux": [
+        4
+      ]
     },
     {
       "id": "olu-64",
@@ -490,7 +516,10 @@
       "expression": "explique",
       "texte": "Les termites mangent de la viande.",
       "variables": [],
-      "correction": "Elles mangent du bois et des végétaux morts ; ce sont des décomposeurs."
+      "correction": "Elles mangent du bois et des végétaux morts ; ce sont des décomposeurs.",
+      "plateaux": [
+        1
+      ]
     },
     {
       "id": "olu-65",
@@ -498,7 +527,10 @@
       "expression": "explique",
       "texte": "La droséra mange des lapins.",
       "variables": [],
-      "correction": "Elle attrape des insectes."
+      "correction": "Elle attrape des insectes.",
+      "plateaux": [
+        3
+      ]
     },
     {
       "id": "olu-66",
@@ -506,7 +538,10 @@
       "expression": "explique",
       "texte": "Le renne est une girafe des neiges.",
       "variables": [],
-      "correction": "C'est un cervidé, comme le cerf ; et chez le renne, même les femelles ont des bois."
+      "correction": "C'est un cervidé, comme le cerf ; et chez le renne, même les femelles ont des bois.",
+      "plateaux": [
+        4
+      ]
     }
   ]
 }

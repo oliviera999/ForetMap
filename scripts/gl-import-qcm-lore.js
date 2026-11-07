@@ -29,7 +29,7 @@ function parseArgs(argv) {
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   const buffer = await fs.readFile(args.file);
-  const { scopeRows, categoryRows, questionRows } = parseQcmLoreWorkbook(buffer);
+  const { scopeRows, categoryRows, questionRows } = await parseQcmLoreWorkbook(buffer);
 
   await initSchema();
 
@@ -51,10 +51,12 @@ async function main() {
 }
 
 if (require.main === module) {
-  main().catch((err) => {
-    console.error('[gl-import-qcm-lore] erreur:', err.message || err);
-    process.exit(1);
-  });
+  main()
+    .then(() => process.exit(0))
+    .catch((err) => {
+      console.error('[gl-import-qcm-lore] erreur:', err.message || err);
+      process.exit(1);
+    });
 }
 
 module.exports = { parseArgs };
