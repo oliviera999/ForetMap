@@ -36,6 +36,7 @@ test('la liste des paires couvre bien les noyaux attendus', () => {
     'fresqueCore.js',
     'glBiomesRegistryCore.js',
     'glBoardPathCore.js',
+    'glCaseNumeroCore.js',
     'glImageFrameCore.js',
     'glMarkerAppearanceCore.js',
     'glMarkerBackgroundsCore.js',
