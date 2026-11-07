@@ -73,6 +73,7 @@ test('bonne réponse de case : +1 case, dé réarmé (relance), aucun score ni r
   assert.equal(res.body.correct, true);
   assert.equal(res.body.scoreDelta, 0);
   assert.equal(res.body.tenir.bonusCase, true);
+  assert.deepEqual(res.body.tenir.bonus, { cases: 1, relance: true });
   assert.equal(indexOf(await posOf(team.id)), 2);
   const teamRow = await queryOne('SELECT last_dice_round_number FROM gl_teams WHERE id = ?', [
     team.id,
@@ -113,10 +114,13 @@ test('mauvaise réponse : position inchangée, aucun delta, feedback « pas enco
   assert.equal(await posOf(team.id), Number(quiz.id));
 });
 
-test('chaîne : juste sur la question 3 (case 10) → case 11 (Souffle) → effet du plateau, juste sur une question puis une autre question se rejoue', async () => {
+test('chaîne : juste sur deux questions dans le tour → +1 case à chaque fois, mais une seule relance (C3)', async () => {
   const team = ctx.teams[1];
   const q1 = ctx.markers[1];
-  await execute('UPDATE gl_teams SET position_marker_id = ? WHERE id = ?', [q1.id, team.id]);
+  await execute(
+    'UPDATE gl_teams SET position_marker_id = ?, last_dice_round_number = 1 WHERE id = ?',
+    [q1.id, team.id],
+  );
   const p1 = await present(team.id, q1.id);
   const r1 = await request(app)
     .post(api('/qcm/answer'))
@@ -129,11 +133,13 @@ test('chaîne : juste sur la question 3 (case 10) → case 11 (Souffle) → effe
     });
   assert.equal(r1.body.tenir.bonusCase, true);
   assert.equal(r1.body.tenir.arrival.question, false);
-  // Placer sur la question 2 (case 6) dont la case suivante est l'événement (case 7, péripétie).
-  await execute('UPDATE gl_teams SET position_marker_id = ? WHERE id = ?', [
-    ctx.markers[5].id,
-    team.id,
-  ]);
+  assert.equal(r1.body.tenir.bonus.relance, true, 'première relance du tour accordée');
+  // Placer sur la question 2 (case 6) dont la case suivante est l'événement (case 7, péripétie),
+  // dé « consommé » à nouveau comme après la relance.
+  await execute(
+    'UPDATE gl_teams SET position_marker_id = ?, last_dice_round_number = 1 WHERE id = ?',
+    [ctx.markers[5].id, team.id],
+  );
   const p2 = await present(team.id, ctx.markers[5].id);
   const r2 = await request(app)
     .post(api('/qcm/answer'))
@@ -147,4 +153,13 @@ test('chaîne : juste sur la question 3 (case 10) → case 11 (Souffle) → effe
   assert.equal(r2.status, 200, JSON.stringify(r2.body));
   assert.equal(indexOf(await posOf(team.id)), 6);
   assert.ok(r2.body.tenir.arrival.peripetie, 'case événement sans texte → péripétie');
+  assert.deepEqual(
+    r2.body.tenir.bonus,
+    { cases: 1, relance: false },
+    'au-delà du maximum : +1 case et case appliquée, dé non réarmé',
+  );
+  const teamRow = await queryOne('SELECT last_dice_round_number FROM gl_teams WHERE id = ?', [
+    team.id,
+  ]);
+  assert.equal(Number(teamRow.last_dice_round_number), 1, 'dé non réarmé');
 });

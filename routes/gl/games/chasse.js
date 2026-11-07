@@ -68,7 +68,7 @@ function sendChasseError(res, err) {
 /**
  * Acteur d'une lecture (tour ou veillée) : joueur → son équipe ; MJ → `teamId`. Les permissions
  * de surface sont rejouées ici (`lire`) : en `tableau`, seul le prof lit pour l'équipe ; un
- * élève en retrait ne lit pas ; la partie doit être en cours. Le client ne fait que griser.
+ * élève en retrait lit et tient (C6) ; la partie doit être en cours. Le client ne fait que griser.
  */
 async function resolveLectureContext(req, res, gameId, teamIdFromBody) {
   const ctx = await requireTenirGame(req, res, gameId);
@@ -108,10 +108,9 @@ async function resolveLectureContext(req, res, gameId, teamIdFromBody) {
   const round = roundNumber ? await tour.loadRoundView(db, gameId, roundNumber) : null;
   const via = round && round.phase === 'jeu' ? 'tour' : 'veillee';
   if (actorKind === 'player') {
-    if (enRetrait) {
-      res.status(403).json({ error: CHASSE_ERRORS.TENIR_RETRAIT, code: 'TENIR_RETRAIT' });
-      return null;
-    }
+    // Choix C6 (simulation du 7 novembre 2026) : un élève en retrait peut ouvrir et tenir une
+    // page et reçoit les gains d'équipe, comme un absent ; il ne voit toujours pas le Marché et
+    // ne verse pas au pot (`listPresentMembers`, permissions `marche`).
     const resolved = resolveTenirSettings(settings, game);
     const perms = resolveTenirPermissions({
       surface: resolveSurface(game, settings),

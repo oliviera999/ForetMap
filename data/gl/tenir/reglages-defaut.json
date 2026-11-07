@@ -73,7 +73,11 @@
         "07-10"
       ]
     },
-    "titre_prefixe_double": "Très Grands"
+    "titre_prefixe_double": "Très Grands",
+    "progression_applique_case": false,
+    "relances_max_par_tour": 1,
+    "cases_positives": "ressource_peuple",
+    "peripeties_cases_neutres": true
   },
   "profils": {
     "complet": {
