@@ -1,0 +1,110 @@
+name: E2E Gnomes & Licornes (nuit)
+
+# Suite Playwright des scénarios G&L (`e2e/gl-*.spec.js`, 22 fichiers), **informative et non
+# bloquante** : planifiée chaque nuit, elle ne conditionne aucune fusion (aucune protection
+# de branche ne la requiert) et se lance aussi à la main (Actions → Run workflow). Elle
+# complète les smokes bloquants de `ci.yml` (plan-mobile, enov-mobile, mobile-webkit), qui ne
+# couvrent pas G&L, et la suite complète de `e2e-full.yml` (à la demande, ~25 min).
+#
+# Coût estimé (dépôt privé, plan Free : 2 000 min/mois, facturation à la minute par job) :
+#   npm ci ~1,5 min · MariaDB + db:init ~1,5 min · build Vite ~2 min · Chromium ~1 min ·
+#   22 specs G&L en chromium ~5 à 7 min  →  **≈ 12 min par nuit, ≈ 360 min/mois (18 % du quota)**.
+#   Un seul navigateur (chromium), aucun artefact téléversé (quota de stockage Free : 500 Mo),
+#   journal du serveur affiché dans le run en cas d'échec seulement.
+#
+# Horaire : 03:17 UTC (04:17/05:17 heure de Paris), hors de la plage 6 h-9 h Pacifique
+# (13 h-17 h UTC) où les runs planifiés GitHub prennent du retard.
+
+on:
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+
+# Lecture seule : ce workflow ne pousse rien.
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-gl-nightly-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e-gl:
+    runs-on: ubuntu-latest
+    # Run sain : ~12 min ; 30 fait échouer vite une étape figée (cf. ci.yml, job `test`).
+    timeout-minutes: 30
+    env:
+      NODE_ENV: test
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_NAME: foretmap_test
+      DB_USER: root
+      DB_PASS: ''
+      JWT_SECRET: 'ci-test-secret-not-for-production'
+    services:
+      mysql:
+        image: mariadb:11.4.10
+        env:
+          MARIADB_ALLOW_EMPTY_ROOT_PASSWORD: '1'
+          MARIADB_DATABASE: foretmap_test
+        ports:
+          - 3306:3306
+        # Même réglage que ci.yml : marge pour l'init InnoDB à froid de MariaDB 11.4.
+        options: --health-cmd="healthcheck.sh --connect --innodb_initialized" --health-interval=10s --health-timeout=5s --health-retries=5 --health-start-period=40s
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Initialize test database
+        run: npm run db:init
+
+      # Le SPA `dist/` n'est servi qu'en production (server.js) : build obligatoire avant le
+      # serveur e2e, comme dans ci.yml.
+      - name: Build frontend (Vite)
+        run: npm run build
+
+      - name: Install Playwright browser
+        # Seule étape dépendante d'un réseau externe (cf. ci.yml) : bornée à part.
+        timeout-minutes: 20
+        run: npx playwright install --with-deps chromium
+
+      # Mêmes réglages que le serveur e2e de `ci.yml` (job `test`) : voir ses commentaires.
+      - name: Start app server for e2e
+        run: |
+          nohup npm run start:e2e > /tmp/foretmap-server.log 2>&1 &
+        env:
+          NODE_ENV: production
+          VISIT_COOKIE_SECRET: 'foretmap-e2e-visit-cookie-secret'
+          E2E_DISABLE_RATE_LIMIT: '1'
+          TEACHER_ADMIN_EMAIL: 'admin.test@foretmap.local'
+          TEACHER_ADMIN_PASSWORD: 'admin1234'
+
+      - name: Wait for app health
+        run: |
+          for i in {1..30}; do
+            curl -fsS http://127.0.0.1:3000/api/health && exit 0
+            sleep 2
+          done
+          echo "API did not become healthy in time"
+          exit 1
+
+      - name: Run Playwright G&L (chromium, informatif)
+        # `--trace off` : aucune trace ni capture conservée (quota de stockage Free).
+        run: npx playwright test --project=chromium e2e/gl-*.spec.js --trace off
+        env:
+          E2E_BASE_URL: http://127.0.0.1:3000
+
+      - name: Dump server log on failure
+        if: failure()
+        run: cat /tmp/foretmap-server.log || true
