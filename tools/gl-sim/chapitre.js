@@ -109,7 +109,12 @@ async function jouerChapitre({
     },
     async verifierInvariants(geste, equipe = null) {
       compteurs.invariantsVerifies += 1;
-      const r = await checkTenirInvariantsFromDb(db, partie.gameId, settings);
+      // Lecture dans une transaction : instantané cohérent (REPEATABLE READ) même quand une
+      // autre équipe écrit au même instant (`concurrence`), sinon le livre et les bourses
+      // peuvent être lus à deux instants différents et contredire `LIVRE_SOLDE` à tort.
+      const r = await db.withTransaction((tx) =>
+        checkTenirInvariantsFromDb(tx, partie.gameId, settings),
+      );
       if (!r.ok) {
         throw new SimEchec(
           'INVARIANT',

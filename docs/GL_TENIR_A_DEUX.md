@@ -158,7 +158,9 @@ grille d'équilibrage, modèle rapide, `npm run test:sim`) est livré le 8 novem
 contributions et soldes d'une autre équipe à un élève (événement `private` en tenir, replay
 expurgé) ; `seuil_clos.honneurs` toujours `null` ; import des questions de lecture en erreur de
 clé étrangère sur une zone écartée ; cases Souffle « passe ton tour » sans effet (le jet suivant
-répond `TOUR_PASSE`, l'équipe fouille et lit quand même, le prof peut la porter en `libre`).
+répond `TOUR_PASSE`, l'équipe fouille et lit quand même, le prof peut la porter en `libre`) ;
+interblocage InnoDB quand deux équipes jouent au même instant (`withTransaction` rejoue la
+transaction, `tests/db-transaction-deadlock-retry.test.js`).
 
 ## Vérité des cases et équilibrage du 8 novembre 2026
 

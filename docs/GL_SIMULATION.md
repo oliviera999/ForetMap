@@ -159,6 +159,11 @@ Bogues du moteur, tous **corrigés dans le même lot** (`tests/gl-tenir-correcti
 4. Les cases Souffle « passe ton tour » (`passTurn`) n'étaient portées que dans les payloads :
    le jet suivant de l'équipe est maintenant refusé (`TOUR_PASSE`, 409, sans mot punitif), l'équipe
    fouille et lit quand même, le prof peut la porter (`mode: 'libre'`).
+5. **Interblocage InnoDB en parallèle** (`concurrence`) : deux équipes qui jouent au même
+   instant écrivaient le même tour (`gl_game_rounds.dernier_jet_json`) et l'une recevait une 500. `withTransaction` (`database.js`) rejoue le travail sur un interblocage (1213), deux
+   fois au plus, comme le recommande MySQL (`tests/db-transaction-deadlock-retry.test.js`).
+   Le banc, lui, lit désormais les invariants dans une transaction (instantané cohérent) : la
+   violation `LIVRE_SOLDE` qu'il relevait en parallèle était un artefact de lecture.
 
 Observations de **contenu** laissées à la relecture d'Oliv (avertissements du banc, non
 bloquants) : « corbeau » dans 58 textes de feuillets, « attaque » / « faux » dans des retours de

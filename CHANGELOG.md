@@ -54,7 +54,8 @@ gl-marker-promises`) : aucune promesse affichée non tenue, aucun « sinon / si 
   autre équipe) ; `seuil_clos.honneurs` porte le résumé des honneurs ; l'import des questions de
   lecture écarte une question dont la zone a été écartée ; une case Souffle « passe ton tour » fait
   **réellement** passer le jet suivant (`TOUR_PASSE`, 409, sans mot punitif ; l'équipe fouille et
-  lit quand même, le prof peut la porter).
+  lit quand même, le prof peut la porter) ; `withTransaction` rejoue une transaction victime d'un
+  interblocage InnoDB (deux équipes en tablette qui jouent au même instant recevaient une 500).
 - **Connecteur Claude (MCP) : outils G&L** (`docs/MCP.md` § Gnomes & Licornes) : domaine `gl`
   (désactivable par `mcp.domains_disabled=gl`) et pont G&L `lib/mcp/glBridge.js` — l'enseignant
   connecté est résolu en staff G&L par la règle de la connexion MJ, JWT éphémère `via:'mcp'`,

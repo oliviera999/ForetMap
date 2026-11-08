@@ -500,7 +500,41 @@ async function runWithTxDurationGuard(run, opts = {}) {
   }
 }
 
-async function withTransaction(work) {
+/** Erreur InnoDB « Deadlock found when trying to get lock; try restarting transaction ». */
+function isDeadlockError(err) {
+  return Boolean(err) && (err.code === 'ER_LOCK_DEADLOCK' || Number(err.errno) === 1213);
+}
+
+const TX_DEADLOCK_RETRIES = 2;
+
+/**
+ * Transaction avec relance sur interblocage InnoDB (1213), comme le recommande MySQL : tout a
+ * été annulé par le rollback, `work(tx)` est rejoué (jusqu'à `TX_DEADLOCK_RETRIES` fois) après
+ * une courte attente. Le banc de simulation « Tenir à deux » (équipes en parallèle) a relevé
+ * une 500 sur le jet quand deux équipes écrivent le même tour au même instant. Le travail ne
+ * doit produire aucun effet hors transaction avant le commit (règle déjà en vigueur : les
+ * émissions temps réel suivent le commit).
+ */
+async function withTransaction(work, options = {}) {
+  const retries = Number.isInteger(options.deadlockRetries)
+    ? options.deadlockRetries
+    : TX_DEADLOCK_RETRIES;
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      return await runTransactionOnce(work);
+    } catch (err) {
+      if (!isDeadlockError(err) || attempt >= retries) throw err;
+      const delayMs = 15 * (attempt + 1) + Math.floor(Math.random() * 25);
+      logger.warn(
+        { attempt: attempt + 1, retries, delayMs },
+        'Interblocage InnoDB : transaction rejouée',
+      );
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+  }
+}
+
+async function runTransactionOnce(work) {
   const conn = await pool.getConnection();
   // Bump de version RBAC reporté APRÈS le commit (O3) : pendant la transaction, les lectures RBAC
   // passent par le pool (état committé, sans voir les écritures en cours) — bumper avant commit
@@ -1189,6 +1223,8 @@ async function endPool() {
 }
 
 module.exports = {
+  isDeadlockError,
+  TX_DEADLOCK_RETRIES,
   classifyMigrationStmtError,
   isRemovalStatement,
   pool,
