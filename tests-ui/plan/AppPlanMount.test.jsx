@@ -430,6 +430,13 @@ describe('AppPlan — montage', () => {
   });
 
   test('lien profond ?lieu= ouvre directement la fiche', async () => {
+    // Laisser s'achever les reculs d'historique différés du test précédent (la fermeture d'une
+    // feuille appelle `history.go(-1)`, que jsdom traite dans une tâche ultérieure) : sur un
+    // runner chargé, ce recul arrivait après le `replaceState` ci-dessous et emportait `?lieu=`,
+    // la fiche ne s'ouvrait jamais (CI du 8 novembre 2026).
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 30));
+    });
     window.history.replaceState(null, '', '/?lieu=m-gym');
     await act(async () => {
       render(<AppPlan />);
