@@ -9,6 +9,36 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — G&L « Tenir à deux » : vérité des cases, équilibrage, badges individuels, banc de simulation, outils MCP (bilan du 7 novembre 2026)
+
+Sept étapes commitées séparément (détail, choix par défaut et attendus chiffrés :
+`docs/GL_TENIR_A_DEUX.md`, `docs/GL_TENIR_A_DEUX_REGLES.md`, `docs/GL_SIMULATION.md`).
+
+- **Vérité des cases** (migration 336) : en mode tenir, le texte d'effet lu par l'élève à
+  l'arrivée sur une case est **calculé depuis l'effet réellement appliqué** (noyau partagé
+  `src/shared/glTenirCaseEffetCore.js`, moteur et affichage confondus), jamais lu dans le champ
+  d'auteur `effet_mecanique` (studio du MJ). Textes des arrivées, défis d'équipe, péripéties,
+  pertes neutres et cartes question rendus exacts ; libellés Trame « +2 » → « +1 » (P4) ; six
+  branches Souffle « passe ton tour » appliquées ; « La Grise s'étend » → « Le terne s'étend ».
+  Contrôle `gl_marker_promises` (`foretmap_audit_all`, rapport de santé, `tests/content/
+gl-marker-promises`) : aucune promesse affichée non tenue, aucun « sinon / si échec » suivi
+  d'une perte.
+- **Équilibrage E1-E6** (migration 337, chaque choix réglable `gameplay.tenir_*`) : dé gris
+  `1d6 + {1:3, 2:4, 3:5, 4:6}` (E1, choix d'Oliv) ; fouille de réparation des équipes gnomes sur
+  une page pâlie, « 1 + 1 réparation » (E2) ; plancher de pâlissement au rang 8 (E3) ; **réserve de
+  la caravane** : le surplus au plafond n'est plus perdu, il paie en premier le pot des sorts et
+  s'éteint au Seuil (E4, grand livre étendu : `kind`, `team_id`, causes `reserve_*`) ; rappel
+  d'Olu « Vos bourses débordent » une fois par séance à l'écran d'équipe (E5) ; règle écrite
+  « 8 / 8 / 10 / 10 » (E6). Invariants `RESERVE_NEGATIVE`, `RESERVE_LIVRE`, `LIVRE_TOTAL`,
+  `FOUILLES_QUOTA`.
+- **Hygiène et exploitation** (migration 339) : les 11 sorts hérités hors v2 passent en `propose` ;
+  niveaux de questions bornés à la 6e en mode tenir (cases et fouilles de secours,
+  `lib/glNiveauxAdmis.js`) ; cases 251 / 253 bornées ; `npm run gl:photo-credits[:dry]`
+  (crédits photo des QCM depuis Wikimedia Commons) ; encart « Comment fonctionne le marché ? »
+  sur La place et légende lisible ; e2e `gl-market` / `gl-seuil` à jour ; workflow nocturne
+  `e2e-gl-nightly.yml` ; journal de démarrage avec RSS maximale avant arrêt brutal, lignes de
+  crontab attendues dans le rapport de santé, doc « Resource Usage » (`docs/EXPLOITATION.md`).
+
 ### Corrigé — G&L « Tenir à deux » : correctifs de la simulation du 7 novembre, banc de simulation (briques)
 
 Trois chapitres 1 joués de bout en bout sur une copie de la prod (prof et 20 élèves virtuels,
