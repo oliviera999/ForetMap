@@ -26,7 +26,7 @@ before(async () => {
   await initSchema();
   await execute("DELETE FROM gl_settings WHERE `key` = 'platform.guest_mode_enabled'");
   // Base propre : aucune partie ni classe de démonstration héritée d'un autre fichier.
-  await execute('DELETE FROM gl_games WHERE is_demo = 1');
+  await purgeDemoFixtures();
   const admin = await createGlAdmin({ email: 'demo.mj@ecole.local', displayName: 'MJ Démo' });
   adminToken = await signAuthToken({
     product: 'gl',
@@ -50,9 +50,35 @@ before(async () => {
   guestToken = guestRes.body.authToken;
 });
 
-test.after(() => {
+/**
+ * Ménage complet : la partie de démo référence un chapitre (FK RESTRICT) et la classe de démo
+ * porte des joueurs fictifs ; laissés en place, ils bloqueraient le nettoyage d'autres fichiers
+ * de test et fausseraient les comptages (suite séquentielle sur une seule base).
+ */
+async function purgeDemoFixtures() {
+  await execute('DELETE FROM gl_games WHERE is_demo = 1');
+  const demoClasses = await queryAll('SELECT id FROM gl_classes WHERE is_demo = 1');
+  for (const cls of demoClasses) {
+    const players = await queryAll(
+      'SELECT id, linked_foretmap_user_id FROM gl_players WHERE class_id = ?',
+      [cls.id],
+    );
+    for (const player of players) {
+      await execute('DELETE FROM gl_players WHERE id = ?', [player.id]);
+      if (player.linked_foretmap_user_id) {
+        await execute("DELETE FROM users WHERE id = ? AND auth_provider = 'gl_bridge'", [
+          player.linked_foretmap_user_id,
+        ]);
+      }
+    }
+    await execute('DELETE FROM gl_classes WHERE id = ?', [cls.id]);
+  }
+}
+
+test.after(async () => {
   if (savedGuestDisabled === undefined) delete process.env.GL_GUEST_MODE_DISABLED;
   else process.env.GL_GUEST_MODE_DISABLED = savedGuestDisabled;
+  await purgeDemoFixtures();
 });
 
 test('POST /api/gl/admin/demo/reset prépare classe, joueurs fictifs, équipes et partie flagués is_demo', async () => {

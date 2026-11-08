@@ -1761,7 +1761,7 @@
   padding: 12px 14px;
   border: 1px dashed var(--gl-border);
   border-radius: var(--gl-radius-md);
-  background: var(--gl-color-accent-soft, rgba(82, 183, 136, 0.08));
+  background: var(--gl-color-accent-soft);
 }
 
 .gl-mj-demo-block h4 {

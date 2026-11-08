@@ -7125,11 +7125,19 @@ fieldset .media-library-menu__gallery {
   border: 0;
   cursor: pointer;
   font: inherit;
-  color: var(--gl-color-text, #1f2937);
+  color: var(--gl-color-text);
   background:
-    radial-gradient(circle at 20% 20%, rgba(82, 183, 136, 0.22), transparent 55%),
-    radial-gradient(circle at 80% 80%, rgba(245, 158, 11, 0.18), transparent 55%),
-    var(--gl-color-background, #f6f1e7);
+    radial-gradient(
+      circle at 20% 20%,
+      color-mix(in srgb, var(--gl-color-accent) 22%, transparent),
+      transparent 55%
+    ),
+    radial-gradient(
+      circle at 80% 80%,
+      color-mix(in srgb, var(--accent-warning-solid) 18%, transparent),
+      transparent 55%
+    ),
+    var(--gl-color-background);
   text-align: center;
 }
 
@@ -7153,9 +7161,9 @@ fieldset .media-library-menu__gallery {
   margin-top: 12px;
   padding: 14px 26px;
   border-radius: var(--gl-radius-pill, 999px);
-  background: var(--gl-color-primary, #2f855a);
-  color: #fff;
-  font-size: 1.15rem;
+  background: var(--gl-color-primary);
+  color: var(--surface-plain);
+  font-size: var(--text-lg);
   font-weight: var(--fw-semibold, 600);
   animation: gl-kiosk-pulse 1.8s ease-in-out infinite;
 }
@@ -7184,10 +7192,10 @@ fieldset .media-library-menu__gallery {
 
 .gl-parents-demo__eyebrow {
   margin: 0;
-  font-size: 0.85rem;
+  font-size: var(--text-sm);
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--gl-color-primary, #2f855a);
+  color: var(--gl-color-primary);
   font-weight: var(--fw-semibold, 600);
 }
 
@@ -7225,8 +7233,8 @@ fieldset .media-library-menu__gallery {
   display: grid;
   place-items: center;
   border-radius: 50%;
-  background: var(--gl-color-accent-soft, #e6f4ea);
-  color: var(--gl-color-primary, #2f855a);
+  background: var(--gl-color-accent-soft);
+  color: var(--gl-color-primary);
   font-weight: var(--fw-bold, 700);
 }
 
@@ -7260,7 +7268,7 @@ fieldset .media-library-menu__gallery {
 .gl-parents-quiz__question {
   margin: 0;
   font-weight: var(--fw-semibold, 600);
-  font-size: 1.05rem;
+  font-size: var(--text-md);
 }
 
 .gl-parents-quiz__result {
@@ -7270,11 +7278,11 @@ fieldset .media-library-menu__gallery {
 }
 
 .gl-parents-quiz__result.is-correct {
-  background: rgba(82, 183, 136, 0.14);
+  background: var(--tint-success);
 }
 
 .gl-parents-quiz__result.is-wrong {
-  background: rgba(245, 158, 11, 0.14);
+  background: var(--tint-warning-strong);
 }
 
 .gl-parents-quiz__result p {
