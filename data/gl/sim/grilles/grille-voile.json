@@ -1,0 +1,76 @@
+{
+  "format": "gl-sim-grille v1",
+  "description": "Variantes d'équilibrage du voile jouées par le scénario `equilibrage` : bonus du dé gris par plateau (E1), fouille de réparation offerte aux Gnomes (E2), plancher du rang pâlissable (E3), réserve du surplus au plafond (E4). Les réglages E2/E3/E4 sont posés même si le moteur les ignore encore.",
+  "variantes": [
+    {
+      "id": "actuel",
+      "libelle": "Actuel {4,4,5,6}, sans E2/E3/E4",
+      "reglages": {
+        "gameplay.tenir_voile_bonus_par_plateau": { "1": 4, "2": 4, "3": 5, "4": 6 },
+        "gameplay.tenir_fouilles_reparation_gnome": 0,
+        "gameplay.tenir_palissement_rang_plancher": 0,
+        "gameplay.tenir_surplus_reserve": false
+      }
+    },
+    {
+      "id": "e1",
+      "libelle": "E1 {3,4,5,6} + E2 + E3 (choix d'Oliv)",
+      "reglages": {
+        "gameplay.tenir_voile_bonus_par_plateau": { "1": 3, "2": 4, "3": 5, "4": 6 },
+        "gameplay.tenir_fouilles_reparation_gnome": 1,
+        "gameplay.tenir_palissement_rang_plancher": 8,
+        "gameplay.tenir_surplus_reserve": false
+      }
+    },
+    {
+      "id": "douce",
+      "libelle": "Douce {3,3,4,4} + E2 + E3",
+      "reglages": {
+        "gameplay.tenir_voile_bonus_par_plateau": { "1": 3, "2": 3, "3": 4, "4": 4 },
+        "gameplay.tenir_fouilles_reparation_gnome": 1,
+        "gameplay.tenir_palissement_rang_plancher": 8,
+        "gameplay.tenir_surplus_reserve": false
+      }
+    },
+    {
+      "id": "3-3-4-5",
+      "libelle": "{3,3,4,5} + E2 + E3",
+      "reglages": {
+        "gameplay.tenir_voile_bonus_par_plateau": { "1": 3, "2": 3, "3": 4, "4": 5 },
+        "gameplay.tenir_fouilles_reparation_gnome": 1,
+        "gameplay.tenir_palissement_rang_plancher": 8,
+        "gameplay.tenir_surplus_reserve": false
+      }
+    },
+    {
+      "id": "e1-sans-e2",
+      "libelle": "E1 {3,4,5,6} + E3, sans E2",
+      "reglages": {
+        "gameplay.tenir_voile_bonus_par_plateau": { "1": 3, "2": 4, "3": 5, "4": 6 },
+        "gameplay.tenir_fouilles_reparation_gnome": 0,
+        "gameplay.tenir_palissement_rang_plancher": 8,
+        "gameplay.tenir_surplus_reserve": false
+      }
+    },
+    {
+      "id": "e1-sans-e3",
+      "libelle": "E1 {3,4,5,6} + E2, sans E3",
+      "reglages": {
+        "gameplay.tenir_voile_bonus_par_plateau": { "1": 3, "2": 4, "3": 5, "4": 6 },
+        "gameplay.tenir_fouilles_reparation_gnome": 1,
+        "gameplay.tenir_palissement_rang_plancher": 0,
+        "gameplay.tenir_surplus_reserve": false
+      }
+    },
+    {
+      "id": "e1-e2-e3-e4",
+      "libelle": "E1 {3,4,5,6} + E2 + E3 + E4",
+      "reglages": {
+        "gameplay.tenir_voile_bonus_par_plateau": { "1": 3, "2": 4, "3": 5, "4": 6 },
+        "gameplay.tenir_fouilles_reparation_gnome": 1,
+        "gameplay.tenir_palissement_rang_plancher": 8,
+        "gameplay.tenir_surplus_reserve": true
+      }
+    }
+  ]
+}
