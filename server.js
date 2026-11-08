@@ -579,6 +579,8 @@ app.use('/api/gl/learning', glLearningRouter);
 app.use('/api/gl/learning-links', glLearningLinksRouter);
 app.use('/api/gl/stats', glStatsRouter);
 app.use('/api/gl/voyageur', glVoyageurRouter);
+// « Tenir à deux » : badges individuels sur le moteur commun (joueur, vitrine et badge décerné du MJ).
+app.use('/api/gl/rewards', require('./routes/gl/rewards'));
 app.use('/api/gl/tutorials', glTutorialsRouter);
 app.use('/api/gl/journal', glJournalRouter);
 app.use('/api/gl/player-journal', glPlayerJournalRouter);

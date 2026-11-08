@@ -1,0 +1,63 @@
+/* Badges G&L — panneau et célébration communs (`src/shared/styles/rewards.css`) habillés
+   avec la palette G&L : les jetons de la forêt attendus par les règles communes sont
+   remappés dans le conteneur `.gl-rewards`, sans teinte en dur. */
+@import '../../shared/styles/rewards.css';
+
+.gl-rewards {
+  --forest: var(--gl-color-primary);
+  --leaf: var(--gl-color-accent);
+  --soil: var(--gl-color-text);
+  --surface-plain: var(--gl-surface);
+  --ink-soft: var(--gl-color-text-muted);
+  margin-top: 8px;
+}
+
+.gl-rewards .pedago-rewards__title,
+.gl-rewards .pedago-sessions__panel-title {
+  margin: 0 0 4px;
+  font-size: var(--text-base);
+  color: var(--gl-color-primary);
+}
+
+.gl-rewards .reward-card {
+  border-radius: var(--gl-radius-card);
+}
+
+.gl-rewards .reward-celebration {
+  border-radius: var(--gl-radius-card);
+  box-shadow: var(--gl-shadow-sm);
+}
+
+.gl-rewards .reward-celebration .btn,
+.gl-rewards__toggle {
+  min-height: 44px;
+}
+
+/* Vitrine du prof (console MJ) : `.fm-table` de gl-admin.css, « à un pas du palier suivant ». */
+.gl-tenir-rewards__near ul {
+  margin: 4px 0 0;
+  padding-left: 1.1rem;
+}
+
+.gl-tenir-rewards__award {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+  max-width: 36rem;
+}
+
+.gl-tenir-rewards__award textarea {
+  min-height: 72px;
+  font: inherit;
+}
+
+.gl-tenir-rewards__name {
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--gl-color-link);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}

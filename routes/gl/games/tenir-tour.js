@@ -32,6 +32,7 @@ const { issueProjectionToken, revokeProjectionToken } = require('../../../lib/gl
 const { requireTenirGame } = require('./tenir');
 const { DICE_SIDES } = require('../../../lib/glDiceRoll');
 const glRandom = require('../../../lib/glRandom');
+const { awardGlManualToTeam } = require('../../../lib/glRewardsHooks');
 
 const router = express.Router();
 
@@ -675,6 +676,13 @@ router.post(
         });
       });
       emitAll(gameId, result.events);
+      // Badge « Correcteur du renard » aux membres présents (hors transaction, jamais bloquant).
+      awardGlManualToTeam(gameId, teamId, {
+        type: 'renard',
+        note: 'Ton équipe a corrigé Olu au bon moment.',
+        awardedBy: String(req.glAuth.userId),
+        roundNumber,
+      });
       return res.json({ ok: true });
     } catch (err) {
       return sendTourError(res, err);

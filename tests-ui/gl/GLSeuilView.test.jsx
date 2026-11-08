@@ -3,7 +3,15 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 const apiGL = vi.fn();
-vi.mock('../../src/gl/services/apiGL.js', () => ({ apiGL: (...args) => apiGL(...args) }));
+vi.mock('../../src/gl/services/apiGL.js', () => ({
+  apiGL: (...args) => apiGL(...args),
+  getGlSession: () => null,
+}));
+// « Mes badges » (moteur commun) a son propre test (GLRewardsPanel.test.jsx) : isolé ici pour
+// que la file de réponses `mockResolvedValueOnce` reste celle du Seuil.
+vi.mock('../../src/gl/components/GLRewardsPanel.jsx', () => ({
+  GLRewardsPanel: () => <div data-testid="stub-gl-rewards" />,
+}));
 
 import { GLSeuilView, buildSeuilSuggestions } from '../../src/gl/components/GLSeuilView.jsx';
 import { GL_MODULE_DEFAULTS } from '../../src/gl/constants/modules.js';

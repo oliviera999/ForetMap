@@ -32,6 +32,18 @@ const {
 const { GL_MARKABLE } = require('../../lib/learningGatingRuntime');
 const { resourceExists } = require('../../lib/glLearnableResources');
 const { voyageurGainFor } = require('../../lib/glVoyageur');
+const { queueGlRewards } = require('../../lib/glRewardsHooks');
+
+/** Badges « Savoirs » d'un joueur après un premier acquis (hors transaction, jamais bloquant). */
+function queueNatureRewards(glAuth, targetType) {
+  if (glAuth?.userType !== 'gl_player') return;
+  if (!['species', 'biome', 'ecosystem'].includes(String(targetType))) return;
+  queueGlRewards([glAuth.userId], {
+    families: ['nature'],
+    source: { type: 'learning', ref: String(targetType) },
+    reason: 'learning',
+  });
+}
 
 const router = express.Router();
 
@@ -350,6 +362,7 @@ router.post(
         ...(response.feuilletRevealed ? ['feuillets_found'] : []),
       ]);
       if (gain) response.voyageurGain = gain;
+      queueNatureRewards(req.glAuth, 'species');
     }
 
     return res.json(response);
@@ -463,6 +476,7 @@ router.post(
         ...(feuilletRevealed ? ['feuillets_found'] : []),
       ]);
       if (gain) response.voyageurGain = gain;
+      queueNatureRewards(req.glAuth, resourceType);
     }
     return res.json(response);
   }),

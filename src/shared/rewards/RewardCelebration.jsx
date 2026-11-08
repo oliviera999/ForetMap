@@ -15,15 +15,22 @@ function prefersReducedMotion() {
 /**
  * Célébration des badges nouvellement obtenus (non encore vus), **regroupée** quand
  * plusieurs arrivent ensemble. Composant commun ForetMap + Gnomes & Licornes : le produit
- * passe son narrateur (`content.help.narrator` côté forêt) et, au besoin, ses phrases de
- * famille (`extraPools`, voir `oluRewardsVoice.js`).
+ * passe son narrateur (`content.help.narrator` côté forêt), au besoin ses phrases de
+ * famille (`extraPools`, voir `oluRewardsVoice.js`) et ses noms de paliers (`tiers`, ceux de
+ * `GET …/me` ; défaut : paliers de la forêt).
  *
  * OLU dit une phrase **après** la liste des badges (l'information d'abord, §2.2bis) ; sans
  * narrateur (`narrator` absent ou coupé), la bulle reste, sans portrait ni nom. Fenêtre
  * courte, fermée par l'élève ; animation et machine à écrire coupées si
  * `prefers-reduced-motion: reduce`.
  */
-export function RewardCelebration({ rewards = [], onClose, narrator = null, extraPools = null }) {
+export function RewardCelebration({
+  rewards = [],
+  onClose,
+  narrator = null,
+  extraPools = null,
+  tiers = null,
+}) {
   const reduced = useMemo(prefersReducedMotion, []);
   const line = useMemo(() => oluRewardLine(rewards, { extraPools }), [rewards, extraPools]);
   if (!rewards.length) return null;
@@ -44,7 +51,7 @@ export function RewardCelebration({ rewards = [], onClose, narrator = null, extr
       <ul className="reward-celebration__list">
         {rewards.map((r) => (
           <li key={r.key}>
-            {rewardShortLabel(r)}
+            {rewardShortLabel(r, tiers || undefined)}
             {r.note ? <span className="reward-celebration__note"> — « {r.note} »</span> : null}
           </li>
         ))}

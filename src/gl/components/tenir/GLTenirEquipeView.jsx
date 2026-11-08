@@ -5,6 +5,7 @@ import { GLButton } from '../ui/GLButton.jsx';
 import { GLTourDesSaisie } from '../mj/GLTourDesSaisie.jsx';
 import { GLTenirQuestionCard } from './GLTenirQuestionCard.jsx';
 import { GLCarnetClasseView } from './GLCarnetClasseView.jsx';
+import { GLRewardsPanel } from '../GLRewardsPanel.jsx';
 import { GLOluBulle } from './GLOluBulle.jsx';
 import { GLPeripetieOverlay } from './GLPeripetieOverlay.jsx';
 import { GLBestiairePanel } from './GLBestiairePanel.jsx';
@@ -44,6 +45,8 @@ export function GLTenirEquipeView({
   onRepondre = null,
   /** Résultat de `useGlChasse` (fouille au clic, question, carnet) ; `null` hors chasse. */
   chasse = null,
+  /** Modules G&L (`rewardsEnabled` conditionne « Mes badges ») ; `null` = tout allumé. */
+  modules = null,
 }) {
   const gameId = gameState?.game?.id;
   const tourApi = useGlTenirTour({
@@ -53,6 +56,7 @@ export function GLTenirEquipeView({
   });
   const [pending, setPending] = useState(null);
   const [carnetOuvert, setCarnetOuvert] = useState(false);
+  const [badgesOuverts, setBadgesOuverts] = useState(false);
   const [peripetiesPassees, setPeripetiesPassees] = useState(() => new Set());
   const perms = tenir?.permissions || {};
   const events = gameState?.events || [];
@@ -229,6 +233,21 @@ export function GLTenirEquipeView({
           <GLCarnetClasseView chasse={chasse} />
           <GLBestiairePanel gameId={gameId} />
         </>
+      ) : null}
+      <div className="gl-inline-actions">
+        <GLButton
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="gl-rewards__toggle"
+          aria-expanded={badgesOuverts}
+          onClick={() => setBadgesOuverts((v) => !v)}
+        >
+          {badgesOuverts ? 'Fermer mes badges' : 'Mes badges'}
+        </GLButton>
+      </div>
+      {badgesOuverts ? (
+        <GLRewardsPanel modules={modules} title="Mes badges" headingLevel={3} />
       ) : null}
       <GLPeripetieOverlay
         peripetie={peripetie}

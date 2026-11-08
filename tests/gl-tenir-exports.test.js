@@ -24,13 +24,16 @@ before(async () => {
      ON DUPLICATE KEY UPDATE cartes_gardees = VALUES(cartes_gardees)`,
     [ctx.game.id, ctx.teams[0].id, ctx.game.id, ctx.teams[0].id],
   );
+  // Badges du moteur commun (migration 338) : un palier calculé et un badge décerné avec un mot.
   await execute(
-    `INSERT INTO gl_tenir_badges (code, nom, regle_type, seuil, source, actif) VALUES ('premiere_page', 'Première page', 'compteur', 1, 'carnet_personnel_pages', 1)
-     ON DUPLICATE KEY UPDATE actif = 1`,
+    `INSERT IGNORE INTO gl_player_rewards (player_id, reward_key, source_type, source_ref, awarded_at)
+     VALUES (?, 'chasse.pages.1', 'page_trouvee', 'cz-p1-01', NOW())`,
+    [ctx.players[0].id],
   );
   await execute(
-    `INSERT IGNORE INTO gl_player_badges (player_id, badge_code, game_id, source, valeur, awarded_by, awarded_at) VALUES (?, 'premiere_page', ?, 'carnet_personnel_pages', 1, 'app', NOW())`,
-    [ctx.players[0].id, ctx.game.id],
+    `INSERT IGNORE INTO gl_player_rewards (player_id, reward_key, source_type, awarded_at, awarded_by_user_id, note)
+     VALUES (?, 'manuel.esprit_equipe.1', 'manual', NOW(), ?, 'Merci pour ta place laissée.')`,
+    [ctx.players[0].id, String(ctx.admin.id)],
   );
 });
 
@@ -54,15 +57,18 @@ test('team-spirit.csv : BOM, séparateur ; en-têtes, une ligne par élève × s
   assert.doesNotMatch(res.text, /health|power|classement|cœur|gemme/i);
 });
 
-test('badges.csv : en-têtes et lignes ; un joueur est refusé (403)', async () => {
+test('badges.csv : en-têtes et lignes (clé, titre, palier, date, mot) ; un joueur est refusé (403)', async () => {
   const res = await request(app)
     .get(`/api/gl/admin/classes/${ctx.cls.id}/exports/badges.csv`)
     .set(auth(ctx.adminToken));
   assert.equal(res.status, 200, res.text);
   const lines = res.text.replace('﻿', '').trim().split('\r\n');
-  assert.equal(lines[0], 'eleve;prenom;nom;badge;libelle;date;source;attribue_par');
-  assert.equal(lines.length, 2);
-  assert.ok(lines[1].includes('premiere_page;Première page'));
+  assert.equal(lines[0], 'eleve;prenom;nom;badge;libelle;palier;date;mot');
+  assert.equal(lines.length, 3, res.text);
+  assert.ok(lines.some((l) => l.includes('chasse.pages.1;Trouveur;Fil;')));
+  assert.ok(lines.some((l) => l.includes('manuel.esprit_equipe.1;Esprit d’équipe;;')));
+  assert.ok(lines.some((l) => l.includes('Merci pour ta place laissée.')));
+  assert.doesNotMatch(res.text, /classement|rang|total/i);
   const forbidden = await request(app)
     .get(`/api/gl/admin/classes/${ctx.cls.id}/exports/badges.csv`)
     .set(auth(ctx.players[0].token));
