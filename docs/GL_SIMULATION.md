@@ -292,3 +292,39 @@ voir ci-dessus), `partGnomes`, `carnetComplet` (rare aux plateaux 3-4 : 10 zones
 est le seul scénario où la chasse s'effondre (88 % de pages pâlies, 13 % tenues) : la stratégie de
 fouille compte plus que tout réglage. `concurrence` tient 5/5 après le correctif d'interblocage.
 Rapports complets : `reports/gl-sim/2026-11-08-*/index.html` (non versionnés, régénérables).
+
+## 10. Campagne du 8 novembre 2026 après fusion (défauts restants)
+
+Après la fusion de la PR #644, 658 exécutions supplémentaires (967 chapitres) sur cinq bases
+`_sim` : `all --runs 10 --seed 11`, `all --runs 10 --seed 23 --jours-veillee 14`, `all --runs 5
+--seed 99 --seances 4`, `concurrence --runs 20 --seed 5`, `regression-7nov --runs 10 --seed 3`,
+`annee-complete --runs 5 --seed 5` et `--runs 3 --seed 77 --seances 4`, `equilibrage --runs 5
+--seed 9` ; plus `all --runs 3 --seed 7 --mots-interdits strict`.
+
+**Moteur** : 0 échec, 0 réponse 5xx, 0 violation d'invariant, 0 fuite de bourses, assertions C1-C10
+toutes tenues (18 exécutions de `regression-7nov`). Les refus 4xx relevés (≈ 2 900) sont tous
+attendus : `TOUTES_AU_CAMP`, `TOUR_PASSE`, `FOUILLES_EPUISEES` (le prof virtuel insiste en mode
+tableau), fenêtres et limites de sorts, Marché en retrait. Deux cas méritent une décision de règle :
+
+1. **Question de case perdue par une poussée** (`concurrence` seulement, 13 fois sur 30
+   chapitres joués en parallèle) : une équipe arrive sur une carte question et, avant de répondre,
+   une Bourrasque ou un Relais d'une autre équipe la déplace ; `present-question` refuse alors
+   « Votre équipe n'est pas sur ce repère » (409). Jamais observé en jeu séquentiel. Pistes : lier
+   la question à l'arrivée du tour plutôt qu'à la position, ou refuser Bourrasque / Relais sur une
+   équipe qui a une question en attente.
+2. **Nommer sur une page réparée entre-temps** (`concurrence`, 12 fois) : le prof applique
+   l'effet alors qu'une autre équipe vient de réparer la page ; refus `PAGE_PAS_PALIE` correct,
+   l'écran du prof gagnerait à se rafraîchir avant le bouton.
+
+**Équilibre** (médianes) : mêmes tendances que la grille (§ 9). Avec des chapitres bornés à
+4 séances (`--seances 4`), le double plafond 8/8 en fin d'année tombe de 70-75 % à 20 % des
+élèves : la richesse vient des 5e et 6e séances, pas de la règle.
+
+**Contenu servi aux élèves** (copie de prod, `--mots-interdits strict` fait tomber 66/66
+exécutions) : « corbeau » dans 52 feuillets actifs et des fiches d'espèces (l'oiseau du Souffle ne
+doit jamais être nommé ; ici ce sont les textes du lore et des fiches nature) ; « Grise » dans
+11 feuillets du plateau 2 et les textes du chapitre 2 ; « ennemi » dans un feuillet (`cz-p1-08`) ;
+« attaque » dans 6 QCM (énoncés ou choix, contenu nature) ; **28 QCM actifs dont un retour dit
+« faux », « raté » ou « perdu »** (« Non, c'est faux : … ») alors que l'erreur ne punit pas ;
+faux positif de la liste : « couleurs perdues » (case 54). Décisions d'auteur : une migration
+gardée peut réécrire les 28 retours en « Pas encore : … ».
