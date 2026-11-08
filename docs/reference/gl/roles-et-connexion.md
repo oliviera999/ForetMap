@@ -108,6 +108,32 @@ invitant à créer un compte), contenus « nature », extraits du lore. Un bande
 Dès qu'une action demande un compte, le jeu la refuse poliment. Un nouveau jet
 pendant que la mascotte avance est ignoré : elle termine d'abord son trajet.
 
+### Les modes de démonstration (parents, borne)
+
+Deux déclinaisons du mode invité s'ouvrent **par l'adresse** du jeu, sans rien cliquer. Elles
+n'existent que si le mode découverte est activé, et ne font rien quand un compte est déjà
+connecté sur l'appareil : une adresse ne déconnecte jamais personne.
+
+- **La vitrine pour les parents** — adresse du jeu suivie de `?demo=parents` (à imprimer en QR
+  code pour une réunion de rentrée). La session invitée s'ouvre seule sur un onglet **« Pour les
+  parents »** : le jeu en cinq étapes (l'introduction, le plateau de démonstration, une fiche
+  nature, un **quiz d'essai** tiré des vraies questions du plateau, puis « ce que votre enfant
+  apprend » : les apprentissages visés, le rôle de l'enseignant, et ce qu'il advient des
+  données, avec le lien vers la notice « Vos données »). OLU guide la visite ; le bandeau
+  indique « Mode découverte · parents ». **Rien n'est enregistré** : la réponse au quiz ne compte
+  pour personne et aucune trace n'est conservée. Le mur de fin du plateau renvoie à la page
+  parents plutôt que de proposer un compte.
+- **La borne** — adresse suivie de `?kiosque=1` (CDI, portes ouvertes, salon). Un écran d'accueil
+  plein écran (trois dés qui roulent, « Touchez l'écran pour commencer ») ouvre le plateau de
+  démonstration. Aucun bouton de connexion ni de sortie n'est affiché, le bouton d'aide est
+  masqué, et l'écran **revient à l'accueil après deux minutes sans geste** (réglable :
+  `&inactivite=180` pour trois minutes, entre 30 s et 30 min). Le mur de fin propose seulement de
+  recommencer. Les deux adresses se combinent (`?demo=parents&kiosque=1`).
+
+Ni la vitrine ni la borne ne comptent dans les statistiques d'usage du jeu. Pour animer une
+démonstration devant une salle avec une vraie partie (projection, tours), voir la **partie de
+démonstration** du [Guide du MJ](guide-du-mj.md#une-partie-de-démonstration-pour-une-réunion).
+
 ### Les mots de passe
 
 - **Longueur minimale** : **8 caractères pour les joueurs** (relevable par le réglage

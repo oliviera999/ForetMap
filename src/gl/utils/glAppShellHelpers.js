@@ -11,6 +11,8 @@ import {
   GL_VALID_TABS,
   GL_DISCOVERY_TAB,
   GL_GUEST_TAB_IDS,
+  GL_GUEST_PROFILE_TAB_IDS,
+  GL_PARENTS_TAB,
   GL_NATURE_SUB_TAB_IDS,
   GL_NATURE_TAB,
   GL_ADVENTURE_SUB_TABS,
@@ -263,15 +265,25 @@ export function parseGlOauthHash(hashRaw) {
  * Onglets visibles : onglets joueur filtrés par modules (et vitalité pour le
  * marché), suivis des onglets admin si l'UI staff est affichée.
  */
-export function filterGlTabs({ modules, vitalityEnabled, showStaffAdminUi, isGuest = false }) {
+export function filterGlTabs({
+  modules,
+  vitalityEnabled,
+  showStaffAdminUi,
+  isGuest = false,
+  guestProfile = null,
+}) {
   if (isGuest) {
-    return GL_GUEST_TAB_IDS.map((id) => {
-      if (id === GL_DISCOVERY_TAB.id) return GL_DISCOVERY_TAB;
-      if (id === GL_NATURE_TAB.id) return GL_NATURE_TAB;
-      if (id === GL_ADVENTURE_TAB.id) return GL_ADVENTURE_TAB;
-      if (id === GL_MONDE_TAB.id) return GL_MONDE_TAB;
-      return GL_PLAYER_TABS.find((tab) => tab.id === id);
-    }).filter(Boolean);
+    const guestTabIds = GL_GUEST_PROFILE_TAB_IDS[guestProfile] || GL_GUEST_TAB_IDS;
+    return guestTabIds
+      .map((id) => {
+        if (id === GL_PARENTS_TAB.id) return GL_PARENTS_TAB;
+        if (id === GL_DISCOVERY_TAB.id) return GL_DISCOVERY_TAB;
+        if (id === GL_NATURE_TAB.id) return GL_NATURE_TAB;
+        if (id === GL_ADVENTURE_TAB.id) return GL_ADVENTURE_TAB;
+        if (id === GL_MONDE_TAB.id) return GL_MONDE_TAB;
+        return GL_PLAYER_TABS.find((tab) => tab.id === id);
+      })
+      .filter(Boolean);
   }
 
   const playerTabs = GL_PLAYER_TABS.filter((tab) => {

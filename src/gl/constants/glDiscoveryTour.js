@@ -214,6 +214,49 @@ export const GL_DISCOVERY_TOURS = Object.freeze({
       GL_RELAUNCH_STEP,
     ],
   },
+  /*
+   * Vitrine `?demo=parents` : l'onglet n'existe que dans cette session invitée, le parcours
+   * ne se déclenche donc jamais ailleurs. OLU s'adresse à un adulte de passage : il dit ce
+   * qu'on regarde, pas ce qu'on doit en penser — et toujours rien du récit.
+   */
+  parents: {
+    title: 'Pour les parents',
+    steps: [
+      {
+        key: 'intro',
+        title: 'Bienvenue, je vous accompagne',
+        body: 'Cette page vous fait le tour du jeu en cinq minutes. Rien de ce que vous ouvrez ici n’est enregistré.',
+        target: null,
+        placement: 'center',
+        expression: 'content',
+      },
+      {
+        key: 'chemin',
+        title: 'Trois endroits à voir',
+        body: 'L’introduction, le plateau, une fiche nature : chaque bouton vous y emmène, et l’onglet « Pour les parents » vous ramène ici.',
+        target: '[data-gl-tour="parents-chemin"]',
+        placement: 'bottom',
+        expression: 'montre',
+      },
+      {
+        key: 'quiz',
+        title: 'Une vraie question',
+        body: 'Les équipes rencontrent ces questions sur le plateau. Essayez-en une : votre réponse ne compte pour personne.',
+        target: '[data-gl-tour="parents-quiz"]',
+        placement: 'top',
+        expression: 'complice',
+      },
+      {
+        key: 'apprentissages',
+        title: 'Ce qui reste après la séance',
+        body: 'Ce que l’enfant apprend, qui anime, et ce qu’il advient de ses données. C’est la partie à lire en entier.',
+        target: '[data-gl-tour="parents-apprentissages"]',
+        placement: 'top',
+        expression: 'parle',
+      },
+      GL_RELAUNCH_STEP,
+    ],
+  },
   maps: {
     title: 'Les cartes',
     steps: [

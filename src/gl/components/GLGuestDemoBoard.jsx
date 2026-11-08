@@ -43,7 +43,23 @@ function buildPathWaypoints(zones) {
   return [start, ...centres];
 }
 
-export function GLGuestDemoBoard({ onExitGuest, brandThemeStyle = null }) {
+/**
+ * @param {object} props
+ * @param {() => void} [props.onExitGuest] retour à l'écran de connexion (mur de fin).
+ * @param {'parents'|null} [props.demoProfile] vitrine parents : le mur renvoie à l'onglet
+ *   « Pour les parents » au lieu de proposer un compte.
+ * @param {boolean} [props.kioskMode] borne : le mur ne propose que de recommencer.
+ * @param {() => void} [props.onRestart] remise à zéro de la borne.
+ * @param {(tab: string) => void} [props.onNavigate] navigation vers un onglet.
+ */
+export function GLGuestDemoBoard({
+  onExitGuest,
+  brandThemeStyle = null,
+  demoProfile = null,
+  kioskMode = false,
+  onRestart,
+  onNavigate,
+}) {
   const feuilletZones = useMemo(() => getRuntimeFeuilletZonesForPlateau(1), []);
   const imageUrl = useMemo(() => boardImageUrlFromZones(feuilletZones), [feuilletZones]);
   const pathWaypoints = useMemo(() => buildPathWaypoints(feuilletZones), [feuilletZones]);
@@ -291,18 +307,42 @@ export function GLGuestDemoBoard({ onExitGuest, brandThemeStyle = null }) {
             <h3 id="gl-guest-demo-wall-title">Le journal s’interrompt ici</h3>
           </header>
           <div className="gl-feui-discovery__body">
-            <p>
-              Tu as goûté au début de l’aventure. Crée ton compte pour franchir le seuil et
-              poursuivre l’histoire avec ta classe.
-            </p>
+            {kioskMode ? (
+              <p>
+                Vous avez goûté au début de l’aventure. En classe, elle se poursuit en équipe,
+                plateau après plateau.
+              </p>
+            ) : demoProfile === 'parents' ? (
+              <p>
+                Vous avez vu le début de l’aventure. Votre enfant la poursuit en classe, avec son
+                équipe et son enseignant.
+              </p>
+            ) : (
+              <p>
+                Tu as goûté au début de l’aventure. Crée ton compte pour franchir le seuil et
+                poursuivre l’histoire avec ta classe.
+              </p>
+            )}
           </div>
           <footer className="gl-feui-discovery__foot">
-            <GLButton type="button" variant="primary" onClick={() => onExitGuest?.()}>
-              Se connecter
-            </GLButton>
-            <GLButton type="button" variant="ghost" onClick={() => onExitGuest?.()}>
-              Créer un compte
-            </GLButton>
+            {kioskMode ? (
+              <GLButton type="button" variant="primary" onClick={() => onRestart?.()}>
+                Recommencer
+              </GLButton>
+            ) : demoProfile === 'parents' ? (
+              <GLButton type="button" variant="primary" onClick={() => onNavigate?.('parents')}>
+                Revenir à la page parents
+              </GLButton>
+            ) : (
+              <>
+                <GLButton type="button" variant="primary" onClick={() => onExitGuest?.()}>
+                  Se connecter
+                </GLButton>
+                <GLButton type="button" variant="ghost" onClick={() => onExitGuest?.()}>
+                  Créer un compte
+                </GLButton>
+              </>
+            )}
           </footer>
         </section>
       ) : null}

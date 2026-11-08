@@ -208,6 +208,7 @@
     "gl:import:glossary": "node scripts/gl-import-glossary.js",
     "gl:import:qcm": "node scripts/gl-import-qcm.js",
     "gl:import:qcm-lore": "node scripts/gl-import-qcm-lore.js",
+    "gl:demo:seed": "node scripts/gl-demo-seed.js",
     "gl:import:chapters": "node scripts/gl-import-chapters.js",
     "gl:import:chapters:example": "node scripts/gl-import-chapters.js --write-example",
     "gl:import:lore-feuillets": "node scripts/gl-import-lore-feuillets.js",

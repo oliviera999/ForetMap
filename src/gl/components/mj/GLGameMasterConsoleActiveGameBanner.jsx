@@ -46,7 +46,15 @@ export default function GLGameMasterConsoleActiveGameBanner({
     >
       <div className="gl-active-game-banner-head">
         <div>
-          <h3 className="gl-active-game-banner-title">{game.name || `Partie #${game.id}`}</h3>
+          <h3 className="gl-active-game-banner-title">
+            {game.name || `Partie #${game.id}`}
+            {Number(game.is_demo) === 1 ? (
+              <>
+                {' '}
+                <GLBadge tone="info">Démo</GLBadge>
+              </>
+            ) : null}
+          </h3>
           <div className="gl-active-game-banner-meta">
             <span>#{game.id}</span>
             <span>{activeClassLabel}</span>

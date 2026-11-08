@@ -4,6 +4,10 @@
       "title": "Découverte",
       "body": "Voilà le plateau de démonstration : tu peux tout ouvrir, rien n’est cassable. Clique un repère pour voir ce qu’il déclenche, puis reviens ici quand tu veux."
     },
+    "tab:parents": {
+      "title": "Pour les parents",
+      "body": "Cette page vous présente le jeu en cinq étapes : l’introduction, le plateau, une fiche nature, un quiz d’essai et ce que l’enfant apprend. Rien de ce que vous faites ici n’est enregistré."
+    },
     "tab:maps": {
       "title": "Les cartes",
       "body": "Ici je garde les cartes du monde, chapitre par chapitre. Zoome, promène-toi, et clique un repère pour savoir ce qui s’y trouve.",

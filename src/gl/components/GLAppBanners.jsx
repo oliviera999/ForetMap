@@ -16,6 +16,11 @@ export function GLAppBanners({
   isGuestMode = false,
   onQuitGuest,
   onGuestLogin,
+  /** Vitrine `?demo=parents` : libellé adapté, mêmes boutons. */
+  guestDemoProfile = null,
+  /** Borne `?kiosque=1` : aucun bouton, rappel de la remise à zéro. */
+  kioskMode = false,
+  kioskIdleSeconds = 0,
   impersonationBanner,
   impersonatedDisplayName,
   onStopImpersonation,
@@ -38,14 +43,40 @@ export function GLAppBanners({
         </div>
       ) : null}
 
-      {isGuestMode ? (
+      {isGuestMode && kioskMode ? (
+        <div
+          className="role-preview-banner role-preview-banner--guest role-preview-banner--kiosk fade-in"
+          role="status"
+        >
+          <span className="role-preview-banner__icon" aria-hidden>
+            🧭
+          </span>
+          <div className="role-preview-banner__text" style={{ flex: '1 1 200px' }}>
+            <strong>Borne de démonstration</strong>
+            <span>
+              Touchez, lancez le dé, ouvrez les fiches : rien n’est enregistré.
+              {kioskIdleSeconds > 0
+                ? ` L’écran revient à l’accueil après ${kioskIdleSeconds} s sans geste.`
+                : ''}
+            </span>
+          </div>
+        </div>
+      ) : null}
+
+      {isGuestMode && !kioskMode ? (
         <div className="role-preview-banner role-preview-banner--guest fade-in" role="status">
           <span className="role-preview-banner__icon" aria-hidden>
             🧭
           </span>
           <div className="role-preview-banner__text" style={{ flex: '1 1 200px' }}>
-            <strong>Mode découverte</strong>
-            <span>Connecte-toi pour jouer une vraie partie et poursuivre l’aventure.</span>
+            <strong>
+              {guestDemoProfile === 'parents' ? 'Mode découverte · parents' : 'Mode découverte'}
+            </strong>
+            <span>
+              {guestDemoProfile === 'parents'
+                ? 'Vous voyez le jeu comme votre enfant. Rien de ce que vous faites ici n’est enregistré.'
+                : 'Connecte-toi pour jouer une vraie partie et poursuivre l’aventure.'}
+            </span>
           </div>
           <div className="impersonation-banner-actions">
             {typeof onGuestLogin === 'function' ? (

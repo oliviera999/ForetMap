@@ -137,7 +137,7 @@ router.get(
     const rows = await queryAll(
       `SELECT g.id, g.name, g.status, g.class_id, c.name AS class_name,
             g.chapter_id, ch.title AS chapter_title, g.current_team_id,
-            g.created_at, g.updated_at, COUNT(t.id) AS teams_count
+            g.is_demo, g.created_at, g.updated_at, COUNT(t.id) AS teams_count
        FROM gl_games g
   LEFT JOIN gl_classes c ON c.id = g.class_id
   LEFT JOIN gl_chapters ch ON ch.id = g.chapter_id
@@ -158,6 +158,7 @@ router.get(
         chapterTitle: row.chapter_title || null,
         currentTeamId: row.current_team_id != null ? Number(row.current_team_id) : null,
         teamsCount: Number(row.teams_count) || 0,
+        isDemo: Number(row.is_demo) === 1,
         createdAt: row.created_at || null,
         updatedAt: row.updated_at || null,
       })),

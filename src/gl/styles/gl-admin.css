@@ -1754,3 +1754,16 @@
   cursor: pointer;
   font-weight: var(--fw-semibold);
 }
+
+/* Console MJ — bloc « Partie de démonstration » (Parties). */
+.gl-mj-demo-block {
+  margin: 12px 0;
+  padding: 12px 14px;
+  border: 1px dashed var(--gl-border);
+  border-radius: var(--gl-radius-md);
+  background: var(--gl-color-accent-soft, rgba(82, 183, 136, 0.08));
+}
+
+.gl-mj-demo-block h4 {
+  margin: 0 0 6px;
+}
