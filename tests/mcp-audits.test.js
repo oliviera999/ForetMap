@@ -1025,3 +1025,113 @@ test('vérité des cases G&L : promesses non tenues sur les plateaux 1-4 seuleme
   );
   assert.match(out[0].detail, /TENIR_BRANCHE_NON_TENUE/);
 });
+
+/* ------------------------------------------- G&L « Tenir à deux » : zones, sorts, badges */
+
+test('gl_tenir_zones : écart au réglage, zone sans question, feuillet d’un autre plateau', () => {
+  const out = checks.glTenirZones({
+    glTenirSettings: { enabled: true, zonesParPlateau: { 1: 2, 2: 1, 3: 0, 4: 0 } },
+    glChasseZones: [
+      { zone_key: 'cz-p1-01', plateau: 1, feuillet_code: 'f-p1-a', actif: 1 },
+      { zone_key: 'cz-p1-02', plateau: 1, feuillet_code: 'f-p2-z', actif: 1 },
+      { zone_key: 'cz-p1-03', plateau: 1, feuillet_code: 'f-p1-b', actif: 0 },
+      { zone_key: 'cz-p2-01', plateau: 2, feuillet_code: 'f-p2-z', actif: 1 },
+      { zone_key: 'cz-p2-02', plateau: 2, feuillet_code: 'f-p2-y', actif: 1 },
+    ],
+    glTenirQuestionsLecture: [
+      { zone_key: 'cz-p1-01', actif: 1 },
+      { zone_key: 'cz-p1-02', actif: 0 },
+      { zone_key: 'cz-p2-01', actif: 1 },
+      { zone_key: 'cz-p2-02', actif: 1 },
+    ],
+    glLoreFeuilletPlateaux: [
+      { feuillet_code: 'f-p1-a', plateau_number: 1 },
+      { feuillet_code: 'f-p2-z', plateau_number: 2 },
+      { feuillet_code: 'f-p2-y', plateau_number: null },
+    ],
+  });
+  const keys = out.map((f) => `${f.id}|${f.detail}`);
+  // cz-p1-02 : question inactive ET feuillet du plateau 2 ; cz-p1-03 inactive : ignorée.
+  assert.ok(keys.some((k) => k.startsWith('zone:cz-p1-02|zone active sans question')));
+  assert.ok(keys.some((k) => k.startsWith('zone:cz-p1-02|feuillet f-p2-z du plateau 2')));
+  // Plateau 1 : 2 actives pour 2 attendues (ok) ; plateau 2 : 2 pour 1 ; 3 et 4 : 0 pour 0 (ok).
+  assert.deepEqual(
+    out.filter((f) => f.id.startsWith('plateau:')).map((f) => f.id),
+    ['plateau:2'],
+  );
+  assert.equal(out.length, 3);
+  // Mode tenir coupé : le réglage ne compte plus, les contrôles de zone restent.
+  assert.equal(
+    checks.glTenirZones({
+      glTenirSettings: { enabled: false, zonesParPlateau: { 1: 9 } },
+      glChasseZones: [{ zone_key: 'z', plateau: 1, feuillet_code: 'f', actif: 1 }],
+      glTenirQuestionsLecture: [{ zone_key: 'z', actif: 1 }],
+      glLoreFeuilletPlateaux: [],
+    }).length,
+    0,
+  );
+  // Instantané illisible : contrôle neutre.
+  assert.deepEqual(checks.glTenirZones({ glChasseZones: null }), []);
+  assert.deepEqual(checks.glTenirZones({}), []);
+});
+
+test('gl_spells_legacy : sort officiel hors v2 seulement', () => {
+  const out = checks.glSpellsLegacy({
+    glSpells: [
+      { spell_code: 'S01', nom: 'Vieux sort', statut: 'officiel', tenir_v2: 0 },
+      { spell_code: 'S02', nom: 'Sort v2', statut: 'officiel', tenir_v2: 1 },
+      { spell_code: 'S03', nom: 'Proposé', statut: 'propose', tenir_v2: 0 },
+      { spell_code: 'S04', nom: 'Officiel majuscule', statut: 'Officiel', tenir_v2: null },
+    ],
+  });
+  assert.deepEqual(ids(out), ['spell:S01', 'spell:S04']);
+  assert.match(out[0].detail, /Vieux sort/);
+  assert.deepEqual(checks.glSpellsLegacy({}), []);
+});
+
+test('gl_rewards_catalogue : moteur absent → 0 ; catalogue livré → clés orphelines seulement', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const delivered = fs.existsSync(path.join(__dirname, '..', 'lib', 'glRewards.js'));
+  const out = checks.glRewardsCatalogue({
+    glPlayerRewardKeys: [{ reward_key: 'chasse.fouilles.1' }, { reward_key: 'inconnu.badge' }],
+  });
+  if (!delivered) {
+    // Lot parallèle non livré dans ce worktree : contrôle neutre, sans exception.
+    assert.deepEqual(out, []);
+  } else {
+    assert.ok(!out.some((f) => f.id === 'catalogue'), 'catalogue livré valide');
+    assert.ok(ids(out).includes('reward_key:inconnu.badge'));
+    assert.ok(!ids(out).includes('reward_key:chasse.fouilles.1'));
+  }
+  // Table absente ou illisible : aucune clé examinée, aucune exception.
+  assert.ok(Array.isArray(checks.glRewardsCatalogue({ glPlayerRewardKeys: null })));
+});
+
+test('registre : les trois contrôles G&L sont listés avec leurs besoins ; gl_settings reste secrète', () => {
+  for (const name of ['gl_tenir_zones', 'gl_spells_legacy', 'gl_rewards_catalogue']) {
+    assert.ok(checks.CHECK_NAMES.includes(name), name);
+    assert.ok(checks.CHECKS[name].description && checks.CHECKS[name].hint);
+  }
+  assert.deepEqual(checks.CHECKS.gl_tenir_zones.needs, [
+    'glChasseZones',
+    'glTenirQuestionsLecture',
+    'glLoreFeuilletPlateaux',
+    'glTenirSettings',
+  ]);
+  assert.deepEqual(checks.CHECKS.gl_spells_legacy.needs, ['glSpells']);
+  assert.deepEqual(checks.CHECKS.gl_rewards_catalogue.needs, ['glPlayerRewardKeys']);
+  const { SNAPSHOT_SQL, TOLERANT_PARTS } = require('../lib/mcp/audits');
+  for (const part of [
+    'glChasseZones',
+    'glTenirQuestionsLecture',
+    'glLoreFeuilletPlateaux',
+    'glSpells',
+  ]) {
+    assert.ok(SNAPSHOT_SQL[part], part);
+    assert.ok(TOLERANT_PARTS.has(part), `${part} tolérant`);
+    guard.assertSqlReadable(SNAPSHOT_SQL[part]);
+  }
+  assert.ok(!Object.values(SNAPSHOT_SQL).some((sql) => /gl_settings/i.test(sql)));
+  assert.throws(() => guard.assertTableReadable('gl_settings'), /interdite/);
+});
