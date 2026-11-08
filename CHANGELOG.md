@@ -55,6 +55,20 @@ gl-marker-promises`) : aucune promesse affichée non tenue, aucun « sinon / si 
   lecture écarte une question dont la zone a été écartée ; une case Souffle « passe ton tour » fait
   **réellement** passer le jet suivant (`TOUR_PASSE`, 409, sans mot punitif ; l'équipe fouille et
   lit quand même, le prof peut la porter).
+- **Connecteur Claude (MCP) : outils G&L** (`docs/MCP.md` § Gnomes & Licornes) : domaine `gl`
+  (désactivable par `mcp.domains_disabled=gl`) et pont G&L `lib/mcp/glBridge.js` — l'enseignant
+  connecté est résolu en staff G&L par la règle de la connexion MJ, JWT éphémère `via:'mcp'`,
+  `MCP_GL_FORBIDDEN` sans rôle (le pont `foretmap_api` refuse toujours `/api/gl/*`). Dix outils :
+  `gl_games`, `gl_game_state` (bourses agrégées par équipe, réserves ; `bourses_eleves` nominatif
+  sous bypass journalisé), `gl_game_journal` (payloads privés expurgés), `gl_game_diagnostic`
+  (invariants, grand livre par cause, verdict), `gl_settings` (`set` en écriture), `gl_tenir_catalogues`,
+  `gl_content_snapshot` (vérité des cases par peuple, termes `secret` masqués), `gl_tour` (gestes du
+  prof : ouvrir, phase, voile dort, avance libre, absences, retrait, clore), `gl_sim_reports`
+  (`summary.json` des rapports du banc, `GL_SIM_REPORTS_DIR`), `gl_rewards` (vitrine sans classement,
+  `award`). Audits `gl_tenir_zones`, `gl_spells_legacy`, `gl_rewards_catalogue` suivis par le
+  rapport de santé ; prompt guidé `diagnostiquer_partie_gl` ; `gl_chasse_zones` et
+  `gl_tenir_questions_lecture` lisibles par `foretmap_sql_select` (GRANT à ajouter au compte
+  `DB_MCP_USER` dédié, `scripts/mcp-print-grants.js`).
 - **Hygiène et exploitation** (migration 343) : les 11 sorts hérités hors v2 passent en `propose` ;
   niveaux de questions bornés à la 6e en mode tenir (cases et fouilles de secours,
   `lib/glNiveauxAdmis.js`) ; cases 251 / 253 bornées ; `npm run gl:photo-credits[:dry]`
