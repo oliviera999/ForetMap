@@ -436,8 +436,9 @@ describe('AppPlan — montage', () => {
       await Promise.resolve();
     });
     // Délai explicite : la fiche s'ouvre après le chargement du contenu (promesse simulée) et
-    // l'ouverture de l'overlay ; le délai par défaut (1 s) était dépassé sur un runner CI chargé.
-    const placeSheet = await screen.findByTestId('plan-place-sheet', {}, { timeout: 5000 });
+    // l'ouverture de l'overlay ; le délai par défaut (1 s) était dépassé sur un runner CI chargé,
+    // et 5 s l'ont encore été le 8 novembre 2026 (758 fichiers de tests, job `quality`).
+    const placeSheet = await screen.findByTestId('plan-place-sheet', {}, { timeout: 15000 });
     expect(placeSheet.textContent).toContain('Gymnase');
     // Dépiiler l'overlay du lien profond avant le test suivant (pile module partagée).
     await act(async () => {
