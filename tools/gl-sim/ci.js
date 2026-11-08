@@ -7,8 +7,9 @@
  * une base `_sim` est acceptée : `TEST_DB_NAME=foretmap_sim npm run test:sim`).
  * La base est préparée comme par `gl:sim:db` (schéma, instantané de contenu, catalogues).
  * Échoue sur toute violation d'invariant, toute 5xx, tout mot interdit du moteur.
- * Les bourses d'une autre équipe servies à un élève sont comptées (bogue connu du moteur,
- * mode `avertir`) et affichées ; `GL_SIM_CI_FUITES=echouer` pour en faire un échec.
+ * Une bourse d'une autre équipe servie à un élève fait **échouer** la fumée (le bogue du
+ * moteur relevé le 8 novembre 2026 est corrigé) ; `GL_SIM_CI_FUITES=avertir` pour seulement
+ * compter et afficher.
  */
 
 const path = require('node:path');
@@ -47,7 +48,7 @@ async function main() {
     seances: 3,
     joursVeillee: 2,
     motsInterdits: 'souple',
-    fuitesBourses: process.env.GL_SIM_CI_FUITES === 'echouer' ? 'echouer' : 'avertir',
+    fuitesBourses: process.env.GL_SIM_CI_FUITES === 'avertir' ? 'avertir' : 'echouer',
     grille: null,
     plateaux: null,
   };
@@ -65,7 +66,7 @@ async function main() {
     );
     if (res.fuitesBourses)
       console.log(
-        `[test:sim] ⚠ ${id} : ${res.fuitesBourses} bourse(s) d'une autre équipe servie(s) à un élève (bogue connu, non bloquant)`,
+        `[test:sim] ⚠ ${id} : ${res.fuitesBourses} bourse(s) d'une autre équipe servie(s) à un élève (mode avertir)`,
       );
     if (res.motsCorpus)
       console.log(

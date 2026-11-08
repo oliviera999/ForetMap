@@ -149,9 +149,15 @@ scripts `gl-import-*.js` (xlsx) réparés (`await`), descriptions des cases de d
 
 **Banc de simulation** (garde-fou) : il ne s'exécute jamais contre la base de prod — une base
 dont le nom ne finit pas par `_sim` ou `_test`, ou `NODE_ENV=production` sans `GL_SIM_ALLOW=1`,
-doit être refusée. Les briques livrées ici : aléa rejouable (`GL_RANDOM_SEED`), horloge
-(`X-GL-Sim-Clock`), grand livre et invariants ; le banc en série, ses scénarios et les outils
-MCP G&L restent à livrer (étapes 7 à 9 du prompt, tronquées).
+est refusée (`tools/gl-sim/garde.js`). Briques : aléa rejouable (`GL_RANDOM_SEED`), horloge
+(`X-GL-Sim-Clock`), grand livre et invariants. Le banc en série (`tools/gl-sim/`, 23 scénarios,
+grille d'équilibrage, modèle rapide, `npm run test:sim`) est livré le 8 novembre 2026 :
+`docs/GL_SIMULATION.md`. Il a relevé quatre bogues du moteur, corrigés dans le même lot
+(`tests/gl-tenir-correctifs-banc.test.js`) : `spell_cast` et `replay.timeline` servaient les
+contributions et soldes d'une autre équipe à un élève (événement `private` en tenir, replay
+expurgé) ; `seuil_clos.honneurs` toujours `null` ; import des questions de lecture en erreur de
+clé étrangère sur une zone écartée ; cases Souffle « passe ton tour » sans effet (le jet suivant
+répond `TOUR_PASSE`, l'équipe fouille et lit quand même, le prof peut la porter en `libre`).
 
 ## Vérité des cases et équilibrage du 8 novembre 2026
 

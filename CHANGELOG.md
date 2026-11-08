@@ -40,6 +40,21 @@ gl-marker-promises`) : aucune promesse affichée non tenue, aucun « sinon / si 
   célébration avec Olu (jamais en projection), vitrine du prof sans classement, `badges.csv` par
   paliers, évènement de journal `pas_encore` ; noyau commun : paliers par instance (`tiers`), CSS
   `src/shared/styles/rewards.css`. **Aucun badge ne donne de ressource.**
+- **Banc de simulation en série** (`tools/gl-sim/`, `docs/GL_SIMULATION.md`) : un prof et une
+  classe virtuels jouent des chapitres entiers contre le vrai moteur (supertest en mémoire) sur
+  une base dédiée (`_sim` / `_test` obligatoire, jamais la prod) chargée avec un instantané du
+  contenu de production sans aucune table de personnes (`data/gl/sim/contenu-prod-2026-11-07.json`) ;
+  23 scénarios (`regression-7nov`, `equilibrage` sur la grille `grille-voile.json`, `badges`,
+  `annee-complete`…), invariants à chaque geste, crible de ce qui est servi aux élèves (mots
+  interdits, bourses d'une autre équipe), attendus chiffrés en avertissements, rapport
+  `summary.json` + `index.html` autonome, modèle rapide Monte-Carlo (Python) calibré à moins de
+  5 points ; `npm run gl:sim`, `gl:sim:db`, `gl:sim:snapshot`, `gl:sim:rapide`, `test:sim`.
+- **Correctifs relevés par le banc** : `spell_cast` est privé en partie tenir et `replay.timeline`
+  de `GET /api/gl/games/:id` est expurgé pour un élève (plus de contributions, noms ni soldes d'une
+  autre équipe) ; `seuil_clos.honneurs` porte le résumé des honneurs ; l'import des questions de
+  lecture écarte une question dont la zone a été écartée ; une case Souffle « passe ton tour » fait
+  **réellement** passer le jet suivant (`TOUR_PASSE`, 409, sans mot punitif ; l'équipe fouille et
+  lit quand même, le prof peut la porter).
 - **Hygiène et exploitation** (migration 343) : les 11 sorts hérités hors v2 passent en `propose` ;
   niveaux de questions bornés à la 6e en mode tenir (cases et fouilles de secours,
   `lib/glNiveauxAdmis.js`) ; cases 251 / 253 bornées ; `npm run gl:photo-credits[:dry]`
