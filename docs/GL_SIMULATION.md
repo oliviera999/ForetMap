@@ -172,4 +172,123 @@ est corrigé par la migration 337).
 
 ## 9. Résultats du 8 novembre 2026
 
-_(Section complétée en fin de lot à partir des rapports `reports/gl-sim/2026-11-08-*`.)_
+Campagne sur l'instantané de production (migrations 337 et 340 appliquées), moteur de cette PR,
+quatre bases `_sim` en parallèle : **aucune exécution en échec** (invariants, 5xx, mots interdits
+du moteur, fuites de bourses) sur l'ensemble.
+
+| Commande                                                                                  | Exécutions | Chapitres | Échecs |
+| ----------------------------------------------------------------------------------------- | ---------- | --------- | ------ |
+| `equilibrage --runs 20 --seed 1` (7 variantes × 2 classes × 4 plateaux, par `--plateaux`) | 1 120      | 1 120     | 0      |
+| `all --runs 3 --seed 1` (22 scénarios, `annee-complete` = 4 chapitres)                    | 66         | 75        | 0      |
+| `regression-7nov --runs 5 --seed 7`                                                       | 5          | 5         | 0      |
+| `badges --runs 10 --seed 3`                                                               | 10         | 10        | 0      |
+| `concurrence --runs 5 --seed 1` (équipes en parallèle, après le correctif d'interblocage) | 5          | 5         | 0      |
+
+### Ce que dit la grille (médianes sur 20 exécutions)
+
+- **E1 fait ce qu'on lui demande au plateau 1** : avec `actuel` {4,4,5,6}, 50 % des équipes
+  passent sous le voile (classe moyenne comme classe en difficulté) ; avec `e1` {3,4,5,6}, 0 %
+  (moyenne) et 25 % (difficulté), pages pâlies 12 → 6 %, carnet complet 15 → 30 %. L'attendu
+  « 15-30 % sous le voile » est manqué **par le bas** pour la classe moyenne : le voile ne mord
+  presque plus au plateau 1, ce qui est le choix d'Oliv (apprendre les gestes avant la pression).
+- **Plateaux 3-4** : 75 % des équipes passent sous le voile quelle que soit la variante (attendu
+  50-70, légèrement au-dessus), mais les pages pâlies restent à 25-40 % (attendu ≤ 50) et les
+  pages tenues à 50-70 % (attendu ≥ 50) : E2 (réparation) et E3 (plancher) tiennent la chasse.
+  `douce` {3,3,4,4} est la seule variante qui ramène le voile à 25-50 % aux plateaux 3-4.
+- **Part des Gnomes** : 55-70 % dans la plupart des cases (attendu 40-55). La mesure compte
+  « pages trouvées + réparées » et E2 donne aux gnomes une fouille de plus par tour : au plateau 1
+  `e1` tombe à 46-50 % (dans l'attendu), aux plateaux 3-4 les réparations font pencher la balance.
+  Décision de règle à prendre (voir § « après le déploiement » de la PR), pas de code.
+- **Bourses** : Gini 0,06-0,12 partout, indice Matthieu |ρ| ≤ 0,2 sur la grille, aucun élève à
+  0 / 0. En `annee-complete`, **75 % des élèves finissent l'année au double plafond 8/8**
+  (attendu ≤ 20 %) : la réserve E4 absorbe le surplus des équipes mais l'année reste riche.
+- **Modèle rapide vs banc** : le modèle surestime la casse du voile (pâlies 37-63 % contre 6-40 %
+  au banc) et sous-estime la chasse réelle (tenues 35-60 % contre 60-93 %) ; il reste juste sur le
+  sens des variantes. Les écarts > 10 points sont listés dans la colonne « Modèle rapide ».
+- **Badges** (10 exécutions) : 100 % des élèves ont au moins un palier Fil en fin de chapitre 1
+  (attendu ≥ 90), Spearman justesse ↔ paliers −0,06 (attendu ≤ 0,3) : les badges récompensent
+  l'effort, pas la justesse.
+
+**Plateau 1** — médianes sur les exécutions ; % = part des équipes / zones / exécutions
+
+| Variante      | Classe     | Exéc. | Séances | Sous le voile % | Pâlies % | Tenues % | Carnet complet % | Gnomes % | Gini | Attendus tenus (manqués)                           | Modèle rapide                                                                              |
+| ------------- | ---------- | ----- | ------- | --------------- | -------- | -------- | ---------------- | -------- | ---- | -------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `actuel`      | moyenne    | 20    | 5       | 50              | 12       | 88       | 15               | 67       | 0.07 | 9/12 (equipesSousVoile, carnetComplet, partGnomes) | equipesSousVoile 50 vs 36, pagesPalies 12 vs 37, pagesTenues 88 vs 60, partGnomes 67 vs 37 |
+| `actuel`      | difficulte | 20    | 5       | 50              | 25       | 62       | 10               | 63       | 0.08 | 9/10 (partGnomes)                                  |                                                                                            |
+| `e1`          | moyenne    | 20    | 5       | 0               | 6        | 75       | 30               | 46       | 0.08 | 11/12 (equipesSousVoile)                           | equipesSousVoile 0 vs 20, pagesPalies 6 vs 18                                              |
+| `e1`          | difficulte | 20    | 5       | 25              | 12       | 69       | 30               | 50       | 0.07 | 10/10                                              |                                                                                            |
+| `douce`       | moyenne    | 20    | 5       | 12              | 12       | 81       | 20               | 50       | 0.07 | 11/12 (equipesSousVoile)                           |                                                                                            |
+| `douce`       | difficulte | 20    | 6       | 50              | 19       | 69       | 10               | 50       | 0.09 | 10/10                                              |                                                                                            |
+| `3-3-4-5`     | moyenne    | 20    | 5       | 25              | 12       | 88       | 25               | 43       | 0.07 | 12/12                                              |                                                                                            |
+| `3-3-4-5`     | difficulte | 20    | 6       | 12              | 25       | 69       | 15               | 50       | 0.09 | 10/10                                              |                                                                                            |
+| `e1-sans-e2`  | moyenne    | 20    | 5       | 25              | 12       | 81       | 10               | 50       | 0.07 | 11/12 (carnetComplet)                              |                                                                                            |
+| `e1-sans-e2`  | difficulte | 20    | 5       | 25              | 25       | 62       | 0                | 50       | 0.09 | 10/10                                              |                                                                                            |
+| `e1-sans-e3`  | moyenne    | 20    | 5       | 25              | 12       | 75       | 5                | 50       | 0.08 | 11/12 (carnetComplet)                              |                                                                                            |
+| `e1-sans-e3`  | difficulte | 20    | 5       | 25              | 12       | 75       | 10               | 50       | 0.08 | 10/10                                              |                                                                                            |
+| `e1-e2-e3-e4` | moyenne    | 20    | 5       | 38              | 6        | 75       | 25               | 54       | 0.07 | 11/12 (equipesSousVoile)                           |                                                                                            |
+| `e1-e2-e3-e4` | difficulte | 20    | 5       | 25              | 12       | 75       | 5                | 43       | 0.09 | 10/10                                              |                                                                                            |
+
+**Plateau 2** — médianes sur les exécutions ; % = part des équipes / zones / exécutions
+
+| Variante      | Classe     | Exéc. | Séances | Sous le voile % | Pâlies % | Tenues % | Carnet complet % | Gnomes % | Gini | Attendus tenus (manqués)                           | Modèle rapide                                                                                                    |
+| ------------- | ---------- | ----- | ------- | --------------- | -------- | -------- | ---------------- | -------- | ---- | -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `actuel`      | moyenne    | 20    | 5       | 50              | 0        | 93       | 50               | 57       | 0.07 | 8/11 (equipesSousVoile, carnetComplet, partGnomes) | equipesSousVoile 50 vs 39, pagesPalies 0 vs 38, pagesTenues 93 vs 60, partGnomes 57 vs 41, carnetComplet 50 vs 8 |
+| `actuel`      | difficulte | 20    | 5       | 50              | 14       | 86       | 20               | 71       | 0.07 | 8/9 (partGnomes)                                   |                                                                                                                  |
+| `e1`          | moyenne    | 20    | 5       | 25              | 21       | 71       | 20               | 59       | 0.08 | 9/11 (equipesSousVoile, partGnomes)                | equipesSousVoile 25 vs 38                                                                                        |
+| `e1`          | difficulte | 20    | 5       | 38              | 21       | 71       | 20               | 67       | 0.10 | 8/9 (partGnomes)                                   |                                                                                                                  |
+| `douce`       | moyenne    | 20    | 5       | 25              | 0        | 86       | 30               | 63       | 0.08 | 9/11 (equipesSousVoile, partGnomes)                |                                                                                                                  |
+| `douce`       | difficulte | 20    | 5       | 25              | 0        | 86       | 30               | 59       | 0.08 | 8/9 (partGnomes)                                   |                                                                                                                  |
+| `3-3-4-5`     | moyenne    | 20    | 5       | 25              | 0        | 86       | 40               | 57       | 0.07 | 9/11 (equipesSousVoile, partGnomes)                |                                                                                                                  |
+| `3-3-4-5`     | difficulte | 20    | 5       | 12              | 14       | 71       | 40               | 54       | 0.08 | 9/9                                                |                                                                                                                  |
+| `e1-sans-e2`  | moyenne    | 20    | 5       | 25              | 14       | 86       | 30               | 50       | 0.09 | 10/11 (equipesSousVoile)                           |                                                                                                                  |
+| `e1-sans-e2`  | difficulte | 20    | 5       | 50              | 14       | 79       | 30               | 46       | 0.07 | 9/9                                                |                                                                                                                  |
+| `e1-sans-e3`  | moyenne    | 20    | 5       | 25              | 14       | 86       | 25               | 54       | 0.08 | 10/11 (equipesSousVoile)                           |                                                                                                                  |
+| `e1-sans-e3`  | difficulte | 20    | 5       | 50              | 14       | 79       | 30               | 62       | 0.08 | 8/9 (partGnomes)                                   |                                                                                                                  |
+| `e1-e2-e3-e4` | moyenne    | 20    | 5       | 38              | 0        | 86       | 40               | 67       | 0.07 | 10/11 (partGnomes)                                 |                                                                                                                  |
+| `e1-e2-e3-e4` | difficulte | 20    | 5       | 50              | 14       | 71       | 20               | 57       | 0.08 | 8/9 (partGnomes)                                   |                                                                                                                  |
+
+**Plateau 3** — médianes sur les exécutions ; % = part des équipes / zones / exécutions
+
+| Variante      | Classe     | Exéc. | Séances | Sous le voile % | Pâlies % | Tenues % | Carnet complet % | Gnomes % | Gini | Attendus tenus (manqués)         | Modèle rapide                                                         |
+| ------------- | ---------- | ----- | ------- | --------------- | -------- | -------- | ---------------- | -------- | ---- | -------------------------------- | --------------------------------------------------------------------- |
+| `actuel`      | moyenne    | 20    | 5       | 50              | 30       | 60       | 0                | 67       | 0.08 | 9/11 (carnetComplet, partGnomes) | pagesPalies 30 vs 53, pagesTenues 60 vs 43, partGnomes 67 vs 35       |
+| `actuel`      | difficulte | 20    | 5       | 50              | 40       | 60       | 5                | 63       | 0.09 | 8/9 (partGnomes)                 |                                                                       |
+| `e1`          | moyenne    | 20    | 5       | 75              | 25       | 70       | 10               | 50       | 0.08 | 10/11 (equipesSousVoile)         | equipesSousVoile 75 vs 57, pagesPalies 25 vs 40, pagesTenues 70 vs 56 |
+| `e1`          | difficulte | 20    | 5       | 75              | 35       | 55       | 5                | 59       | 0.08 | 8/9 (partGnomes)                 |                                                                       |
+| `douce`       | moyenne    | 20    | 5       | 25              | 15       | 65       | 10               | 41       | 0.08 | 10/11 (equipesSousVoile)         |                                                                       |
+| `douce`       | difficulte | 20    | 5       | 50              | 30       | 50       | 0                | 55       | 0.09 | 9/9                              |                                                                       |
+| `3-3-4-5`     | moyenne    | 20    | 5       | 50              | 20       | 70       | 0                | 54       | 0.08 | 10/11 (carnetComplet)            |                                                                       |
+| `3-3-4-5`     | difficulte | 20    | 6       | 50              | 30       | 70       | 10               | 54       | 0.07 | 9/9                              |                                                                       |
+| `e1-sans-e2`  | moyenne    | 20    | 5       | 38              | 20       | 65       | 5                | 50       | 0.07 | 10/11 (equipesSousVoile)         |                                                                       |
+| `e1-sans-e2`  | difficulte | 20    | 5       | 75              | 35       | 55       | 5                | 54       | 0.09 | 9/9                              |                                                                       |
+| `e1-sans-e3`  | moyenne    | 20    | 5       | 62              | 20       | 75       | 0                | 58       | 0.07 | 9/11 (carnetComplet, partGnomes) |                                                                       |
+| `e1-sans-e3`  | difficulte | 20    | 5       | 62              | 40       | 55       | 0                | 50       | 0.10 | 9/9                              |                                                                       |
+| `e1-e2-e3-e4` | moyenne    | 20    | 5       | 50              | 30       | 60       | 5                | 56       | 0.06 | 10/11 (partGnomes)               |                                                                       |
+| `e1-e2-e3-e4` | difficulte | 20    | 5       | 75              | 40       | 55       | 0                | 50       | 0.10 | 9/9                              |                                                                       |
+
+**Plateau 4** — médianes sur les exécutions ; % = part des équipes / zones / exécutions
+
+| Variante      | Classe     | Exéc. | Séances | Sous le voile % | Pâlies % | Tenues % | Carnet complet % | Gnomes % | Gini | Attendus tenus (manqués)            | Modèle rapide                                                   |
+| ------------- | ---------- | ----- | ------- | --------------- | -------- | -------- | ---------------- | -------- | ---- | ----------------------------------- | --------------------------------------------------------------- |
+| `actuel`      | moyenne    | 20    | 5       | 75              | 15       | 70       | 10               | 71       | 0.09 | 9/11 (equipesSousVoile, partGnomes) | pagesPalies 15 vs 63, pagesTenues 70 vs 35, partGnomes 71 vs 38 |
+| `actuel`      | difficulte | 20    | 5       | 75              | 40       | 50       | 0                | 63       | 0.08 | 8/9 (partGnomes)                    |                                                                 |
+| `e1`          | moyenne    | 20    | 5       | 75              | 30       | 70       | 10               | 63       | 0.09 | 9/11 (equipesSousVoile, partGnomes) | pagesPalies 30 vs 48, pagesTenues 70 vs 50                      |
+| `e1`          | difficulte | 20    | 5       | 75              | 40       | 50       | 0                | 75       | 0.12 | 8/9 (partGnomes)                    |                                                                 |
+| `douce`       | moyenne    | 20    | 5       | 50              | 10       | 70       | 5                | 56       | 0.10 | 10/11 (partGnomes)                  |                                                                 |
+| `douce`       | difficulte | 20    | 5       | 50              | 25       | 60       | 5                | 50       | 0.08 | 9/9                                 |                                                                 |
+| `3-3-4-5`     | moyenne    | 20    | 5       | 50              | 30       | 65       | 10               | 54       | 0.08 | 11/11                               |                                                                 |
+| `3-3-4-5`     | difficulte | 20    | 5       | 75              | 30       | 60       | 5                | 62       | 0.10 | 8/9 (partGnomes)                    |                                                                 |
+| `e1-sans-e2`  | moyenne    | 20    | 5       | 50              | 20       | 70       | 5                | 53       | 0.07 | 11/11                               |                                                                 |
+| `e1-sans-e2`  | difficulte | 20    | 5       | 75              | 40       | 50       | 0                | 60       | 0.10 | 8/9 (partGnomes)                    |                                                                 |
+| `e1-sans-e3`  | moyenne    | 20    | 5       | 75              | 30       | 70       | 5                | 67       | 0.08 | 9/11 (equipesSousVoile, partGnomes) |                                                                 |
+| `e1-sans-e3`  | difficulte | 20    | 5       | 75              | 35       | 55       | 0                | 75       | 0.10 | 8/9 (partGnomes)                    |                                                                 |
+| `e1-e2-e3-e4` | moyenne    | 20    | 5       | 75              | 25       | 60       | 5                | 62       | 0.07 | 9/11 (equipesSousVoile, partGnomes) |                                                                 |
+| `e1-e2-e3-e4` | difficulte | 20    | 5       | 88              | 30       | 60       | 0                | 66       | 0.09 | 7/9 (equipesSousVoile, partGnomes)  |                                                                 |
+
+### Scénarios (`all`, 3 exécutions, graine 1)
+
+Attendus manqués les plus fréquents : `equipesSousVoile` (voile trop doux au plateau 1 avec E1,
+voir ci-dessus), `partGnomes`, `carnetComplet` (rare aux plateaux 3-4 : 10 zones). `chasse-aveugle`
+est le seul scénario où la chasse s'effondre (88 % de pages pâlies, 13 % tenues) : la stratégie de
+fouille compte plus que tout réglage. `concurrence` tient 5/5 après le correctif d'interblocage.
+Rapports complets : `reports/gl-sim/2026-11-08-*/index.html` (non versionnés, régénérables).
