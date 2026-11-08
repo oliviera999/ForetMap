@@ -66,7 +66,8 @@ test.describe('GL — Le Seuil (voyageur)', () => {
     await spell.getByRole('button', { name: new RegExp(`e2e-lock-${stamp}`) }).click();
     await cast;
     await expect(spell.getByRole('status')).toContainText('Seconde chance lancé');
-    await expect(spell).toContainText('Se recharge');
+    // Un sort déjà servi ce chapitre « revient à la prochaine traversée » (GLSeuilView.jsx).
+    await expect(spell).toContainText('revient à la prochaine traversée');
 
     await page.getByRole('button', { name: 'Rejoindre le plateau' }).click();
     await expect(page.locator('.gl-seuil')).toHaveCount(0);

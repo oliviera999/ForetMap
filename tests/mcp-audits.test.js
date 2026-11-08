@@ -204,6 +204,45 @@ test('niveaux G&L non harmonisés 6ᵉ : questions, case fixe, tirage', () => {
   assert.ok(checks.isSixiemeLevel('6ᵉ'));
   assert.ok(checks.isSixiemeLevel('Cycle 3'));
   assert.ok(!checks.isSixiemeLevel('cycle 4'));
+  assert.ok(checks.SIXIEME_LEVELS.has('college'), 'noyau partagé lib/glNiveauxAdmis.js');
+});
+
+test('niveaux G&L en mode « Tenir à deux » : une case à tirage sans filtre n’est plus signalée', () => {
+  const snapshot = {
+    glTenirEnabled: true,
+    glQcmQuestions: [
+      { question_code: 'A', niveau: '6ème', statut: 'actif' },
+      { question_code: 'B', niveau: 'lycee', statut: 'actif' },
+    ],
+    glChapterMarkers: [
+      { id: 1, qcm_question_code: 'B' },
+      {
+        id: 2,
+        event_config_json: JSON.stringify({
+          question: { mode: 'random', pool: { niveaux: ['6e', 'cycle 4'] } },
+        }),
+      },
+      {
+        id: 3,
+        event_config_json: JSON.stringify({
+          question: { mode: 'random', pool: { niveaux: [] } },
+        }),
+      },
+      { id: 4, event_config_json: JSON.stringify({ question: { mode: 'random', pool: {} } }) },
+    ],
+  };
+  // Le moteur borne lui-même le tirage : les cases 3 et 4 (sans filtre) sortent du constat ;
+  // la question fixe hors 6ᵉ et le filtre explicitement hors 6ᵉ restent signalés.
+  assert.deepEqual(ids(checks.glCaseLevelsNot6e(snapshot)), ['case:1', 'case:2', 'gl_qcm:B']);
+  // Hors mode tenir (drapeau absent ou faux) : lecture stricte inchangée.
+  assert.deepEqual(ids(checks.glCaseLevelsNot6e({ ...snapshot, glTenirEnabled: false })), [
+    'case:1',
+    'case:2',
+    'case:3',
+    'case:4',
+    'gl_qcm:B',
+  ]);
+  assert.ok(checks.CHECKS.gl_case_levels_not_6e.needs.includes('glTenirEnabled'));
 });
 
 test('doublons d’espèces (nom scientifique normalisé) et alias partagés', () => {

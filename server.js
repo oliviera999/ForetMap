@@ -26,7 +26,13 @@ const logger = require('./lib/logger');
 const { runDailyJobs } = require('./lib/dailyJobs');
 const { initRealtime, shutdownRealtime } = require('./lib/realtime');
 const { checkCriticalAdminAccount } = require('./lib/rbac');
-const { recordBoot, recordStop, recordCrash, resolveStopReason } = require('./lib/bootJournal');
+const {
+  recordBoot,
+  recordStop,
+  recordCrash,
+  resolveStopReason,
+  startRssTick,
+} = require('./lib/bootJournal');
 const { createDatabaseInitRetry } = require('./lib/databaseInitRetry');
 const { assignRequestId } = require('./lib/requestId');
 const { createHttpRequestLogMiddleware } = require('./lib/httpRequestLog');
@@ -931,6 +937,10 @@ function boot() {
       },
       'Démarrage enregistré au journal de cycle de vie',
     );
+    // Relevé périodique de la RSS maximale (best-effort, borné) : un process tué sans signal
+    // (plafond mémoire LVE) ne laisse aucune trace d'arrêt ; le démarrage suivant pourra au
+    // moins être rapproché de la dernière mémoire connue (`maxRssMbBeforeKill`).
+    startRssTick();
   }
 
   try {

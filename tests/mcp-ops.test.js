@@ -273,6 +273,19 @@ test('règles : vert sans alerte, orange et rouge selon les seuils', () => {
     }).status,
     'orange',
   );
+  // Tâche jamais tracée : orange seulement si la ligne de crontab attendue est connue (`hint`).
+  const never = evaluateHealth({
+    cron: { jobs: [{ job: 'db_backup', state: 'never', hint: 'Ligne de crontab attendue : …' }] },
+  });
+  assert.equal(never.status, 'orange');
+  assert.match(
+    never.findings[0].message,
+    /db_backup : aucune trace d’exécution — Ligne de crontab/,
+  );
+  assert.equal(
+    evaluateHealth({ cron: { jobs: [{ job: 'autre', state: 'never' }] } }).status,
+    'green',
+  );
   assert.equal(evaluateHealth({ restarts: { counts: { crashes: 1 } } }).status, 'orange');
   assert.equal(evaluateHealth({ app: { reachable: false, error: 'HTTP 502' } }).status, 'red');
   // Une case G&L dont la promesse n'est pas tenue est un défaut visible des élèves : orange.
@@ -657,6 +670,29 @@ test('foretmap_cron_status : jobs connus, traces en base et journaux', async () 
     assert.doesNotMatch(by.auto_archive.detail, /[0-9a-f]{8}-[0-9a-f]{4}/, 'identifiant retiré');
     assert.ok(by.auto_deploy, 'journal de déploiement lu');
     assert.ok(['ok', 'late'].includes(by.auto_deploy.state));
+    assert.equal(by.auto_deploy.hint, undefined, 'une tâche tracée ne porte pas de hint');
+    // Aucun `db-backup.log` dans l'arborescence de test : la ligne de crontab attendue
+    // (docs/CRONTAB.md) est servie telle quelle, gabarit USER / <domaine-foretmap> compris.
+    assert.equal(by.db_backup.state, 'never');
+    assert.match(by.db_backup.hint, /docs\/CRONTAB\.md/);
+    assert.match(
+      by.db_backup.hint,
+      /0 3 \* \* \* APP_DIR=\/home\/USER\/foretmap bash .*db-backup\.sh/,
+    );
+    assert.equal(by.uptime_check.state, 'never');
+    assert.match(by.uptime_check.hint, /<domaine-foretmap>.*uptime-check\.sh/);
+    assert.equal(by.moodle_sync.state, 'not_configured');
+    assert.equal(by.moodle_sync.hint, undefined, 'tâche facultative : pas de ligne imposée');
+    const { CRONTAB_HINTS } = require('../lib/mcp/files/cron');
+    for (const job of [
+      'health_report',
+      'db_backup',
+      'retention_purge',
+      'auto_deploy',
+      'uptime_check',
+    ]) {
+      assert.ok(CRONTAB_HINTS[job], `ligne de crontab connue pour ${job}`);
+    }
     assert.ok(!r.text.includes('lea.martin@example.org'));
     assert.equal(r.data.crontab.available, false);
     assert.match(r.data.crontab.reason, /MCP_CRON_READ_CRONTAB/);
