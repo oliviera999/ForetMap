@@ -31,6 +31,15 @@ gl-marker-promises`) : aucune promesse affichée non tenue, aucun « sinon / si 
   d'Olu « Vos bourses débordent » une fois par séance à l'écran d'équipe (E5) ; règle écrite
   « 8 / 8 / 10 / 10 » (E6). Invariants `RESERVE_NEGATIVE`, `RESERVE_LIVRE`, `LIVRE_TOTAL`,
   `FOUILLES_QUOTA`.
+- **Badges individuels sur le moteur commun** (migration 338, `docs/REWARDS_ENGINE.md` § 5) :
+  table `gl_player_rewards`, instance `lib/glRewards.js`, 16 badges en 8 familles aux paliers
+  **Fil** 🧵 / **Nœud** 🪢 / **Étoffe** 🧶 (effort, curiosité, persévérance, aide — jamais la
+  justesse ni un rang), routes `/api/gl/rewards/{me,me/seen,games/:id,games/:id/award}` (mot
+  obligatoire), interrupteur `modules.rewards_enabled`, évaluation au fil de l'eau et de nuit,
+  rattrapage `scripts/gl-rewards-backfill.js` (les 13 badges plats passent en lecture seule),
+  célébration avec Olu (jamais en projection), vitrine du prof sans classement, `badges.csv` par
+  paliers, évènement de journal `pas_encore` ; noyau commun : paliers par instance (`tiers`), CSS
+  `src/shared/styles/rewards.css`. **Aucun badge ne donne de ressource.**
 - **Hygiène et exploitation** (migration 339) : les 11 sorts hérités hors v2 passent en `propose` ;
   niveaux de questions bornés à la 6e en mode tenir (cases et fouilles de secours,
   `lib/glNiveauxAdmis.js`) ; cases 251 / 253 bornées ; `npm run gl:photo-credits[:dry]`
