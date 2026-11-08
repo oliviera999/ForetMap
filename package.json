@@ -113,6 +113,8 @@
     "help:compact": "node scripts/compact-help-registry.js --apply",
     "gl:help:compact:dry": "node scripts/compact-gl-help-registry.js",
     "gl:help:compact": "node scripts/compact-gl-help-registry.js --apply",
+    "gl:photo-credits:dry": "node scripts/gl-photo-credits-backfill.js",
+    "gl:photo-credits": "node scripts/gl-photo-credits-backfill.js --apply",
     "moodle:check": "node scripts/moodle-check.js",
     "moodle:sync": "node scripts/moodle-sync.js",
     "migrate:sqlite-to-mysql": "node scripts/migrate-sqlite-to-mysql.js",
