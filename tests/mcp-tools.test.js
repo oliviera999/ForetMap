@@ -175,6 +175,31 @@ test('chaque outil de lecture répond sur la base semée, sans donnée personnel
   }
 });
 
+test('outils de domaine G&L listés (admin) ; contrôles G&L au registre des audits', async () => {
+  const names = await fx.listTools(app, adminToken);
+  for (const name of [
+    'gl_games',
+    'gl_game_state',
+    'gl_game_journal',
+    'gl_game_diagnostic',
+    'gl_settings',
+    'gl_tenir_catalogues',
+    'gl_content_snapshot',
+    'gl_tour',
+    'gl_sim_reports',
+    'gl_rewards',
+  ]) {
+    assert.ok(names.includes(name), `${name} attendu dans tools/list`);
+  }
+  for (const check of ['gl_tenir_zones', 'gl_spells_legacy', 'gl_rewards_catalogue']) {
+    assert.ok(CHECK_NAMES.includes(check), check);
+    const res = await fx.callTool(app, adminToken, 'foretmap_audit', { check });
+    assert.equal(res.isError, false, `${check} : ${res.text}`);
+    assert.equal(res.data.check, check);
+    assert.ok(Number.isInteger(res.data.count));
+  }
+});
+
 test('foretmap_get_species : photos avec crédit, e-mail du crédit masqué', async () => {
   const res = await fx.callTool(app, adminToken, 'foretmap_get_species', { id: 1 });
   const photo = res.data.photos.find((p) => p.id === 1);
