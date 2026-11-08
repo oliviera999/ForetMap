@@ -130,6 +130,7 @@ export function GLMarketView({
           place={place}
           playerId={playerId}
           heartsTradable={heartsTradable}
+          paruresEnabled={paruresEnabled}
           ownFeuillets={market.ownFeuillets}
           onTradeOpened={(tradeId) => {
             market.refreshAll?.().then(() => market.selectTrade(tradeId));
