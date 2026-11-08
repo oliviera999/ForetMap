@@ -7,6 +7,7 @@ const {
   resolveOAuthPublicOrigin,
   resolveOAuthRedirectUri,
   resolveProductReturnOrigin,
+  resolveOAuthRedirectUriForCallback,
 } = require('../lib/oauthPublicUrl');
 const { PRODUCTS, PRODUCT_IDS } = require('../lib/products');
 
@@ -39,6 +40,37 @@ test('resolveOAuthRedirectUri utilise GL_GOOGLE_OAUTH_REDIRECT_URI si défini', 
     callbackPath: '/api/gl/auth/google/callback',
   });
   assert.equal(uri, 'https://gl.olution.info/api/gl/auth/google/callback');
+});
+
+test('resolveOAuthRedirectUriForCallback ignore une URI d’environnement qui ne pointe pas le rappel attendu', () => {
+  // Prod du 8 novembre 2026 : GL_GOOGLE_OAUTH_REDIRECT_URI pointait `/api/auth/google/callback`
+  // (rappel ForetMap) : Google renvoyait sur un rappel dont les cookies de départ G&L étaient
+  // absents → « session expirée ». L’URI est alors dérivée de la requête et signalée.
+  const req = mockReq({ host: 'gl.olution.info', proto: 'https' });
+  const mauvaise = resolveOAuthRedirectUriForCallback(req, {
+    envRedirectUri: 'https://gl.olution.info/api/auth/google/callback',
+    callbackPath: '/api/gl/auth/google/callback',
+  });
+  assert.deepEqual(mauvaise, {
+    redirectUri: 'https://gl.olution.info/api/gl/auth/google/callback',
+    envIgnored: 'https://gl.olution.info/api/auth/google/callback',
+  });
+  const bonne = resolveOAuthRedirectUriForCallback(mockReq({ host: 'www.gl.olution.info' }), {
+    envRedirectUri: 'https://gl.olution.info/api/gl/auth/google/callback',
+    callbackPath: '/api/gl/auth/google/callback',
+  });
+  assert.deepEqual(bonne, {
+    redirectUri: 'https://gl.olution.info/api/gl/auth/google/callback',
+    envIgnored: null,
+  });
+  const absente = resolveOAuthRedirectUriForCallback(req, {
+    envRedirectUri: '',
+    callbackPath: '/api/gl/auth/google/callback',
+  });
+  assert.deepEqual(absente, {
+    redirectUri: 'https://gl.olution.info/api/gl/auth/google/callback',
+    envIgnored: null,
+  });
 });
 
 test('resolveOAuthRedirectUri dérive https sans www depuis X-Forwarded-*', () => {

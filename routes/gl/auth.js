@@ -25,7 +25,11 @@ const {
   verifyGoogleIdToken,
 } = require('../../lib/googleOAuthShared');
 const { logRouteError } = require('../../lib/routeLog');
-const { resolveOAuthPublicOrigin, resolveOAuthRedirectUri } = require('../../lib/oauthPublicUrl');
+const {
+  resolveOAuthPublicOrigin,
+  resolveOAuthRedirectUriForCallback,
+} = require('../../lib/oauthPublicUrl');
+const logger = require('../../lib/logger');
 const { queuePasswordResetEmail } = require('../../lib/mailer');
 const {
   EMAIL_RE,
@@ -98,15 +102,25 @@ async function signGlToken(payload) {
 const LOGIN_THROTTLE_SCOPE = 'gl_login';
 const LINK_THROTTLE_SCOPE = 'gl_link_foretmap';
 
+const GL_GOOGLE_CALLBACK_PATH = '/api/gl/auth/google/callback';
+let glRedirectUriWarned = false;
+
 function buildGoogleConfig(req) {
   const clientId =
     normalizeOptionalString(process.env.GL_GOOGLE_OAUTH_CLIENT_ID) ||
     normalizeOptionalString(process.env.GOOGLE_OAUTH_CLIENT_ID);
   const clientSecret = normalizeOptionalString(process.env.GOOGLE_OAUTH_CLIENT_SECRET);
-  const redirectUri = resolveOAuthRedirectUri(req, {
+  const { redirectUri, envIgnored } = resolveOAuthRedirectUriForCallback(req, {
     envRedirectUri: process.env.GL_GOOGLE_OAUTH_REDIRECT_URI,
-    callbackPath: '/api/gl/auth/google/callback',
+    callbackPath: GL_GOOGLE_CALLBACK_PATH,
   });
+  if (envIgnored && !glRedirectUriWarned) {
+    glRedirectUriWarned = true;
+    logger.warn(
+      { envRedirectUri: envIgnored, redirectUri },
+      'GL_GOOGLE_OAUTH_REDIRECT_URI ne pointe pas le rappel G&L (/api/gl/auth/google/callback) : valeur ignorée, URI dérivée de la requête — corriger le .env et la console Google',
+    );
+  }
   const frontendOrigin = resolveOAuthPublicOrigin(req, process.env.GL_FRONTEND_ORIGIN);
   const allowedDomains = parseCsvLowercaseSet(
     process.env.GL_GOOGLE_OAUTH_ALLOWED_DOMAINS || process.env.GOOGLE_OAUTH_ALLOWED_DOMAINS,
