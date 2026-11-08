@@ -47,6 +47,28 @@ gl-marker-promises`) : aucune promesse affichée non tenue, aucun « sinon / si 
   sur La place et légende lisible ; e2e `gl-market` / `gl-seuil` à jour ; workflow nocturne
   `e2e-gl-nightly.yml` ; journal de démarrage avec RSS maximale avant arrêt brutal, lignes de
   crontab attendues dans le rapport de santé, doc « Resource Usage » (`docs/EXPLOITATION.md`).
+### Ajouté — G&L : modes de démonstration (parents, borne, partie de démo)
+
+Trois façons de montrer Gnomes & Licornes sans toucher à une classe réelle
+(`docs/reference/gl/roles-et-connexion.md` § modes de démonstration, `guide-du-mj.md`).
+
+- **Vitrine pour les parents** (`gl.html?demo=parents`) : session invitée ouverte seule, onglet
+  « Pour les parents » (chemin en cinq étapes, **quiz d'essai** via la chaîne QCM invitée qui
+  n'écrit rien, « ce que votre enfant apprend » et le sort des données), visite OLU dédiée
+  (parcours `parents`, mémoire à part remise à zéro à chaque ouverture), bandeau et mur de fin
+  adaptés. `src/gl/utils/glDemoMode.js`, `src/gl/components/parents/`.
+- **Borne** (`gl.html?kiosque=1[&inactivite=120]`) : écran d'accueil tactile
+  (`GLKioskAttractOverlay`), aucun bouton de connexion ni de sortie, aide masquée, remise à zéro
+  par rechargement après inactivité (`useGlKioskIdleReset`, 30 s à 30 min). Ni la vitrine ni la
+  borne ne comptent dans l'usage anonyme.
+- **Partie de démonstration** (console MJ → Parties → « Préparer / réinitialiser la démo »,
+  `npm run gl:demo:seed [-- --reset]`) : classe et six joueurs fictifs, deux équipes, premier
+  plateau ; `lib/gl/demoGame.js`, `GET /api/gl/admin/demo`, `POST /api/gl/admin/demo/reset`
+  (`gl.game.manage`). Drapeaux `is_demo` sur `gl_classes` et `gl_games` (migration 336),
+  pastille « Démo » dans la console, `isDemo` dans `GET /api/gl/games` ; la classe de démo est
+  **exclue des exports** joueurs / Team Spirit / badges.
+- Tests : `tests/gl-demo-game.test.js`, `tests-ui/gl/{glDemoMode,useGlKioskIdleReset}.test.js`,
+  `GLParentsDemoView`, `GLKioskAttractOverlay`, bandeaux ; e2e `e2e/gl-demo-modes.spec.js`.
 
 ### Corrigé — G&L « Tenir à deux » : correctifs de la simulation du 7 novembre, banc de simulation (briques)
 

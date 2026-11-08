@@ -71,3 +71,30 @@ describe('GLAppBanners', () => {
     expect(screen.getByText(/C’est au tour de/)).toBeInTheDocument();
   });
 });
+
+describe('GLAppBanners — modes de démonstration', () => {
+  test('vitrine parents : libellé dédié, boutons conservés', () => {
+    const onQuitGuest = vi.fn();
+    render(<GLAppBanners isGuestMode guestDemoProfile="parents" onQuitGuest={onQuitGuest} />);
+    expect(screen.getByText('Mode découverte · parents')).toBeInTheDocument();
+    expect(screen.getByText(/comme votre enfant/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Quitter la découverte' }));
+    expect(onQuitGuest).toHaveBeenCalledTimes(1);
+  });
+
+  test('borne : aucun bouton, rappel de la remise à zéro', () => {
+    render(
+      <GLAppBanners
+        isGuestMode
+        kioskMode
+        kioskIdleSeconds={90}
+        onQuitGuest={() => {}}
+        onGuestLogin={() => {}}
+      />,
+    );
+    expect(screen.getByText('Borne de démonstration')).toBeInTheDocument();
+    expect(screen.getByText(/après 90 s sans geste/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Quitter la découverte' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Se connecter' })).toBeNull();
+  });
+});

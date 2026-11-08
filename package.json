@@ -1,6 +1,6 @@
 {
   "name": "foretmap",
-  "version": "1.237.2",
+  "version": "1.238.0",
   "description": "Application de gestion de la forêt comestible - Lycée Lyautey",
   "main": "server.js",
   "author": "Olivier ARNOULD-LAURENT",
@@ -210,6 +210,7 @@
     "gl:import:glossary": "node scripts/gl-import-glossary.js",
     "gl:import:qcm": "node scripts/gl-import-qcm.js",
     "gl:import:qcm-lore": "node scripts/gl-import-qcm-lore.js",
+    "gl:demo:seed": "node scripts/gl-demo-seed.js",
     "gl:import:chapters": "node scripts/gl-import-chapters.js",
     "gl:import:chapters:example": "node scripts/gl-import-chapters.js --write-example",
     "gl:import:lore-feuillets": "node scripts/gl-import-lore-feuillets.js",

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, lazy, Suspense } from 'react';
-import { apiGL } from './services/apiGL.js';
+import { apiGL, getGlSession } from './services/apiGL.js';
 import { useGLSession } from './hooks/useGLSession.js';
 import { useGlSessionState } from './hooks/useGlSessionState.js';
 import { useGlGameRuntime } from './hooks/useGlGameRuntime.js';
@@ -78,6 +78,19 @@ import { setVoyageurSoundsAllowed } from './utils/glVoyageurSounds.js';
 import { GLButton } from './components/ui/GLButton.jsx';
 import { GLAppBanners } from './components/GLAppBanners.jsx';
 import { GLGuestDemoBoard } from './components/GLGuestDemoBoard.jsx';
+import { GLKioskAttractOverlay } from './components/GLKioskAttractOverlay.jsx';
+import { useGlKioskIdleReset } from './hooks/useGlKioskIdleReset.js';
+import {
+  GL_DEMO_TOUR_SEEN_STORAGE_KEY,
+  glDemoLandingTab,
+  isGlDemoRequested,
+  readGlDemoModeFromUrl,
+} from './utils/glDemoMode.js';
+const GLParentsDemoView = lazy(() =>
+  import('./components/parents/GLParentsDemoView.jsx').then((m) => ({
+    default: m.GLParentsDemoView,
+  })),
+);
 import { GLHelpDock } from './components/GLHelpDock.jsx';
 import { GLTourProvider } from './context/GLTourContext.jsx';
 import { GLProfileModal } from './components/GLProfileModal.jsx';
@@ -139,9 +152,24 @@ export function AppGL() {
       /* URL non modifiable : sans importance */
     }
   }, [updateSession]);
+  /*
+   * Modes de démonstration (`?demo=parents`, `?kiosque=1`, `src/gl/utils/glDemoMode.js`) :
+   * lus une fois, actifs seulement sur une session invitée — l'URL n'ouvre jamais une
+   * session par-dessus un compte connecté, et ne déconnecte personne.
+   */
+  const demoMode = useMemo(() => readGlDemoModeFromUrl(), []);
+  const demoActive = isGuest && isGlDemoRequested(demoMode);
+  const kioskMode = demoActive && demoMode.kiosk;
+  const guestDemoProfile = demoActive ? demoMode.profile : null;
+  const [kioskAttract, setKioskAttract] = useState(() => demoMode.kiosk);
+  const demoAutoEnterRef = useRef(false);
   const compactNav = useGlCompactNav();
   const learningProgress = useGlLearningProgress(isGuest ? null : token);
-  const [tab, setTab] = useState(() => readStoredGlTab());
+  const [tab, setTab] = useState(() =>
+    isGlDemoRequested(demoMode) && isGlGuest(getGlSession()?.auth)
+      ? glDemoLandingTab(demoMode)
+      : readStoredGlTab(),
+  );
   const isKnownGlTab = useCallback((id) => GL_VALID_TABS.has(id), []);
   /** Retour navigateur / smartphone → onglet précédent (après fermeture des surcouches). */
   const { navigateTab } = useTabBrowserHistory({
@@ -156,12 +184,15 @@ export function AppGL() {
    */
   const glUsageOpenedRef = useRef(false);
   useEffect(() => {
+    // Une borne ou une vitrine parents n'est pas un usage : elle gonflerait le compteur.
+    if (demoActive) return;
     if (!glUsageOpenedRef.current) {
       glUsageOpenedRef.current = true;
       reportUsage('gl', 'open');
     }
     reportUsage('gl', 'tab_open', String(tab || ''));
-  }, [tab]);
+  }, [tab, demoActive]);
+
   const {
     narrationToast,
     setNarrationToast,
@@ -173,6 +204,43 @@ export function AppGL() {
     setSpellRejectedToast,
   } = useGlToasts();
   const [error, setError] = useState('');
+  /*
+   * Entrée automatique en Mode Découverte quand l'URL demande une démo et qu'aucune
+   * session n'est ouverte — une seule fois par chargement de page, pour que « Quitter la
+   * découverte » rende bien l'écran de connexion. Le mode désactivé (403) laisse l'écran
+   * de connexion, qui ne propose alors pas le bouton.
+   */
+  useEffect(() => {
+    if (!isGlDemoRequested(demoMode) || session?.token || demoAutoEnterRef.current) return;
+    demoAutoEnterRef.current = true;
+    let cancelled = false;
+    apiGL('/api/gl/auth/guest', 'POST')
+      .then((data) => {
+        if (cancelled || !data?.authToken || !data?.auth) return;
+        try {
+          localStorage.removeItem(GL_DEMO_TOUR_SEEN_STORAGE_KEY);
+        } catch (_) {
+          /* stockage indisponible : la visite jouera sans mémoire */
+        }
+        updateSession({ token: data.authToken, auth: data.auth });
+        setTab(glDemoLandingTab(demoMode));
+        setError('');
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err?.message || 'Mode découverte indisponible');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [demoMode, session?.token, updateSession]);
+
+  // Borne : la remise à zéro est un rechargement — l'URL garde `?kiosque=1`, la session
+  // invitée est réutilisée, et le plateau (état local) repart du départ.
+  useGlKioskIdleReset({
+    enabled: kioskMode && !kioskAttract,
+    idleMs: demoMode.idleSeconds * 1000,
+    onIdle: () => window.location.reload(),
+  });
   const [oauthNotice, setOauthNotice] = useState(null);
   const { showProfile, setShowProfile, showPlayerStats, setShowPlayerStats } = useGLOverlays();
   const [glossaryFocusCode, setGlossaryFocusCode] = useState(null);
@@ -586,8 +654,9 @@ export function AppGL() {
         vitalityEnabled: gameplaySettings.vitalityEnabled,
         showStaffAdminUi,
         isGuest,
+        guestProfile: guestDemoProfile,
       }),
-    [showStaffAdminUi, modules, gameplaySettings.vitalityEnabled, isGuest],
+    [showStaffAdminUi, modules, gameplaySettings.vitalityEnabled, isGuest, guestDemoProfile],
   );
 
   useEffect(() => {
@@ -814,17 +883,33 @@ export function AppGL() {
           Visite guidée : désactivée pour un invité (sa progression est éphémère, lui
           imposer un parcours à chaque passage serait une porte qui claque) et quand le
           module d'aide est éteint — l'aide et la visite s'allument ensemble.
+          Exception : la vitrine parents, où OLU est précisément le guide attendu ; sa
+          mémoire est à part et remise à zéro à chaque ouverture. Jamais sur une borne.
         */}
         <GLTourProvider
           tab={tab}
           isStaff={showStaffAdminUi}
-          enabled={!isGuest && isModuleEnabled(modules, 'helpEnabled')}
+          enabled={
+            (!isGuest || (guestDemoProfile === 'parents' && !kioskMode)) &&
+            isModuleEnabled(modules, 'helpEnabled')
+          }
+          storageKey={guestDemoProfile ? GL_DEMO_TOUR_SEEN_STORAGE_KEY : undefined}
         >
           <div
-            className={`gl-app${compactNav ? ' gl-app--has-bottom-nav' : ''}${isGuest ? ' gl-app--discovery' : ''}`}
+            className={`gl-app${compactNav ? ' gl-app--has-bottom-nav' : ''}${isGuest ? ' gl-app--discovery' : ''}${kioskMode ? ' gl-app--kiosque' : ''}`}
             style={glAppStyle}
           >
             <AppStatusSticky />
+            {kioskMode && kioskAttract ? (
+              <GLKioskAttractOverlay
+                title={glConfig?.title}
+                subtitle={glConfig?.subtitle}
+                onStart={() => {
+                  setKioskAttract(false);
+                  setTab('discovery');
+                }}
+              />
+            ) : null}
             <GLPasswordResetGate
               open={!isGuest && !isAdmin && auth?.passwordMustReset === true}
               onCompleted={() => {
@@ -872,6 +957,7 @@ export function AppGL() {
                     }
               }
               isGuestMode={isGuest}
+              kioskMode={kioskMode}
               showVersion={showStaffAdminUi}
               appVersion={appVersion}
             />
@@ -885,6 +971,9 @@ export function AppGL() {
               isGuestMode={isGuest}
               onQuitGuest={quitGuestMode}
               onGuestLogin={quitGuestMode}
+              guestDemoProfile={guestDemoProfile}
+              kioskMode={kioskMode}
+              kioskIdleSeconds={demoMode.idleSeconds}
               isStaffPlayerPreview={isStaffPlayerPreview}
               impersonationBanner={isImpersonating ? impersonationBanner : null}
               impersonatedDisplayName={auth?.displayName}
@@ -935,7 +1024,17 @@ export function AppGL() {
                     />
                   ) : null}
                   {tab === 'discovery' && isGuest ? (
-                    <GLGuestDemoBoard onExitGuest={quitGuestMode} brandThemeStyle={glBrandStyle} />
+                    <GLGuestDemoBoard
+                      onExitGuest={quitGuestMode}
+                      brandThemeStyle={glBrandStyle}
+                      demoProfile={guestDemoProfile}
+                      kioskMode={kioskMode}
+                      onRestart={() => window.location.reload()}
+                      onNavigate={navigateTab}
+                    />
+                  ) : null}
+                  {tab === 'parents' && guestDemoProfile === 'parents' ? (
+                    <GLParentsDemoView onNavigate={navigateTab} biomeSlugs={chapterBiomeSlugs} />
                   ) : null}
                   {resolveGlNavActiveTab(tab) === 'adventure' ? (
                     <GLAdventureView

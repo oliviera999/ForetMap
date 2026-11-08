@@ -381,6 +381,28 @@ export function GLGameMasterConsole({
     }
   }
 
+  /**
+   * Partie de démonstration (réunion de parents, inspection) : classe et joueurs fictifs,
+   * deux équipes, premier plateau — préparée ou remise à zéro d'un clic, puis ouverte.
+   */
+  async function resetDemoGame() {
+    setActionError('');
+    setBusy(true);
+    try {
+      resetForGameSwitch();
+      const result = await apiGL('/api/gl/admin/demo/reset', 'POST');
+      const data = await apiGL(`/api/gl/games/${result.gameId}`);
+      onGameStateChange(data);
+      showSuccess(`Partie de démonstration #${result.gameId} prête.`);
+      await loadGames();
+      setRosterRefreshKey((value) => value + 1);
+    } catch (err) {
+      showFailure(err.message || 'Préparation de la démonstration impossible');
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function saveGameEdits(event) {
     event?.preventDefault?.();
   }
@@ -707,7 +729,15 @@ export function GLGameMasterConsole({
       desktopCells: (
         <>
           <td>{item.id}</td>
-          <td>{item.name}</td>
+          <td>
+            {item.name}
+            {item.isDemo ? (
+              <>
+                {' '}
+                <GLBadge tone="info">Démo</GLBadge>
+              </>
+            ) : null}
+          </td>
           <td>{item.className || item.classId}</td>
           <td>
             <GLBadge tone={gameStatusTone(item.status)}>{formatGameStatus(item.status)}</GLBadge>
@@ -720,7 +750,15 @@ export function GLGameMasterConsole({
         <>
           <div className="gl-data-card-row">
             <span className="gl-data-card-label">Partie</span>
-            <strong>{item.name}</strong>
+            <strong>
+              {item.name}
+              {item.isDemo ? (
+                <>
+                  {' '}
+                  <GLBadge tone="info">Démo</GLBadge>
+                </>
+              ) : null}
+            </strong>
           </div>
           <div className="gl-data-card-row">
             <span className="gl-data-card-label">Classe</span>
@@ -886,6 +924,7 @@ export function GLGameMasterConsole({
             setGamesStatusFilter={setGamesStatusFilter}
             loadGames={loadGames}
             createGame={createGame}
+            resetDemoGame={resetDemoGame}
             gameListRows={gameListRows}
             busy={busy}
           />

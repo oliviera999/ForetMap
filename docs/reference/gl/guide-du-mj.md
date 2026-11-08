@@ -90,6 +90,30 @@
   les mascottes des équipes, c'est le récit qui le justifie (« le seuil donne la forme
   dont le prochain territoire aura besoin »).
 
+## Une partie de démonstration pour une réunion
+
+Pour montrer le jeu à des parents, à un conseil pédagogique ou à une inspection **sans toucher
+à une classe réelle**, la console MJ (onglet **Parties**, bloc « Partie de démonstration »)
+prépare d'un clic — **« Préparer / réinitialiser la démo »** — une **classe de démonstration**
+avec six joueurs fictifs (« Gnome Démo 1 », « Licorne Démo 2 »…), deux équipes typées et une
+partie en brouillon sur le **premier plateau**. La partie s'ouvre aussitôt dans la console,
+signalée par une pastille **Démo** (dans la bannière de la partie et dans la liste des parties) ;
+la classe apparaît comme « Classe de démonstration » dans la gestion des utilisateurs.
+
+Vous la jouez comme n'importe quelle partie : démarrage, tours, dés, QCM, sorts, et la
+**projection** sur le vidéoprojecteur (bouton « Projeter »). Les parents peuvent ouvrir le même
+lien de projection sur leur téléphone. Avant chaque présentation, cliquez à nouveau sur le bouton :
+la partie précédente est effacée et une partie neuve la remplace — les joueurs fictifs, eux,
+restent les mêmes, leur vitalité revient aux valeurs par défaut.
+
+Ce qui tient la démonstration à l'écart du réel : personne ne peut se connecter avec un joueur
+fictif (mot de passe aléatoire jamais communiqué) ; la classe de démonstration est **exclue des
+exports** (joueurs, Team Spirit, badges) ; une partie de démo peut être supprimée comme une
+autre. L'administrateur peut aussi la préparer depuis le serveur (`npm run gl:demo:seed`, avec
+`--reset` pour la remettre à zéro). Pour une démonstration **sans compte** (parents sur leur
+téléphone, borne en libre-service), voir les
+[modes de démonstration](roles-et-connexion.md#les-modes-de-démonstration-parents-borne).
+
 ## Après la séance
 
 - **Scores et statistiques** : le score des équipes, la progression individuelle et de
