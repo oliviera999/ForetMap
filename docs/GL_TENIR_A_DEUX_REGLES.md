@@ -175,7 +175,28 @@ Chaque sort a : `code`, `nom`, `peuple` (`any` | `gnome` | `unicorn` | `pacte` |
 
 - **Honneurs** à la clôture de la partie, un par équipe au plus (si une équipe en mérite deux, le second va à la suivante dans l'ordre du critère) : **Éclaireurs** (première au camp), **Gardiens** (le plus de pages tenues, découverte ou tenue), **Passeurs** (le plus d'aide : Bourrasque, Abri, Relais, Cordée, dons, pages tenues pour l'autre peuple), **Esprit d'équipe** (le plus de cartes gardées sur le chapitre). Sceaux de peuple : **Éclaireuses** (équipe licorne, le plus de pages trouvées), **Mains** (équipe gnome, le plus de pages réparées).
 - **Titres** : un par honneur et par biome (`titres.json`), affiché sous la mascotte au chapitre suivant pour l'équipe qui l'a gagné (le titre suit les élèves dans Mes traversées quand les équipes changent) ; titres de mission (sceau) sur saisie du prof.
-- **Badges individuels** (`badges.json`, calculés par l'app, sans ressource, affichés dans Mes traversées) : Première page, Lecteur (10 pages lues), Fouilleur (5 fouilles chaudes), Trouveur (3 pages trouvées comme Opérateur, sur saisie du rôle), Mains tendues (3 dons), Veilleur (4 semaines de veillée de suite), Nommeur (10 espèces étudiées), Cartographe (2 biomes étudiés), Tisserand / Révélateur (défis, hors périmètre, réservés), Chuchoteur (mission, saisie prof), Correcteur du renard (saisie prof), Passeur de seuil (4 chapitres).
+- **Badges individuels** (8 novembre 2026 : sur le **moteur de badges commun**, `docs/REWARDS_ENGINE.md` § 5, table `gl_player_rewards`) : des familles et **trois paliers** aux noms de la Trame — **Fil** 🧵, **Nœud** 🪢, **Étoffe** 🧶 — évalués au fil de l'eau (dès le premier chapitre), jamais retirés, célébrés avec Olu à l'écran de l'élève (jamais en projection), visibles dans Mes traversées, l'écran d'équipe et la vitrine du prof (triée par nom, « à un pas du palier suivant »). Équité : on récompense l'effort, la curiosité, la persévérance et l'aide, **jamais** la justesse, la vitesse, l'arrivée ou un rang ; **aucun badge ne donne de ressource**. « Présence » = membre non absent au tour.
+
+  | Famille         | Badge                | Mesure                                                                                           | Fil · Nœud · Étoffe |
+  | --------------- | -------------------- | ------------------------------------------------------------------------------------------------ | ------------------- |
+  | Chasse          | Fouilleur            | fouilles faites, quel que soit le verdict (par l'élève ou son équipe en sa présence)             | 5 · 20 · 50         |
+  | Chasse          | Trouveur             | pages trouvées ou réparées par son équipe en sa présence                                         | 1 · 4 · 10          |
+  | Lecture         | Lecteur              | pages lues entièrement (tour ou veillée)                                                         | 3 · 10 · 25         |
+  | Lecture         | Passeur de page      | pages tenues pour l'autre peuple (en sa présence ou par lui en veillée)                          | 1 · 4 · 10          |
+  | Persévérance    | Pas encore           | réussites après un « pas encore » sur la même zone, question de lecture ou case                  | 1 · 5 · 15          |
+  | Coopération     | Mains tendues        | dons faits au Marché                                                                             | 1 · 3 · 8           |
+  | Coopération     | Épaule               | sorts d'aide de son équipe (Abri, Relais, Cordée, Bourrasque) avec sa présence ou sa part au pot | 1 · 3 · 8           |
+  | Coopération     | Mains de la Trame    | pages réparées par son équipe gnome en sa présence                                               | 1 · 3 · 6           |
+  | Savoirs         | Nommeur              | espèces étudiées (fiche consultée entièrement)                                                   | 3 · 10 · 25         |
+  | Savoirs         | Cartographe          | pages biome étudiées                                                                             | 1 · 3 · 6           |
+  | Veillée         | Veilleur             | meilleure série de semaines de veillée                                                           | 2 · 4 · 8           |
+  | Voyage          | Passeur de seuil     | chapitres traversés                                                                              | 1 · 2 · 4           |
+  | Voyage          | Deux peuples         | a joué Gnome et Licorne (un seul palier)                                                         | 1                   |
+  | Badges décernés | Chuchoteur           | mission secrète réussie (saisie prof existante)                                                  | décerné             |
+  | Badges décernés | Correcteur du renard | erreur d'Olu corrigée (saisie prof existante)                                                    | décerné             |
+  | Badges décernés | Esprit d'équipe      | décerné par le prof **avec un mot** (cartes Team Spirit)                                         | décerné             |
+
+  `Tisserand` et `Révélateur` (défis de la Trame) restent réservés, invisibles ; « Trouveur (Opérateur) » disparaît (il dépendait de la saisie facultative du rôle). Les 13 anciens badges plats (`badges.json`, `gl_player_badges`) sont convertis en paliers par `scripts/gl-rewards-backfill.js` puis conservés en lecture seule. L'évènement de journal `pas_encore` (réponse fausse de chasse, de lecture ou de case) nourrit la mesure Persévérance.
 
 ## 13. Greffes
 
