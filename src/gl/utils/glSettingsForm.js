@@ -258,6 +258,11 @@ export const MODULE_TOGGLES = [
     hint: 'Petits sons synthétisés (« +1 », niveau atteint, sortilèges, gestes de mascotte), à volume bas. Chaque élève peut aussi les couper depuis le Seuil. Éteindre ici les coupe pour toute la plateforme (utile en classe).',
   },
   {
+    key: 'modules.rewards_enabled',
+    label: 'Badges individuels',
+    hint: 'Badges par paliers (Fil, Nœud, Étoffe) calculés sur ce que chaque élève fait vraiment, célébrés en privé avec Olu, vitrine du prof sans classement. Aucun badge ne donne de ressource. Éteint, l’API /api/gl/rewards répond 503 et les écrans se taisent.',
+  },
+  {
     key: 'modules.player_journal_enabled',
     label: 'Mon journal (carnet personnel)',
     hint: 'Carnet éditable par chaque joueur (texte, images, encarts).',

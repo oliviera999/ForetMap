@@ -6,6 +6,7 @@ import { GLInput } from '../ui/GLInput.jsx';
 import { GLTextarea } from '../ui/GLTextarea.jsx';
 import { GLTenirProfilPanel } from './GLTenirProfilPanel.jsx';
 import { GLTenirHonneursPanel } from './GLTenirHonneursPanel.jsx';
+import { GLTenirRewardsPanel } from './GLTenirRewardsPanel.jsx';
 
 export default function GLGameMasterConsoleLive({
   game,
@@ -80,13 +81,16 @@ export default function GLGameMasterConsoleLive({
         showFailure={showFailure}
       />
       {tenir?.enabled ? (
-        <GLTenirHonneursPanel
-          game={game}
-          teams={teams}
-          roster={roster}
-          onReloadGame={onReloadGame}
-          showFailure={showFailure}
-        />
+        <>
+          <GLTenirHonneursPanel
+            game={game}
+            teams={teams}
+            roster={roster}
+            onReloadGame={onReloadGame}
+            showFailure={showFailure}
+          />
+          <GLTenirRewardsPanel game={game} roster={roster} showFailure={showFailure} />
+        </>
       ) : null}
       {teams.length > 0 && (
         <div className="gl-team-selector gl-gameplay-block">

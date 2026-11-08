@@ -24,6 +24,7 @@ const { normalizeSpellCode } = require('../../../lib/glChapterSpells');
 const { logRouteError } = require('../../../lib/routeLog');
 const { canAccessGlGame } = require('../../../lib/glGameAccess');
 const { parseId } = require('../../../lib/shared/httpHelpers');
+const { queueGlRewardsForSpellCast } = require('../../../lib/glRewardsHooks');
 
 const router = express.Router();
 
@@ -196,6 +197,8 @@ router.post(
           payload: eventPayload,
         });
       }
+      // Badge « Épaule » (sorts d'aide) : hors transaction, jamais bloquant.
+      queueGlRewardsForSpellCast(gameId, draftId);
       if (normalized.eventType !== 'spell_cast') {
         return res.status(500).json({ error: 'Événement de sortilège incohérent après lancement' });
       }
@@ -249,6 +252,7 @@ router.post('/games/:id/spell-casts/drafts/:draftId/resolve', requireGlAuth, asy
       auth: req.glAuth,
     });
     for (const effectEvt of effectEvents || []) if (effectEvt) emitGlGameEvent(gameId, effectEvt);
+    if (decision === 'accept') queueGlRewardsForSpellCast(gameId, draftId);
     const evt = eventId
       ? await queryOne(
           `SELECT id, game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at
