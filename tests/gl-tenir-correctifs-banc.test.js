@@ -91,8 +91,9 @@ test('une case Souffle « passe ton tour » fait passer le jet suivant ; avance 
   );
   assert.ok(evt, 'événement tour_passe au journal');
 
-  // Tour suivant : le jet de l'équipe est refusé, elle fouille quand même, le prof peut la porter.
-  await phase(ctx, 'souffle', { faces: [1] });
+  // Tour suivant (le dé gris dort : l'équipe n'est pas sous le voile) : le jet de l'équipe est
+  // refusé, elle fouille quand même, le prof peut la porter.
+  await phase(ctx, 'souffle', { dort: true });
   await phase(ctx, 'clos');
   await ouvrirTourEnJeu(request, app, ctx);
   const vue = await request(app).get(api(ctx, '/tenir/tour')).set(auth(ctx.adminToken)).expect(200);
@@ -108,7 +109,7 @@ test('une case Souffle « passe ton tour » fait passer le jet suivant ; avance 
     .post(api(ctx, '/chasse/fouiller'))
     .set(auth(licorne.token))
     .send({ x: 0.9, y: 0.9 });
-  assert.equal(fouille.status, 201, 'fouiller reste permis');
+  assert.equal(fouille.status, 201, `fouiller reste permis : ${JSON.stringify(fouille.body)}`);
   const porte = await request(app)
     .post(api(ctx, '/tenir/lancer'))
     .set(auth(ctx.adminToken))
@@ -116,7 +117,7 @@ test('une case Souffle « passe ton tour » fait passer le jet suivant ; avance 
   assert.equal(porte.status, 201, JSON.stringify(porte.body));
 
   // Tour d'après : libre à nouveau.
-  await phase(ctx, 'souffle', { faces: [1] });
+  await phase(ctx, 'souffle', { dort: true });
   await phase(ctx, 'clos');
   await ouvrirTourEnJeu(request, app, ctx);
   const jet2 = await request(app)
@@ -159,10 +160,11 @@ test('spell_cast est privé en partie tenir : une autre équipe ne lit ni contri
     .get(`/api/gl/games/${ctx.game.id}`)
     .set(auth(gnome.token))
     .expect(200);
-  const texteEtat = JSON.stringify(
-    etatGnome.body.events || etatGnome.body.recentEvents || etatGnome.body,
-  );
-  assert.ok(!/"casters"/.test(texteEtat) && !/"results":\[\{"playerId"/.test(texteEtat));
+  // Tout l'état (événements, replay.timeline…) : aucun lanceur ni solde d'une autre équipe.
+  const texteEtat = JSON.stringify(etatGnome.body);
+  assert.ok(!/"casters"/.test(texteEtat) && !/"contributions"/.test(texteEtat));
+  assert.ok(!/"results":\[\{"playerId"/.test(texteEtat));
+  assert.ok(Array.isArray(etatGnome.body.replay?.timeline), 'le replay reste servi');
   const journalProf = await request(app)
     .get(`/api/gl/journal/games/${ctx.game.id}`)
     .set(auth(ctx.adminToken))
