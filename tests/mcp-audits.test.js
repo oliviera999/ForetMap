@@ -975,3 +975,53 @@ test('configuration : écriture et SQL actifs par défaut, connecteur coupé par
     process.env = saved;
   }
 });
+
+test('vérité des cases G&L : promesses non tenues sur les plateaux 1-4 seulement', () => {
+  const cfg = (effects, eventMeta) => JSON.stringify({ version: 2, effects, eventMeta });
+  const out = checks.glMarkerPromises({
+    glChapters: [
+      { id: 3, slug: 'tropiques-africains', plateau_number: 1 },
+      { id: 1, slug: 'foret-magique', plateau_number: null },
+    ],
+    glChapterMarkers: [
+      // Libellé « passe ton tour » sans passTurn : erreur.
+      {
+        id: 11,
+        chapter_id: 3,
+        label: 'Tiédeur étrange',
+        event_type: 'behavior',
+        effet_mecanique: null,
+        event_config_json: cfg(
+          {
+            gnome: { label: 'Gnome : recule de 1 case.', deltaMove: -1 },
+            unicorn: { label: 'Licorne : passe ton tour.', passTurn: false },
+          },
+          { tonalite: 'souffle' },
+        ),
+      },
+      // Texte d'auteur exact : rien.
+      {
+        id: 41,
+        chapter_id: 3,
+        label: 'Arrivée',
+        event_type: 'story',
+        effet_mecanique: 'Arrivée au camp. La première équipe reçoit l’honneur des Éclaireurs.',
+        event_config_json: cfg({ neutral: { label: null, deltaPv: 0, deltaGems: 0 } }, null),
+      },
+      // Chapitre d'essai hors plateau : ignoré même s'il ment.
+      {
+        id: 2,
+        chapter_id: 1,
+        label: 'Carrefour',
+        event_type: 'quiz',
+        effet_mecanique: 'Bonne réponse : +1 gemme.',
+        event_config_json: null,
+      },
+    ],
+  });
+  assert.deepEqual(
+    out.map((f) => f.id),
+    ['case:11'],
+  );
+  assert.match(out[0].detail, /TENIR_BRANCHE_NON_TENUE/);
+});

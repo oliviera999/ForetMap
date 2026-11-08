@@ -275,6 +275,12 @@ test('règles : vert sans alerte, orange et rouge selon les seuils', () => {
   );
   assert.equal(evaluateHealth({ restarts: { counts: { crashes: 1 } } }).status, 'orange');
   assert.equal(evaluateHealth({ app: { reachable: false, error: 'HTTP 502' } }).status, 'red');
+  // Une case G&L dont la promesse n'est pas tenue est un défaut visible des élèves : orange.
+  const promesses = evaluateHealth({
+    audit: { total_findings: 3, byCheck: { gl_marker_promises: 3 } },
+  });
+  assert.equal(promesses.status, 'orange');
+  assert.ok(promesses.findings.some((f) => f.rule === 'audit_gl_marker_promises'));
   const info = evaluateHealth({ audit: { total_findings: 300 } });
   assert.equal(info.status, 'green', 'les constats du corpus n’alertent pas');
   assert.equal(info.findings[0].level, 'info');

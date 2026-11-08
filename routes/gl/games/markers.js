@@ -380,7 +380,10 @@ router.post(
       return res.status(409).json({ error: 'Votre équipe n’est pas sur ce repère' });
     }
 
-    const arrival = buildMarkerArrivalPayload(marker, team);
+    // Mode « Tenir à deux » : le texte lu par l'élève est calculé depuis l'effet appliqué
+    // (Sentier compris), jamais depuis le champ d'auteur `effet_mecanique`.
+    const arrivalCtx = await resolveTenirMarkerContext(db, settings, game, teamId);
+    const arrival = buildMarkerArrivalPayload(marker, team, arrivalCtx);
     const actorType = actorTypeOf(req);
     const actorId = String(req.glAuth.userId);
     const reason = String(marker.label || 'Repère').trim();

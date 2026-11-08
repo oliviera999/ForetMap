@@ -167,3 +167,108 @@ test('auditMarkerPromises agrège par sévérité, par code et par chapitre', ()
   assert.strictEqual(report.byChapter['3'].total, 2);
   assert.strictEqual(report.byChapter['4'].error, 1);
 });
+
+// --- Vérité des cases (« Tenir à deux », migration 336) -----------------------------------
+
+const { promisesLossOnFailure, auditTenirBranchPromises } = require('../lib/glMarkerPromiseAudit');
+
+test('parsePromisedEffects lit le signe moins typographique des libellés de plateau', () => {
+  const p = parsePromisedEffects(
+    'Licorne : c’est un nom que tu perds → −1 gemme et passe ton tour.',
+  );
+  assert.strictEqual(p.deltaGems, -1);
+  assert.strictEqual(p.passTurn, true);
+  assert.strictEqual(parsePromisedEffects('Gnome : le cœur lourd → −1 cœur.').deltaPv, -1);
+});
+
+test('promisesLossOnFailure : une perte annoncée après un échec est repérée, pas une perte neutre', () => {
+  assert.strictEqual(promisesLossOnFailure('Si réussi : +1 gemme. Sinon : -1 cœur.'), true);
+  assert.strictEqual(promisesLossOnFailure('Mauvaise réponse : −1 gemme.'), true);
+  assert.strictEqual(promisesLossOnFailure('En cas d’échec, recule de 2 cases.'), true);
+  assert.strictEqual(promisesLossOnFailure('Mauvaise réponse : rien.'), false);
+  assert.strictEqual(
+    promisesLossOnFailure('Ni gain ni perte : on le relève pour l’équipe.'),
+    false,
+  );
+  assert.strictEqual(promisesLossOnFailure('-1 cœur'), false);
+  assert.strictEqual(promisesLossOnFailure(null), false);
+});
+
+test('auditTenirBranchPromises : un libellé « passe ton tour » sans passTurn, un « +2 » sur une Trame', () => {
+  const souffle = {
+    id: 11,
+    event_type: 'behavior',
+    event_config_json: JSON.stringify({
+      version: 2,
+      effects: {
+        gnome: { label: 'Gnome : recule de 1 case.', deltaMove: -1 },
+        unicorn: { label: 'Licorne : passe ton tour.', passTurn: false },
+      },
+      eventMeta: { tonalite: 'souffle' },
+    }),
+  };
+  const issues = auditTenirBranchPromises(souffle);
+  assert.deepStrictEqual(
+    issues.map((i) => [i.code, i.branch, i.resource]),
+    [['TENIR_BRANCHE_NON_TENUE', 'unicorn', 'passe le tour']],
+  );
+  const trame = {
+    id: 124,
+    event_type: 'behavior',
+    event_config_json: JSON.stringify({
+      version: 2,
+      effects: {
+        gnome: { label: 'Gnome : → +2 cœurs.', deltaPv: 2 },
+        unicorn: { label: 'Licorne : → +1 gemme.', deltaGems: 2 },
+      },
+      eventMeta: { tonalite: 'trame' },
+    }),
+  };
+  const trameIssues = auditTenirBranchPromises(trame);
+  // Le moteur donne +1 : la branche gnome (« +2 ») ment, la branche licorne (« +1 ») est juste.
+  assert.deepStrictEqual(
+    trameIssues.map((i) => [i.branch, i.promised, i.machine]),
+    [['gnome', 2, 1]],
+  );
+  // Une perte en cas d'échec dans un libellé est une erreur même si la branche l'applique.
+  const defi = {
+    id: 1,
+    event_type: 'behavior',
+    event_config_json: JSON.stringify({
+      version: 2,
+      effects: { gnome: { label: 'Gnome : sinon, -1 cœur.', deltaPv: -1 } },
+    }),
+  };
+  assert.ok(auditTenirBranchPromises(defi).some((i) => i.code === 'PERTE_EN_CAS_D_ECHEC'));
+});
+
+test('auditMarkerPromises({ tenir: true }) agrège les libellés et la perte en cas d’échec', () => {
+  const report = auditMarkerPromises(
+    [
+      {
+        id: 23,
+        chapter_id: 3,
+        label: 'Défi d’équipe',
+        event_type: 'behavior',
+        effet_mecanique: 'Si réussi : +1 gemme. Sinon : -1 cœur.',
+        event_config_json: null,
+      },
+      {
+        id: 41,
+        chapter_id: 3,
+        label: 'Arrivée',
+        event_type: 'story',
+        effet_mecanique:
+          'Arrivée au camp. La première équipe reçoit l’honneur des Éclaireurs ; ensuite, ses jets portent la caravane.',
+        event_config_json: JSON.stringify({
+          version: 2,
+          effects: { neutral: { label: null, deltaPv: 0, deltaGems: 0, deltaMove: 0 } },
+        }),
+      },
+    ],
+    { tenir: true },
+  );
+  assert.strictEqual(report.counts.error, 1);
+  assert.ok(report.byCode.PERTE_EN_CAS_D_ECHEC >= 1);
+  assert.strictEqual(report.rows.find((r) => r.markerId === 41).severity, 'ok');
+});
