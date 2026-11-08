@@ -59,6 +59,17 @@ export const GL_DISCOVERY_TAB = { id: 'discovery', label: 'Découverte', icon: '
 
 export const GL_GUEST_TAB_IDS = ['monde-gl', 'discovery', 'nature'];
 
+/**
+ * Onglet « Pour les parents » — visible seulement dans la vitrine `?demo=parents`
+ * (session invitée ouverte par cette URL, `src/gl/utils/glDemoMode.js`).
+ */
+export const GL_PARENTS_TAB = { id: 'parents', label: 'Pour les parents', icon: '👪' };
+
+/** Onglets d'une session invitée selon le profil de démonstration (`null` = Mode Découverte nu). */
+export const GL_GUEST_PROFILE_TAB_IDS = Object.freeze({
+  parents: [GL_PARENTS_TAB.id, ...GL_GUEST_TAB_IDS],
+});
+
 export const GL_PLAYER_TABS = [
   GL_SEUIL_TAB,
   { id: 'maps', label: 'Cartes', icon: '🗺️' },
@@ -86,5 +97,6 @@ export const GL_VALID_TABS = new Set([
   ...GL_MONDE_SUB_TAB_IDS,
   ...GL_JOUEURS_SUB_TAB_IDS,
   GL_DISCOVERY_TAB.id,
+  GL_PARENTS_TAB.id,
   'auth',
 ]);

@@ -22,6 +22,7 @@ Ce document centralise les commandes et la matrice de couverture pour Gnomes & L
 - `gl-auth.test.js`, `gl-auth-config-me.test.js`, `gl-auth-forgot-password.test.js`, `gl-auth-helpers.test.js`
 - `gl-staff-login.test.js`, `gl-staff-auth.test.js`, `gl-staff-auth-unit.test.js`
 - `gl-guest-mode.test.js` — Mode Découverte invité (`POST /api/gl/auth/guest`, demo-feuillets)
+- `gl-demo-game.test.js` — partie de démonstration (`POST /api/gl/admin/demo/reset`, `GET /api/gl/admin/demo`, drapeaux `is_demo`, exclusion des exports, refus joueur / invité, pseudo de démo pris ailleurs → 409) ; UI : `tests-ui/gl/glDemoMode.test.js` (URL `?demo=parents`, `?kiosque=1`, `?inactivite=`, onglets invité par profil), `useGlKioskIdleReset.test.js`, `GLParentsDemoView.test.jsx` (chemin, quiz d'essai sans route de partie, repli sur tous les biomes), `GLKioskAttractOverlay.test.jsx`, `GLAppBanners.test.jsx` (bandeaux parents / borne)
 - `gl-player-google-auth.test.js`, `gl-profile.test.js`, `gl-intro.test.js`, `gl-intro-lib.test.js`
 - `gl-auth-revocation.test.js` — droits effectifs relus en base à chaque requête : rétrogradation
   admin/MJ, désactivation ou suppression d'un compte prises en compte sans attendre l'expiration
@@ -150,6 +151,7 @@ Liste complète : `Get-ChildItem tests-ui/gl -Recurse -Include *.test.js,*.test.
 - `gl-player-journal.spec.js` — carnet personnel
 - `gl-seuil.spec.js` — Le Seuil : niveau du voyageur, expédition, sortilège lancé hors séance
 - `gl-guest-discovery.spec.js` — Mode Découverte (API invité, onglets, dé → feuillets → mur de fin)
+- `gl-demo-modes.spec.js` — modes de démonstration : vitrine `?demo=parents` (session invitée automatique, onglet « Pour les parents », quiz d'essai, retour au plateau), borne `?kiosque=1` (écran d'accueil, aucune sortie, bandeau), console MJ « Préparer / réinitialiser la démo »
 - `gl-intro.spec.js` — overlay intro
 - `gl-profile.spec.js` — profil joueur
 - `gl-stats.spec.js` — statistiques joueur

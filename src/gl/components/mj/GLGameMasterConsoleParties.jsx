@@ -23,6 +23,7 @@ export default function GLGameMasterConsoleParties({
   setGamesStatusFilter,
   loadGames,
   createGame,
+  resetDemoGame,
   gameListRows,
   busy,
 }) {
@@ -93,6 +94,27 @@ export default function GLGameMasterConsoleParties({
             Créer une partie
           </GLButton>
         </form>
+      ) : null}
+
+      {typeof resetDemoGame === 'function' ? (
+        <section className="gl-mj-demo-block" aria-labelledby="gl-mj-demo-title">
+          <h4 id="gl-mj-demo-title">Partie de démonstration</h4>
+          <p className="gl-hint">
+            Pour une réunion de parents ou une inspection : une classe et six joueurs fictifs («
+            Gnome Démo 1 », « Licorne Démo 2 »…), deux équipes, le premier plateau. Jouez-la depuis
+            la console et projetez-la ; réinitialisez-la avant chaque présentation. Elle reste à
+            l’écart des exports.
+          </p>
+          <GLButton
+            type="button"
+            variant="secondary"
+            onClick={resetDemoGame}
+            disabled={busy}
+            data-testid="gl-mj-demo-reset"
+          >
+            Préparer / réinitialiser la démo
+          </GLButton>
+        </section>
       ) : null}
 
       <div className="gl-toolbar">

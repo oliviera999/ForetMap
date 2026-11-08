@@ -554,6 +554,7 @@ app.use('/api/gl/auth', glAuthRouter);
 app.use('/api/gl/admin/reference-docs', glReferenceDocsRouter);
 // « Tenir à deux » : exports CSV par classe (Team Spirit, badges), gl.game.manage.
 app.use('/api/gl/admin', require('./routes/gl/admin-tenir-exports'));
+app.use('/api/gl/admin', require('./routes/gl/admin-demo'));
 // « Tenir à deux » : état et synchronisation des catalogues data/gl/tenir, gl.content.manage.
 app.use('/api/gl/admin', require('./routes/gl/admin-tenir-catalogues'));
 app.use('/api/gl/admin', glAdminRouter);

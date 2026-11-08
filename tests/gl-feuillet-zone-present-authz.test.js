@@ -7,7 +7,7 @@
  */
 
 require('./helpers/setup');
-const { test, before } = require('node:test');
+const { test, before, after } = require('node:test');
 const assert = require('node:assert');
 const request = require('supertest');
 const { app } = require('../server');
@@ -129,4 +129,11 @@ test('le MJ présente à distance : la garde ne vise que les joueurs', async () 
     .send({ teamId })
     .expect(200);
   assert.strictEqual(res.body?.zone?.zoneId, OTHER_ZONE_ID);
+});
+
+// Le chapitre `foret-magique` est promu plateau 1 pour ce fichier seulement : rendu tel quel,
+// sinon le contrôle de contenu `tests/content/gl-plateaux-cases-quiz.test.js` (job CI `test`,
+// même base) le prend pour un vrai plateau sans biome et tombe.
+after(async () => {
+  await execute("UPDATE gl_chapters SET plateau_number = NULL WHERE slug = 'foret-magique'");
 });
