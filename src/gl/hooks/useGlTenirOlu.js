@@ -54,7 +54,7 @@ function pick(list, seed) {
  * l'oiseau (Olu est figé pendant : `useGlNarrator().frozen`).
  * @returns {{ line: null|{ id, texte, expression, moment }, speakerName, frozen }}
  */
-export function useGlTenirOlu({ gameId, events = [], teams = [], enabled = true }) {
+export function useGlTenirOlu({ gameId, events = [], teams = [], enabled = true, teamId = null }) {
   const [data, setData] = useState(cache);
   const [line, setLine] = useState(null);
   const lastSeenRef = useRef(null);
@@ -86,6 +86,12 @@ export function useGlTenirOlu({ gameId, events = [], teams = [], enabled = true 
     lastSeenRef.current = key;
     const moment = data.moments[String(last.eventType || '')];
     if (!moment || moment === 'erreur') return;
+    // E5 : « vos bourses débordent » ne se dit qu'à l'écran de l'équipe concernée (jamais au
+    // prof, jamais en projection : ces écrans n'ont pas de `teamId`).
+    if (moment === 'bourse_pleine') {
+      const cible = Number(last.payload?.teamId ?? last.teamId);
+      if (teamId == null || !Number.isFinite(cible) || cible !== Number(teamId)) return;
+    }
     const candidates = data.lignes.filter((l) => l.moment === moment);
     const chosen = pick(candidates, last.id) || pick(TENIR_OLU_FALLBACK[moment] || [], 0);
     if (!chosen) return;
@@ -101,7 +107,7 @@ export function useGlTenirOlu({ gameId, events = [], teams = [], enabled = true 
       expression: chosen.expression || 'neutre',
       moment,
     });
-  }, [events, data, enabled, teamNames]);
+  }, [events, data, enabled, teamNames, teamId]);
 
   return { line, speakerName, frozen };
 }

@@ -143,6 +143,20 @@ async function resolveGesteContext(req, res, gameId, { geste, teamIdFromBody = n
 // Lecture du tour
 // ---------------------------------------------------------------------
 
+/** Fouilles du tour d'une équipe (console du prof) : tolère l'absence du module de chasse. */
+async function fouillesDuTour(gameId, team, roundNumber, resolved) {
+  try {
+    const chasse = require('../../../lib/glChasse');
+    const sousVoile = await chasse.isSousVoile(db, gameId, team);
+    return {
+      ...(await chasse.fouillesRestantes(db, { gameId, roundNumber, team, resolved, sousVoile })),
+      sousVoile,
+    };
+  } catch (_) {
+    return null;
+  }
+}
+
 router.get(
   '/games/:id/tenir/tour',
   requireGlAuthOrProjection,
@@ -173,15 +187,21 @@ router.get(
             absences: staff ? round.absences : round.absences.length,
           }
         : null,
-      teams: teams.map((t) => ({
-        id: Number(t.id),
-        name: t.name,
-        type: t.type,
-        pathIndex: teamPathIndex(t, markers),
-        auCamp: tour.isAtCamp(t, markers),
-        hasRolledDiceThisRound:
-          roundNumber > 0 && Number(t.last_dice_round_number || 0) >= roundNumber,
-      })),
+      teams: await Promise.all(
+        teams.map(async (t) => ({
+          id: Number(t.id),
+          name: t.name,
+          type: t.type,
+          pathIndex: teamPathIndex(t, markers),
+          auCamp: tour.isAtCamp(t, markers),
+          hasRolledDiceThisRound:
+            roundNumber > 0 && Number(t.last_dice_round_number || 0) >= roundNumber,
+          // Console du tour (prof) : quota de fouilles du tour, réparation E2 comprise.
+          ...(staff && roundNumber > 0
+            ? { fouilles: await fouillesDuTour(gameId, t, roundNumber, resolved) }
+            : {}),
+        })),
+      ),
       campIndex: markers.length ? markers.length - 1 : 0,
       lumiere: await tour.loadLumiere(db, gameId),
     };

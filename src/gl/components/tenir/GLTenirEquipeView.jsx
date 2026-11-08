@@ -57,6 +57,7 @@ export function GLTenirEquipeView({
   const perms = tenir?.permissions || {};
   const events = gameState?.events || [];
   const olu = useGlTenirOlu({
+    teamId,
     gameId,
     events,
     teams: gameState?.teams || [],
@@ -95,6 +96,11 @@ export function GLTenirEquipeView({
 
   const surface = tenir.surface || 'tableau';
   const fouilles = chasse?.carnet?.fouilles || null;
+  // E4 : réserve de la caravane de l'équipe (servie seulement à ses membres et au prof).
+  const reserve =
+    tenir.settings?.surplus_reserve !== false
+      ? (tenir.reserves || []).find((r) => Number(r.teamId) === Number(teamId)) || null
+      : null;
   const fouilleMode = !!chasse?.fouilleMode;
   const gestes = [
     ['jeter', 'Jeter un sort', onJeter],
@@ -148,6 +154,15 @@ export function GLTenirEquipeView({
           </li>
         ))}
       </ul>
+      {reserve ? (
+        <p className="gl-hint" data-testid="gl-tenir-reserve">
+          Réserve de la caravane : ❤️ {reserve.health} · 💎 {reserve.power}
+          <span className="fm-visually-hidden">
+            {' '}
+            (les gains au-dessus du plafond y vont ; elle paie d’abord les sorts de l’équipe)
+          </span>
+        </p>
+      ) : null}
       <div className="gl-tenir-equipe__gestes">
         {gestes.map(([key, label, handler]) => (
           <GLButton
@@ -187,6 +202,9 @@ export function GLTenirEquipeView({
       {chasse && fouilles ? (
         <p className="gl-hint" data-testid="gl-tenir-fouilles">
           Fouilles ce tour : {fouilles.restantes}/{fouilles.quota}
+          {fouilles.reparation?.quota
+            ? ` + ${fouilles.reparation.restantes}/${fouilles.reparation.quota} réparation (page pâlie)`
+            : ''}
           {fouilles.sousVoile ? ' · sous le voile' : ''}
           {fouilleMode ? ' · touche le plateau pour fouiller' : ''}
         </p>

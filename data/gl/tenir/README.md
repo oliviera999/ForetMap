@@ -49,7 +49,7 @@ montre comptes, écarts et dernier rapport, et permet de resynchroniser (`POST
 | `missions.json` | `id` | 20 |
 | `titres.json` | chemin `honneurs.<honneur>.<biome>` etc. | 16 + 8 + 20 |
 | `badges.json` | `code` | 13 |
-| `olu-lignes.json` | `id` | 66 |
+| `olu-lignes.json` | `id` | 69 |
 | `parures.json` | `code` | 12 |
 | `sorts.json` | `code` (table `gl_spells`) | 25 + 6 voyageur |
 | `reglages-defaut.json` | clé de réglage `gameplay.tenir_*` | — |
@@ -128,7 +128,7 @@ existantes. `icone` est un mot-clé, pas un fichier. Aucun badge ne donne de res
 
 `{ "format", "lignes": [ { id, moment, expression, texte, variables, correction? } ] }`
 
-- `moment` ∈ `ouverture | jet | question | fouille | tenir | voile | sort | seuil | peripetie | bestiaire | oiseau | erreur`.
+- `moment` ∈ `ouverture | jet | question | fouille | tenir | voile | sort | seuil | peripetie | bestiaire | oiseau | erreur | bourse_pleine` (`bourse_pleine` : E5, au moins trois membres d'une équipe au plafond, dit une fois par séance à l'écran d'équipe, jamais en projection).
 - `expression` ∈ `neutre | joie | curieux | surpris | agace | pensif | explique | peur`.
 - `variables` : sous-ensemble de `equipe`, `n`, `biome`, calculé depuis les `{…}` du texte.
 - `moment = oiseau` : ligne dite **après** le passage de l'oiseau (Olu se fige pendant).

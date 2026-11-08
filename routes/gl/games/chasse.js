@@ -34,6 +34,8 @@ const router = express.Router();
 const CHASSE_ERRORS = {
   POINT_INVALIDE: 'Point de fouille invalide (x, y entre 0 et 1)',
   FOUILLES_EPUISEES: 'Plus de fouille pour ce tour',
+  FOUILLE_REPARATION_SEULEMENT:
+    'Il reste une fouille de réparation : elle ne sert que sur une page pâlie',
   CHASSE_SANS_QUESTION: 'Aucune question disponible pour cette zone',
   JETON_HORS_CHASSE: 'Ce jeton n’est pas une question de chasse',
   JETON_HORS_LECTURE: 'Ce jeton n’est pas une question de lecture',

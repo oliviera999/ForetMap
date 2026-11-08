@@ -62,8 +62,14 @@ const {
 async function resolveTenirMarkerContext(tx, settings, game, teamId) {
   if (!isTenirGame(settings, game)) return { tenir: false, sentierActif: false };
   const ctx = await resolveSentierContext(tx, game.id, teamId);
-  // C4 : cases positives à ressource converties selon `tenir_cases_positives`.
-  return { ...ctx, casesPositives: resolveTenirSettings(settings, game).cases_positives };
+  const resolved = resolveTenirSettings(settings, game);
+  // C4 : cases positives à ressource converties selon `tenir_cases_positives` ; E4 : surplus
+  // au plafond vers la réserve de la caravane.
+  return {
+    ...ctx,
+    casesPositives: resolved.cases_positives,
+    surplusReserve: resolved.surplus_reserve !== false,
+  };
 }
 
 async function loadChapterPathMarkers(tx, chapterId) {
@@ -418,6 +424,7 @@ router.post(
           tenir: tenirCtx.tenir,
           sentierActif: tenirCtx.sentierActif,
           casesPositives: tenirCtx.tenir ? tenirCtx.casesPositives : undefined,
+          reserveTeamId: tenirCtx.tenir && tenirCtx.surplusReserve ? Number(teamId) : null,
         });
         if (vitalityPayload?.sentier) await consumeSentier(tx, gameId, teamId);
 
@@ -584,6 +591,7 @@ router.post(
           tenir: tenirCtx.tenir,
           sentierActif: tenirCtx.sentierActif,
           casesPositives: tenirCtx.tenir ? tenirCtx.casesPositives : undefined,
+          reserveTeamId: tenirCtx.tenir && tenirCtx.surplusReserve ? Number(teamId) : null,
         });
         if (vitalityPayload?.sentier) await consumeSentier(tx, gameId, teamId);
 
