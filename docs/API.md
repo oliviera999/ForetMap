@@ -486,7 +486,7 @@ Badges individuels « Tenir à deux » (règles `docs/GL_TENIR_A_DEUX_REGLES.md`
 **moteur commun** des badges (`lib/rewards/core/engine.js`, contrat `docs/REWARDS_ENGINE.md`) :
 instance `lib/glRewards.js`, catalogue `lib/glRewardsCatalog.js` (16 entrées, 8 familles,
 paliers de la Trame 🧵 Fil · 🪢 Nœud · 🧶 Étoffe), mesures bornées au joueur
-`lib/glRewardsMetrics.js`, table `gl_player_rewards` (migration 342, clé primaire
+`lib/glRewardsMetrics.js`, table `gl_player_rewards` (migration 339, clé primaire
 `(player_id, reward_key)`, mêmes colonnes que `user_rewards`). Module `modules.rewards_enabled`
 (sinon `503`). Évaluation au fil de l'eau (crochets hors transaction après fouille, page trouvée /
 réparée / lue / tenue, don, étude d'espèce ou de biome, sort d'aide, bonne réponse de case,
@@ -584,7 +584,7 @@ dans `gl_settings` :
 - `modules.market_enabled`
 - `modules.voyageur_enabled` — « Le Seuil » : onglet d'accueil des joueurs, niveau du voyageur et grimoire personnel (défaut `true`, migration 317) ; éteint, les joueurs arrivent sur Cartes et `/api/gl/voyageur/*` répond `503`
 - `modules.voyageur_sounds_enabled` — sons synthétisés du voyageur côté client (« +1 », niveau, sortilèges, gestes) ; défaut `true`, aucun effet serveur. L'élève peut aussi les couper depuis le Seuil (préférence locale)
-- `modules.rewards_enabled` — badges individuels « Tenir à deux » sur le moteur commun (défaut `true`, migration 342) ; éteint, `/api/gl/rewards/*` répond `503` et les écrans (Mes traversées, écran d'équipe, vitrine MJ) se taisent. Les badges automatiques continuent d'être enregistrés en silence
+- `modules.rewards_enabled` — badges individuels « Tenir à deux » sur le moteur commun (défaut `true`, migration 339) ; éteint, `/api/gl/rewards/*` répond `503` et les écrans (Mes traversées, écran d'équipe, vitrine MJ) se taisent. Les badges automatiques continuent d'être enregistrés en silence
 
 Modifiables via `PUT /api/gl/admin/settings/:key` (validation booléenne stricte,
 permission `gl.settings.manage`).

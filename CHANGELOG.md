@@ -14,7 +14,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 Sept étapes commitées séparément (détail, choix par défaut et attendus chiffrés :
 `docs/GL_TENIR_A_DEUX.md`, `docs/GL_TENIR_A_DEUX_REGLES.md`, `docs/GL_SIMULATION.md`).
 
-- **Vérité des cases** (migration 340) : en mode tenir, le texte d'effet lu par l'élève à
+- **Vérité des cases** (migration 337) : en mode tenir, le texte d'effet lu par l'élève à
   l'arrivée sur une case est **calculé depuis l'effet réellement appliqué** (noyau partagé
   `src/shared/glTenirCaseEffetCore.js`, moteur et affichage confondus), jamais lu dans le champ
   d'auteur `effet_mecanique` (studio du MJ). Textes des arrivées, défis d'équipe, péripéties,
@@ -23,7 +23,7 @@ Sept étapes commitées séparément (détail, choix par défaut et attendus chi
   Contrôle `gl_marker_promises` (`foretmap_audit_all`, rapport de santé, `tests/content/
 gl-marker-promises`) : aucune promesse affichée non tenue, aucun « sinon / si échec » suivi
   d'une perte.
-- **Équilibrage E1-E6** (migration 341, chaque choix réglable `gameplay.tenir_*`) : dé gris
+- **Équilibrage E1-E6** (migration 338, chaque choix réglable `gameplay.tenir_*`) : dé gris
   `1d6 + {1:3, 2:4, 3:5, 4:6}` (E1, choix d'Oliv) ; fouille de réparation des équipes gnomes sur
   une page pâlie, « 1 + 1 réparation » (E2) ; plancher de pâlissement au rang 8 (E3) ; **réserve de
   la caravane** : le surplus au plafond n'est plus perdu, il paie en premier le pot des sorts et
@@ -31,7 +31,7 @@ gl-marker-promises`) : aucune promesse affichée non tenue, aucun « sinon / si 
   d'Olu « Vos bourses débordent » une fois par séance à l'écran d'équipe (E5) ; règle écrite
   « 8 / 8 / 10 / 10 » (E6). Invariants `RESERVE_NEGATIVE`, `RESERVE_LIVRE`, `LIVRE_TOTAL`,
   `FOUILLES_QUOTA`.
-- **Badges individuels sur le moteur commun** (migration 342, `docs/REWARDS_ENGINE.md` § 5) :
+- **Badges individuels sur le moteur commun** (migration 339, `docs/REWARDS_ENGINE.md` § 5) :
   table `gl_player_rewards`, instance `lib/glRewards.js`, 16 badges en 8 familles aux paliers
   **Fil** 🧵 / **Nœud** 🪢 / **Étoffe** 🧶 (effort, curiosité, persévérance, aide — jamais la
   justesse ni un rang), routes `/api/gl/rewards/{me,me/seen,games/:id,games/:id/award}` (mot
@@ -70,7 +70,7 @@ gl-marker-promises`) : aucune promesse affichée non tenue, aucun « sinon / si 
   rapport de santé ; prompt guidé `diagnostiquer_partie_gl` ; `gl_chasse_zones` et
   `gl_tenir_questions_lecture` lisibles par `foretmap_sql_select` (GRANT à ajouter au compte
   `DB_MCP_USER` dédié, `scripts/mcp-print-grants.js`).
-- **Hygiène et exploitation** (migration 343) : les 11 sorts hérités hors v2 passent en `propose` ;
+- **Hygiène et exploitation** (migration 340) : les 11 sorts hérités hors v2 passent en `propose` ;
   niveaux de questions bornés à la 6e en mode tenir (cases et fouilles de secours,
   `lib/glNiveauxAdmis.js`) ; cases 251 / 253 bornées ; `npm run gl:photo-credits[:dry]`
   (crédits photo des QCM depuis Wikimedia Commons) ; encart « Comment fonctionne le marché ? »

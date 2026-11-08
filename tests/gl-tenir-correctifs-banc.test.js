@@ -43,14 +43,23 @@ before(async () => {
   await initSchema();
 });
 
-test('une case Souffle « passe ton tour » fait passer le jet suivant ; avance libre du prof possible ; le tour d’après est libre', async () => {
+test('une case Souffle « passe ton tour » fait passer le jet suivant ; avance libre du prof possible ; le tour d’après est libre', async (t) => {
   const ctx = await createTenirGame({ stamp: `${stamp}-pt`, plateau: 1 });
   await importExempleChasse(db, { game: ctx.game });
   await request(app).get(api(ctx, '/tenir')).set(auth(ctx.adminToken)).expect(200);
   await execute('UPDATE gl_game_tenir_state SET chapardeur_round = 99 WHERE game_id = ?', [
     ctx.game.id,
   ]);
-  const souffle = ctx.markers[4]; // « Souffle 1 »
+  const souffle = ctx.markers[4]; // « Souffle 1 » — case du chapitre PARTAGÉ par les suites tenir
+  const configInitiale = (
+    await queryOne('SELECT event_config_json FROM gl_chapter_markers WHERE id = ?', [souffle.id])
+  ).event_config_json;
+  t.after(async () => {
+    await execute('UPDATE gl_chapter_markers SET event_config_json = ? WHERE id = ?', [
+      configInitiale,
+      souffle.id,
+    ]);
+  });
   await execute('UPDATE gl_chapter_markers SET event_config_json = ? WHERE id = ?', [
     JSON.stringify({
       version: 2,

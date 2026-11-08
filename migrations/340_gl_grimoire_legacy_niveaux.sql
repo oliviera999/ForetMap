@@ -1,4 +1,4 @@
--- 343 — G&L « Tenir à deux » : grimoire hérité en `propose`, bornes de difficulté des cases
+-- 340 — G&L « Tenir à deux » : grimoire hérité en `propose`, bornes de difficulté des cases
 -- quiz 251 et 253 du plateau 4.
 --
 -- 1) Grimoire. Règle § 10 : « Les anciens sorts du tableur restent en base en `propose`, non

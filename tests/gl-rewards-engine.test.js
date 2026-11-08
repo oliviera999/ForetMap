@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * Gnomes & Licornes — badges individuels sur le moteur commun (migration 342,
+ * Gnomes & Licornes — badges individuels sur le moteur commun (migration 339,
  * `lib/glRewards.js`, `routes/gl/rewards.js`) : chaque mesure sur fixtures anonymes, paliers
  * Fil / Nœud / Étoffe, idempotence et jamais de retrait, mot obligatoire, aucune ressource
  * créditée, aucune clé de classement, vitrine triée par nom, interrupteur de module, routes

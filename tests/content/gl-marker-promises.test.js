@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * Vérité des cases (« Tenir à deux », migration 340) : sur les plateaux 1 à 4, aucune promesse
+ * Vérité des cases (« Tenir à deux », migration 337) : sur les plateaux 1 à 4, aucune promesse
  * affichée à l'élève n'est laissée sans suite par le moteur, et aucun texte n'annonce une perte
  * en cas d'échec (garde-fou § 1.4).
  *

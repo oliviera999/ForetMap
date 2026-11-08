@@ -1,5 +1,5 @@
 -- =====================================================================
--- 341 — G&L « Tenir à deux » : équilibrage E1 à E5 (bilan du 7 novembre 2026).
+-- 338 — G&L « Tenir à deux » : équilibrage E1 à E5 (bilan du 7 novembre 2026).
 --
 -- - E1 : bonus du dé gris `{1:3, 2:4, 3:5, 4:6}` (seul le plateau 1 ralentit) ; la valeur n'est
 --   changée que si elle vaut encore l'ancien défaut `{1:4, 2:4, 3:5, 4:6}` ;

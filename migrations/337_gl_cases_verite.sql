@@ -1,5 +1,5 @@
 -- =====================================================================
--- 340 — G&L « Tenir à deux » : vérité des cases (ce que l'élève lit = ce que le moteur applique).
+-- 337 — G&L « Tenir à deux » : vérité des cases (ce que l'élève lit = ce que le moteur applique).
 --
 -- Bilan du 7 novembre 2026 : des cases annoncent à l'élève des effets que le moteur n'applique
 -- pas (le texte affiché venait de `effet_mecanique`, champ d'auteur, alors que le moteur exécute

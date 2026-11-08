@@ -112,7 +112,7 @@ Calibrage (4 000 chapitres par plateau, graine 7) : le modèle reproduit les ré
 
 ## Écarts observés
 
-Les résultats de la grille et des scénarios sur l'instantané de production (migrations 340 et 343 appliquées) sont consignés dans `docs/GL_SIMULATION.md` § 9. Les premières exécutions tournaient sur un instantané **provisoire** tiré de `foretmap_local` (migration 259, chapitre 5 fusionné dans le plateau 4 par `db.js`) : cinq catégories de questions des cases du plateau 1 y manquaient, `present-question` répondait 404 et presque tous les chapitres allaient à la 6e séance ; l'instantané réel a levé ce point (4 à 6 séances au plateau 1, graine 7). Les attendus « part des Gnomes 40-55 % » se lisent sur les médianes de 5 à 20 exécutions, jamais sur une seule.
+Les résultats de la grille et des scénarios sur l'instantané de production (migrations 337 et 340 appliquées) sont consignés dans `docs/GL_SIMULATION.md` § 9. Les premières exécutions tournaient sur un instantané **provisoire** tiré de `foretmap_local` (migration 259, chapitre 5 fusionné dans le plateau 4 par `db.js`) : cinq catégories de questions des cases du plateau 1 y manquaient, `present-question` répondait 404 et presque tous les chapitres allaient à la 6e séance ; l'instantané réel a levé ce point (4 à 6 séances au plateau 1, graine 7). Les attendus « part des Gnomes 40-55 % » se lisent sur les médianes de 5 à 20 exécutions, jamais sur une seule.
 
 ## Bogues et observations du moteur relevés (corrigés dans le même lot, `tests/gl-tenir-correctifs-banc.test.js`)
 

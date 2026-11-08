@@ -4,7 +4,7 @@
  * Plateau 4 « Eurasie continentale » : chaque case quiz à tirage porte une borne de difficulté
  * (`difficulteMin` ou `difficulteMax`), comme la grammaire du plateau le prévoit (migration
  * 316 : approfondissement = `difficulteMin 2`, base = `difficulteMax 2`). Les cases 251 et 253,
- * ajoutées sans borne, la reçoivent par la migration 343. Test de CONTENU : sur une base sans
+ * ajoutées sans borne, la reçoivent par la migration 340. Test de CONTENU : sur une base sans
  * ce chapitre (CI, base neuve), le contrôle le dit et passe.
  */
 

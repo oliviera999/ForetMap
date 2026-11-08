@@ -168,7 +168,7 @@ Bogues du moteur, tous **corrigés dans le même lot** (`tests/gl-tenir-correcti
 Observations de **contenu** laissées à la relecture d'Oliv (avertissements du banc, non
 bloquants) : « corbeau » dans 58 textes de feuillets, « attaque » / « faux » dans des retours de
 QCM, « Grise » dans `sortileges_markdown` du chapitre 2 (le libellé de case « La Grise s'étend »
-est corrigé par la migration 340).
+est corrigé par la migration 337).
 
 ## 9. Résultats du 8 novembre 2026
 

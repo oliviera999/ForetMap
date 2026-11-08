@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * « Tenir à deux » — équilibrage du 7 novembre 2026 (migration 341), un test par réglage,
+ * « Tenir à deux » — équilibrage du 7 novembre 2026 (migration 338), un test par réglage,
  * activé et désactivé :
  * - E1 `tenir_voile_bonus_par_plateau` {1:3, 2:4, 3:5, 4:6}, migration conditionnelle ;
  * - E2 `tenir_fouilles_reparation_gnome` : fouille de réparation d'une équipe gnome, page pâlie
@@ -120,7 +120,7 @@ test('E1 : le dé gris vaut 1d6 + {3,4,5,6} par défaut (code, fichier de régla
   assert.equal(fichier.defaut.olu_bourse_pleine, true);
 
   const migration = fs.readFileSync(
-    path.join(__dirname, '..', 'migrations', '341_gl_tenir_equilibrage.sql'),
+    path.join(__dirname, '..', 'migrations', '338_gl_tenir_equilibrage.sql'),
     'utf8',
   );
   const updateE1 = migration
