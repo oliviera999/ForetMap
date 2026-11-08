@@ -9,6 +9,28 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — G&L en production : intro muette, connexion Google, fond du plateau de démonstration
+
+Constaté sur `gl.olution.info` le 8 novembre 2026 après la v1.239.0.
+
+- **Intro sans son ni animation** : l'export de l'introduction nomme ses bundles JavaScript
+  `.bin` (`public/gl/intro/assets/<uuid>.bin`, sous-ressources à empreinte `integrity`) ;
+  `express.static` les servait en `application/octet-stream` et, avec
+  `X-Content-Type-Options: nosniff`, le navigateur refusait de les exécuter (« Refused to
+  execute script »). Ils sont servis en `text/javascript` (`lib/staticCacheHeaders.js`, dist et
+  `public/`) ; `tests/static-cache-headers`.
+- **Connexion Google G&L impossible** : `GL_GOOGLE_OAUTH_REDIRECT_URI` pointait en prod le rappel
+  ForetMap (`/api/auth/google/callback`) et non celui de G&L (`/api/gl/auth/google/callback`) ;
+  Google renvoyait sur un rappel dont les cookies de départ étaient absents (« session
+  expirée »), et il ne restait que le mode découverte. Une URI d'environnement dont le chemin
+  n'est pas le rappel G&L est **ignorée** (avertissement unique dans le journal) et l'URI est
+  dérivée de la requête (`resolveOAuthRedirectUriForCallback`) ; la valeur du `.env` et
+  l'URI autorisée dans la console Google restent à corriger côté exploitation.
+- **Plateau de démonstration sans fond** (mode découverte, vitrine parents, borne) : le fond
+  venait d'un fichier statique `/gl/boards/<fichier>` qui n'est pas livré avec `dist/` (la prod
+  répondait la page HTML). Le fond vient désormais de la **médiathèque** (clé `plateau-1_*`,
+  comme une vraie partie), l'ancien chemin reste le repli ; `tests-ui/gl/guestBoardImageUrl`.
+
 ### Modifié — G&L « Tenir à deux » : vérité des cases, équilibrage, badges individuels, banc de simulation, outils MCP (bilan du 7 novembre 2026)
 
 Sept étapes commitées séparément (détail, choix par défaut et attendus chiffrés :

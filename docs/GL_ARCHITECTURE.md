@@ -494,7 +494,10 @@ Le mapping de slugs est configurable (ex. `le-monde-de-gnomes-licornes -> world`
 - `FRONTEND_ORIGINS`
 - `GL_FRONTEND_ORIGIN`
 - `GL_GOOGLE_OAUTH_CLIENT_ID`
-- `GL_GOOGLE_OAUTH_REDIRECT_URI`
+- `GL_GOOGLE_OAUTH_REDIRECT_URI` — doit pointer **le rappel G&L** `https://<hôte gl>/api/gl/auth/google/callback`
+  (et cette URI doit figurer parmi les URI de redirection autorisées du client Google) ; une valeur
+  dont le chemin est autre (ex. le rappel ForetMap `/api/auth/google/callback`) est ignorée au
+  profit de l'URI dérivée de la requête, avec un avertissement au journal (incident du 8 novembre 2026).
 - `GL_GOOGLE_OAUTH_ALLOWED_DOMAINS`
 - `GL_GOOGLE_OAUTH_ALLOWED_EMAILS`
 - `GL_PROD_BASE_URL`

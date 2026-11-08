@@ -18,6 +18,8 @@ import { GLFeuilletDiscoveryPopover } from './GLFeuilletDiscoveryPopover.jsx';
 import { GLVirtualDiceDock } from './GLVirtualDiceDock.jsx';
 import { GLButton } from './ui/GLButton.jsx';
 import { GL_DISCOVERY_TAB } from '../constants/app-runtime.js';
+import { plateauBoardImg, GL_ASSET_PLACEHOLDER_URL } from '../assets/index.js';
+import { useGlAssetsReady } from './GLFeuilletIllustration.jsx';
 
 const DEMO_TEAM_ID = 1;
 const DEMO_MASCOT_ID = 'liche';
@@ -31,8 +33,15 @@ const DEMO_TEAM = Object.freeze({
   position_y_pct: 72,
 });
 
-function boardImageUrlFromZones(zones) {
-  const file = zones.find((z) => z.boardImage)?.boardImage;
+/**
+ * Fond du plateau de démonstration : d'abord la **médiathèque** (clé `plateau-1_*`, comme le
+ * plateau d'une vraie partie), sinon l'ancien fichier statique `/gl/boards/<fichier>` du
+ * paquet de zones — un fichier qui n'est pas livré avec `dist/` et que la prod servait comme
+ * page HTML (repli SPA) : plateau sans fond en mode découverte, 8 novembre 2026.
+ */
+export function guestBoardImageUrl({ zones, conventionBoard = null, placeholderUrl = '' }) {
+  if (conventionBoard && conventionBoard !== placeholderUrl) return conventionBoard;
+  const file = (zones || []).find((z) => z.boardImage)?.boardImage;
   if (!file) return '/maps/map-foret.svg';
   return withAppBase(`/gl/boards/${file}`);
 }
@@ -61,7 +70,17 @@ export function GLGuestDemoBoard({
   onNavigate,
 }) {
   const feuilletZones = useMemo(() => getRuntimeFeuilletZonesForPlateau(1), []);
-  const imageUrl = useMemo(() => boardImageUrlFromZones(feuilletZones), [feuilletZones]);
+  const assetsReady = useGlAssetsReady();
+  const conventionBoard = useMemo(() => (assetsReady ? plateauBoardImg(1) : null), [assetsReady]);
+  const imageUrl = useMemo(
+    () =>
+      guestBoardImageUrl({
+        zones: feuilletZones,
+        conventionBoard,
+        placeholderUrl: GL_ASSET_PLACEHOLDER_URL,
+      }),
+    [feuilletZones, conventionBoard],
+  );
   const pathWaypoints = useMemo(() => buildPathWaypoints(feuilletZones), [feuilletZones]);
   const mapGestures = useGlPctMapGestures();
   const prefersReducedMotion = usePrefersReducedMotion();
