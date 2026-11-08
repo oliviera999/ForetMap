@@ -168,7 +168,7 @@ test('auditMarkerPromises agrège par sévérité, par code et par chapitre', ()
   assert.strictEqual(report.byChapter['4'].error, 1);
 });
 
-// --- Vérité des cases (« Tenir à deux », migration 336) -----------------------------------
+// --- Vérité des cases (« Tenir à deux », migration 340) -----------------------------------
 
 const { promisesLossOnFailure, auditTenirBranchPromises } = require('../lib/glMarkerPromiseAudit');
 

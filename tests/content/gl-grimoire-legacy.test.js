@@ -2,7 +2,7 @@
 
 /**
  * Grimoire « Tenir à deux » (règle § 10) : seuls les 25 sorts v2 sont lançables ; les anciens
- * sorts du tableur restent en base en `propose` (migration 339). Test de CONTENU : il porte sur
+ * sorts du tableur restent en base en `propose` (migration 343). Test de CONTENU : il porte sur
  * les lignes de `gl_spells` semées par les migrations. Sur une base sans sort (base neuve
  * avant semis), le contrôle le dit et passe.
  */

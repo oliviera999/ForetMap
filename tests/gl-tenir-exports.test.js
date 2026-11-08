@@ -24,7 +24,7 @@ before(async () => {
      ON DUPLICATE KEY UPDATE cartes_gardees = VALUES(cartes_gardees)`,
     [ctx.game.id, ctx.teams[0].id, ctx.game.id, ctx.teams[0].id],
   );
-  // Badges du moteur commun (migration 338) : un palier calculé et un badge décerné avec un mot.
+  // Badges du moteur commun (migration 342) : un palier calculé et un badge décerné avec un mot.
   await execute(
     `INSERT IGNORE INTO gl_player_rewards (player_id, reward_key, source_type, source_ref, awarded_at)
      VALUES (?, 'chasse.pages.1', 'page_trouvee', 'cz-p1-01', NOW())`,

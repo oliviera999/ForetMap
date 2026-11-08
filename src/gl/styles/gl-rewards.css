@@ -8,8 +8,15 @@
   --leaf: var(--gl-color-accent);
   --soil: var(--gl-color-text);
   --surface-plain: var(--gl-surface);
-  --ink-soft: var(--gl-color-text-muted);
   margin-top: 8px;
+}
+
+/* `--ink-soft` est un jeton commun (typography-tokens.css) : jamais redéclaré par une feuille
+   produit ; les textes atténués du panneau prennent directement la teinte G&L. */
+.gl-rewards .reward-card__desc,
+.gl-rewards .reward-card__date,
+.gl-rewards .reward-tier {
+  color: var(--gl-color-text-muted);
 }
 
 .gl-rewards .pedago-rewards__title,

@@ -1,5 +1,5 @@
 -- =====================================================================
--- 337 — G&L « Tenir à deux » : équilibrage E1 à E5 (bilan du 7 novembre 2026).
+-- 341 — G&L « Tenir à deux » : équilibrage E1 à E5 (bilan du 7 novembre 2026).
 --
 -- - E1 : bonus du dé gris `{1:3, 2:4, 3:5, 4:6}` (seul le plateau 1 ralentit) ; la valeur n'est
 --   changée que si elle vaut encore l'ancien défaut `{1:4, 2:4, 3:5, 4:6}` ;
@@ -40,25 +40,25 @@ CREATE TABLE IF NOT EXISTS gl_game_team_reserves (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- E4 — grand livre : mouvements de réserve.
-SET @fm337 = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'gl_resource_ledger' AND COLUMN_NAME = 'kind');
-SET @sql = IF(@fm337 = 0, "ALTER TABLE gl_resource_ledger ADD COLUMN kind ENUM('bourse','reserve') NOT NULL DEFAULT 'bourse' AFTER player_id", 'SELECT 1');
+SET @fm341 = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'gl_resource_ledger' AND COLUMN_NAME = 'kind');
+SET @sql = IF(@fm341 = 0, "ALTER TABLE gl_resource_ledger ADD COLUMN kind ENUM('bourse','reserve') NOT NULL DEFAULT 'bourse' AFTER player_id", 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
-SET @fm337 = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'gl_resource_ledger' AND COLUMN_NAME = 'team_id');
-SET @sql = IF(@fm337 = 0, 'ALTER TABLE gl_resource_ledger ADD COLUMN team_id INT UNSIGNED NULL AFTER kind, ADD KEY idx_gl_resource_ledger_team (game_id, team_id, id)', 'SELECT 1');
+SET @fm341 = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'gl_resource_ledger' AND COLUMN_NAME = 'team_id');
+SET @sql = IF(@fm341 = 0, 'ALTER TABLE gl_resource_ledger ADD COLUMN team_id INT UNSIGNED NULL AFTER kind, ADD KEY idx_gl_resource_ledger_team (game_id, team_id, id)', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- `player_id` facultatif : un mouvement de réserve (sortie vers le pot, remise à zéro au Seuil)
 -- n'appartient à aucun élève.
-SET @fm337 = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'gl_resource_ledger' AND COLUMN_NAME = 'player_id' AND IS_NULLABLE = 'NO');
-SET @sql = IF(@fm337 = 1, 'ALTER TABLE gl_resource_ledger MODIFY COLUMN player_id INT UNSIGNED NULL', 'SELECT 1');
+SET @fm341 = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'gl_resource_ledger' AND COLUMN_NAME = 'player_id' AND IS_NULLABLE = 'NO');
+SET @sql = IF(@fm341 = 1, 'ALTER TABLE gl_resource_ledger MODIFY COLUMN player_id INT UNSIGNED NULL', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
-SET @fm337 = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'gl_resource_ledger' AND COLUMN_NAME = 'cause' AND COLUMN_TYPE LIKE '%reserve_entree%');
-SET @sql = IF(@fm337 = 0, "ALTER TABLE gl_resource_ledger MODIFY COLUMN cause ENUM('page_tenue','trame','case_positive','case_souffle','carnet_complet','sort_pot','echange','don','parure','chapardeur','nid','heritage','reparation','geste_prof','migration','case_plateau','feuillet','defaut','reserve_entree','reserve_sortie','reserve_seuil') NOT NULL DEFAULT 'geste_prof'", 'SELECT 1');
+SET @fm341 = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'gl_resource_ledger' AND COLUMN_NAME = 'cause' AND COLUMN_TYPE LIKE '%reserve_entree%');
+SET @sql = IF(@fm341 = 0, "ALTER TABLE gl_resource_ledger MODIFY COLUMN cause ENUM('page_tenue','trame','case_positive','case_souffle','carnet_complet','sort_pot','echange','don','parure','chapardeur','nid','heritage','reparation','geste_prof','migration','case_plateau','feuillet','defaut','reserve_entree','reserve_sortie','reserve_seuil') NOT NULL DEFAULT 'geste_prof'", 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- E2 — fouille de réparation (équipe gnome, page pâlie seulement).
-SET @fm337 = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'gl_game_chasse_empreintes' AND COLUMN_NAME = 'reparation');
-SET @sql = IF(@fm337 = 0, 'ALTER TABLE gl_game_chasse_empreintes ADD COLUMN reparation TINYINT(1) NOT NULL DEFAULT 0 AFTER verdict', 'SELECT 1');
+SET @fm341 = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'gl_game_chasse_empreintes' AND COLUMN_NAME = 'reparation');
+SET @sql = IF(@fm341 = 0, 'ALTER TABLE gl_game_chasse_empreintes ADD COLUMN reparation TINYINT(1) NOT NULL DEFAULT 0 AFTER verdict', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;

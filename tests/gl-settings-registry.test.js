@@ -93,7 +93,7 @@ const HISTORICAL_MODULE_KEYS = [
   'modules.voyageur_enabled',
   // Sons synthétisés du voyageur (audit expérience joueur § 13).
   'modules.voyageur_sounds_enabled',
-  // Badges individuels « Tenir à deux » sur le moteur commun (migration 338).
+  // Badges individuels « Tenir à deux » sur le moteur commun (migration 342).
   'modules.rewards_enabled',
 ];
 

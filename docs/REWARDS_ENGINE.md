@@ -81,7 +81,7 @@ G&L devra respecter.
 
 ## 5. L'instance Gnomes & Licornes (livrée le 8 novembre 2026)
 
-- Table `gl_player_rewards` (migration 338, mêmes colonnes que `user_rewards`, clé
+- Table `gl_player_rewards` (migration 342, mêmes colonnes que `user_rewards`, clé
   `(player_id, reward_key)`) ; instance `lib/glRewards.js` (`createRewardsEngine({ product: 'gl', … })`),
   catalogue `lib/glRewardsCatalog.js` (16 badges, 8 familles ; `Tisserand` / `Révélateur` réservés
   dans `RESERVED_REWARDS`, hors catalogue actif), mesures `lib/glRewardsMetrics.js` bornées au

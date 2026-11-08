@@ -39,7 +39,7 @@ dés par surface (`resolveSurface`, `resolveDesMode`). Au passage `draft → liv
 numéroté est imposé, l'état de partie créé (chapardeur tiré entre les tours 2 et 4), les pages de
 chasse initialisées, les Héritages de la classe versés.
 
-## Tables (migrations 330 → 339)
+## Tables (migrations 330 → 343)
 
 | Migration | Tables / colonnes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -50,10 +50,10 @@ chasse initialisées, les Héritages de la classe versés.
 
 | 334 | `gl_chasse_zones.especes_json` (pistes de veillée), `gl_tenir_olu_lignes.plateaux_json` (erreur du jour par plateau), `gl_game_rounds.dernier_jet_json` (fenêtre « après le jet »), `gl_resource_ledger` (grand livre des bourses), empreintes `content.tenir_catalogues_hash` |
 | 335 | contenu : descriptions des neuf cases de déplacement des plateaux 1-4 (gardées par l'ancien texte), case 217 → `order_index` 355 |
-| 336 | **vérité des cases** (8 novembre 2026) : textes d'auteur `effet_mecanique` des arrivées, défis d'équipe, péripéties, pertes neutres et cartes question des plateaux 1-4 rendus exacts ; libellés Trame « +2 » → « +1 » (P4) ; `passTurn: true` sur les six branches Souffle qui l'annonçaient ; « La Grise s'étend » → « Le terne s'étend » — chaque UPDATE gardé par l'ancienne valeur exacte |
-| 337 | **équilibrage E1-E5** : réglages `gameplay.tenir_fouilles_reparation_gnome`, `tenir_palissement_rang_plancher`, `tenir_surplus_reserve`, `tenir_olu_bourse_pleine` (défauts) ; `voile_bonus_par_plateau` → `{1:3,2:4,3:5,4:6}` si encore à l'ancien défaut ; `gl_game_team_reserves` (réserve de la caravane) ; `gl_resource_ledger` : `kind` bourse / réserve, `team_id`, `player_id` facultatif, causes `reserve_entree` / `reserve_sortie` / `reserve_seuil` ; `gl_game_chasse_empreintes.reparation` |
-| 338 | `gl_player_rewards` (badges individuels sur le moteur commun, voir `REWARDS_ENGINE.md` § 5) |
-| 339 | contenu : les 11 sorts `officiel` hors v2 passent en `propose` (non lançables) ; cases 251 et 253 (P4) bornées en difficulté comme leurs voisines |
+| 340 | **vérité des cases** (8 novembre 2026) : textes d'auteur `effet_mecanique` des arrivées, défis d'équipe, péripéties, pertes neutres et cartes question des plateaux 1-4 rendus exacts ; libellés Trame « +2 » → « +1 » (P4) ; `passTurn: true` sur les six branches Souffle qui l'annonçaient ; « La Grise s'étend » → « Le terne s'étend » — chaque UPDATE gardé par l'ancienne valeur exacte |
+| 341 | **équilibrage E1-E5** : réglages `gameplay.tenir_fouilles_reparation_gnome`, `tenir_palissement_rang_plancher`, `tenir_surplus_reserve`, `tenir_olu_bourse_pleine` (défauts) ; `voile_bonus_par_plateau` → `{1:3,2:4,3:5,4:6}` si encore à l'ancien défaut ; `gl_game_team_reserves` (réserve de la caravane) ; `gl_resource_ledger` : `kind` bourse / réserve, `team_id`, `player_id` facultatif, causes `reserve_entree` / `reserve_sortie` / `reserve_seuil` ; `gl_game_chasse_empreintes.reparation` |
+| 342 | `gl_player_rewards` (badges individuels sur le moteur commun, voir `REWARDS_ENGINE.md` § 5) |
+| 343 | contenu : les 11 sorts `officiel` hors v2 passent en `propose` (non lançables) ; cases 251 et 253 (P4) bornées en difficulté comme leurs voisines |
 
 Le chargeur `npm run gl:import:tenir -- --fichier tous|<nom> [--dry-run] [--forcer] [--strict]`
 (`lib/glTenirImport.js`, données `data/gl/tenir/`, README des clés) reste maître des catalogues ;
@@ -162,7 +162,7 @@ chasse aux plateaux 3-4 (57 à 69 % des équipes dessous, 53 à 63 % des pages p
 
 | #   | Sujet                   | Choix par défaut                                                                                                                                                    | Réglage                                         |
 | --- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
-| V   | Vérité des cases        | le texte d'arrivée est **calculé** depuis l'effet appliqué (`glTenirCaseEffetCore`) ; `effet_mecanique` reste un champ d'auteur (studio) ; migration 336            | —                                               |
+| V   | Vérité des cases        | le texte d'arrivée est **calculé** depuis l'effet appliqué (`glTenirCaseEffetCore`) ; `effet_mecanique` reste un champ d'auteur (studio) ; migration 340            | —                                               |
 | E1  | Vitesse du voile        | dé gris `1d6 + {1:3, 2:4, 3:5, 4:6}` : seul le plateau 1 ralentit                                                                                                   | `tenir_voile_bonus_par_plateau`                 |
 | E2  | Fouille de réparation   | +1 fouille par tour pour une équipe gnome, page pâlie seulement, comptée dans le quota (« 1 + 1 réparation »), refus `FOUILLE_REPARATION_SEULEMENT` ailleurs        | `tenir_fouilles_reparation_gnome` (1 ; 0 = off) |
 | E3  | Plancher de pâlissement | une zone de rang < 8 est traitée comme de rang 8 au passage du voile (`GREATEST`) ; géométrie et rang affiché inchangés                                             | `tenir_palissement_rang_plancher` (8 ; 0 = off) |
@@ -175,7 +175,7 @@ Invariants ajoutés (`lib/glTenirInvariants.js`) : `RESERVE_NEGATIVE`, `RESERVE_
 `FOUILLES_QUOTA`. Tests : `tests/gl-tenir-equilibrage.test.js`, `tests/gl-tenir-case-effet-core.test.js`,
 `tests/content/gl-marker-promises.test.js`.
 
-Hygiène du même lot (migration 339, `lib/glNiveauxAdmis.js`) : sorts hérités en `propose`, niveaux de
+Hygiène du même lot (migration 343, `lib/glNiveauxAdmis.js`) : sorts hérités en `propose`, niveaux de
 questions bornés à la 6e en mode tenir (cases et fouilles de secours), bornes de difficulté des cases
 251 / 253, script `npm run gl:photo-credits[:dry]` (crédits photo des QCM depuis Wikimedia Commons),
 encart « Comment fonctionne le marché ? » sur La place (`docs/captures/tenir-v2/marche-encart-regles.png`),
