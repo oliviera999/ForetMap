@@ -23,12 +23,38 @@ test.before(async () => {
 
 test.after(() => fx.cleanupAccounts());
 
-test('prompts/list expose les six parcours', async () => {
+test('prompts/list expose les sept parcours', async () => {
   const res = await fx.rpc(app, token, 'prompts/list');
   assert.equal(res.status, 200);
   const names = res.body.result.prompts.map((p) => p.name).sort();
   assert.deepEqual(names, PROMPTS.map((p) => p.name).sort());
-  assert.equal(names.length, 6);
+  assert.equal(names.length, 7);
+  assert.ok(names.includes('diagnostiquer_partie_gl'));
+});
+
+test('prompts/get diagnostiquer_partie_gl : enchaînement G&L, aucun nom d’élève, rien sans accord', async () => {
+  const res = await fx.rpc(app, token, 'prompts/get', {
+    name: 'diagnostiquer_partie_gl',
+    arguments: { game_id: '42' },
+  });
+  assert.equal(res.status, 200);
+  const text = res.body.result.messages[0].content.text;
+  assert.match(text, /partie Gnomes & Licornes 42/);
+  for (const step of [
+    'gl_games action=list',
+    'gl_game_state action=get',
+    'gl_game_diagnostic action=get',
+    'gl_game_journal action=list',
+    'gl_rewards action=vitrine',
+    'check=gl_marker_promises',
+    'check=gl_tenir_zones',
+    'check=gl_spells_legacy',
+  ]) {
+    assert.ok(text.includes(step), step);
+  }
+  assert.match(text, /sans classement/);
+  assert.match(text, /SANS RIEN ÉCRIRE/);
+  assert.match(text, /Aucun nom d’élève/);
 });
 
 test('prompts/get renvoie les étapes avec les arguments', async () => {
