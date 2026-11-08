@@ -1,0 +1,24 @@
+{
+  "format": "gl-sim-modele-rapide-reference v1",
+  "description": "Médianes du modèle rapide (Monte-Carlo des règles v2, classe moyenne) par plateau P1..P4, pour les variantes `e1` et `actuel` de data/gl/sim/grilles/grille-voile.json. Le rapport du scénario `equilibrage` compare ses médianes à ces valeurs et signale tout écart de plus de 10 points.",
+  "classe": "moyenne",
+  "ecartMaxPoints": 10,
+  "variantes": {
+    "e1": {
+      "equipesSousVoile": { "1": 20, "2": 38, "3": 57, "4": 69 },
+      "pagesPalies": { "1": 18, "2": 23, "3": 40, "4": 48 },
+      "pagesTenues": { "1": 78, "2": 74, "3": 56, "4": 50 },
+      "carnetComplet": { "1": 27, "2": 26, "3": 4, "4": 2 },
+      "partGnomes": { "1": 48, "2": 53, "3": 52, "4": 56 },
+      "seances": { "1": 5.2, "2": 5.2, "3": 5.2, "4": 5.2 }
+    },
+    "actuel": {
+      "equipesSousVoile": { "1": 36, "2": 39, "3": 57, "4": 69 },
+      "pagesPalies": { "1": 37, "2": 38, "3": 53, "4": 63 },
+      "pagesTenues": { "1": 60, "2": 60, "3": 43, "4": 35 },
+      "carnetComplet": { "1": 7, "2": 8, "3": 1, "4": 0.2 },
+      "partGnomes": { "1": 37, "2": 41, "3": 35, "4": 38 },
+      "seances": { "1": 5.2, "2": 5.2, "3": 5.2, "4": 5.2 }
+    }
+  }
+}
