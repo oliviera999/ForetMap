@@ -40,6 +40,14 @@ const TABLES_INTERDITES_RE =
   /^(users|gl_players|gl_admins|gl_classes|gl_games|gl_teams|gl_team_members|gl_game_|gl_player_|gl_market_|gl_spell_cast|password_|audit_|students|teachers|gl_forum_)/i;
 
 /** Colonnes nominatives : un instantané qui en porte une est refusé. */
+/** Colonnes retirées de l'export (identifiants de comptes, aucun usage pour le banc). */
+const COLONNES_EXCLUES = new Set([
+  'created_by_user_type',
+  'created_by_user_id',
+  'created_by',
+  'updated_by',
+]);
+
 const COLONNES_NOMINATIVES_RE =
   /^(email|e_mail|mail|password|password_hash|pwd|first_name|last_name|prenom|nom_eleve|pseudo|display_name|phone|telephone|adresse|address|ip|totp_secret|token)$/i;
 
@@ -87,7 +95,9 @@ async function exporterSnapshot(conn, dbName) {
       'SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? ORDER BY ORDINAL_POSITION',
       [dbName, table],
     );
-    const columns = cols.map((c) => String(c.COLUMN_NAME));
+    // Colonnes d'auteur (identifiant d'un compte du personnel) : hors de l'instantané, le banc
+    // n'en a pas besoin et aucune donnée de personne ne doit y entrer.
+    const columns = cols.map((c) => String(c.COLUMN_NAME)).filter((c) => !COLONNES_EXCLUES.has(c));
     if (!columns.length) {
       absentes.push(table);
       continue;

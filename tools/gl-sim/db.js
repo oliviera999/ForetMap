@@ -171,7 +171,9 @@ async function adapterInstantaneAncien(db) {
   const casesBase = await db.queryOne(
     "SELECT COUNT(*) AS n FROM gl_chapter_markers WHERE event_type = 'quiz' AND event_config_json LIKE '%\"base\"%'",
   );
-  if (Number(base?.n) === 0 && Number(casesBase?.n) > 0) {
+  // Seulement sur un instantané antérieur à la fusion (le contenu de prod garde ses niveaux
+  // `6ème` / `cycle 3`… : en mode tenir, `lib/glNiveauxAdmis.js` borne le tirage).
+  if (out.fusion45 && Number(base?.n) === 0 && Number(casesBase?.n) > 0) {
     const sixieme = await db.execute(
       "UPDATE gl_qcm_questions SET niveau = 'base' WHERE niveau = '6ème'",
     );
