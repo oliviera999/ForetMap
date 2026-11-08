@@ -144,3 +144,7 @@ blob-report/
 
 # Couverture Vitest (npm run test:ui:coverage)
 /coverage/
+
+# Rapports du banc de simulation G&L (régénérés ; seul le README est suivi)
+reports/gl-sim/
+!reports/gl-sim/README.md
