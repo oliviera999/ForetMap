@@ -178,14 +178,19 @@ async function updateGameStatus(req, res, nextStatus) {
       const { revokeProjectionToken } = require('../../../lib/glProjection');
       await revokeProjectionToken(db, gameId);
       for (const evt of seuil?.events || []) emitTenirEvent(gameId, evt);
-      // Badges individuels (jamais de ressource) : réévalués pour chaque membre à la clôture.
+      // Badges individuels (moteur commun, jamais de ressource) : chaque membre est réévalué à
+      // la clôture (Passeur de seuil, Deux peuples…). `gl_player_badges` reste en lecture seule.
       try {
-        const { evaluateBadges } = require('../../../lib/glTenirBadges');
+        const { glRewards } = require('../../../lib/glRewards');
         const members = await db.queryAll(
           'SELECT DISTINCT player_id FROM gl_team_members WHERE game_id = ?',
           [gameId],
         );
-        for (const m of members) await evaluateBadges(db, Number(m.player_id), { gameId });
+        for (const m of members) {
+          await glRewards.evaluate(String(m.player_id), {
+            source: { type: 'game_ended', ref: String(gameId) },
+          });
+        }
       } catch (err) {
         logger.warn({ err, gameId }, 'Badges non évalués à la clôture');
       }

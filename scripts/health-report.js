@@ -80,6 +80,13 @@ function formatEmail(report, { stored } = {}) {
     lines.push(
       `HTTP 24 h : ${h.requests} requêtes, ${h.http5xx} 5xx, ${h.http429} 429 (fenêtre couverte ${h.coveredHours} h)`,
     );
+  const rc = report.restarts?.counts;
+  if (rc && Number(rc.hardKills || 0) > 0) {
+    const rss = report.restarts.maxRssMbBeforeKill;
+    lines.push(
+      `Arrêts brutaux 24 h : ${rc.hardKills} · RSS max relevée avant arrêt : ${Number.isFinite(rss) ? `${rss} Mo` : 'inconnue'} (cPanel → Resource Usage, docs/EXPLOITATION.md)`,
+    );
+  }
   if (report.disk?.freePct != null) {
     lines.push(
       `Disque : ${report.disk.freePct} % libre · uploads ${report.disk.uploads?.sizeMb ?? '?'} Mo`,

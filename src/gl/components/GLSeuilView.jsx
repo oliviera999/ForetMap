@@ -4,6 +4,7 @@ import { useGLVoyageur } from '../hooks/useGLVoyageur.js';
 import { isModuleEnabled } from '../constants/modules.js';
 import { GLButton } from './ui/GLButton.jsx';
 import { GLMascotAvatar } from './GLMascotAvatar.jsx';
+import { GLRewardsPanel } from './GLRewardsPanel.jsx';
 import {
   GL_VOYAGEUR_SFX_CHANGED_EVENT,
   isVoyageurSfxMuted,
@@ -643,24 +644,15 @@ export function GLSeuilView({ onNavigateTab, modules }) {
             de route.
           </p>
         )}
-        {data.titres?.length || data.badges?.length ? (
+        {data.titres?.length ? (
           <div className="gl-seuil-honneurs" data-testid="gl-seuil-honneurs">
-            {data.titres?.length ? (
-              <p className="gl-seuil-traversee__meta">
-                Titres : {data.titres.map((t) => t.libelle).join(' · ')}
-              </p>
-            ) : null}
-            {data.badges?.length ? (
-              <ul className="gl-seuil-badges">
-                {data.badges.map((b) => (
-                  <li key={b.code} className="gl-seuil-badge" title={b.nom}>
-                    {b.nom}
-                  </li>
-                ))}
-              </ul>
-            ) : null}
+            <p className="gl-seuil-traversee__meta">
+              Titres : {data.titres.map((t) => t.libelle).join(' · ')}
+            </p>
           </div>
         ) : null}
+        {/* Badges individuels (moteur commun) : paliers Fil / Nœud / Étoffe, célébration privée. */}
+        <GLRewardsPanel modules={modules} title="Mes badges" headingLevel={3} />
       </section>
     </div>
   );

@@ -4,6 +4,10 @@
  * « Tenir à deux » v2 — honneurs, missions, badges, Bestiaire des chimères, plumes (spec § 12
  * et § 13). Préfixe réel `/api/gl/games/:id/tenir/*` (monté par routes/gl/games.js).
  * Tout ce qui touche la réalité passe par `gl.game.manage`.
+ *
+ * Badges : ils vivent désormais sur le moteur commun (`lib/glRewards.js`, routes
+ * `/api/gl/rewards`). Les routes `tenir/badges` ci-dessous sont **héritées** : elles délèguent
+ * à l'instance commune (table `gl_player_rewards`) et n'écrivent plus dans `gl_player_badges`.
  */
 
 const express = require('express');
@@ -22,7 +26,9 @@ const { emitGlGameEvent } = require('../../../lib/realtime');
 const { insertGameEvent } = require('../../../lib/glGameEvents');
 const { getPlayerGameMembership } = require('../../../lib/gl/gamesRuntime');
 const { enregistrerMissionTx, computeHonneurs } = require('../../../lib/glHonneurs');
-const { awardBadgeProfTx, evaluateBadges } = require('../../../lib/glTenirBadges');
+const { glRewards } = require('../../../lib/glRewards');
+const { awardGlManualToTeam } = require('../../../lib/glRewardsHooks');
+const { RewardAwardError } = require('../../../lib/rewards/core/engine');
 const { listPlumes, validerPlumeTx } = require('../../../lib/glVoyageurPlume');
 const { findForbiddenString } = require('../../../lib/glTenirImport');
 const { requireTenirGame } = require('./tenir');
@@ -132,6 +138,13 @@ router.post(
         }),
       );
       emitGlGameEvent(gameId, result.event);
+      // Badge « Chuchoteur » aux membres présents (hors transaction, jamais bloquant).
+      awardGlManualToTeam(gameId, teamId, {
+        type: 'chuchoteur',
+        note: `Mission secrète réussie avec ton équipe : « ${result.titre} ».`,
+        awardedBy: String(req.glAuth.userId),
+        roundNumber: Number(ctx.game.current_round_number) || 0,
+      });
       return res.status(201).json({ missionId: result.missionId, titre: result.titre });
     } catch (err) {
       return sendErr(res, err);
@@ -140,8 +153,21 @@ router.post(
 );
 
 // ---------------------------------------------------------------------
-// Badges (prof : saisie ; joueur : réévaluation de ses propres badges)
+// Badges — routes héritées, déléguées au moteur commun (`/api/gl/rewards` fait foi)
 // ---------------------------------------------------------------------
+
+/** Codes hérités (`badges.json`) → type de badge décerné du catalogue commun. */
+const LEGACY_BADGE_TYPES = Object.freeze({
+  chuchoteur: 'chuchoteur',
+  correcteur_du_renard: 'renard',
+  esprit_equipe: 'esprit_equipe',
+});
+const RESERVED_LEGACY_CODES = new Set(['tisserand', 'revelateur']);
+const LEGACY_DEFAULT_NOTES = Object.freeze({
+  chuchoteur: 'Ton équipe a réussi une mission secrète.',
+  renard: 'Ton équipe a corrigé Olu au bon moment.',
+  esprit_equipe: 'Pour ton esprit d’équipe pendant la séance.',
+});
 
 router.post(
   '/games/:id/tenir/badges',
@@ -156,30 +182,49 @@ router.post(
       return res.status(400).json({ error: 'playerId et badgeCode requis' });
     const membership = await getPlayerGameMembership(gameId, playerId);
     if (!membership) return res.status(404).json({ error: 'Joueur non rattaché à cette partie' });
-    try {
-      const result = await withTransaction((tx) =>
-        awardBadgeProfTx(tx, { playerId, badgeCode, gameId, actorId: req.glAuth.userId }),
-      );
-      if (result.awarded) {
-        const evt = await withTransaction((tx) =>
-          insertGameEvent(tx, {
-            gameId,
-            actorType: 'mj',
-            actorId: String(req.glAuth.userId),
-            eventType: 'badge',
-            payload: {
-              playerId,
-              badgeCode: result.code,
-              nom: result.nom,
-              private: true,
-              publicKeys: ['badgeCode', 'nom'],
-            },
-          }),
-        );
-        emitGlGameEvent(gameId, evt);
+    if (RESERVED_LEGACY_CODES.has(badgeCode)) {
+      return res.status(409).json({ error: MESSAGES.BADGE_RESERVE, code: 'BADGE_RESERVE' });
+    }
+    const type = LEGACY_BADGE_TYPES[badgeCode] || badgeCode;
+    if (!glRewards.MANUAL_TYPES.includes(type)) {
+      return res.status(404).json({ error: MESSAGES.BADGE_INTROUVABLE, code: 'BADGE_INTROUVABLE' });
+    }
+    // Compat avec l'ancien badge unique : sans mot explicite, un badge du même type déjà remis
+    // n'est pas redonné (200, `awarded: false`). Avec un mot, il se décerne à nouveau.
+    const note = normalizeOptionalString(req.body?.note);
+    if (!note) {
+      const existing = await glRewards.listRewards(String(playerId));
+      if (existing.some((r) => r.baseKey === `manuel.${type}`)) {
+        return res.status(200).json({ code: badgeCode, awarded: false });
       }
-      return res.status(result.awarded ? 201 : 200).json(result);
+    }
+    try {
+      const { reward } = await glRewards.awardManual({
+        ownerId: String(playerId),
+        type,
+        note: note || LEGACY_DEFAULT_NOTES[type] || 'Badge décerné par le prof.',
+        awardedBy: String(req.glAuth.userId),
+      });
+      const evt = await withTransaction((tx) =>
+        insertGameEvent(tx, {
+          gameId,
+          actorType: 'mj',
+          actorId: String(req.glAuth.userId),
+          eventType: 'badge',
+          payload: {
+            playerId,
+            rewardKey: reward.key,
+            nom: reward.title,
+            private: true,
+            publicKeys: ['nom'],
+          },
+        }),
+      );
+      emitGlGameEvent(gameId, evt);
+      return res.status(201).json({ code: badgeCode, nom: reward.title, awarded: true, reward });
     } catch (err) {
+      if (err instanceof RewardAwardError)
+        return res.status(err.status).json({ error: err.message });
       return sendErr(res, err);
     }
   }),
@@ -196,8 +241,10 @@ router.post(
     if (req.glAuth.userType === 'gl_player') playerId = Number(req.glAuth.userId);
     else if (isMj(req)) playerId = parseId(req.body?.playerId);
     if (!playerId) return res.status(400).json({ error: 'playerId requis' });
-    const badges = await evaluateBadges(db, playerId, { gameId });
-    return res.json({ playerId, badges: badges.filter((b) => b.awarded || b.valeur > 0) });
+    const badges = await glRewards.evaluate(String(playerId), {
+      source: { type: 'evaluer', ref: String(gameId) },
+    });
+    return res.json({ playerId, badges });
   }),
 );
 

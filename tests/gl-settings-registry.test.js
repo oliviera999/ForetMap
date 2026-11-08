@@ -93,6 +93,8 @@ const HISTORICAL_MODULE_KEYS = [
   'modules.voyageur_enabled',
   // Sons synthétisés du voyageur (audit expérience joueur § 13).
   'modules.voyageur_sounds_enabled',
+  // Badges individuels « Tenir à deux » sur le moteur commun (migration 339).
+  'modules.rewards_enabled',
 ];
 
 test('les listes de clés gameplay / modules / gating sont inchangées', () => {

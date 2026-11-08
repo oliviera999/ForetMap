@@ -2,6 +2,7 @@ const express = require('express');
 const { queryAll, queryOne, execute, withTransaction } = require('../../../database');
 const { requireGlAuth, hasGlPermission } = require('../../../middleware/requireGlAuth');
 const { insertGameEvent } = require('../../../lib/glGameEvents');
+const { queueGlRewardsForTeam } = require('../../../lib/glRewardsHooks');
 const { emitGlGameEvent } = require('../../../lib/realtime');
 const { getGameplaySettings } = require('../../../lib/glSettings');
 const { verifyPresentationAnswer, resolveQcmAnswerFeedback } = require('../../../lib/qcmChoices');
@@ -243,6 +244,23 @@ router.post('/games/:id/qcm/answer', requireGlAuth, async (req, res) => {
           ...(scoreSkippedReason ? { scoreSkipped: scoreSkippedReason } : {}),
         },
       });
+      if (!verification.correct && tenirMode && markerId != null) {
+        // « Pas encore » (règle § 1-4) : rien n'est retiré ; l'évènement nourrit le badge de
+        // persévérance (bonne réponse ultérieure sur la même case).
+        lastEvent = await insertGameEvent(tx, {
+          gameId,
+          teamId: teamIdForGame,
+          actorType: answerCtx.actorType,
+          actorId: answerCtx.actorId,
+          eventType: 'pas_encore',
+          payload: {
+            kind: 'case',
+            markerId,
+            questionCode,
+            roundNumber: Number(game.current_round_number) || 0,
+          },
+        });
+      }
       if (verification.correct && tenirMode && markerId != null) {
         tenirBonus = await bonneReponseDeCaseTx(tx, {
           gameId,
@@ -278,6 +296,15 @@ router.post('/games/:id/qcm/answer', requireGlAuth, async (req, res) => {
   } catch (err) {
     if (err?.status === 409) return res.status(409).json({ error: err.message });
     throw err;
+  }
+  if (tenirMode && verification.correct && markerId != null) {
+    // Badge « Pas encore » (réussite après un « pas encore » sur la même case) : hors
+    // transaction, jamais bloquant, membres présents de l'équipe.
+    queueGlRewardsForTeam(gameId, teamIdForGame, {
+      roundNumber: Number(game.current_round_number) || 0,
+      families: ['perseverance'],
+      source: { type: 'qcm_answer', ref: String(markerId) },
+    });
   }
 
   // Après consommation seulement : un rejeu refusé ne doit pas peser sur le gating

@@ -28,12 +28,15 @@ const { requireTenirGame } = require('./tenir');
 const { resolveGesteContext, sendTourError, emitAll } = require('./tenir-tour');
 const { resolveTenirSettings, resolveSurface, isPlayerEnRetrait } = require('../../../lib/glTenir');
 const { resolveTenirPermissions } = require('../../../lib/shared/glTenirPermissionsCore');
+const { queueGlRewardsForTeam, queueGlRewards } = require('../../../lib/glRewardsHooks');
 
 const router = express.Router();
 
 const CHASSE_ERRORS = {
   POINT_INVALIDE: 'Point de fouille invalide (x, y entre 0 et 1)',
   FOUILLES_EPUISEES: 'Plus de fouille pour ce tour',
+  FOUILLE_REPARATION_SEULEMENT:
+    'Il reste une fouille de réparation : elle ne sert que sur une page pâlie',
   CHASSE_SANS_QUESTION: 'Aucune question disponible pour cette zone',
   JETON_HORS_CHASSE: 'Ce jeton n’est pas une question de chasse',
   JETON_HORS_LECTURE: 'Ce jeton n’est pas une question de lecture',
@@ -245,6 +248,12 @@ router.post(
       return sendChasseError(res, err);
     }
     emitAll(gameId, result.events);
+    // Badges (hors transaction, jamais bloquant) : membres présents de l'équipe.
+    queueGlRewardsForTeam(gameId, ctx.teamId, {
+      roundNumber: ctx.roundNumber,
+      families: ['chasse'],
+      source: { type: 'fouille', ref: String(gameId) },
+    });
     const { events, ...rest } = result; // eslint-disable-line no-unused-vars
     return res.status(201).json(rest);
   }),
@@ -288,6 +297,13 @@ router.post(
       return sendChasseError(res, err);
     }
     emitAll(gameId, result.events);
+    if (result.correct) {
+      queueGlRewardsForTeam(gameId, ctx.teamId, {
+        roundNumber: ctx.roundNumber,
+        families: ['chasse', 'cooperation', 'perseverance'],
+        source: { type: 'page_trouvee', ref: result.zoneKey || String(gameId) },
+      });
+    }
     const { events, ...rest } = result; // eslint-disable-line no-unused-vars
     return res.json(rest);
   }),
@@ -324,6 +340,14 @@ router.post(
       return sendChasseError(res, err);
     }
     emitAll(gameId, result.events);
+    // Lecture : le lecteur lui-même (veillée ou tour).
+    if (ctx.playerId != null) {
+      queueGlRewards([ctx.playerId], {
+        families: ['lecture'],
+        source: { type: 'page_lue', ref: zoneKey },
+        reason: 'page_lue',
+      });
+    }
     const { events, ...rest } = result; // eslint-disable-line no-unused-vars
     return res.json({ ...rest, via: ctx.via });
   }),
@@ -368,6 +392,17 @@ router.post(
       return sendChasseError(res, err);
     }
     emitAll(gameId, result.events);
+    if (result.correct) {
+      const options = {
+        families: ['lecture', 'perseverance', 'veillee'],
+        source: { type: 'page_tenue', ref: zoneKey },
+      };
+      if (ctx.via === 'veillee' && ctx.playerId != null) {
+        queueGlRewards([ctx.playerId], { ...options, reason: 'page_tenue_veillee' });
+      } else {
+        queueGlRewardsForTeam(gameId, ctx.teamId, { roundNumber: ctx.roundNumber, ...options });
+      }
+    }
     const { events, ...rest } = result; // eslint-disable-line no-unused-vars
     return res.json({ ...rest, via: ctx.via });
   }),

@@ -9,6 +9,74 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — G&L « Tenir à deux » : vérité des cases, équilibrage, badges individuels, banc de simulation, outils MCP (bilan du 7 novembre 2026)
+
+Sept étapes commitées séparément (détail, choix par défaut et attendus chiffrés :
+`docs/GL_TENIR_A_DEUX.md`, `docs/GL_TENIR_A_DEUX_REGLES.md`, `docs/GL_SIMULATION.md`).
+
+- **Vérité des cases** (migration 337) : en mode tenir, le texte d'effet lu par l'élève à
+  l'arrivée sur une case est **calculé depuis l'effet réellement appliqué** (noyau partagé
+  `src/shared/glTenirCaseEffetCore.js`, moteur et affichage confondus), jamais lu dans le champ
+  d'auteur `effet_mecanique` (studio du MJ). Textes des arrivées, défis d'équipe, péripéties,
+  pertes neutres et cartes question rendus exacts ; libellés Trame « +2 » → « +1 » (P4) ; six
+  branches Souffle « passe ton tour » appliquées ; « La Grise s'étend » → « Le terne s'étend ».
+  Contrôle `gl_marker_promises` (`foretmap_audit_all`, rapport de santé, `tests/content/
+gl-marker-promises`) : aucune promesse affichée non tenue, aucun « sinon / si échec » suivi
+  d'une perte.
+- **Équilibrage E1-E6** (migration 338, chaque choix réglable `gameplay.tenir_*`) : dé gris
+  `1d6 + {1:3, 2:4, 3:5, 4:6}` (E1, choix d'Oliv) ; fouille de réparation des équipes gnomes sur
+  une page pâlie, « 1 + 1 réparation » (E2) ; plancher de pâlissement au rang 8 (E3) ; **réserve de
+  la caravane** : le surplus au plafond n'est plus perdu, il paie en premier le pot des sorts et
+  s'éteint au Seuil (E4, grand livre étendu : `kind`, `team_id`, causes `reserve_*`) ; rappel
+  d'Olu « Vos bourses débordent » une fois par séance à l'écran d'équipe (E5) ; règle écrite
+  « 8 / 8 / 10 / 10 » (E6). Invariants `RESERVE_NEGATIVE`, `RESERVE_LIVRE`, `LIVRE_TOTAL`,
+  `FOUILLES_QUOTA`.
+- **Badges individuels sur le moteur commun** (migration 339, `docs/REWARDS_ENGINE.md` § 5) :
+  table `gl_player_rewards`, instance `lib/glRewards.js`, 16 badges en 8 familles aux paliers
+  **Fil** 🧵 / **Nœud** 🪢 / **Étoffe** 🧶 (effort, curiosité, persévérance, aide — jamais la
+  justesse ni un rang), routes `/api/gl/rewards/{me,me/seen,games/:id,games/:id/award}` (mot
+  obligatoire), interrupteur `modules.rewards_enabled`, évaluation au fil de l'eau et de nuit,
+  rattrapage `scripts/gl-rewards-backfill.js` (les 13 badges plats passent en lecture seule),
+  célébration avec Olu (jamais en projection), vitrine du prof sans classement, `badges.csv` par
+  paliers, évènement de journal `pas_encore` ; noyau commun : paliers par instance (`tiers`), CSS
+  `src/shared/styles/rewards.css`. **Aucun badge ne donne de ressource.**
+- **Banc de simulation en série** (`tools/gl-sim/`, `docs/GL_SIMULATION.md`) : un prof et une
+  classe virtuels jouent des chapitres entiers contre le vrai moteur (supertest en mémoire) sur
+  une base dédiée (`_sim` / `_test` obligatoire, jamais la prod) chargée avec un instantané du
+  contenu de production sans aucune table de personnes (`data/gl/sim/contenu-prod-2026-11-07.json`) ;
+  23 scénarios (`regression-7nov`, `equilibrage` sur la grille `grille-voile.json`, `badges`,
+  `annee-complete`…), invariants à chaque geste, crible de ce qui est servi aux élèves (mots
+  interdits, bourses d'une autre équipe), attendus chiffrés en avertissements, rapport
+  `summary.json` + `index.html` autonome, modèle rapide Monte-Carlo (Python) calibré à moins de
+  5 points ; `npm run gl:sim`, `gl:sim:db`, `gl:sim:snapshot`, `gl:sim:rapide`, `test:sim`.
+- **Correctifs relevés par le banc** : `spell_cast` est privé en partie tenir et `replay.timeline`
+  de `GET /api/gl/games/:id` est expurgé pour un élève (plus de contributions, noms ni soldes d'une
+  autre équipe) ; `seuil_clos.honneurs` porte le résumé des honneurs ; l'import des questions de
+  lecture écarte une question dont la zone a été écartée ; une case Souffle « passe ton tour » fait
+  **réellement** passer le jet suivant (`TOUR_PASSE`, 409, sans mot punitif ; l'équipe fouille et
+  lit quand même, le prof peut la porter) ; `withTransaction` rejoue une transaction victime d'un
+  interblocage InnoDB (deux équipes en tablette qui jouent au même instant recevaient une 500).
+- **Connecteur Claude (MCP) : outils G&L** (`docs/MCP.md` § Gnomes & Licornes) : domaine `gl`
+  (désactivable par `mcp.domains_disabled=gl`) et pont G&L `lib/mcp/glBridge.js` — l'enseignant
+  connecté est résolu en staff G&L par la règle de la connexion MJ, JWT éphémère `via:'mcp'`,
+  `MCP_GL_FORBIDDEN` sans rôle (le pont `foretmap_api` refuse toujours `/api/gl/*`). Dix outils :
+  `gl_games`, `gl_game_state` (bourses agrégées par équipe, réserves ; `bourses_eleves` nominatif
+  sous bypass journalisé), `gl_game_journal` (payloads privés expurgés), `gl_game_diagnostic`
+  (invariants, grand livre par cause, verdict), `gl_settings` (`set` en écriture), `gl_tenir_catalogues`,
+  `gl_content_snapshot` (vérité des cases par peuple, termes `secret` masqués), `gl_tour` (gestes du
+  prof : ouvrir, phase, voile dort, avance libre, absences, retrait, clore), `gl_sim_reports`
+  (`summary.json` des rapports du banc, `GL_SIM_REPORTS_DIR`), `gl_rewards` (vitrine sans classement,
+  `award`). Audits `gl_tenir_zones`, `gl_spells_legacy`, `gl_rewards_catalogue` suivis par le
+  rapport de santé ; prompt guidé `diagnostiquer_partie_gl` ; `gl_chasse_zones` et
+  `gl_tenir_questions_lecture` lisibles par `foretmap_sql_select` (GRANT à ajouter au compte
+  `DB_MCP_USER` dédié, `scripts/mcp-print-grants.js`).
+- **Hygiène et exploitation** (migration 340) : les 11 sorts hérités hors v2 passent en `propose` ;
+  niveaux de questions bornés à la 6e en mode tenir (cases et fouilles de secours,
+  `lib/glNiveauxAdmis.js`) ; cases 251 / 253 bornées ; `npm run gl:photo-credits[:dry]`
+  (crédits photo des QCM depuis Wikimedia Commons) ; encart « Comment fonctionne le marché ? »
+  sur La place et légende lisible ; e2e `gl-market` / `gl-seuil` à jour ; workflow nocturne
+  `e2e-gl-nightly.yml` ; journal de démarrage avec RSS maximale avant arrêt brutal, lignes de
+  crontab attendues dans le rapport de santé, doc « Resource Usage » (`docs/EXPLOITATION.md`).
 ### Ajouté — G&L : modes de démonstration (parents, borne, partie de démo)
 
 Trois façons de montrer Gnomes & Licornes sans toucher à une classe réelle

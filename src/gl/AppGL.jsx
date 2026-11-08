@@ -1068,6 +1068,7 @@ export function AppGL() {
                           onReloadGame={reloadGame}
                           onJeter={canSpellCast ? () => openSpellCastWizard(null) : null}
                           chasse={chasse}
+                          modules={modules}
                         />
                       ) : null}
                       <GLMapView

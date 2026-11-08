@@ -17,6 +17,7 @@ export const GL_MODULE_DEFAULTS = {
   presenceEnabled: true,
   voyageurEnabled: true,
   voyageurSoundsEnabled: true,
+  rewardsEnabled: true,
 };
 
 export function normalizeGlModules(raw) {

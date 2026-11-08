@@ -1,5 +1,5 @@
 {
-  "format": "olu-lignes v2 — commentateur de match ; {equipe} nom d'équipe, {n} nombre, {biome} nom du biome ; moment `oiseau` = après le passage de l'oiseau (Olu se fige pendant) ; moment `erreur` = erreur volontaire avec sa correction",
+  "format": "olu-lignes v2 — commentateur de match ; {equipe} nom d'équipe, {n} nombre, {biome} nom du biome ; moment `oiseau` = après le passage de l'oiseau (Olu se fige pendant) ; moment `erreur` = erreur volontaire avec sa correction ; moment `bourse_pleine` = au moins 3 membres d'une équipe au plafond, dit une fois par séance à l'écran d'équipe (E5)",
   "lignes": [
     {
       "id": "olu-01",
@@ -542,6 +542,29 @@
       "plateaux": [
         4
       ]
+    },
+    {
+      "id": "olu-67",
+      "moment": "bourse_pleine",
+      "expression": "joie",
+      "texte": "Vos bourses débordent : un sort pour la caravane ?",
+      "variables": []
+    },
+    {
+      "id": "olu-68",
+      "moment": "bourse_pleine",
+      "expression": "curieux",
+      "texte": "Trois bourses pleines chez {equipe}. Le grimoire est ouvert, et le Marché aussi.",
+      "variables": [
+        "equipe"
+      ]
+    },
+    {
+      "id": "olu-69",
+      "moment": "bourse_pleine",
+      "expression": "explique",
+      "texte": "Au plafond, un gain de plus file dans la réserve de la caravane : elle paiera votre prochain sort.",
+      "variables": []
     }
   ]
 }

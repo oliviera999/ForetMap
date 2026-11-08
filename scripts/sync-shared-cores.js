@@ -52,6 +52,8 @@ const PAIRS = Object.freeze([
   ['src/shared/fresque/fresqueCore.js', 'fresqueCore.js'],
   // « Tenir à deux » v2 : permissions par surface (serveur = vérité, client = grisage).
   ['src/shared/glTenirPermissionsCore.js', 'glTenirPermissionsCore.js'],
+  // « Tenir à deux » : vérité des cases (effet appliqué = texte lu par l'élève).
+  ['src/shared/glTenirCaseEffetCore.js', 'glTenirCaseEffetCore.js'],
 ]);
 
 function banner(relSrc) {

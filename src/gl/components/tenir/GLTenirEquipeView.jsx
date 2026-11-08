@@ -5,6 +5,7 @@ import { GLButton } from '../ui/GLButton.jsx';
 import { GLTourDesSaisie } from '../mj/GLTourDesSaisie.jsx';
 import { GLTenirQuestionCard } from './GLTenirQuestionCard.jsx';
 import { GLCarnetClasseView } from './GLCarnetClasseView.jsx';
+import { GLRewardsPanel } from '../GLRewardsPanel.jsx';
 import { GLOluBulle } from './GLOluBulle.jsx';
 import { GLPeripetieOverlay } from './GLPeripetieOverlay.jsx';
 import { GLBestiairePanel } from './GLBestiairePanel.jsx';
@@ -44,6 +45,8 @@ export function GLTenirEquipeView({
   onRepondre = null,
   /** Résultat de `useGlChasse` (fouille au clic, question, carnet) ; `null` hors chasse. */
   chasse = null,
+  /** Modules G&L (`rewardsEnabled` conditionne « Mes badges ») ; `null` = tout allumé. */
+  modules = null,
 }) {
   const gameId = gameState?.game?.id;
   const tourApi = useGlTenirTour({
@@ -53,10 +56,12 @@ export function GLTenirEquipeView({
   });
   const [pending, setPending] = useState(null);
   const [carnetOuvert, setCarnetOuvert] = useState(false);
+  const [badgesOuverts, setBadgesOuverts] = useState(false);
   const [peripetiesPassees, setPeripetiesPassees] = useState(() => new Set());
   const perms = tenir?.permissions || {};
   const events = gameState?.events || [];
   const olu = useGlTenirOlu({
+    teamId,
     gameId,
     events,
     teams: gameState?.teams || [],
@@ -95,6 +100,11 @@ export function GLTenirEquipeView({
 
   const surface = tenir.surface || 'tableau';
   const fouilles = chasse?.carnet?.fouilles || null;
+  // E4 : réserve de la caravane de l'équipe (servie seulement à ses membres et au prof).
+  const reserve =
+    tenir.settings?.surplus_reserve !== false
+      ? (tenir.reserves || []).find((r) => Number(r.teamId) === Number(teamId)) || null
+      : null;
   const fouilleMode = !!chasse?.fouilleMode;
   const gestes = [
     ['jeter', 'Jeter un sort', onJeter],
@@ -148,6 +158,15 @@ export function GLTenirEquipeView({
           </li>
         ))}
       </ul>
+      {reserve ? (
+        <p className="gl-hint" data-testid="gl-tenir-reserve">
+          Réserve de la caravane : ❤️ {reserve.health} · 💎 {reserve.power}
+          <span className="fm-visually-hidden">
+            {' '}
+            (les gains au-dessus du plafond y vont ; elle paie d’abord les sorts de l’équipe)
+          </span>
+        </p>
+      ) : null}
       <div className="gl-tenir-equipe__gestes">
         {gestes.map(([key, label, handler]) => (
           <GLButton
@@ -187,6 +206,9 @@ export function GLTenirEquipeView({
       {chasse && fouilles ? (
         <p className="gl-hint" data-testid="gl-tenir-fouilles">
           Fouilles ce tour : {fouilles.restantes}/{fouilles.quota}
+          {fouilles.reparation?.quota
+            ? ` + ${fouilles.reparation.restantes}/${fouilles.reparation.quota} réparation (page pâlie)`
+            : ''}
           {fouilles.sousVoile ? ' · sous le voile' : ''}
           {fouilleMode ? ' · touche le plateau pour fouiller' : ''}
         </p>
@@ -211,6 +233,21 @@ export function GLTenirEquipeView({
           <GLCarnetClasseView chasse={chasse} />
           <GLBestiairePanel gameId={gameId} />
         </>
+      ) : null}
+      <div className="gl-inline-actions">
+        <GLButton
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="gl-rewards__toggle"
+          aria-expanded={badgesOuverts}
+          onClick={() => setBadgesOuverts((v) => !v)}
+        >
+          {badgesOuverts ? 'Fermer mes badges' : 'Mes badges'}
+        </GLButton>
+      </div>
+      {badgesOuverts ? (
+        <GLRewardsPanel modules={modules} title="Mes badges" headingLevel={3} />
       ) : null}
       <GLPeripetieOverlay
         peripetie={peripetie}

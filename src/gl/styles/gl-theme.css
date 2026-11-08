@@ -5637,6 +5637,74 @@ body.gl-glossary-popover-open {
   line-height: var(--lh-normal);
 }
 
+/* Encart repliable de La place (« Tenir à deux ») : le titre sert de poignée. */
+.gl-market-disclaimer--place summary {
+  cursor: pointer;
+  list-style: none;
+  min-height: var(--gl-tap-target);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.gl-market-disclaimer--place summary::-webkit-details-marker {
+  display: none;
+}
+
+.gl-market-disclaimer--place summary::before {
+  content: '▸';
+  font-size: var(--text-sm);
+  transition: transform var(--motion-fast) var(--ease-out);
+}
+
+.gl-market-disclaimer--place details[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+.gl-market-disclaimer--place summary h2 {
+  margin: 0;
+}
+
+.gl-market-disclaimer--place details[open] > summary {
+  margin-bottom: 0.5rem;
+}
+
+/* La place : formulaire d'annonce et ses deux côtés (« Ce que je cherche » / « Ce que j'offre »).
+ * Le fieldset reçoit sa propre bordure et un padding explicite : la grille du `.gl-form`
+ * redonnait au fieldset une hauteur de ligne nulle et la légende chevauchait le premier champ. */
+.gl-market-place {
+  display: grid;
+  gap: 1rem;
+}
+
+.gl-market-annonce-form {
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--gl-border);
+  border-radius: var(--gl-radius-md);
+  background: var(--gl-surface);
+}
+
+.gl-market-annonce-form h3 {
+  margin: 0;
+}
+
+.gl-market-side-fields {
+  display: grid;
+  gap: 10px;
+  margin: 0.25rem 0 0;
+  padding: 0.75rem 1rem 1rem;
+  min-width: 0;
+  border: 1px solid var(--gl-border);
+  border-radius: var(--gl-radius-md);
+}
+
+.gl-market-side-fields legend {
+  padding: 0 0.5rem;
+  font-weight: var(--fw-semibold);
+  color: var(--gl-color-text);
+  line-height: 1.4;
+}
+
 .gl-market-layout {
   display: grid;
   grid-template-columns: minmax(220px, 280px) 1fr;
