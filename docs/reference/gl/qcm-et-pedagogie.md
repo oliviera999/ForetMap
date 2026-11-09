@@ -235,9 +235,9 @@ Sur une **case question**, la bonne réponse donne **+1 case et on relance** ; u
 ne retire rien (« Pas encore… »). En **fouillant** une page, l'équipe répond à la question fixe de
 la page (puis, si elle a déjà été tentée, à une question du même thème) : juste, la page est
 trouvée ; sinon, elle est révélée (son contour apparaît pour tous) et c'est tout. Pour **tenir** une
-page, l'autre peuple répond à sa question de lecture : retentatives illimitées, la question se
-repose jusqu'à réussite, au tour ou en veillée (deux pages tenues en veillée par élève et par
-semaine). En veillée, étudier la fiche d'une espèce liée à une page endormie ouvre une **piste**
+page, l'autre peuple répond à sa question de lecture : on peut réessayer sans limite, mais
+chaque carte ne vaut qu'un essai — à chaque « Pas encore », une nouvelle est proposée, au tour
+ou en veillée (deux pages tenues en veillée par élève et par semaine). En veillée, étudier la fiche d'une espèce liée à une page endormie ouvre une **piste**
 (la page se révèle, une piste par élève et par semaine).
 
 ## Pour aller plus loin

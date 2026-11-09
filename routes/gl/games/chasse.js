@@ -42,6 +42,7 @@ const CHASSE_ERRORS = {
   JETON_HORS_LECTURE: 'Ce jeton n’est pas une question de lecture',
   JETON_AUTRE_EQUIPE: 'Ce jeton appartient à une autre équipe',
   JETON_AUTRE_PAGE: 'Le jeton ne porte pas cette page',
+  JETON_DEJA_UTILISE: 'Cette présentation a déjà été jouée',
   TENIR_LIRE_SURFACE: 'Sur cette surface, le prof lit pour l’équipe',
   TENIR_RETRAIT: 'En retrait jusqu’à nouvel ordre',
   ZONE_INTROUVABLE: 'Page introuvable',

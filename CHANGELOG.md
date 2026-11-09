@@ -9,6 +9,13 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — G&L chasse : un jeton de question ne s'essaie qu'une fois
+
+- `POST /chasse/repondre` et `POST /chasse/pages/:zoneKey/tenir` consommaient le jeton de
+  présentation puis ignoraient le refus `already_used`. Les quatre choix du même jeton
+  suffisaient à trouver ou tenir la page (feuillet, cœurs, ressource du peuple) sans nouvelle
+  fouille ni nouvelle carte. Rejeu → 409 `JETON_DEJA_UTILISE`. La carte jointe à un
+  « Pas encore » de lecture reste jouable.
 ### Modifié — G&L « Tenir à deux » : Relance annule le jet
 
 Relance « rejouait » les dés par-dessus un jet dont la case s'était déjà appliquée : au dé du
