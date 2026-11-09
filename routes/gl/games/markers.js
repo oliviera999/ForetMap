@@ -164,6 +164,28 @@ async function enrichQuestionWithGlossary(questionRow, glossaryByKey) {
 }
 
 /** POST /api/gl/games/:id/markers/:markerId/present-question — tirage + présentation QCM depuis un repère. */
+/**
+ * « Tenir à deux » : applique l'arrivée en suspens de l'équipe (jet gardé, cf.
+ * `lib/glArriveeSuspendue.js`) avant de présenter la case. Sans arrivée en suspens : rien.
+ */
+async function garderArriveeEnSuspens({ gameId, game, settings, teamId, req }) {
+  if (teamId == null || !isTenirGame(settings, game)) return;
+  const { listEnSuspens, confirmerArriveesTx } = require('../../../lib/glArriveeSuspendue');
+  if (!(await listEnSuspens(db, gameId, { teamId: Number(teamId) })).length) return;
+  let result = null;
+  await withTransaction(async (tx) => {
+    result = await confirmerArriveesTx(tx, {
+      gameId,
+      teamId: Number(teamId),
+      settings,
+      actorType: actorTypeOf(req),
+      actorId: String(req.glAuth.userId),
+      motif: 'presentation',
+    });
+  });
+  for (const evt of result?.events || []) emitGlGameEvent(gameId, evt);
+}
+
 router.post(
   '/games/:id/markers/:markerId/present-question',
   requireGlAuth,
@@ -232,6 +254,8 @@ router.post(
     ) {
       return res.status(409).json({ error: 'Votre équipe n’est pas sur ce repère' });
     }
+    // « Tenir à deux » : répondre à la question de la case, c'est garder son jet (Relance).
+    await garderArriveeEnSuspens({ gameId, game, settings, teamId, req });
     const canPresent = await canPresentMarkerQuestion(
       { queryAll },
       {
@@ -388,6 +412,9 @@ router.post(
     ) {
       return res.status(409).json({ error: 'Votre équipe n’est pas sur ce repère' });
     }
+    // Une case en suspens (Relance encore possible) s'applique avant d'être présentée : sa
+    // présentation vaut « garder le jet », et l'effet n'est jamais appliqué deux fois.
+    await garderArriveeEnSuspens({ gameId, game, settings, teamId, req });
 
     // Mode « Tenir à deux » : le texte lu par l'élève est calculé depuis l'effet appliqué
     // (Sentier compris), jamais depuis le champ d'auteur `effet_mecanique`.

@@ -1,5 +1,5 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { GLTenirEquipeView } from '../../src/gl/components/tenir/GLTenirEquipeView.jsx';
 
 const apiGlMock = vi.fn();
@@ -89,5 +89,64 @@ describe('GLTenirEquipeView', () => {
       expect(screen.getByText(/en retrait jusqu’à nouvel ordre/)).toBeInTheDocument(),
     );
     expect(screen.queryByText(/motif/i)).toBeNull();
+  });
+
+  test('jet en suspens (Relance) : case et effet affichés, « Garder ce jet » et « Relance… »', async () => {
+    const round = {
+      number: 1,
+      phase: 'jeu',
+      arriveesEnSuspens: [
+        {
+          teamId: 2,
+          markerId: 40,
+          index: 4,
+          total: 3,
+          faces: [1, 2],
+          label: 'Averse tropicale',
+          question: false,
+          effectSummary: 'Rien ne se passe.',
+          relanceSpellCode: 'SL005',
+        },
+      ],
+    };
+    apiGlMock.mockImplementation((url, method) =>
+      Promise.resolve(method === 'POST' ? { ok: true } : { round }),
+    );
+    const onJeter = vi.fn();
+    render(
+      <GLTenirEquipeView
+        gameState={gameState}
+        tenir={tenirWith({ jeter: true, lancer: true, repondre: true, fouiller: true, lire: true })}
+        teamId={2}
+        onReloadGame={vi.fn()}
+        onJeter={onJeter}
+      />,
+    );
+    const carte = await screen.findByTestId('gl-tenir-jet-suspens');
+    expect(carte.textContent).toMatch(/Jet de l’équipe : 3/);
+    expect(carte.textContent).toMatch(/case 5 « Averse tropicale »/);
+    expect(carte.textContent).toMatch(/Effet de la case : Rien ne se passe\./);
+    fireEvent.click(screen.getByTestId('gl-tenir-relance'));
+    expect(onJeter).toHaveBeenCalledWith('SL005');
+    fireEvent.click(screen.getByTestId('gl-tenir-garder-jet'));
+    await waitFor(() =>
+      expect(apiGlMock).toHaveBeenCalledWith('/api/gl/games/7/tenir/arrivee/garder', 'POST', {}),
+    );
+  });
+
+  test('sans jet en suspens pour l’équipe : pas de carte', async () => {
+    apiGlMock.mockResolvedValue({
+      round: { number: 1, phase: 'jeu', arriveesEnSuspens: [{ teamId: 9, total: 2 }] },
+    });
+    render(
+      <GLTenirEquipeView
+        gameState={gameState}
+        tenir={tenirWith({ jeter: true, lancer: true, repondre: true, fouiller: true, lire: true })}
+        teamId={2}
+        onReloadGame={vi.fn()}
+      />,
+    );
+    await waitFor(() => expect(screen.getByTestId('gl-tenir-equipe')).toBeInTheDocument());
+    expect(screen.queryByTestId('gl-tenir-jet-suspens')).toBeNull();
   });
 });

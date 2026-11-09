@@ -9,6 +9,7 @@ import { GLRewardsPanel } from '../GLRewardsPanel.jsx';
 import { GLOluBulle } from './GLOluBulle.jsx';
 import { GLPeripetieOverlay } from './GLPeripetieOverlay.jsx';
 import { GLBestiairePanel } from './GLBestiairePanel.jsx';
+import { numeroCase } from '../../../shared/glCaseNumeroCore.js';
 
 const VERDICT_TEXTES = {
   froid: 'Froid : la page dort plus loin.',
@@ -31,7 +32,8 @@ const PHASE_LABELS = {
 /**
  * Écran d'équipe (surfaces hybride et tablette) : les cinq gestes en boutons, grisés par
  * `tenir.permissions` (le serveur rejoue le calcul ; le client ne fait que griser).
- * `onJeter` ouvre l'assistant de sort ; `onFouiller` bascule le plateau en mode fouille ;
+ * `onJeter(code?)` ouvre l'assistant de sort (pré-sélectionné sur `code`, ex. Relance) ;
+ * `onFouiller` bascule le plateau en mode fouille ;
  * `onLire` ouvre le carnet de la classe ; `onRepondre` présente la question de la case.
  */
 export function GLTenirEquipeView({
@@ -118,6 +120,10 @@ export function GLTenirEquipeView({
     ['lire', 'Lire', chasse ? () => setCarnetOuvert((v) => !v) : onLire],
   ];
   const verdict = chasse?.dernierVerdict || null;
+  // Relance : jet de l'équipe dont la case s'affiche sans s'être appliquée.
+  const jetEnSuspens =
+    (round?.arriveesEnSuspens || []).find((a) => Number(a.teamId) === Number(teamId)) || null;
+  const numeroJet = jetEnSuspens ? numeroCase(jetEnSuspens.index) : null;
 
   return (
     <section
@@ -184,6 +190,50 @@ export function GLTenirEquipeView({
           </GLButton>
         ))}
       </div>
+      {jetEnSuspens ? (
+        <section
+          className="gl-tenir-equipe__jet-suspens gl-gameplay-block"
+          role="status"
+          data-testid="gl-tenir-jet-suspens"
+        >
+          <p>
+            <strong>Jet de l’équipe : {jetEnSuspens.total}</strong>
+            {jetEnSuspens.faces?.length > 1 ? ` (${jetEnSuspens.faces.join(' + ')})` : ''} → case{' '}
+            {numeroJet ?? '?'}
+            {jetEnSuspens.label ? ` « ${jetEnSuspens.label} »` : ''}
+          </p>
+          {jetEnSuspens.question ? (
+            <p>Une question attend sur cette case.</p>
+          ) : jetEnSuspens.effectSummary ? (
+            <p>Effet de la case : {jetEnSuspens.effectSummary}</p>
+          ) : null}
+          <p className="gl-hint">
+            La case ne s’applique pas encore. Gardez ce jet, ou lancez Relance pour l’annuler : la
+            mascotte revient et l’équipe rejette les dés.
+          </p>
+          <div className="gl-inline-actions">
+            <GLButton
+              type="button"
+              disabled={tourApi.busy}
+              onClick={() => tourApi.garderJet()}
+              data-testid="gl-tenir-garder-jet"
+            >
+              Garder ce jet
+            </GLButton>
+            {onJeter ? (
+              <GLButton
+                type="button"
+                variant="ghost"
+                disabled={tourApi.busy}
+                onClick={() => onJeter(jetEnSuspens.relanceSpellCode || null)}
+                data-testid="gl-tenir-relance"
+              >
+                Relance…
+              </GLButton>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
       {pending === 'lancer' && perms.lancer ? (
         <GLTourDesSaisie
           count={tenir.settings?.des_count || 2}

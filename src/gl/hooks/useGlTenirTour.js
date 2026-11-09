@@ -67,6 +67,8 @@ export function useGlTenirTour({ gameId, enabled = true, onChanged = null }) {
     absences: (playerIds) => post('/tour/absences', { playerIds }),
     fouilleFenetre: (teamId, ouverte) => post('/tour/fouille-fenetre', { teamId, ouverte }),
     lancer: (body) => post('/lancer', body),
+    // Relance : l'équipe garde son jet, la case restée en suspens s'applique.
+    garderJet: (teamId = null) => post('/arrivee/garder', teamId != null ? { teamId } : {}),
     validerSaisie: (saisieId) => post(`/des/${saisieId}/valider`),
     refuserSaisie: (saisieId) => post(`/des/${saisieId}/refuser`),
     teamSpirit: (bilans) => put('/tour/team-spirit', { bilans }),

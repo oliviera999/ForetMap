@@ -89,7 +89,7 @@
       },
       "cible": "pion_equipe",
       "execution": "auto",
-      "effet_court": "rejoue les dés (serveur) ou autorise une nouvelle saisie",
+      "effet_court": "annule le jet : la mascotte revient, la case d’arrivée ne s’applique pas, l’équipe rejette les dés",
       "effet_auto_json": {
         "type": "reroll",
         "annule_precedent": true
