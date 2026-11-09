@@ -65,6 +65,16 @@ export function GLMapView({
     if (playerTeamId != null) return Number(playerTeamId);
     return null;
   }, [mjTeamSelection, selectedTeamId, playerTeamId, gameState?.teams]);
+  // « Tenir à deux », Relance : tant que le jet de l'équipe suivie est en suspens, sa case
+  // d'arrivée ne se présente pas (elle n'est pas appliquée) ; elle se présente au jet gardé.
+  const arriveeEnSuspens = useMemo(
+    () =>
+      watchTeamId != null &&
+      (gameState?.tenir?.round?.arriveesEnSuspens || []).some(
+        (a) => Number(a.teamId) === Number(watchTeamId),
+      ),
+    [watchTeamId, gameState?.tenir?.round?.arriveesEnSuspens],
+  );
 
   return (
     <GLGameBoard
@@ -87,7 +97,7 @@ export function GLMapView({
       boardMovement={boardMovement}
       onDiceRollResult={onDiceRollResult}
       canRequestAction={canRequestAction}
-      markerArrivalEnabled={markerArrivalEnabled}
+      markerArrivalEnabled={markerArrivalEnabled && !arriveeEnSuspens}
       selectedTeamId={selectedTeamId}
       currentTeamId={currentTeamId}
       mascotStateMachine={mascotStateMachine}

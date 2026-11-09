@@ -296,6 +296,33 @@ export function GLTourScreen({
             </section>
           ) : null}
 
+          {round?.arriveesEnSuspens?.length ? (
+            <section className="gl-gameplay-block" data-testid="gl-tour-arrivees-suspens">
+              <h3>Jets en attente (Relance possible)</h3>
+              <p className="gl-hint">
+                La case d’arrivée s’affiche mais ne s’applique qu’au jet gardé — ou d’office dès
+                qu’une autre équipe joue.
+              </p>
+              {round.arriveesEnSuspens.map((a) => (
+                <div key={a.teamId} className="gl-inline-actions">
+                  <span>
+                    {orderedTeams.find((t) => Number(t.id) === a.teamId)?.name ||
+                      `Équipe ${a.teamId}`}{' '}
+                    : {a.total} → case {numeroCase(a.index) ?? '?'}
+                    {a.label ? ` « ${a.label} »` : ''}
+                  </span>
+                  <GLButton
+                    type="button"
+                    disabled={tourApi.busy}
+                    onClick={() => act(() => tourApi.garderJet(a.teamId))}
+                  >
+                    Appliquer la case
+                  </GLButton>
+                </div>
+              ))}
+            </section>
+          ) : null}
+
           {surface === 'hybride' && round?.phase === 'jeu' ? (
             <section className="gl-gameplay-block">
               <h3>Fenêtre de fouille</h3>

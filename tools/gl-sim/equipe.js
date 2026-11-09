@@ -285,7 +285,19 @@ async function jeterEtAvancer(ctx, equipe, operateur) {
         ? equipe
         : ctx.equipeParId(jet.beneficiaryTeamId) || equipe;
     const benefOperateur = beneficiaire === equipe ? operateur : ctx.operateurDe(beneficiaire);
-    const relance = await traiterArrivee(ctx, beneficiaire, benefOperateur, jet.arrival);
+    let arrivee = jet.arrival;
+    if (arrivee?.enSuspens) {
+      // Relance encore possible : la case attend. Le banc ne lance pas Relance, il garde le jet
+      // (la case s'applique, péripétie comprise) — `lib/glArriveeSuspendue.js`.
+      const garde = await appel(ctx, beneficiaire, 'garder', benefOperateur, {
+        method: 'post',
+        path: api(ctx, '/tenir/arrivee/garder'),
+        body: {},
+      });
+      await ctx.verifierInvariants('jet gardé', beneficiaire);
+      arrivee = garde.status === 200 ? garde.body?.arrival || null : null;
+    }
+    const relance = await traiterArrivee(ctx, beneficiaire, benefOperateur, arrivee);
     if (!relance || beneficiaire !== equipe) return;
   }
 }

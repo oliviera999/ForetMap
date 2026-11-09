@@ -305,9 +305,13 @@ router.post(
     try {
       let result;
       await withTransaction(async (tx) => {
-        result = await tour.equipeSuivanteTx(tx, { gameId, actorId: req.glAuth.userId });
+        result = await tour.equipeSuivanteTx(tx, {
+          gameId,
+          actorId: req.glAuth.userId,
+          settings: ctx.settings,
+        });
       });
-      emitGlGameEvent(gameId, result.event);
+      emitAll(gameId, result.events);
       return res.json({ ok: true, equipeActiveId: result.equipeActiveId });
     } catch (err) {
       return sendTourError(res, err);
@@ -537,6 +541,52 @@ router.post(
     } catch (err) {
       return sendTourError(res, err);
     }
+  }),
+);
+
+/**
+ * POST /tenir/arrivee/garder { teamId? } — l'équipe garde son jet : la case d'arrivée restée en
+ * suspens (Relance encore possible) s'applique maintenant. Élève de l'équipe ou prof (`teamId`).
+ */
+router.post(
+  '/games/:id/tenir/arrivee/garder',
+  requireGlAuth,
+  asyncHandler(async (req, res) => {
+    const gameId = parseId(req.params.id);
+    if (!gameId) return res.status(400).json({ error: 'Identifiant de partie invalide' });
+    if (!(await canAccessGlGame(req.glAuth, gameId)))
+      return res.status(403).json({ error: 'Accès partie refusé' });
+    const ctx = await requireTenirGame(req, res, gameId);
+    if (!ctx) return undefined;
+    let teamId = req.body?.teamId != null ? parseId(req.body.teamId) : null;
+    if (!isMj(req)) {
+      const membership = await getPlayerGameMembership(gameId, req.glAuth.userId);
+      if (!membership?.team_id)
+        return res.status(403).json({ error: 'Joueur non rattaché à une équipe' });
+      teamId = Number(membership.team_id);
+    } else if (teamId == null) {
+      return res.status(400).json({ error: 'teamId requis pour le MJ' });
+    }
+    const { confirmerArriveesTx } = require('../../../lib/glArriveeSuspendue');
+    let result;
+    await withTransaction(async (tx) => {
+      result = await confirmerArriveesTx(tx, {
+        gameId,
+        teamId,
+        settings: ctx.settings,
+        actorType: isMj(req) ? 'mj' : 'team',
+        actorId: String(req.glAuth.userId),
+        motif: 'garde',
+      });
+    });
+    if (!result.arrivals.length && !result.events.length) {
+      return res.status(409).json({
+        error: 'Aucun jet en attente pour cette équipe',
+        code: 'AUCUNE_ARRIVEE_EN_SUSPENS',
+      });
+    }
+    emitAll(gameId, result.events);
+    return res.json({ ok: true, arrival: result.arrivals[0]?.summary || null });
   }),
 );
 

@@ -1066,7 +1066,9 @@ export function AppGL() {
                           tenir={gameState.tenir}
                           teamId={auth.teamId}
                           onReloadGame={reloadGame}
-                          onJeter={canSpellCast ? () => openSpellCastWizard(null) : null}
+                          onJeter={
+                            canSpellCast ? (code) => openSpellCastWizard(code || null) : null
+                          }
                           chasse={chasse}
                           modules={modules}
                         />

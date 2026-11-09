@@ -318,6 +318,19 @@ plateau » pour la démo et « test »). Les catalogues (zones, questions, péri
 se chargent seuls au démarrage ; Contenus → Chapitres → « Catalogues Tenir à deux » montre
 leur état et permet de les resynchroniser.
 
+**Depuis le 9 novembre 2026 — Relance annule le jet.** Quand une équipe vient de jeter et peut
+encore lancer **Relance** (sorts actifs, Relance ouvert au chapitre, pas encore lancé ce tour,
+de quoi payer), sa mascotte avance mais **la case d'arrivée attend** : l'écran d'équipe affiche
+le jet, la case et son effet, avec deux boutons, **« Garder ce jet »** et **« Relance… »**.
+Relance annule le jet : la mascotte revient sur sa case de départ, la case ne s'applique jamais,
+l'équipe rejette les dés (et le second jet s'applique aussitôt). Relance ne se lance qu'à ce
+moment-là : ni avant le jet, ni une fois la case appliquée. La case attendue s'applique d'office
+dès que la partie avance — une autre équipe jette, vous passez à l'équipe suivante ou changez de
+phase, un autre sort automatique est lancé — ou quand l'équipe répond à la question de la case.
+Dans **« Jouer le tour »**, le bloc « Jets en attente » liste ces équipes avec un bouton
+**« Appliquer la case »**. Une équipe qui ne peut pas payer Relance ne voit rien changer : sa case
+s'applique tout de suite, comme avant.
+
 À la **clôture** du chapitre (bouton « Clore »), la caravane porte les retardataires au camp, les
 honneurs, sceaux et titres s'attribuent, les parures reviennent au comptoir, les badges se
 calculent. La **projection** (bouton « Projeter ») donne un lien à ouvrir sur le vidéoprojecteur :
