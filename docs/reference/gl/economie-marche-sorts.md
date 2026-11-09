@@ -311,7 +311,7 @@ file : vous cochez « effet appliqué » quand c'est fait. Aucun sort ne crée d
 ## Ajustements du 7 novembre 2026
 
 - **Progression** et **Relance** se lancent juste après le jet de l'équipe, avant qu'une autre
-  équipe ne joue ; Progression déplace d'une case sans appliquer la case d'arrivée (réglage
+  équipe ne joue (Relance : voir plus bas, depuis le 9 novembre elle annule le jet) ; Progression déplace d'une case sans appliquer la case d'arrivée (réglage
   « Progression : appliquer la case d'arrivée »).
 - Une bonne réponse de case donne **une relance par équipe et par tour** ; ensuite, +1 case
   seulement (réglage « Relances de case par équipe et par tour », 0 = sans limite).
@@ -319,6 +319,30 @@ file : vous cochez « effet appliqué » quand c'est fait. Aucun sort ne crée d
   Trame ; une case neutre ne retire jamais de ressource (réglage « Cases positives à ressource »).
 - Les **parures** sans image restent achetables : la mascotte porte une pastille texte.
 - Un élève en **retrait** lit et tient une page ; le Marché et le pot lui restent fermés.
+
+## Relance annule le jet (9 novembre 2026)
+
+Relance sert à effacer un jet jugé nul — un petit score, une case d'arrivée défavorable. Pour que
+ce choix ait un sens, la case ne doit pas déjà avoir joué :
+
+- Après un jet, si l'équipe **peut encore lancer Relance** (module Sortilèges actif, Relance
+  ouvert au chapitre, pas encore lancé ce tour, bourses et réserve suffisantes), la mascotte
+  avance et la case d'arrivée **s'affiche sans s'appliquer** : l'écran d'équipe montre le jet, la
+  case et son effet, avec **« Garder ce jet »** et **« Relance… »**.
+- **Relance** annule le jet : la mascotte revient sur sa case de départ, la case ne s'applique
+  jamais, seul le coût de Relance (2, cœurs ou gemmes) est payé. L'équipe rejette les dés ; ce
+  second jet s'applique aussitôt (Relance est déjà pris pour le tour).
+- Relance ne se lance **qu'à ce moment-là** : ni avant le jet, ni une fois la case appliquée.
+- La case attendue s'applique d'office dès que la partie avance : une autre équipe jette, le MJ
+  passe à l'équipe suivante ou change de phase, un autre sort automatique est lancé (Progression
+  part donc de la case jouée, comme avant). Répondre à la question de la case, c'est aussi garder
+  son jet. Le MJ peut appliquer la case depuis « Jouer le tour » (bloc « Jets en attente »).
+- Une équipe qui ne peut pas payer Relance, ou une partie sans sortilèges, ne voit rien changer :
+  la case s'applique tout de suite.
+
+> ⚠️ **Point d'attention** — Tant qu'une case attend, le plateau ne la présente pas (ni question,
+> ni effet). Si une équipe semble « bloquée » sur une case sans rien voir, c'est qu'elle n'a pas
+> encore choisi : « Garder ce jet » débloque la suite.
 
 ## Pour aller plus loin
 

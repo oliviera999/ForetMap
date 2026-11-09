@@ -9,6 +9,27 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — G&L « Tenir à deux » : Relance annule le jet
+
+Relance « rejouait » les dés par-dessus un jet dont la case s'était déjà appliquée : au dé du
+serveur, les deux déplacements s'additionnaient. Il sert désormais à effacer un jet jugé nul.
+
+- **Arrivée en suspens** (`lib/glArriveeSuspendue.js`) : après un jet, si l'équipe peut encore
+  lancer Relance (module des sorts, sort ouvert au chapitre, limite du tour, bourses + réserve
+  suffisantes ; hors avance libre et Cordée), la mascotte avance et la case d'arrivée s'affiche
+  **sans s'appliquer** (`arrival.enSuspens`, `tenir.round.arriveesEnSuspens`, événement
+  `arrivee_suspendue`, ligne `gl_game_tenir_effets` de kind `arrivee_suspendue`).
+- **Relance** ne se lance qu'à ce moment-là (sinon 409 `SPELL_FENETRE`) : la mascotte revient sur
+  sa case de départ, la case ne s'applique jamais (`jet_annule`), l'équipe rejette les dés.
+- **Garder ce jet** : bouton de l'écran d'équipe, « Appliquer la case » dans « Jouer le tour »
+  (`POST /api/gl/games/:id/tenir/arrivee/garder`), ou d'office quand la partie avance — autre
+  équipe qui jette, équipe suivante, changement de phase, autre sort automatique, présentation de
+  la case (`present-question` / `present-arrival`). Le plateau ne présente pas une case en suspens.
+- Migration `341_gl_relance_annule_jet.sql` : texte de la fiche Relance (`data/gl/tenir/sorts.json`).
+- Tests : `tests/gl-tenir-relance-suspens.test.js`, scénario Relance de `gl-grimoire-v2`. Doc :
+  `docs/API.md`, `docs/GL_TENIR_A_DEUX_REGLES.md`, `docs/reference/gl/economie-marche-sorts.md`,
+  `guide-du-mj.md`.
+
 ### Corrigé — G&L en production : intro muette, connexion Google, fond du plateau de démonstration
 
 Constaté sur `gl.olution.info` le 8 novembre 2026 après la v1.239.0.

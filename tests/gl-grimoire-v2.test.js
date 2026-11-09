@@ -27,7 +27,6 @@ const { appliquerHeritagesTx } = require('../lib/glHeritage');
 const { getGameplaySettings } = require('../lib/glSettings');
 
 let ctx;
-let pendingSaisieId = null;
 const auth = (t) => ({ Authorization: `Bearer ${t}` });
 const api = (path) => `/api/gl/games/${ctx.game.id}${path}`;
 // Équipes : 0 Gnomes A (joueurs 0, 4, 8), 1 Gnomes B (1, 5, 9), 2 Licornes A (2, 6), 3 Licornes B (3, 7).
@@ -151,7 +150,7 @@ test('Abri : pot sans l’élève en retrait, cible une autre équipe, effet « 
     .expect(200);
 });
 
-test('Progression : hors fenêtre avant le jet (message explicite), puis ±1 case après le jet SANS appliquer la case (C1)', async () => {
+test('Relance : pas avant le jet ; après le jet la case attend, Relance annule le jet (la mascotte revient, la case ne s’applique pas) ; Progression part de la case jouée (C1)', async () => {
   const early = await draft(p(1).token, {
     spellCode: 'SL002',
     teamId: gB().id,
@@ -161,18 +160,74 @@ test('Progression : hors fenêtre avant le jet (message explicite), puis ±1 cas
   assert.equal(early.status, 409, JSON.stringify(early.body));
   assert.equal(early.body.code, 'SPELL_FENETRE');
   assert.match(early.body.error, /après le jet/);
+  const relanceAvant = await draft(p(1).token, {
+    spellCode: 'SL005',
+    teamId: gB().id,
+    ressource: 'coeurs',
+  });
+  assert.equal(relanceAvant.status, 409, 'pas de Relance avant le jet');
+  assert.equal(relanceAvant.body.code, 'SPELL_FENETRE');
 
+  const depart = await teamIndex(gB().id);
+  const avantJet = await totalBourses();
   const jet = await request(app)
     .post(api('/tenir/lancer'))
     .set(auth(p(1).token))
     .send({ mode: 'physique', faces: [1, 1] });
   assert.equal(jet.status, 202, JSON.stringify(jet.body));
-  await request(app)
+  const valide = await request(app)
     .post(api(`/tenir/des/${jet.body.saisieId}/valider`))
     .set(auth(ctx.adminToken))
     .expect(200);
-  const before = await teamIndex(gB().id);
-  assert.equal(before, 2);
+  // Relance encore possible : la mascotte avance, la case s'affiche sans s'appliquer.
+  assert.equal(valide.body.arrival?.enSuspens, true, JSON.stringify(valide.body.arrival));
+  assert.equal(valide.body.arrival?.relanceSpellCode, 'SL005');
+  assert.equal(await teamIndex(gB().id), depart + 2);
+  assert.deepEqual(await totalBourses(), avantJet, 'case pas encore appliquée');
+  const vue = await request(app)
+    .get(api('/tenir/tour'))
+    .set(auth(p(1).token))
+    .expect(200);
+  const suspens = vue.body.round.arriveesEnSuspens;
+  assert.equal(suspens.length, 1);
+  assert.equal(suspens[0].teamId, gB().id);
+  assert.equal(suspens[0].total, 2);
+
+  const relance = await cast(p(1).token, {
+    spellCode: 'SL005',
+    teamId: gB().id,
+    ressource: 'coeurs',
+  });
+  assert.equal(relance.status, 200, JSON.stringify(relance.body));
+  assert.ok(relance.body.effectEvents.some((e) => e.eventType === 'jet_annule'));
+  assert.equal(await teamIndex(gB().id), depart, 'la mascotte revient sur sa case de départ');
+  const apresRelance = await totalBourses();
+  assert.equal(apresRelance.h, avantJet.h - 2, 'seul le coût de Relance est payé');
+  assert.equal(apresRelance.g, avantJet.g);
+  const [ligne] = await effets('arrivee_suspendue');
+  assert.equal(JSON.parse(ligne.payload_json).issue, 'annulee');
+  assert.equal((await effets('relance')).length, 1);
+
+  // L'équipe rejette les dés ; Relance est prise ce tour : la case s'applique aussitôt.
+  const rejet = await request(app)
+    .post(api('/tenir/lancer'))
+    .set(auth(p(1).token))
+    .send({ mode: 'physique', faces: [1, 1] });
+  assert.equal(rejet.status, 202, 'la Relance autorise une nouvelle saisie');
+  const second = await request(app)
+    .post(api(`/tenir/des/${rejet.body.saisieId}/valider`))
+    .set(auth(ctx.adminToken))
+    .expect(200);
+  assert.notEqual(second.body.arrival?.enSuspens, true);
+  assert.equal(await teamIndex(gB().id), depart + 2);
+  const deja = await draft(p(1).token, {
+    spellCode: 'SL005',
+    teamId: gB().id,
+    ressource: 'coeurs',
+  });
+  assert.equal(deja.status, 409, 'plus de jet en suspens à annuler');
+
+  // Un second sort différent dans le même tour est accepté (pas de quota global).
   const avant = await totalBourses();
   const res = await cast(p(1).token, {
     spellCode: 'SL002',
@@ -181,27 +236,51 @@ test('Progression : hors fenêtre avant le jet (message explicite), puis ±1 cas
     ressource: 'coeurs',
   });
   assert.equal(res.status, 200, JSON.stringify(res.body));
-  assert.equal(await teamIndex(gB().id), 3);
+  assert.equal(await teamIndex(gB().id), depart + 3);
   assert.equal(res.body.draft.required.hearts, 1);
   // C1 : la case d'arrivée (ici une Trame) n'est pas appliquée — aucune ressource créée.
   assert.equal(res.body.effectResult?.arrival, undefined, 'case non appliquée');
   const apres = await totalBourses();
   assert.equal(apres.h, avant.h - 1);
   assert.equal(apres.g, avant.g);
-  // Un second sort différent dans le même tour est accepté (pas de quota global).
-  const relance = await cast(p(1).token, {
-    spellCode: 'SL005',
-    teamId: gB().id,
-    ressource: 'coeurs',
-  });
-  assert.equal(relance.status, 200, JSON.stringify(relance.body));
-  assert.equal((await effets('relance')).length, 1);
-  const rejet = await request(app)
+});
+
+test('Relance : une arrivée laissée en suspens s’applique quand l’équipe garde son jet', async () => {
+  await place(lB().id, 0);
+  await execute(
+    'UPDATE gl_teams SET last_dice_round_number = 0, last_move_round_number = 0 WHERE id = ?',
+    [lB().id],
+  );
+  const jet = await request(app)
     .post(api('/tenir/lancer'))
+    .set(auth(ctx.adminToken))
+    .send({ mode: 'physique', teamId: lB().id, faces: [1, 2] });
+  assert.equal(jet.status, 201, JSON.stringify(jet.body));
+  assert.equal(jet.body.arrival?.enSuspens, true, JSON.stringify(jet.body.arrival));
+  const autre = await request(app)
+    .post(api('/tenir/arrivee/garder'))
     .set(auth(p(1).token))
-    .send({ mode: 'physique', faces: [1, 1] });
-  assert.equal(rejet.status, 202, 'la Relance autorise une nouvelle saisie');
-  pendingSaisieId = rejet.body.saisieId;
+    .send({});
+  assert.equal(autre.status, 409, 'une autre équipe n’a rien à garder');
+  const garde = await request(app)
+    .post(api('/tenir/arrivee/garder'))
+    .set(auth(p(3).token))
+    .send({});
+  assert.equal(garde.status, 200, JSON.stringify(garde.body));
+  assert.equal(await teamIndex(lB().id), 3);
+  const ligne = (await effets('arrivee_suspendue')).find((r) => Number(r.team_id) === lB().id);
+  assert.equal(JSON.parse(ligne.payload_json).issue, 'appliquee');
+  const gardee = await queryOne(
+    "SELECT id FROM gl_game_events WHERE game_id = ? AND team_id = ? AND event_type = 'arrivee_gardee'",
+    [ctx.game.id, lB().id],
+  );
+  assert.ok(gardee);
+  const relance = await draft(p(3).token, {
+    spellCode: 'SL005',
+    teamId: lB().id,
+    ressource: 'gemmes',
+  });
+  assert.equal(relance.status, 409, 'case appliquée : Relance n’a plus rien à annuler');
 });
 
 test('Grand Regard : 1/tour/partie, +1 fouille à chaque équipe ; Bourrasque : +3 cases sans effet de case', async () => {
@@ -244,10 +323,6 @@ test('Grand Regard : 1/tour/partie, +1 fouille à chaque équipe ; Bourrasque : 
 });
 
 test('Sentier : avant le jet seulement ; la prochaine case Souffle n’a pas d’effet', async () => {
-  await request(app)
-    .post(api(`/tenir/des/${pendingSaisieId}/valider`))
-    .set(auth(ctx.adminToken))
-    .expect(200);
   const late = await draft(p(1).token, { spellCode: 'SL042', teamId: gB().id });
   assert.equal(late.status, 409, 'Gnomes B ont déjà jeté');
   await place(gA().id, 3); // la case 4 est un Souffle (gnome : recule de 1)
