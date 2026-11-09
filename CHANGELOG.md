@@ -29,6 +29,17 @@ serveur, les deux déplacements s'additionnaient. Il sert désormais à effacer 
 - Tests : `tests/gl-tenir-relance-suspens.test.js`, scénario Relance de `gl-grimoire-v2`. Doc :
   `docs/API.md`, `docs/GL_TENIR_A_DEUX_REGLES.md`, `docs/reference/gl/economie-marche-sorts.md`,
   `guide-du-mj.md`.
+### Ajouté — Connecteur : scripts d'exploitation lançables depuis Claude
+
+- **`foretmap_ops`** gagne trois actions : `scripts` (catalogue), `script_dry_run` (simulation ou
+  lecture seule) et `run_script` (application, écriture confirmée et journalisée). Les scripts
+  viennent d'une **liste blanche** (`lib/mcp/domains/opsScripts.js`) : options déclarées et
+  validées, pas de shell, Node de l'application, délai maximal, un script à la fois, sortie
+  nettoyée des secrets. Catalogue : rattrapage des badges (forêt et G&L), proposition de
+  taxonomie des tâches, état des migrations, audit pédagogique, densité des repères, fichiers
+  orphelins, clés GBIF, crédits photo G&L, liens d'apprentissage.
+- Tests : `tests/mcp-ops-scripts.test.js` (validation, modes, troncature, verrou) et un cas réel
+  dans `tests/mcp-domain-ops.test.js`. Doc : `docs/MCP.md`.
 
 ### Corrigé — G&L en production : intro muette, connexion Google, fond du plateau de démonstration
 
