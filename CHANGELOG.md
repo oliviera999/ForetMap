@@ -9,6 +9,18 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — Connecteur : scripts d'exploitation lançables depuis Claude
+
+- **`foretmap_ops`** gagne trois actions : `scripts` (catalogue), `script_dry_run` (simulation ou
+  lecture seule) et `run_script` (application, écriture confirmée et journalisée). Les scripts
+  viennent d'une **liste blanche** (`lib/mcp/domains/opsScripts.js`) : options déclarées et
+  validées, pas de shell, Node de l'application, délai maximal, un script à la fois, sortie
+  nettoyée des secrets. Catalogue : rattrapage des badges (forêt et G&L), proposition de
+  taxonomie des tâches, état des migrations, audit pédagogique, densité des repères, fichiers
+  orphelins, clés GBIF, crédits photo G&L, liens d'apprentissage.
+- Tests : `tests/mcp-ops-scripts.test.js` (validation, modes, troncature, verrou) et un cas réel
+  dans `tests/mcp-domain-ops.test.js`. Doc : `docs/MCP.md`.
+
 ### Corrigé — G&L en production : intro muette, connexion Google, fond du plateau de démonstration
 
 Constaté sur `gl.olution.info` le 8 novembre 2026 après la v1.239.0.

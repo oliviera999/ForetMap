@@ -5,7 +5,8 @@
  * tâche planifiée lancée à la demande (tracée), migrations (à jour : rien n'est lancé),
  * redémarrage (`tmp/restart.txt` touché), sauvegardes `structure` / `anonymized` / `full` (fichier
  * et lien signé, élèves pseudonymisés), stockage, état du déploiement, purge de conservation
- * (simulation ; réelle verrouillée sans `RETENTION_PURGE_APPLY=1`), caches.
+ * (simulation ; réelle verrouillée sans `RETENTION_PURGE_APPLY=1`), caches, scripts d'exploitation
+ * (liste blanche, lecture réelle, refus hors catalogue).
  */
 
 require('./helpers/setup');
@@ -204,6 +205,37 @@ test('storage_report, retention (simulation ; réelle verrouillée), clear_cache
   assert.ok(caches.data.cleared.includes('réglages'));
   assert.ok(caches.data.cleared.includes('vues de tutoriels'));
   assert.deepEqual(caches.data.failed, []);
+});
+
+test('scripts : liste blanche, lecture réelle (db_migration_status), refus hors catalogue', async () => {
+  const list = await call({ action: 'scripts' });
+  assert.equal(list.isError, false, list.text);
+  assert.ok(list.data.scripts.some((x) => x.id === 'rewards_backfill' && x.apply_available));
+
+  const dry = await call({ action: 'script_dry_run', script: 'db_migration_status' });
+  assert.equal(dry.isError, false, dry.text);
+  assert.equal(dry.data.mode, 'lecture');
+  assert.equal(dry.data.exit_code, 0, dry.data.stderr);
+  const audit = await queryOne(
+    "SELECT payload_json FROM audit_log WHERE action = 'mcp_ops_script_dry_run' ORDER BY id DESC LIMIT 1",
+  );
+  const payload =
+    typeof audit.payload_json === 'string' ? JSON.parse(audit.payload_json) : audit.payload_json;
+  assert.equal(payload.via, 'mcp');
+  assert.equal(payload.script, 'db_migration_status');
+
+  const ro = await call({ action: 'run_script', script: 'db_migration_status' });
+  assert.equal(ro.isError, true);
+  assert.match(ro.text, /lecture seule/);
+  const bad = await call({ action: 'script_dry_run', script: 'totp-admin' });
+  assert.equal(bad.isError, true);
+  const opt = await call({
+    action: 'script_dry_run',
+    script: 'rewards_backfill',
+    options: { file: '/etc/passwd' },
+  });
+  assert.equal(opt.isError, true);
+  assert.match(opt.text, /Option inconnue/);
 });
 
 test('écritures refusées sans portée foretmap.write ; lectures conservées', async () => {
