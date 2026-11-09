@@ -4,6 +4,7 @@ const express = require('express');
 const { requireGlAuth } = require('../../middleware/requireGlAuth');
 const { requireGlMarket, requireGlPlayer } = require('../../middleware/requireGlMarket');
 const { emitGlMarketTradeChanged } = require('../../lib/realtime');
+const { queueGlRewards } = require('../../lib/glRewardsHooks');
 const {
   resolveMarketError,
   listClassmates,
@@ -174,6 +175,12 @@ router.post(
         feuilletCode: req.body?.feuilletCode,
       });
       emitGlMarketTradeChanged(req.glAuth.classId, { action: 'don' });
+      // Badge « Mains tendues » (hors transaction, jamais bloquant).
+      queueGlRewards([req.glAuth.userId], {
+        families: ['cooperation'],
+        source: { type: 'don', ref: null },
+        reason: 'don',
+      });
       return res.status(201).json(result);
     } catch (err) {
       return handleMarketPlaceError(err, res);

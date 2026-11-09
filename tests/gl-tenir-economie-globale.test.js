@@ -154,3 +154,188 @@ test('page tenue : +1 par membre des deux équipes ; sort : −coût ; souffle :
   );
   assert.equal(classement.length, 0);
 });
+
+test('Progression sur une Trame ne crée pas de ressource nette (C1) : −coût seulement', async () => {
+  const team = ctx.teams[1];
+  const member = ctx.players.find((p) => p.teamId === Number(team.id));
+  // Le tour précédent est en phase souffle : on le clôt et on ouvre le tour 2 en phase jeu.
+  await request(app)
+    .post(api('/tenir/tour/phase'))
+    .set(auth(ctx.adminToken))
+    .send({ phase: 'clos' })
+    .expect(200);
+  await ouvrirTourEnJeu(request, app, ctx);
+  // Jet de l'équipe (dernier jet du tour), puis placement juste avant la Trame 1.
+  const jet = await request(app)
+    .post(api('/tenir/lancer'))
+    .set(auth(ctx.adminToken))
+    .send({ mode: 'serveur', teamId: team.id });
+  assert.equal(jet.status, 201, JSON.stringify(jet.body));
+  await execute('UPDATE gl_teams SET position_marker_id = ? WHERE id = ?', [
+    ctx.markers[1].id,
+    team.id,
+  ]);
+  const t0 = await total();
+  const d = await request(app)
+    .post(api('/spell-casts/drafts'))
+    .set(auth(member.token))
+    .send({ spellCode: 'SL002', teamId: team.id, effectParams: { delta: 1 }, ressource: 'coeurs' });
+  assert.equal(d.status, 201, JSON.stringify(d.body));
+  const l = await request(app)
+    .post(api(`/spell-casts/drafts/${d.body.draft.id}/launch`))
+    .set(auth(member.token));
+  assert.equal(l.status, 200, JSON.stringify(l.body));
+  assert.equal(await total(), t0 - 1, 'Progression sur une Trame : −1 (coût), rien de créé');
+});
+
+test('cases positives (C4) : une case « +2 cœurs » du plateau donne +1 ressource du peuple à chaque membre', async () => {
+  const team = ctx.teams[3]; // licorne
+  const etape = ctx.markers[8]; // « Étape 2 » (point) : rendue positive le temps du test
+  const saved = await queryOne(
+    'SELECT event_type, event_config_json FROM gl_chapter_markers WHERE id = ?',
+    [etape.id],
+  );
+  await execute(
+    'UPDATE gl_chapter_markers SET event_type = ?, event_config_json = ? WHERE id = ?',
+    [
+      'behavior',
+      JSON.stringify({
+        version: 2,
+        effects: {
+          neutral: { label: null, deltaPv: 2, deltaGems: 0, deltaMove: 0, passTurn: false },
+        },
+        eventMeta: { tonalite: 'positif', rarete: 'commun' },
+      }),
+      etape.id,
+    ],
+  );
+  try {
+    await execute('UPDATE gl_teams SET position_marker_id = ? WHERE id = ?', [
+      ctx.markers[7].id,
+      team.id,
+    ]);
+    const membres = (
+      await queryAll('SELECT player_id FROM gl_team_members WHERE game_id = ? AND team_id = ?', [
+        ctx.game.id,
+        team.id,
+      ])
+    ).map((m) => Number(m.player_id));
+    for (const id of membres)
+      await execute('UPDATE gl_players SET health_points = 3, power_points = 3 WHERE id = ?', [id]);
+    const t0 = await total();
+    const libre = await request(app)
+      .post(api('/tenir/lancer'))
+      .set(auth(ctx.adminToken))
+      .send({ mode: 'libre', cases: 1, motif: 'test C4', teamId: team.id });
+    assert.equal(libre.status, 201, JSON.stringify(libre.body));
+    assert.equal(await total(), t0 + membres.length, '+1 par membre, pas +2 cœurs');
+    for (const id of membres) {
+      const b = await queryOne('SELECT health_points, power_points FROM gl_players WHERE id = ?', [
+        id,
+      ]);
+      assert.deepEqual(
+        { h: Number(b.health_points), p: Number(b.power_points) },
+        { h: 3, p: 4 },
+        'licorne : +1 gemme, pas de cœur',
+      );
+    }
+  } finally {
+    await execute(
+      'UPDATE gl_chapter_markers SET event_type = ?, event_config_json = ? WHERE id = ?',
+      [saved.event_type, saved.event_config_json, etape.id],
+    );
+  }
+});
+
+test('E4 : le surplus au plafond n’est jamais perdu (réserve de la caravane), la réserve n’est jamais négative, une réponse fausse ne crée rien', async () => {
+  const { listReserves } = require('../lib/glBourses');
+  const { checkTenirInvariantsFromDb } = require('../lib/glTenirInvariants');
+  const team = ctx.teams[1]; // gnome
+  const etape = ctx.markers[8];
+  const saved = await queryOne(
+    'SELECT event_type, event_config_json FROM gl_chapter_markers WHERE id = ?',
+    [etape.id],
+  );
+  await execute(
+    'UPDATE gl_chapter_markers SET event_type = ?, event_config_json = ? WHERE id = ?',
+    [
+      'behavior',
+      JSON.stringify({
+        version: 2,
+        effects: {
+          neutral: { label: null, deltaPv: 2, deltaGems: 0, deltaMove: 0, passTurn: false },
+        },
+        eventMeta: { tonalite: 'positif', rarete: 'commun' },
+      }),
+      etape.id,
+    ],
+  );
+  const reservesTotal = async () =>
+    (await listReserves(db, ctx.game.id)).reduce((acc, r) => acc + r.health + r.power, 0);
+  try {
+    await execute('UPDATE gl_teams SET position_marker_id = ? WHERE id = ?', [
+      ctx.markers[7].id,
+      team.id,
+    ]);
+    const membres = (
+      await queryAll('SELECT player_id FROM gl_team_members WHERE game_id = ? AND team_id = ?', [
+        ctx.game.id,
+        team.id,
+      ])
+    ).map((m) => Number(m.player_id));
+    // Tous au plafond de cœurs : le +1 de la case positive déborde.
+    for (const id of membres)
+      await execute('UPDATE gl_players SET health_points = 8, power_points = 3 WHERE id = ?', [id]);
+    const t0 = await total();
+    const r0 = await reservesTotal();
+    const libre = await request(app)
+      .post(api('/tenir/lancer'))
+      .set(auth(ctx.adminToken))
+      .send({ mode: 'libre', cases: 1, motif: 'test E4', teamId: team.id });
+    assert.equal(libre.status, 201, JSON.stringify(libre.body));
+    assert.equal(await total(), t0, 'au plafond : aucune bourse ne bouge');
+    assert.equal(await reservesTotal(), r0 + membres.length, 'le surplus va à la réserve');
+    const reserve = (await listReserves(db, ctx.game.id)).find((r) => r.teamId === Number(team.id));
+    assert.deepEqual(
+      { h: reserve.health - 0 >= membres.length, p: reserve.power },
+      { h: true, p: 0 },
+    );
+    const inv = await checkTenirInvariantsFromDb(db, ctx.game.id);
+    assert.deepEqual(
+      inv.violations.filter((v) =>
+        ['RESERVE_NEGATIVE', 'RESERVE_LIVRE', 'LIVRE_TOTAL'].includes(v.code),
+      ),
+      [],
+    );
+    assert.ok((await listReserves(db, ctx.game.id)).every((r) => r.health >= 0 && r.power >= 0));
+
+    // Une mauvaise réponse de chasse (zone cz-p3-02) : « pas encore », aucune ressource.
+    const gnome = ctx.players.find((p) => p.teamId === Number(team.id));
+    const t1 = await total();
+    const r1 = await reservesTotal();
+    const f = await request(app)
+      .post(api('/chasse/fouiller'))
+      .set(auth(gnome.token))
+      .send({ x: 0.55, y: 0.6 });
+    assert.equal(f.status, 201, JSON.stringify(f.body));
+    assert.equal(f.body.verdict, 'zone');
+    const right = await bonneReponse(f.body.question);
+    const wrong = f.body.question.choices.find((c) => c.id !== right.id);
+    const rep = await request(app).post(api('/chasse/repondre')).set(auth(gnome.token)).send({
+      presentationToken: f.body.question.presentationToken,
+      questionCode: f.body.question.questionCode,
+      choiceId: wrong.id,
+    });
+    assert.equal(rep.status, 200, JSON.stringify(rep.body));
+    assert.equal(rep.body.correct, false);
+    assert.match(String(rep.body.feedback), /^Pas encore/);
+    assert.ok(!/faux|rat[ée]|perdu/i.test(String(rep.body.feedback)));
+    assert.equal(await total(), t1, 'réponse fausse : rien');
+    assert.equal(await reservesTotal(), r1, 'réponse fausse : rien en réserve non plus');
+  } finally {
+    await execute(
+      'UPDATE gl_chapter_markers SET event_type = ?, event_config_json = ? WHERE id = ?',
+      [saved.event_type, saved.event_config_json, etape.id],
+    );
+  }
+});

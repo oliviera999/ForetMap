@@ -69,12 +69,61 @@ function SideFields({ label, value, onChange, heartsTradable, ownFeuillets, disa
 
 const EMPTY_SIDE = { gemmes: 0, coeurs: 0, feuillets: [] };
 
+/**
+ * Encart repliable « Comment fonctionne le marché ? » en tête de La place : quatre lignes pour
+ * un élève de 6ᵉ (annonces, échange à deux, don, parures). Même nom accessible que l'encart
+ * de l'onglet Échanges (`role="note"`, « Règles du marché ») : un seul des deux est monté à
+ * la fois.
+ */
+export function GLMarketPlaceRegles({ heartsTradable = false, paruresEnabled = true }) {
+  const ressource = heartsTradable ? 'tes gemmes ou tes cœurs' : 'tes gemmes';
+  return (
+    <aside
+      className="gl-market-disclaimer gl-market-disclaimer--place"
+      role="note"
+      aria-label="Règles du marché"
+    >
+      <details open>
+        <summary>
+          <h2>Comment fonctionne le marché ?</h2>
+        </summary>
+        <ul>
+          <li>
+            Sur <strong>la place</strong>, tu publies une annonce : <strong>je cherche</strong>,{' '}
+            <strong>j’offre</strong>, ou <strong>je propose</strong> (les deux côtés à la fois).
+          </li>
+          <li>
+            <strong>Répondre</strong> à une annonce ouvre un <strong>échange à deux</strong> (onglet
+            Échanges) : chacun ajuste son offre, puis coche « J’accepte ».
+          </li>
+          <li>
+            Un <strong>don</strong> part <strong>tout de suite</strong> : ce que tu donnes quitte ta
+            bourse, sans retour.
+          </li>
+          {paruresEnabled ? (
+            <li>
+              Au <strong>Comptoir</strong>, les <strong>parures</strong> s’achètent avec {ressource}{' '}
+              et décorent ton équipe.
+            </li>
+          ) : (
+            <li>
+              Tes <strong>gemmes</strong> et tes <strong>cœurs</strong> restent à toi d’un chapitre
+              à l’autre : réfléchis avant de donner.
+            </li>
+          )}
+        </ul>
+      </details>
+    </aside>
+  );
+}
+
 export function GLMarketPlacePanel({
   place,
   playerId,
   heartsTradable,
   ownFeuillets,
   onTradeOpened,
+  paruresEnabled = true,
 }) {
   const [type, setType] = useState('cherche');
   const [cherche, setCherche] = useState(EMPTY_SIDE);
@@ -95,6 +144,7 @@ export function GLMarketPlacePanel({
 
   return (
     <div className="gl-market-place" data-testid="gl-market-place">
+      <GLMarketPlaceRegles heartsTradable={heartsTradable} paruresEnabled={paruresEnabled} />
       <form className="gl-market-annonce-form gl-form" onSubmit={submit}>
         <h3>Publier une annonce</h3>
         <label>

@@ -31,9 +31,28 @@ test.describe('GL repère question — present-question API', () => {
     );
     const playerRow = await queryOne('SELECT id FROM gl_players ORDER BY id DESC LIMIT 1');
 
+    // Question propre au test : une base `db:init` neuve (nuit `e2e-gl-nightly`) n'a pas le
+    // catalogue QCM importé par les suites backend ; le repère pointe une question insérée ici.
+    const biome = await queryOne('SELECT slug FROM gl_biomes ORDER BY slug LIMIT 1');
+    const categorie = await queryOne('SELECT slug FROM gl_qcm_categories ORDER BY slug LIMIT 1');
+    expect(biome?.slug && categorie?.slug).toBeTruthy();
+    const questionCode = `QE2E${String(now).slice(-9)}`;
+    await execute(
+      `INSERT INTO gl_qcm_questions (
+         question_code, biome_slug, categorie_slug, numero_dans_categorie, question,
+         choix_a, choix_b, choix_c, choix_d, choix_e, reponse_correcte, niveau, statut, created_at, updated_at
+       ) VALUES (?, ?, ?, ?, ?, 'La forêt respire', 'Le sable chante', 'La neige écoute', 'La rivière compte', '', 'A', '6ème', 'actif', NOW(), NOW())`,
+      [
+        questionCode,
+        biome.slug,
+        categorie.slug,
+        9500 + (now % 400),
+        `Question d'exemple e2e ${now} ?`,
+      ],
+    );
     const eventConfig = serializeEventConfig({
       version: 1,
-      question: { mode: 'fixed', fixedQuestionCode: 'QCM0001', pool: { biomeMode: 'chapter' } },
+      question: { mode: 'fixed', fixedQuestionCode: questionCode, pool: { biomeMode: 'chapter' } },
     });
     await execute(
       `INSERT INTO gl_chapter_markers (chapter_id, x_pct, y_pct, event_type, label, description, event_config_json, order_index, created_at)

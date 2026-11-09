@@ -62,14 +62,14 @@
       },
       "cible": "pion_equipe",
       "execution": "auto",
-      "effet_court": "±1 case, puis la case s'applique",
+      "effet_court": "±1 case, sans appliquer la case d'arrivée (réglage tenir_progression_applique_case)",
       "effet_auto_json": {
         "type": "move_delta",
         "choix": [
           -1,
           1
         ],
-        "appliquer_case": true
+        "appliquer_case": false
       },
       "chapitre_ouverture": 1,
       "nouveau": false

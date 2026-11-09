@@ -4,10 +4,11 @@ import { GLButton } from '../ui/GLButton.jsx';
 
 /**
  * Console MJ « Tenir à deux » (spec § 11–13) : exports CSV de la classe (Team Spirit, badges),
- * mission réussie (sceau + titre), badge à la main du prof, plumes et chimères à relire.
- * Aucun classement, aucune bourse.
+ * mission réussie (sceau + titre), plumes et chimères à relire. Les badges individuels
+ * (vitrine, badge décerné avec un mot) vivent dans `GLTenirRewardsPanel`. Aucun classement,
+ * aucune bourse.
  */
-export function GLTenirHonneursPanel({ game, teams = [], roster = [], onReloadGame, showFailure }) {
+export function GLTenirHonneursPanel({ game, teams = [], onReloadGame, showFailure }) {
   const gameId = game?.id;
   const classId = game?.class_id;
   const [missions, setMissions] = useState({ missions: [], reussies: [] });
@@ -15,7 +16,6 @@ export function GLTenirHonneursPanel({ game, teams = [], roster = [], onReloadGa
   const [chimeres, setChimeres] = useState([]);
   const [honneurs, setHonneurs] = useState([]);
   const [missionForm, setMissionForm] = useState({ teamId: '', missionCode: '' });
-  const [badgeForm, setBadgeForm] = useState({ playerId: '', badgeCode: 'correcteur_du_renard' });
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
 
@@ -152,51 +152,6 @@ export function GLTenirHonneursPanel({ game, teams = [], roster = [], onReloadGa
           disabled={busy || !missionForm.teamId || !missionForm.missionCode}
         >
           Mission réussie
-        </GLButton>
-      </form>
-
-      <form
-        className="gl-tenir-honneurs__form"
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (!badgeForm.playerId) return;
-          run(
-            () =>
-              apiGL(`/api/gl/games/${gameId}/tenir/badges`, 'POST', {
-                playerId: Number(badgeForm.playerId),
-                badgeCode: badgeForm.badgeCode,
-              }),
-            'Badge attribué.',
-          );
-        }}
-      >
-        <h4>Badge à la main du prof</h4>
-        <label>
-          Élève
-          <select
-            value={badgeForm.playerId}
-            onChange={(e) => setBadgeForm({ ...badgeForm, playerId: e.target.value })}
-          >
-            <option value="">—</option>
-            {roster.map((r) => (
-              <option key={r.playerId} value={r.playerId}>
-                {r.pseudo || `${r.firstName || ''} ${r.lastName || ''}`.trim()}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Badge
-          <select
-            value={badgeForm.badgeCode}
-            onChange={(e) => setBadgeForm({ ...badgeForm, badgeCode: e.target.value })}
-          >
-            <option value="correcteur_du_renard">Correcteur du renard</option>
-            <option value="chuchoteur">Chuchoteur</option>
-          </select>
-        </label>
-        <GLButton type="submit" size="sm" disabled={busy || !badgeForm.playerId}>
-          Attribuer
         </GLButton>
       </form>
 

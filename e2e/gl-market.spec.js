@@ -101,6 +101,28 @@ async function loginGlPlayer(page, seeded, which) {
   });
 }
 
+/** Ouvre Les joueurs → Marché et vérifie l'encart des règles sur l'onglet affiché par défaut. */
+async function openMarket(page) {
+  await page.getByRole('tab', { name: /Les joueurs/i }).click();
+  await page.getByRole('tab', { name: 'Marché' }).click();
+  // Sur l'onglet par défaut (La place quand le Marché « Tenir à deux » est actif, les Échanges
+  // sinon), l'encart « Comment fonctionne le marché ? » est visible.
+  await expect(page.getByRole('note', { name: 'Règles du marché' })).toBeVisible();
+  await expect(page.getByText('Comment fonctionne le marché ?')).toBeVisible();
+}
+
+/**
+ * Passe sur les Échanges quand les sous-onglets du Marché existent (La place / Échanges /
+ * Comptoir) ; sans eux, la vue Échanges est déjà la seule affichée.
+ */
+async function gotoEchanges(page) {
+  const echanges = page.getByRole('tab', { name: 'Échanges' });
+  if ((await echanges.count()) > 0) {
+    await echanges.click();
+    await expect(page.getByRole('note', { name: 'Règles du marché' })).toBeVisible();
+  }
+}
+
 test.describe('GL marché', () => {
   /**
    * L'échange de cœurs est derrière un drapeau, **désactivé par défaut**
@@ -130,10 +152,8 @@ test.describe('GL marché', () => {
     await loginGlPlayer(pageA, seeded, 'A');
     await loginGlPlayer(pageB, seeded, 'B');
 
-    await pageA.getByRole('tab', { name: /Les joueurs/i }).click();
-    await pageA.getByRole('tab', { name: 'Marché' }).click();
-    await expect(pageA.getByRole('note', { name: 'Règles du marché' })).toBeVisible();
-    await expect(pageA.getByText('Comment fonctionne le marché ?')).toBeVisible();
+    await openMarket(pageA);
+    await gotoEchanges(pageA);
 
     await pageA.getByRole('button', { name: 'Proposer un échange' }).first().click();
     const offerPatchA = waitMarketPatch(pageA, '/offer');
@@ -141,8 +161,8 @@ test.describe('GL marché', () => {
     await pageA.getByLabel('Cœurs ❤️').blur();
     await offerPatchA;
 
-    await pageB.getByRole('tab', { name: /Les joueurs/i }).click();
-    await pageB.getByRole('tab', { name: 'Marché' }).click();
+    await openMarket(pageB);
+    await gotoEchanges(pageB);
     await pageB.getByRole('button', { name: seeded.pseudoA }).click();
     await expect(
       pageB.getByRole('heading', { name: new RegExp(`Échange avec ${seeded.pseudoA}`, 'i') }),
@@ -167,5 +187,44 @@ test.describe('GL marché', () => {
 
     await contextA.close();
     await contextB.close();
+  });
+
+  test('La place : encart repliable « Comment fonctionne le marché ? », légende du fieldset lisible (capture)', async ({
+    browser,
+  }) => {
+    const seeded = await seedGlMarketE2E('place');
+    const context = await browser.newContext({
+      viewport: { width: 1024, height: 768 },
+      deviceScaleFactor: 2,
+    });
+    const page = await context.newPage();
+    await loginGlPlayer(page, seeded, 'A');
+    await openMarket(page);
+
+    const place = page.getByTestId('gl-market-place');
+    test.skip((await place.count()) === 0, 'Marché « Tenir à deux » (La place) non servi');
+
+    const note = page.getByRole('note', { name: 'Règles du marché' });
+    await expect(note.locator('li')).toHaveCount(4);
+    // La légende « Ce que je cherche » ne chevauche pas le premier champ du fieldset.
+    const legend = place.locator('fieldset legend', { hasText: 'Ce que je cherche' });
+    await expect(legend).toBeVisible();
+    const legendBox = await legend.boundingBox();
+    const firstField = place.locator('fieldset .gl-field').first();
+    const fieldBox = await firstField.boundingBox();
+    expect(legendBox.y + legendBox.height).toBeLessThanOrEqual(fieldBox.y + 1);
+
+    await page.screenshot({
+      path: 'docs/captures/tenir-v2/marche-encart-regles.png',
+      clip: { x: 0, y: 0, width: 1024, height: 768 },
+    });
+
+    // Repliable : le titre sert de poignée.
+    await note.getByText('Comment fonctionne le marché ?').click();
+    await expect(note.locator('li').first()).toBeHidden();
+    await note.getByText('Comment fonctionne le marché ?').click();
+    await expect(note.locator('li').first()).toBeVisible();
+
+    await context.close();
   });
 });

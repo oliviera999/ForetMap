@@ -22,6 +22,7 @@ import { GLChaptersImportExportPanel } from './admin/GLChaptersImportExportPanel
 import { GLChapterScenesAdminPanel } from './admin/GLChapterScenesAdminPanel.jsx';
 import { GLFeuilletZonePlateauPanel } from './GLFeuilletZonePlateauPanel.jsx';
 import { GLChasseZonesEditorPanel } from './GLChasseZonesEditorPanel.jsx';
+import { GLTenirCataloguesCard } from './admin/GLTenirCataloguesCard.jsx';
 import { GLChapterSpellsFieldset } from './admin/GLChapterSpellsFieldset.jsx';
 import { GLChapterBiomesFieldset } from './admin/GLChapterBiomesFieldset.jsx';
 import { GLChaptersSidebar } from './admin/chapters/GLChaptersSidebar.jsx';
@@ -391,6 +392,13 @@ export function GLChaptersAdminView() {
         <summary>Import / export chapitres (XLSX)</summary>
         <div style={{ marginTop: 12 }}>
           <GLChaptersImportExportPanel onImportApplied={handleCharteImportApplied} />
+        </div>
+      </details>
+
+      <details className="plant-more" style={{ marginBottom: 16 }}>
+        <summary>Catalogues Tenir à deux (zones, questions, péripéties, Olu, parures…)</summary>
+        <div style={{ marginTop: 12 }}>
+          <GLTenirCataloguesCard />
         </div>
       </details>
 

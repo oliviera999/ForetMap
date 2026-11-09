@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { GLButton } from '../ui/GLButton.jsx';
 import { GLDataList } from '../ui/GLDataList.jsx';
+import { buildChapterOptions, hasChaptersHorsPlateau } from '../../utils/glChapterOptions.js';
 import { GLField } from '../ui/GLField.jsx';
 import { GLInput } from '../ui/GLInput.jsx';
 import { GLSelect } from '../ui/GLSelect.jsx';
@@ -21,9 +23,12 @@ export default function GLGameMasterConsoleParties({
   setGamesStatusFilter,
   loadGames,
   createGame,
+  resetDemoGame,
   gameListRows,
   busy,
 }) {
+  // Sélecteur de chapitres : plateaux seulement, « hors plateau » (démo, test) sur demande.
+  const [horsPlateau, setHorsPlateau] = useState(false);
   return (
     <div className="gl-gameplay-block">
       <h3>Parties</h3>
@@ -66,17 +71,50 @@ export default function GLGameMasterConsoleParties({
               onChange={(event) => setCreateChapterId(event.target.value)}
             >
               <option value="">Choisir</option>
-              {chapters.map((chapter) => (
-                <option key={chapter.id} value={chapter.id}>
-                  {chapter.title}
-                </option>
-              ))}
+              {buildChapterOptions(chapters, { horsPlateau, selectedId: createChapterId }).map(
+                (chapter) => (
+                  <option key={chapter.id} value={chapter.id}>
+                    {chapter.label}
+                  </option>
+                ),
+              )}
             </GLSelect>
+            {hasChaptersHorsPlateau(chapters) ? (
+              <label className="gl-hint gl-chapter-hors-plateau">
+                <input
+                  type="checkbox"
+                  checked={horsPlateau}
+                  onChange={(event) => setHorsPlateau(event.target.checked)}
+                />{' '}
+                Afficher les chapitres hors plateau
+              </label>
+            ) : null}
           </GLField>
           <GLButton type="submit" disabled={busy}>
             Créer une partie
           </GLButton>
         </form>
+      ) : null}
+
+      {typeof resetDemoGame === 'function' ? (
+        <section className="gl-mj-demo-block" aria-labelledby="gl-mj-demo-title">
+          <h4 id="gl-mj-demo-title">Partie de démonstration</h4>
+          <p className="gl-hint">
+            Pour une réunion de parents ou une inspection : une classe et six joueurs fictifs («
+            Gnome Démo 1 », « Licorne Démo 2 »…), deux équipes, le premier plateau. Jouez-la depuis
+            la console et projetez-la ; réinitialisez-la avant chaque présentation. Elle reste à
+            l’écart des exports.
+          </p>
+          <GLButton
+            type="button"
+            variant="secondary"
+            onClick={resetDemoGame}
+            disabled={busy}
+            data-testid="gl-mj-demo-reset"
+          >
+            Préparer / réinitialiser la démo
+          </GLButton>
+        </section>
       ) : null}
 
       <div className="gl-toolbar">

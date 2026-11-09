@@ -161,6 +161,29 @@ test('chemins refusés : G&L, login, logout, sensible ; hors /api', async () => 
   );
   // `/api/glossary` n'est pas G&L.
   assert.equal(assertBridgePath('/api/glossary'), '/api/glossary');
+  // Pont G&L (`lib/mcp/glBridge.js`) : `/api/gl/…` admis seulement avec `glAllowed`, et rien d'autre.
+  assert.equal(
+    assertBridgePath('/api/gl/games/4/tenir/tour/ouvrir', { glAllowed: true }),
+    '/api/gl/games/4/tenir/tour/ouvrir',
+  );
+  assert.throws(() => assertBridgePath('/api/tasks', { glAllowed: true }), /api\/gl/);
+  assert.throws(() => assertBridgePath('/api/gl', { glAllowed: true }), /api\/gl/);
+});
+
+test('pont G&L : foretmap_api refuse toujours /api/gl ; le jeton G&L exige un staff G&L', async () => {
+  const { callGlApi, requireGlStaff } = require('../lib/mcp/glBridge');
+  const prof = await fx.createAccount('prof');
+  const ctx = { user: { userId: prof.id, userType: 'teacher' }, baseUrl: fx.TEST_BASE_URL };
+  await assert.rejects(() => requireGlStaff(ctx), /maître du jeu|MCP_GL_FORBIDDEN|réservé/i);
+  await assert.rejects(
+    () => callGlApi(ctx, 'GET', '/api/gl/admin/settings'),
+    /maître du jeu|réservé/i,
+  );
+  const r = await fx.callTool(app, adminToken, 'foretmap_api', {
+    method: 'GET',
+    path: '/api/gl/admin/settings',
+  });
+  assert.equal(r.isError, true, 'foretmap_api : API G&L hors périmètre');
 });
 
 test('méthode hors liste du réglage refusée ; écriture refusée sans portée write', async () => {

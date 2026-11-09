@@ -34,7 +34,7 @@
     "pages_veillee_par_semaine": 2,
     "voile": true,
     "voile_bonus_par_plateau": {
-      "1": 4,
+      "1": 3,
       "2": 4,
       "3": 5,
       "4": 6
@@ -73,7 +73,15 @@
         "07-10"
       ]
     },
-    "titre_prefixe_double": "Très Grands"
+    "titre_prefixe_double": "Très Grands",
+    "progression_applique_case": false,
+    "relances_max_par_tour": 1,
+    "cases_positives": "ressource_peuple",
+    "peripeties_cases_neutres": true,
+    "fouilles_reparation_gnome": 1,
+    "palissement_rang_plancher": 8,
+    "surplus_reserve": true,
+    "olu_bourse_pleine": true
   },
   "profils": {
     "complet": {
@@ -101,6 +109,11 @@
     "des_mode": "défaut serveur sur tablette, physique ailleurs (clé des_mode_par_surface) ; la valeur plate `des_mode` est celle de la surface par défaut (tableau)",
     "max_health_points": "passe de 3 (réglage existant) à 8 pour « Tenir à deux »",
     "lore_*": "réglages existants de la mouture précédente, mis à 0 / false : lecture gratuite partout, aucune gemme par feuillet, aucun cœur par feuillet",
-    "max_power_points": "réglage existant, inchangé à 8"
+    "max_power_points": "réglage existant, inchangé à 8",
+    "voile_bonus_par_plateau": "E1 (7 novembre 2026, choix d'Oliv) : {1:3, 2:4, 3:5, 4:6} au lieu de {1:4, 2:4, 3:5, 4:6} ; seul le plateau 1 ralentit, la tension monte ensuite à dessein",
+    "fouilles_reparation_gnome": "E2 : +n fouille(s) par tour pour une équipe gnome, utilisable(s) seulement sur une page pâlie s'il en existe ; comptée dans le quota affiché (« 1 + 1 réparation ») ; 0 sous le voile sauf Abri ; 0 = désactivé",
+    "palissement_rang_plancher": "E3 : pour le pâlissement par le voile, une zone de rang < plancher est traitée comme de ce rang (les zones proches du départ ne pâlissent plus dès le premier dé gris) ; géométrie et rang affiché inchangés ; 0 = désactivé",
+    "surplus_reserve": "E4 : un gain qui dépasserait le plafond d'un élève va à la réserve de la caravane de son équipe (ressource du peuple, par partie) ; la réserve paie en premier le pot des sorts, visible de l'équipe et du prof, remise à zéro au Seuil",
+    "olu_bourse_pleine": "E5 : quand au moins 3 membres d'une équipe sont au plafond, Olu le dit une fois par séance à l'écran d'équipe (moment bourse_pleine), jamais en projection"
   }
 }

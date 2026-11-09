@@ -19,3 +19,5 @@ lib/gl-pack/
 # Packs mascotte générés par build_*.py (sortie déterministe, non formatée Prettier)
 tools/mascot-packs/*/pack.json
 tools/mascot-packs/*/manifest.json
+# Rapports du banc de simulation (générés)
+reports/

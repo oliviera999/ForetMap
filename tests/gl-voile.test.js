@@ -8,7 +8,7 @@
  */
 
 require('./helpers/setup');
-const { test, before } = require('node:test');
+const { test, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const request = require('supertest');
 const { app } = require('../server');
@@ -19,8 +19,10 @@ const {
   importExempleChasse,
   ouvrirTourEnJeu,
   readPlayerBourses,
+  setGlSetting,
 } = require('./helpers/glTenirFixtures');
 const { retreatVoileTx } = require('../lib/glVoile');
+const { invalidateGameplayCache } = require('../lib/glSettings');
 
 let ctx;
 const auth = (t) => ({ Authorization: `Bearer ${t}` });
@@ -37,6 +39,12 @@ before(async () => {
   ctx = await createTenirGame({ stamp: Date.now() });
   await importExempleChasse(db, { game: ctx.game });
   await request(app).get(api('/tenir')).set(auth(ctx.adminToken)).expect(200);
+  // E3 (plancher de pâlissement, défaut 8) : cette suite vérifie le pâlissement « d'avant »
+  // (toute zone sous le voile pâlit) ; le plancher est testé dans gl-tenir-equilibrage.
+  await setGlSetting('gameplay.tenir_palissement_rang_plancher', 0);
+  // E1 (bonus du dé gris {1:3,…} depuis le 8 novembre 2026) : cette suite garde l'arithmétique
+  // d'origine (bonus 4 au plateau 1) ; la valeur E1 est testée dans gl-tenir-equilibrage.
+  await setGlSetting('gameplay.tenir_voile_bonus_par_plateau', { 1: 4, 2: 4, 3: 5, 4: 6 });
   // Rangs de case connus : cz-p1-01 près du départ, cz-p1-02 près du camp.
   await execute('UPDATE gl_chasse_zones SET rang_case = 2 WHERE zone_key = ?', ['cz-p1-01']);
   await execute('UPDATE gl_chasse_zones SET rang_case = 10 WHERE zone_key = ?', ['cz-p1-02']);
@@ -50,6 +58,14 @@ before(async () => {
     ctx.teams[1].id,
   ]);
   await ouvrirTourEnJeu(request, app, ctx);
+});
+
+after(async () => {
+  await setGlSetting('gameplay.tenir_palissement_rang_plancher', 8);
+  await execute('DELETE FROM gl_settings WHERE `key` = ?', [
+    'gameplay.tenir_voile_bonus_par_plateau',
+  ]);
+  invalidateGameplayCache();
 });
 
 test('phase souffle : position = min(position + dé + bonus, camp − 1) ; équipes recouvertes ; zones pâlies ; pages pâlissent', async () => {

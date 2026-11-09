@@ -31,6 +31,8 @@ const tour = require('../../../lib/glTour');
 const { issueProjectionToken, revokeProjectionToken } = require('../../../lib/glProjection');
 const { requireTenirGame } = require('./tenir');
 const { DICE_SIDES } = require('../../../lib/glDiceRoll');
+const glRandom = require('../../../lib/glRandom');
+const { awardGlManualToTeam } = require('../../../lib/glRewardsHooks');
 
 const router = express.Router();
 
@@ -46,6 +48,8 @@ const ERROR_MESSAGES = {
   TENIR_PHASE: 'Ce geste n’est possible qu’en phase « jeu »',
   TENIR_EQUIPE_INACTIVE: 'Ce n’est pas le tour de cette équipe',
   TENIR_PERMISSION: 'Ce geste est réservé au prof sur cette surface',
+  TOUR_PASSE:
+    'L’équipe passe son tour : pas de jet cette fois (une case Souffle du tour précédent)',
   DICE_ALREADY_ROLLED: 'Dés déjà lancés pour ce tour',
   TOUTES_AU_CAMP: 'Toutes les équipes sont au camp',
   TEAM_NOT_FOUND: 'Équipe introuvable dans cette partie',
@@ -142,6 +146,29 @@ async function resolveGesteContext(req, res, gameId, { geste, teamIdFromBody = n
 // Lecture du tour
 // ---------------------------------------------------------------------
 
+/** L'équipe passe-t-elle ce tour (effet `tour_passe` posé par une case Souffle) ? */
+async function tourPasseDuTour(gameId, team, roundNumber) {
+  const row = await db.queryOne(
+    `SELECT id FROM gl_game_tenir_effets WHERE game_id = ? AND round_number = ? AND kind = 'tour_passe' AND team_id = ? LIMIT 1`,
+    [gameId, roundNumber, team.id],
+  );
+  return !!row;
+}
+
+/** Fouilles du tour d'une équipe (console du prof) : tolère l'absence du module de chasse. */
+async function fouillesDuTour(gameId, team, roundNumber, resolved) {
+  try {
+    const chasse = require('../../../lib/glChasse');
+    const sousVoile = await chasse.isSousVoile(db, gameId, team);
+    return {
+      ...(await chasse.fouillesRestantes(db, { gameId, roundNumber, team, resolved, sousVoile })),
+      sousVoile,
+    };
+  } catch (_) {
+    return null;
+  }
+}
+
 router.get(
   '/games/:id/tenir/tour',
   requireGlAuthOrProjection,
@@ -172,15 +199,23 @@ router.get(
             absences: staff ? round.absences : round.absences.length,
           }
         : null,
-      teams: teams.map((t) => ({
-        id: Number(t.id),
-        name: t.name,
-        type: t.type,
-        pathIndex: teamPathIndex(t, markers),
-        auCamp: tour.isAtCamp(t, markers),
-        hasRolledDiceThisRound:
-          roundNumber > 0 && Number(t.last_dice_round_number || 0) >= roundNumber,
-      })),
+      teams: await Promise.all(
+        teams.map(async (t) => ({
+          id: Number(t.id),
+          name: t.name,
+          type: t.type,
+          pathIndex: teamPathIndex(t, markers),
+          auCamp: tour.isAtCamp(t, markers),
+          hasRolledDiceThisRound:
+            roundNumber > 0 && Number(t.last_dice_round_number || 0) >= roundNumber,
+          // Console du tour (prof) : quota de fouilles du tour, réparation E2 comprise.
+          ...(staff && roundNumber > 0
+            ? { fouilles: await fouillesDuTour(gameId, t, roundNumber, resolved) }
+            : {}),
+          // Tour passé (case Souffle du tour précédent) : visible de tous, sans jet possible.
+          tourPasse: roundNumber > 0 ? await tourPasseDuTour(gameId, t, roundNumber) : false,
+        })),
+      ),
       campIndex: markers.length ? markers.length - 1 : 0,
       lumiere: await tour.loadLumiere(db, gameId),
     };
@@ -474,7 +509,7 @@ router.post(
         });
       } else {
         const { rollServerDice } = require('../../../lib/glDiceRoll');
-        const roll = rollServerDice(desCount);
+        const roll = rollServerDice(desCount, glRandom.forGame(gameId).randomInt);
         await withTransaction(async (tx) => {
           result = await tour.appliquerJetTx(tx, {
             gameId,
@@ -654,6 +689,13 @@ router.post(
         });
       });
       emitAll(gameId, result.events);
+      // Badge « Correcteur du renard » aux membres présents (hors transaction, jamais bloquant).
+      awardGlManualToTeam(gameId, teamId, {
+        type: 'renard',
+        note: 'Ton équipe a corrigé Olu au bon moment.',
+        awardedBy: String(req.glAuth.userId),
+        roundNumber,
+      });
       return res.json({ ok: true });
     } catch (err) {
       return sendTourError(res, err);

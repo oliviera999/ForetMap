@@ -9,6 +9,8 @@ const os = require('os');
 const path = require('path');
 const {
   createDistStaticServeOptions,
+  createPublicStaticServeOptions,
+  JAVASCRIPT_CONTENT_TYPE,
   IMMUTABLE_CACHE_CONTROL,
   FONT_CACHE_CONTROL,
   FRESQUE_CACHE_CONTROL,
@@ -29,8 +31,35 @@ function buildDistFixture() {
   fs.writeFileSync(path.join(distDir, 'assets', 'main-AbCd1234.js'), '// hashé par Rollup');
   fs.writeFileSync(path.join(distDir, 'fonts', 'noto-color-emoji.woff2'), 'wOF2-factice');
   fs.writeFileSync(path.join(distDir, 'robots.txt'), 'User-agent: *');
+  fs.mkdirSync(path.join(distDir, 'gl', 'intro', 'assets', 'audio'), { recursive: true });
+  fs.writeFileSync(
+    path.join(distDir, 'gl', 'intro', 'assets', '960174da-012b-46d8-ad07-7482b2d7830a.bin'),
+    '/* bundle JavaScript de l’intro, nommé .bin par l’export */',
+  );
+  fs.writeFileSync(path.join(distDir, 'gl', 'intro', 'assets', 'audio', 'loop.mp3'), 'ID3');
+  fs.writeFileSync(path.join(distDir, 'autre.bin'), 'binaire');
   return distDir;
 }
+
+test('les scripts .bin de l’intro G&L sont servis en JavaScript (dist et public), le reste inchangé', async () => {
+  // Prod (8 novembre 2026) : `application/octet-stream` + `nosniff` → Chrome refuse d’exécuter
+  // le script, l’intro reste muette. Même règle hors production (public/).
+  const distDir = buildDistFixture();
+  for (const options of [createDistStaticServeOptions(distDir), createPublicStaticServeOptions()]) {
+    const mini = express();
+    mini.use(express.static(distDir, options));
+    const script = await request(mini).get(
+      '/gl/intro/assets/960174da-012b-46d8-ad07-7482b2d7830a.bin',
+    );
+    assert.strictEqual(script.status, 200);
+    assert.strictEqual(script.headers['content-type'], JAVASCRIPT_CONTENT_TYPE);
+    const audio = await request(mini).get('/gl/intro/assets/audio/loop.mp3');
+    assert.match(String(audio.headers['content-type']), /^audio\/mpeg/);
+    const other = await request(mini).get('/autre.bin');
+    assert.match(String(other.headers['content-type']), /octet-stream/);
+  }
+  fs.rmSync(distDir, { recursive: true, force: true });
+});
 
 test('dist/assets/* est servi en cache long immutable, les HTML restent no-store', async () => {
   const distDir = buildDistFixture();

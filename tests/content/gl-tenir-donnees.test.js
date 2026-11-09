@@ -32,7 +32,7 @@ const EXPECTED = {
   peripeties: ['peripeties', 32],
   missions: ['missions', 20],
   badges: ['badges', 13],
-  'olu-lignes': ['lignes', 66],
+  'olu-lignes': ['lignes', 69],
   parures: ['parures', 12],
   sorts: ['sorts', 25],
 };

@@ -399,6 +399,33 @@ describe('Moteur générique (produit factice, contrat G&L)', () => {
     assert.equal(Number(forest.n), 0, 'rien écrit dans la table de la forêt');
   });
 
+  test('paliers propres au produit : noms servis par publicCatalogue, forêt inchangée', async () => {
+    const { REWARD_TIERS, rewardShortLabel } = require('../lib/shared/rewardsCore');
+    const tiers = [
+      { n: 1, emoji: '🧵', label: 'Fil' },
+      { n: 2, emoji: '🪢', label: 'Nœud' },
+      { n: 3, emoji: '🧶', label: 'Étoffe' },
+    ];
+    const engine = makeEngine({ tiers });
+    const pub = engine.publicCatalogue();
+    assert.deepEqual(
+      pub.tiers.map((t) => t.label),
+      ['Fil', 'Nœud', 'Étoffe'],
+    );
+    const etoiles = pub.catalogue.find((e) => e.key === 'quete.etoiles');
+    assert.deepEqual(
+      etoiles.tiers.map((t) => `${t.emoji} ${t.label} ${t.threshold}`),
+      ['🧵 Fil 1', '🪢 Nœud 3', '🧶 Étoffe 5'],
+    );
+    const reward = engine.describeReward('quete.etoiles.2', new Date());
+    assert.equal(rewardShortLabel(reward, pub.tiers), '⭐ Chasseur d’étoiles — 🪢 Nœud');
+    assert.equal(rewardShortLabel(reward), '⭐ Chasseur d’étoiles — 🌼 Fleur', 'défaut : forêt');
+    // La forêt garde ses paliers phénologiques et le défaut du moteur reste celui du noyau.
+    assert.deepEqual(foretRewards.publicCatalogue().tiers, REWARD_TIERS);
+    assert.deepEqual(makeEngine().publicCatalogue().tiers, REWARD_TIERS);
+    assert.throws(() => makeEngine({ tiers: tiers.slice(0, 2) }), /paliers/);
+  });
+
   test('familles restreintes : non éligible → familles ignorées', async () => {
     const engine = makeEngine({ restrictedFamilies: ['quetes'], isEligible: async () => false });
     const p = uid('pl');

@@ -151,7 +151,7 @@ test('Abri : pot sans l’élève en retrait, cible une autre équipe, effet « 
     .expect(200);
 });
 
-test('Progression : hors fenêtre avant le jet (message explicite), puis ±1 case après le jet avec application de la case', async () => {
+test('Progression : hors fenêtre avant le jet (message explicite), puis ±1 case après le jet SANS appliquer la case (C1)', async () => {
   const early = await draft(p(1).token, {
     spellCode: 'SL002',
     teamId: gB().id,
@@ -183,6 +183,8 @@ test('Progression : hors fenêtre avant le jet (message explicite), puis ±1 cas
   assert.equal(res.status, 200, JSON.stringify(res.body));
   assert.equal(await teamIndex(gB().id), 3);
   assert.equal(res.body.draft.required.hearts, 1);
+  // C1 : la case d'arrivée (ici une Trame) n'est pas appliquée — aucune ressource créée.
+  assert.equal(res.body.effectResult?.arrival, undefined, 'case non appliquée');
   const apres = await totalBourses();
   assert.equal(apres.h, avant.h - 1);
   assert.equal(apres.g, avant.g);

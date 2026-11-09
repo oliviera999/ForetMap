@@ -16,6 +16,157 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   suffisaient à trouver ou tenir la page (feuillet, cœurs, ressource du peuple) sans nouvelle
   fouille ni nouvelle carte. Rejeu → 409 `JETON_DEJA_UTILISE`. La carte jointe à un
   « Pas encore » de lecture reste jouable.
+### Ajouté — Connecteur : scripts d'exploitation lançables depuis Claude
+
+- **`foretmap_ops`** gagne trois actions : `scripts` (catalogue), `script_dry_run` (simulation ou
+  lecture seule) et `run_script` (application, écriture confirmée et journalisée). Les scripts
+  viennent d'une **liste blanche** (`lib/mcp/domains/opsScripts.js`) : options déclarées et
+  validées, pas de shell, Node de l'application, délai maximal, un script à la fois, sortie
+  nettoyée des secrets. Catalogue : rattrapage des badges (forêt et G&L), proposition de
+  taxonomie des tâches, état des migrations, audit pédagogique, densité des repères, fichiers
+  orphelins, clés GBIF, crédits photo G&L, liens d'apprentissage.
+- Tests : `tests/mcp-ops-scripts.test.js` (validation, modes, troncature, verrou) et un cas réel
+  dans `tests/mcp-domain-ops.test.js`. Doc : `docs/MCP.md`.
+
+### Corrigé — G&L en production : intro muette, connexion Google, fond du plateau de démonstration
+
+Constaté sur `gl.olution.info` le 8 novembre 2026 après la v1.239.0.
+
+- **Intro sans son ni animation** : l'export de l'introduction nomme ses bundles JavaScript
+  `.bin` (`public/gl/intro/assets/<uuid>.bin`, sous-ressources à empreinte `integrity`) ;
+  `express.static` les servait en `application/octet-stream` et, avec
+  `X-Content-Type-Options: nosniff`, le navigateur refusait de les exécuter (« Refused to
+  execute script »). Ils sont servis en `text/javascript` (`lib/staticCacheHeaders.js`, dist et
+  `public/`) ; `tests/static-cache-headers`.
+- **Connexion Google G&L impossible** : `GL_GOOGLE_OAUTH_REDIRECT_URI` pointait en prod le rappel
+  ForetMap (`/api/auth/google/callback`) et non celui de G&L (`/api/gl/auth/google/callback`) ;
+  Google renvoyait sur un rappel dont les cookies de départ étaient absents (« session
+  expirée »), et il ne restait que le mode découverte. Une URI d'environnement dont le chemin
+  n'est pas le rappel G&L est **ignorée** (avertissement unique dans le journal) et l'URI est
+  dérivée de la requête (`resolveOAuthRedirectUriForCallback`) ; la valeur du `.env` et
+  l'URI autorisée dans la console Google restent à corriger côté exploitation.
+- **Plateau de démonstration sans fond** (mode découverte, vitrine parents, borne) : le fond
+  venait d'un fichier statique `/gl/boards/<fichier>` qui n'est pas livré avec `dist/` (la prod
+  répondait la page HTML). Le fond vient désormais de la **médiathèque** (clé `plateau-1_*`,
+  comme une vraie partie), l'ancien chemin reste le repli ; `tests-ui/gl/guestBoardImageUrl`.
+
+### Modifié — G&L « Tenir à deux » : vérité des cases, équilibrage, badges individuels, banc de simulation, outils MCP (bilan du 7 novembre 2026)
+
+Sept étapes commitées séparément (détail, choix par défaut et attendus chiffrés :
+`docs/GL_TENIR_A_DEUX.md`, `docs/GL_TENIR_A_DEUX_REGLES.md`, `docs/GL_SIMULATION.md`).
+
+- **Vérité des cases** (migration 337) : en mode tenir, le texte d'effet lu par l'élève à
+  l'arrivée sur une case est **calculé depuis l'effet réellement appliqué** (noyau partagé
+  `src/shared/glTenirCaseEffetCore.js`, moteur et affichage confondus), jamais lu dans le champ
+  d'auteur `effet_mecanique` (studio du MJ). Textes des arrivées, défis d'équipe, péripéties,
+  pertes neutres et cartes question rendus exacts ; libellés Trame « +2 » → « +1 » (P4) ; six
+  branches Souffle « passe ton tour » appliquées ; « La Grise s'étend » → « Le terne s'étend ».
+  Contrôle `gl_marker_promises` (`foretmap_audit_all`, rapport de santé, `tests/content/
+gl-marker-promises`) : aucune promesse affichée non tenue, aucun « sinon / si échec » suivi
+  d'une perte.
+- **Équilibrage E1-E6** (migration 338, chaque choix réglable `gameplay.tenir_*`) : dé gris
+  `1d6 + {1:3, 2:4, 3:5, 4:6}` (E1, choix d'Oliv) ; fouille de réparation des équipes gnomes sur
+  une page pâlie, « 1 + 1 réparation » (E2) ; plancher de pâlissement au rang 8 (E3) ; **réserve de
+  la caravane** : le surplus au plafond n'est plus perdu, il paie en premier le pot des sorts et
+  s'éteint au Seuil (E4, grand livre étendu : `kind`, `team_id`, causes `reserve_*`) ; rappel
+  d'Olu « Vos bourses débordent » une fois par séance à l'écran d'équipe (E5) ; règle écrite
+  « 8 / 8 / 10 / 10 » (E6). Invariants `RESERVE_NEGATIVE`, `RESERVE_LIVRE`, `LIVRE_TOTAL`,
+  `FOUILLES_QUOTA`.
+- **Badges individuels sur le moteur commun** (migration 339, `docs/REWARDS_ENGINE.md` § 5) :
+  table `gl_player_rewards`, instance `lib/glRewards.js`, 16 badges en 8 familles aux paliers
+  **Fil** 🧵 / **Nœud** 🪢 / **Étoffe** 🧶 (effort, curiosité, persévérance, aide — jamais la
+  justesse ni un rang), routes `/api/gl/rewards/{me,me/seen,games/:id,games/:id/award}` (mot
+  obligatoire), interrupteur `modules.rewards_enabled`, évaluation au fil de l'eau et de nuit,
+  rattrapage `scripts/gl-rewards-backfill.js` (les 13 badges plats passent en lecture seule),
+  célébration avec Olu (jamais en projection), vitrine du prof sans classement, `badges.csv` par
+  paliers, évènement de journal `pas_encore` ; noyau commun : paliers par instance (`tiers`), CSS
+  `src/shared/styles/rewards.css`. **Aucun badge ne donne de ressource.**
+- **Banc de simulation en série** (`tools/gl-sim/`, `docs/GL_SIMULATION.md`) : un prof et une
+  classe virtuels jouent des chapitres entiers contre le vrai moteur (supertest en mémoire) sur
+  une base dédiée (`_sim` / `_test` obligatoire, jamais la prod) chargée avec un instantané du
+  contenu de production sans aucune table de personnes (`data/gl/sim/contenu-prod-2026-11-07.json`) ;
+  23 scénarios (`regression-7nov`, `equilibrage` sur la grille `grille-voile.json`, `badges`,
+  `annee-complete`…), invariants à chaque geste, crible de ce qui est servi aux élèves (mots
+  interdits, bourses d'une autre équipe), attendus chiffrés en avertissements, rapport
+  `summary.json` + `index.html` autonome, modèle rapide Monte-Carlo (Python) calibré à moins de
+  5 points ; `npm run gl:sim`, `gl:sim:db`, `gl:sim:snapshot`, `gl:sim:rapide`, `test:sim`.
+- **Correctifs relevés par le banc** : `spell_cast` est privé en partie tenir et `replay.timeline`
+  de `GET /api/gl/games/:id` est expurgé pour un élève (plus de contributions, noms ni soldes d'une
+  autre équipe) ; `seuil_clos.honneurs` porte le résumé des honneurs ; l'import des questions de
+  lecture écarte une question dont la zone a été écartée ; une case Souffle « passe ton tour » fait
+  **réellement** passer le jet suivant (`TOUR_PASSE`, 409, sans mot punitif ; l'équipe fouille et
+  lit quand même, le prof peut la porter) ; `withTransaction` rejoue une transaction victime d'un
+  interblocage InnoDB (deux équipes en tablette qui jouent au même instant recevaient une 500).
+- **Connecteur Claude (MCP) : outils G&L** (`docs/MCP.md` § Gnomes & Licornes) : domaine `gl`
+  (désactivable par `mcp.domains_disabled=gl`) et pont G&L `lib/mcp/glBridge.js` — l'enseignant
+  connecté est résolu en staff G&L par la règle de la connexion MJ, JWT éphémère `via:'mcp'`,
+  `MCP_GL_FORBIDDEN` sans rôle (le pont `foretmap_api` refuse toujours `/api/gl/*`). Dix outils :
+  `gl_games`, `gl_game_state` (bourses agrégées par équipe, réserves ; `bourses_eleves` nominatif
+  sous bypass journalisé), `gl_game_journal` (payloads privés expurgés), `gl_game_diagnostic`
+  (invariants, grand livre par cause, verdict), `gl_settings` (`set` en écriture), `gl_tenir_catalogues`,
+  `gl_content_snapshot` (vérité des cases par peuple, termes `secret` masqués), `gl_tour` (gestes du
+  prof : ouvrir, phase, voile dort, avance libre, absences, retrait, clore), `gl_sim_reports`
+  (`summary.json` des rapports du banc, `GL_SIM_REPORTS_DIR`), `gl_rewards` (vitrine sans classement,
+  `award`). Audits `gl_tenir_zones`, `gl_spells_legacy`, `gl_rewards_catalogue` suivis par le
+  rapport de santé ; prompt guidé `diagnostiquer_partie_gl` ; `gl_chasse_zones` et
+  `gl_tenir_questions_lecture` lisibles par `foretmap_sql_select` (GRANT à ajouter au compte
+  `DB_MCP_USER` dédié, `scripts/mcp-print-grants.js`).
+- **Hygiène et exploitation** (migration 340) : les 11 sorts hérités hors v2 passent en `propose` ;
+  niveaux de questions bornés à la 6e en mode tenir (cases et fouilles de secours,
+  `lib/glNiveauxAdmis.js`) ; cases 251 / 253 bornées ; `npm run gl:photo-credits[:dry]`
+  (crédits photo des QCM depuis Wikimedia Commons) ; encart « Comment fonctionne le marché ? »
+  sur La place et légende lisible ; e2e `gl-market` / `gl-seuil` à jour ; workflow nocturne
+  `e2e-gl-nightly.yml` ; journal de démarrage avec RSS maximale avant arrêt brutal, lignes de
+  crontab attendues dans le rapport de santé, doc « Resource Usage » (`docs/EXPLOITATION.md`).
+### Ajouté — G&L : modes de démonstration (parents, borne, partie de démo)
+
+Trois façons de montrer Gnomes & Licornes sans toucher à une classe réelle
+(`docs/reference/gl/roles-et-connexion.md` § modes de démonstration, `guide-du-mj.md`).
+
+- **Vitrine pour les parents** (`gl.html?demo=parents`) : session invitée ouverte seule, onglet
+  « Pour les parents » (chemin en cinq étapes, **quiz d'essai** via la chaîne QCM invitée qui
+  n'écrit rien, « ce que votre enfant apprend » et le sort des données), visite OLU dédiée
+  (parcours `parents`, mémoire à part remise à zéro à chaque ouverture), bandeau et mur de fin
+  adaptés. `src/gl/utils/glDemoMode.js`, `src/gl/components/parents/`.
+- **Borne** (`gl.html?kiosque=1[&inactivite=120]`) : écran d'accueil tactile
+  (`GLKioskAttractOverlay`), aucun bouton de connexion ni de sortie, aide masquée, remise à zéro
+  par rechargement après inactivité (`useGlKioskIdleReset`, 30 s à 30 min). Ni la vitrine ni la
+  borne ne comptent dans l'usage anonyme.
+- **Partie de démonstration** (console MJ → Parties → « Préparer / réinitialiser la démo »,
+  `npm run gl:demo:seed [-- --reset]`) : classe et six joueurs fictifs, deux équipes, premier
+  plateau ; `lib/gl/demoGame.js`, `GET /api/gl/admin/demo`, `POST /api/gl/admin/demo/reset`
+  (`gl.game.manage`). Drapeaux `is_demo` sur `gl_classes` et `gl_games` (migration 336),
+  pastille « Démo » dans la console, `isDemo` dans `GET /api/gl/games` ; la classe de démo est
+  **exclue des exports** joueurs / Team Spirit / badges.
+- Tests : `tests/gl-demo-game.test.js`, `tests-ui/gl/{glDemoMode,useGlKioskIdleReset}.test.js`,
+  `GLParentsDemoView`, `GLKioskAttractOverlay`, bandeaux ; e2e `e2e/gl-demo-modes.spec.js`.
+
+### Corrigé — G&L « Tenir à deux » : correctifs de la simulation du 7 novembre, banc de simulation (briques)
+
+Trois chapitres 1 joués de bout en bout sur une copie de la prod (prof et 20 élèves virtuels,
+931 QCM, 205 feuillets, 276 espèces, ~1 400 appels, aucun 5xx) : trois bloquants, six écarts de
+règles, une douzaine de défauts. Détail et choix par défaut : `docs/GL_TENIR_A_DEUX.md`.
+
+- **Catalogues en prod** : import tolérant ligne par ligne (`--strict` pour la CI de contenu),
+  synchronisation au démarrage par empreinte SHA-256 (`lib/glTenirSync.js`, `GL_TENIR_SYNC=0`),
+  carte « Catalogues Tenir à deux » (Contenus → Chapitres) et routes
+  `GET/POST /api/gl/admin/tenir/catalogues[/sync]` ; `cz-p2-08` désactivée (C7), Passeur
+  tolérant à un feuillet d'un plateau antérieur (C8) ; scripts `gl-import-*.js` (xlsx) réparés.
+- **Connexions de classe** : limiteur d'authentification 300 / 15 min / IP (NAT du lycée), une
+  ligne `auth_rate_limit_reached` par fenêtre (C9).
+- **Règles** : Progression et Relance seulement juste après le jet de l'équipe, Progression sans
+  application de la case (C1, C2) ; une relance de case par équipe et par tour, bonus signalé par
+  `/qcm/answer` (C3) ; cases positives → +1 ressource du peuple (C4) ; péripéties sur les cases
+  sans effet (C5) ; retrait : lecture et tenue permises (C6) ; parures sans image en pastille
+  (C10) ; pistes de veillée par `especes` de zone ; erreur d'Olu par plateau.
+- **Contenu** : descriptions des cases de déplacement (migration 335), case 217 renumérotée,
+  contrôle `tests/content/gl-markers-coherence` ; noms d'équipes typés par peuple.
+- **Écrans** : plateau en projection, libellés de journal pour tout type d'évènement, numérotation
+  des cases unifiée (rang + 1), console MJ (repli « Réglages hors Tenir », « Jouer le tour » par
+  défaut, pas de PUT parasite, chapitres par plateau) ; captures `docs/captures/tenir-v2/apres-*`.
+- **Instrumentation** : `lib/glRandom.js` (aléa rejouable, `GL_RANDOM_SEED`), `lib/glClock.js`
+  (`X-GL-Sim-Clock`, `GL_SIM_ALLOW`), grand livre `gl_resource_ledger` écrit par la seule
+  `applyBourseDeltaTx`, `lib/glTenirInvariants.js`. Migrations 334 et 335.
 
 ### Corrigé — G&L « Tenir à deux » v2 : relecture de code (passe 2)
 

@@ -229,7 +229,7 @@ router.get(
   requireGlPermission('gl.players.manage'),
   asyncHandler(async (_req, res) => {
     const rows = await queryAll(
-      `SELECT c.id, c.name, c.school, c.is_active, c.foretmap_group_id, c.created_at, c.updated_at,
+      `SELECT c.id, c.name, c.school, c.is_active, c.is_demo, c.foretmap_group_id, c.created_at, c.updated_at,
               c.team_policy, c.team_size_default,
               COUNT(p.id) AS players_count,
               g.slug AS foretmap_group_slug, g.name AS foretmap_group_name
@@ -448,7 +448,7 @@ const PLAYER_ADMIN_SELECT = `
          p.legacy_password_hash IS NOT NULL AS legacy_password_pending,
          u.email, u.password_must_reset, u.is_active AS account_is_active,
          u.auth_provider AS account_provider, u.pseudo AS account_pseudo,
-         c.name AS class_name
+         c.name AS class_name, c.is_demo AS class_is_demo
     FROM gl_players p
     LEFT JOIN users u ON u.id = p.linked_foretmap_user_id AND u.user_type = 'student'
     LEFT JOIN gl_classes c ON c.id = p.class_id`;
@@ -479,6 +479,7 @@ function toAdminPlayerRow(row) {
     health_points: row.health_points,
     power_points: row.power_points,
     class_name: row.class_name || null,
+    is_demo: Number(row.class_is_demo) === 1,
   };
 }
 
@@ -1061,9 +1062,15 @@ router.get(
     if (classId != null && !Number.isFinite(classId)) {
       return res.status(400).json({ error: 'classId invalide' });
     }
+    // Les joueurs fictifs de la classe de démonstration ne sortent jamais dans un export.
     const rows = classId
-      ? await queryAll(`${PLAYER_ADMIN_SELECT} WHERE p.class_id = ? ORDER BY p.id DESC`, [classId])
-      : await queryAll(`${PLAYER_ADMIN_SELECT} ORDER BY p.id DESC`);
+      ? await queryAll(
+          `${PLAYER_ADMIN_SELECT} WHERE p.class_id = ? AND COALESCE(c.is_demo, 0) = 0 ORDER BY p.id DESC`,
+          [classId],
+        )
+      : await queryAll(
+          `${PLAYER_ADMIN_SELECT} WHERE COALESCE(c.is_demo, 0) = 0 ORDER BY p.id DESC`,
+        );
     const escapeCsv = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
     const header = ['ID', 'Prenom', 'Nom', 'Pseudo', 'Email', 'Classe', 'Actif', 'Compte'].join(
       ',',

@@ -49,7 +49,7 @@ const {
 const { parseId } = require('../../../lib/shared/httpHelpers');
 const asyncHandler = require('../../../lib/asyncHandler');
 const { sendSafeError } = require('../../../lib/safeErrorResponse');
-const { isTenirGame } = require('../../../lib/glTenir');
+const { isTenirGame, resolveTenirSettings } = require('../../../lib/glTenir');
 
 const router = express.Router();
 
@@ -61,7 +61,15 @@ const {
 /** Contexte « Tenir à deux » d'une case : règles v2 actives ? Sentier posé pour l'équipe ? */
 async function resolveTenirMarkerContext(tx, settings, game, teamId) {
   if (!isTenirGame(settings, game)) return { tenir: false, sentierActif: false };
-  return resolveSentierContext(tx, game.id, teamId);
+  const ctx = await resolveSentierContext(tx, game.id, teamId);
+  const resolved = resolveTenirSettings(settings, game);
+  // C4 : cases positives à ressource converties selon `tenir_cases_positives` ; E4 : surplus
+  // au plafond vers la réserve de la caravane.
+  return {
+    ...ctx,
+    casesPositives: resolved.cases_positives,
+    surplusReserve: resolved.surplus_reserve !== false,
+  };
 }
 
 async function loadChapterPathMarkers(tx, chapterId) {
@@ -170,7 +178,7 @@ router.post(
     if (!allowed) return res.status(403).json({ error: 'Accès partie refusé' });
 
     const game = await queryOne(
-      'SELECT id, chapter_id, status FROM gl_games WHERE id = ? LIMIT 1',
+      'SELECT id, chapter_id, status, tenir_profil FROM gl_games WHERE id = ? LIMIT 1',
       [gameId],
     );
     if (!game) return res.status(404).json({ error: 'Partie introuvable' });
@@ -250,12 +258,15 @@ router.post(
         ? excludeRaw.split(',')
         : [];
 
+    // « Tenir à deux » : le tirage de la case se limite aux niveaux admis (6ᵉ / cycle 3),
+    // quels que soient les filtres de la case (règle § 4) ; hors mode tenir, rien ne change.
     const draw = await drawQuestionFromMarker(
       { queryAll, queryOne },
       markerRow,
       chapterBiomeSlugs,
       excludeCodes,
       chapterPlateauNumber,
+      { tenir: isTenirGame(settings, game) },
     );
     if (draw.error || !draw.questionCode) {
       return res.status(404).json({ error: draw.error || 'Aucune question disponible' });
@@ -378,7 +389,10 @@ router.post(
       return res.status(409).json({ error: 'Votre équipe n’est pas sur ce repère' });
     }
 
-    const arrival = buildMarkerArrivalPayload(marker, team);
+    // Mode « Tenir à deux » : le texte lu par l'élève est calculé depuis l'effet appliqué
+    // (Sentier compris), jamais depuis le champ d'auteur `effet_mecanique`.
+    const arrivalCtx = await resolveTenirMarkerContext(db, settings, game, teamId);
+    const arrival = buildMarkerArrivalPayload(marker, team, arrivalCtx);
     const actorType = actorTypeOf(req);
     const actorId = String(req.glAuth.userId);
     const reason = String(marker.label || 'Repère').trim();
@@ -412,6 +426,8 @@ router.post(
           skipIfAlreadyApplied: true,
           tenir: tenirCtx.tenir,
           sentierActif: tenirCtx.sentierActif,
+          casesPositives: tenirCtx.tenir ? tenirCtx.casesPositives : undefined,
+          reserveTeamId: tenirCtx.tenir && tenirCtx.surplusReserve ? Number(teamId) : null,
         });
         if (vitalityPayload?.sentier) await consumeSentier(tx, gameId, teamId);
 
@@ -577,6 +593,8 @@ router.post(
           skipIfAlreadyApplied: true,
           tenir: tenirCtx.tenir,
           sentierActif: tenirCtx.sentierActif,
+          casesPositives: tenirCtx.tenir ? tenirCtx.casesPositives : undefined,
+          reserveTeamId: tenirCtx.tenir && tenirCtx.surplusReserve ? Number(teamId) : null,
         });
         if (vitalityPayload?.sentier) await consumeSentier(tx, gameId, teamId);
 

@@ -18,6 +18,8 @@ import { GLFeuilletDiscoveryPopover } from './GLFeuilletDiscoveryPopover.jsx';
 import { GLVirtualDiceDock } from './GLVirtualDiceDock.jsx';
 import { GLButton } from './ui/GLButton.jsx';
 import { GL_DISCOVERY_TAB } from '../constants/app-runtime.js';
+import { plateauBoardImg, GL_ASSET_PLACEHOLDER_URL } from '../assets/index.js';
+import { useGlAssetsReady } from './GLFeuilletIllustration.jsx';
 
 const DEMO_TEAM_ID = 1;
 const DEMO_MASCOT_ID = 'liche';
@@ -31,8 +33,15 @@ const DEMO_TEAM = Object.freeze({
   position_y_pct: 72,
 });
 
-function boardImageUrlFromZones(zones) {
-  const file = zones.find((z) => z.boardImage)?.boardImage;
+/**
+ * Fond du plateau de démonstration : d'abord la **médiathèque** (clé `plateau-1_*`, comme le
+ * plateau d'une vraie partie), sinon l'ancien fichier statique `/gl/boards/<fichier>` du
+ * paquet de zones — un fichier qui n'est pas livré avec `dist/` et que la prod servait comme
+ * page HTML (repli SPA) : plateau sans fond en mode découverte, 8 novembre 2026.
+ */
+export function guestBoardImageUrl({ zones, conventionBoard = null, placeholderUrl = '' }) {
+  if (conventionBoard && conventionBoard !== placeholderUrl) return conventionBoard;
+  const file = (zones || []).find((z) => z.boardImage)?.boardImage;
   if (!file) return '/maps/map-foret.svg';
   return withAppBase(`/gl/boards/${file}`);
 }
@@ -43,9 +52,35 @@ function buildPathWaypoints(zones) {
   return [start, ...centres];
 }
 
-export function GLGuestDemoBoard({ onExitGuest, brandThemeStyle = null }) {
+/**
+ * @param {object} props
+ * @param {() => void} [props.onExitGuest] retour à l'écran de connexion (mur de fin).
+ * @param {'parents'|null} [props.demoProfile] vitrine parents : le mur renvoie à l'onglet
+ *   « Pour les parents » au lieu de proposer un compte.
+ * @param {boolean} [props.kioskMode] borne : le mur ne propose que de recommencer.
+ * @param {() => void} [props.onRestart] remise à zéro de la borne.
+ * @param {(tab: string) => void} [props.onNavigate] navigation vers un onglet.
+ */
+export function GLGuestDemoBoard({
+  onExitGuest,
+  brandThemeStyle = null,
+  demoProfile = null,
+  kioskMode = false,
+  onRestart,
+  onNavigate,
+}) {
   const feuilletZones = useMemo(() => getRuntimeFeuilletZonesForPlateau(1), []);
-  const imageUrl = useMemo(() => boardImageUrlFromZones(feuilletZones), [feuilletZones]);
+  const assetsReady = useGlAssetsReady();
+  const conventionBoard = useMemo(() => (assetsReady ? plateauBoardImg(1) : null), [assetsReady]);
+  const imageUrl = useMemo(
+    () =>
+      guestBoardImageUrl({
+        zones: feuilletZones,
+        conventionBoard,
+        placeholderUrl: GL_ASSET_PLACEHOLDER_URL,
+      }),
+    [feuilletZones, conventionBoard],
+  );
   const pathWaypoints = useMemo(() => buildPathWaypoints(feuilletZones), [feuilletZones]);
   const mapGestures = useGlPctMapGestures();
   const prefersReducedMotion = usePrefersReducedMotion();
@@ -291,18 +326,42 @@ export function GLGuestDemoBoard({ onExitGuest, brandThemeStyle = null }) {
             <h3 id="gl-guest-demo-wall-title">Le journal s’interrompt ici</h3>
           </header>
           <div className="gl-feui-discovery__body">
-            <p>
-              Tu as goûté au début de l’aventure. Crée ton compte pour franchir le seuil et
-              poursuivre l’histoire avec ta classe.
-            </p>
+            {kioskMode ? (
+              <p>
+                Vous avez goûté au début de l’aventure. En classe, elle se poursuit en équipe,
+                plateau après plateau.
+              </p>
+            ) : demoProfile === 'parents' ? (
+              <p>
+                Vous avez vu le début de l’aventure. Votre enfant la poursuit en classe, avec son
+                équipe et son enseignant.
+              </p>
+            ) : (
+              <p>
+                Tu as goûté au début de l’aventure. Crée ton compte pour franchir le seuil et
+                poursuivre l’histoire avec ta classe.
+              </p>
+            )}
           </div>
           <footer className="gl-feui-discovery__foot">
-            <GLButton type="button" variant="primary" onClick={() => onExitGuest?.()}>
-              Se connecter
-            </GLButton>
-            <GLButton type="button" variant="ghost" onClick={() => onExitGuest?.()}>
-              Créer un compte
-            </GLButton>
+            {kioskMode ? (
+              <GLButton type="button" variant="primary" onClick={() => onRestart?.()}>
+                Recommencer
+              </GLButton>
+            ) : demoProfile === 'parents' ? (
+              <GLButton type="button" variant="primary" onClick={() => onNavigate?.('parents')}>
+                Revenir à la page parents
+              </GLButton>
+            ) : (
+              <>
+                <GLButton type="button" variant="primary" onClick={() => onExitGuest?.()}>
+                  Se connecter
+                </GLButton>
+                <GLButton type="button" variant="ghost" onClick={() => onExitGuest?.()}>
+                  Créer un compte
+                </GLButton>
+              </>
+            )}
           </footer>
         </section>
       ) : null}

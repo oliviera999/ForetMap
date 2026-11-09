@@ -1,0 +1,93 @@
+/* Badges G&L — panneau et célébration communs (`src/shared/styles/rewards.css`) habillés
+   avec la palette G&L : les jetons de la forêt attendus par les règles communes sont
+   remappés dans le conteneur `.gl-rewards`, sans teinte en dur. */
+@import '../../shared/styles/rewards.css';
+
+.gl-rewards {
+  --forest: var(--gl-color-primary);
+  --leaf: var(--gl-color-accent);
+  --soil: var(--gl-color-text);
+  --surface-plain: var(--gl-surface);
+  margin-top: 8px;
+}
+
+/* `--ink-soft` est un jeton commun (typography-tokens.css) : jamais redéclaré par une feuille
+   produit ; les textes atténués du panneau prennent directement la teinte G&L. */
+.gl-rewards .reward-card__desc,
+.gl-rewards .reward-card__date,
+.gl-rewards .reward-tier {
+  color: var(--gl-color-text-muted);
+}
+
+.gl-rewards .pedago-rewards__title,
+.gl-rewards .pedago-sessions__panel-title {
+  margin: 0 0 4px;
+  font-size: var(--text-base);
+  color: var(--gl-color-primary);
+}
+
+.gl-rewards .reward-card {
+  border-radius: var(--gl-radius-card);
+}
+
+.gl-rewards .reward-celebration {
+  border-radius: var(--gl-radius-card);
+  box-shadow: var(--gl-shadow-sm);
+}
+
+.gl-rewards__toggle {
+  min-height: 44px;
+}
+
+/* Le bouton de la célébration (`.btn` du noyau commun) prend l'habit des boutons G&L
+   (`.gl-btn` de gl-theme.css) : la feuille commune ne le stylait pas ici. */
+.gl-rewards .reward-celebration .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--gl-tap-target, 44px);
+  padding: var(--gl-space-2) var(--gl-space-4);
+  border: 1px solid var(--gl-color-primary);
+  border-radius: var(--gl-radius-control);
+  background: var(--gl-color-primary);
+  color: var(--surface-plain);
+  font-family: inherit;
+  font-size: var(--text-base);
+  font-weight: var(--fw-semibold);
+  line-height: 1.25;
+  cursor: pointer;
+}
+
+.gl-rewards .reward-celebration .btn:focus-visible {
+  outline: 2px solid var(--gl-color-accent);
+  outline-offset: 2px;
+}
+
+/* Vitrine du prof (console MJ) : `.fm-table` de gl-admin.css, « à un pas du palier suivant ». */
+.gl-tenir-rewards__near ul {
+  margin: 4px 0 0;
+  padding-left: 1.1rem;
+}
+
+.gl-tenir-rewards__award {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+  max-width: 36rem;
+}
+
+.gl-tenir-rewards__award textarea {
+  min-height: 72px;
+  font: inherit;
+}
+
+.gl-tenir-rewards__name {
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--gl-color-link);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}

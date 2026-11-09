@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { AutoSaveStatus } from '../../../shared/components/AutoSaveStatus.jsx';
+import { buildChapterOptions, hasChaptersHorsPlateau } from '../../utils/glChapterOptions.js';
 import { GLBadge } from '../ui/GLBadge.jsx';
 import { GLButton } from '../ui/GLButton.jsx';
 import { GLField } from '../ui/GLField.jsx';
@@ -27,7 +29,16 @@ export default function GLGameMasterConsoleActiveGameBanner({
   gameSaveStatus = 'idle',
   gameSaveError = '',
   busy,
+  /** Partie « Tenir à deux » : les réglages hérités (popovers, feuillets…) passent dans un repli. */
+  tenirMode = false,
+  /** Section « Jouer le tour » : le formulaire de partie se replie pour laisser l'écran du tour. */
+  compact = false,
 }) {
+  const [horsPlateau, setHorsPlateau] = useState(false);
+  const chapterOptions = buildChapterOptions(chapters, {
+    horsPlateau,
+    selectedId: editGameForm?.chapterId,
+  });
   if (!game?.id) return null;
   return (
     <div
@@ -35,7 +46,15 @@ export default function GLGameMasterConsoleActiveGameBanner({
     >
       <div className="gl-active-game-banner-head">
         <div>
-          <h3 className="gl-active-game-banner-title">{game.name || `Partie #${game.id}`}</h3>
+          <h3 className="gl-active-game-banner-title">
+            {game.name || `Partie #${game.id}`}
+            {Number(game.is_demo) === 1 ? (
+              <>
+                {' '}
+                <GLBadge tone="info">Démo</GLBadge>
+              </>
+            ) : null}
+          </h3>
           <div className="gl-active-game-banner-meta">
             <span>#{game.id}</span>
             <span>{activeClassLabel}</span>
@@ -75,6 +94,22 @@ export default function GLGameMasterConsoleActiveGameBanner({
           Terminer
         </GLButton>
       </div>
+      {compact ? (
+        <details
+          className="plant-more gl-active-game-banner-compact"
+          data-testid="gl-partie-form-repli"
+        >
+          <summary>Modifier la partie (nom, chapitre, classe, réglages)</summary>
+          <div style={{ marginTop: 12 }}>{renderForm()}</div>
+        </details>
+      ) : (
+        renderForm()
+      )}
+    </div>
+  );
+
+  function renderForm() {
+    return (
       <form className="gl-form" onSubmit={saveGameEdits}>
         {gameSaveError ? <p className="gl-error">{gameSaveError}</p> : null}
         <AutoSaveStatus status={gameSaveStatus} className="gl-hint" />
@@ -97,12 +132,22 @@ export default function GLGameMasterConsoleActiveGameBanner({
               disabled={!canEditGameChapter(gameStatus)}
             >
               <option value="">Choisir</option>
-              {chapters.map((chapter) => (
+              {chapterOptions.map((chapter) => (
                 <option key={chapter.id} value={chapter.id}>
-                  {chapter.title}
+                  {chapter.label}
                 </option>
               ))}
             </GLSelect>
+            {hasChaptersHorsPlateau(chapters) ? (
+              <label className="gl-hint gl-chapter-hors-plateau">
+                <input
+                  type="checkbox"
+                  checked={horsPlateau}
+                  onChange={(event) => setHorsPlateau(event.target.checked)}
+                />{' '}
+                Afficher les chapitres hors plateau
+              </label>
+            ) : null}
           </GLField>
           <GLField label="Classe">
             <GLSelect
@@ -121,115 +166,238 @@ export default function GLGameMasterConsoleActiveGameBanner({
               ))}
             </GLSelect>
           </GLField>
-          <GLField label="Popover zones (cette partie)">
-            <GLSelect
-              value={editGameForm.zoneContentRetrigger}
-              onChange={(event) =>
-                setEditGameForm((prev) => ({
-                  ...prev,
-                  zoneContentRetrigger: event.target.value,
-                }))
-              }
-            >
-              <option value="">Hériter des réglages globaux</option>
-              <option value="every_arrival">À chaque entrée ou traversée</option>
-              <option value="once_per_team">Une fois par équipe et zone</option>
-              <option value="once_per_game">Une fois par zone (toute la partie)</option>
-            </GLSelect>
-          </GLField>
-          <GLField label="Feuillets Sélène (cette partie)">
-            <GLSelect
-              value={editGameForm.loreFeuilletRetrigger}
-              onChange={(event) =>
-                setEditGameForm((prev) => ({
-                  ...prev,
-                  loreFeuilletRetrigger: event.target.value,
-                }))
-              }
-            >
-              <option value="">Hériter des réglages globaux</option>
-              <option value="every_arrival">À chaque entrée ou traversée</option>
-              <option value="once_per_team">Une fois par équipe</option>
-              <option value="once_per_game">Une fois par partie</option>
-            </GLSelect>
-          </GLField>
-          <GLField label="Effacement feuillets">
-            <GLSelect
-              value={editGameForm.loreEffacementEnabled}
-              onChange={(event) =>
-                setEditGameForm((prev) => ({
-                  ...prev,
-                  loreEffacementEnabled: event.target.value,
-                }))
-              }
-            >
-              <option value="">Hériter plateforme</option>
-              <option value="1">Activé</option>
-              <option value="0">Désactivé</option>
-            </GLSelect>
-          </GLField>
-          <GLField label="Coûts gemmes (feuillets)">
-            <GLSelect
-              value={editGameForm.loreGemmeCostsEnabled}
-              onChange={(event) =>
-                setEditGameForm((prev) => ({
-                  ...prev,
-                  loreGemmeCostsEnabled: event.target.value,
-                }))
-              }
-            >
-              <option value="">Hériter plateforme</option>
-              <option value="1">Activé</option>
-              <option value="0">Désactivé</option>
-            </GLSelect>
-          </GLField>
-          <GLField label="Gains cœurs (feuillets)">
-            <GLSelect
-              value={editGameForm.loreHeartRewardsEnabled}
-              onChange={(event) =>
-                setEditGameForm((prev) => ({
-                  ...prev,
-                  loreHeartRewardsEnabled: event.target.value,
-                }))
-              }
-            >
-              <option value="">Hériter plateforme</option>
-              <option value="1">Activé</option>
-              <option value="0">Désactivé</option>
-            </GLSelect>
-          </GLField>
-          <GLField label="Déplacement sur le plateau">
-            <GLSelect
-              value={editGameForm.boardMovementMode}
-              onChange={(event) =>
-                setEditGameForm((prev) => ({
-                  ...prev,
-                  boardMovementMode: event.target.value,
-                }))
-              }
-            >
-              <option value="">Libre (MJ place les équipes)</option>
-              <option value="numbered_path">Repères numérotés + dé</option>
-            </GLSelect>
-          </GLField>
-          {editGameForm.boardMovementMode === 'numbered_path' ? (
-            <GLField label="Repère de départ">
+        </div>
+        {tenirMode ? (
+          <details
+            className="plant-more gl-reglages-hors-tenir"
+            data-testid="gl-reglages-hors-tenir"
+          >
+            <summary>
+              Réglages hors Tenir (popovers, feuillets, effacement, déplacement libre)
+            </summary>
+            <div className="gl-admin-grid-2" style={{ marginTop: 12 }}>
+              <GLField label="Popover zones (cette partie)">
+                <GLSelect
+                  value={editGameForm.zoneContentRetrigger}
+                  onChange={(event) =>
+                    setEditGameForm((prev) => ({
+                      ...prev,
+                      zoneContentRetrigger: event.target.value,
+                    }))
+                  }
+                >
+                  <option value="">Hériter des réglages globaux</option>
+                  <option value="every_arrival">À chaque entrée ou traversée</option>
+                  <option value="once_per_team">Une fois par équipe et zone</option>
+                  <option value="once_per_game">Une fois par zone (toute la partie)</option>
+                </GLSelect>
+              </GLField>
+              <GLField label="Feuillets Sélène (cette partie)">
+                <GLSelect
+                  value={editGameForm.loreFeuilletRetrigger}
+                  onChange={(event) =>
+                    setEditGameForm((prev) => ({
+                      ...prev,
+                      loreFeuilletRetrigger: event.target.value,
+                    }))
+                  }
+                >
+                  <option value="">Hériter des réglages globaux</option>
+                  <option value="every_arrival">À chaque entrée ou traversée</option>
+                  <option value="once_per_team">Une fois par équipe</option>
+                  <option value="once_per_game">Une fois par partie</option>
+                </GLSelect>
+              </GLField>
+              <GLField label="Effacement feuillets">
+                <GLSelect
+                  value={editGameForm.loreEffacementEnabled}
+                  onChange={(event) =>
+                    setEditGameForm((prev) => ({
+                      ...prev,
+                      loreEffacementEnabled: event.target.value,
+                    }))
+                  }
+                >
+                  <option value="">Hériter plateforme</option>
+                  <option value="1">Activé</option>
+                  <option value="0">Désactivé</option>
+                </GLSelect>
+              </GLField>
+              <GLField label="Coûts gemmes (feuillets)">
+                <GLSelect
+                  value={editGameForm.loreGemmeCostsEnabled}
+                  onChange={(event) =>
+                    setEditGameForm((prev) => ({
+                      ...prev,
+                      loreGemmeCostsEnabled: event.target.value,
+                    }))
+                  }
+                >
+                  <option value="">Hériter plateforme</option>
+                  <option value="1">Activé</option>
+                  <option value="0">Désactivé</option>
+                </GLSelect>
+              </GLField>
+              <GLField label="Gains cœurs (feuillets)">
+                <GLSelect
+                  value={editGameForm.loreHeartRewardsEnabled}
+                  onChange={(event) =>
+                    setEditGameForm((prev) => ({
+                      ...prev,
+                      loreHeartRewardsEnabled: event.target.value,
+                    }))
+                  }
+                >
+                  <option value="">Hériter plateforme</option>
+                  <option value="1">Activé</option>
+                  <option value="0">Désactivé</option>
+                </GLSelect>
+              </GLField>
+              <GLField label="Déplacement sur le plateau">
+                <GLSelect
+                  value={editGameForm.boardMovementMode}
+                  onChange={(event) =>
+                    setEditGameForm((prev) => ({
+                      ...prev,
+                      boardMovementMode: event.target.value,
+                    }))
+                  }
+                >
+                  <option value="">Libre (MJ place les équipes)</option>
+                  <option value="numbered_path">Repères numérotés + dé</option>
+                </GLSelect>
+              </GLField>
+              {editGameForm.boardMovementMode === 'numbered_path' ? (
+                <GLField label="Repère de départ">
+                  <GLSelect
+                    value={editGameForm.boardPathStartIndex}
+                    onChange={(event) =>
+                      setEditGameForm((prev) => ({
+                        ...prev,
+                        boardPathStartIndex: event.target.value,
+                      }))
+                    }
+                  >
+                    <option value="">Repère 0 (premier du parcours)</option>
+                    <option value="0">0</option>
+                    <option value="1">1</option>
+                  </GLSelect>
+                </GLField>
+              ) : null}
+            </div>
+          </details>
+        ) : (
+          <div className="gl-admin-grid-2">
+            <GLField label="Popover zones (cette partie)">
               <GLSelect
-                value={editGameForm.boardPathStartIndex}
+                value={editGameForm.zoneContentRetrigger}
                 onChange={(event) =>
                   setEditGameForm((prev) => ({
                     ...prev,
-                    boardPathStartIndex: event.target.value,
+                    zoneContentRetrigger: event.target.value,
                   }))
                 }
               >
-                <option value="">Repère 0 (premier du parcours)</option>
-                <option value="0">0</option>
-                <option value="1">1</option>
+                <option value="">Hériter des réglages globaux</option>
+                <option value="every_arrival">À chaque entrée ou traversée</option>
+                <option value="once_per_team">Une fois par équipe et zone</option>
+                <option value="once_per_game">Une fois par zone (toute la partie)</option>
               </GLSelect>
             </GLField>
-          ) : null}
-        </div>
+            <GLField label="Feuillets Sélène (cette partie)">
+              <GLSelect
+                value={editGameForm.loreFeuilletRetrigger}
+                onChange={(event) =>
+                  setEditGameForm((prev) => ({
+                    ...prev,
+                    loreFeuilletRetrigger: event.target.value,
+                  }))
+                }
+              >
+                <option value="">Hériter des réglages globaux</option>
+                <option value="every_arrival">À chaque entrée ou traversée</option>
+                <option value="once_per_team">Une fois par équipe</option>
+                <option value="once_per_game">Une fois par partie</option>
+              </GLSelect>
+            </GLField>
+            <GLField label="Effacement feuillets">
+              <GLSelect
+                value={editGameForm.loreEffacementEnabled}
+                onChange={(event) =>
+                  setEditGameForm((prev) => ({
+                    ...prev,
+                    loreEffacementEnabled: event.target.value,
+                  }))
+                }
+              >
+                <option value="">Hériter plateforme</option>
+                <option value="1">Activé</option>
+                <option value="0">Désactivé</option>
+              </GLSelect>
+            </GLField>
+            <GLField label="Coûts gemmes (feuillets)">
+              <GLSelect
+                value={editGameForm.loreGemmeCostsEnabled}
+                onChange={(event) =>
+                  setEditGameForm((prev) => ({
+                    ...prev,
+                    loreGemmeCostsEnabled: event.target.value,
+                  }))
+                }
+              >
+                <option value="">Hériter plateforme</option>
+                <option value="1">Activé</option>
+                <option value="0">Désactivé</option>
+              </GLSelect>
+            </GLField>
+            <GLField label="Gains cœurs (feuillets)">
+              <GLSelect
+                value={editGameForm.loreHeartRewardsEnabled}
+                onChange={(event) =>
+                  setEditGameForm((prev) => ({
+                    ...prev,
+                    loreHeartRewardsEnabled: event.target.value,
+                  }))
+                }
+              >
+                <option value="">Hériter plateforme</option>
+                <option value="1">Activé</option>
+                <option value="0">Désactivé</option>
+              </GLSelect>
+            </GLField>
+            <GLField label="Déplacement sur le plateau">
+              <GLSelect
+                value={editGameForm.boardMovementMode}
+                onChange={(event) =>
+                  setEditGameForm((prev) => ({
+                    ...prev,
+                    boardMovementMode: event.target.value,
+                  }))
+                }
+              >
+                <option value="">Libre (MJ place les équipes)</option>
+                <option value="numbered_path">Repères numérotés + dé</option>
+              </GLSelect>
+            </GLField>
+            {editGameForm.boardMovementMode === 'numbered_path' ? (
+              <GLField label="Repère de départ">
+                <GLSelect
+                  value={editGameForm.boardPathStartIndex}
+                  onChange={(event) =>
+                    setEditGameForm((prev) => ({
+                      ...prev,
+                      boardPathStartIndex: event.target.value,
+                    }))
+                  }
+                >
+                  <option value="">Repère 0 (premier du parcours)</option>
+                  <option value="0">0</option>
+                  <option value="1">1</option>
+                </GLSelect>
+              </GLField>
+            ) : null}
+          </div>
+        )}
         {editGameForm.boardMovementMode === 'numbered_path' ? (
           <p className="gl-hint">
             Les repères sont numérotés selon leur ordre sur la carte. Au démarrage, chaque équipe
@@ -246,6 +414,6 @@ export default function GLGameMasterConsoleActiveGameBanner({
           </p>
         ) : null}
       </form>
-    </div>
-  );
+    );
+  }
 }

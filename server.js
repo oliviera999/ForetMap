@@ -26,7 +26,13 @@ const logger = require('./lib/logger');
 const { runDailyJobs } = require('./lib/dailyJobs');
 const { initRealtime, shutdownRealtime } = require('./lib/realtime');
 const { checkCriticalAdminAccount } = require('./lib/rbac');
-const { recordBoot, recordStop, recordCrash, resolveStopReason } = require('./lib/bootJournal');
+const {
+  recordBoot,
+  recordStop,
+  recordCrash,
+  resolveStopReason,
+  startRssTick,
+} = require('./lib/bootJournal');
 const { createDatabaseInitRetry } = require('./lib/databaseInitRetry');
 const { assignRequestId } = require('./lib/requestId');
 const { createHttpRequestLogMiddleware } = require('./lib/httpRequestLog');
@@ -212,6 +218,8 @@ app.use(
   }),
 );
 app.use(assignRequestId);
+// Horloge de simulation G&L : `X-GL-Sim-Clock` n'est lu que si GL_SIM_ALLOW=1 et hors production.
+app.use('/api/gl', require('./lib/glClock').simClockMiddleware);
 
 // Rate-limiting : limiteurs et helpers factorisés dans lib/rateLimit.js (montages inchangés).
 app.use('/api/', generalLimiter);
@@ -383,12 +391,17 @@ registerPwaRoutes(app, {
   getProduct,
   logger,
 });
-const { createDistStaticServeOptions } = require('./lib/staticCacheHeaders');
+const {
+  createDistStaticServeOptions,
+  createPublicStaticServeOptions,
+} = require('./lib/staticCacheHeaders');
 // Jeux de cartes « fresque » (`public/fresques/<deckId>/`, lot 1) : lus et validés une fois au
 // démarrage ; un identifiant hors registre est refusé par `/api/fresques` sans toucher au disque.
 const { loadFresqueDecks } = require('./lib/fresqueDecks');
 logger.info({ decks: [...loadFresqueDecks().keys()] }, 'Jeux de fresque chargés');
-const staticServeOptions = serveDist ? createDistStaticServeOptions(distDir) : undefined;
+const staticServeOptions = serveDist
+  ? createDistStaticServeOptions(distDir)
+  : createPublicStaticServeOptions();
 // L'entrée HTML d'un produit demandée sur le host d'un autre (ex. /index.vite.html sur gl.*,
 // /gl.html sur planlyautey.*) est redirigée vers la racine : chaque host ne sert que son entrée.
 app.use((req, res, next) => {
@@ -552,6 +565,9 @@ app.use('/api/gl/auth', glAuthRouter);
 app.use('/api/gl/admin/reference-docs', glReferenceDocsRouter);
 // « Tenir à deux » : exports CSV par classe (Team Spirit, badges), gl.game.manage.
 app.use('/api/gl/admin', require('./routes/gl/admin-tenir-exports'));
+app.use('/api/gl/admin', require('./routes/gl/admin-demo'));
+// « Tenir à deux » : état et synchronisation des catalogues data/gl/tenir, gl.content.manage.
+app.use('/api/gl/admin', require('./routes/gl/admin-tenir-catalogues'));
 app.use('/api/gl/admin', glAdminRouter);
 app.use('/api/gl/content', glContentRouter);
 app.use('/api/gl/chapters', glChaptersRouter);
@@ -569,6 +585,8 @@ app.use('/api/gl/learning', glLearningRouter);
 app.use('/api/gl/learning-links', glLearningLinksRouter);
 app.use('/api/gl/stats', glStatsRouter);
 app.use('/api/gl/voyageur', glVoyageurRouter);
+// « Tenir à deux » : badges individuels sur le moteur commun (joueur, vitrine et badge décerné du MJ).
+app.use('/api/gl/rewards', require('./routes/gl/rewards'));
 app.use('/api/gl/tutorials', glTutorialsRouter);
 app.use('/api/gl/journal', glJournalRouter);
 app.use('/api/gl/player-journal', glPlayerJournalRouter);
@@ -927,6 +945,10 @@ function boot() {
       },
       'Démarrage enregistré au journal de cycle de vie',
     );
+    // Relevé périodique de la RSS maximale (best-effort, borné) : un process tué sans signal
+    // (plafond mémoire LVE) ne laisse aucune trace d'arrêt ; le démarrage suivant pourra au
+    // moins être rapproché de la dernière mémoire connue (`maxRssMbBeforeKill`).
+    startRssTick();
   }
 
   try {

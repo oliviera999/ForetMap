@@ -90,6 +90,30 @@
   les mascottes des équipes, c'est le récit qui le justifie (« le seuil donne la forme
   dont le prochain territoire aura besoin »).
 
+## Une partie de démonstration pour une réunion
+
+Pour montrer le jeu à des parents, à un conseil pédagogique ou à une inspection **sans toucher
+à une classe réelle**, la console MJ (onglet **Parties**, bloc « Partie de démonstration »)
+prépare d'un clic — **« Préparer / réinitialiser la démo »** — une **classe de démonstration**
+avec six joueurs fictifs (« Gnome Démo 1 », « Licorne Démo 2 »…), deux équipes typées et une
+partie en brouillon sur le **premier plateau**. La partie s'ouvre aussitôt dans la console,
+signalée par une pastille **Démo** (dans la bannière de la partie et dans la liste des parties) ;
+la classe apparaît comme « Classe de démonstration » dans la gestion des utilisateurs.
+
+Vous la jouez comme n'importe quelle partie : démarrage, tours, dés, QCM, sorts, et la
+**projection** sur le vidéoprojecteur (bouton « Projeter »). Les parents peuvent ouvrir le même
+lien de projection sur leur téléphone. Avant chaque présentation, cliquez à nouveau sur le bouton :
+la partie précédente est effacée et une partie neuve la remplace — les joueurs fictifs, eux,
+restent les mêmes, leur vitalité revient aux valeurs par défaut.
+
+Ce qui tient la démonstration à l'écart du réel : personne ne peut se connecter avec un joueur
+fictif (mot de passe aléatoire jamais communiqué) ; la classe de démonstration est **exclue des
+exports** (joueurs, Team Spirit, badges) ; une partie de démo peut être supprimée comme une
+autre. L'administrateur peut aussi la préparer depuis le serveur (`npm run gl:demo:seed`, avec
+`--reset` pour la remettre à zéro). Pour une démonstration **sans compte** (parents sur leur
+téléphone, borne en libre-service), voir les
+[modes de démonstration](roles-et-connexion.md#les-modes-de-démonstration-parents-borne).
+
 ## Après la séance
 
 - **Scores et statistiques** : le score des équipes, la progression individuelle et de
@@ -278,6 +302,21 @@ vous ouvrez la fenêtre ; sur **tablette**, chaque équipe agit seule en phase j
 les dés physiques d'un clic. Les **absences** du jour retirent un élève du pot des sorts et du
 carnet personnel du tour. Le **retrait** (conduite) se décide élève par élève : il joue, fouille et
 lit, mais ne verse pas au pot et ne voit pas le Marché, jusqu'à la levée ; le motif reste pour vous.
+
+**Depuis la simulation du 7 novembre 2026.** Une bonne réponse de case donne **une seule relance
+par équipe et par tour** ; les suivantes donnent +1 case sans relance. **Progression** et
+**Relance** ne se lancent que juste après le jet de l'équipe (si une autre équipe a joué depuis,
+le sort attend le prochain jet) et Progression déplace d'une case sans appliquer la case
+d'arrivée. Les cases « +2 cœurs » ou « +1 gemme » du plateau donnent **+1 de la ressource du
+peuple**, comme la Trame. Les **péripéties** sortent aussi sur les cases sans effet (Averse
+tropicale, Lion à l'affût…), avec la description de la case au-dessus. Un élève en **retrait**
+peut lire et tenir une page. Les **parures** sans image s'achètent quand même : une pastille sur
+la mascotte. Dans la console, pour une partie en cours, l'onglet **« Jouer le tour »** s'ouvre
+seul, les réglages hérités (popovers, feuillets…) sont repliés sous « Réglages hors Tenir », et
+le sélecteur de chapitres ne propose que les **plateaux** (case « Afficher les chapitres hors
+plateau » pour la démo et « test »). Les catalogues (zones, questions, péripéties, Olu, parures)
+se chargent seuls au démarrage ; Contenus → Chapitres → « Catalogues Tenir à deux » montre
+leur état et permet de les resynchroniser.
 
 À la **clôture** du chapitre (bouton « Clore »), la caravane porte les retardataires au camp, les
 honneurs, sceaux et titres s'attribuent, les parures reviennent au comptoir, les badges se

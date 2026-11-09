@@ -9,6 +9,7 @@ import { GLTourDesSaisie } from './GLTourDesSaisie.jsx';
 import { GLTourSouffle } from './GLTourSouffle.jsx';
 import { GLTeamSpiritPanel } from './GLTeamSpiritPanel.jsx';
 import { GLTourJournal } from './GLTourJournal.jsx';
+import { numeroCase } from '../../../shared/glCaseNumeroCore.js';
 
 const PHASE_LABELS = {
   ouverture: 'Ouverture',
@@ -20,6 +21,8 @@ const PHASE_LABELS = {
 function TeamCard({ team, round, surface, tenir, busy, onLancer, onSuivante, isActive }) {
   const fenetre = round?.fenetresFouille || {};
   const fenetreOuverte = fenetre[String(team.id)] ?? fenetre.tous ?? false;
+  const reserve = (tenir?.reserves || []).find((r) => Number(r.teamId) === Number(team.id));
+  const fouilles = team.fouilles || null;
   return (
     <section
       className={`gl-tour-team-card gl-tour-team-card--${team.type}${isActive ? ' is-active' : ''}`}
@@ -32,9 +35,15 @@ function TeamCard({ team, round, surface, tenir, busy, onLancer, onSuivante, isA
           <small className="gl-hint"> · {team.type === 'unicorn' ? 'licornes' : 'gnomes'}</small>
         </h4>
         <span className="gl-hint">
-          case {team.pathIndex == null ? '—' : team.pathIndex + 1}
+          case {numeroCase(team.pathIndex) ?? '—'}
           {team.auCamp ? ' · au camp' : ''}
           {team.hasRolledDiceThisRound ? ' · dés lancés' : ''}
+          {fouilles
+            ? ` · fouilles ${fouilles.restantes}/${fouilles.quota}${fouilles.reparation?.quota ? ` + ${fouilles.reparation.restantes}/${fouilles.reparation.quota} réparation` : ''}`
+            : ''}
+          {reserve && (reserve.health || reserve.power)
+            ? ` · réserve ❤️ ${reserve.health} 💎 ${reserve.power}`
+            : ''}
         </span>
       </header>
       {round?.phase === 'jeu' ? (

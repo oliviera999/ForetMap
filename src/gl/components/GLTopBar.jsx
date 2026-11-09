@@ -34,6 +34,8 @@ export function GLTopBar({
   onGlViewModeNative = null,
   onGlViewModePlayer = null,
   isGuestMode = false,
+  /** Borne de démonstration (`?kiosque=1`) : aucune sortie possible depuis l'écran. */
+  kioskMode = false,
 }) {
   const isScrolled = useStickyHeaderScrolled();
   const compactNav = useGlCompactNav();
@@ -58,9 +60,11 @@ export function GLTopBar({
   const userChrome = isGuestMode ? (
     <div className="gl-user">
       <span className="gl-user-name">{auth?.displayName || 'Visiteur'}</span>
-      <button type="button" className="gl-logout" onClick={onLogout}>
-        Quitter la découverte
-      </button>
+      {kioskMode ? null : (
+        <button type="button" className="gl-logout" onClick={onLogout}>
+          Quitter la découverte
+        </button>
+      )}
     </div>
   ) : (
     <div className="gl-user">

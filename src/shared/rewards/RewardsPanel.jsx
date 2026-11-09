@@ -98,7 +98,7 @@ function RewardCard({ entry, earned, progress }) {
  * suivant, date d'obtention, mot de l'adulte (badges décernés).
  *
  * `data` a la forme de la réponse `GET /api/rewards/me` (`rewards`, `progress`, `catalogue`,
- * `families`) ; chaque produit la charge depuis sa propre route.
+ * `families`, `tiers`) ; chaque produit la charge depuis sa propre route.
  *
  *  - `readOnly` : consultation (statistiques, fiche d'un élève vue par un adulte) — aucune
  *    célébration, aucun `onSeen` ;
@@ -150,6 +150,7 @@ export function RewardsPanel({
           rewards={pending}
           narrator={narrator}
           extraPools={extraPools}
+          tiers={Array.isArray(data?.tiers) ? data.tiers : null}
           onClose={close}
         />
       )}

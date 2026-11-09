@@ -36,7 +36,15 @@ const GLTourContext = createContext({
   isActive: false,
 });
 
-export function GLTourProvider({ tab, isStaff = false, enabled = false, children }) {
+export function GLTourProvider({
+  tab,
+  isStaff = false,
+  enabled = false,
+  // Les démos (`?demo=parents`) lisent une mémoire à part, remise à zéro à chaque
+  // ouverture : chaque visiteur d'un même téléphone doit voir la visite.
+  storageKey = GL_SEEN_STORAGE_KEY,
+  children,
+}) {
   // Surcharges éditoriales (`content.tour`) : un MJ peut réécrire une bulle sans
   // déploiement. Absentes ou illisibles, les parcours jouent leurs textes versionnés.
   const overrides = useGlTourOverrides(enabled);
@@ -44,7 +52,7 @@ export function GLTourProvider({ tab, isStaff = false, enabled = false, children
     (tabKey) => glTours.getSteps(tabKey, isStaff, overrides),
     [isStaff, overrides],
   );
-  const tour = useGuidedTour({ getSteps, storageKey: GL_SEEN_STORAGE_KEY });
+  const tour = useGuidedTour({ getSteps, storageKey });
   /*
    * L'étape de relance de **tous** les parcours vise le bouton « ? », qui n'est rendu
    * qu'une fois l'aide chargée. Démarrer avant, c'est perdre cette bulle sans erreur ni

@@ -3,7 +3,10 @@ import { useCallback, useEffect, useMemo, useState, Suspense, lazy } from 'react
 import '../styles/gl-admin.css';
 import { apiGL, getGlToken } from '../services/apiGL.js';
 import { GLTourScreen } from './mj/GLTourScreen.jsx';
-import { useDebouncedAutoSave } from '../../shared/hooks/useDebouncedAutoSave.js';
+import {
+  useDebouncedAutoSave,
+  serializeAutoSaveValue,
+} from '../../shared/hooks/useDebouncedAutoSave.js';
 import { useAppDialogs } from '../../shared/components/AppDialogsProvider.jsx';
 import { GLBadge } from './ui/GLBadge.jsx';
 import { GLButton } from './ui/GLButton.jsx';
@@ -165,20 +168,26 @@ export function GLGameMasterConsole({
     setTeamForm((prev) => ({ ...prev, mascotId: defaultMascotByType(prev.type) }));
   }, [mascotOptions, teamForm.mascotId, defaultMascotByType, teamForm.type]);
 
-  useEffect(() => {
-    if (!game?.id) return;
-    setEditGameForm(gameToEditForm(game));
-  }, [
-    game?.id,
-    game?.name,
-    game?.chapter_id,
-    game?.class_id,
-    game?.zone_content_retrigger,
-    game?.lore_feuillet_retrigger,
-    game?.lore_effacement_enabled,
-    game?.lore_gemme_costs_enabled,
-    game?.lore_heart_rewards_enabled,
-  ]);
+  // Formulaire dérivé de la partie chargée, dans le MÊME rendu que la clé de remise à zéro de
+  // l'enregistrement automatique : l'ancien `useEffect` posait le formulaire un rendu après la
+  // clé, l'enregistrement voyait une « modification » et envoyait un PUT parasite (« Partie mise
+  // à jour » au simple clic sur « Ouvrir », simulation du 7 novembre 2026).
+  const gameFormKey = game?.id
+    ? `${game.id}:${serializeAutoSaveValue(gameToEditForm(game))}`
+    : null;
+  const [appliedGameFormKey, setAppliedGameFormKey] = useState(null);
+  if (gameFormKey !== appliedGameFormKey) {
+    setAppliedGameFormKey(gameFormKey);
+    if (game?.id) setEditGameForm(gameToEditForm(game));
+  }
+
+  // Partie « Tenir à deux » en cours : « Jouer le tour » est l'onglet ouvert par défaut.
+  const tenirLive = Boolean(gameState?.tenir?.enabled) && String(game?.status || '') === 'live';
+  const [tourDefaultForGame, setTourDefaultForGame] = useState(null);
+  if (tenirLive && game?.id && tourDefaultForGame !== game.id) {
+    setTourDefaultForGame(game.id);
+    setMjSection('tour');
+  }
 
   const showSuccess = useCallback((message) => {
     setFeedback({ type: 'success', message });
@@ -232,7 +241,7 @@ export function GLGameMasterConsole({
 
   const { status: gameSaveStatus, error: gameSaveError } = useDebouncedAutoSave({
     value: editGameForm,
-    resetKey: game?.id,
+    resetKey: gameFormKey,
     enabled: Boolean(game?.id),
     canSave: () => String(editGameForm.name || '').trim().length > 0,
     onSave: persistGameEdits,
@@ -367,6 +376,28 @@ export function GLGameMasterConsole({
       setRosterRefreshKey((value) => value + 1);
     } catch (err) {
       showFailure(err.message || 'Chargement de la partie impossible');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /**
+   * Partie de démonstration (réunion de parents, inspection) : classe et joueurs fictifs,
+   * deux équipes, premier plateau — préparée ou remise à zéro d'un clic, puis ouverte.
+   */
+  async function resetDemoGame() {
+    setActionError('');
+    setBusy(true);
+    try {
+      resetForGameSwitch();
+      const result = await apiGL('/api/gl/admin/demo/reset', 'POST');
+      const data = await apiGL(`/api/gl/games/${result.gameId}`);
+      onGameStateChange(data);
+      showSuccess(`Partie de démonstration #${result.gameId} prête.`);
+      await loadGames();
+      setRosterRefreshKey((value) => value + 1);
+    } catch (err) {
+      showFailure(err.message || 'Préparation de la démonstration impossible');
     } finally {
       setBusy(false);
     }
@@ -698,7 +729,15 @@ export function GLGameMasterConsole({
       desktopCells: (
         <>
           <td>{item.id}</td>
-          <td>{item.name}</td>
+          <td>
+            {item.name}
+            {item.isDemo ? (
+              <>
+                {' '}
+                <GLBadge tone="info">Démo</GLBadge>
+              </>
+            ) : null}
+          </td>
           <td>{item.className || item.classId}</td>
           <td>
             <GLBadge tone={gameStatusTone(item.status)}>{formatGameStatus(item.status)}</GLBadge>
@@ -711,7 +750,15 @@ export function GLGameMasterConsole({
         <>
           <div className="gl-data-card-row">
             <span className="gl-data-card-label">Partie</span>
-            <strong>{item.name}</strong>
+            <strong>
+              {item.name}
+              {item.isDemo ? (
+                <>
+                  {' '}
+                  <GLBadge tone="info">Démo</GLBadge>
+                </>
+              ) : null}
+            </strong>
           </div>
           <div className="gl-data-card-row">
             <span className="gl-data-card-label">Classe</span>
@@ -811,6 +858,8 @@ export function GLGameMasterConsole({
             gameSaveStatus={gameSaveStatus}
             gameSaveError={gameSaveError}
             busy={busy}
+            tenirMode={Boolean(gameState?.tenir?.enabled)}
+            compact={mjSection === 'tour'}
           />
         </Suspense>
       ) : null}
@@ -875,6 +924,7 @@ export function GLGameMasterConsole({
             setGamesStatusFilter={setGamesStatusFilter}
             loadGames={loadGames}
             createGame={createGame}
+            resetDemoGame={resetDemoGame}
             gameListRows={gameListRows}
             busy={busy}
           />

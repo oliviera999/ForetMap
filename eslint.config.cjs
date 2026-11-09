@@ -85,6 +85,7 @@ module.exports = [
       'middleware/**/*.js',
       'routes/**/*.js',
       'scripts/**/*.js',
+      'tools/gl-sim/**/*.js',
       'tests/**/*.js',
     ],
     languageOptions: {
@@ -357,8 +358,8 @@ module.exports = [
     },
   },
   {
-    // Outils CLI (scripts/**) et tests : l'usage de console y est légitime.
-    files: ['scripts/**/*.js', 'tests/**/*.js', 'tests-ui/**/*.{js,jsx}'],
+    // Outils CLI (scripts/**, banc de simulation tools/gl-sim/**) et tests : console légitime.
+    files: ['scripts/**/*.js', 'tools/gl-sim/**/*.js', 'tests/**/*.js', 'tests-ui/**/*.{js,jsx}'],
     rules: { 'no-console': 'off' },
   },
 ];

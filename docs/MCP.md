@@ -190,11 +190,11 @@ Google OAuth n'est **pas** branché sur l'écran de connexion du connecteur (voi
 Noms stables préfixés, descriptions en français pour le modèle, schémas zod **stricts** (clé
 inconnue refusée), pagination `limit` + `offset` (plafond : réglage `mcp.max_rows`), sorties
 JSON **compactes** tronquées au-delà de `mcp.max_output_chars` (défaut 400 000 caractères ; au-delà,
-`foretmap_export`), annotations MCP renseignées. Environ 65 outils en profil `complet` ; le
+`foretmap_export`), annotations MCP renseignées. Environ 75 outils en profil `complet` ; le
 profil `essentiel` (`mcp.tool_profile`) garde le socle, les tâches, les élèves, les groupes, les
 espèces, les cartes et les réglages. Un outil n'apparaît dans `tools/list` que si la portée, la
 permission, le réglage et le domaine (`mcp.domains_disabled`) le permettent ; l'appel est
-revérifié. Six prompts guidés : `prompts/list` (`lib/mcp/prompts.js`).
+revérifié. Sept prompts guidés : `prompts/list` (`lib/mcp/prompts.js`).
 
 Légende : **é** = action qui écrit (portée `foretmap.write`, réglage `mcp.api_bridge_enabled`,
 confirmation selon `mcp.confirm_mode`) ; **\*** = action nominative (bypass actif + permission
@@ -219,33 +219,78 @@ confirmation selon `mcp.confirm_mode`) ; **\*** = action nominative (bypass acti
 Écritures **toujours par le pont** (route du site) ; lectures par la route quand elle existe,
 sinon SQL en lecture seule (`lib/mcp/domains/`) sous la permission applicative équivalente.
 
-| Outil (domaine)                                       | Actions                                                                                                                                                                                                                                                                 |
-| ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `foretmap_tasks` (`tasks`, essentiel)                 | list, get, logs\*, stats, to_validate, overdue, create é, update é, delete é, bulk_create é, duplicate é, validate é, set_status é, archive é, unarchive é, assign é\*, unassign é\*, mark_done é\*, assign_group é, add_log é, delete_log é, set_links é, recurrence é |
-| `foretmap_task_projects` (`task_projects`, essentiel) | list, get (avancement), create é, update é, delete é, duplicate é, hold é, validate é, archive é, unarchive é, reorder é (ordre des tâches d'un projet)                                                                                                                 |
-| `foretmap_students` (`students`, essentiel)           | tout nominatif : list, get (badges décrits), timeline, at_risk, rewards_near, create_bulk é, update é, deactivate é, reactivate é, merge é, reset_password_link é (lien masqué en sortie), reset_totp é, set_role é                                                     |
-| `foretmap_groups` (`groups`, essentiel)               | list, get, create é, update é, delete é, set_members é\*, set_scopes é, class_report\*, progression_recompute é                                                                                                                                                         |
-| `foretmap_tutorials` (`tutorials`)                    | list, get, create é, update é, delete é, link é, unlink é, reads_stats, reads_detail\*                                                                                                                                                                                  |
-| `foretmap_learning` (`learning`)                      | gating_get, gating_set é, links_list, overrides\*, override_release é\*, links_suggest, links_accept é, links_reject é                                                                                                                                                  |
-| `foretmap_quiz` (`quiz`)                              | list, get, categories, stats (réussite par question, catégorie, notion ; distracteurs non disponibles), create é, update é, retire é, set_notions é                                                                                                                     |
-| `foretmap_glossary` (`glossary`)                      | list, get, set_notions é                                                                                                                                                                                                                                                |
-| `foretmap_curriculum` (`curriculum`)                  | notions, coverage (notions orphelines et partielles), set_links é                                                                                                                                                                                                       |
-| `foretmap_pedago_sessions` (`pedago_sessions`)        | list, get, runs, runs_detail\*, create é, update é, delete é, link_task é                                                                                                                                                                                               |
-| `foretmap_species` (`species`, essentiel)             | list, get, create é, update é, delete é, aliases é, lookalikes é, photos é, hazard_review é, gbif_match, autofill_preview, registry_status é                                                                                                                            |
-| `foretmap_food_web` (`food_web`)                      | list, types, create é, update é, delete é                                                                                                                                                                                                                               |
-| `foretmap_observations` (`observations`)              | queue\*, get\*, validate é, reject é, evidence, evidence_write é, stats, individuals, individual_write é                                                                                                                                                                |
-| `foretmap_id_keys` (`id_keys`)                        | list, get, create_key é, update_key é, delete_key é, upsert_node é, delete_node é                                                                                                                                                                                       |
-| `foretmap_maps` (`maps`, essentiel)                   | list_maps, places, place_get, place_create é, place_update é (géométrie, coordonnées), place_delete é, place_notes é, place_photos, place_photo_write é, categories, category_write é, routes, route_write é, registry, registry_write é, settings_write é, inventory   |
-| `foretmap_visit` (`visit`)                            | content, coverage, stats, place_write é, media_write é, tutorials_write é, mascot_packs                                                                                                                                                                                 |
-| `foretmap_plans` (`plans`)                            | content, places, place_update é, settings, set_setting é, rotate_code é (nouveau code renvoyé une fois)                                                                                                                                                                 |
-| `foretmap_social` (`social`)                          | forum_list, forum_get\*, forum_reports\*, forum_moderate é, comments_list\*, comments_moderate é, place_reports é, notify é, journals\*, fresques\*                                                                                                                     |
-| `foretmap_settings` (`settings`, essentiel)           | list (valeur, source env / base / défaut, verrou), get, set é (refus si verrouillé)                                                                                                                                                                                     |
-| `foretmap_rbac` (`rbac`)                              | roles, permissions, grant é, revoke é, set_user_role é                                                                                                                                                                                                                  |
-| `foretmap_audit_log` (`audit_log`)                    | query\* (acteur, action, entité, période, `via`), security_events\*                                                                                                                                                                                                     |
-| `foretmap_calendar` (`calendar`)                      | get, set_days é, set_weekdays é, prepare_year é                                                                                                                                                                                                                         |
-| `foretmap_moodle` (`moodle`)                          | check, cohorts, dry_run\*, runs, run\*, apply é\*                                                                                                                                                                                                                       |
-| `foretmap_stats` (`stats`)                            | dashboard, students\*, student\*, usage                                                                                                                                                                                                                                 |
-| `foretmap_ops` (`ops` ; `mcp.ops`, `ops_enabled`)     | cron_jobs, run_cron é, migrate é, restart é, dump é (full \| anonymized \| structure, fichier privé, lien 1 h), storage_report, deploy_status, retention_preview, retention_run é, clear_caches é                                                                       |
+| Outil (domaine)                                       | Actions                                                                                                                                                                                                                                                                                  |
+| ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `foretmap_tasks` (`tasks`, essentiel)                 | list, get, logs\*, stats, to_validate, overdue, create é, update é, delete é, bulk_create é, duplicate é, validate é, set_status é, archive é, unarchive é, assign é\*, unassign é\*, mark_done é\*, assign_group é, add_log é, delete_log é, set_links é, recurrence é                  |
+| `foretmap_task_projects` (`task_projects`, essentiel) | list, get (avancement), create é, update é, delete é, duplicate é, hold é, validate é, archive é, unarchive é, reorder é (ordre des tâches d'un projet)                                                                                                                                  |
+| `foretmap_students` (`students`, essentiel)           | tout nominatif : list, get (badges décrits), timeline, at_risk, rewards_near, create_bulk é, update é, deactivate é, reactivate é, merge é, reset_password_link é (lien masqué en sortie), reset_totp é, set_role é                                                                      |
+| `foretmap_groups` (`groups`, essentiel)               | list, get, create é, update é, delete é, set_members é\*, set_scopes é, class_report\*, progression_recompute é                                                                                                                                                                          |
+| `foretmap_tutorials` (`tutorials`)                    | list, get, create é, update é, delete é, link é, unlink é, reads_stats, reads_detail\*                                                                                                                                                                                                   |
+| `foretmap_learning` (`learning`)                      | gating_get, gating_set é, links_list, overrides\*, override_release é\*, links_suggest, links_accept é, links_reject é                                                                                                                                                                   |
+| `foretmap_quiz` (`quiz`)                              | list, get, categories, stats (réussite par question, catégorie, notion ; distracteurs non disponibles), create é, update é, retire é, set_notions é                                                                                                                                      |
+| `foretmap_glossary` (`glossary`)                      | list, get, set_notions é                                                                                                                                                                                                                                                                 |
+| `foretmap_curriculum` (`curriculum`)                  | notions, coverage (notions orphelines et partielles), set_links é                                                                                                                                                                                                                        |
+| `foretmap_pedago_sessions` (`pedago_sessions`)        | list, get, runs, runs_detail\*, create é, update é, delete é, link_task é                                                                                                                                                                                                                |
+| `foretmap_species` (`species`, essentiel)             | list, get, create é, update é, delete é, aliases é, lookalikes é, photos é, hazard_review é, gbif_match, autofill_preview, registry_status é                                                                                                                                             |
+| `foretmap_food_web` (`food_web`)                      | list, types, create é, update é, delete é                                                                                                                                                                                                                                                |
+| `foretmap_observations` (`observations`)              | queue\*, get\*, validate é, reject é, evidence, evidence_write é, stats, individuals, individual_write é                                                                                                                                                                                 |
+| `foretmap_id_keys` (`id_keys`)                        | list, get, create_key é, update_key é, delete_key é, upsert_node é, delete_node é                                                                                                                                                                                                        |
+| `foretmap_maps` (`maps`, essentiel)                   | list_maps, places, place_get, place_create é, place_update é (géométrie, coordonnées), place_delete é, place_notes é, place_photos, place_photo_write é, categories, category_write é, routes, route_write é, registry, registry_write é, settings_write é, inventory                    |
+| `foretmap_visit` (`visit`)                            | content, coverage, stats, place_write é, media_write é, tutorials_write é, mascot_packs                                                                                                                                                                                                  |
+| `foretmap_plans` (`plans`)                            | content, places, place_update é, settings, set_setting é, rotate_code é (nouveau code renvoyé une fois)                                                                                                                                                                                  |
+| `foretmap_social` (`social`)                          | forum_list, forum_get\*, forum_reports\*, forum_moderate é, comments_list\*, comments_moderate é, place_reports é, notify é, journals\*, fresques\*                                                                                                                                      |
+| `foretmap_settings` (`settings`, essentiel)           | list (valeur, source env / base / défaut, verrou), get, set é (refus si verrouillé)                                                                                                                                                                                                      |
+| `foretmap_rbac` (`rbac`)                              | roles, permissions, grant é, revoke é, set_user_role é                                                                                                                                                                                                                                   |
+| `foretmap_audit_log` (`audit_log`)                    | query\* (acteur, action, entité, période, `via`), security_events\*                                                                                                                                                                                                                      |
+| `foretmap_calendar` (`calendar`)                      | get, set_days é, set_weekdays é, prepare_year é                                                                                                                                                                                                                                          |
+| `foretmap_moodle` (`moodle`)                          | check, cohorts, dry_run\*, runs, run\*, apply é\*                                                                                                                                                                                                                                        |
+| `foretmap_stats` (`stats`)                            | dashboard, students\*, student\*, usage                                                                                                                                                                                                                                                  |
+| `foretmap_ops` (`ops` ; `mcp.ops`, `ops_enabled`)     | cron_jobs, run_cron é, migrate é, restart é, dump é (full \| anonymized \| structure, fichier privé, lien 1 h), storage_report, deploy_status, retention_preview, retention_run é, clear_caches é, scripts, script_dry_run, run_script é (liste blanche `lib/mcp/domains/opsScripts.js`) |
+
+### Outils Gnomes & Licornes (domaine `gl`, `lib/mcp/tools/domains/gl*.js`)
+
+Dix outils pour la mouture « Tenir à deux » (`docs/GL_TENIR_A_DEUX.md`), ajoutés le 08/11/2026.
+Ils respectent l'**isolement des produits** autrement que `foretmap_api`, qui refuse toujours
+`/api/gl/*` : leurs écritures et les lectures qui ont une route passent par le **pont G&L**
+(`lib/mcp/glBridge.js`), qui résout la personne connectée en **staff G&L** par la règle de la
+connexion MJ (`resolveGlStaffLogin`, CDG-12 : enseignant actif porteur de `teacher.access`,
+ligne `gl_admins` liée ou administrateur ForêtMap), signe un JWT `product: 'gl'` éphémère
+(120 s, `via: 'mcp'`, permissions relues en base à chaque requête comme pour toute session
+G&L) et injecte l'appel par le pont général (`bridgeRequest`, option `gl` : chemin borné à
+`/api/gl/…`, réglages `mcp.api_bridge_*`, journal `mcp_api_call`). Sans accès maître du jeu,
+tout appel répond `MCP_GL_FORBIDDEN`. Les lectures SQL agrégées (tables de partie `gl_game_*`,
+hors liste blanche) tournent en READ ONLY sur le pool principal **après** la même vérification
+(`glCommon.readGl`) ; leurs chargeurs sont dans `lib/glDiagnostic.js` (pur + chargeurs) ou
+dans les modules du moteur (`lib/glTour.js`, `lib/glTenirInvariants.js`, `lib/glBourses.js`),
+jamais réécrits. Domaine désactivable : `mcp.domains_disabled=gl`.
+
+Garde-fous tenus par construction (règles § 1) : **aucun pseudo d'élève** hors action
+nominative (identifiants et noms d'équipes seulement) ; **bourses agrégées par équipe**
+(somme, min, max, nombre au plafond) hors `bourses_eleves` ; **aucune clé de classement**
+(`rank`, `score`, `position`…) dans aucune réponse ; `effet_mecanique` (texte d'auteur) jamais
+servi, seule la **vérité des cases** calculée l'est ; termes `secret` du lore masqués ;
+réponses des questions de lecture et corrections d'Olu absentes ; `gl_settings` (table
+secrète pour le SQL libre) lisible **uniquement** par `gl_settings` via la route d'administration.
+
+| Outil                 | Actions                                                                                                                                                                                                                                                                    | Droits                                                                                           |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `gl_games`            | list (class_id, status, tenir : plateau, surface, tour courant et phase, effectifs), get (équipes : peuple, pion, au camp, membres)                                                                                                                                        | staff G&L ; SQL READ ONLY                                                                        |
+| `gl_game_state`       | get (réglages résolus, voile, tour, pages par zone, **bourses agrégées par équipe**, réserves E4), bourses_eleves\* (bourses par élève : identifiant, pseudo, équipe)                                                                                                      | staff G&L ; `*` bypass + `mcp.privacy_bypass`, journalisé                                        |
+| `gl_game_journal`     | list (type, round, team_id ; libellés `lib/glJournalPresent*.js` comme dans l'app ; payloads privés expurgés par `redactGameEventsForViewer` sauf bypass actif — vue `mj`)                                                                                                 | staff G&L ; SQL READ ONLY                                                                        |
+| `gl_game_diagnostic`  | get (violations d'invariants `checkTenirInvariantsFromDb`, grand livre par cause, réserves, durées des tours et séances jusqu'au Seuil, compteurs : fouilles, pages, sorts, dons, retraits, évènements) ; l'instantané par joueur ne sort pas                              | staff G&L ; SQL READ ONLY                                                                        |
+| `gl_settings`         | list (group, prefix, q, source : base / défaut / hors_registre, métadonnées du registre `GL_SETTINGS_REGISTRY`), get, set é (`PUT /api/gl/admin/settings/:key`, validation du registre, avant / après)                                                                     | staff G&L + `gl.settings.manage` (route) ; set : write                                           |
+| `gl_tenir_catalogues` | status (`GET /api/gl/admin/tenir/catalogues` : comptes, empreintes dépôt / base, écarts, dernier rapport), sync é (`POST …/sync { dryRun, fichier }`)                                                                                                                      | staff G&L + `gl.content.manage` (route) ; sync : write                                           |
+| `gl_content_snapshot` | get (plateau, sections : chapitres, cases avec vérité des cases par peuple, zones sans polygone ni titre privé, questions de lecture sans réponse, sorts v2, péripéties, lignes d'Olu sans correction, parures ; `controles` : termes secrets masqués, chaînes interdites) | staff G&L ; SQL READ ONLY                                                                        |
+| `gl_tour`             | ouvrir é, phase é, voile_dort é, equipe_suivante é, avance_libre é (1-12 cases, motif), absences é, retrait é (entrée / sortie), clore_partie é (`POST /games/:id/end`) ; chaque action renvoie l'état avant / après                                                       | staff G&L + `gl.game.manage` (routes) ; write                                                    |
+| `gl_sim_reports`      | list, get (`reports/gl-sim/<date>-<scenario>/summary.json`, ≤ 512 Ko, jamais le HTML ; dossier absent = liste vide ; `GL_SIM_REPORTS_DIR` pour déplacer la racine)                                                                                                         | staff G&L ; fichiers                                                                             |
+| `gl_rewards`          | vitrine (game_id ou class_id : familles × paliers par membre, « à un pas du palier », tri par nom, **jamais de classement** ; pseudos seulement si bypass actif), award é (`POST /api/gl/rewards/games/:id/award`, mot obligatoire)                                        | staff G&L + `gl.game.manage` (routes) ; award : write ; routes non livrées → `MCP_NOT_AVAILABLE` |
+
+Prompt guidé `diagnostiquer_partie_gl` (« Diagnostiquer une partie G&L ») : `gl_games list` →
+`gl_game_state get` → `gl_game_diagnostic get` → `gl_game_journal list` (derniers tours) →
+`gl_rewards vitrine` → `foretmap_audit` sur `gl_marker_promises`, `gl_tenir_zones`,
+`gl_spells_legacy` ; rendu attendu : état vert / orange / rouge par composant, invariants,
+économie (grand livre par cause, réserves), textes interdits, actions proposées **sans rien
+écrire sans accord** ; jamais de nom d'élève sauf bypass actif et demande explicite.
 
 Non couverts faute de route (décision du 05/11/2026 : pas de route créée) : écriture des termes
 du glossaire, catégories de quiz et notions du programme, historique de zone (table retirée),
@@ -273,22 +318,26 @@ réordonnancement des projets.
 Fonctions pures dans `lib/mcp/audits/checks.js` (testées sans base, réutilisables par
 `tests/content/`) :
 
-| `check`                           | Ce qui est signalé                                                                                                                                                         |
-| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `photos_missing_credit`           | Photo (galerie, principale, G&L, QCM) sans crédit ou sans licence                                                                                                          |
-| `species_not_in_id_key`           | Espèce présente sur une carte mais atteinte par aucune clé publiée de la carte                                                                                             |
-| `id_key_dead_paths`               | Feuille sans espèce, double issue, renvoi cassé ou hors clé, couplet inatteignable, espèce atteinte par plusieurs feuilles                                                 |
-| `glossary_orphans`                | Terme (FM, G&L, lore) sans lien et jamais employé dans les textes                                                                                                          |
-| `glossary_divergence_fm_gl`       | Même terme FM et G&L, définitions courtes différentes                                                                                                                      |
-| `gl_qcm_glossary_link_divergence` | Liens glossaire ↔ QCM G&L : ancienne table si présente, et liens `import` périmés (voir ci-dessous)                                                                        |
-| `qcm_incomplete`                  | Énoncé, choix, bonne réponse, `feedback_correct`, feedback des distracteurs, niveau/difficulté G&L — **le slot de feedback de la bonne réponse vide n'est jamais signalé** |
-| `qcm_quality`                     | Choix en double, feedback qui recopie l'énoncé, biais de longueur (`lib/pedagoContentAudit.js`)                                                                            |
-| `gl_case_levels_not_6e`           | Question G&L ou case dont le niveau n'est pas 6ᵉ / cycle 3 / `college` / `base`                                                                                            |
-| `species_duplicates`              | Même nom scientifique normalisé (auteur, rang, casse ignorés) ; nom/alias désignant deux fiches                                                                            |
-| `emoji_collisions`                | Emoji partagé par plusieurs fiches (comparaison **binaire**) ; nom de zone/repère qui répète son emoji                                                                     |
-| `species_without_presence`        | Fiche présente sur aucune carte                                                                                                                                            |
-| `zones_without_species`           | Zone non spéciale sans espèce                                                                                                                                              |
-| `orphan_links`                    | Liaisons logiques sans clé étrangère cassées (liens ressource ↔ question, cases, interactions G&L)                                                                         |
+| `check`                           | Ce qui est signalé                                                                                                                                                                                                                                                      |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `photos_missing_credit`           | Photo (galerie, principale, G&L, QCM) sans crédit ou sans licence                                                                                                                                                                                                       |
+| `species_not_in_id_key`           | Espèce présente sur une carte mais atteinte par aucune clé publiée de la carte                                                                                                                                                                                          |
+| `id_key_dead_paths`               | Feuille sans espèce, double issue, renvoi cassé ou hors clé, couplet inatteignable, espèce atteinte par plusieurs feuilles                                                                                                                                              |
+| `glossary_orphans`                | Terme (FM, G&L, lore) sans lien et jamais employé dans les textes                                                                                                                                                                                                       |
+| `glossary_divergence_fm_gl`       | Même terme FM et G&L, définitions courtes différentes                                                                                                                                                                                                                   |
+| `gl_qcm_glossary_link_divergence` | Liens glossaire ↔ QCM G&L : ancienne table si présente, et liens `import` périmés (voir ci-dessous)                                                                                                                                                                     |
+| `qcm_incomplete`                  | Énoncé, choix, bonne réponse, `feedback_correct`, feedback des distracteurs, niveau/difficulté G&L — **le slot de feedback de la bonne réponse vide n'est jamais signalé**                                                                                              |
+| `qcm_quality`                     | Choix en double, feedback qui recopie l'énoncé, biais de longueur (`lib/pedagoContentAudit.js`)                                                                                                                                                                         |
+| `gl_case_levels_not_6e`           | Question G&L ou case dont le niveau n'est pas 6ᵉ / cycle 3 / `college` / `base`                                                                                                                                                                                         |
+| `gl_marker_promises`              | Vérité des cases G&L : texte d'auteur, libellé de branche (mode tenir) ou carte question promettant un effet que le moteur n'applique pas, ou une perte « sinon / en cas d'échec » (`lib/glMarkerPromiseAudit.js`) ; la migration 337 le ramène à 0                     |
+| `gl_tenir_zones`                  | « Tenir à deux » : zones de chasse actives par plateau ≠ réglage `zones_par_plateau` (lu par `getGameplaySettings()`, `gl_settings` restant secrète), zone active sans question de lecture active, feuillet d'un autre plateau ; instantané illisible → contrôle neutre |
+| `gl_spells_legacy`                | Sorts du grimoire hérité encore `officiel` hors v2 (`tenir_v2 ≠ 1`) ; la migration 340 les passe en `propose`, le contrôle doit alors tomber à 0                                                                                                                        |
+| `gl_rewards_catalogue`            | Catalogue des badges G&L invalide (`assertValidCatalogue`, `lib/shared/rewardsCore.js`) ou clé orpheline dans `gl_player_rewards` (migration 339) ; moteur ou table non livrés → 0 constat                                                                              |
+| `species_duplicates`              | Même nom scientifique normalisé (auteur, rang, casse ignorés) ; nom/alias désignant deux fiches                                                                                                                                                                         |
+| `emoji_collisions`                | Emoji partagé par plusieurs fiches (comparaison **binaire**) ; nom de zone/repère qui répète son emoji                                                                                                                                                                  |
+| `species_without_presence`        | Fiche présente sur aucune carte                                                                                                                                                                                                                                         |
+| `zones_without_species`           | Zone non spéciale sans espèce                                                                                                                                                                                                                                           |
+| `orphan_links`                    | Liaisons logiques sans clé étrangère cassées (liens ressource ↔ question, cases, interactions G&L)                                                                                                                                                                      |
 
 > **Constat sur `gl_qcm_question_glossary`** : contrairement à l'hypothèse de départ, cette
 > table **n'existe plus** — la migration 186 l'a reprise dans `gl_resource_question_links` puis
@@ -448,7 +497,10 @@ Trois voies d'écriture, de la plus sûre à la plus brute :
 - Refus permanents : `/api/gl/*`, `/api/auth/login`, `/api/auth/logout`, tout chemin hors
   `/api/`. Routes d'authentification sensibles (prise de contrôle, enrôlement / vérification
   TOTP, réinitialisation de mot de passe, Google, LTI, accès aux plans) refusées sauf
-  `mcp.api_bridge_sensitive_auth=true`.
+  `mcp.api_bridge_sensitive_auth=true`. Seule exception à `/api/gl/*` : le **pont G&L** des
+  outils de domaine `gl_*` (`lib/mcp/glBridge.js`, option interne `gl` de `bridgeRequest`,
+  chemin borné à `/api/gl/…`, jeton de staff G&L signé pour la personne connectée) — jamais
+  `foretmap_api`.
 - Sortie : `{ status, json | text, location?, request_id }`, en-têtes réduits à une liste
   blanche (`Set-Cookie` jamais renvoyé) ; nettoyage « secrets » si le bypass est actif, sinon
   complet (aucun élève nommé).
@@ -750,19 +802,19 @@ Collecte : `lib/mcp/health/collect.js` (chaque section bornée et indépendante 
 échec devient `{ ok: false, error }` sans faire échouer le rapport). Règles :
 `lib/mcp/health/rules.js` (fonctions pures). Stockage : `lib/mcp/health/store.js`.
 
-| Section    | Contenu                                                                                                                                                     |
-| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `process`  | version, Node, `NODE_ENV`, uptime, mémoire (RSS, tas)                                                                                                       |
-| `database` | ping et latence                                                                                                                                             |
-| `schema`   | version du schéma, dernière migration, migrations en attente                                                                                                |
-| `tables`   | 12 plus grosses tables (taille, lignes approximatives — métadonnées `information_schema`, aucune ligne lue), total                                          |
-| `http`     | 5xx et 429 sur 24 h et 7 j (tranches horaires en mémoire, `lib/logMetrics.js`) ; `coveredHours` = fenêtre réellement couverte depuis le dernier redémarrage |
-| `restarts` | journal de cycle de vie sur 24 h (crash, échecs de démarrage, processus tués, verdict)                                                                      |
-| `cron`     | état des tâches planifiées (§ 11.4)                                                                                                                         |
-| `disk`     | espace total / libre du système de fichiers, taille d'`uploads/` et de `logs/`                                                                              |
-| `tls`      | jours restants avant expiration du certificat de chaque hôte (`tls.connect`, 5 s, erreur gérée)                                                             |
-| `mcp`      | connexions MCP actives (familles de jetons valides), comptes, jetons d'accès utilisés sur 24 h                                                              |
-| `audit`    | résumé de `foretmap_audit_all` (total, 5 contrôles les plus fournis)                                                                                        |
+| Section    | Contenu                                                                                                                                                                 |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `process`  | version, Node, `NODE_ENV`, uptime, mémoire (RSS, tas)                                                                                                                   |
+| `database` | ping et latence                                                                                                                                                         |
+| `schema`   | version du schéma, dernière migration, migrations en attente                                                                                                            |
+| `tables`   | 12 plus grosses tables (taille, lignes approximatives — métadonnées `information_schema`, aucune ligne lue), total                                                      |
+| `http`     | 5xx et 429 sur 24 h et 7 j (tranches horaires en mémoire, `lib/logMetrics.js`) ; `coveredHours` = fenêtre réellement couverte depuis le dernier redémarrage             |
+| `restarts` | journal de cycle de vie sur 24 h (crash, échecs de démarrage, processus tués, verdict)                                                                                  |
+| `cron`     | état des tâches planifiées (§ 11.4)                                                                                                                                     |
+| `disk`     | espace total / libre du système de fichiers, taille d'`uploads/` et de `logs/`                                                                                          |
+| `tls`      | jours restants avant expiration du certificat de chaque hôte (`tls.connect`, 5 s, erreur gérée)                                                                         |
+| `mcp`      | connexions MCP actives (familles de jetons valides), comptes, jetons d'accès utilisés sur 24 h                                                                          |
+| `audit`    | résumé de `foretmap_audit_all` (total, 5 contrôles les plus fournis, `byCheck` pour `gl_marker_promises`, `gl_tenir_zones`, `gl_spells_legacy`, `gl_rewards_catalogue`) |
 
 Hôtes TLS : `MCP_HEALTH_TLS_HOSTS` (liste), sinon l'hôte de `MCP_PUBLIC_BASE_URL` et celui de
 `GL_PROD_BASE_URL` (à défaut, le préfixe `gl.` du registre `lib/products.js` sur le même domaine).
@@ -1002,7 +1054,7 @@ Hors réglages : `MCP_ENABLED` (interrupteur général, **désactivé** par déf
 | `mcp.api_bridge_enabled`          | `true`            | `MCP_API_BRIDGE_ENABLED`                   | `foretmap_api` et écritures des outils de domaine.                                                                                                                     |
 | `mcp.api_bridge_methods`          | toutes            | `MCP_API_BRIDGE_METHODS`                   | Méthodes HTTP admises par le pont (`GET,POST,PUT,PATCH,DELETE`).                                                                                                       |
 | `mcp.api_bridge_sensitive_auth`   | `false`           | `MCP_API_BRIDGE_SENSITIVE_AUTH`            | Routes d'authentification sensibles par le pont (prise de contrôle, TOTP, LTI, accès aux plans…) ; jetons et secrets restent masqués en sortie.                        |
-| `mcp.domains_disabled`            | vide              | `MCP_DOMAINS_DISABLED`                     | Domaines d'outils retirés (`tasks`, `students`, `maps`, `ops`…).                                                                                                       |
+| `mcp.domains_disabled`            | vide              | `MCP_DOMAINS_DISABLED`                     | Domaines d'outils retirés (`tasks`, `students`, `maps`, `ops`, `gl`…).                                                                                                 |
 | `mcp.sql_select_enabled`          | `true`            | `MCP_SQL_ENABLED`                          | `foretmap_sql_select`, `foretmap_describe_schema`, `foretmap_export`.                                                                                                  |
 | `mcp.sql_select_pool`             | `auto`            | `MCP_SQL_SELECT_POOL`                      | `auto` : compte `DB_MCP_USER` s'il existe, sinon pool principal en transaction READ ONLY ; `dedicated_only` : compte dédié exigé.                                      |
 | `mcp.sql_write_enabled`           | `true`            | `MCP_SQL_WRITE_ENABLED`                    | `foretmap_sql_execute` (DML).                                                                                                                                          |
@@ -1031,6 +1083,25 @@ Hors réglages : `MCP_ENABLED` (interrupteur général, **désactivé** par déf
    OAuth (`mcp_client_id`).
 3. **OAuth + TOTP + `mcp.use`** restent la porte d'entrée ; `MCP_ENABLED` l'interrupteur
    général.
+
+### Scripts d'exploitation (`foretmap_ops` : `scripts`, `script_dry_run`, `run_script`)
+
+Le connecteur peut lancer, sur le serveur, les scripts de `scripts/` d'une **liste blanche**
+(`SCRIPT_CATALOG`, `lib/mcp/domains/opsScripts.js`). Chaque entrée déclare ses options (booléen,
+valeur à motif ou liste fermée) et son mode d'écriture : `flag` (simulation par défaut,
+`--apply` en application), `inverse` (`--dry-run` ajouté en simulation), `none` (lecture seule)
+ou `dry_only` (simulation seulement). Aucune option libre, aucun chemin, aucun shell : le script
+tourne avec le Node de l'application (`execFile`), depuis la racine du dépôt, avec un délai
+maximal, **un seul à la fois**. La sortie revient nettoyée (`maskSecrets`) et tronquée à la fin
+(le bilan). `script_dry_run` est une lecture ; `run_script` est une écriture (portée
+`foretmap.write`, confirmation selon `mcp.confirm_mode`). Les deux sont journalisés
+(`mcp_ops_script_dry_run`, `mcp_ops_run_script`). Ajouter un script = une entrée relue dans le
+catalogue, avec ses tests (`tests/mcp-ops-scripts.test.js`).
+
+Catalogue initial : `rewards_backfill`, `gl_rewards_backfill`, `task_taxonomy_backfill`
+(simulation), `db_migration_status`, `audit_pedago`, `report_marker_density`,
+`reconcile_orphan_uploads`, `backfill_gbif_keys`, `gl_photo_credits_backfill`,
+`suggest_learning_links`.
 
 ### Qui peut faire quoi
 

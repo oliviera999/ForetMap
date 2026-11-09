@@ -1,37 +1,17 @@
+import { isEffectMarker } from './glMarkerEventConfig.js';
 import {
-  resolveMarkerEventConfig,
-  usesPeopleSpecificEffects,
-  isEffectMarker,
-} from './glMarkerEventConfig.js';
+  peopleKeyOf,
+  resolveMarkerBranchCore,
+  resolveTenirCaseEffet,
+  formatTenirCaseEffet,
+} from '../../shared/glTenirCaseEffetCore.js';
 
-function resolveTeamPeopleKey(teamType) {
-  const t = String(teamType || '')
-    .trim()
-    .toLowerCase();
-  if (t === 'gnome') return 'gnome';
-  if (t === 'unicorn' || t === 'licorne') return 'unicorn';
-  return null;
+export function resolveTeamPeopleKey(teamType) {
+  return peopleKeyOf(teamType);
 }
 
 export function resolveMarkerEffects(marker, teamType) {
-  const cfg = resolveMarkerEventConfig(marker);
-  const effects = cfg?.effects || null;
-  if (!effects) return null;
-
-  const peopleKey = resolveTeamPeopleKey(teamType);
-  const usePeople = usesPeopleSpecificEffects(marker) && peopleKey;
-
-  if (usePeople && effects[peopleKey]) {
-    return { branch: peopleKey, ...effects[peopleKey] };
-  }
-  if (effects.neutral) {
-    return { branch: 'neutral', ...effects.neutral };
-  }
-  if (peopleKey && effects[peopleKey]) {
-    return { branch: peopleKey, ...effects[peopleKey] };
-  }
-  const firstKey = Object.keys(effects)[0];
-  return firstKey ? { branch: firstKey, ...effects[firstKey] } : null;
+  return resolveMarkerBranchCore(marker, teamType);
 }
 
 export function formatEffectDeltaSummary(effect) {
@@ -56,7 +36,17 @@ export function formatEffectDeltaSummary(effect) {
   return parts.join(', ');
 }
 
-export function formatMarkerEffectSummary(marker, teamType) {
+/**
+ * Résumé de l'effet d'une case. En mode « Tenir à deux » (`options.tenir`), le texte est
+ * calculé depuis l'effet réellement appliqué (noyau partagé) et jamais lu dans
+ * `effet_mecanique` ; hors mode tenir, rien ne change.
+ */
+export function formatMarkerEffectSummary(marker, teamType, options = {}) {
+  if (options?.tenir) {
+    return formatTenirCaseEffet(resolveTenirCaseEffet(marker, teamType, options), {
+      peripetie: options.peripetie === true,
+    });
+  }
   const lines = [];
   const mecanique = String(marker?.effet_mecanique || '').trim();
   if (mecanique) lines.push(mecanique);
