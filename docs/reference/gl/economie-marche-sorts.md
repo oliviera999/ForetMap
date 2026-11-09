@@ -338,7 +338,8 @@ ce choix ait un sens, la case ne doit pas déjà avoir joué :
   part donc de la case jouée, comme avant). Répondre à la question de la case, c'est aussi garder
   son jet. Le MJ peut appliquer la case depuis « Jouer le tour » (bloc « Jets en attente »).
 - Une équipe qui ne peut pas payer Relance, ou une partie sans sortilèges, ne voit rien changer :
-  la case s'applique tout de suite.
+  la case s'applique tout de suite. Un jet qui atteint le **camp** s'applique aussi aussitôt : ce
+  n'est jamais un jet nul, et la première arrivée reste sans ambiguïté.
 
 > ⚠️ **Point d'attention** — Tant qu'une case attend, le plateau ne la présente pas (ni question,
 > ni effet). Si une équipe semble « bloquée » sur une case sans rien voir, c'est qu'elle n'a pas

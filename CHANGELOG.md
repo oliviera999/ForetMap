@@ -16,7 +16,7 @@ serveur, les deux déplacements s'additionnaient. Il sert désormais à effacer 
 
 - **Arrivée en suspens** (`lib/glArriveeSuspendue.js`) : après un jet, si l'équipe peut encore
   lancer Relance (module des sorts, sort ouvert au chapitre, limite du tour, bourses + réserve
-  suffisantes ; hors avance libre et Cordée), la mascotte avance et la case d'arrivée s'affiche
+  suffisantes ; hors avance libre, Cordée et jet qui atteint le camp), la mascotte avance et la case d'arrivée s'affiche
   **sans s'appliquer** (`arrival.enSuspens`, `tenir.round.arriveesEnSuspens`, événement
   `arrivee_suspendue`, ligne `gl_game_tenir_effets` de kind `arrivee_suspendue`).
 - **Relance** ne se lance qu'à ce moment-là (sinon 409 `SPELL_FENETRE`) : la mascotte revient sur
