@@ -9,7 +9,12 @@ const { app } = require('../server');
 const db = require('../database');
 const { initSchema, execute, queryOne, queryAll } = db;
 const { runImports } = require('../scripts/gl-import-tenir');
-const { createTenirGame, setPlayerBourses } = require('./helpers/glTenirFixtures');
+const {
+  createTenirGame,
+  setPlayerBourses,
+  readPlayerBourses,
+  ouvrirTourEnJeu,
+} = require('./helpers/glTenirFixtures');
 const { MOTIF_CARAVANE } = require('../lib/glSeuil');
 
 const EXEMPLE = path.join(__dirname, '..', 'data', 'gl', 'tenir', 'exemple');
@@ -108,6 +113,51 @@ test('clôture forcée : la caravane porte les retardataires, parures rendues, a
     ctx.game.id,
   ]);
   assert.equal(proj.projection_token_hash, null);
+});
+
+test('clôture : une case restée en suspens (Relance) s’applique avant la caravane', async () => {
+  const ctx = await createTenirGame({ stamp: Date.now() + 2 });
+  await request(app)
+    .get(`/api/gl/games/${ctx.game.id}/tenir`)
+    .set(auth(ctx.adminToken))
+    .expect(200);
+  await ouvrirTourEnJeu(request, app, ctx);
+  const team = ctx.teams[0];
+  const members = ctx.players.filter((p) => Number(p.teamId) === Number(team.id));
+  for (const m of members) await setPlayerBourses(m.id, 4, 4);
+  const jet = await request(app)
+    .post(`/api/gl/games/${ctx.game.id}/tenir/lancer`)
+    .set(auth(ctx.adminToken))
+    .send({ mode: 'physique', teamId: team.id, faces: [1, 1] });
+  assert.equal(jet.status, 201, JSON.stringify(jet.body));
+  assert.equal(jet.body.arrival?.enSuspens, true, JSON.stringify(jet.body.arrival));
+  assert.equal(jet.body.arrival?.label, 'Trame 1');
+  for (const m of members) {
+    assert.deepEqual(
+      await readPlayerBourses(m.id),
+      { health: 4, power: 4 },
+      'pas encore appliquée',
+    );
+  }
+
+  const end = await request(app).post(`/api/gl/games/${ctx.game.id}/end`).set(auth(ctx.adminToken));
+  assert.equal(end.status, 200, JSON.stringify(end.body));
+
+  const ligne = await queryOne(
+    "SELECT payload_json FROM gl_game_tenir_effets WHERE game_id = ? AND team_id = ? AND kind = 'arrivee_suspendue' ORDER BY id DESC LIMIT 1",
+    [ctx.game.id, team.id],
+  );
+  assert.equal(JSON.parse(ligne.payload_json).issue, 'appliquee');
+  for (const m of members) {
+    assert.deepEqual(
+      await readPlayerBourses(m.id),
+      { health: 5, power: 4 },
+      'la Trame (+1 cœur) est créditée avant le déplacement au camp',
+    );
+  }
+  const camp = ctx.markers[ctx.markers.length - 1];
+  const pos = await queryOne('SELECT position_marker_id FROM gl_teams WHERE id = ?', [team.id]);
+  assert.equal(Number(pos.position_marker_id), Number(camp.id));
 });
 
 test('clôture avec les 4 équipes au camp : aucune avance libre', async () => {

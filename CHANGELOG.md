@@ -9,6 +9,12 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — G&L : la clôture applique la case restée en suspens
+
+- Clore le chapitre alors qu'une équipe n'a pas encore gardé son jet (Relance encore possible)
+  déplaçait la mascotte au camp sans appliquer la case. L'effet (cœurs, gemmes) n'était jamais
+  écrit. La clôture applique d'abord ces arrivées, puis la caravane porte les retardataires.
+
 ### Corrigé — G&L chasse : un jeton de question ne s'essaie qu'une fois
 
 - `POST /chasse/repondre` et `POST /chasse/pages/:zoneKey/tenir` consommaient le jeton de

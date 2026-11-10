@@ -325,8 +325,9 @@ le jet, la case et son effet, avec deux boutons, **« Garder ce jet »** et **«
 Relance annule le jet : la mascotte revient sur sa case de départ, la case ne s'applique jamais,
 l'équipe rejette les dés (et le second jet s'applique aussitôt). Relance ne se lance qu'à ce
 moment-là : ni avant le jet, ni une fois la case appliquée. La case attendue s'applique d'office
-dès que la partie avance — une autre équipe jette, vous passez à l'équipe suivante ou changez de
-phase, un autre sort automatique est lancé — ou quand l'équipe répond à la question de la case.
+dès que la partie avance — une autre équipe jette, vous passez à l'équipe suivante, changez de
+phase ou clôturez le chapitre, un autre sort automatique est lancé — ou quand l'équipe répond à
+la question de la case.
 Dans **« Jouer le tour »**, le bloc « Jets en attente » liste ces équipes avec un bouton
 **« Appliquer la case »**. Une équipe qui ne peut pas payer Relance ne voit rien changer : sa case
 s'applique tout de suite, comme avant.
