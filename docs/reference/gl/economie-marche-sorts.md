@@ -334,8 +334,9 @@ ce choix ait un sens, la case ne doit pas déjà avoir joué :
   second jet s'applique aussitôt (Relance est déjà pris pour le tour).
 - Relance ne se lance **qu'à ce moment-là** : ni avant le jet, ni une fois la case appliquée.
 - La case attendue s'applique d'office dès que la partie avance : une autre équipe jette, le MJ
-  passe à l'équipe suivante ou change de phase, un autre sort automatique est lancé (Progression
-  part donc de la case jouée, comme avant). Répondre à la question de la case, c'est aussi garder
+  passe à l'équipe suivante, change de phase ou clôt le chapitre, un autre sort automatique est
+  lancé (Progression part donc de la case jouée, comme avant). Répondre à la question de la case,
+  c'est aussi garder
   son jet. Le MJ peut appliquer la case depuis « Jouer le tour » (bloc « Jets en attente »).
 - Une équipe qui ne peut pas payer Relance, ou une partie sans sortilèges, ne voit rien changer :
   la case s'applique tout de suite. Un jet qui atteint le **camp** s'applique aussi aussitôt : ce
