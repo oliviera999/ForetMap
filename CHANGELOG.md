@@ -9,6 +9,18 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — Plan e-nov : alignement sur le dossier de labellisation N3 (relecture du 10/11)
+
+- Migration `342_enov_relecture_dossier.sql` : verse par PR les corrections appliquées en
+  production le 10/11 par le connecteur Claude (plans de contenu `15940de2` et `8a5406db`,
+  mises à jour de lieux par l'API). Textes e-nov : gymnase en solaire thermique, gymnase et
+  plateau à première phrase courte (la légende du plan imprimé coupait le premier paragraphe),
+  local de secourisme sans le Bureau des Sports (nom, fiche publique, alias), fablab en T13,
+  Ecofab à une douzaine d'élèves, restauration en cours de réaménagement, vaccination des chats.
+  Types d'espace et sous-catégories : poulailler, potager EPS et poissons gloutons en espace
+  extérieur, secourisme en vie scolaire et bien-être. Idempotente (gardée par l'ancien état) :
+  sans effet sur la production, déjà corrigée.
+
 ### Corrigé — G&L chasse : un jeton de question ne s'essaie qu'une fois
 
 - `POST /chasse/repondre` et `POST /chasse/pages/:zoneKey/tenir` consommaient le jeton de
