@@ -1,192 +1,65 @@
-import { useState, useEffect, useCallback, useRef, useMemo, Suspense } from 'react';
-import { lazyScreen } from './shared/lazyScreen.jsx';
-import {
-  api,
-  getAuthClaims,
-  getAuthToken,
-  getStoredSession,
-  pickNewestAuthToken,
-  saveStoredSession,
-  clearStoredSession,
-  getAuthUserId,
-} from './services/api';
-import { subscribeFresqueBoard } from './services/fresqueRealtime.js';
-import {
-  clearLocalDataForAccount,
-  clearOfflinePhotosForAccount,
-  countPendingLocalActions,
-  notifyServerLogout,
-  pendingLossConfirmationMessage,
-  purgeCachedAuthenticatedApi,
-  purgeCachedUserMedia,
-} from './utils/localDataCleanup';
-import { clearOutboxMirror } from './services/offlineOutboxMirror.js';
-import { prepareFieldTrip } from './services/fieldTripPrep.js';
-import { useOfflineOutbox } from './hooks/useOfflineOutbox.js';
-import { OfflineCenterDialog } from './components/offline/OfflineCenterDialog.jsx';
-import { useAuthSession } from './hooks/useAuthSession';
-import { useConsumableRequest } from './hooks/useConsumableRequest';
-import { clearPendingDeepLink, consumeDeepLinkFromLocation } from './utils/deepLinkTarget.js';
-import { isNotificationActionable, notificationActionLabel } from './utils/notificationTargets.js';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { getAuthClaims, getStoredSession } from './services/api';
 import { useForetmapRealtime } from './hooks/useForetmapRealtime';
-import { useOauthRedirectSession } from './hooks/useOauthRedirectSession';
 import { useNotificationCenter } from './hooks/useNotificationCenter';
 import { useForumUnread } from './hooks/useForumUnread';
 import { usePwaInstall } from './hooks/usePwaInstall';
-import { usePlantCatalogPreview } from './hooks/usePlantCatalogPreview';
 import { useViewportLayout } from './hooks/useViewportLayout';
-import { resolveTooltipKey } from './utils/helpResolve';
-import {
-  IOS_INSTALL_HINT_DISMISSED_KEY,
-  GUEST_VISIT_MASCOT_CONFIRMED_KEY,
-  KNOWN_TAB_VALUES,
-} from './constants/app-runtime';
-import { MASCOT_PACK_UNSAVED_LEAVE_MSG } from './constants/mascotPackEditor.js';
-import { TimedToast as Toast } from './shared/components/TimedToast.jsx';
-import { AppStatusSticky } from './shared/components/AppStatusSticky.jsx';
-import { oauthFeedbackDurationMs } from './utils/appShellHelpers';
-import { readLastViewedMapId, rememberLastViewedMapId } from './utils/lastViewedMap.js';
-import { PinModal } from './components/auth-views';
-const StudentStatsLazy = lazyScreen(() =>
-  import('./components/stats-views').then((m) => ({ default: m.StudentStats })),
-);
-const StudentProfileEditorLazy = lazyScreen(() =>
-  import('./components/stats-views').then((m) => ({ default: m.StudentProfileEditor })),
-);
-import { TabSuspense } from './components/TabSuspense.jsx';
-import { GlossaryPopover, readGlossaryTermMessage } from './components/pedago/GlossaryPopover.jsx';
-
-const PlantManagerLazy = lazyScreen(() =>
-  import('./components/foretmap-views').then((m) => ({ default: m.PlantManager })),
-);
-const PlantViewerLazy = lazyScreen(() =>
-  import('./components/foretmap-views').then((m) => ({ default: m.PlantViewer })),
-);
-const ObservationNotebookLazy = lazyScreen(() =>
-  import('./components/journal/UserJournalView.jsx').then((m) => ({ default: m.UserJournalView })),
-);
-// Modale a la demande : lazy pour que foretmap-views (PlantManager/Viewer/Notebook ~52 Ko) quitte le chunk main.
-const PlantCatalogPreviewModalLazy = lazyScreen(() =>
-  import('./components/foretmap-views').then((m) => ({ default: m.PlantCatalogPreviewModal })),
-);
-const TutorialsViewLazy = lazyScreen(() =>
-  import('./components/tutorials-views').then((m) => ({ default: m.TutorialsView })),
-);
-const TeacherStatsLazy = lazyScreen(() =>
-  import('./components/stats-views').then((m) => ({ default: m.TeacherStats })),
-);
-const ProfilesAdminViewLazy = lazyScreen(() =>
-  import('./components/profiles-views').then((m) => ({ default: m.ProfilesAdminView })),
-);
-const AuditLogLazy = lazyScreen(() =>
-  import('./components/audit-views').then((m) => ({ default: m.AuditLog })),
-);
-const SettingsAdminViewLazy = lazyScreen(() =>
-  import('./components/settings-admin-views').then((m) => ({ default: m.SettingsAdminView })),
-);
-const MediaLibraryViewLazy = lazyScreen(() =>
-  import('./components/media-library-views').then((m) => ({ default: m.MediaLibraryView })),
-);
-const ForumViewLazy = lazyScreen(() =>
-  import('./components/forum-views').then((m) => ({ default: m.ForumView })),
-);
-const VisitMascotPackManagerLazy = lazyScreen(
-  () => import('./components/VisitMascotPackManager.jsx'),
-);
-
-/** Style du loader de l'éditeur packs mascotte (constante : évite un objet recréé à chaque rendu). */
-const MASCOT_PACK_LOADER_STYLE = { padding: '24px 16px', minHeight: 120 };
 import { getRoleTerms } from './utils/n3-terminology';
-import { visibleMapsForScope } from './utils/appMapScope';
-import {
-  canManagePedagoContent,
-  isClassTeacherRole,
-  isForumExcludedRole,
-  isVisitorLikeRole,
-  resolveParticipationFlag,
-  resolvePedagoModuleAccess,
-  shouldUseTeacherChrome,
-} from './utils/appAccess';
-import { DEFAULT_USER_LABEL, formatFullName, resolveSessionDisplayName } from './utils/appIdentity';
-import { getContentText } from './utils/content';
-import {
-  safeLocalStorageGetItem,
-  safeLocalStorageSetItem,
-} from './shared/platform/browserStorage.js';
-import { saveVisitMascotPreference } from './services/visitMascotPreference.js';
-import { saveDiscoveryTourSeen } from './services/discoveryTourSeen.js';
-import { mergeDiscoveryTourSeenMaps } from './shared/tour/mergeDiscoveryTourSeenMaps.js';
-import { useTabBrowserHistory } from './shared/platform/useTabBrowserHistory';
-import { abandonAllOverlays, pushOverlayClose } from './shared/platform/overlayHistory';
-import { AutoProfilePromotionModal } from './components/AutoProfilePromotionModal.jsx';
+import { isLtiArrivalLocation, resolveAppShellTexts } from './utils/appShellTexts';
+import { normalizePedagoLevel } from './utils/biodivPedagoLevel.js';
 import { AppFooter } from './components/app/AppFooter.jsx';
 import { AppHeader } from './components/app/AppHeader.jsx';
-import { AppLoader, FULL_PAGE_LOADER_STYLE } from './components/app/AppLoader.jsx';
-import { AppUserDialog } from './components/app/AppUserDialog.jsx';
-import { RewardsCelebrationHost } from './components/rewards/RewardsCelebrationHost.jsx';
+import { AppProviders } from './components/app/AppProviders.jsx';
+import { AppPedagoOverlays } from './components/app/AppPedagoOverlays.jsx';
+import { AppNoticeBanners } from './components/app/AppNoticeBanners.jsx';
+import { AppGlobalModals } from './components/app/AppGlobalModals.jsx';
+import { TeacherMainContent } from './components/app/TeacherMainContent.jsx';
+import { StudentMainContent } from './components/app/StudentMainContent.jsx';
 import { UnauthenticatedShell } from './components/app/UnauthenticatedShell.jsx';
-import { LtiArrivee } from './components/lti/LtiArrivee.jsx';
-import { MapTasksArea } from './components/app/MapTasksArea.jsx';
-import { NoticeBanner } from './components/app/NoticeBanner.jsx';
-import { PedagoTabs } from './components/app/PedagoTabs.jsx';
-import { TeacherTopTabs } from './components/app/TeacherTopTabs.jsx';
-import { StudentBottomNav } from './components/app/StudentBottomNav.jsx';
 import { RolePreviewBanners } from './components/app/RolePreviewBanners.jsx';
-import { PedagoSessionBanner } from './components/pedago/PedagoSessionBanner.jsx';
-import { PedagoSessionDoneDialog } from './components/pedago/PedagoSessionDoneDialog.jsx';
-import { usePedagoSession } from './hooks/usePedagoSession.js';
-import { PedagoSessionProvider } from './contexts/PedagoSessionContext.jsx';
+import { LtiArrivee } from './components/lti/LtiArrivee.jsx';
 import { PublicSettingsProvider } from './contexts/PublicSettingsContext.jsx';
-import { BiodivPedagoProvider } from './contexts/BiodivPedagoContext.jsx';
-import { useBrandTheme } from './shared/brand/useBrandTheme.js';
-import {
-  normalizeExternalAssetsMode,
-  setExternalAssetsMode,
-} from './shared/privacy/externalAssets.js';
-import { reportUsage } from './shared/usage/reportUsage.js';
-import { withAppBase } from './shared/appBase.js';
-import { FORETMAP_BRAND_DEFAULTS } from './constants/brand.js';
-import { SessionProvider } from './contexts/SessionContext.jsx';
-import { AppDialogsProvider, useAppDialogs } from './shared/components/AppDialogsProvider.jsx';
-import { DataProvider } from './contexts/DataContext.jsx';
-import { TourProvider } from './contexts/TourContext.jsx';
-import { readStoredTab } from './utils/appShellHelpers';
-import { normalizePedagoLevel } from './utils/biodivPedagoLevel.js';
-import { sortLearnerNiveaux } from './utils/pedagoScales.js';
 import { useAppBootstrap } from './hooks/useAppBootstrap';
-import { useAppDataSync } from './hooks/useAppDataSync';
+import { useShellMapData } from './hooks/useShellMapData';
 import { useAppDataPolling } from './hooks/useAppDataPolling';
-import { useTabNavigationGuards } from './hooks/useTabNavigationGuards';
 import { useAppStoragePersistence } from './hooks/useAppStoragePersistence';
 import { useAuthTokenRenewal } from './hooks/useAuthTokenRenewal';
-import { useServiceWorkerUpdate } from './hooks/useServiceWorkerUpdate';
-import { useDeviceOnline } from './shared/hooks/useDeviceOnline.js';
-import { useNetworkMode } from './shared/hooks/useNetworkMode.js';
-import { offlineBannerText } from './utils/lastDataSync.js';
-import { useSessionWindowSync } from './hooks/useSessionWindowSync';
 import { useToastNotificationBridge } from './hooks/useToastNotificationBridge';
-import { useRoleViewModeReset } from './hooks/useRoleViewModeReset';
-import { useAuthMeHydration } from './hooks/useAuthMeHydration';
 import { useDefaultActiveMapFromSettings } from './hooks/useDefaultActiveMapFromSettings';
 import { useActiveMapVisibilityReconciler } from './hooks/useActiveMapVisibilityReconciler';
 import { useStudentSessionRef } from './hooks/useStudentSessionRef';
 import { usePasswordChangeRequired } from './hooks/usePasswordChangeRequired';
+import { useShellDialogs } from './hooks/useShellDialogs';
+import { useGuestVisit } from './hooks/useGuestVisit';
+import { useAppTabNavigation } from './hooks/useAppTabNavigation';
+import { useForetBrandTheme } from './hooks/useForetBrandTheme';
+import { useAppAccess } from './hooks/useAppAccess';
+import { useAppSession } from './hooks/useAppSession';
+import { useOfflineShell } from './hooks/useOfflineShell';
+import { useActiveMapTasks } from './hooks/useActiveMapTasks';
+import { useAppPedago } from './hooks/useAppPedago';
+import { useAppTabGuards } from './hooks/useAppTabGuards';
+import { useAppTargetNavigation } from './hooks/useAppTargetNavigation';
+import { useShellContextValues } from './hooks/useShellContextValues';
 
-/**
- * Pont vers les dialogues applicatifs pour App lui-même : App monte
- * `AppDialogsProvider` dans son propre rendu, le hook `useAppDialogs` doit donc
- * être lu par un enfant du provider et exposé à App via une ref (audit
- * homogénéité UI, D-1).
+/*
+ * ── APP ─────────────────────────────────────────────────────────────────────────
+ * Shell d'orchestration de ForêtMap : il détient les états partagés, appelle les hooks
+ * par responsabilité et assemble l'arbre. Découpage (lot 6, cf. post-mortem
+ * `docs/AUDIT_REFACTORING_APP_2026-08.md`) :
+ * - droits dérivés de la session ............ `hooks/useAppAccess`
+ * - cycle de vie de la session .............. `hooks/useAppSession`
+ * - onglet courant, navigation, garde-fous .. `hooks/useAppTabNavigation`, `useAppTabGuards`
+ * - connectivité / hors ligne ............... `hooks/useOfflineShell`
+ * - navigation pédagogique, séance .......... `hooks/useAppPedago`
+ * - cibles de notification, liens directs ... `hooks/useAppTargetNavigation`
+ * - fournisseurs de contexte ................ `components/app/AppProviders`
+ * - surcouches, bandeaux, modales globales .. `components/app/App{PedagoOverlays,NoticeBanners,GlobalModals}`
+ * - table de rendu par onglet ............... `components/app/{Teacher,Student}MainContent`
+ *
+ * L'ordre des hooks à effets est celui d'avant le découpage : ne pas le permuter.
  */
-function AppDialogsBridge({ dialogsRef }) {
-  const dialogs = useAppDialogs();
-  useEffect(() => {
-    dialogsRef.current = dialogs;
-  }, [dialogs, dialogsRef]);
-  return null;
-}
-
-// ── APP ───────────────────────────────────────────────────────────────────────
 function App() {
   const initialSession = useMemo(() => getStoredSession(), []);
   const [student, setStudent] = useState(() => initialSession?.student || null);
@@ -194,42 +67,18 @@ function App() {
   /** Pendant les modales de la vue Tâches : pas de rafraîchissement données (évite la perte du clavier virtuel mobile). */
   const pauseDataRefreshForTaskOverlaysRef = useRef(false);
   const [sessionUser, setSessionUser] = useState(() => initialSession?.user || null);
-  const [showPin, setShowPin] = useState(false);
-  const [showPublicVisit, setShowPublicVisit] = useState(false);
-  const [guestVisitNeedsMascotChoice, setGuestVisitNeedsMascotChoice] = useState(false);
-  /** Progression des visites guidées liée au compte (null = pas encore hydratée). */
-  const [discoveryTourSeen, setDiscoveryTourSeen] = useState(null);
-  const [discoveryTourSeenReady, setDiscoveryTourSeenReady] = useState(false);
-  /** Niveaux pédagogiques des groupes dont l'utilisateur est membre (`/api/auth/me`). */
-  const [biodivGroupPedagoLevels, setBiodivGroupPedagoLevels] = useState([]);
-  /** Niveaux du programme des classes de l'utilisateur (cycle 3, cycle 4…), même source. */
-  const [biodivGroupCurriculumNiveaux, setBiodivGroupCurriculumNiveaux] = useState([]);
-  const [showStats, setShowStats] = useState(false);
-  const [showProfile, setShowProfile] = useState(false);
+  const guestVisit = useGuestVisit();
+  const { showPublicVisit, guestVisitNeedsMascotChoice } = guestVisit;
+  const dialogs = useShellDialogs();
+  const { setShowPin, setShowStats, setShowProfile } = dialogs;
   /** Mot de passe provisoire ou compromis à changer : « Mon profil » s'ouvre à chaque signal. */
   const { passwordChangeRequired, markPasswordChangeRequired } = usePasswordChangeRequired({
     setShowProfile,
   });
-  const [tab, setTab] = useState(() => readStoredTab());
-  const isKnownForetTab = useCallback((id) => KNOWN_TAB_VALUES.has(id), []);
-  /** Retour navigateur / smartphone → onglet précédent (après fermeture des surcouches). */
-  const { navigateTab } = useTabBrowserHistory({
-    tab,
-    setTab,
-    isKnownTab: isKnownForetTab,
-  });
-  /**
-   * Compteur d'usage anonyme (lot 8) : une ouverture par session, puis l'onglet consulté.
-   * Aucun identifiant n'est envoyé — seulement le nom de l'événement et l'onglet.
-   */
-  const usageOpenedRef = useRef(false);
-  useEffect(() => {
-    if (!usageOpenedRef.current) {
-      usageOpenedRef.current = true;
-      reportUsage('foret', 'open', '', withAppBase);
-    }
-    reportUsage('foret', 'tab_open', String(tab || ''), withAppBase);
-  }, [tab]);
+  /** Dialogues applicatifs (confirm/prompt/notify) exposés par AppDialogsBridge. */
+  const appDialogsRef = useRef(null);
+  const tabNav = useAppTabNavigation({ appDialogsRef });
+  const { tab, setTab, navigateTab } = tabNav;
   /** Synchronise le filtre lieu de l’onglet tâches avec la zone/repère ouvert(e) sur la carte. */
   const [tasksLocationFocus, setTasksLocationFocus] = useState(null);
   const [toast, setToast] = useState(null);
@@ -240,271 +89,51 @@ function App() {
   const [profilePromotion, setProfilePromotion] = useState(null);
   const [sessionValidationError, setSessionValidationError] = useState(false);
   const [authClaims, setAuthClaims] = useState(() => getAuthClaims());
-  /** Dérivé d'authClaims (remplace l'ancien état jumeau et ses ~9 setIsTeacher). */
-  const isTeacher = useMemo(
-    () =>
-      Array.isArray(authClaims?.permissions) && authClaims.permissions.includes('teacher.access'),
-    [authClaims],
-  );
-  /**
-   * Compte enseignant **au sens de la session** — indépendamment de `teacher.access`.
-   *
-   * `isTeacher` répond « cette session peut-elle ouvrir l'interface n3boss ? », pas
-   * « y a-t-il quelqu'un de connecté ? ». Les deux ont longtemps coïncidé parce qu'un
-   * compte `user_type = 'teacher'` portait toujours la permission. Ce n'est plus vrai :
-   * un prof de classe dont un administrateur a décoché « Accès interface n3boss » dans
-   * Profils & utilisateurs ouvre une session valide sans cette permission. La porte
-   * d'entrée doit donc regarder la session, pas le droit d'administration.
-   */
-  const isTeacherAccount = useMemo(() => {
-    if (isTeacher) return true;
-    const fromSession = String(sessionUser?.userType || '').toLowerCase();
-    if (fromSession === 'teacher') return true;
-    return String(authClaims?.userType || '').toLowerCase() === 'teacher';
-  }, [authClaims?.userType, isTeacher, sessionUser?.userType]);
   const [roleViewMode, setRoleViewMode] = useState('native'); // native | student | teacher
   const { appVersion, publicSettings, publicSettingsReady } = useAppBootstrap();
-  /**
-   * Thème de marque de l'établissement (lot 7 du plan de convergence) : réglage
-   * `ui.foret.brand`, mécanique partagée avec G&L et le Plan Lyautey. Sans réglage, les
-   * valeurs par défaut reproduisent exactement le thème forêt historique.
-   */
-  const externalAssetsMode = normalizeExternalAssetsMode(
-    publicSettings?.privacy?.external_assets_mode,
-  );
-  // Posé pendant le rendu : les vues enfants résolvent leurs URL d'images dans ce même passage.
-  setExternalAssetsMode(externalAssetsMode);
-  const { brand: foretBrand, style: foretBrandStyle } = useBrandTheme(
-    publicSettings?.foret?.brand,
-    {
-      prefix: 'fm-brand',
-      defaults: FORETMAP_BRAND_DEFAULTS,
-      fontFallback: "'DM Sans', sans-serif",
-      externalAssetsMode,
-    },
-  );
+  const { brand: foretBrand, style: foretBrandStyle } = useForetBrandTheme(publicSettings);
   const { isTabVisible, shouldUseDesktopSplit } = useViewportLayout();
-  const {
-    deferredInstallPrompt,
-    showIosInstallHint,
-    isStandaloneMode,
-    handleInstallClick,
-    setShowIosInstallHint,
-  } = usePwaInstall({ onToast: setToast });
-  const mascotPackDirtyRef = useRef(false);
-  /** Dialogues applicatifs (confirm/prompt/notify) exposés par AppDialogsBridge. */
-  const appDialogsRef = useRef(null);
+  const pwa = usePwaInstall({ onToast: setToast });
   /** Incrémenté après succès modale PIN / login prof : déclenche un `fetchAll` sans s’accrocher à chaque changement de `authClaims`. */
   const [pinSuccessFetchAllTick, setPinSuccessFetchAllTick] = useState(0);
 
-  const effectiveRoleContext = useMemo(() => {
-    const roleSlug = String(authClaims?.roleSlug || '').toLowerCase();
-    const activePermsRaw = Array.isArray(authClaims?.permissions) ? authClaims.permissions : [];
-    let activePerms = activePermsRaw;
-    if (roleViewMode === 'teacher' && roleSlug === 'admin') {
-      activePerms = activePermsRaw.filter((perm) => !String(perm).startsWith('admin.'));
-    }
-    const canUseTeacherUi = activePerms.includes('teacher.access');
-    // Prof de classe : sans teacher.access (réalignement du 22/09/2026), chrome apprenant.
-    const effectiveIsTeacher = shouldUseTeacherChrome({
-      roleSlug,
-      hasTeacherAccess: canUseTeacherUi,
-      roleViewMode,
-    });
-    return {
-      roleSlug,
-      activePerms,
-      effectiveIsTeacher,
-    };
-  }, [authClaims, roleViewMode]);
-
-  const effectiveIsTeacher = effectiveRoleContext.effectiveIsTeacher;
-  const helpText = useCallback(
-    (path) => resolveTooltipKey(path, publicSettings, effectiveIsTeacher),
-    [effectiveIsTeacher, publicSettings],
-  );
-
-  const hasPermission = useCallback(
-    (perm) => {
-      return effectiveRoleContext.activePerms.includes(perm);
-    },
-    [effectiveRoleContext.activePerms],
-  );
-
-  // Plus de dimension d'élévation : les permissions « en rôle » sont exactement les permissions
-  // actives. Conservé comme alias de `hasPermission` pour ne pas toucher ses nombreux appelants.
-  const hasPermissionInRole = useCallback(
-    (perm) => effectiveRoleContext.activePerms.includes(perm),
-    [effectiveRoleContext.activePerms],
-  );
-
-  const canManageTutorials = useMemo(
-    () =>
-      canManagePedagoContent({
-        roleSlug: effectiveRoleContext.roleSlug,
-        nativePrivileged: authClaims?.nativePrivileged,
-        permission: 'tutorials.manage',
-        hasPermission: hasPermissionInRole,
-      }),
-    [effectiveRoleContext.roleSlug, hasPermissionInRole, authClaims?.nativePrivileged],
-  );
-
-  /* isTeacher est désormais dérivé d'authClaims : le `setIsTeacher` attendu par le hook OAuth
-     réaligne authClaims sur le jeton fraîchement stocké. Indispensable pour la branche élève,
-     qui appelait `setIsTeacher(false)` sans poser authClaims (jeton élève déjà en storage). */
-  const syncAuthClaimsFromStoredToken = useCallback(() => {
-    setAuthClaims(getAuthClaims());
-  }, []);
-  useOauthRedirectSession({
-    onToast: setToast,
-    onOauthFeedback: setOauthFeedback,
-    setSessionUser,
-    setAuthClaims,
-    setIsTeacher: syncAuthClaimsFromStoredToken,
-    setStudent,
-    onMfaChallenge: setOauthMfaChallenge,
+  // Droits et drapeaux d'interface (sans effet).
+  const access = useAppAccess({
+    authClaims,
+    roleViewMode,
+    sessionUser,
+    student,
+    publicSettings,
+    passwordChangeRequired,
   });
+  const { isTeacher, isTeacherAccount, effectiveIsTeacher, helpText, studentForUi } = access;
+  const { isClassTeacher, canAccessStudentMapTasks, canSwitchToStudentView } = access;
+  const { pedagoSessionsAvailable, rewardsModuleEnabled } = access;
 
-  // Called from anywhere when a 401-deleted is detected
-  // Handlers stables de la visite publique invitée : des arrows inline cassaient
-  // React.memo(VisitView) à chaque re-render d'App (mode le plus sensible, mobile).
-  const onGuestBackToAuth = useCallback(() => {
-    abandonAllOverlays();
-    setGuestVisitNeedsMascotChoice(false);
-    setShowPublicVisit(false);
-  }, []);
-  const onGuestMascotChoiceDone = useCallback(() => {
-    safeLocalStorageSetItem(GUEST_VISIT_MASCOT_CONFIRMED_KEY, '1');
-    setGuestVisitNeedsMascotChoice(false);
-  }, []);
-
-  /**
-   * Choix de mascotte d'un **compte connecté** : enregistré dans le compte (donc portable
-   * d'un appareil à l'autre), et non plus dans le stockage local du navigateur. La session
-   * en mémoire est mise à jour dans la foulée pour que « Mon profil » reste cohérent.
-   * L'affichage est déjà optimiste côté hook : un échec réseau ne bloque pas la visite.
-   */
-  const persistVisitMascotPreference = useCallback(async (mascotId) => {
-    const value = String(mascotId || '').trim();
-    const next = value || null;
-    setStudent((prev) => (prev ? { ...prev, visit_mascot_catalog_id: next } : prev));
-    setSessionUser((prev) => (prev ? { ...prev, visit_mascot_catalog_id: next } : prev));
-    try {
-      await saveVisitMascotPreference(value);
-    } catch (_) {
-      /* silencieux : la valeur serveur reprend la main au prochain chargement de session */
-    }
-  }, []);
-  const onPersistVisitMascotId = useMemo(
-    () => (sessionUser || student ? persistVisitMascotPreference : null),
-    [sessionUser, student, persistVisitMascotPreference],
-  );
-
-  /** Marque un parcours vu côté compte (merge serveur) ; le cache local est déjà à jour. */
-  const persistDiscoveryTourSeen = useCallback((tabKey) => {
-    if (!tabKey) return;
-    setDiscoveryTourSeen((prev) => mergeDiscoveryTourSeenMaps(prev, { [tabKey]: true }));
-    void saveDiscoveryTourSeen({ [tabKey]: true })
-      .then((serverSeen) => {
-        if (serverSeen && typeof serverSeen === 'object') {
-          setDiscoveryTourSeen((prev) => mergeDiscoveryTourSeenMaps(prev, serverSeen));
-        }
-      })
-      .catch(() => {
-        /* best-effort : le prochain /me réalignera */
-      });
-  }, []);
-
-  // D3 — cycle de vie session (restauration, /api/auth/me, impersonation admin, logout forcé).
-  const {
-    forceLogout: forceLogoutBase,
-    updateStudentSession,
-    handleAdminImpersonationApplied,
-    stopAdminImpersonation,
-    mergeAuthMeResponse: mergeAuthMeResponseBase,
-    validateStudentSession,
-  } = useAuthSession({
+  // D3 — cycle de vie session (OAuth, restauration, /api/auth/me, fenêtres, logout).
+  const session = useAppSession({
     studentRef,
+    student,
     setStudent,
+    sessionUser,
     setSessionUser,
+    authClaims,
     setAuthClaims,
+    isTeacher,
+    isTeacherAccount,
     setSessionValidationError,
     setProfilePromotion,
     setToast,
+    setOauthFeedback,
+    setOauthMfaChallenge,
     setRoleViewMode,
     setTab,
     setShowStats,
     setShowProfile,
+    markPasswordChangeRequired,
+    publicSettings,
   });
-
-  const mergeAuthMeResponse = useCallback(
-    (d, opts = {}) => {
-      mergeAuthMeResponseBase(d, opts);
-      if (!d || typeof d !== 'object' || !d.auth) return;
-      const fromServer =
-        d.discoveryTourSeen && typeof d.discoveryTourSeen === 'object' ? d.discoveryTourSeen : {};
-      setDiscoveryTourSeen((prev) => mergeDiscoveryTourSeenMaps(prev, fromServer));
-      setDiscoveryTourSeenReady(true);
-      if (Array.isArray(d.biodivGroupPedagoLevels)) {
-        setBiodivGroupPedagoLevels(
-          d.biodivGroupPedagoLevels.map(normalizePedagoLevel).filter(Boolean),
-        );
-      }
-      if (Array.isArray(d.biodivGroupCurriculumNiveaux)) {
-        setBiodivGroupCurriculumNiveaux(sortLearnerNiveaux(d.biodivGroupCurriculumNiveaux));
-      }
-      // Restauration / rafraîchissement de session : le serveur relit le drapeau en base.
-      if (typeof d.passwordMustReset === 'boolean') {
-        markPasswordChangeRequired(d.passwordMustReset);
-      }
-    },
-    [markPasswordChangeRequired, mergeAuthMeResponseBase],
-  );
-
-  const forceLogout = useCallback(
-    (options) => {
-      setDiscoveryTourSeen(null);
-      setDiscoveryTourSeenReady(false);
-      setBiodivGroupPedagoLevels([]);
-      setBiodivGroupCurriculumNiveaux([]);
-      markPasswordChangeRequired(false);
-      forceLogoutBase(options);
-    },
-    [forceLogoutBase, markPasswordChangeRequired],
-  );
-  /* Les deux écouteurs de useSessionWindowSync posent déjà authClaims de façon cohérente
-     (null à l'expiration, claims relus au changement de session) : le setIsTeacher legacy
-     devient un no-op, isTeacher étant dérivé d'authClaims. Une session expirée ou révoquée
-     (401 `SESSION_REVOKED`) passe par `forceLogout` pour fermer aussi la session élève. */
-  const setIsTeacherNoop = useCallback(() => {}, []);
-  useSessionWindowSync({
-    setAuthClaims,
-    setIsTeacher: setIsTeacherNoop,
-    setSessionUser,
-    setToast,
-    forceLogout,
-  });
-
-  useRoleViewModeReset({
-    roleSlug: authClaims?.roleSlug,
-    userId: authClaims?.userId,
-    isTeacher,
-    setRoleViewMode,
-  });
-
-  useAuthMeHydration({ mergeAuthMeResponse });
-
-  // Fallback mémoïsé : un littéral recréé à chaque rendu casserait les React.memo
-  // des vues qui reçoivent student={currentUser} (cas session incomplète).
-  const fallbackUser = useMemo(
-    () => ({
-      pseudo: null,
-      displayName: authClaims?.roleDisplayName || null,
-      first_name: authClaims?.roleDisplayName || 'Utilisateur',
-      last_name: '',
-    }),
-    [authClaims?.roleDisplayName],
-  );
+  const { forceLogout, mergeAuthMeResponse, validateStudentSession } = session;
 
   /*
    * Session établie au sens du chargement des données et du renouvellement de jeton.
@@ -517,128 +146,34 @@ function App() {
    */
   const hasAuthenticatedShell = !!(student || isTeacherAccount);
 
-  // Contexte lu par `fetchAll` (mémoïsé : il pilote aussi le debounce du rechargement auto).
-  const dataSyncContext = useMemo(
-    () => ({
-      effectiveIsTeacher,
-      showPublicVisit,
-      canManageTutorials,
-      defaultMapStudent: publicSettings?.map?.default_map_student,
-      defaultMapTeacher: publicSettings?.map?.default_map_teacher,
-      defaultMapVisit: publicSettings?.map?.default_map_visit,
-    }),
-    [
-      effectiveIsTeacher,
-      showPublicVisit,
-      canManageTutorials,
-      publicSettings?.map?.default_map_student,
-      publicSettings?.map?.default_map_teacher,
-      publicSettings?.map?.default_map_visit,
-    ],
-  );
-
-  // D4 — données partagées et cycle de rechargement (fetchAll, polling différentiel,
-  // refetch ciblé, bandeau « serveur indisponible »).
-  const {
-    maps,
-    activeMapId,
-    setActiveMapId,
-    zones,
-    setZones,
-    tasks,
-    setTasks,
-    taskProjects,
-    setTaskProjects,
-    archivedTasks,
-    archivedTaskProjects,
-    plants,
-    setPlants,
-    markers,
-    setMarkers,
-    tutorials,
-    loading,
-    refreshMs,
-    serverDown,
-    lastSyncAt,
-    retryingServer,
-    fetchAll,
-    fetchAllFull,
-    retryServerNow,
-    loadArchivedTasks,
-  } = useAppDataSync({
-    context: dataSyncContext,
-    contextReady: publicSettingsReady,
+  // D4 — données partagées, cycle de rechargement et choix du plan (cf. `useShellMapData`).
+  const dataSync = useShellMapData({
+    access,
+    showPublicVisit,
+    publicSettings,
+    publicSettingsReady,
     hasAuthenticatedShell,
     studentRef,
     forceLogout,
     mergeAuthMeResponse,
   });
+  const { activeMapId, setActiveMapId, zones, tasks, plants, markers, tutorials } = dataSync;
+  const { loading, serverDown, fetchAll, chooseMap, visibleMaps, visitInitialMapId } = dataSync;
 
   useAppStoragePersistence({ tab, onToast: setToast });
-
-  /**
-   * Changement de plan **demandé par l'utilisateur** (sélecteur de la carte) : seul cas
-   * où le plan est mémorisé sur l'appareil, pour être rouvert à la reconnexion. Les
-   * plans posés par la résolution automatique passent directement par `setActiveMapId`
-   * et ne laissent aucune trace (cf. `src/utils/lastViewedMap.js`).
-   */
-  const chooseMap = useCallback(
-    (nextMapId) => {
-      const next = String(nextMapId || '').trim();
-      if (!next) return;
-      rememberLastViewedMapId(next);
-      setActiveMapId((prev) => (prev === next ? prev : next));
-    },
-    [setActiveMapId],
-  );
-
-  /**
-   * Plan ouvert par la Visite invitée : le dernier plan consulté sur cet appareil
-   * d'abord (visite ou carte), puis le réglage « plan par défaut (visite publique) ».
-   *
-   * La mémoire est relue à chaque entrée dans la visite (`showPublicVisit`) : sinon un
-   * visiteur qui repasse par l'écran de connexion se verrait rouvrir le plan d'avant son
-   * propre choix. Hors visite, la valeur n'est pas consommée.
-   */
-  const visitInitialMapId = useMemo(
-    () =>
-      (showPublicVisit ? readLastViewedMapId() : '') ||
-      publicSettings?.map?.default_map_visit ||
-      activeMapId,
-    [publicSettings?.map?.default_map_visit, activeMapId, showPublicVisit],
-  );
 
   // Prolonge la session avant expiration : sans cela, 1 h 30 après la connexion,
   // l'utilisateur était déconnecté en plein travail (cf. `useAuthTokenRenewal`).
   useAuthTokenRenewal({ enabled: hasAuthenticatedShell, mergeAuthMeResponse });
 
-  // Mise à jour de l'app prête à être appliquée : proposée en bandeau, jamais imposée.
-  const swUpdate = useServiceWorkerUpdate();
-  const deviceOnline = useDeviceOnline();
-  const networkMode = useNetworkMode();
-
-  // Boîte d'envoi hors ligne : rejouée quel que soit l'écran ouvert, messages centralisés.
-  const outboxUserId = hasAuthenticatedShell ? getAuthUserId() : '';
-  const offlineOutbox = useOfflineOutbox({
-    userId: outboxUserId,
-    enabled: hasAuthenticatedShell,
-    onToast: setToast,
-    onSynced: fetchAll,
+  // Mise à jour de l'app, réseau, boîte d'envoi hors ligne, sortie terrain.
+  const offline = useOfflineShell({
+    hasAuthenticatedShell,
+    setToast,
+    fetchAll,
+    fetchAllFull: dataSync.fetchAllFull,
+    data: { maps: dataSync.maps, zones, markers, plants, tutorials, activeMapId },
   });
-  const [offlineCenterOpen, setOfflineCenterOpen] = useState(false);
-  const fieldTripDataRef = useRef({});
-  useEffect(() => {
-    fieldTripDataRef.current = { maps, zones, markers, plants, tutorials, activeMapId };
-  });
-  const prepareFieldTripNow = useCallback(
-    (onProgress) =>
-      prepareFieldTrip({
-        refreshAll: fetchAllFull,
-        getData: () => fieldTripDataRef.current,
-        onProgress,
-      }),
-    [fetchAllFull],
-  );
 
   useDefaultActiveMapFromSettings({
     publicSettingsReady,
@@ -663,22 +198,8 @@ function App() {
     void fetchAll();
   }, [pinSuccessFetchAllTick, fetchAll]);
 
-  const tasksForActiveMap = useMemo(
-    () =>
-      tasks.filter((t) => {
-        const effectiveMapId =
-          t.map_id_resolved || t.map_id || t.zone_map_id || t.marker_map_id || null;
-        return effectiveMapId === activeMapId || effectiveMapId == null;
-      }),
-    [tasks, activeMapId],
-  );
-  const teacherPendingValidationCount = useMemo(
-    () => tasksForActiveMap.filter((t) => t.status === 'done').length,
-    [tasksForActiveMap],
-  );
-  // `GET /api/maps` est déjà borné par le serveur au périmètre du compte (groupes) : il ne
-  // reste qu'à préférer les cartes actives.
-  const visibleMaps = useMemo(() => visibleMapsForScope(maps), [maps]);
+  const { tasksForActiveMap, teacherPendingValidationCount, studentActiveAssignedTasksCount } =
+    useActiveMapTasks({ tasks, activeMapId, studentForUi });
   useActiveMapVisibilityReconciler({
     activeMapId,
     visibleMaps,
@@ -687,417 +208,39 @@ function App() {
     publicSettings,
     setActiveMapId,
   });
-  const onMascotPackDirtyChange = useCallback((dirty) => {
-    mascotPackDirtyRef.current = dirty;
-  }, []);
-
-  const handleTeacherTabChange = useCallback(
-    async (nextTab) => {
-      if (tab === 'mascot_packs' && nextTab !== 'mascot_packs' && mascotPackDirtyRef.current) {
-        if (!(await appDialogsRef.current?.confirm({ message: MASCOT_PACK_UNSAVED_LEAVE_MSG }))) {
-          return;
-        }
-      }
-      navigateTab(nextTab);
-    },
-    [tab, navigateTab],
-  );
-
-  const openMascotPackStudioTab = useCallback(() => {
-    navigateTab('mascot_packs');
-  }, [navigateTab]);
-  const previewStudent = useMemo(() => {
-    if (!isTeacher || roleViewMode !== 'student') return null;
-    const fallbackName = resolveSessionDisplayName(
-      sessionUser?.displayName,
-      authClaims?.roleDisplayName,
-    );
-    return {
-      id: `preview-${authClaims?.userId || 'teacher'}`,
-      first_name: fallbackName,
-      last_name: '',
-      pseudo: null,
-      preview_mode: true,
-    };
-  }, [
-    authClaims?.roleDisplayName,
-    authClaims?.userId,
-    isTeacher,
-    roleViewMode,
-    sessionUser?.displayName,
-  ]);
-  const studentForUi = student || previewStudent;
-  // NB : comparaison stricte (===, sensible casse/espaces, sans match par student_id) —
-  // volontairement NON alignée sur `assignmentMatchesStudent` (task-assignments), dont la
-  // normalisation (trim + minuscules + id) changerait le comptage ; conservée iso-comportement.
-  const studentActiveAssignedTasksCount = useMemo(() => {
-    if (!studentForUi) return 0;
-    return tasksForActiveMap.filter(
-      (t) =>
-        t.assignments?.some(
-          (a) =>
-            a.student_first_name === studentForUi.first_name &&
-            a.student_last_name === studentForUi.last_name,
-        ) &&
-        (t.status === 'available' || t.status === 'in_progress'),
-    ).length;
-  }, [studentForUi, tasksForActiveMap]);
   // L'affiliation par compte n'existe plus (le périmètre cartes vient des groupes) : la
   // terminologie n3beur / n3boss est unifiée, `getRoleTerms` ignore déjà son argument. La
   // valeur reste exposée (props et `SessionContext`) pour ne pas retoucher chaque consommateur ;
   // elle vaut désormais toujours `false`.
   const isN3Affiliated = false;
   const roleTerms = getRoleTerms(isN3Affiliated);
-  const appLoaderText = getContentText(publicSettings, 'app.loader', 'Chargement de la forêt…');
-  const appServerDownNotice = getContentText(
-    publicSettings,
-    'app.server_down_notice',
-    'Serveur indisponible. Nouvel essai automatique toutes les 2 minutes.',
-  );
-  const appRetryNow = getContentText(publicSettings, 'app.retry_now', 'Réessayer maintenant');
-  const appFooterVersionPrefix = getContentText(
-    publicSettings,
-    'app.footer_version_prefix',
-    'Version',
-  );
-  const isVisitor = isVisitorLikeRole(effectiveRoleContext.roleSlug);
-  const isClassTeacher = isClassTeacherRole(effectiveRoleContext.roleSlug);
-  const canAccessStudentMapTasks = !isVisitor;
-  const canAccessTutorials =
-    publicSettings?.modules?.tutorials_enabled !== false && (canAccessStudentMapTasks || isVisitor);
-  const canAccessProfiles =
-    hasPermissionInRole('admin.roles.manage') ||
-    hasPermissionInRole('admin.users.assign_roles') ||
-    hasPermissionInRole('stats.export') ||
-    hasPermissionInRole('students.import') ||
-    hasPermissionInRole('students.delete') ||
-    hasPermissionInRole('users.create') ||
-    hasPermissionInRole('groups.manage') ||
-    hasPermissionInRole('groups.read');
+  const texts = resolveAppShellTexts(publicSettings);
   /** Met à jour le filtre lieu du volet Tâches (sans changer d’onglet). */
   const handleMapLocationTasksFocus = useCallback((focus) => {
     setTasksLocationFocus(focus);
   }, []);
-  /*
-   * Forum : fermé au seul profil « visiteur », comme côté serveur
-   * (`PARTICIPATION_EXCLUDED_ROLE_SLUGS`). Ce n'est **pas** `isVisitor` : personnel et prof de
-   * classe suivent le parcours apprenant sans carte ni tâches, mais participent au forum.
-   */
-  const canAccessForum =
-    !isForumExcludedRole(effectiveRoleContext.roleSlug) &&
-    publicSettings?.modules?.forum_enabled !== false;
-  const canParticipateForum = useMemo(
-    () =>
-      resolveParticipationFlag({
-        isTeacher: effectiveIsTeacher,
-        user: studentForUi,
-        camelKey: 'forumParticipate',
-        snakeKey: 'forum_participate',
-      }),
-    [effectiveIsTeacher, studentForUi],
-  );
-  const canManageMediaLibrary = hasPermissionInRole('media.manage');
-  const canReadStats = hasPermission('stats.read.all') || hasPermission('stats.read.group');
-  const canManageQuiz = useMemo(
-    () =>
-      canManagePedagoContent({
-        roleSlug: effectiveRoleContext.roleSlug,
-        nativePrivileged: authClaims?.nativePrivileged,
-        permission: 'plants.manage',
-        hasPermission: hasPermissionInRole,
-      }),
-    [effectiveRoleContext.roleSlug, hasPermissionInRole, authClaims?.nativePrivileged],
-  );
-  const canManageFoodWeb = hasPermission('plants.manage');
-  const canManageIdKeys = hasPermission('id_keys.manage');
-  const canManageIndividuals = hasPermission('individuals.manage');
-  const canMeasureIndividuals = hasPermission('individuals.measure');
-
-  const canParticipateContextComments = useMemo(
-    () =>
-      resolveParticipationFlag({
-        isTeacher: effectiveIsTeacher,
-        user: studentForUi,
-        camelKey: 'contextCommentParticipate',
-        snakeKey: 'context_comment_participate',
-      }),
-    [effectiveIsTeacher, studentForUi],
-  );
-  const canSelfAssignTasks = !isVisitor;
-  const canSelfAssignMoreTasks =
-    canSelfAssignTasks && !studentForUi?.preview_mode && !studentForUi?.taskEnrollment?.atLimit;
-  const canViewOtherUsersIdentity = !isVisitor;
-  const isPreviewStudentView = !!previewStudent;
-  const profileTargetUserId = useMemo(() => {
-    // `isTeacherAccount` et non `isTeacher` : sans fiche n3beur, un compte enseignant
-    // dépourvu de `teacher.access` n'avait plus aucune cible de profil — donc ni fiche
-    // ni statistiques personnelles.
-    if (effectiveIsTeacher || isTeacherAccount)
-      return sessionUser?.id || authClaims?.userId || null;
-    return student?.id || null;
-  }, [authClaims?.userId, effectiveIsTeacher, isTeacherAccount, sessionUser?.id, student?.id]);
-  const canOpenUserDialogs = !!profileTargetUserId && !isPreviewStudentView;
-  const profileTargetUser = useMemo(() => {
-    if (!canOpenUserDialogs) return null;
-    // `passwordMustReset` porte le bandeau « mot de passe provisoire » de l'éditeur : c'est le
-    // drapeau du shell qui fait foi (connexion, `/api/auth/me`, refus 403), élève comme prof.
-    if (!effectiveIsTeacher && !isTeacherAccount && student) {
-      return !!student.passwordMustReset === passwordChangeRequired
-        ? student
-        : { ...student, passwordMustReset: passwordChangeRequired };
-    }
-    const fallbackName = resolveSessionDisplayName(
-      sessionUser?.displayName,
-      authClaims?.roleDisplayName,
-    );
-    return {
-      id: profileTargetUserId,
-      user_type: 'teacher',
-      first_name: fallbackName,
-      last_name: '',
-      display_name: fallbackName,
-      pseudo: sessionUser?.pseudo || null,
-      email: sessionUser?.email || null,
-      avatar_path: sessionUser?.avatar_path || null,
-      default_avatar_url: sessionUser?.default_avatar_url || null,
-      visit_mascot_catalog_id: sessionUser?.visit_mascot_catalog_id || null,
-      biodiv_pedago_level: sessionUser?.biodiv_pedago_level || null,
-      description: sessionUser?.description || '',
-      passwordMustReset: passwordChangeRequired,
-      auth: {
-        roleSlug: authClaims?.roleSlug || null,
-        roleDisplayName: authClaims?.roleDisplayName || null,
-        userType: authClaims?.userType || 'teacher',
-      },
-    };
-  }, [
-    authClaims?.roleDisplayName,
-    authClaims?.roleSlug,
-    authClaims?.userType,
-    canOpenUserDialogs,
-    effectiveIsTeacher,
-    isTeacherAccount,
-    passwordChangeRequired,
-    profileTargetUserId,
-    sessionUser?.avatar_path,
-    sessionUser?.biodiv_pedago_level,
-    sessionUser?.default_avatar_url,
-    sessionUser?.description,
-    sessionUser?.displayName,
-    sessionUser?.email,
-    sessionUser?.pseudo,
-    // Le sélecteur de mascotte du plan met à jour `sessionUser` : sans cette dépendance,
-    // « Mon profil » rouvrait sur la mascotte précédente jusqu'au rechargement de session.
-    sessionUser?.visit_mascot_catalog_id,
-    student,
-  ]);
-  const canOpenTeacherStatsFromBadge =
-    (effectiveIsTeacher || isClassTeacher) &&
-    publicSettings?.modules?.stats_enabled !== false &&
-    canReadStats;
-  const canViewGeneralStats = publicSettings?.modules?.stats_enabled !== false && canReadStats;
-  const canSwitchToStudentView =
-    isTeacher &&
-    (effectiveRoleContext.roleSlug === 'prof' || effectiveRoleContext.roleSlug === 'admin');
-  const canSwitchToTeacherView = isTeacher && effectiveRoleContext.roleSlug === 'admin';
   const onTaskFormOverlayOpenChange = useCallback((open) => {
     pauseDataRefreshForTaskOverlaysRef.current = !!open;
   }, []);
 
-  // ── Callbacks du header (AppHeader) ─────────────────────────────────────────
-  const handleOpenStatsDialog = useCallback(() => setShowStats(true), []);
-  const handleCloseStatsDialog = useCallback(() => setShowStats(false), []);
-  const handleOpenTeacherStatsTab = useCallback(() => navigateTab('stats'), [navigateTab]);
-  const handleOpenSettingsLearning = useCallback(() => {
-    try {
-      sessionStorage.setItem('foretmap:settings:focus', 'learning-gating');
-    } catch (_) {
-      /* ignore */
-    }
-    navigateTab('settings');
-  }, [navigateTab]);
-  const handleOpenProfileDialog = useCallback(() => setShowProfile(true), []);
-  const handleCloseProfileDialog = useCallback(() => setShowProfile(false), []);
-  const handleRequestPin = useCallback(() => setShowPin(true), []);
-
-  /** Session prof en mémoire après édition du profil (nom affiché, avatar, mascotte). */
-  const updateTeacherSession = useCallback(
-    (updatedUser) => {
-      // Jeton ré-émis par l'appelant (changement de mot de passe : l'ancien est révoqué par
-      // l'époque) → jeton courant, même règle que `updateStudentSession` (CDG-28).
-      const nextToken = updatedUser?.authToken
-        ? pickNewestAuthToken(updatedUser.authToken, getAuthToken())
-        : null;
-      setSessionUser((prev) => {
-        const nextDisplayName =
-          updatedUser?.pseudo ||
-          updatedUser?.display_name ||
-          formatFullName(updatedUser) ||
-          prev?.displayName ||
-          DEFAULT_USER_LABEL;
-        const next = {
-          id: updatedUser?.id || prev?.id || authClaims?.userId || null,
-          userType: 'teacher',
-          displayName: nextDisplayName,
-          email: updatedUser?.email ?? prev?.email ?? null,
-          pseudo: updatedUser?.pseudo !== undefined ? updatedUser.pseudo : (prev?.pseudo ?? null),
-          description:
-            updatedUser?.description !== undefined
-              ? updatedUser.description
-              : (prev?.description ?? null),
-          avatar_path:
-            updatedUser?.avatar_path ?? updatedUser?.avatarPath ?? prev?.avatar_path ?? null,
-          default_avatar_url: updatedUser?.default_avatar_url ?? prev?.default_avatar_url ?? null,
-          visit_mascot_catalog_id:
-            updatedUser?.visit_mascot_catalog_id ?? prev?.visit_mascot_catalog_id ?? null,
-          biodiv_pedago_level:
-            updatedUser?.biodiv_pedago_level !== undefined
-              ? updatedUser.biodiv_pedago_level
-              : (prev?.biodiv_pedago_level ?? null),
-        };
-        saveStoredSession({ user: next, ...(nextToken ? { token: nextToken } : {}) });
-        return next;
-      });
-    },
-    [authClaims?.userId],
-  );
-
   /** Cible mémoïsée de la modale statistiques (un littéral casserait le memo de StudentStats). */
-  const statsDialogTarget = useMemo(() => ({ id: profileTargetUserId }), [profileTargetUserId]);
-
-  /** Profil enregistré : la session prof et la session élève ne se mettent pas à jour pareil. */
-  const handleProfileUpdated = useCallback(
-    (updated) => {
-      // Mot de passe changé (`POST /api/auth/me/password`) : le drapeau du shell retombe.
-      if (updated?.passwordMustReset === false) markPasswordChangeRequired(false);
-      if (isTeacherAccount) {
-        updateTeacherSession(updated);
-        return;
-      }
-      updateStudentSession(updated);
-    },
-    [isTeacherAccount, markPasswordChangeRequired, updateStudentSession, updateTeacherSession],
+  const statsDialogTarget = useMemo(
+    () => ({ id: access.profileTargetUserId }),
+    [access.profileTargetUserId],
   );
 
   /** Bascule de vue rôle (natif / élève / prof) : réinitialise onglet et dialogues. */
-  const handleRoleViewModeSelect = useCallback((mode) => {
-    setRoleViewMode(mode);
-    setTab('map');
-    setShowStats(false);
-    setShowProfile(false);
-  }, []);
+  const handleRoleViewModeSelect = useCallback(
+    (mode) => {
+      setRoleViewMode(mode);
+      setTab('map');
+      setShowStats(false);
+      setShowProfile(false);
+    },
+    [setTab, setShowStats, setShowProfile],
+  );
 
   const handleToastDone = useCallback(() => setToast(null), []);
-
-  /** Connexion réussie depuis l'écran d'accueil : pose la session (prof ou élève) et les claims. */
-  const handleAuthScreenLogin = useCallback(
-    (session) => {
-      const userType = String(
-        session?.auth?.userType || session?.user_type || 'student',
-      ).toLowerCase();
-      if (userType === 'teacher') {
-        setStudent(null);
-        setSessionUser({
-          id: session?.auth?.canonicalUserId || session?.id || null,
-          userType: 'teacher',
-          displayName:
-            session?.display_name || session?.auth?.roleDisplayName || DEFAULT_USER_LABEL,
-          email: session?.email || null,
-          pseudo: session?.pseudo || null,
-          description: session?.description || null,
-          avatar_path: session?.avatar_path || null,
-          default_avatar_url: session?.default_avatar_url || null,
-          visit_mascot_catalog_id: session?.visit_mascot_catalog_id || null,
-          biodiv_pedago_level: session?.biodiv_pedago_level || null,
-        });
-      } else {
-        updateStudentSession(session);
-      }
-      const claims = getAuthClaims();
-      setAuthClaims(claims);
-      const fromServer =
-        session?.discoveryTourSeen && typeof session.discoveryTourSeen === 'object'
-          ? session.discoveryTourSeen
-          : {};
-      setDiscoveryTourSeen(fromServer);
-      setDiscoveryTourSeenReady(true);
-      if (Array.isArray(session?.biodivGroupPedagoLevels)) {
-        setBiodivGroupPedagoLevels(
-          session.biodivGroupPedagoLevels.map(normalizePedagoLevel).filter(Boolean),
-        );
-      }
-      if (Array.isArray(session?.biodivGroupCurriculumNiveaux)) {
-        setBiodivGroupCurriculumNiveaux(sortLearnerNiveaux(session.biodivGroupCurriculumNiveaux));
-      }
-      const roleSlug = String(claims?.roleSlug || '').toLowerCase();
-      if (isVisitorLikeRole(roleSlug)) {
-        const visitOk = publicSettings?.modules?.visit_enabled !== false;
-        setTab(visitOk ? 'visit' : 'plants');
-      }
-      // Mot de passe provisoire ou compromis : « Mon profil » s'ouvre dès l'entrée.
-      markPasswordChangeRequired(!!session?.passwordMustReset);
-    },
-    [markPasswordChangeRequired, publicSettings?.modules?.visit_enabled, updateStudentSession],
-  );
-
-  /** Entrée en visite publique invitée (avec onboarding mascotte si jamais confirmé). */
-  const handleVisitAsGuest = useCallback(() => {
-    pushOverlayClose(() => setShowPublicVisit(false));
-    const guestAlreadyConfirmedMascot =
-      safeLocalStorageGetItem(GUEST_VISIT_MASCOT_CONFIRMED_KEY, null) === '1';
-    setGuestVisitNeedsMascotChoice(!guestAlreadyConfirmedMascot);
-    setShowPublicVisit(true);
-  }, []);
-
-  const clearLocalDataOnLogout = publicSettings?.privacy?.clear_local_data_on_logout !== false;
-  const logoutClearSiteStorage =
-    publicSettings?.privacy?.logout_clear_site_data_scope === 'cache_storage';
-
-  /**
-   * Déconnexion complète (session locale + états React). Avec le réglage
-   * `privacy.clear_local_data_on_logout`, les données du compte gardées sur l'appareil sont
-   * effacées aussi — après confirmation s'il reste des actions non envoyées. Les copies d'API
-   * cloisonnées (`__fm_sw_user`) partent toujours ; le serveur pose `Clear-Site-Data`.
-   */
-  const handleLogout = useCallback(
-    async ({ confirm } = {}) => {
-      const userId = getAuthUserId();
-      const pending = clearLocalDataOnLogout ? countPendingLocalActions(userId) : 0;
-      const message = pendingLossConfirmationMessage(pending, {
-        clearSiteStorage: logoutClearSiteStorage,
-      });
-      if (message && typeof confirm === 'function') {
-        const ok = await confirm({ message, confirmLabel: 'Se déconnecter', danger: true });
-        if (!ok) return;
-      }
-      if (clearLocalDataOnLogout) {
-        // Sans moyen de confirmer, les actions non envoyées sont gardées plutôt que perdues
-        // (sauf mode borne : le serveur effacera le stockage de toute façon).
-        if (logoutClearSiteStorage || !message || typeof confirm === 'function') {
-          clearLocalDataForAccount(userId);
-          void clearOfflinePhotosForAccount(userId);
-        }
-        void purgeCachedUserMedia();
-      }
-      // Toujours : copies d'API du compte + miroir outbox + session.
-      void purgeCachedAuthenticatedApi();
-      void clearOutboxMirror();
-      // Après confirmation éventuelle : sinon Clear-Site-Data "storage" effacerait les files
-      // non envoyées sans prévenir.
-      void notifyServerLogout('/api/auth/logout');
-      clearStoredSession();
-      studentRef.current = null;
-      setStudent(null);
-      setSessionUser(null);
-      setAuthClaims(null);
-      setDiscoveryTourSeen(null);
-      setDiscoveryTourSeenReady(false);
-      setBiodivGroupPedagoLevels([]);
-      setBiodivGroupCurriculumNiveaux([]);
-      markPasswordChangeRequired(false);
-    },
-    [clearLocalDataOnLogout, logoutClearSiteStorage, markPasswordChangeRequired, studentRef],
-  );
 
   const isCombinedMapTasksTab = tab === 'maptasks';
   const useSplitMapTasks =
@@ -1114,179 +257,22 @@ function App() {
     [effectiveIsTeacher, canAccessStudentMapTasks, useSplitMapTasks, navigateTab],
   );
 
-  const { plantCatalogPreview, setPlantCatalogPreview, openPlantCatalogPreviewById } =
-    usePlantCatalogPreview(plants);
-  const [pedagoGlossaryCode, setPedagoGlossaryCode] = useState(null);
-  const [pedagoQuizQuestionCode, setPedagoQuizQuestionCode] = useState(null);
-  const [pedagoQuizNotionId, setPedagoQuizNotionId] = useState(null);
-  const [pedagoQuizNotionNiveau, setPedagoQuizNotionNiveau] = useState(null);
-  const [pedagoIdKeysInitialKey, setPedagoIdKeysInitialKey] = useState(null);
-  const [foodWebHighlightPlantId, setFoodWebHighlightPlantId] = useState(null);
+  // Navigation pédagogique et séance en cours (aperçu plante, glossaire, quiz, fresque…).
   const pedagoAuthenticated = !!(student || isTeacherAccount);
-  const [pedagoEntry, setPedagoEntry] = useState(null);
-  const [pedagoMapRouteRequest, setPedagoMapRouteRequest] = useState(null);
-  // Modules pédagogiques activables (`ui.modules.*`, allumés par défaut — décision du 25/09,
-  // révisée) : éteint = fermé aux élèves, ouvert avec bandeau à qui porte la permission de
-  // gestion (miroir de `lib/pedagoModuleGate.js`). Déclarés ici, avant les callbacks de séance
-  // qui les lisent (zone morte temporelle).
-  const pedagoModuleAccess = resolvePedagoModuleAccess({
-    modules: publicSettings?.modules,
-    canManageIdKeys,
-    canManageIndividuals,
-    canManagePedagoSessions: canManageFoodWeb,
-    canManageFresque: canManageFoodWeb,
+  const pedago = useAppPedago({
+    plants,
+    visibleMaps,
+    navigateTab,
+    chooseMap,
+    access,
+    pedagoAuthenticated,
+    setToast,
   });
-  const idKeysAvailable = pedagoModuleAccess.idKeys.available;
-  const individualsAvailable = pedagoModuleAccess.individuals.available;
-  const pedagoSessionsAvailable = pedagoModuleAccess.pedagoSessions.available;
-  const fresqueAvailable = pedagoModuleAccess.fresque.available;
-  const rewardsModuleEnabled = pedagoModuleAccess.rewards.enabled;
-  // Code du terme affiché dans le popover de glossaire (fiche rapide, rendue hors des
-  // onglets pour survivre à tout changement de vue — audit A1).
-  const [glossaryPopoverCode, setGlossaryPopoverCode] = useState(null);
-
-  /**
-   * Geste par défaut sur un terme de glossaire (tutoriel, fiche plante, quiz, réseau
-   * trophique) : ouvrir la fiche rapide **par-dessus** l'écran courant. L'élève ne perd
-   * ni sa page de tutoriel, ni sa position de lecture.
-   */
-  const openGlossaryPopover = useCallback((code) => {
-    const c = String(code || '').trim();
-    if (!c) return;
-    setGlossaryPopoverCode(c);
-  }, []);
-
-  const closeGlossaryPopover = useCallback(() => setGlossaryPopoverCode(null), []);
-
-  /**
-   * Chemin « fiche complète » : bascule sur l'onglet Glossaire et y sélectionne le terme.
-   * Ce n'est plus le geste par défaut — seul le bouton dédié du popover y mène.
-   */
-  const openPedagoGlossaryTerm = useCallback(
-    (code) => {
-      const c = String(code || '').trim();
-      setPedagoGlossaryCode(c || null);
-      navigateTab('glossary');
-      setPlantCatalogPreview(null);
-    },
-    [setPlantCatalogPreview, navigateTab],
-  );
-
-  const openPedagoQuizQuestion = useCallback(
-    (code) => {
-      const c = String(code || '')
-        .trim()
-        .toUpperCase();
-      setPedagoQuizQuestionCode(c || null);
-      navigateTab('quiz');
-      setPlantCatalogPreview(null);
-    },
-    [setPlantCatalogPreview, navigateTab],
-  );
-
-  const openPedagoFoodWeb = useCallback(
-    (plantId = null, mapId = null) => {
-      const id = plantId != null ? Number(plantId) : null;
-      const map = mapId != null ? String(mapId).trim() : '';
-      if (map) chooseMap(map);
-      setFoodWebHighlightPlantId(Number.isFinite(id) && id > 0 ? id : null);
-      navigateTab('foodweb');
-      setPlantCatalogPreview(null);
-    },
-    [setPlantCatalogPreview, navigateTab, chooseMap],
-  );
-
-  // Séance pédagogique en cours (état, exécution, étapes, fin, lien `?seance=`) : hook
-  // dédié, partagé avec l'arbre par `PedagoSessionProvider`. Le shell ne fournit que les
-  // cibles de navigation des étapes.
-  const pedagoSession = usePedagoSession({
-    available: pedagoSessionsAvailable,
-    authenticated: pedagoAuthenticated,
-    onToast: setToast,
-    navigation: {
-      navigateTab,
-      setPlantCatalogPreview,
-      openPlantCatalogPreviewById,
-      openPedagoFoodWeb,
-      chooseMap,
-      idKeysAvailable,
-      individualsAvailable,
-      fresqueAvailable,
-      setPedagoIdKeysInitialKey,
-      setPedagoQuizQuestionCode,
-      setPedagoQuizNotionId,
-      setPedagoQuizNotionNiveau,
-      setPedagoGlossaryCode,
-      setPedagoEntry,
-      setPedagoMapRouteRequest,
-    },
-  });
-  const {
-    activeSession: activePedagoSession,
-    currentStep: pedagoSessionCurrentStep,
-    completedSession: completedPedagoSession,
-    setCompletedSession: setCompletedPedagoSession,
-    runsVersion: pedagoRunsVersion,
-    startSession: startPedagoSession,
-    launchSession: launchPedagoSession,
-    exitSession: exitPedagoSession,
-    goStep: goPedagoSessionStep,
-  } = pedagoSession;
-
-  const sessionsProps = useMemo(
-    () => ({
-      canManage: canManageFoodWeb,
-      maps: visibleMaps,
-      plants,
-      activeSession: activePedagoSession,
-      currentStep: pedagoSessionCurrentStep,
-      onStartSession: startPedagoSession,
-      isAuthenticated: pedagoAuthenticated,
-      runsVersion: pedagoRunsVersion,
-      rewardsEnabled: rewardsModuleEnabled,
-    }),
-    [
-      canManageFoodWeb,
-      visibleMaps,
-      plants,
-      activePedagoSession,
-      pedagoSessionCurrentStep,
-      startPedagoSession,
-      pedagoAuthenticated,
-      pedagoRunsVersion,
-      rewardsModuleEnabled,
-    ],
-  );
-
-  // Fresque du Climat (onglet « Fresque ») : suivi pour qui lit les stats de groupe ; l'action
-  // de séance `open_fresque` dépose le jeu demandé dans `pedagoEntry.fresque`.
-  const fresqueProps = useMemo(
-    () => ({
-      isTeacher: effectiveIsTeacher,
-      canFollow: hasPermission('stats.read.group') || hasPermission('stats.read.all'),
-      initialDeckId: pedagoEntry?.fresque?.deckId || null,
-      entryNonce: pedagoEntry?.fresque?.nonce || null,
-      subscribeBoard: subscribeFresqueBoard,
-    }),
-    [effectiveIsTeacher, hasPermission, pedagoEntry?.fresque?.deckId, pedagoEntry?.fresque?.nonce],
-  );
-
-  // Clic sur un terme auto-lié dans l'iframe d'un tutoriel : le message n'est accepté que
-  // s'il vient de notre origine (audit A10 — un tutoriel `type = 'link'` affiche un site
-  // tiers dans une iframe de la même page et pourrait sinon piloter la navigation).
-  useEffect(() => {
-    const onGlossaryMessage = (event) => {
-      const code = readGlossaryTermMessage(event, window.location.origin);
-      if (code) openGlossaryPopover(code);
-    };
-    window.addEventListener('message', onGlossaryMessage);
-    return () => window.removeEventListener('message', onGlossaryMessage);
-  }, [openGlossaryPopover]);
+  const { pedagoSession } = pedago;
 
   const useWideMain = shouldUseDesktopSplit;
   const mapChromeCompactVisible =
     !loading && (useSplitMapTasks || (!useSplitMapTasks && tab === 'map'));
-  const tutorialsModuleEnabled = publicSettings?.modules?.tutorials_enabled !== false;
   // F3 (option A) : la fusion contextuelle Tâches/Tuto est supprimée — les onglets
   // restent stables ; seule l'adaptation grand écran (vue « Cartes & tâches ») subsiste.
   // Les libellés d'onglets prof sont dérivés dans TeacherTopTabs (pôles, audit D-4).
@@ -1297,11 +283,11 @@ function App() {
     fetchAll,
     forceLogout,
     activeMapId,
-    setTasks,
-    setTaskProjects,
-    setZones,
-    setPlants,
-    setMarkers,
+    setTasks: dataSync.setTasks,
+    setTaskProjects: dataSync.setTaskProjects,
+    setZones: dataSync.setZones,
+    setPlants: dataSync.setPlants,
+    setMarkers: dataSync.setMarkers,
     pauseDataRefreshRef: pauseDataRefreshForTaskOverlaysRef,
     allowWebsocket: publicSettings?.realtime?.allow_websocket === true,
   });
@@ -1310,39 +296,14 @@ function App() {
       ? 'polling'
       : rtStatus
     : rtStatus;
-  const isAdmin = effectiveRoleContext.roleSlug === 'admin';
 
-  useTabNavigationGuards({
-    tab,
-    setTab,
-    effectiveIsTeacher,
-    canAccessStudentMapTasks,
-    isVisitor,
-    shouldUseDesktopSplit,
-    canAccessForum,
-    canViewGeneralStats,
-    canAccessProfiles,
-    canAccessTutorials,
-    modules: publicSettings?.modules,
-    canManageIdKeys,
-    canManageIndividuals,
-    canManagePedagoSessions: canManageFoodWeb,
-    canManageFresque: canManageFoodWeb,
-  });
-
-  useEffect(() => {
-    if (effectiveIsTeacher || !isVisitor || !student) return;
-    const visitOk = publicSettings?.modules?.visit_enabled !== false;
-    if (['map', 'tasks', 'maptasks', 'tuto'].includes(tab)) {
-      setTab(visitOk ? 'visit' : 'plants');
-    }
-  }, [effectiveIsTeacher, isVisitor, student, tab, publicSettings?.modules?.visit_enabled, setTab]);
+  useAppTabGuards({ tab, setTab, access, shouldUseDesktopSplit, publicSettings, student });
 
   useAppDataPolling({
     fetchAll,
     tab,
     rtStatus,
-    refreshMs,
+    refreshMs: dataSync.refreshMs,
     isTabVisible,
     pauseRef: pauseDataRefreshForTaskOverlaysRef,
     liveMinIntervalMs: publicSettings?.runtime?.rest_poll_floor_ms,
@@ -1350,7 +311,7 @@ function App() {
   });
 
   const { hasUnread: hasForumUnread } = useForumUnread({
-    enabled: !!(student || effectiveIsTeacher || isClassTeacher) && canAccessForum,
+    enabled: !!(student || effectiveIsTeacher || isClassTeacher) && access.canAccessForum,
     userType: String(authClaims?.userType || '').toLowerCase(),
     userId: String(authClaims?.canonicalUserId || authClaims?.userId || ''),
     isForumOpen: tab === 'forum',
@@ -1358,32 +319,9 @@ function App() {
     isTabVisible,
   });
 
-  const updateZone = useCallback(
-    async (id, data) => {
-      await api(`/api/zones/${id}`, 'PUT', data);
-      await fetchAll();
-    },
-    [fetchAll],
-  );
-  const {
-    roleKey: notificationRoleKey,
-    items: notifications,
-    unreadCount: notificationsUnreadCount,
-    latestCritical: latestCriticalNotification,
-    prefs: notificationPrefs,
-    metrics: notificationMetrics,
-    addNotification,
-    updatePreference,
-    markAllRead,
-    markAsRead,
-    removeNotification,
-    clearRead,
-    trackOpenedPanel,
-    trackActionClick,
-    resetMetrics,
-  } = useNotificationCenter({
+  const notif = useNotificationCenter({
     isTeacher: effectiveIsTeacher,
-    isAdmin,
+    isAdmin: access.isAdmin,
     isClassTeacher,
     tasksForActiveMap,
     student: studentForUi,
@@ -1395,175 +333,34 @@ function App() {
     serverEnabled: hasAuthenticatedShell && !showPublicVisit,
   });
 
-  useToastNotificationBridge({ toast, addNotification });
+  useToastNotificationBridge({ toast, addNotification: notif.addNotification });
 
-  // Demandes de navigation précises (notification, lien direct) : chacune est servie une
-  // seule fois par la vue cible ; si l'élément reste introuvable, on le dit.
-  const [mapPlaceRequest, issueMapPlaceRequest, consumeMapPlaceRequest] = useConsumableRequest({
-    onExpire: () => setToast('Ce lieu n’est plus disponible (supprimé ou masqué).'),
+  // Demandes de navigation à usage unique (notification, lien direct `?tache=`…).
+  const requests = useAppTargetNavigation({
+    setToast,
+    setPlantCatalogPreview: pedago.setPlantCatalogPreview,
+    shouldUseDesktopSplit,
+    canAccessStudentMapTasks,
+    chooseMap,
+    navigateTab,
+    hasAuthenticatedShell,
+    loading,
+    markAsRead: notif.markAsRead,
+    trackActionClick: notif.trackActionClick,
+    studentForUi,
+    effectiveIsTeacher,
+    validateStudentSession,
   });
-  const [tasksFocusRequest, issueTasksFocusRequest, consumeTasksFocusRequest] =
-    useConsumableRequest({
-      onExpire: (req) =>
-        setToast(
-          req?.taskId
-            ? 'Cette tâche n’est plus disponible (supprimée, archivée ou hors de votre accès).'
-            : 'Impossible d’ouvrir la liste des tâches demandée.',
-        ),
-    });
-  const [forumThreadRequest, issueForumThreadRequest, consumeForumThreadRequest] =
-    useConsumableRequest({ timeoutMs: 0 });
-  const consumePedagoMapRouteRequest = useCallback(() => setPedagoMapRouteRequest(null), []);
+  const { openNotificationAction } = requests;
 
-  /**
-   * Ouvre l'élément visé par une notification ou un lien direct :
-   * `{ type: 'task'|'place'|'thread'|'settings', id, mapId, kind, postId, filter, section }`.
-   * @returns {boolean} `true` si la cible est reconnue.
-   */
-  const openTarget = useCallback(
-    (target) => {
-      const type = String(target?.type || '');
-      const id = target?.id != null ? String(target.id) : '';
-      const mapId = target?.mapId ? String(target.mapId) : '';
-      setPlantCatalogPreview(null);
-      const mapTasksTab = shouldUseDesktopSplit && canAccessStudentMapTasks ? 'maptasks' : null;
-      if (type === 'task') {
-        if (mapId) chooseMap(mapId);
-        issueTasksFocusRequest({ taskId: id || null, filter: target?.filter || null });
-        navigateTab(mapTasksTab || 'tasks');
-        return true;
-      }
-      if (type === 'place') {
-        if (!id) return false;
-        if (mapId) chooseMap(mapId);
-        issueMapPlaceRequest({
-          kind: target?.kind === 'marker' ? 'marker' : 'zone',
-          id,
-          mapId: mapId || null,
-        });
-        navigateTab(mapTasksTab || 'map');
-        return true;
-      }
-      if (type === 'thread') {
-        if (!id) return false;
-        issueForumThreadRequest({ id, postId: target?.postId || null });
-        navigateTab('forum');
-        return true;
-      }
-      if (type === 'settings') {
-        const section = String(target?.section || id || '').trim();
-        if (section) {
-          try {
-            sessionStorage.setItem('foretmap:settings:focus', section);
-          } catch (_) {
-            /* ignore */
-          }
-          window.dispatchEvent(new Event('foretmap:settings:focus'));
-        }
-        navigateTab('settings');
-        return true;
-      }
-      return false;
-    },
-    [
-      canAccessStudentMapTasks,
-      chooseMap,
-      issueForumThreadRequest,
-      issueMapPlaceRequest,
-      issueTasksFocusRequest,
-      navigateTab,
-      setPlantCatalogPreview,
-      shouldUseDesktopSplit,
-    ],
-  );
+  // O5 — valeurs des contextes Session / Data (mémoïsées).
+  const { sessionContextValue, dataContextValue } = useShellContextValues({
+    isN3Affiliated,
+    canParticipateContextComments: access.canParticipateContextComments,
+    dataSync,
+  });
 
-  // Lien direct (`?tache=`, `?lieu=`, `?fil=`) : appliqué une fois la session ouverte et
-  // les données chargées — la cible survit à l'écran de connexion (sessionStorage).
-  const [pendingDeepLink, setPendingDeepLink] = useState(() => consumeDeepLinkFromLocation());
-  useEffect(() => {
-    if (!pendingDeepLink || !hasAuthenticatedShell || loading) return;
-    const target = pendingDeepLink;
-    setPendingDeepLink(null);
-    clearPendingDeepLink();
-    openTarget(target);
-  }, [pendingDeepLink, hasAuthenticatedShell, loading, openTarget]);
-
-  const openNotificationAction = useCallback(
-    (item) => {
-      if (!item?.id) return;
-      markAsRead(item.id);
-      trackActionClick();
-      const action = item.action || {};
-      if (action.type === 'retryStudentValidation' && studentForUi && !effectiveIsTeacher) {
-        validateStudentSession(studentForUi);
-        return;
-      }
-      if (item.target && openTarget(item.target)) return;
-      if (action.target && openTarget(action.target)) return;
-      if (action.tab) {
-        navigateTab(action.tab);
-        return;
-      }
-    },
-    [
-      effectiveIsTeacher,
-      markAsRead,
-      navigateTab,
-      openTarget,
-      studentForUi,
-      trackActionClick,
-      validateStudentSession,
-    ],
-  );
-
-  // O5 — valeurs de session globales exposées par contexte (cf. SessionContext).
-  // NB : hasPermission/hasPermissionInRole restent en props (volontairement) — le chemin élève
-  // les omet pour forcer `() => false` ; un prof en « vue élève » garde ses droits réels, donc les
-  // exposer globalement ferait réapparaître des contrôles prof côté vue élève. Idem identités.
-  const sessionContextValue = useMemo(
-    () => ({
-      isN3Affiliated,
-      canParticipateContextComments,
-    }),
-    [isN3Affiliated, canParticipateContextComments],
-  );
-
-  // O5 — données partagées exposées par contexte (cf. DataContext). `maps` exclu (variante
-  // visibleMaps/maps) et VisitView exclu (noms de props distincts) : ces deux-là restent en props.
-  const dataContextValue = useMemo(
-    () => ({
-      zones,
-      markers,
-      plants,
-      tasks,
-      tutorials,
-      taskProjects,
-      archivedTasks,
-      archivedTaskProjects,
-      activeMapId,
-      loadArchivedTasks,
-    }),
-    [
-      zones,
-      markers,
-      plants,
-      tasks,
-      tutorials,
-      taskProjects,
-      archivedTasks,
-      archivedTaskProjects,
-      activeMapId,
-      loadArchivedTasks,
-    ],
-  );
-
-  const ltiArrivee =
-    typeof window !== 'undefined' &&
-    (() => {
-      const p = String(window.location.pathname || '').replace(/\/+$/, '');
-      return p === '/lti/arrivee' || p.endsWith('/lti/arrivee');
-    })();
-  if (ltiArrivee) {
+  if (isLtiArrivalLocation()) {
     return (
       <PublicSettingsProvider value={publicSettings}>
         <LtiArrivee />
@@ -1592,22 +389,16 @@ function App() {
         showPublicVisit={showPublicVisit}
         visitInitialMapId={visitInitialMapId}
         guestVisitNeedsMascotChoice={guestVisitNeedsMascotChoice}
-        onGuestBackToAuth={onGuestBackToAuth}
-        onGuestMascotChoiceDone={onGuestMascotChoiceDone}
-        onLogin={handleAuthScreenLogin}
-        onVisitGuest={handleVisitAsGuest}
+        onGuestBackToAuth={guestVisit.onGuestBackToAuth}
+        onGuestMascotChoiceDone={guestVisit.onGuestMascotChoiceDone}
+        onLogin={session.handleAuthScreenLogin}
+        onVisitGuest={guestVisit.handleVisitAsGuest}
         appVersion={appVersion}
-        footerVersionPrefix={appFooterVersionPrefix}
+        footerVersionPrefix={texts.footerVersionPrefix}
         isN3Affiliated={isN3Affiliated}
       />
     );
-  const currentUser =
-    (effectiveIsTeacher ? sessionUser : studentForUi) || sessionUser || fallbackUser;
-  const currentUserLabel =
-    currentUser?.pseudo ||
-    currentUser?.displayName ||
-    formatFullName(currentUser) ||
-    DEFAULT_USER_LABEL;
+  const { currentUser, currentUserLabel } = access;
   const activeMapPedagoLevel = normalizePedagoLevel(
     (Array.isArray(visibleMaps) ? visibleMaps : []).find(
       (m) => String(m?.id) === String(activeMapId),
@@ -1616,770 +407,187 @@ function App() {
   const userBiodivPedagoPref = normalizePedagoLevel(
     student?.biodiv_pedago_level ?? sessionUser?.biodiv_pedago_level,
   );
+  // Props communes aux deux tables de rendu par onglet (prof / apprenant).
+  const mainProps = {
+    tab,
+    appLoaderText: texts.loader,
+    useWideMain,
+    mapChromeCompactVisible,
+    useSplitMapTasks,
+    shouldUseDesktopSplit,
+    publicSettings,
+    appVersion,
+    isN3Affiliated,
+    access,
+    pedago,
+    requests,
+    dataSync,
+    session,
+    sessionUser,
+    authClaims,
+    updateZone: dataSync.updateZone,
+    navigateTab,
+    hasForumUnread,
+    handleMapLocationTasksFocus,
+    navigateToTasksForLocation,
+    onTaskFormOverlayOpenChange,
+    tasksLocationFocus,
+    setTasksLocationFocus,
+  };
 
-  const appTree = (
-    <PublicSettingsProvider value={publicSettings}>
-      <BiodivPedagoProvider
-        isGuestVisit={false}
-        userPreference={userBiodivPedagoPref}
-        mapLevel={activeMapPedagoLevel}
-        groupLevels={biodivGroupPedagoLevels}
-        classCurriculumNiveaux={biodivGroupCurriculumNiveaux}
-        sessionLevel={pedagoSession.imposedLevel}
-        sessionNotionNiveau={pedagoSession.imposedNotionNiveau}
-        canTeacherPreview={
-          effectiveIsTeacher || (canSwitchToStudentView && roleViewMode === 'student')
-        }
-        fullViewByDefault={effectiveIsTeacher || isClassTeacher}
-      >
-        <AppDialogsProvider>
-          <AppDialogsBridge dialogsRef={appDialogsRef} />
-          <SessionProvider value={sessionContextValue}>
-            <DataProvider value={dataContextValue}>
-              <TourProvider
-                tab={tab}
-                isTeacher={effectiveIsTeacher}
-                isClassTeacher={isClassTeacher}
-                enabled={discoveryTourAutoEnabled}
-                accountSeen={discoveryTourSeen}
-                accountSeenReady={discoveryTourSeenReady}
-                onTourSeen={persistDiscoveryTourSeen}
-              >
-                <div
-                  id="app"
-                  style={foretBrandStyle}
-                  data-brand-logo={foretBrand.logoUrl || undefined}
-                >
-                  {/* Fiche rapide du glossaire : hors des onglets et hors des modales, pour
-                  survivre à tout changement de vue et se poser au-dessus de l'aperçu
-                  de tutoriel (audit A1). */}
-                  {glossaryPopoverCode && (
-                    <GlossaryPopover
-                      open
-                      glossaryCode={glossaryPopoverCode}
-                      onClose={closeGlossaryPopover}
-                      onOpenFullGlossary={openPedagoGlossaryTerm}
-                      showFullGlossaryLink={tab !== 'glossary'}
-                    />
-                  )}
-                  {pedagoSessionsAvailable && activePedagoSession && pedagoSessionCurrentStep && (
-                    <PedagoSessionBanner
-                      sessionTitle={activePedagoSession.title}
-                      step={pedagoSessionCurrentStep}
-                      stepIndex={activePedagoSession.stepIndex}
-                      stepCount={activePedagoSession.steps.length}
-                      onPrev={() => goPedagoSessionStep(-1)}
-                      onNext={() => goPedagoSessionStep(1)}
-                      onExit={exitPedagoSession}
-                      onShowMessage={() => navigateTab('sessions')}
-                    />
-                  )}
-                  {completedPedagoSession && (
-                    <PedagoSessionDoneDialog
-                      session={completedPedagoSession}
-                      showRewards={rewardsModuleEnabled}
-                      canAddToNotebook={
-                        pedagoAuthenticated &&
-                        publicSettings?.modules?.observations_enabled !== false
-                      }
-                      onClose={() => setCompletedPedagoSession(null)}
-                      onOpenNotebook={() => {
-                        setCompletedPedagoSession(null);
-                        navigateTab('notebook');
-                      }}
-                    />
-                  )}
-                  {plantCatalogPreview && (
-                    <Suspense fallback={null}>
-                      <PlantCatalogPreviewModalLazy
-                        plant={plantCatalogPreview}
-                        maps={visibleMaps}
-                        onClose={() => setPlantCatalogPreview(null)}
-                        onForceLogout={forceLogout}
-                        onOpenPlant={openPlantCatalogPreviewById}
-                        onOpenGlossaryTerm={openGlossaryPopover}
-                        onNavigateToFoodWeb={openPedagoFoodWeb}
-                        onOpenQuizQuestion={openPedagoQuizQuestion}
-                      />
-                    </Suspense>
-                  )}
-                  {showIosInstallHint && !deferredInstallPrompt && !isStandaloneMode && (
-                    <div className="fade-in install-ios-banner" role="status" aria-live="polite">
-                      <span>
-                        Pour installer ForetMap sur iPhone ou iPad : ouvre Safari, touche Partager,
-                        puis « Sur l’écran d’accueil ».
-                      </span>
-                      <button
-                        type="button"
-                        className="btn btn-ghost btn-sm"
-                        onClick={() => {
-                          safeLocalStorageSetItem(IOS_INSTALL_HINT_DISMISSED_KEY, '1');
-                          setShowIosInstallHint(false);
-                        }}
-                      >
-                        Masquer
-                      </button>
-                    </div>
-                  )}
-                  {!deviceOnline && (
-                    <NoticeBanner tone="info">
-                      {offlineBannerText(
-                        lastSyncAt,
-                        Date.now(),
-                        networkMode === 'unreachable' ? 'unreachable' : 'offline',
-                      )}
-                      {hasAuthenticatedShell ? (
-                        <button
-                          type="button"
-                          className="btn btn-sm"
-                          style={{ marginLeft: 10, verticalAlign: 'middle', minHeight: 44 }}
-                          onClick={() => setOfflineCenterOpen(true)}
-                        >
-                          {offlineOutbox.entries.length > 0
-                            ? `En attente (${offlineOutbox.entries.length})`
-                            : 'Détails'}
-                        </button>
-                      ) : null}
-                    </NoticeBanner>
-                  )}
-                  {deviceOnline && serverDown && (
-                    <NoticeBanner tone="warning">
-                      {appServerDownNotice}
-                      {/* Bouton rendu ici (plutôt que via `action`) pour pouvoir le désactiver
-                      pendant la tentative et garantir une cible tactile ≥ 44px. */}
-                      <button
-                        type="button"
-                        className="btn btn-sm"
-                        style={{ marginLeft: 10, verticalAlign: 'middle', minHeight: 44 }}
-                        onClick={retryServerNow}
-                        disabled={retryingServer}
-                      >
-                        {appRetryNow}
-                      </button>
-                    </NoticeBanner>
-                  )}
-                  {!serverDown && swUpdate && (
-                    <NoticeBanner tone="info">
-                      <strong>Une nouvelle version est disponible.</strong> Rechargez quand cela
-                      vous arrange — votre travail en cours n’est pas interrompu.
-                      {/* Bouton rendu ici (plutôt que via `action`) pour garantir une cible
-                      tactile ≥ 44px, comme le bandeau « serveur indisponible ». */}
-                      <button
-                        type="button"
-                        className="btn btn-sm"
-                        style={{ marginLeft: 10, verticalAlign: 'middle', minHeight: 44 }}
-                        onClick={swUpdate.apply}
-                      >
-                        Recharger
-                      </button>
-                    </NoticeBanner>
-                  )}
-                  {!serverDown && latestCriticalNotification && (
-                    <div className="fade-in notif-critical-banner" role="alert">
-                      <strong>{latestCriticalNotification.title}</strong>{' '}
-                      {latestCriticalNotification.message}
-                      {isNotificationActionable(latestCriticalNotification) && (
-                        <button
-                          type="button"
-                          className="btn btn-sm notif-critical-banner__action"
-                          onClick={() => openNotificationAction(latestCriticalNotification)}
-                        >
-                          {notificationActionLabel(latestCriticalNotification) || 'Ouvrir'}
-                        </button>
-                      )}
-                    </div>
-                  )}
-                  {sessionValidationError && studentForUi && !effectiveIsTeacher && (
-                    <NoticeBanner
-                      tone="info"
-                      action={{
-                        label: 'Réessayer',
-                        onClick: () => {
-                          setSessionValidationError(false);
-                          validateStudentSession(studentForUi);
-                        },
-                      }}
-                    >
-                      <strong>Session pas encore recollée au serveur.</strong> Les infos peuvent
-                      être un peu vieilles — un clic pour rafraîchir.
-                    </NoticeBanner>
-                  )}
-                  <AppStatusSticky />
-                  {offlineCenterOpen && hasAuthenticatedShell ? (
-                    <OfflineCenterDialog
-                      onClose={() => setOfflineCenterOpen(false)}
-                      entries={offlineOutbox.entries}
-                      networkMode={networkMode}
-                      lastSyncAt={lastSyncAt}
-                      onFlushNow={offlineOutbox.flushNow}
-                      onPrepareFieldTrip={prepareFieldTripNow}
-                      onToast={setToast}
-                    />
-                  ) : null}
-                  {toast && (
-                    <Toast
-                      msg={toast}
-                      onDone={handleToastDone}
-                      durationMs={oauthFeedbackDurationMs(toast)}
-                    />
-                  )}
-                  {profilePromotion &&
-                    !effectiveIsTeacher &&
-                    studentForUi &&
-                    !studentForUi.preview_mode && (
-                      <AutoProfilePromotionModal
-                        data={profilePromotion}
-                        roleTerms={roleTerms}
-                        onClose={() => setProfilePromotion(null)}
-                      />
-                    )}
-                  {showPin && (
-                    <PinModal
-                      onSuccess={() => {
-                        setPinSuccessFetchAllTick((n) => n + 1);
-                        setAuthClaims(getAuthClaims());
-                        setShowPin(false);
-                        setToast('Connexion professeur réussie, tout roule');
-                      }}
-                      onClose={() => setShowPin(false)}
-                      uiSettings={publicSettings}
-                      isN3Affiliated={isN3Affiliated}
-                    />
-                  )}
-                  {showStats && canOpenUserDialogs && (
-                    <AppUserDialog
-                      open={showStats}
-                      onClose={handleCloseStatsDialog}
-                      ariaLabel="Statistiques utilisateur"
-                      closeLabel="Fermer la fenêtre des statistiques"
-                    >
-                      <StudentStatsLazy student={statsDialogTarget} />
-                    </AppUserDialog>
-                  )}
-                  {showProfile && canOpenUserDialogs && profileTargetUser && (
-                    <AppUserDialog
-                      open={showProfile}
-                      onClose={handleCloseProfileDialog}
-                      ariaLabel="Profil utilisateur"
-                      closeLabel="Fermer la fenêtre du profil"
-                    >
-                      <StudentProfileEditorLazy
-                        student={profileTargetUser}
-                        onUpdated={handleProfileUpdated}
-                        onClose={handleCloseProfileDialog}
-                      />
-                    </AppUserDialog>
-                  )}
+  return (
+    <AppProviders
+      pedagoSession={pedagoSession}
+      publicSettings={publicSettings}
+      biodiv={{
+        userPreference: userBiodivPedagoPref,
+        mapLevel: activeMapPedagoLevel,
+        groupLevels: session.biodivGroupPedagoLevels,
+        classCurriculumNiveaux: session.biodivGroupCurriculumNiveaux,
+        sessionLevel: pedagoSession.imposedLevel,
+        sessionNotionNiveau: pedagoSession.imposedNotionNiveau,
+        canTeacherPreview:
+          effectiveIsTeacher || (canSwitchToStudentView && roleViewMode === 'student'),
+        fullViewByDefault: effectiveIsTeacher || isClassTeacher,
+      }}
+      dialogsRef={appDialogsRef}
+      sessionContextValue={sessionContextValue}
+      dataContextValue={dataContextValue}
+      tour={{
+        tab,
+        isTeacher: effectiveIsTeacher,
+        isClassTeacher,
+        enabled: discoveryTourAutoEnabled,
+        accountSeen: session.discoveryTourSeen,
+        accountSeenReady: session.discoveryTourSeenReady,
+        onTourSeen: session.persistDiscoveryTourSeen,
+      }}
+    >
+      <div id="app" style={foretBrandStyle} data-brand-logo={foretBrand.logoUrl || undefined}>
+        <AppPedagoOverlays
+          tab={tab}
+          pedago={pedago}
+          pedagoSessionsAvailable={pedagoSessionsAvailable}
+          rewardsModuleEnabled={rewardsModuleEnabled}
+          canAddToNotebook={
+            pedagoAuthenticated && publicSettings?.modules?.observations_enabled !== false
+          }
+          visibleMaps={visibleMaps}
+          navigateTab={navigateTab}
+          forceLogout={forceLogout}
+        />
+        <AppNoticeBanners
+          pwa={pwa}
+          offline={offline}
+          dataSync={dataSync}
+          texts={texts}
+          hasAuthenticatedShell={hasAuthenticatedShell}
+          latestCriticalNotification={notif.latestCritical}
+          openNotificationAction={openNotificationAction}
+          sessionValidationError={sessionValidationError}
+          setSessionValidationError={setSessionValidationError}
+          studentForUi={studentForUi}
+          effectiveIsTeacher={effectiveIsTeacher}
+          validateStudentSession={validateStudentSession}
+        />
+        <AppGlobalModals
+          offline={offline}
+          dialogs={dialogs}
+          access={access}
+          hasAuthenticatedShell={hasAuthenticatedShell}
+          lastSyncAt={dataSync.lastSyncAt}
+          setToast={setToast}
+          toast={toast}
+          onToastDone={handleToastDone}
+          profilePromotion={profilePromotion}
+          setProfilePromotion={setProfilePromotion}
+          roleTerms={roleTerms}
+          onPinSuccess={() => {
+            setPinSuccessFetchAllTick((n) => n + 1);
+            setAuthClaims(getAuthClaims());
+            setShowPin(false);
+            setToast('Connexion professeur réussie, tout roule');
+          }}
+          publicSettings={publicSettings}
+          isN3Affiliated={isN3Affiliated}
+          statsDialogTarget={statsDialogTarget}
+          onProfileUpdated={session.handleProfileUpdated}
+          rewardsCelebrationEnabled={
+            rewardsModuleEnabled && pedagoAuthenticated && !access.isPreviewStudentView
+          }
+        />
 
-                  {/* Badges pas encore vus : fêtés à l'arrivée, avec OLU (module « Récompenses »). */}
-                  <RewardsCelebrationHost
-                    enabled={rewardsModuleEnabled && pedagoAuthenticated && !isPreviewStudentView}
-                  />
+        <AppHeader
+          isStandaloneMode={pwa.isStandaloneMode}
+          deferredInstallPrompt={pwa.deferredInstallPrompt}
+          onInstallClick={pwa.handleInstallClick}
+          isTeacher={isTeacher}
+          effectiveIsTeacher={effectiveIsTeacher}
+          appVersion={appVersion}
+          teacherSyncStatus={teacherSyncStatus}
+          publicSettings={publicSettings}
+          notificationRoleKey={notif.roleKey}
+          notifications={notif.items}
+          notificationsUnreadCount={notif.unreadCount}
+          notificationPrefs={notif.prefs}
+          notificationMetrics={notif.metrics}
+          onNotificationTogglePref={notif.updatePreference}
+          onNotificationOpenAction={openNotificationAction}
+          onNotificationMarkAsRead={notif.markAsRead}
+          onNotificationMarkAllRead={notif.markAllRead}
+          onNotificationRemove={notif.removeNotification}
+          onNotificationClearRead={notif.clearRead}
+          onNotificationOpenPanel={notif.trackOpenedPanel}
+          onNotificationResetMetrics={notif.resetMetrics}
+          currentUser={currentUser}
+          currentUserLabel={currentUserLabel}
+          canOpenUserDialogs={access.canOpenUserDialogs}
+          canOpenTeacherStatsFromBadge={access.canOpenTeacherStatsFromBadge}
+          roleTerms={roleTerms}
+          onOpenStats={dialogs.handleOpenStatsDialog}
+          onOpenTeacherStatsTab={tabNav.handleOpenTeacherStatsTab}
+          onOpenProfile={dialogs.handleOpenProfileDialog}
+          roleViewMode={roleViewMode}
+          canSwitchToStudentView={canSwitchToStudentView}
+          canSwitchToTeacherView={access.canSwitchToTeacherView}
+          onRoleViewModeSelect={handleRoleViewModeSelect}
+          isTeacherAccount={isTeacherAccount}
+          onRequestPin={dialogs.handleRequestPin}
+          onLogout={session.handleLogout}
+          helpText={helpText}
+          offlineCenter={offline.headerOfflineCenter}
+        />
 
-                  <AppHeader
-                    isStandaloneMode={isStandaloneMode}
-                    deferredInstallPrompt={deferredInstallPrompt}
-                    onInstallClick={handleInstallClick}
-                    isTeacher={isTeacher}
-                    effectiveIsTeacher={effectiveIsTeacher}
-                    appVersion={appVersion}
-                    teacherSyncStatus={teacherSyncStatus}
-                    publicSettings={publicSettings}
-                    notificationRoleKey={notificationRoleKey}
-                    notifications={notifications}
-                    notificationsUnreadCount={notificationsUnreadCount}
-                    notificationPrefs={notificationPrefs}
-                    notificationMetrics={notificationMetrics}
-                    onNotificationTogglePref={updatePreference}
-                    onNotificationOpenAction={openNotificationAction}
-                    onNotificationMarkAsRead={markAsRead}
-                    onNotificationMarkAllRead={markAllRead}
-                    onNotificationRemove={removeNotification}
-                    onNotificationClearRead={clearRead}
-                    onNotificationOpenPanel={trackOpenedPanel}
-                    onNotificationResetMetrics={resetMetrics}
-                    currentUser={currentUser}
-                    currentUserLabel={currentUserLabel}
-                    canOpenUserDialogs={canOpenUserDialogs}
-                    canOpenTeacherStatsFromBadge={canOpenTeacherStatsFromBadge}
-                    roleTerms={roleTerms}
-                    onOpenStats={handleOpenStatsDialog}
-                    onOpenTeacherStatsTab={handleOpenTeacherStatsTab}
-                    onOpenProfile={handleOpenProfileDialog}
-                    roleViewMode={roleViewMode}
-                    canSwitchToStudentView={canSwitchToStudentView}
-                    canSwitchToTeacherView={canSwitchToTeacherView}
-                    onRoleViewModeSelect={handleRoleViewModeSelect}
-                    isTeacherAccount={isTeacherAccount}
-                    onRequestPin={handleRequestPin}
-                    onLogout={handleLogout}
-                    helpText={helpText}
-                    offlineCenter={
-                      hasAuthenticatedShell
-                        ? {
-                            pendingCount: offlineOutbox.pendingCount,
-                            refusedCount: offlineOutbox.refusedCount,
-                            networkMode,
-                            onOpen: () => setOfflineCenterOpen(true),
-                          }
-                        : null
-                    }
-                  />
+        <RolePreviewBanners
+          authClaims={authClaims}
+          sessionUser={sessionUser}
+          isTeacher={isTeacher}
+          roleViewMode={roleViewMode}
+          roleTerms={roleTerms}
+          helpText={helpText}
+          onStopImpersonation={session.stopAdminImpersonation}
+          onRoleViewModeSelect={handleRoleViewModeSelect}
+        />
 
-                  <RolePreviewBanners
-                    authClaims={authClaims}
-                    sessionUser={sessionUser}
-                    isTeacher={isTeacher}
-                    roleViewMode={roleViewMode}
-                    roleTerms={roleTerms}
-                    helpText={helpText}
-                    onStopImpersonation={stopAdminImpersonation}
-                    onRoleViewModeSelect={handleRoleViewModeSelect}
-                  />
-
-                  {effectiveIsTeacher ? (
-                    /* `<main>` et non `<div>` : sans repère principal, `axe` signalait
-                     `landmark-one-main` sur tous les écrans et `region` sur CHAQUE bloc de
-                     contenu hors repère — 401 nœuds sur les tâches, 522 sur la biodiversité.
-                     Les styles ciblent la classe, pas la balise : rendu inchangé.
-                     Cf. `docs/AUDIT_VISITE_UI_UX_2026-09.md` §6. */
-                    <main
-                      className={`main teacher-main app-main-shell app-main-shell--teacher ${useWideMain ? 'main--wide' : ''} ${mapChromeCompactVisible ? 'teacher-main--map-visible' : ''} ${useSplitMapTasks ? 'main--maptasks-split' : ''}`}
-                    >
-                      <TeacherTopTabs
-                        tab={tab}
-                        onTabChange={handleTeacherTabChange}
-                        shouldUseDesktopSplit={shouldUseDesktopSplit}
-                        teacherPendingValidationCount={teacherPendingValidationCount}
-                        tutorialsModuleEnabled={tutorialsModuleEnabled}
-                        statsEnabled={publicSettings?.modules?.stats_enabled !== false}
-                        visitEnabled={publicSettings?.modules?.visit_enabled !== false}
-                        observationsEnabled={
-                          publicSettings?.modules?.observations_enabled !== false
-                        }
-                        idKeysEnabled={idKeysAvailable}
-                        pedagoSessionsEnabled={pedagoSessionsAvailable}
-                        individualsEnabled={individualsAvailable}
-                        fresqueEnabled={fresqueAvailable}
-                        canAccessForum={canAccessForum}
-                        hasForumUnread={hasForumUnread}
-                        isN3Affiliated={isN3Affiliated}
-                        hasPermission={hasPermission}
-                        hasPermissionInRole={hasPermissionInRole}
-                      />
-                      {loading ? (
-                        <AppLoader text={appLoaderText} style={FULL_PAGE_LOADER_STYLE} />
-                      ) : (
-                        <>
-                          <MapTasksArea
-                            mapRouteRequest={pedagoMapRouteRequest}
-                            onMapRouteRequestHandled={consumePedagoMapRouteRequest}
-                            mapPlaceRequest={mapPlaceRequest}
-                            onMapPlaceRequestHandled={consumeMapPlaceRequest}
-                            tasksFocusRequest={tasksFocusRequest}
-                            onTasksFocusRequestHandled={consumeTasksFocusRequest}
-                            onStartPedagoSession={
-                              pedagoSessionsAvailable ? launchPedagoSession : null
-                            }
-                            isTeacher
-                            student={currentUser}
-                            maps={visibleMaps}
-                            onMapChange={chooseMap}
-                            useSplitMapTasks={useSplitMapTasks}
-                            tab={tab}
-                            tutorialsModuleEnabled={tutorialsModuleEnabled}
-                            canAccessSoloMapTasks
-                            canSelfAssignTasks
-                            canViewOtherUsersIdentity
-                            hasPermission={hasPermission}
-                            hasPermissionInRole={hasPermissionInRole}
-                            onZoneUpdate={updateZone}
-                            onRefresh={fetchAll}
-                            onForceLogout={forceLogout}
-                            onLocationTasksFocus={handleMapLocationTasksFocus}
-                            onNavigateToTasksForLocation={
-                              effectiveIsTeacher || canAccessStudentMapTasks
-                                ? navigateToTasksForLocation
-                                : undefined
-                            }
-                            onTaskFormOverlayOpenChange={onTaskFormOverlayOpenChange}
-                            mapLocationFocus={tasksLocationFocus}
-                            onMapLocationFocusChange={setTasksLocationFocus}
-                            onOpenPlantCatalogPreview={openPlantCatalogPreviewById}
-                            onPersistVisitMascotId={onPersistVisitMascotId}
-                          />
-                          {tab === 'plants' && (
-                            <TabSuspense>
-                              <PlantManagerLazy
-                                onRefresh={fetchAll}
-                                onForceLogout={forceLogout}
-                                onOpenPlant={openPlantCatalogPreviewById}
-                                maps={visibleMaps}
-                                onActiveMapChange={setActiveMapId}
-                                canValidateHazards={hasPermissionInRole('plants.hazards.validate')}
-                              />
-                            </TabSuspense>
-                          )}
-                          {publicSettings?.modules?.tutorials_enabled !== false &&
-                            tab === 'tuto' && (
-                              <TabSuspense>
-                                <TutorialsViewLazy
-                                  maps={visibleMaps}
-                                  isTeacher
-                                  onRefresh={fetchAll}
-                                  onForceLogout={forceLogout}
-                                />
-                              </TabSuspense>
-                            )}
-                          {publicSettings?.modules?.stats_enabled !== false &&
-                            tab === 'stats' &&
-                            (canReadStats ? (
-                              <TabSuspense>
-                                <TeacherStatsLazy
-                                  canReadAllStats={hasPermission('stats.read.all')}
-                                  classTeacherMode={isClassTeacher}
-                                />
-                              </TabSuspense>
-                            ) : (
-                              <div className="empty">
-                                <p>
-                                  Pas l’accès stats ici — demande un coup de main côté n3boss si
-                                  besoin.
-                                </p>
-                              </div>
-                            ))}
-                          {tab === 'profiles' && (
-                            <TabSuspense>
-                              <ProfilesAdminViewLazy
-                                onImpersonationApplied={handleAdminImpersonationApplied}
-                              />
-                            </TabSuspense>
-                          )}
-                          {tab === 'audit' &&
-                            (hasPermission('audit.read') ? (
-                              <TabSuspense>
-                                <AuditLogLazy
-                                  canReadSecurity={hasPermission('audit.security.read')}
-                                />
-                              </TabSuspense>
-                            ) : (
-                              <div className="empty">
-                                <p>
-                                  Journal d’audit réservé — il te manque un droit pour l’ouvrir.
-                                </p>
-                              </div>
-                            ))}
-                          {publicSettings?.modules?.visit_enabled !== false &&
-                            tab === 'mascot_packs' && (
-                              <div
-                                className="mascot-pack-studio-page"
-                                style={{ padding: '12px 16px 24px' }}
-                              >
-                                <h2 className="section-title" style={{ marginTop: 0 }}>
-                                  Packs mascotte (visite)
-                                </h2>
-                                <p className="section-sub" style={{ marginBottom: 14 }}>
-                                  Les packs publiés sont proposés aux visiteurs sur{' '}
-                                  <strong>toutes les cartes</strong> de la visite.
-                                </p>
-                                <Suspense
-                                  fallback={
-                                    <AppLoader
-                                      text="Chargement de l’éditeur packs mascotte…"
-                                      style={MASCOT_PACK_LOADER_STYLE}
-                                      textClassName="section-sub"
-                                    />
-                                  }
-                                >
-                                  <VisitMascotPackManagerLazy
-                                    variant="page"
-                                    onPacksChanged={fetchAll}
-                                    onForceLogout={forceLogout}
-                                    mascotDialogSettings={publicSettings?.visit?.mascot?.dialog}
-                                    onDirtyChange={onMascotPackDirtyChange}
-                                  />
-                                </Suspense>
-                              </div>
-                            )}
-                          {tab === 'settings' && (
-                            <TabSuspense>
-                              <SettingsAdminViewLazy
-                                canReadSettings={hasPermissionInRole('admin.settings.read')}
-                                canWriteSettings={hasPermissionInRole('admin.settings.write')}
-                                canManageTours={hasPermissionInRole('tours.manage')}
-                                canManageMoodle={hasPermissionInRole('integrations.moodle.manage')}
-                                canManageZones={hasPermissionInRole('zones.manage')}
-                                canManageMarkers={hasPermissionInRole('map.manage_markers')}
-                                canWriteSecrets={hasPermissionInRole(
-                                  'admin.settings.secrets.write',
-                                )}
-                              />
-                            </TabSuspense>
-                          )}
-                          {tab === 'media_library' && (
-                            <TabSuspense>
-                              <MediaLibraryViewLazy canManage={canManageMediaLibrary} />
-                            </TabSuspense>
-                          )}
-                          {publicSettings?.modules?.observations_enabled !== false &&
-                            tab === 'notebook' &&
-                            (sessionUser?.id || authClaims?.userId) && (
-                              <TabSuspense>
-                                <ObservationNotebookLazy
-                                  zones={zones}
-                                  isTeacher={isTeacher}
-                                  onForceLogout={forceLogout}
-                                  onNavigateTab={(nav) => {
-                                    if (nav?.tab) navigateTab(nav.tab);
-                                  }}
-                                />
-                              </TabSuspense>
-                            )}
-                          {tab === 'forum' && canAccessForum && (
-                            <TabSuspense>
-                              <ForumViewLazy
-                                authClaims={authClaims}
-                                canParticipateForum
-                                threadRequest={forumThreadRequest}
-                                onThreadRequestHandled={consumeForumThreadRequest}
-                              />
-                            </TabSuspense>
-                          )}
-                          <PedagoTabs
-                            isTeacher
-                            tab={tab}
-                            visitEnabled={publicSettings?.modules?.visit_enabled !== false}
-                            student={currentUser}
-                            tutorials={tutorials}
-                            activeMapId={activeMapId}
-                            zones={zones}
-                            markers={markers}
-                            onForceLogout={forceLogout}
-                            onOpenMascotPackStudioTab={openMascotPackStudioTab}
-                            onOpenPlantCatalogPreview={openPlantCatalogPreviewById}
-                            onPersistVisitMascotId={onPersistVisitMascotId}
-                            onOpenGlossaryTerm={openGlossaryPopover}
-                            onOpenQuizQuestion={openPedagoQuizQuestion}
-                            glossarySelectedCode={pedagoGlossaryCode}
-                            onGlossarySelectedCodeChange={setPedagoGlossaryCode}
-                            canManageQuiz={canManageQuiz}
-                            quizInitialQuestionCode={pedagoQuizQuestionCode}
-                            quizInitialNotionId={pedagoQuizNotionId}
-                            quizInitialNotionNiveau={pedagoQuizNotionNiveau}
-                            idKeysInitialKey={pedagoIdKeysInitialKey}
-                            maps={visibleMaps}
-                            foodWebHighlightPlantId={foodWebHighlightPlantId}
-                            canManageFoodWeb={canManageFoodWeb}
-                            canManageIdKeys={canManageIdKeys}
-                            canManageIndividuals={canManageIndividuals}
-                            canMeasureIndividuals={canMeasureIndividuals}
-                            appVersion={appVersion}
-                            canReadSiteIssues={hasPermissionInRole('admin.settings.read')}
-                            canReadTeacherGuide={
-                              hasPermissionInRole('reference_docs.teacher_guide.read') ||
-                              hasPermissionInRole('admin.settings.read')
-                            }
-                            onOpenSettingsLearning={handleOpenSettingsLearning}
-                            sessionsProps={sessionsProps}
-                            pedagoEntry={pedagoEntry}
-                            idKeysEnabled={idKeysAvailable}
-                            individualsEnabled={individualsAvailable}
-                            pedagoSessionsEnabled={pedagoSessionsAvailable}
-                            idKeysOffForLearners={pedagoModuleAccess.idKeys.learnerOff}
-                            individualsOffForLearners={pedagoModuleAccess.individuals.learnerOff}
-                            pedagoSessionsOffForLearners={
-                              pedagoModuleAccess.pedagoSessions.learnerOff
-                            }
-                            fresqueEnabled={fresqueAvailable}
-                            fresqueOffForLearners={pedagoModuleAccess.fresque.learnerOff}
-                            fresqueProps={fresqueProps}
-                          />
-                        </>
-                      )}
-                    </main>
-                  ) : (
-                    <>
-                      <main
-                        className={`main app-main-shell app-main-shell--student ${useWideMain ? 'main--wide' : ''} ${mapChromeCompactVisible ? 'main--map-visible' : ''} ${useSplitMapTasks ? 'main--maptasks-split' : ''}`}
-                      >
-                        {loading ? (
-                          <AppLoader text={appLoaderText} style={FULL_PAGE_LOADER_STYLE} />
-                        ) : (
-                          <>
-                            <MapTasksArea
-                              mapRouteRequest={pedagoMapRouteRequest}
-                              onMapRouteRequestHandled={consumePedagoMapRouteRequest}
-                              mapPlaceRequest={mapPlaceRequest}
-                              onMapPlaceRequestHandled={consumeMapPlaceRequest}
-                              tasksFocusRequest={tasksFocusRequest}
-                              onTasksFocusRequestHandled={consumeTasksFocusRequest}
-                              onStartPedagoSession={
-                                pedagoSessionsAvailable ? launchPedagoSession : null
-                              }
-                              isTeacher={false}
-                              student={studentForUi}
-                              maps={visibleMaps}
-                              onMapChange={chooseMap}
-                              useSplitMapTasks={useSplitMapTasks}
-                              tab={tab}
-                              tutorialsModuleEnabled={tutorialsModuleEnabled}
-                              canAccessSoloMapTasks={canAccessStudentMapTasks}
-                              splitMapCanSelfAssignTasks={canSelfAssignTasks}
-                              canSelfAssignTasks={canSelfAssignTasks}
-                              canEnrollOnTasks={canSelfAssignMoreTasks}
-                              canViewOtherUsersIdentity={canViewOtherUsersIdentity}
-                              onZoneUpdate={updateZone}
-                              onRefresh={fetchAll}
-                              onForceLogout={forceLogout}
-                              onLocationTasksFocus={handleMapLocationTasksFocus}
-                              onNavigateToTasksForLocation={navigateToTasksForLocation}
-                              onTaskFormOverlayOpenChange={onTaskFormOverlayOpenChange}
-                              mapLocationFocus={tasksLocationFocus}
-                              onMapLocationFocusChange={setTasksLocationFocus}
-                              onOpenPlantCatalogPreview={openPlantCatalogPreviewById}
-                              onPersistVisitMascotId={onPersistVisitMascotId}
-                            />
-                            {tab === 'plants' && (
-                              <TabSuspense>
-                                <PlantViewerLazy
-                                  onForceLogout={forceLogout}
-                                  onOpenPlant={openPlantCatalogPreviewById}
-                                  maps={visibleMaps}
-                                  onActiveMapChange={setActiveMapId}
-                                />
-                              </TabSuspense>
-                            )}
-                            {publicSettings?.modules?.tutorials_enabled !== false &&
-                              tab === 'tuto' && (
-                                <TabSuspense>
-                                  <TutorialsViewLazy
-                                    maps={visibleMaps}
-                                    isTeacher={false}
-                                    onRefresh={fetchAll}
-                                    onForceLogout={forceLogout}
-                                  />
-                                </TabSuspense>
-                              )}
-                            {tab === 'stats' && canViewGeneralStats && (
-                              <TabSuspense>
-                                <TeacherStatsLazy
-                                  canReadAllStats={hasPermission('stats.read.all')}
-                                  classTeacherMode={isClassTeacher}
-                                />
-                              </TabSuspense>
-                            )}
-                            {tab === 'profiles' && canAccessProfiles && (
-                              <TabSuspense>
-                                <ProfilesAdminViewLazy
-                                  onImpersonationApplied={handleAdminImpersonationApplied}
-                                />
-                              </TabSuspense>
-                            )}
-                            {publicSettings?.modules?.observations_enabled !== false &&
-                              tab === 'notebook' &&
-                              (studentForUi?.id || sessionUser?.id || authClaims?.userId) && (
-                                <TabSuspense>
-                                  <ObservationNotebookLazy
-                                    zones={zones}
-                                    isTeacher={isTeacher}
-                                    onForceLogout={forceLogout}
-                                    onNavigateTab={(nav) => {
-                                      if (nav?.tab) navigateTab(nav.tab);
-                                    }}
-                                  />
-                                </TabSuspense>
-                              )}
-                            {tab === 'forum' && canAccessForum && (
-                              <TabSuspense>
-                                <ForumViewLazy
-                                  authClaims={authClaims}
-                                  canParticipateForum={canParticipateForum}
-                                  threadRequest={forumThreadRequest}
-                                  onThreadRequestHandled={consumeForumThreadRequest}
-                                />
-                              </TabSuspense>
-                            )}
-                            <PedagoTabs
-                              isTeacher={false}
-                              tab={tab}
-                              visitEnabled={publicSettings?.modules?.visit_enabled !== false}
-                              student={studentForUi || (isTeacherAccount ? sessionUser : null)}
-                              tutorials={tutorials}
-                              activeMapId={activeMapId}
-                              zones={zones}
-                              markers={markers}
-                              onForceLogout={forceLogout}
-                              onOpenPlantCatalogPreview={openPlantCatalogPreviewById}
-                              onPersistVisitMascotId={onPersistVisitMascotId}
-                              onOpenGlossaryTerm={openGlossaryPopover}
-                              onOpenQuizQuestion={openPedagoQuizQuestion}
-                              glossarySelectedCode={pedagoGlossaryCode}
-                              onGlossarySelectedCodeChange={setPedagoGlossaryCode}
-                              quizInitialQuestionCode={pedagoQuizQuestionCode}
-                              quizInitialNotionId={pedagoQuizNotionId}
-                              quizInitialNotionNiveau={pedagoQuizNotionNiveau}
-                              idKeysInitialKey={pedagoIdKeysInitialKey}
-                              maps={visibleMaps}
-                              foodWebHighlightPlantId={foodWebHighlightPlantId}
-                              canManageFoodWeb={canManageFoodWeb}
-                              canManageIdKeys={canManageIdKeys}
-                              canManageIndividuals={canManageIndividuals}
-                              canMeasureIndividuals={canMeasureIndividuals}
-                              appVersion={appVersion}
-                              sessionsProps={sessionsProps}
-                              pedagoEntry={pedagoEntry}
-                              idKeysEnabled={idKeysAvailable}
-                              individualsEnabled={individualsAvailable}
-                              pedagoSessionsEnabled={pedagoSessionsAvailable}
-                              idKeysOffForLearners={pedagoModuleAccess.idKeys.learnerOff}
-                              individualsOffForLearners={pedagoModuleAccess.individuals.learnerOff}
-                              pedagoSessionsOffForLearners={
-                                pedagoModuleAccess.pedagoSessions.learnerOff
-                              }
-                              fresqueEnabled={fresqueAvailable}
-                              fresqueOffForLearners={pedagoModuleAccess.fresque.learnerOff}
-                              fresqueProps={fresqueProps}
-                            />
-                          </>
-                        )}
-                      </main>
-                      <StudentBottomNav
-                        tab={tab}
-                        onTabChange={navigateTab}
-                        canAccessStudentMapTasks={canAccessStudentMapTasks}
-                        isVisitor={isVisitor}
-                        shouldUseDesktopSplit={shouldUseDesktopSplit}
-                        tutorialsModuleEnabled={tutorialsModuleEnabled}
-                        canAccessTutorials={canAccessTutorials}
-                        studentActiveAssignedTasksCount={studentActiveAssignedTasksCount}
-                        canViewGeneralStats={canViewGeneralStats}
-                        canAccessProfiles={canAccessProfiles}
-                        profilesLabel={isClassTeacher ? 'Classe' : 'Profils'}
-                        observationsEnabled={
-                          publicSettings?.modules?.observations_enabled !== false
-                        }
-                        visitEnabled={publicSettings?.modules?.visit_enabled !== false}
-                        idKeysEnabled={idKeysAvailable}
-                        pedagoSessionsEnabled={pedagoSessionsAvailable}
-                        individualsEnabled={individualsAvailable}
-                        fresqueEnabled={fresqueAvailable}
-                        canAccessForum={canAccessForum}
-                        hasForumUnread={hasForumUnread}
-                      />
-                    </>
-                  )}
-                  <AppFooter versionPrefix={appFooterVersionPrefix} appVersion={appVersion} />
-                </div>
-              </TourProvider>
-            </DataProvider>
-          </SessionProvider>
-        </AppDialogsProvider>
-      </BiodivPedagoProvider>
-    </PublicSettingsProvider>
+        {effectiveIsTeacher ? (
+          <TeacherMainContent
+            {...mainProps}
+            handleTeacherTabChange={tabNav.handleTeacherTabChange}
+            teacherPendingValidationCount={teacherPendingValidationCount}
+            onMascotPackDirtyChange={tabNav.onMascotPackDirtyChange}
+            openMascotPackStudioTab={tabNav.openMascotPackStudioTab}
+            handleOpenSettingsLearning={tabNav.handleOpenSettingsLearning}
+          />
+        ) : (
+          <StudentMainContent
+            {...mainProps}
+            studentActiveAssignedTasksCount={studentActiveAssignedTasksCount}
+          />
+        )}
+        <AppFooter versionPrefix={texts.footerVersionPrefix} appVersion={appVersion} />
+      </div>
+    </AppProviders>
   );
-
-  // Séance en cours accessible à tout l'arbre (fournisseur posé en enveloppe du rendu).
-  return <PedagoSessionProvider value={pedagoSession}>{appTree}</PedagoSessionProvider>;
 }
 
 export { App };

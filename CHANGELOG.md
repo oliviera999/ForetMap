@@ -9,6 +9,20 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — `src/App.jsx` découpé, sans changement de comportement (exploitation, lot 6)
+
+- `App.jsx` passe de 2 385 à 593 lignes et redevient le shell d'orchestration : droits dérivés
+  (`useAppAccess`), session (`useAppSession`), navigation par onglet et garde-fous
+  (`useAppTabNavigation`, `useAppTabGuards`), hors ligne (`useOfflineShell`), données de carte
+  (`useShellMapData`), pédagogie (`useAppPedago`), cibles et notifications
+  (`useAppTargetNavigation`) ; fournisseurs empilés dans `AppProviders`, surcouches, bandeaux et
+  modales globales dans leurs composants, table de rendu par onglet (`TeacherMainContent`,
+  `StudentMainContent`). Ordre des hooks à effets inchangé.
+- Tests de fumée par surface : `tests-ui/AppSurfaceSmoke.test.jsx` (accueil, visite invitée,
+  shells élève et prof) et `tests-ui/plan/PlanSurfacesSmoke.test.jsx` (plan public, plan des
+  personnels, e-nov). Aucun cycle d'import ; chunk `main` +15 kB (+2,6 kB gzip) : noms de
+  propriétés des objets renvoyés par les hooks, non raccourcis à la minification.
+
 ### Documentation — Exploitation de novembre (lot 8)
 
 - `docs/MCP.md` : états `log_not_found` / `searched_dirs` et recherche multi-dossiers de
