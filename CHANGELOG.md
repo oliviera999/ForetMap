@@ -9,6 +9,16 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Documentation — Exploitation de novembre (lot 8)
+
+- `docs/MCP.md` : états `log_not_found` / `searched_dirs` et recherche multi-dossiers de
+  `foretmap_cron_status`, racines `logs_2`…, `MCP_CRON_LOG_DIR` en liste, `db_backup_verify` ;
+  `restarts_window_hours`, `byDay`, `hardKillsByHour` de `foretmap_diagnostics` ; règle de
+  masquage des valeurs `.env` ; agrégations admises, erreurs SQL lisibles et typographie des
+  écritures paramétrées.
+- `docs/reference/exploitation/modele-de-securite.md` : sauvegardes relues automatiquement,
+  copie extérieure prête mais à configurer.
+
 ### Ajouté — Frontières entre surfaces vérifiées par le lint et les tests (exploitation, lot 7)
 
 - Règle ESLint locale, sans dépendance (`scripts/lib/eslint-import-boundaries.cjs`) : G&L
