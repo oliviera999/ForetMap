@@ -9,6 +9,20 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — Connecteur : « reproduction » caviardé en « re[secret .env masqué] » (exploitation, lot 4)
+
+- `lib/mcp/secretGuard.js` : `PASSENGER_APP_ENV` (injectée par Passenger, valeur `production`)
+  passait pour un secret, parce que « pass » était cherché n'importe où dans le nom ; sa valeur
+  était masquée en sous-chaîne dans toutes les sorties. Aucun secret à changer.
+- Heuristique resserrée : le mot sensible doit être un segment du nom (`_PASS`, `_TOKEN`…),
+  hors suffixes de configuration (`_URL`, `_FILE`, `_DIR`…) ; une valeur repérée par le nom
+  seulement n'est jamais un mot courant (`production`, `true`…) ni un nombre, et n'est masquée
+  en sous-chaîne qu'à partir de 12 caractères (au mot entier en deçà).
+- Les clés listées restent masquées quelle que soit leur forme (au mot entier si courtes) ;
+  liste complétée : `DEPLOY_SECRET`, `FORETMAP_DEPLOY_SECRET`, `FORETMAP_DEPLOY_CHECK_SECRET`,
+  `FORETMAP_SOCKET_QUERY_TOKEN`, `GOOGLE_OAUTH_CLIENT_SECRET`, `OPENAI_API_KEY`,
+  `PLANTNET_API_KEY`, `TREFLE_TOKEN`, `TEACHER_ADMIN_PASSWORD`, `TOTP_ENCRYPTION_KEY_PREVIOUS`.
+
 ### Modifié — Moins de redémarrages au déploiement, arrêts mieux mesurés (exploitation, lot 3)
 
 - Déploiement automatique (`scripts/lib/deploy-restart-policy.sh`, sourcé par
