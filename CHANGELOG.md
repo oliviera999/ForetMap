@@ -9,6 +9,22 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — Frontières entre surfaces vérifiées par le lint et les tests (exploitation, lot 7)
+
+- Règle ESLint locale, sans dépendance (`scripts/lib/eslint-import-boundaries.cjs`) : G&L
+  n'importe que `src/gl/` ou `src/shared/`, ForêtMap n'importe jamais `src/gl/`, les surfaces
+  publiques (plan public, e-nov, visite) n'importent pas les écrans du personnel (tâches,
+  administration). Toute **nouvelle** violation est une erreur ; les 61 existantes (toutes de
+  G&L vers des modules ForêtMap : `DialogShell`, `MediaLibraryMenu`, utilitaires de mascotte et
+  d'autolien…) restent en avertissement, listées dans
+  `scripts/data/import-boundaries-baseline.json` (`node scripts/import-boundaries-baseline.js`).
+- Tests de contrat (`tests/public-surface-contract.test.js`) : avec des compléments et liens
+  réservés en base, les réponses anonymes de la visite, du plan public et de la carte ne
+  contiennent ni texte réservé ni clé `restricted_note*` / d'audience.
+- Instantané du QCM partagé (`tests/qcm-shared-payload-snapshot.test.js`) : forme du corps et
+  du jeton de `lib/qcmChoices.js` pour G&L (contexte de partie) et ForêtMap (ressource),
+  exports de `lib/qcmPresentationUse.js`.
+
 ### Corrigé — Connecteur : typographie française et erreurs SQL lisibles (exploitation, lot 5)
 
 - Vérifié par tests : `foretmap_quiz` (`create`, `update`), `foretmap_content_change` et

@@ -3,6 +3,7 @@
 const globals = require('globals');
 const reactHooks = require('eslint-plugin-react-hooks');
 const jsxA11y = require('eslint-plugin-jsx-a11y');
+const importBoundaries = require('./scripts/lib/eslint-import-boundaries.cjs');
 
 /** Dossiers produit (ForetMap ou GL) interdits d'import depuis `src/shared/**`. */
 const SHARED_PRODUCT_DIRS = [
@@ -355,6 +356,18 @@ module.exports = [
         'error',
         { functions: false, classes: false, variables: true, allowNamedExports: true },
       ],
+    },
+  },
+  {
+    // Frontières d'import entre surfaces (exploitation, lot 7 ; scripts/lib/eslint-import-boundaries.cjs) :
+    // G&L ↔ ForêtMap seulement via src/shared/, surfaces publiques → écrans du personnel interdit.
+    // Toute NOUVELLE violation est en erreur ; celles déjà recensées
+    // (scripts/data/import-boundaries-baseline.json) restent en avertissement jusqu'à résorption.
+    files: ['src/**/*.{js,jsx,mjs}'],
+    plugins: { foretmap: importBoundaries.plugin },
+    rules: {
+      'foretmap/import-boundaries': 'error',
+      'foretmap/import-boundaries-baseline': 'warn',
     },
   },
   {
