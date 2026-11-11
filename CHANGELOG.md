@@ -9,6 +9,25 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — Tâches planifiées : journaux de crontab cherchés partout (exploitation, lot 1)
+
+- `foretmap_cron_status` cherche chaque journal dans **tous** les dossiers candidats
+  (`MCP_CRON_LOG_DIR`, désormais liste séparée par des virgules, `logs/` de l'application,
+  `~/foretmap-logs`, et `~/foretmap/logs`, chemin des gabarits de `docs/CRONTAB.md`) et garde
+  le plus récent. Avant, seul le premier dossier existant était lu : l'application créant
+  elle-même `logs/` pour son journal de cycle de vie, une crontab écrivant ailleurs passait pour
+  « jamais exécutée ».
+- Nouvel état `log_not_found` : journal introuvable, mais une autre trace prouve que la tâche
+  tourne (dernier fichier de `BACKUP_DIR` pour `db_backup`, redémarrage par déploiement ou
+  schéma à jour pour `auto_deploy`). Les tâches `never` et `log_not_found` portent
+  `searched_dirs` (dossiers inspectés). Le rapport de santé le compte en information, pas en
+  alerte. Les dossiers de journaux supplémentaires sont lisibles sous `logs_2`, `logs_3`…
+- Nouveau `scripts/ops-crontab-check.sh` : diagnostic en lecture seule à lancer dans le
+  terminal cPanel (crontab rapprochée des lignes 1 à 9, `APP_DIR` comparé au
+  `PassengerAppRoot`, clés du `.env` par leur nom, droits du fichier de clé, journaux dans tous
+  les dossiers, dernière sauvegarde, traces en base), sans jamais afficher une valeur secrète.
+  `docs/CRONTAB.md` : section « Vérifier en 2 minutes ».
+
 ### Modifié — Plan e-nov : alignement sur le dossier de labellisation N3 (relecture du 10/11)
 
 - Migration `342_enov_relecture_dossier.sql` : verse par PR les corrections appliquées en

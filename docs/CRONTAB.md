@@ -8,6 +8,31 @@ Détail et comportement : [`docs/EXPLOITATION.md`](EXPLOITATION.md).
 > Tout repose sur le `.env` serveur (non versionné) pour les secrets : `DEPLOY_SECRET`,
 > `DB_*`, `SMTP_*`, `OPS_ALERT_TO`.
 
+## Vérifier en 2 minutes
+
+Dans le terminal cPanel, depuis n'importe quel dossier (remplacer `<dossier>` par le dossier
+réel de l'application, celui de **Setup Node.js App**, pas forcément `foretmap`) :
+
+```bash
+bash ~/<dossier>/scripts/ops-crontab-check.sh
+```
+
+Le script est **en lecture seule** et n'affiche **aucune valeur secrète** (valeurs masquées
+en `****`, clés du `.env` par leur nom seulement, fichier de clé par ses droits seulement). Il
+rapproche chaque ligne de `crontab -l` des lignes 1 à 9 ci-dessous (présente, absente ou
+différente), compare l'`APP_DIR` de chaque ligne au dossier réel de l'application
+(`PassengerAppRoot` du `.htaccess`), cherche chaque journal dans **tous** les dossiers
+candidats (dossier de l'application, `~/foretmap-logs`, `~/foretmap/logs`, cibles `>>` de la
+crontab), et donne la dernière sauvegarde et les dernières exécutions tracées en base (purge
+de conservation, rapport de santé).
+
+Cas typique : l'application vit dans `~/mon-domaine.fr` alors que la crontab, copiée de ce
+mémo, écrit dans `~/foretmap/logs`. Les tâches tournent, mais `foretmap_cron_status` ne trouve
+pas leurs journaux : il les signale en `log_not_found` (une autre trace prouve que la tâche
+tourne) ou en `never`, avec la liste des dossiers inspectés (`searched_dirs`). Corriger les
+chemins de la crontab, ou déclarer le dossier des journaux dans le `.env` de l'application :
+`MCP_CRON_LOG_DIR=/home/USER/foretmap/logs` (plusieurs dossiers séparés par des virgules).
+
 ## Pré-requis (une fois)
 
 ```bash
