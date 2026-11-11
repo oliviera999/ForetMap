@@ -312,6 +312,23 @@ anciennes.
 10 5 1 * * find /home/USER/foretmap/logs -name '*.log' -size +5M -exec sh -c 'tail -n 5000 "$1" > "$1.tmp" && mv "$1.tmp" "$1"' _ {} \; ; find /home/USER/foretmap/logs -name '*.gz' -mtime +90 -delete
 ```
 
+## Lignes facultatives — vérification et copie hors serveur des sauvegardes
+
+La ligne 2 vérifie déjà chaque sauvegarde (`BACKUP_VERIFY=1`, `scripts/db-backup-verify.sh`,
+journal dans `db-backup.log`). Les deux lignes ci-dessous sont **facultatives** : une
+vérification planifiée seule (journal propre, lu par `foretmap_cron_status` sous
+`db_backup_verify`) et la copie de la dernière sauvegarde **chiffrée** hors du serveur
+(`rclone` installé et `BACKUP_OFFSITE_REMOTE` posé : `docs/EXPLOITATION.md`, « Copie hors du
+serveur » ; sans eux le script sort sans rien faire).
+
+```cron
+# 2 bis) Vérification de la dernière sauvegarde (facultatif) — 03:30
+30 3 * * * APP_DIR=/home/USER/foretmap bash /home/USER/foretmap/scripts/db-backup-verify.sh >> /home/USER/foretmap/logs/db-backup-verify.log 2>&1
+
+# 2 ter) Copie hors serveur de la dernière sauvegarde chiffrée (facultatif) — 03:45
+45 3 * * * APP_DIR=/home/USER/foretmap bash /home/USER/foretmap/scripts/db-backup-offsite.sh >> /home/USER/foretmap/logs/db-backup-offsite.log 2>&1
+```
+
 ## Ligne 9 — rapport de santé quotidien (connecteur Claude)
 
 `scripts/health-report.js` construit le rapport de santé du site (statut vert / orange /

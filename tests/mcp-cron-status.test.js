@@ -132,6 +132,18 @@ test('déploiement prouvé par le schéma seul : log_not_found sans date', () =>
 test('tâche facultative sans journal : not_configured, même sans preuve', () => {
   const jobs = fileJobs(NOW, { logDirs: [] });
   assert.equal(jobs.find((j) => j.job === 'moodle_sync').state, 'not_configured');
+  assert.equal(jobs.find((j) => j.job === 'db_backup_verify').state, 'not_configured');
+});
+
+test('db_backup_verify : lu depuis son journal, échec reconnu', () => {
+  const t = tmpTree();
+  fs.writeFileSync(
+    path.join(t.cronLogs, 'db-backup-verify.log'),
+    `${stamp(NOW - 3 * H)} [db-backup-verify] ÉCHEC : foretmap-x.sql.gz.enc : dump tronqué\n`,
+  );
+  const job = fileJobs(NOW, { logDirs: [t.cronLogs] }).find((j) => j.job === 'db_backup_verify');
+  assert.equal(job.state, 'failure');
+  assert.match(job.detail, /tronqué/);
 });
 
 test('getCronStatus : log_not_found listé à part, pas dans problems', async () => {

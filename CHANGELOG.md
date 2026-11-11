@@ -9,6 +9,24 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — Sauvegardes vérifiables et copie hors du serveur (exploitation, lot 2)
+
+- `scripts/db-backup-verify.sh` : vérifie une sauvegarde (la dernière, ou celle passée en
+  argument) sans la restaurer ni écrire de fichier clair — déchiffrement et décompression en
+  flux, en-tête MariaDB, ligne finale `-- Dump completed`, tables clés (`users`, `plants`,
+  `tasks`, `quiz_questions`, `schema_version`), chute de taille de plus de 30 % sur la
+  précédente ; `OK` ou la raison de l'échec, alerte e-mail en cas d'échec.
+- `scripts/db-backup.sh` l'enchaîne après chaque dump (`BACKUP_VERIFY=1` par défaut) : en
+  échec, la sauvegarde est gardée, la rotation suspendue et le script sort en code 1.
+- `scripts/db-backup-offsite.sh` (facultatif, désactivé par défaut) : copie de la dernière
+  sauvegarde **chiffrée** vers un dépôt `rclone` (`BACKUP_OFFSITE_REMOTE`), jamais un fichier
+  en clair, rotation distante (`BACKUP_OFFSITE_KEEP`, 14). `docs/EXPLOITATION.md` : installation
+  de rclone sans droits root sur o2switch et dépôt Google Drive dédié ; `docs/CRONTAB.md` :
+  lignes facultatives.
+- `foretmap_cron_status` lit `db_backup_verify` (journal facultatif) et reconnaît enfin les
+  lignes « ÉCHEC » des journaux : `\b` ne voit pas « É » comme une lettre, une sauvegarde en
+  échec passait pour « ok ».
+
 ### Corrigé — Tâches planifiées : journaux de crontab cherchés partout (exploitation, lot 1)
 
 - `foretmap_cron_status` cherche chaque journal dans **tous** les dossiers candidats

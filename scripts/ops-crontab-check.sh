@@ -134,6 +134,8 @@ fi
 # Lignes attendues : numéro;libellé;motif (ERE);journal;obligatoire (1/0)
 EXPECTED="1;déploiement automatique;scripts/auto-deploy-cron\.sh;foretmap-auto-deploy.log;1
 2;sauvegarde de la base;scripts/db-backup\.sh;db-backup.log;1
+2b;vérif. sauvegarde (facultatif);scripts/db-backup-verify\.sh;db-backup-verify.log;0
+2c;copie hors serveur (facultatif);scripts/db-backup-offsite\.sh;db-backup-offsite.log;0
 3;sonde de disponibilité;scripts/uptime-check\.sh;uptime.log;1
 4;keepalive (/api/health);curl.*/api/health;;1
 5;purge de conservation;scripts/retention-purge-cron\.sh;retention-purge.log;1
@@ -230,7 +232,7 @@ CANDIDATES="$(
 while read -r dir; do
   if [ -d "$dir" ]; then printf '  dossier %s : existe\n' "$(tilde "$dir")"; else printf '  dossier %s : absent\n' "$(tilde "$dir")"; fi
 done <<<"$CANDIDATES"
-for logname in foretmap-auto-deploy.log db-backup.log uptime.log \
+for logname in foretmap-auto-deploy.log db-backup.log db-backup-verify.log db-backup-offsite.log uptime.log \
   retention-purge.log health-report.log moodle-sync.log reconcile-uploads.log; do
   found=0
   while read -r dir; do
