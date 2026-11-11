@@ -9,6 +9,18 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — Connecteur : typographie française et erreurs SQL lisibles (exploitation, lot 5)
+
+- Vérifié par tests : `foretmap_quiz` (`create`, `update`), `foretmap_content_change` et
+  `foretmap_api` acceptent `…`, `CO₂`, `m²`, l'espace fine insécable et l'espace insécable
+  (valeurs liées, jamais interprétées comme du SQL) — aucune correction nécessaire. Le refus
+  des caractères non canoniques (NFKC) reste réservé au SQL brut (`foretmap_sql_select`,
+  `foretmap_sql_execute`) : c'est là qu'une correction comme celle de QF9783 butait.
+- `GROUP BY`, `HAVING` et les agrégats étaient déjà admis en lecture (vérifié en production) ;
+  test ajouté. Le refus vu le 06/11 venait d'une colonne inconnue, rendue en « Erreur interne de
+  l'outil » : `foretmap_sql_select` renvoie désormais le message de MySQL pour les erreurs de
+  la requête elle-même (colonne ou table inconnue, syntaxe, regroupement).
+
 ### Corrigé — Connecteur : « reproduction » caviardé en « re[secret .env masqué] » (exploitation, lot 4)
 
 - `lib/mcp/secretGuard.js` : `PASSENGER_APP_ENV` (injectée par Passenger, valeur `production`)
