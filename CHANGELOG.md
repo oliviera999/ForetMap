@@ -9,6 +9,23 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — Moins de redémarrages au déploiement, arrêts mieux mesurés (exploitation, lot 3)
+
+- Déploiement automatique (`scripts/lib/deploy-restart-policy.sh`, sourcé par
+  `scripts/auto-deploy-cron.sh`) : plus de redémarrage quand aucun fichier modifié n'a d'effet
+  au démarrage — tout `*.md`, `docs/`, `tests/`, `tests-ui/`, `e2e/`, `.github/`, `.cursor/`,
+  `.claude/`, `.githooks/`, et `package.json` / `package-lock.json` quand **seul le champ
+  `version`** change. Le commit de version de `release.yml` accompagne chaque fusion : sans
+  cette règle, aucun déploiement n'était jamais « léger ». Ce même commit ne déclenche plus
+  `npm ci`. Le journal nomme les fichiers qui imposent le redémarrage.
+- `foretmap_diagnostics` : paramètre `restarts_window_hours` (168 = une semaine) ; la synthèse
+  des redémarrages (`restarts`, aussi dans `GET /api/admin/diagnostics`) gagne `byDay` (causes
+  par jour) et `hardKillsByHour` (arrêts brutaux par heure du redémarrage).
+- Mesure du 11/11 (24 h) : 13 démarrages, 1 redémarrage de déploiement, 12 arrêts brutaux,
+  surtout la nuit, mémoire stable. La fenêtre de déploiement envisagée (`DEPLOY_QUIET_HOURS`)
+  n'est pas ajoutée : elle ne traiterait pas ces arrêts. `docs/EXPLOITATION.md` : lecture des
+  arrêts nocturnes (inactivité Passenger hors de la plage du keepalive).
+
 ### Ajouté — Sauvegardes vérifiables et copie hors du serveur (exploitation, lot 2)
 
 - `scripts/db-backup-verify.sh` : vérifie une sauvegarde (la dernière, ou celle passée en
