@@ -14,6 +14,8 @@ set -euo pipefail
 #   DEPLOY_ENV_FILE        fichier d'env à sourcer (def $APP_DIR/.env)
 #   BACKUP_ENCRYPT_KEY_FILE  phrase secrète de chiffrement (voir scripts/lib/backup-crypto.sh)
 #   BACKUP_ENCRYPT_REQUIRED  1 = refuser de sauvegarder en clair si la clé manque (def 0)
+#   BACKUP_VERIFY          1 = vérification approfondie après le dump (def 1, voir
+#                          scripts/db-backup-verify.sh) ; 0 = contrôle de fin de dump seul
 #
 # Usage : scripts/db-backup.sh [--label <texte>]
 # Sortie : $BACKUP_DIR/foretmap-AAAAmmjj-HHMMSS[.label].sql.gz.enc (chiffré, AES-256)
@@ -139,6 +141,17 @@ else
   rm -f "$tmp"
   log "ÉCHEC du dump '$DB_NAME'."
   exit 1
+fi
+
+# Vérification approfondie (en-tête, tables clés, taille / précédente) : BACKUP_VERIFY=0 pour
+# la couper. En échec, la sauvegarde est gardée mais la rotation n'a pas lieu (les anciennes
+# restent le dernier recours) et le script sort en erreur (alerte par db-backup-verify.sh).
+if [ "${BACKUP_VERIFY:-1}" = "1" ] && [ -f "$SCRIPT_DIR/db-backup-verify.sh" ]; then
+  if ! APP_DIR="$APP_DIR" DEPLOY_ENV_FILE="$DEPLOY_ENV_FILE" BACKUP_DIR="$BACKUP_DIR" \
+    BACKUP_ENCRYPT_KEY_FILE="$KEY_FILE" bash "$SCRIPT_DIR/db-backup-verify.sh" "$out"; then
+    log "ÉCHEC : vérification de $out (voir ci-dessus) — rotation suspendue."
+    exit 1
+  fi
 fi
 
 # Rotation : supprime les dumps plus vieux que la rétention (chiffrés ou non).

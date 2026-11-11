@@ -9,6 +9,126 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — `src/App.jsx` découpé, sans changement de comportement (exploitation, lot 6)
+
+- `App.jsx` passe de 2 385 à 593 lignes et redevient le shell d'orchestration : droits dérivés
+  (`useAppAccess`), session (`useAppSession`), navigation par onglet et garde-fous
+  (`useAppTabNavigation`, `useAppTabGuards`), hors ligne (`useOfflineShell`), données de carte
+  (`useShellMapData`), pédagogie (`useAppPedago`), cibles et notifications
+  (`useAppTargetNavigation`) ; fournisseurs empilés dans `AppProviders`, surcouches, bandeaux et
+  modales globales dans leurs composants, table de rendu par onglet (`TeacherMainContent`,
+  `StudentMainContent`). Ordre des hooks à effets inchangé.
+- Tests de fumée par surface : `tests-ui/AppSurfaceSmoke.test.jsx` (accueil, visite invitée,
+  shells élève et prof) et `tests-ui/plan/PlanSurfacesSmoke.test.jsx` (plan public, plan des
+  personnels, e-nov). Aucun cycle d'import ; chunk `main` +15 kB (+2,6 kB gzip) : noms de
+  propriétés des objets renvoyés par les hooks, non raccourcis à la minification.
+
+### Documentation — Exploitation de novembre (lot 8)
+
+- `docs/MCP.md` : états `log_not_found` / `searched_dirs` et recherche multi-dossiers de
+  `foretmap_cron_status`, racines `logs_2`…, `MCP_CRON_LOG_DIR` en liste, `db_backup_verify` ;
+  `restarts_window_hours`, `byDay`, `hardKillsByHour` de `foretmap_diagnostics` ; règle de
+  masquage des valeurs `.env` ; agrégations admises, erreurs SQL lisibles et typographie des
+  écritures paramétrées.
+- `docs/reference/exploitation/modele-de-securite.md` : sauvegardes relues automatiquement,
+  copie extérieure prête mais à configurer.
+
+### Ajouté — Frontières entre surfaces vérifiées par le lint et les tests (exploitation, lot 7)
+
+- Règle ESLint locale, sans dépendance (`scripts/lib/eslint-import-boundaries.cjs`) : G&L
+  n'importe que `src/gl/` ou `src/shared/`, ForêtMap n'importe jamais `src/gl/`, les surfaces
+  publiques (plan public, e-nov, visite) n'importent pas les écrans du personnel (tâches,
+  administration). Toute **nouvelle** violation est une erreur ; les 61 existantes (toutes de
+  G&L vers des modules ForêtMap : `DialogShell`, `MediaLibraryMenu`, utilitaires de mascotte et
+  d'autolien…) restent en avertissement, listées dans
+  `scripts/data/import-boundaries-baseline.json` (`node scripts/import-boundaries-baseline.js`).
+- Tests de contrat (`tests/public-surface-contract.test.js`) : avec des compléments et liens
+  réservés en base, les réponses anonymes de la visite, du plan public et de la carte ne
+  contiennent ni texte réservé ni clé `restricted_note*` / d'audience.
+- Instantané du QCM partagé (`tests/qcm-shared-payload-snapshot.test.js`) : forme du corps et
+  du jeton de `lib/qcmChoices.js` pour G&L (contexte de partie) et ForêtMap (ressource),
+  exports de `lib/qcmPresentationUse.js`.
+
+### Corrigé — Connecteur : typographie française et erreurs SQL lisibles (exploitation, lot 5)
+
+- Vérifié par tests : `foretmap_quiz` (`create`, `update`), `foretmap_content_change` et
+  `foretmap_api` acceptent `…`, `CO₂`, `m²`, l'espace fine insécable et l'espace insécable
+  (valeurs liées, jamais interprétées comme du SQL) — aucune correction nécessaire. Le refus
+  des caractères non canoniques (NFKC) reste réservé au SQL brut (`foretmap_sql_select`,
+  `foretmap_sql_execute`) : c'est là qu'une correction comme celle de QF9783 butait.
+- `GROUP BY`, `HAVING` et les agrégats étaient déjà admis en lecture (vérifié en production) ;
+  test ajouté. Le refus vu le 06/11 venait d'une colonne inconnue, rendue en « Erreur interne de
+  l'outil » : `foretmap_sql_select` renvoie désormais le message de MySQL pour les erreurs de
+  la requête elle-même (colonne ou table inconnue, syntaxe, regroupement).
+
+### Corrigé — Connecteur : « reproduction » caviardé en « re[secret .env masqué] » (exploitation, lot 4)
+
+- `lib/mcp/secretGuard.js` : `PASSENGER_APP_ENV` (injectée par Passenger, valeur `production`)
+  passait pour un secret, parce que « pass » était cherché n'importe où dans le nom ; sa valeur
+  était masquée en sous-chaîne dans toutes les sorties. Aucun secret à changer.
+- Heuristique resserrée : le mot sensible doit être un segment du nom (`_PASS`, `_TOKEN`…),
+  hors suffixes de configuration (`_URL`, `_FILE`, `_DIR`…) ; une valeur repérée par le nom
+  seulement n'est jamais un mot courant (`production`, `true`…) ni un nombre, et n'est masquée
+  en sous-chaîne qu'à partir de 12 caractères (au mot entier en deçà).
+- Les clés listées restent masquées quelle que soit leur forme (au mot entier si courtes) ;
+  liste complétée : `DEPLOY_SECRET`, `FORETMAP_DEPLOY_SECRET`, `FORETMAP_DEPLOY_CHECK_SECRET`,
+  `FORETMAP_SOCKET_QUERY_TOKEN`, `GOOGLE_OAUTH_CLIENT_SECRET`, `OPENAI_API_KEY`,
+  `PLANTNET_API_KEY`, `TREFLE_TOKEN`, `TEACHER_ADMIN_PASSWORD`, `TOTP_ENCRYPTION_KEY_PREVIOUS`.
+
+### Modifié — Moins de redémarrages au déploiement, arrêts mieux mesurés (exploitation, lot 3)
+
+- Déploiement automatique (`scripts/lib/deploy-restart-policy.sh`, sourcé par
+  `scripts/auto-deploy-cron.sh`) : plus de redémarrage quand aucun fichier modifié n'a d'effet
+  au démarrage — tout `*.md`, `docs/`, `tests/`, `tests-ui/`, `e2e/`, `.github/`, `.cursor/`,
+  `.claude/`, `.githooks/`, et `package.json` / `package-lock.json` quand **seul le champ
+  `version`** change. Le commit de version de `release.yml` accompagne chaque fusion : sans
+  cette règle, aucun déploiement n'était jamais « léger ». Ce même commit ne déclenche plus
+  `npm ci`. Le journal nomme les fichiers qui imposent le redémarrage.
+- `foretmap_diagnostics` : paramètre `restarts_window_hours` (168 = une semaine) ; la synthèse
+  des redémarrages (`restarts`, aussi dans `GET /api/admin/diagnostics`) gagne `byDay` (causes
+  par jour) et `hardKillsByHour` (arrêts brutaux par heure du redémarrage).
+- Mesure du 11/11 (24 h) : 13 démarrages, 1 redémarrage de déploiement, 12 arrêts brutaux,
+  surtout la nuit, mémoire stable. La fenêtre de déploiement envisagée (`DEPLOY_QUIET_HOURS`)
+  n'est pas ajoutée : elle ne traiterait pas ces arrêts. `docs/EXPLOITATION.md` : lecture des
+  arrêts nocturnes (inactivité Passenger hors de la plage du keepalive).
+
+### Ajouté — Sauvegardes vérifiables et copie hors du serveur (exploitation, lot 2)
+
+- `scripts/db-backup-verify.sh` : vérifie une sauvegarde (la dernière, ou celle passée en
+  argument) sans la restaurer ni écrire de fichier clair — déchiffrement et décompression en
+  flux, en-tête MariaDB, ligne finale `-- Dump completed`, tables clés (`users`, `plants`,
+  `tasks`, `quiz_questions`, `schema_version`), chute de taille de plus de 30 % sur la
+  précédente ; `OK` ou la raison de l'échec, alerte e-mail en cas d'échec.
+- `scripts/db-backup.sh` l'enchaîne après chaque dump (`BACKUP_VERIFY=1` par défaut) : en
+  échec, la sauvegarde est gardée, la rotation suspendue et le script sort en code 1.
+- `scripts/db-backup-offsite.sh` (facultatif, désactivé par défaut) : copie de la dernière
+  sauvegarde **chiffrée** vers un dépôt `rclone` (`BACKUP_OFFSITE_REMOTE`), jamais un fichier
+  en clair, rotation distante (`BACKUP_OFFSITE_KEEP`, 14). `docs/EXPLOITATION.md` : installation
+  de rclone sans droits root sur o2switch et dépôt Google Drive dédié ; `docs/CRONTAB.md` :
+  lignes facultatives.
+- `foretmap_cron_status` lit `db_backup_verify` (journal facultatif) et reconnaît enfin les
+  lignes « ÉCHEC » des journaux : `\b` ne voit pas « É » comme une lettre, une sauvegarde en
+  échec passait pour « ok ».
+
+### Corrigé — Tâches planifiées : journaux de crontab cherchés partout (exploitation, lot 1)
+
+- `foretmap_cron_status` cherche chaque journal dans **tous** les dossiers candidats
+  (`MCP_CRON_LOG_DIR`, désormais liste séparée par des virgules, `logs/` de l'application,
+  `~/foretmap-logs`, et `~/foretmap/logs`, chemin des gabarits de `docs/CRONTAB.md`) et garde
+  le plus récent. Avant, seul le premier dossier existant était lu : l'application créant
+  elle-même `logs/` pour son journal de cycle de vie, une crontab écrivant ailleurs passait pour
+  « jamais exécutée ».
+- Nouvel état `log_not_found` : journal introuvable, mais une autre trace prouve que la tâche
+  tourne (dernier fichier de `BACKUP_DIR` pour `db_backup`, redémarrage par déploiement ou
+  schéma à jour pour `auto_deploy`). Les tâches `never` et `log_not_found` portent
+  `searched_dirs` (dossiers inspectés). Le rapport de santé le compte en information, pas en
+  alerte. Les dossiers de journaux supplémentaires sont lisibles sous `logs_2`, `logs_3`…
+- Nouveau `scripts/ops-crontab-check.sh` : diagnostic en lecture seule à lancer dans le
+  terminal cPanel (crontab rapprochée des lignes 1 à 9, `APP_DIR` comparé au
+  `PassengerAppRoot`, clés du `.env` par leur nom, droits du fichier de clé, journaux dans tous
+  les dossiers, dernière sauvegarde, traces en base), sans jamais afficher une valeur secrète.
+  `docs/CRONTAB.md` : section « Vérifier en 2 minutes ».
+
 ### Modifié — Plan e-nov : alignement sur le dossier de labellisation N3 (relecture du 10/11)
 
 - Migration `342_enov_relecture_dossier.sql` : verse par PR les corrections appliquées en

@@ -341,3 +341,32 @@ test('summarizeBootJournal : un redémarrage par tmp/restart.txt n’est pas un 
   assert.strictEqual(s.counts.hostStops, 0);
   assert.notStrictEqual(s.verdict, 'host_idle_stops');
 });
+
+test('summarizeBootJournal : causes par jour et arrêts brutaux par heure (heure du serveur)', () => {
+  const at = (y, mo, d, h, mi = 0) => new Date(y, mo - 1, d, h, mi).getTime();
+  const now = at(2026, 11, 11, 12);
+  const iso = (ms) => new Date(ms).toISOString();
+  useTempJournal([
+    { event: 'boot', at: iso(at(2026, 11, 9, 23, 6)), previousStop: 'hard' },
+    { event: 'boot', at: iso(at(2026, 11, 10, 3, 8)), previousStop: 'hard' },
+    { event: 'stop', at: iso(at(2026, 11, 10, 13, 34)), reason: 'restart' },
+    { event: 'boot', at: iso(at(2026, 11, 10, 13, 35)), previousStop: 'graceful' },
+    { event: 'boot', at: iso(at(2026, 11, 11, 3, 18)), previousStop: 'hard' },
+    { event: 'rss', at: iso(at(2026, 11, 11, 4)), rssMb: 140 },
+  ]);
+  const s = journal.summarizeBootJournal({ now, windowHours: 168 });
+  assert.strictEqual(s.windowHours, 168);
+  assert.deepStrictEqual(Object.keys(s.byDay).sort(), ['2026-11-09', '2026-11-10', '2026-11-11']);
+  assert.strictEqual(s.byDay['2026-11-09'].hardKills, 1);
+  assert.strictEqual(s.byDay['2026-11-10'].hardKills, 1);
+  assert.strictEqual(s.byDay['2026-11-10'].deployRestarts, 1);
+  assert.strictEqual(s.byDay['2026-11-10'].boots, 2);
+  assert.strictEqual(s.byDay['2026-11-11'].hardKills, 1);
+  assert.strictEqual(s.hardKillsByHour.length, 24);
+  assert.strictEqual(s.hardKillsByHour[3], 2);
+  assert.strictEqual(s.hardKillsByHour[23], 1);
+  assert.strictEqual(
+    s.hardKillsByHour.reduce((a, b) => a + b, 0),
+    s.counts.hardKills,
+  );
+});
