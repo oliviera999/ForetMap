@@ -1,0 +1,433 @@
+{
+  "schema": "foretmap.fresque.deck/1",
+  "id": "climat-junior-fr-v7-5",
+  "kind": "cause_effect",
+  "title": "La Fresque du Climat — version Enfant",
+  "shortTitle": "Fresque du Climat (Junior)",
+  "language": "fr-FR",
+  "audience": "9-14 ans (cycle 3, 6e)",
+  "edition": {
+    "name": "La Fresque du Climat – FR-FR – Enfant",
+    "version": "7.5",
+    "date": "2023-04-25",
+    "sourcePdf": "https://fresqueduclimat.org/wp-content/uploads/2023/06/Kids-FR-FR-v7.5-pdf-4.pdf",
+    "sourcePdfSha256": "2708d49262813fc29d771df8a5140eb489e02b644b6a5b77a27616be089f04ec",
+    "extraction": "Découpage des 24 emplacements du PDF officiel (rendu 300 dpi), sans aucune retouche ; ré-encodage WebP pour l'écran."
+  },
+  "attribution": {
+    "author": "Cédric Ringenbach",
+    "publisher": "Association La Fresque du Climat",
+    "website": "https://fresqueduclimat.org",
+    "licence": {
+      "id": "CC-BY-NC-ND",
+      "label": "Creative Commons BY-NC-ND (usage non commercial, sans modification)",
+      "url": "https://fresqueduclimat.org/licence/"
+    },
+    "creditLine": "La Fresque du Climat — Cédric Ringenbach — fresqueduclimat.org — Licence CC BY-NC-ND (usage non commercial, sans modification)",
+    "noticeImage": "cards/licence-recto.webp"
+  },
+  "image": {
+    "width": 1719,
+    "height": 1168,
+    "format": "webp",
+    "smallMaxSide": 640
+  },
+  "specialCards": {
+    "titre": {
+      "recto": "cards/titre-recto.webp",
+      "verso": "cards/titre-verso.webp",
+      "versoRole": "regle",
+      "alt": "Carte titre « La Fresque du Climat – Enfant » ; au verso, la règle officielle « Comment y joue-t-on ? »"
+    },
+    "licence": {
+      "recto": "cards/licence-recto.webp",
+      "verso": "cards/licence-verso.webp",
+      "versoRole": "correction",
+      "alt": "Carte des crédits et de la licence ; au verso, la correction officielle"
+    }
+  },
+  "lots": [
+    {
+      "number": 1,
+      "cards": [
+        "c04",
+        "c07",
+        "c13",
+        "c18",
+        "c21"
+      ]
+    },
+    {
+      "number": 2,
+      "cards": [
+        "c03",
+        "c16",
+        "c17",
+        "c20",
+        "c26",
+        "c36"
+      ]
+    },
+    {
+      "number": 3,
+      "cards": [
+        "c02",
+        "c08",
+        "c22",
+        "c25",
+        "c30",
+        "c32",
+        "c33",
+        "c34",
+        "c37",
+        "c39"
+      ]
+    }
+  ],
+  "cards": [
+    {
+      "id": "c04",
+      "number": 4,
+      "title": "Je prends la voiture ou l'avion",
+      "lot": 1,
+      "recto": "cards/c04-recto.webp",
+      "verso": "cards/c04-verso.webp",
+      "rectoSmall": "cards/c04-recto.sm.webp",
+      "versoSmall": "cards/c04-verso.sm.webp",
+      "alt": {
+        "recto": "Carte 4 « Je prends la voiture ou l'avion » (recto, illustration)",
+        "verso": "Carte 4 « Je prends la voiture ou l'avion » (verso, explication)"
+      },
+      "guideBand": "activites"
+    },
+    {
+      "id": "c07",
+      "number": 7,
+      "title": "CO2",
+      "lot": 1,
+      "recto": "cards/c07-recto.webp",
+      "verso": "cards/c07-verso.webp",
+      "rectoSmall": "cards/c07-recto.sm.webp",
+      "versoSmall": "cards/c07-verso.sm.webp",
+      "alt": {
+        "recto": "Carte 7 « CO2 » (recto, illustration)",
+        "verso": "Carte 7 « CO2 » (verso, explication)"
+      },
+      "guideBand": "mecanisme"
+    },
+    {
+      "id": "c13",
+      "number": 13,
+      "title": "Effet de serre",
+      "lot": 1,
+      "recto": "cards/c13-recto.webp",
+      "verso": "cards/c13-verso.webp",
+      "rectoSmall": "cards/c13-recto.sm.webp",
+      "versoSmall": "cards/c13-verso.sm.webp",
+      "alt": {
+        "recto": "Carte 13 « Effet de serre » (recto, illustration)",
+        "verso": "Carte 13 « Effet de serre » (verso, explication)"
+      },
+      "guideBand": "mecanisme"
+    },
+    {
+      "id": "c18",
+      "number": 18,
+      "title": "Fonte de la banquise",
+      "lot": 1,
+      "recto": "cards/c18-recto.webp",
+      "verso": "cards/c18-verso.webp",
+      "rectoSmall": "cards/c18-recto.sm.webp",
+      "versoSmall": "cards/c18-verso.sm.webp",
+      "alt": {
+        "recto": "Carte 18 « Fonte de la banquise » (recto, illustration)",
+        "verso": "Carte 18 « Fonte de la banquise » (verso, explication)"
+      },
+      "guideBand": "planete"
+    },
+    {
+      "id": "c21",
+      "number": 21,
+      "title": "La Terre se réchauffe",
+      "lot": 1,
+      "recto": "cards/c21-recto.webp",
+      "verso": "cards/c21-verso.webp",
+      "rectoSmall": "cards/c21-recto.sm.webp",
+      "versoSmall": "cards/c21-verso.sm.webp",
+      "alt": {
+        "recto": "Carte 21 « La Terre se réchauffe » (recto, illustration)",
+        "verso": "Carte 21 « La Terre se réchauffe » (verso, explication)"
+      },
+      "guideBand": "mecanisme"
+    },
+    {
+      "id": "c03",
+      "number": 3,
+      "title": "J'allume la clim ou le chauffage",
+      "lot": 2,
+      "recto": "cards/c03-recto.webp",
+      "verso": "cards/c03-verso.webp",
+      "rectoSmall": "cards/c03-recto.sm.webp",
+      "versoSmall": "cards/c03-verso.sm.webp",
+      "alt": {
+        "recto": "Carte 3 « J'allume la clim ou le chauffage » (recto, illustration)",
+        "verso": "Carte 3 « J'allume la clim ou le chauffage » (verso, explication)"
+      },
+      "guideBand": "activites"
+    },
+    {
+      "id": "c16",
+      "number": 16,
+      "title": "Fonte des glaciers",
+      "lot": 2,
+      "recto": "cards/c16-recto.webp",
+      "verso": "cards/c16-verso.webp",
+      "rectoSmall": "cards/c16-recto.sm.webp",
+      "versoSmall": "cards/c16-verso.sm.webp",
+      "alt": {
+        "recto": "Carte 16 « Fonte des glaciers » (recto, illustration)",
+        "verso": "Carte 16 « Fonte des glaciers » (verso, explication)"
+      },
+      "guideBand": "planete"
+    },
+    {
+      "id": "c17",
+      "number": 17,
+      "title": "Réchauffement de l'océan",
+      "lot": 2,
+      "recto": "cards/c17-recto.webp",
+      "verso": "cards/c17-verso.webp",
+      "rectoSmall": "cards/c17-recto.sm.webp",
+      "versoSmall": "cards/c17-verso.sm.webp",
+      "alt": {
+        "recto": "Carte 17 « Réchauffement de l'océan » (recto, illustration)",
+        "verso": "Carte 17 « Réchauffement de l'océan » (verso, explication)"
+      },
+      "guideBand": "planete"
+    },
+    {
+      "id": "c20",
+      "number": 20,
+      "title": "Dérèglement du cycle de l'eau",
+      "lot": 2,
+      "recto": "cards/c20-recto.webp",
+      "verso": "cards/c20-verso.webp",
+      "rectoSmall": "cards/c20-recto.sm.webp",
+      "versoSmall": "cards/c20-verso.sm.webp",
+      "alt": {
+        "recto": "Carte 20 « Dérèglement du cycle de l'eau » (recto, illustration)",
+        "verso": "Carte 20 « Dérèglement du cycle de l'eau » (verso, explication)"
+      },
+      "guideBand": "planete"
+    },
+    {
+      "id": "c26",
+      "number": 26,
+      "title": "Crues",
+      "lot": 2,
+      "recto": "cards/c26-recto.webp",
+      "verso": "cards/c26-verso.webp",
+      "rectoSmall": "cards/c26-recto.sm.webp",
+      "versoSmall": "cards/c26-verso.sm.webp",
+      "alt": {
+        "recto": "Carte 26 « Crues » (recto, illustration)",
+        "verso": "Carte 26 « Crues » (verso, explication)"
+      },
+      "guideBand": "extremes"
+    },
+    {
+      "id": "c36",
+      "number": 36,
+      "title": "Canicules",
+      "lot": 2,
+      "recto": "cards/c36-recto.webp",
+      "verso": "cards/c36-verso.webp",
+      "rectoSmall": "cards/c36-recto.sm.webp",
+      "versoSmall": "cards/c36-verso.sm.webp",
+      "alt": {
+        "recto": "Carte 36 « Canicules » (recto, illustration)",
+        "verso": "Carte 36 « Canicules » (verso, explication)"
+      },
+      "guideBand": "planete"
+    },
+    {
+      "id": "c02",
+      "number": 2,
+      "title": "Je m'achète des choses",
+      "lot": 3,
+      "recto": "cards/c02-recto.webp",
+      "verso": "cards/c02-verso.webp",
+      "rectoSmall": "cards/c02-recto.sm.webp",
+      "versoSmall": "cards/c02-verso.sm.webp",
+      "alt": {
+        "recto": "Carte 2 « Je m'achète des choses » (recto, illustration)",
+        "verso": "Carte 2 « Je m'achète des choses » (verso, explication)"
+      },
+      "guideBand": "activites"
+    },
+    {
+      "id": "c08",
+      "number": 8,
+      "title": "Je mange de la viande",
+      "lot": 3,
+      "recto": "cards/c08-recto.webp",
+      "verso": "cards/c08-verso.webp",
+      "rectoSmall": "cards/c08-recto.sm.webp",
+      "versoSmall": "cards/c08-verso.sm.webp",
+      "alt": {
+        "recto": "Carte 8 « Je mange de la viande » (recto, illustration)",
+        "verso": "Carte 8 « Je mange de la viande » (verso, explication)"
+      },
+      "guideBand": "activites"
+    },
+    {
+      "id": "c22",
+      "number": 22,
+      "title": "Montée du niveau de l'eau",
+      "lot": 3,
+      "recto": "cards/c22-recto.webp",
+      "verso": "cards/c22-verso.webp",
+      "rectoSmall": "cards/c22-recto.sm.webp",
+      "versoSmall": "cards/c22-verso.sm.webp",
+      "alt": {
+        "recto": "Carte 22 « Montée du niveau de l'eau » (recto, illustration)",
+        "verso": "Carte 22 « Montée du niveau de l'eau » (verso, explication)"
+      },
+      "guideBand": "extremes"
+    },
+    {
+      "id": "c25",
+      "number": 25,
+      "title": "Biodiversité",
+      "lot": 3,
+      "recto": "cards/c25-recto.webp",
+      "verso": "cards/c25-verso.webp",
+      "rectoSmall": "cards/c25-recto.sm.webp",
+      "versoSmall": "cards/c25-verso.sm.webp",
+      "alt": {
+        "recto": "Carte 25 « Biodiversité » (recto, illustration)",
+        "verso": "Carte 25 « Biodiversité » (verso, explication)"
+      },
+      "guideBand": "vivant"
+    },
+    {
+      "id": "c30",
+      "number": 30,
+      "title": "Sécheresses",
+      "lot": 3,
+      "recto": "cards/c30-recto.webp",
+      "verso": "cards/c30-verso.webp",
+      "rectoSmall": "cards/c30-recto.sm.webp",
+      "versoSmall": "cards/c30-verso.sm.webp",
+      "alt": {
+        "recto": "Carte 30 « Sécheresses » (recto, illustration)",
+        "verso": "Carte 30 « Sécheresses » (verso, explication)"
+      },
+      "guideBand": "extremes"
+    },
+    {
+      "id": "c32",
+      "number": 32,
+      "title": "Production de nourriture",
+      "lot": 3,
+      "recto": "cards/c32-recto.webp",
+      "verso": "cards/c32-verso.webp",
+      "rectoSmall": "cards/c32-recto.sm.webp",
+      "versoSmall": "cards/c32-verso.sm.webp",
+      "alt": {
+        "recto": "Carte 32 « Production de nourriture » (recto, illustration)",
+        "verso": "Carte 32 « Production de nourriture » (verso, explication)"
+      },
+      "guideBand": "vivant"
+    },
+    {
+      "id": "c33",
+      "number": 33,
+      "title": "Submersions",
+      "lot": 3,
+      "recto": "cards/c33-recto.webp",
+      "verso": "cards/c33-verso.webp",
+      "rectoSmall": "cards/c33-recto.sm.webp",
+      "versoSmall": "cards/c33-verso.sm.webp",
+      "alt": {
+        "recto": "Carte 33 « Submersions » (recto, illustration)",
+        "verso": "Carte 33 « Submersions » (verso, explication)"
+      },
+      "guideBand": "extremes"
+    },
+    {
+      "id": "c34",
+      "number": 34,
+      "title": "Cyclones",
+      "lot": 3,
+      "recto": "cards/c34-recto.webp",
+      "verso": "cards/c34-verso.webp",
+      "rectoSmall": "cards/c34-recto.sm.webp",
+      "versoSmall": "cards/c34-verso.sm.webp",
+      "alt": {
+        "recto": "Carte 34 « Cyclones » (recto, illustration)",
+        "verso": "Carte 34 « Cyclones » (verso, explication)"
+      },
+      "guideBand": "extremes"
+    },
+    {
+      "id": "c37",
+      "number": 37,
+      "title": "Famines",
+      "lot": 3,
+      "recto": "cards/c37-recto.webp",
+      "verso": "cards/c37-verso.webp",
+      "rectoSmall": "cards/c37-recto.sm.webp",
+      "versoSmall": "cards/c37-verso.sm.webp",
+      "alt": {
+        "recto": "Carte 37 « Famines » (recto, illustration)",
+        "verso": "Carte 37 « Famines » (verso, explication)"
+      },
+      "guideBand": "vivant"
+    },
+    {
+      "id": "c39",
+      "number": 39,
+      "title": "Réfugiés climatiques",
+      "lot": 3,
+      "recto": "cards/c39-recto.webp",
+      "verso": "cards/c39-verso.webp",
+      "rectoSmall": "cards/c39-recto.sm.webp",
+      "versoSmall": "cards/c39-verso.sm.webp",
+      "alt": {
+        "recto": "Carte 39 « Réfugiés climatiques » (recto, illustration)",
+        "verso": "Carte 39 « Réfugiés climatiques » (verso, explication)"
+      },
+      "guideBand": "vivant"
+    }
+  ],
+  "guideBands": [
+    {
+      "id": "activites",
+      "label": "Nos activités",
+      "order": 1
+    },
+    {
+      "id": "mecanisme",
+      "label": "Le mécanisme",
+      "order": 2
+    },
+    {
+      "id": "planete",
+      "label": "La planète se réchauffe",
+      "order": 3
+    },
+    {
+      "id": "extremes",
+      "label": "Phénomènes extrêmes",
+      "order": 4
+    },
+    {
+      "id": "vivant",
+      "label": "Le vivant et les humains",
+      "order": 5
+    }
+  ],
+  "correction": "correction.json",
+  "hints": "hints.json"
+}
