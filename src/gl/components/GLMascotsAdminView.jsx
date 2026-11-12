@@ -4,7 +4,6 @@ import '../styles/gl-admin.css';
 import { apiGL } from '../services/apiGL.js';
 import { GLMascotRenderer } from './GLMascotRenderer.jsx';
 import { GL_MASCOT_STATE } from '../hooks/useGLMascotStateMachine.js';
-import { GLMascotPackManager } from './GLMascotPackManager.jsx';
 import { GLButton } from './ui/GLButton.jsx';
 import { useGLMascotCatalog } from '../context/GLMascotCatalogContext.jsx';
 
@@ -14,23 +13,28 @@ const TYPE_FILTERS = [
   { id: 'unicorn', label: 'Licornes' },
 ];
 
-const SOURCE_FILTERS = [
-  { id: 'all', label: 'Toutes sources' },
-  { id: 'gl', label: 'G&L' },
-  { id: 'foretmap', label: 'ForetMap' },
-];
-
 function supportsAnimatedPreview(mascot) {
   if (!mascot) return false;
   if (mascot.renderer && mascot.renderer !== 'fallback') return true;
   return !(typeof mascot.id === 'string' && mascot.id.startsWith('gl-'));
 }
 
-export function GLMascotsAdminView({ gameState, onReloadGame, mascotPacksEnabled = false }) {
+/** Libellé du peuple d'une mascotte du catalogue (packs publiés du studio ForêtMap). */
+function mascotPeopleLabel(type) {
+  if (type === 'gnome') return 'Gnome';
+  if (type === 'unicorn') return 'Licorne';
+  return 'Sans peuple';
+}
+
+/**
+ * Gestion des mascottes côté MJ : assignation d'un pack publié du studio ForêtMap à une équipe.
+ * Le studio de packs GL (`GLMascotPackManager`) n'est plus affiché : il faisait doublon avec le
+ * studio ForêtMap, seule source du catalogue depuis novembre 2026.
+ */
+export function GLMascotsAdminView({ gameState, onReloadGame }) {
   const { mascots: catalogMascots, reload: reloadCatalog } = useGLMascotCatalog();
   const [assignments, setAssignments] = useState([]);
   const [typeFilter, setTypeFilter] = useState('all');
-  const [sourceFilter, setSourceFilter] = useState('all');
   const [selectedTeamId, setSelectedTeamId] = useState('');
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
@@ -115,21 +119,16 @@ export function GLMascotsAdminView({ gameState, onReloadGame, mascotPacksEnabled
   }
 
   const filtered = useMemo(() => {
-    return mascots.filter((m) => {
-      const sourceOk = sourceFilter === 'all' ? true : m.source === sourceFilter;
-      const typeOk = typeFilter === 'all' ? true : m.type === typeFilter;
-      return sourceOk && typeOk;
-    });
-  }, [mascots, typeFilter, sourceFilter]);
+    return mascots.filter((m) => (typeFilter === 'all' ? true : m.type === typeFilter));
+  }, [mascots, typeFilter]);
 
   return (
     <section className="gl-panel">
       <h2>Gestion mascottes</h2>
       <p>
-        Catalogue unifié (G&amp;L, ForetMap, packs). Sélectionnez une équipe puis assignez une
-        mascotte. Les gnomes et licornes SVG (`gl-*`) n&apos;animent pas les états preview ; seules
-        les mascottes animées (ForetMap, packs `sprite_cut`, etc.) réagissent au sélecteur
-        d&apos;état.
+        Catalogue = packs mascotte <strong>publiés</strong> au studio ForêtMap. Publier ou dépublier
+        un pack au studio suffit à le faire apparaître ou disparaître ici. Sélectionnez une équipe
+        puis assignez une mascotte ; « Tous » montre aussi les packs sans peuple.
       </p>
       {error ? <p className="gl-error">{error}</p> : null}
       {info ? <p className="gl-info">{info}</p> : null}
@@ -154,17 +153,6 @@ export function GLMascotsAdminView({ gameState, onReloadGame, mascotPacksEnabled
             </select>
           </label>
           <div className="gl-mascots-filters" role="group" aria-label="Filtres">
-            {SOURCE_FILTERS.map((f) => (
-              <button
-                key={f.id}
-                type="button"
-                className={sourceFilter === f.id ? 'is-active' : ''}
-                onClick={() => setSourceFilter(f.id)}
-                data-source-filter={f.id}
-              >
-                {f.label}
-              </button>
-            ))}
             {TYPE_FILTERS.map((f) => (
               <button
                 key={f.id}
@@ -218,11 +206,7 @@ export function GLMascotsAdminView({ gameState, onReloadGame, mascotPacksEnabled
                 <div className="gl-mascot-card-body">
                   <strong>{mascot.label}</strong>
                   <span className="gl-hint">
-                    {mascot.source === 'foretmap'
-                      ? 'ForetMap'
-                      : mascot.type === 'gnome'
-                        ? 'Gnome'
-                        : 'Licorne'}
+                    {mascotPeopleLabel(mascot.type)}
                     {!supportsAnimatedPreview(mascot) ? ' · SVG statique' : ''}
                   </span>
                   <p>{mascot.description}</p>
@@ -245,13 +229,12 @@ export function GLMascotsAdminView({ gameState, onReloadGame, mascotPacksEnabled
         </ul>
       </section>
 
-      {mascotPacksEnabled ? (
-        <GLMascotPackManager />
-      ) : (
+      {mascots.length === 0 ? (
         <p className="gl-hint">
-          Le studio packs mascottes est désactivé (réglages → module « Studio mascottes »).
+          Aucun pack mascotte publié : créez et publiez des packs au studio ForêtMap (Visite →
+          Mascottes).
         </p>
-      )}
+      ) : null}
     </section>
   );
 }

@@ -68,7 +68,12 @@ export function GLBoardMascot({
           : `translate(-50%, -100%) scaleX(${faceRight ? 1 : -1})`,
       }}
     >
-      <GLMascotRenderer mascotId={team.mascot_id} mascotState={animationState} boardMode />
+      <GLMascotRenderer
+        mascotId={team.mascot_id}
+        mascotState={animationState}
+        fallbackType={team.type === 'unicorn' ? 'unicorn' : 'gnome'}
+        boardMode
+      />
       {team.titre ? (
         <span className="gl-board-mascot__titre" data-testid="gl-board-mascot-titre">
           {team.titre}

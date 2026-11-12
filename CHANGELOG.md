@@ -9,6 +9,31 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — G&L : les mascottes d'équipe sont les packs publiés du studio ForêtMap
+
+- Catalogue G&L (`GET /api/gl/mascots`, console MJ, composition automatique) réduit aux packs
+  **publiés** du studio ForêtMap (`visit_mascot_packs.is_published = 1`), relu à chaque appel :
+  publier / dépublier un pack au studio suffit. Plus de mascottes SVG `gl-*`, de mascottes
+  livrées supprimées ni de packs `gl_mascot_packs` dans l'offre ; `POST /api/gl/mascots/assign`
+  refuse `404` tout autre id. `lib/glMascotCatalog.js` et `lib/glMascotPackCatalog.js` supprimés.
+- Peuple de chaque pack (`type`) : champ facultatif `type` du pack (menu « Peuple Gnomes &
+  Licornes » au studio, schéma v1/v2), sinon déduit du libellé, sinon `null`
+  (`lib/glMascotType.js`). Les packs sans peuple restent assignables à la main.
+- Console MJ : menu filtré par peuple, case « Tous les packs mascotte », défaut = premier pack
+  du peuple non pris dans la partie (plus d'id codé en dur), id hors catalogue affiché
+  « (pack dépublié) » et jamais remplacé en silence ; la liste des équipes montre le libellé du
+  pack. Composition automatique : le manque de packs ne réduit plus le nombre d'équipes (équipe
+  sans mascotte + `MASCOT_POOL_TOO_SMALL`) ; la reprise abandonne un pack dépublié.
+- Rendu : `GLMascotAvatar` affiche la première image `idle` du pack, `GLMascotRenderer` anime
+  les packs du catalogue ; tout autre id retombe sur la silhouette SVG au peuple de l'équipe.
+- Écran Mascottes : studio de packs GL masqué (doublon du studio ForêtMap), filtre « source »
+  retiré. Tables et routes `/api/gl/mascots/packs*` conservées dans ce lot.
+- Migration `343_gl_mascots_packs_publies.sql` : réattribue les équipes qui ne pointent pas vers
+  un pack publié (pack publié du même peuple, distinct dans la partie, `NULL` faute de pack),
+  aligne `gl_mascot_assignments`, vide `gl_mascot_packs`.
+- Tests : `gl-mascot-type`, `gl-mascot-catalog` (réécrit), `gl-mascots`, `gl-migration-343-mascots`,
+  `gl-team-naming` (`keepSlots`), UI `GLMascotAvatar` / `GLGameMasterConsole`, e2e `gl-mascots`.
+
 ### Modifié — `src/App.jsx` découpé, sans changement de comportement (exploitation, lot 6)
 
 - `App.jsx` passe de 2 385 à 593 lignes et redevient le shell d'orchestration : droits dérivés

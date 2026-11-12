@@ -82,6 +82,20 @@ test('pickMascots : bon peuple, sans doublon, réduit les équipes si le vivier 
   assert.deepEqual(short.warnings, [MASCOT_POOL_TOO_SMALL]);
   assert.deepEqual(short.usableTypes, ['gnome', 'unicorn']);
   assert.equal(short.mascotIds.length, 2);
+
+  // keepSlots (composition automatique) : le nombre d'équipes ne dépend pas des packs publiés ;
+  // une équipe sans pack disponible garde sa case, à null, et jamais un doublon.
+  const kept = pickMascots({
+    types: ['gnome', 'unicorn', 'gnome', 'unicorn'],
+    catalog,
+    exclude: ['g2'],
+    rng: createSeededRng(8),
+    keepSlots: true,
+  });
+  assert.deepEqual(kept.warnings, [MASCOT_POOL_TOO_SMALL]);
+  assert.deepEqual(kept.usableTypes, ['gnome', 'unicorn', 'gnome', 'unicorn']);
+  assert.deepEqual(kept.mascotIds, ['g1', 'u1', null, null]);
+  assert.ok(!kept.mascotIds.includes('fm'), 'un pack sans peuple n’est jamais tiré');
 });
 
 test('alternateTeamTypes alterne les peuples et accepte un départ licorne', () => {

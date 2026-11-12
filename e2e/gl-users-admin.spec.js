@@ -69,7 +69,6 @@ test.describe('GL users admin flow', () => {
       data: {
         name: 'Equipe Admin UI',
         type: 'gnome',
-        mascotId: 'gl-gnome-mousse',
         color: '#22c55e',
       },
     });
