@@ -17,8 +17,11 @@
 >   **refusée (`409 HOMOGENEOUS_WITH_SCORING`)** quand le score par équipe est actif.
 > - § 2 — les statuts de partie sont `draft` / `live` / `paused` / `ended` (le document
 >   employait « finished »).
-> - § 4.4 — seules les mascottes **typées** (catalogue GL, 7 gnomes / 6 licornes) sont
->   utilisées ⇒ plafond de 13 équipes ; au-delà le nombre d'équipes est réduit et signalé.
+> - § 4.4 — seules les mascottes **typées** sont utilisées. **Depuis novembre 2026** : ce sont les
+>   packs **publiés du studio ForêtMap** au peuple connu (`lib/glMascotType.js`), et le vivier
+>   **ne borne plus** le nombre d'équipes — une équipe sans pack disponible reste sans mascotte
+>   (`MASCOT_POOL_TOO_SMALL`, jamais de doublon). Avant : catalogue `gl-*` (7 gnomes / 6
+>   licornes), plafond de 13 équipes, réduction signalée.
 > - § 6 — la politique de classe ne déclenche rien seule : elle **choisit la recette par
 >   défaut** de l'aperçu quand le MJ n'en impose pas ; les épingles ne sont jamais persistées.
 > - § 7.1 — la colonne `gl_players.team_id` est **conservée** (plus écrite ni lue) ; sa
@@ -141,7 +144,7 @@ le brassage est encouragé sans devenir une interdiction absolue.
 | **Taille cible**              | le MJ saisit une taille d'équipe (défaut **4**) ; le nombre d'équipes en découle : `clamp(round(actifs / taille), 2, plafond_mascottes)` | dure          |
 | **Effectifs**                 | écart maximal de 1 entre équipes                                                                                                         | dure          |
 | **Équilibre gnome / licorne** | alternance des peuples ; au moins un de chaque dès 2 équipes                                                                             | dure          |
-| **Plafond mascottes**         | une mascotte distincte par équipe, filtrée par peuple ; le catalogue borne le nombre d'équipes                                           | dure          |
+| **Plafond mascottes**         | une mascotte distincte par équipe, filtrée par peuple ; faute de pack publié, l'équipe reste sans mascotte (nov. 2026, voir § 4.4)       | dure          |
 | **Joueurs inactifs**          | `is_active = 0` exclus par défaut, réintégrables par le MJ                                                                               | souple        |
 | **Rotation des peuples**      | éviter le même peuple plus de 2 chapitres d'affilée                                                                                      | souple (v2)   |
 | **Plancher de vitalité**      | éviter l'équipe entièrement à 0 cœur / 0 gemme, incapable de lancer quoi que ce soit                                                     | souple (v2)   |

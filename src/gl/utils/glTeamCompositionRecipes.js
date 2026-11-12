@@ -133,7 +133,7 @@ export const GL_TEAM_COMPOSE_WARNING_LABELS = Object.freeze({
   TEAMS_EXIST: 'Cette partie a déjà des équipes (vides) : appliquer les remplacera.',
   NO_PREVIOUS_GAME: 'Aucune partie précédente avec équipes : tirage aléatoire utilisé.',
   MASCOT_POOL_TOO_SMALL:
-    'Pas assez de mascottes typées disponibles : le nombre d’équipes a été réduit.',
+    'Pas assez de packs mascotte publiés du bon peuple : des équipes restent sans mascotte (à choisir à la main).',
   CARRY_OVER_SOURCE: 'Équipes reprises de la partie précédente.',
   LOCKS_UNSATISFIED: 'Certaines contraintes de la classe n’ont pas pu être toutes respectées.',
   LOCKS_IGNORED:

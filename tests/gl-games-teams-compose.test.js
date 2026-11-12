@@ -3,7 +3,7 @@
 // Composition automatique des équipes GL — routes
 // POST /api/gl/games/:id/teams/compose/preview et /apply (lot v1).
 require('./helpers/setup');
-const { test, before } = require('node:test');
+const { test, before, after } = require('node:test');
 const assert = require('node:assert');
 const request = require('supertest');
 const { app } = require('../server');
@@ -16,6 +16,7 @@ const {
   createGlGameWithTeams,
   assignPlayerToGameTeam,
   signTokens,
+  createGlMascotPackPool,
 } = require('./helpers/glFixtures');
 const { presentJournalEvent } = require('../lib/glJournalPresent');
 
@@ -31,8 +32,12 @@ let playerToken;
 
 const url = (gameId, action) => `/api/gl/games/${gameId}/teams/compose/${action}`;
 
+// Catalogue de mascottes G&L = packs publiés du studio ForêtMap : la suite sème son vivier.
+let mascotPool = null;
+
 before(async () => {
   await initSchema();
+  mascotPool = await createGlMascotPackPool({ gnomes: 4, unicorns: 4 });
   admin = await createGlAdmin({ email: `compose-${stamp}@ecole.local` });
   cls = await createGlClass({ name: `Classe compose ${stamp}`, adminId: admin.id });
   ({ chapter } = await createGlChapterWithMarker({
@@ -447,4 +452,8 @@ test('apply concurrent avec start : pas de composition après le lancement', asy
     assert.equal(applyRes.status, 409);
     assert.equal(applyRes.body.code, 'GAME_NOT_DRAFT');
   }
+});
+
+after(async () => {
+  await mascotPool?.cleanup();
 });

@@ -20,7 +20,13 @@
    [Carte du royaume](carte-du-royaume.md)), questions en place, feuillets répartis.
 4. **Composer les équipes** et attribuer les mascottes **gnome ou licorne** — en
    s'appuyant sur le récit : la forme n'est pas un choix d'équipe, c'est « le seuil qui
-   la donne » (voir [Les deux peuples du seuil](lore-deux-peuples.md)). Pour gagner du
+   la donne » (voir [Les deux peuples du seuil](lore-deux-peuples.md)). Les mascottes
+   proposées sont les **packs publiés au studio ForêtMap** : le menu montre les gnomes pour
+   une équipe gnome, les licornes pour une équipe licorne ; la case **« Tous les packs
+   mascotte »** donne accès aux autres (Olu, Kraa…), qui ne sont jamais choisis d'office.
+   Une nouvelle équipe reçoit le premier pack de son peuple qu'aucune autre équipe de la
+   partie ne porte. Si un pack est dépublié en cours d'année, les équipes qui l'avaient le
+   gardent : leur avatar redevient une silhouette, et le menu affiche « (pack dépublié) ». Pour gagner du
    temps, **« Composer automatiquement »** (onglet Équipes, partie en brouillon) propose
    des équipes complètes — nom, couleur, peuple alterné, mascotte — selon une recette
    (aléatoire, aléatoire avec mémoire des parties passées, reconduction de la partie

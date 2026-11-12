@@ -1,16 +1,18 @@
 'use strict';
 
 require('./helpers/setup');
-const { test, before } = require('node:test');
+const { test, before, after } = require('node:test');
 const assert = require('node:assert');
 const request = require('supertest');
 const { app } = require('../server');
-const { initSchema, queryOne } = require('../database');
+const { initSchema, queryOne, execute } = require('../database');
 const {
   createGlAdmin,
   createGlClass,
   createGlGameWithTeams,
   createGlPlayer,
+  createGlMascotPackPool,
+  createVisitMascotPack,
   signTokens,
 } = require('./helpers/glFixtures');
 const { signAuthToken } = require('../middleware/requireTeacher');
@@ -20,6 +22,11 @@ let playerToken = '';
 let gameId = null;
 let teamAId = null;
 let teamBId = null;
+// Catalogue G&L = packs publiés du studio ForêtMap : la suite sème les siens.
+let mascotPool = null;
+let untypedPack = null;
+let gnomeA = '';
+let licorneA = '';
 
 const stamp = Date.now();
 const adminEmail = `mascots.mj.${stamp}@ecole.local`;
@@ -44,6 +51,10 @@ async function readZipResponseBody(agentReq) {
 
 before(async () => {
   await initSchema();
+  mascotPool = await createGlMascotPackPool({ gnomes: 2, unicorns: 2, tag: stamp });
+  untypedPack = await createVisitMascotPack({ label: `Olu test ${stamp}` });
+  [gnomeA] = mascotPool.gnomeIds;
+  [licorneA] = mascotPool.unicornIds;
   const admin = await createGlAdmin({ email: adminEmail, displayName: 'MJ Mascots' });
   const cls = await createGlClass({ name: className, school: 'Ecole Mascots', adminId: admin.id });
   const chapter = await queryOne("SELECT id FROM gl_chapters WHERE slug = 'foret-magique' LIMIT 1");
@@ -86,15 +97,21 @@ test('GET /api/gl/mascots retourne le catalogue (auth GL requise)', async () => 
     .set('Authorization', `Bearer ${playerToken}`)
     .expect(200);
   assert.ok(Array.isArray(res.body?.mascots));
-  assert.ok(res.body.mascots.length >= 12);
-  assert.ok(res.body.mascots.some((row) => row.source === 'foretmap'));
+  const ids = new Set(res.body.mascots.map((row) => row.id));
+  for (const id of [...mascotPool.gnomeIds, ...mascotPool.unicornIds]) assert.ok(ids.has(id));
+  assert.ok(res.body.mascots.every((row) => !String(row.id).startsWith('gl-')));
+  assert.ok(res.body.mascots.every((row) => row.source === 'foretmap'));
+  const byId = new Map(res.body.mascots.map((row) => [row.id, row]));
+  assert.equal(byId.get(gnomeA)?.type, 'gnome');
+  assert.equal(byId.get(licorneA)?.type, 'unicorn');
+  assert.equal(byId.get(untypedPack.catalogId)?.type, null);
 });
 
 test('POST /api/gl/mascots/assign exige gl.team.manage', async () => {
   await request(app)
     .post('/api/gl/mascots/assign')
     .set('Authorization', `Bearer ${playerToken}`)
-    .send({ gameId, teamId: teamAId, mascotId: 'gl-gnome-mousse' })
+    .send({ gameId, teamId: teamAId, mascotId: gnomeA })
     .expect(403);
 });
 
@@ -102,18 +119,18 @@ test('POST /api/gl/mascots/assign assigne une mascotte à une équipe', async ()
   const res = await request(app)
     .post('/api/gl/mascots/assign')
     .set('Authorization', `Bearer ${adminToken}`)
-    .send({ gameId, teamId: teamAId, mascotId: 'gl-gnome-mousse' })
+    .send({ gameId, teamId: teamAId, mascotId: gnomeA })
     .expect(200);
-  assert.strictEqual(res.body?.mascot?.id, 'gl-gnome-mousse');
+  assert.strictEqual(res.body?.mascot?.id, gnomeA);
   const team = await queryOne('SELECT mascot_id FROM gl_teams WHERE id = ? LIMIT 1', [teamAId]);
-  assert.strictEqual(team?.mascot_id, 'gl-gnome-mousse');
+  assert.strictEqual(team?.mascot_id, gnomeA);
 });
 
 test('POST /api/gl/mascots/assign refuse une mascotte déjà prise (409)', async () => {
   await request(app)
     .post('/api/gl/mascots/assign')
     .set('Authorization', `Bearer ${adminToken}`)
-    .send({ gameId, teamId: teamBId, mascotId: 'gl-gnome-mousse' })
+    .send({ gameId, teamId: teamBId, mascotId: gnomeA })
     .expect(409);
 });
 
@@ -121,9 +138,9 @@ test('POST /api/gl/mascots/assign accepte une autre mascotte pour la 2e équipe'
   const res = await request(app)
     .post('/api/gl/mascots/assign')
     .set('Authorization', `Bearer ${adminToken}`)
-    .send({ gameId, teamId: teamBId, mascotId: 'gl-licorne-aube' })
+    .send({ gameId, teamId: teamBId, mascotId: licorneA })
     .expect(200);
-  assert.strictEqual(res.body?.mascot?.id, 'gl-licorne-aube');
+  assert.strictEqual(res.body?.mascot?.id, licorneA);
 });
 
 test('POST /api/gl/mascots/assign refuse une mascotte inconnue (404)', async () => {
@@ -134,14 +151,38 @@ test('POST /api/gl/mascots/assign refuse une mascotte inconnue (404)', async () 
     .expect(404);
 });
 
-test('POST /api/gl/mascots/assign accepte une mascotte ForetMap', async () => {
+test('POST /api/gl/mascots/assign refuse 404 les anciennes mascottes gl-* et un brouillon', async () => {
+  for (const mascotId of ['gl-gnome-mousse', 'gl-licorne-aube']) {
+    await request(app)
+      .post('/api/gl/mascots/assign')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ gameId, teamId: teamAId, mascotId })
+      .expect(404);
+  }
+  const draft = await createVisitMascotPack({
+    label: `Gnome brouillon ${stamp}`,
+    published: false,
+  });
+  try {
+    await request(app)
+      .post('/api/gl/mascots/assign')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ gameId, teamId: teamAId, mascotId: draft.catalogId })
+      .expect(404);
+  } finally {
+    await execute('DELETE FROM visit_mascot_packs WHERE id = ?', [draft.id]);
+  }
+});
+
+test('POST /api/gl/mascots/assign accepte un pack publié sans peuple (choix manuel du MJ)', async () => {
   const res = await request(app)
     .post('/api/gl/mascots/assign')
     .set('Authorization', `Bearer ${adminToken}`)
-    .send({ gameId, teamId: teamAId, mascotId: 'renard2-cut-spritesheet' })
+    .send({ gameId, teamId: teamAId, mascotId: untypedPack.catalogId })
     .expect(200);
-  assert.strictEqual(res.body?.mascot?.id, 'renard2-cut-spritesheet');
+  assert.strictEqual(res.body?.mascot?.id, untypedPack.catalogId);
   assert.strictEqual(res.body?.mascot?.source, 'foretmap');
+  assert.strictEqual(res.body?.mascot?.type, null);
 });
 
 test('GET /api/gl/mascots?gameId=... renvoie les assignations actuelles', async () => {
@@ -152,8 +193,8 @@ test('GET /api/gl/mascots?gameId=... renvoie les assignations actuelles', async 
   const map = Object.fromEntries(
     (res.body?.assignments || []).map((a) => [Number(a.team_id), a.mascot_id]),
   );
-  assert.strictEqual(map[Number(teamAId)], 'renard2-cut-spritesheet');
-  assert.strictEqual(map[Number(teamBId)], 'gl-licorne-aube');
+  assert.strictEqual(map[Number(teamAId)], untypedPack.catalogId);
+  assert.strictEqual(map[Number(teamBId)], licorneA);
 });
 
 test('POST /api/gl/mascots/packs valide le payload Zod', async () => {
@@ -324,7 +365,7 @@ test('sprite library GL: ajout, liste, suppression', async () => {
     .expect(200);
 });
 
-test('GET /api/gl/mascots expose les packs visit publiés et GL persistés', async () => {
+test('GET /api/gl/mascots expose les packs visit publiés, plus les packs GL persistés', async () => {
   const { invalidateGlUnifiedMascotCatalogForTests } = require('../lib/glUnifiedMascotCatalog');
   invalidateGlUnifiedMascotCatalogForTests();
 
@@ -392,15 +433,36 @@ test('GET /api/gl/mascots expose les packs visit publiés et GL persistés', asy
     .set('Authorization', `Bearer ${adminToken}`)
     .expect(200);
 
-  assert.ok((res.body?.mascots || []).some((row) => row.id === glPayload.id));
+  // Le studio de packs GL (`gl_mascot_packs`) n'alimente plus le catalogue.
+  assert.ok(!(res.body?.mascots || []).some((row) => row.id === glPayload.id));
   assert.ok((res.body?.mascots || []).some((row) => row.id === visitCatalogId));
-  const glPackRow = (res.body?.mascots || []).find((row) => row.id === glPayload.id);
-  assert.ok(glPackRow?.spriteCut?.stateFrames);
-  assert.equal(glPackRow.renderer, 'sprite_cut');
-  assert.equal(glPackRow.type, 'unicorn');
+
+  // Dépublié au studio ForêtMap : retiré du catalogue G&L à l'appel suivant.
+  await request(app)
+    .put(`/api/visit/mascot-packs/${visitPackId}`)
+    .set('Authorization', `Bearer ${teacherToken}`)
+    .send({
+      map_id: 'foret',
+      label: 'Pack visite GL test',
+      pack: visitCreated.body.pack,
+      is_published: 0,
+    })
+    .expect(200);
+  const after = await request(app)
+    .get('/api/gl/mascots')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .expect(200);
+  assert.ok(!(after.body?.mascots || []).some((row) => row.id === visitCatalogId));
 
   await request(app)
     .delete(`/api/visit/mascot-packs/${visitPackId}`)
     .set('Authorization', `Bearer ${teacherToken}`)
     .expect(200);
+});
+
+after(async () => {
+  await mascotPool?.cleanup();
+  if (untypedPack) {
+    await execute('DELETE FROM visit_mascot_packs WHERE id = ?', [untypedPack.id]);
+  }
 });

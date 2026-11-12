@@ -10,6 +10,18 @@ par des quick wins.
 
 ## 1.1 Réalisé
 
+- **Novembre 2026 — GL : mascottes = packs publiés du studio ForêtMap** (migration `343`). Le
+  choix de mascotte d'équipe (console MJ, composition automatique, `GET/POST /api/gl/mascots*`)
+  ne propose plus que les packs `visit_mascot_packs.is_published = 1` : publier ou dépublier au
+  studio suffit, sans redéploiement. Retirés de l'offre : les 13 SVG `gl-*` codés en dur (gardés
+  comme palette du rendu de repli), les mascottes livrées supprimées au studio, la table
+  `gl_mascot_packs` (vidée ; studio GL masqué, routes conservées). Peuple d'un pack : `pack.type`
+  (nouveau champ facultatif, menu au studio), sinon déduit du libellé, sinon aucun
+  (`lib/glMascotType.js`) — un pack sans peuple n'est jamais choisi d'office. La composition
+  automatique ne réduit plus le nombre d'équipes faute de mascotte : l'équipe reste sans mascotte
+  (`MASCOT_POOL_TOO_SMALL`). La migration réattribue les équipes existantes (même peuple, sans
+  doublon par partie, `NULL` faute de pack). Un pack dépublié plus tard laisse son id en base :
+  avatar SVG de repli, mention « (pack dépublié) » dans la console.
 - **Novembre 2026 — GL : mouture « Tenir à deux » v2** (dossier `docs/GL_TENIR_A_DEUX.md`, règles
   `docs/GL_TENIR_A_DEUX_REGLES.md`, migrations `330` → `333`). Décisions du 06/11/2026 :
   **deux monnaies** privées (gemmes licornes, cœurs gnomes, plafond 8/8) et **fin de la conduite par

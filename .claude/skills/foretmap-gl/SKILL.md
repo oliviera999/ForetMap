@@ -33,8 +33,10 @@ Sous-produit **isolé** du monorepo. Détail : `.cursor/rules/foretmap-gl.mdc`,
 
 ## Mascottes / cadres / styles
 
-- Mascottes id `gl-*` ; `GLMascotRenderer` + `useGLMascotStateMachine`. Packs : Zod
-  `src/utils/glMascotPack.js` + miroir CJS `lib/gl-pack/mascotPack.js` (`npm run sync:gl-pack-lib`).
+- Mascottes d'équipe = **packs publiés du studio ForêtMap** (`lib/glUnifiedMascotCatalog.js`,
+  ids `srv-…`, peuple via `lib/glMascotType.js`) ; les SVG `gl-*` ne sont plus qu'une palette de
+  repli. `GLMascotRenderer` + `useGLMascotStateMachine`. Studio de packs GL (`gl_mascot_packs`,
+  Zod `src/utils/glMascotPack.js` + miroir `lib/gl-pack/`) masqué de l'UI, hors catalogue.
 - Cadres image : `src/utils/glImageFrame.js` + `lib/glImageFrame.js` (`docs/GL_IMAGE_FRAMES.md`).
 - UI : ne charge pas tout `index.css` (seulement `src/shared/styles/*` + `gl-base.css` + `gl-theme.css`) ;
   palette GL locale (préfixe `gl-`), pas de `--forest`/`--leaf`.

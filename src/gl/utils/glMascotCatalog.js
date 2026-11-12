@@ -1,19 +1,12 @@
 /**
- * Catalogue de mascottes Gnomes & Licornes (Lot 2C).
+ * Palette de repli des mascottes Gnomes & Licornes (ex-catalogue Lot 2C, ids `gl-*`).
  *
- * Pour le moment, chaque mascotte est rendue via un fallback SVG dédié
- * (`GLMascotFallbackSvg`) — pas d'asset Rive/spritesheet requis tant que les
- * élèves n'ont pas produit leurs propres mascottes. Le format est conçu pour
- * accueillir de futurs `renderer: 'rive' | 'spritesheet'` sans casser
- * l'assignation déjà persistée en base (`gl_mascot_assignments.mascot_id`).
+ * **Depuis novembre 2026, ce fichier n'alimente plus aucune liste de choix** : le catalogue de
+ * mascottes G&L est celui des packs publiés du studio ForêtMap (`lib/glUnifiedMascotCatalog.js`).
+ * Il ne sert plus qu'à colorer le rendu SVG de repli (`GLMascotAvatar` → `GLMascotFallbackSvg`)
+ * d'un éventuel id `gl-*` resté quelque part (la migration 343 a réattribué les équipes).
  *
- * Contraintes Lot 2C :
- *   - au moins 6 gnomes et 6 licornes,
- *   - identifiants uniques et stables,
- *   - couleur primaire/secondaire utilisable pour la couleur d'équipe.
- *
- * Module ESM consommable côté front. Le backend (`routes/gl/mascots.js`) le
- * charge via `await import()` pour valider l'identifiant côté serveur.
+ * Module ESM consommé par le front seulement (plus aucun import serveur).
  */
 
 export const GL_MASCOT_CATALOG = Object.freeze([

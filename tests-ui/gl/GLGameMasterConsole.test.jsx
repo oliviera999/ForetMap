@@ -1,5 +1,5 @@
 import { describe, test, expect, vi, beforeEach, beforeAll } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
 import { GLGameMasterConsole } from '../../src/gl/components/GLGameMasterConsole.jsx';
 
 const apiGlMock = vi.fn();
@@ -10,10 +10,12 @@ vi.mock('../../src/gl/services/apiGL.js', () => ({
 
 vi.mock('../../src/gl/context/GLMascotCatalogContext.jsx', () => ({
   useGLMascotCatalog: () => ({
+    // Catalogue G&L = packs publiés du studio ForêtMap (type déduit côté serveur).
     mascots: [
-      { id: 'gl-gnome-mousse', label: 'Gnome Mousse', type: 'gnome', source: 'gl' },
-      { id: 'gl-gnome-flamme', label: 'Gnome Flamme', type: 'gnome', source: 'gl' },
-      { id: 'gl-licorne-aube', label: 'Licorne Aube', type: 'unicorn', source: 'gl' },
+      { id: 'srv-gnome-mousse', label: 'Gnome Mousse', type: 'gnome', source: 'foretmap' },
+      { id: 'srv-gnome-flamme', label: 'Gnome Flamme', type: 'gnome', source: 'foretmap' },
+      { id: 'srv-licorne-aube', label: 'Licorne Aube', type: 'unicorn', source: 'foretmap' },
+      { id: 'srv-olu', label: 'Olu', type: null, source: 'foretmap' },
     ],
     reload: vi.fn(),
   }),
@@ -40,7 +42,8 @@ const loadedGameState = {
     chapter_title: 'Chapitre test',
   },
   teams: [
-    { id: 7, name: 'Equipe Alpha', type: 'gnome', mascot_id: 'gl-gnome-mousse', color: '#65a30d' },
+    { id: 7, name: 'Equipe Alpha', type: 'gnome', mascot_id: 'srv-gnome-mousse', color: '#65a30d' },
+    { id: 8, name: 'Equipe Beta', type: 'unicorn', mascot_id: 'gl-licorne-aube', color: '#a855f7' },
   ],
   scores: {},
   pendingActions: [],
@@ -124,6 +127,30 @@ describe('GLGameMasterConsole', () => {
     expect(screen.getByRole('option', { name: 'Gnome Mousse' })).toBeTruthy();
     expect(screen.getByRole('option', { name: 'Gnome Flamme' })).toBeTruthy();
     expect(screen.queryByRole('option', { name: 'Licorne Aube' })).toBeNull();
+    expect(screen.queryByRole('option', { name: 'Olu' })).toBeNull();
+    // Aucun id `gl-*` codé en dur : défaut = premier gnome publié pas encore pris (Alpha a Mousse).
+    expect(mascotSelect.value).toBe('srv-gnome-flamme');
+
+    // « Tous » : l'autre peuple et les packs sans peuple deviennent accessibles.
+    fireEvent.click(screen.getByLabelText(/Tous les packs mascotte/));
+    expect(screen.getByRole('option', { name: 'Licorne Aube' })).toBeTruthy();
+    expect(screen.getByRole('option', { name: 'Olu' })).toBeTruthy();
+  });
+
+  test('équipe sur un pack dépublié : id conservé, marqué « (pack dépublié) »', async () => {
+    render(<GLGameMasterConsole {...baseProps} gameState={loadedGameState} />);
+    fireEvent.click(screen.getByRole('tab', { name: 'Équipes & effectifs' }));
+    await screen.findByLabelText('Mascotte', {}, { timeout: 5000 });
+
+    expect(screen.getAllByText('gl-licorne-aube (pack dépublié)').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Gnome Mousse').length).toBeGreaterThan(0);
+
+    const betaRow = screen.getAllByText('Equipe Beta')[0].closest('tr');
+    fireEvent.click(within(betaRow).getByRole('button', { name: 'Modifier' }));
+    const mascotSelect = screen.getByLabelText('Mascotte');
+    await waitFor(() => expect(mascotSelect.value).toBe('gl-licorne-aube'));
+    expect(screen.getByRole('option', { name: 'gl-licorne-aube (pack dépublié)' })).toBeTruthy();
+    expect(screen.getByRole('option', { name: 'Licorne Aube' })).toBeTruthy();
   });
 
   test('empty state équipes sans partie chargée', async () => {

@@ -21,6 +21,8 @@ export default function GLGameMasterConsoleTeams({
   setTeamForm,
   editingTeamId,
   selectableMascots,
+  showAllMascots = false,
+  setShowAllMascots = () => {},
   defaultMascotByType,
   addTeam,
   upsertTeam,
@@ -183,23 +185,29 @@ export default function GLGameMasterConsoleTeams({
             </GLField>
             <GLField label="Mascotte">
               <GLSelect
-                value={teamForm.mascotId}
+                value={teamForm.mascotId || ''}
                 onChange={(event) =>
                   setTeamForm((prev) => ({ ...prev, mascotId: event.target.value }))
                 }
-                disabled={selectableMascots.length === 0}
               >
-                {selectableMascots.length === 0 ? (
-                  <option value="">Chargement du catalogue…</option>
-                ) : null}
+                <option value="">
+                  {selectableMascots.length === 0 ? 'Aucun pack publié pour ce peuple' : 'Aucune'}
+                </option>
                 {selectableMascots.map((mascot) => (
                   <option key={mascot.id} value={mascot.id}>
                     {mascot.label}
-                    {mascot.source === 'foretmap' ? ' (ForetMap)' : ''}
                   </option>
                 ))}
               </GLSelect>
             </GLField>
+            <label className="gl-compose-check">
+              <input
+                type="checkbox"
+                checked={showAllMascots}
+                onChange={(event) => setShowAllMascots(event.target.checked)}
+              />
+              <span>Tous les packs mascotte (autre peuple, sans peuple)</span>
+            </label>
             <GLField label="Couleur">
               <GLInput
                 value={teamForm.color}

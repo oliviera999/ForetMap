@@ -1,5 +1,6 @@
 'use strict';
 
+const crypto = require('node:crypto');
 const bcrypt = require('bcryptjs');
 const { execute, queryOne } = require('../../database');
 const { signAuthToken } = require('../../middleware/requireTeacher');
@@ -232,6 +233,60 @@ async function assignPlayerToGameTeam({ gameId, teamId, playerId }) {
   );
 }
 
+/**
+ * Pack mascotte du studio ForêtMap (`visit_mascot_packs`), publié par défaut : c'est la seule
+ * source du catalogue de mascottes G&L. Pack `sprite_cut` minimal valide (une frame `idle`).
+ *
+ * @param {{ label?: string, type?: 'gnome'|'unicorn', published?: boolean }} [options]
+ * @returns {Promise<{ id: string, catalogId: string, label: string }>}
+ */
+async function createVisitMascotPack(options = {}) {
+  const id = crypto.randomUUID();
+  const catalogId = `srv-${id}`;
+  const label = String(options.label || `Pack test ${id.slice(0, 8)}`);
+  const pack = {
+    mascotPackVersion: 1,
+    id: `test-${id.slice(0, 8)}`,
+    label,
+    renderer: 'sprite_cut',
+    framesBase: `/uploads/visit-mascot-packs/${id}/`,
+    frameWidth: 64,
+    frameHeight: 64,
+    fallbackSilhouette: 'gnome',
+    stateFrames: { idle: { files: ['idle_0.png'], fps: 8 } },
+    ...(options.type ? { type: options.type } : {}),
+  };
+  const now = new Date();
+  await execute(
+    `INSERT INTO visit_mascot_packs (id, catalog_id, label, pack_json, is_published, origin, created_at, updated_at, created_by)
+     VALUES (?, ?, ?, ?, ?, 'custom', ?, ?, NULL)`,
+    [id, catalogId, label, JSON.stringify(pack), options.published === false ? 0 : 1, now, now],
+  );
+  return { id, catalogId, label };
+}
+
+/**
+ * Vivier de packs publiés typés pour une suite (composition automatique, assignation) :
+ * `gnomes` packs « Gnome … » et `unicorns` packs « Licorne … ». `cleanup()` les supprime.
+ */
+async function createGlMascotPackPool({ gnomes = 4, unicorns = 4, tag = Date.now() } = {}) {
+  const packs = [];
+  for (let i = 1; i <= gnomes; i += 1) {
+    packs.push(await createVisitMascotPack({ label: `Gnome test ${tag} ${i}` }));
+  }
+  for (let i = 1; i <= unicorns; i += 1) {
+    packs.push(await createVisitMascotPack({ label: `Licorne test ${tag} ${i}` }));
+  }
+  return {
+    packs,
+    gnomeIds: packs.slice(0, gnomes).map((p) => p.catalogId),
+    unicornIds: packs.slice(gnomes).map((p) => p.catalogId),
+    cleanup: async () => {
+      for (const p of packs) await execute('DELETE FROM visit_mascot_packs WHERE id = ?', [p.id]);
+    },
+  };
+}
+
 module.exports = {
   createGlAdmin,
   createGlClass,
@@ -239,5 +294,7 @@ module.exports = {
   createGlChapterWithMarker,
   createGlGameWithTeams,
   assignPlayerToGameTeam,
+  createVisitMascotPack,
+  createGlMascotPackPool,
   signTokens,
 };

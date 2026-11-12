@@ -227,8 +227,10 @@ distinct du glossaire scientifique) et tutoriels.
 
 ### L'habillage
 
-- **Mascottes** : les avatars des équipes (gnomes, licornes…), avec un studio de packs
-  pour en ajouter.
+- **Mascottes** : les avatars des équipes (gnomes, licornes…). Ce sont les packs
+  mascotte **publiés au studio ForêtMap** (Visite → Mascottes) : publier un pack le rend
+  disponible dans le jeu, le dépublier le retire du choix. Il n'y a plus de studio propre à
+  G&L.
 - **Cadres d'image** : encadrements décoratifs configurables (logos, illustrations,
   cartes, avatars). Le point de cadrage peut être placé jusqu'au bord de l'image (0 %).
 - **Voir une image en grand** : illustrations de chapitres, de scènes et de feuillets,
