@@ -9,6 +9,12 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — G&L : la clôture applique la case restée en suspens
+
+- Clore le chapitre alors qu'une équipe n'a pas encore gardé son jet (Relance encore possible)
+  déplaçait la mascotte au camp sans appliquer la case. L'effet (cœurs, gemmes) n'était jamais
+  écrit. La clôture applique d'abord ces arrivées, puis la caravane porte les retardataires.
+
 ### Modifié — G&L : les mascottes d'équipe sont les packs publiés du studio ForêtMap
 
 - Catalogue G&L (`GET /api/gl/mascots`, console MJ, composition automatique) réduit aux packs
