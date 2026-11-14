@@ -131,6 +131,18 @@ export default function MascotPackMetaSection({
           ))}
         </select>
       </label>
+      <label style={{ display: 'block', marginTop: 12 }}>
+        <span className="mascot-pack-wysiwyg__label">Peuple Gnomes &amp; Licornes</span>
+        <select
+          className="form-select"
+          value={pack.type === 'gnome' || pack.type === 'unicorn' ? pack.type : ''}
+          onChange={(ev) => patchPack({ type: ev.target.value || undefined })}
+        >
+          <option value="">Aucun (déduit du libellé)</option>
+          <option value="gnome">Gnome</option>
+          <option value="unicorn">Licorne</option>
+        </select>
+      </label>
       {packWarnings.length > 0 ? (
         <div
           role="status"

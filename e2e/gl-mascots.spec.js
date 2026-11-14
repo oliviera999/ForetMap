@@ -1,12 +1,17 @@
 const { test, expect } = require('@playwright/test');
 const { signAuthToken } = require('../middleware/requireTeacher');
 const { queryOne, execute } = require('../database');
+const { createGlMascotPackPool } = require('../tests/helpers/glFixtures');
 
 test.describe('Gnomes & Licornes — mascottes & équipes (Lot 2C)', () => {
-  test('le MJ assigne deux mascottes différentes à deux équipes (refus de collision)', async ({
+  test('le MJ assigne deux packs publiés à deux équipes (refus de collision, gl-* refusé)', async ({
     request,
   }) => {
     const now = Date.now();
+    // Catalogue G&L = packs publiés du studio ForêtMap : le scénario sème les siens.
+    const pool = await createGlMascotPackPool({ gnomes: 2, unicorns: 1, tag: now });
+    const [gnomeA, gnomeB] = pool.gnomeIds;
+    const [licorneA] = pool.unicornIds;
     const adminEmail = `e2e-mascots-mj-${now}@example.org`;
     await execute(
       'INSERT INTO gl_admins (email, display_name, role, is_active, created_at, updated_at) VALUES (?, ?, ?, 1, NOW(), NOW())',
@@ -69,40 +74,48 @@ test.describe('Gnomes & Licornes — mascottes & équipes (Lot 2C)', () => {
 
     const r1 = await request.post('/api/gl/mascots/assign', {
       headers,
-      data: { gameId, teamId: Number(teamA.id), mascotId: 'gl-gnome-mousse' },
+      data: { gameId, teamId: Number(teamA.id), mascotId: gnomeA },
     });
     expect(r1.status()).toBe(200);
 
     const r2 = await request.post('/api/gl/mascots/assign', {
       headers,
-      data: { gameId, teamId: Number(teamB.id), mascotId: 'gl-gnome-mousse' },
+      data: { gameId, teamId: Number(teamB.id), mascotId: gnomeA },
     });
     expect(r2.status()).toBe(409);
 
     const r3 = await request.post('/api/gl/mascots/assign', {
       headers,
-      data: { gameId, teamId: Number(teamB.id), mascotId: 'gl-licorne-aube' },
+      data: { gameId, teamId: Number(teamB.id), mascotId: licorneA },
     });
     expect(r3.status()).toBe(200);
 
     const list = await request.get(`/api/gl/mascots?gameId=${gameId}`, { headers });
     expect(list.status()).toBe(200);
     const data = await list.json();
-    expect(
-      (data?.mascots || []).some(
-        (m) => m.id === 'renard2-cut-spritesheet' && m.source === 'foretmap',
-      ),
-    ).toBeTruthy();
+    const mascots = data?.mascots || [];
+    expect(mascots.find((m) => m.id === gnomeA)?.type).toBe('gnome');
+    expect(mascots.find((m) => m.id === licorneA)?.type).toBe('unicorn');
+    expect(mascots.some((m) => String(m.id).startsWith('gl-'))).toBeFalsy();
     const map = Object.fromEntries(
       (data?.assignments || []).map((a) => [Number(a.team_id), a.mascot_id]),
     );
-    expect(map[Number(teamA.id)]).toBe('gl-gnome-mousse');
-    expect(map[Number(teamB.id)]).toBe('gl-licorne-aube');
+    expect(map[Number(teamA.id)]).toBe(gnomeA);
+    expect(map[Number(teamB.id)]).toBe(licorneA);
 
     const r4 = await request.post('/api/gl/mascots/assign', {
       headers,
-      data: { gameId, teamId: Number(teamA.id), mascotId: 'renard2-cut-spritesheet' },
+      data: { gameId, teamId: Number(teamA.id), mascotId: gnomeB },
     });
     expect(r4.status()).toBe(200);
+
+    // Ancienne mascotte SVG : plus au catalogue.
+    const r5 = await request.post('/api/gl/mascots/assign', {
+      headers,
+      data: { gameId, teamId: Number(teamA.id), mascotId: 'gl-gnome-mousse' },
+    });
+    expect(r5.status()).toBe(404);
+
+    await pool.cleanup();
   });
 });

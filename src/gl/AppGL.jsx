@@ -1224,11 +1224,7 @@ export function AppGL() {
                   )}
                   {tab === 'settings' && showStaffAdminUi && <GLSettingsView />}
                   {tab === 'mascots' && showStaffAdminUi && (
-                    <GLMascotsAdminView
-                      gameState={gameState}
-                      onReloadGame={reloadGame}
-                      mascotPacksEnabled={isModuleEnabled(modules, 'mascotPacksEnabled')}
-                    />
+                    <GLMascotsAdminView gameState={gameState} onReloadGame={reloadGame} />
                   )}
                   {tab === 'mj' && showStaffAdminUi && (
                     <GLGameMasterConsole

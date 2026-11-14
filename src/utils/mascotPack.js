@@ -122,6 +122,11 @@ const packBodyObjectSchema = z.object({
   pixelated: z.boolean().optional(),
   displayScale: z.number().positive().max(4).optional(),
   fallbackSilhouette: z.string().min(1).max(40),
+  /**
+   * Peuple Gnomes & Licornes (facultatif) : prime sur la déduction depuis le libellé
+   * (`lib/glMascotType.js`). Absent = déduit du libellé (« Gnome… » / « Licorne… »), sinon aucun.
+   */
+  type: z.enum(['gnome', 'unicorn']).optional(),
   /** Modèle catalogue d’origine (`visitMascotCatalog.js`) lors d’un clonage studio. */
   clonedFromCatalogId: z.string().max(64).optional(),
   stateAliases: z.record(z.string(), z.string()).optional(),

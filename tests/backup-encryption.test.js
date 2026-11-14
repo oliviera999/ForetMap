@@ -63,6 +63,9 @@ describe(
         BACKUP_DIR: bashPath(path.join(work, 'backups')),
         DB_NAME: 'foretmap_fake',
         DB_USER: 'fake',
+        // Faux dump sans tables : la vérification approfondie (db-backup-verify.sh) a ses
+        // propres tests (tests/db-backup-verify.test.js).
+        BACKUP_VERIFY: '0',
         ...env,
       };
       const exports = Object.entries(merged)

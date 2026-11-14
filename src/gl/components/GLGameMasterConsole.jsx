@@ -30,10 +30,12 @@ function MjSectionFallback() {
   return <p className="gl-hint">Chargement de la section…</p>;
 }
 
+// Mascotte : posée dès le chargement du catalogue (packs publiés du studio ForêtMap), par
+// `defaultMascotByType` — aucun identifiant codé en dur.
 const DEFAULT_TEAM_FORM = {
   name: '',
   type: 'gnome',
-  mascotId: 'gl-gnome-mousse',
+  mascotId: '',
   color: '#65a30d',
 };
 
@@ -81,6 +83,8 @@ export function GLGameMasterConsole({
   const [gamesClassFilter, setGamesClassFilter] = useState('');
   const [teamForm, setTeamForm] = useState({ ...DEFAULT_TEAM_FORM });
   const [editingTeamId, setEditingTeamId] = useState(null);
+  // « Tous » : le menu mascotte montre aussi les packs de l'autre peuple et les packs sans peuple.
+  const [showAllMascots, setShowAllMascots] = useState(false);
   const [rosterRefreshKey, setRosterRefreshKey] = useState(0);
   const [busy, setBusy] = useState(false);
   const [pendingSpellCasts, setPendingSpellCasts] = useState([]);
@@ -104,7 +108,10 @@ export function GLGameMasterConsole({
     setGamesClassFilter(String(activeClasses[0].id));
   }, [activeClasses, gamesClassFilter]);
 
-  const teams = Array.isArray(gameState?.teams) ? gameState.teams : [];
+  const teams = useMemo(
+    () => (Array.isArray(gameState?.teams) ? gameState.teams : []),
+    [gameState?.teams],
+  );
   const game = gameState?.game || null;
   const scores = gameState?.scores || {};
   const pendingActions = Array.isArray(gameState?.pendingActions) ? gameState.pendingActions : [];
@@ -135,38 +142,60 @@ export function GLGameMasterConsole({
     [mascotCatalog],
   );
 
+  // Catalogue = packs publiés du studio ForêtMap. Par défaut, seuls ceux du peuple de l'équipe ;
+  // « Tous » ajoute l'autre peuple et les packs sans peuple (Olu, Kraa…). Un id hors catalogue
+  // (pack dépublié depuis) reste affiché en tête, marqué, pour ne jamais être changé en silence.
   const selectableMascots = useMemo(() => {
-    const byType = mascotOptions.filter((item) => item.type === teamForm.type);
-    const list = byType.length > 0 ? byType : mascotOptions;
+    const list = showAllMascots
+      ? mascotOptions
+      : mascotOptions.filter((item) => item.type === teamForm.type);
     const current = String(teamForm.mascotId || '').trim();
     if (current && !list.some((item) => item.id === current)) {
       const fromCatalog = mascotOptions.find((item) => item.id === current);
       if (fromCatalog) return [fromCatalog, ...list];
-      return [{ id: current, label: current }, ...list];
+      return [{ id: current, label: `${current} (pack dépublié)`, unpublished: true }, ...list];
     }
     return list;
-  }, [mascotOptions, teamForm.type, teamForm.mascotId]);
+  }, [mascotOptions, showAllMascots, teamForm.type, teamForm.mascotId]);
 
-  const defaultMascotByType = useCallback(
-    (type) => {
-      const list = mascotOptions;
-      if (!list.length) return type === 'unicorn' ? 'gl-licorne-aube' : 'gl-gnome-mousse';
-      const preferred = list.find((item) => item.source === 'gl' && item.type === type);
-      if (preferred?.id) return preferred.id;
-      const fallback = list.find((item) => item.type === type);
-      if (fallback?.id) return fallback.id;
-      return list[0]?.id || '';
+  // Libellé lisible d'une mascotte d'équipe (les ids `srv-…` ne parlent à personne).
+  const describeTeamMascot = useCallback(
+    (mascotId) => {
+      const id = String(mascotId || '').trim();
+      if (!id) return '—';
+      if (!mascotOptions.length) return id;
+      return mascotOptions.find((item) => item.id === id)?.label || `${id} (pack dépublié)`;
     },
     [mascotOptions],
   );
 
-  useEffect(() => {
-    if (!mascotOptions.length) return;
-    const current = String(teamForm.mascotId || '').trim();
-    const exists = mascotOptions.some((item) => item.id === current);
-    if (exists) return;
-    setTeamForm((prev) => ({ ...prev, mascotId: defaultMascotByType(prev.type) }));
-  }, [mascotOptions, teamForm.mascotId, defaultMascotByType, teamForm.type]);
+  // Premier pack du bon peuple pas encore porté par une autre équipe de la partie, sinon le
+  // premier du bon peuple, sinon aucune. Les packs sans peuple ne sont jamais choisis d'office.
+  const defaultMascotByType = useCallback(
+    (type) => {
+      const ofType = mascotOptions.filter((item) => item.type === type);
+      if (!ofType.length) return '';
+      const used = new Set(
+        teams
+          .filter((team) => Number(team.id) !== Number(editingTeamId))
+          .map((team) => String(team.mascot_id || '').trim())
+          .filter(Boolean),
+      );
+      return (ofType.find((item) => !used.has(item.id)) || ofType[0]).id || '';
+    },
+    [mascotOptions, teams, editingTeamId],
+  );
+
+  // Formulaire de création encore sans mascotte : défaut posé une fois le catalogue chargé (même
+  // rendu, pas d'effet). Jamais en édition : l'équipe garde son id, même dépublié.
+  const [mascotDefaultSeeded, setMascotDefaultSeeded] = useState(false);
+  if (!mascotDefaultSeeded && mascotOptions.length > 0 && !editingTeamId) {
+    setMascotDefaultSeeded(true);
+    if (!String(teamForm.mascotId || '').trim()) {
+      const seeded = defaultMascotByType(teamForm.type);
+      if (seeded) setTeamForm((prev) => ({ ...prev, mascotId: seeded }));
+    }
+  }
 
   // Formulaire dérivé de la partie chargée, dans le MÊME rendu que la clé de remise à zéro de
   // l'enregistrement automatique : l'ancien `useEffect` posait le formulaire un rendu après la
@@ -807,7 +836,7 @@ export function GLGameMasterConsole({
         <>
           <td>{team.name}</td>
           <td>{team.type}</td>
-          <td>{team.mascot_id || '—'}</td>
+          <td>{describeTeamMascot(team.mascot_id)}</td>
           <td>{team.color || '—'}</td>
           <td className="gl-admin-actions-cell">{rowActions}</td>
         </>
@@ -824,7 +853,7 @@ export function GLGameMasterConsole({
           </div>
           <div className="gl-data-card-row">
             <span className="gl-data-card-label">Mascotte</span>
-            <span>{team.mascot_id || '—'}</span>
+            <span>{describeTeamMascot(team.mascot_id)}</span>
           </div>
           <div className="gl-data-card-actions">{rowActions}</div>
         </>
@@ -937,6 +966,8 @@ export function GLGameMasterConsole({
             setTeamForm={setTeamForm}
             editingTeamId={editingTeamId}
             selectableMascots={selectableMascots}
+            showAllMascots={showAllMascots}
+            setShowAllMascots={setShowAllMascots}
             defaultMascotByType={defaultMascotByType}
             addTeam={addTeam}
             upsertTeam={upsertTeam}

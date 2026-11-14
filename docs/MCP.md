@@ -300,18 +300,18 @@ réordonnancement des projets.
 
 ### Étage 3 — outils historiques (lecture, exploitation)
 
-| Outil                                                                                                                                                                                                      | Portée / permission                       | Rôle                                                                            |
-| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- | ------------------------------------------------------------------------------- |
-| `foretmap_health`                                                                                                                                                                                          | read                                      | Version, uptime, ping BDD                                                       |
-| `foretmap_diagnostics` / `foretmap_tail_logs` / `foretmap_db_status`                                                                                                                                       | read + `admin.settings.read`              | Instantané d'exploitation, journaux Pino en liste blanche de champs, migrations |
-| `foretmap_search`, `foretmap_get_species`, `foretmap_list_maps`, `foretmap_get_map`, `foretmap_get_id_key`, `foretmap_get_food_web`, `foretmap_list_qcm`, `foretmap_get_qcm`, `foretmap_get_glossary_term` | read + `mcp.use`                          | Lecture du corpus ForêtMap et G&L (inchangés)                                   |
-| `gl_get_board` / `gl_get_lore`                                                                                                                                                                             | read + `mcp.use`                          | Gnomes & Licornes (inchangés)                                                   |
-| `foretmap_usage_overview`                                                                                                                                                                                  | read + `mcp.use`                          | Agrégats anonymes seuillés                                                      |
-| `foretmap_audit` / `foretmap_audit_all`                                                                                                                                                                    | read + `mcp.use`                          | Contrôles du corpus                                                             |
-| `foretmap_list_students` / `foretmap_get_student`                                                                                                                                                          | `mcp.privacy_bypass`, admin, bypass actif | **Dépréciés** : utiliser `foretmap_students`                                    |
-| `foretmap_recall` / `remember` / `forget`                                                                                                                                                                  | read + `mcp.use`                          | Mémoire du connecteur (§ 11.1)                                                  |
-| `foretmap_health_report` / `_history`                                                                                                                                                                      | read + `admin.settings.read`              | Rapport de santé (§ 11.2)                                                       |
-| `foretmap_list_files` / `read_file` / `grep_files` / `cron_status`                                                                                                                                         | read + `mcp.write` ; `files_enabled`      | Journaux et fichiers du serveur en lecture seule (§ 11.3, § 11.4)               |
+| Outil                                                                                                                                                                                                      | Portée / permission                       | Rôle                                                                                                                                                                                                      |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `foretmap_health`                                                                                                                                                                                          | read                                      | Version, uptime, ping BDD                                                                                                                                                                                 |
+| `foretmap_diagnostics` / `foretmap_tail_logs` / `foretmap_db_status`                                                                                                                                       | read + `admin.settings.read`              | Instantané d'exploitation (`restarts_window_hours` : fenêtre des redémarrages, causes par jour `byDay`, arrêts brutaux par heure `hardKillsByHour`), journaux Pino en liste blanche de champs, migrations |
+| `foretmap_search`, `foretmap_get_species`, `foretmap_list_maps`, `foretmap_get_map`, `foretmap_get_id_key`, `foretmap_get_food_web`, `foretmap_list_qcm`, `foretmap_get_qcm`, `foretmap_get_glossary_term` | read + `mcp.use`                          | Lecture du corpus ForêtMap et G&L (inchangés)                                                                                                                                                             |
+| `gl_get_board` / `gl_get_lore`                                                                                                                                                                             | read + `mcp.use`                          | Gnomes & Licornes (inchangés)                                                                                                                                                                             |
+| `foretmap_usage_overview`                                                                                                                                                                                  | read + `mcp.use`                          | Agrégats anonymes seuillés                                                                                                                                                                                |
+| `foretmap_audit` / `foretmap_audit_all`                                                                                                                                                                    | read + `mcp.use`                          | Contrôles du corpus                                                                                                                                                                                       |
+| `foretmap_list_students` / `foretmap_get_student`                                                                                                                                                          | `mcp.privacy_bypass`, admin, bypass actif | **Dépréciés** : utiliser `foretmap_students`                                                                                                                                                              |
+| `foretmap_recall` / `remember` / `forget`                                                                                                                                                                  | read + `mcp.use`                          | Mémoire du connecteur (§ 11.1)                                                                                                                                                                            |
+| `foretmap_health_report` / `_history`                                                                                                                                                                      | read + `admin.settings.read`              | Rapport de santé (§ 11.2)                                                                                                                                                                                 |
+| `foretmap_list_files` / `read_file` / `grep_files` / `cron_status`                                                                                                                                         | read + `mcp.write` ; `files_enabled`      | Journaux et fichiers du serveur en lecture seule (§ 11.3, § 11.4)                                                                                                                                         |
 
 ### Contrôles de `foretmap_audit`
 
@@ -398,7 +398,14 @@ présence (les cartes de test sont presque vides) et 9 photos sans crédit/licen
      liste blanche de fonctions pures (`LOAD_FILE`, `CURRENT_USER`, `USER`, `DATABASE`,
      `VERSION`, `SLEEP`, `BENCHMARK`… refusées) et de tout ce que le parseur n'analyse pas
      (fail-closed). L'ancienne analyse par expressions régulières laissait passer
-     `SELECT * FROM (users)` (relecture de sécurité, constat B1). `CAST`, `HEX` et `CONCAT`
+     `SELECT * FROM (users)` (relecture de sécurité, constat B1). Les agrégations sont admises
+     (`GROUP BY`, `HAVING`, `COUNT`, `SUM`, `AVG`, `MIN`, `MAX`, `GROUP_CONCAT`), avec le même
+     plafond de lignes et de temps. Une erreur MySQL **de la requête elle-même** (colonne ou
+     table inconnue, syntaxe, regroupement) revient avec le message de MySQL ; toute autre erreur
+     reste « Erreur interne de l'outil ». Le refus NFKC ne vaut que pour le SQL brut : les outils
+     d'écriture **paramétrés** (`foretmap_content_change`, `foretmap_quiz`, `foretmap_api`)
+     acceptent `…`, `CO₂`, `m²` et les espaces insécables, la valeur étant liée et jamais
+     interprétée comme du SQL. `CAST`, `HEX` et `CONCAT`
      restent admis : ils ne lisent rien de plus que les colonnes déjà lisibles et ne servent
      qu'à mettre en forme ; ce qui est lisible est borné par le contrôle 3, pas par la liste de
      fonctions.
@@ -457,6 +464,16 @@ présence (les cartes de test sont presque vides) et 9 photos sans crédit/licen
   ne sont jamais renvoyés** : mots de passe, hachages, secrets TOTP, jetons et clés sont exclus
   ou masqués (`scrub: secrets`, `lib/mcp/secretGuard.js`) — y compris dans les échantillons SQL
   en mode bypass. Prérequis juridiques : [MCP_REGISTRE_TRAITEMENT.md § 9](MCP_REGISTRE_TRAITEMENT.md).
+- **Valeurs du `.env` dans les sorties** (`maskEnvValuesInString`, `lib/mcp/secretGuard.js`) :
+  la valeur d'une variable secrète est remplacée par `[secret .env masqué]` partout où elle
+  apparaît. Les clés **listées** (`SENSITIVE_ENV_KEYS` : `DB_PASS`, `JWT_SECRET`,
+  `DEPLOY_SECRET`, `OPENAI_API_KEY`, `PLANTNET_API_KEY`, `TREFLE_TOKEN`…) sont toujours masquées
+  (dès 4 caractères ; au mot entier en deçà de 12). Les autres ne le sont que si leur **nom**
+  porte un mot sensible comme segment (`_PASS`, `_SECRET`, `_TOKEN`, `_API_KEY`…, hors suffixes
+  de configuration `_URL`, `_FILE`, `_DIR`, `_ENV`…) et que la valeur n'est ni un mot courant
+  (`production`, `true`…) ni un nombre : sous-chaîne dès 12 caractères, mot entier en deçà.
+  Avant le 11/11/2026, `pass` était cherché n'importe où dans le nom : `PASSENGER_APP_ENV`
+  (valeur `production`) caviardait « reproduction » en « re[secret .env masqué] ».
 
 Fiche de registre : [MCP_REGISTRE_TRAITEMENT.md](MCP_REGISTRE_TRAITEMENT.md).
 
@@ -864,14 +881,14 @@ Racines (`lib/mcp/files/roots.js`). `MCP_FILE_ROOTS` remplace la liste par défa
 `nom=chemin` séparés par des virgules (chemin absolu ou relatif à l'application). Par défaut,
 seules les racines qui existent sont exposées :
 
-| Racine                          | Chemin                                                                                                                  |
-| ------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `logs`                          | `MCP_CRON_LOG_DIR`, sinon `<application>/logs`, sinon `~/foretmap-logs` (journaux de la crontab, `boot-journal.ndjson`) |
-| `startup`, `startup-diag`       | `startup.log`, `startup-diag.log` (écrasés à chaque démarrage)                                                          |
-| `passenger`                     | `MCP_PASSENGER_LOG`, sinon `<application>/stderr.log`, sinon `~/logs/<dossier>.stderr.log`                              |
-| `cpanel`                        | `.cpanel.yml`                                                                                                           |
-| `scripts`, `docs`, `migrations` | dossiers du dépôt                                                                                                       |
-| `pino` (virtuelle)              | tampon Pino en mémoire, mêmes règles que `foretmap_tail_logs`                                                           |
+| Racine                          | Chemin                                                                                                                                                        |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `logs`, `logs_2`…               | premier dossier existant parmi `MCP_CRON_LOG_DIR` (liste), `<application>/logs`, `~/foretmap-logs`, `~/foretmap/logs` ; les suivants sous `logs_2`, `logs_3`… |
+| `startup`, `startup-diag`       | `startup.log`, `startup-diag.log` (écrasés à chaque démarrage)                                                                                                |
+| `passenger`                     | `MCP_PASSENGER_LOG`, sinon `<application>/stderr.log`, sinon `~/logs/<dossier>.stderr.log`                                                                    |
+| `cpanel`                        | `.cpanel.yml`                                                                                                                                                 |
+| `scripts`, `docs`, `migrations` | dossiers du dépôt                                                                                                                                             |
+| `pino` (virtuelle)              | tampon Pino en mémoire, mêmes règles que `foretmap_tail_logs`                                                                                                 |
 
 Sur o2switch, Passenger écrit sa sortie d'erreur là où le désigne la directive
 `PassengerAppLogFile` du `.htaccess` (souvent `stderr.log` à la racine de l'application, parfois
@@ -912,19 +929,31 @@ administrateurs.
 
 Lit **ce que le code trace déjà** (`lib/mcp/files/cron.js`) :
 
-| Tâche                                                                                                   | Trace                                                     | Attendue           |
-| ------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- | ------------------ |
-| `recurring_tasks`, `auto_archive`, `notifications_purge`, `task_deadline_reminders`, `rewards_evaluate` | `scheduled_job_runs` (jobs quotidiens de `server.js`)     | 24 h               |
-| `health_report`                                                                                         | `scheduled_job_runs` (`scripts/health-report.js`)         | 24 h               |
-| `retention_purge`                                                                                       | `retention_purge_runs` (migration 319)                    | 24 h               |
-| `auto_deploy`, `db_backup`, `uptime_check`                                                              | dernière ligne horodatée de `logs/<ligne de crontab>.log` | 2 min, 24 h, 5 min |
-| `moodle_sync`, `reconcile_uploads` (facultatives)                                                       | `logs/moodle-sync.log`, `logs/reconcile-uploads.log`      | 4 j, 32 j          |
+| Tâche                                                                                                   | Trace                                                              | Attendue           |
+| ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ | ------------------ |
+| `recurring_tasks`, `auto_archive`, `notifications_purge`, `task_deadline_reminders`, `rewards_evaluate` | `scheduled_job_runs` (jobs quotidiens de `server.js`)              | 24 h               |
+| `health_report`                                                                                         | `scheduled_job_runs` (`scripts/health-report.js`)                  | 24 h               |
+| `retention_purge`                                                                                       | `retention_purge_runs` (migration 319)                             | 24 h               |
+| `auto_deploy`, `db_backup`, `uptime_check`                                                              | dernière ligne horodatée de `logs/<ligne de crontab>.log`          | 2 min, 24 h, 5 min |
+| `db_backup_verify`, `moodle_sync`, `reconcile_uploads` (facultatives)                                   | `db-backup-verify.log`, `moodle-sync.log`, `reconcile-uploads.log` | 24 h, 4 j, 32 j    |
 
 `scheduled_job_runs` est **nouveau** (migration 325, `lib/scheduledJobs.js`) : les jobs
 quotidiens du serveur ne laissaient jusque-là qu'une ligne Pino, perdue au redémarrage. Le
 traçage est best-effort et ne change rien au job. États : `ok`, `late` (plus vieux que
-l'attente + 50 %), `failure`, `blocked` (purge arrêtée par un seuil), `never` (aucune trace),
-`not_configured` (tâche facultative sans journal).
+l'attente + 50 %), `failure` (dernière ligne « ÉCHEC », « ERREUR », « FAIL »… — limites de mot
+Unicode depuis le 11/11/2026 : « ÉCHEC » n'était pas reconnu), `blocked` (purge arrêtée par un
+seuil), `never` (aucune trace nulle part), `log_not_found` (journal absent de tous les dossiers
+inspectés, mais une autre trace prouve que la tâche tourne : dernier fichier de `BACKUP_DIR`
+pour `db_backup`, redémarrage par déploiement ou schéma à jour pour `auto_deploy` — le journal
+est écrit ailleurs), `not_configured` (tâche facultative sans journal).
+
+Chaque journal est cherché dans **tous** les dossiers candidats (`MCP_CRON_LOG_DIR`, liste
+séparée par des virgules, `<application>/logs`, `~/foretmap-logs`, `~/foretmap/logs`) ; le plus
+récent l'emporte et son dossier est rendu (`log_dir`). Une tâche `never` ou `log_not_found`
+porte `searched_dirs`. Avant, seul le premier dossier existant était lu : l'application créant
+elle-même `logs/` pour son journal de cycle de vie, une crontab écrivant ailleurs passait pour
+jamais exécutée. Vérification côté serveur : `scripts/ops-crontab-check.sh`
+([`CRONTAB.md`](CRONTAB.md), « Vérifier en 2 minutes »).
 
 La **crontab** elle-même (`crontab -l`, `child_process.execFile`, 3 s) n'est lue que si
 `MCP_CRON_READ_CRONTAB=true` : sous Passenger / CageFS, le processus web peut se la voir
@@ -937,7 +966,7 @@ comme un fichier.
 | ---------------------------------- | ----------------------- | ----------------------------------------------------------------------------------------- |
 | `MCP_FILES_ENABLED`                | `true`                  | `false` retire les quatre outils de fichiers et de cron pour tous                         |
 | `MCP_FILE_ROOTS`                   | (racines par défaut)    | `nom=chemin,…` : remplace la liste des racines                                            |
-| `MCP_CRON_LOG_DIR`                 | `<app>/logs`            | Dossier des journaux de la crontab                                                        |
+| `MCP_CRON_LOG_DIR`                 | (dossiers candidats)    | Dossier(s) des journaux de la crontab, séparés par des virgules, cherchés en premier      |
 | `MCP_PASSENGER_LOG`                | (recherché)             | Chemin du `stderr.log` Passenger                                                          |
 | `MCP_CRON_READ_CRONTAB`            | `false`                 | Lire `crontab -l` dans `foretmap_cron_status`                                             |
 | `MCP_MEMORY_STALE_DAYS`            | `90`                    | Au-delà, une note est « à revérifier »                                                    |

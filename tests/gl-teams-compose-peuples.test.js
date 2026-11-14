@@ -1,12 +1,16 @@
 'use strict';
 
 require('./helpers/setup');
-const { test, before } = require('node:test');
+const { test, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const request = require('supertest');
 const { app } = require('../server');
 const { initSchema, execute } = require('../database');
-const { createGlGameWithTeams, assignPlayerToGameTeam } = require('./helpers/glFixtures');
+const {
+  createGlGameWithTeams,
+  assignPlayerToGameTeam,
+  createGlMascotPackPool,
+} = require('./helpers/glFixtures');
 const { createTenirGame, ensureTenirCorpus } = require('./helpers/glTenirFixtures');
 const {
   buildPeopleConstraintForPlateau,
@@ -18,8 +22,12 @@ const {
 let ctx;
 let previousTypes;
 
+// Catalogue de mascottes G&L = packs publiés du studio ForêtMap : la suite sème son vivier.
+let mascotPool = null;
+
 before(async () => {
   await initSchema();
+  mascotPool = await createGlMascotPackPool({ gnomes: 4, unicorns: 4 });
   // Partie courante : plateau 2, brouillon. Partie précédente de la classe : plateau 1, terminée.
   ctx = await createTenirGame({ plateau: 2, status: 'draft', stamp: Date.now() });
   const { chapters } = await ensureTenirCorpus();
@@ -123,4 +131,8 @@ test('aperçu de composition : 4 équipes 2/2, peuple inversé depuis le chapitr
     res.body.teams.every((t) => t.mascotId),
     'mascottes typées proposées',
   );
+});
+
+after(async () => {
+  await mascotPool?.cleanup();
 });

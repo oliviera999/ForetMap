@@ -73,7 +73,9 @@ son chapitre** à sa création.
      reprises telles quelles ; s'il n'y en a pas, on retombe sur l'aléatoire, et le MJ en
      est averti). Le jeu propose alors des équipes complètes : nom tiré du vocabulaire du
      chapitre, couleur, peuple alterné (au moins un camp de chaque dès deux équipes),
-     mascotte distincte pour chacune. Le MJ **relit et retouche** la proposition
+     mascotte distincte pour chacune, tirée parmi les packs publiés au studio ForêtMap du bon
+     peuple (s'il n'y en a pas assez, des équipes restent sans mascotte, et le MJ en est
+     averti). Le MJ **relit et retouche** la proposition
      (déplacer un joueur vers une autre équipe, renommer une équipe, tirer une nouvelle
      proposition) avant de l'**appliquer** ; rien n'est enregistré avant ce clic. Si des
      équipes existaient déjà, le MJ doit explicitement accepter de les remplacer. Les

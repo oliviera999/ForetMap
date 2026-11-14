@@ -24,7 +24,10 @@ set -euo pipefail
 # - DEPLOY_SKIP_RESTART_IF_SOFT_ONLY : ne pas appeler /api/admin/restart lorsque tous
 #   les fichiers du déploiement matchent DEPLOY_SOFT_CHANGE_REGEX (ex. docs seulement).
 #   Défaut 1 depuis l'audit charge serveur ; mettre 0 pour toujours redémarrer après pull
-# - DEPLOY_SOFT_CHANGE_REGEX : ERE grep (défaut: CHANGELOG, README, LICENSE, docs/, .github/, .cursor/)
+# - DEPLOY_SOFT_CHANGE_REGEX : ERE grep des fichiers sans effet au démarrage (défaut :
+#   DEPLOY_SOFT_CHANGE_REGEX_DEFAULT de scripts/lib/deploy-restart-policy.sh — tout *.md,
+#   LICENSE, docs/, tests/, tests-ui/, e2e/, .github/, .cursor/, .claude/, .githooks/).
+#   Le commit de version (champ `version` seul de package.json) est aussi léger.
 # - DEPLOY_SKIP_SYNC_VISIT_PACK_LIB : 1 pour ne pas exécuter scripts/sync-visit-pack-server-lib.js après pull
 # - DEPLOY_AUTO_ROLLBACK : 1 (défaut) pour revenir au commit précédent si post-deploy-check
 #   échoue après redémarrage (reset --hard + re-sync + npm ci + restart + re-check) ;
@@ -68,7 +71,14 @@ DEPLOY_QUIET_SECONDS="${DEPLOY_QUIET_SECONDS:-180}"
 # un commit docs/méta seul ne redémarre plus l'app (moins de fenêtres 503). Remettre 0
 # via .env ou l'environnement du cron pour retrouver le redémarrage systématique.
 DEPLOY_SKIP_RESTART_IF_SOFT_ONLY="${DEPLOY_SKIP_RESTART_IF_SOFT_ONLY:-1}"
-DEPLOY_SOFT_CHANGE_REGEX="${DEPLOY_SOFT_CHANGE_REGEX:-^(CHANGELOG\.md|README\.md|LICENSE(\.txt)?|\.gitattributes|docs/|\.github/|\.cursor/)}"
+# Fichiers sans effet au démarrage (défaut : scripts/lib/deploy-restart-policy.sh — tout *.md,
+# docs/, tests/, tests-ui/, e2e/, .github/, .cursor/, .claude/…). Le commit de version de
+# release.yml (champ `version` seul de package.json / package-lock.json) est léger lui aussi.
+if [[ -f "$SCRIPT_DIR/lib/deploy-restart-policy.sh" ]]; then
+  # shellcheck source=lib/deploy-restart-policy.sh
+  source "$SCRIPT_DIR/lib/deploy-restart-policy.sh"
+fi
+DEPLOY_SOFT_CHANGE_REGEX="${DEPLOY_SOFT_CHANGE_REGEX:-${DEPLOY_SOFT_CHANGE_REGEX_DEFAULT:-^(CHANGELOG\.md|README\.md|LICENSE(\.txt)?|\.gitattributes|docs/|\.github/|\.cursor/)}}"
 DEPLOY_SKIP_SYNC_VISIT_PACK_LIB="${DEPLOY_SKIP_SYNC_VISIT_PACK_LIB:-0}"
 DEPLOY_AUTO_ROLLBACK="${DEPLOY_AUTO_ROLLBACK:-1}"
 DEPLOY_DB_PRE_MIGRATE_BACKUP="${DEPLOY_DB_PRE_MIGRATE_BACKUP:-1}"
@@ -387,11 +397,18 @@ DO_DEPLOY_RESTART=1
 if [[ "$DEPLOY_SKIP_RESTART_IF_SOFT_ONLY" == "1" ]]; then
   if [[ -z "$(printf '%s' "$CHANGED_FILES" | tr -d '[:space:]')" ]]; then
     log "Diff de fichiers vide ou inattendu: redémarrage conservé."
-  elif grep -Ev "$DEPLOY_SOFT_CHANGE_REGEX" <<<"$CHANGED_FILES" | grep -q .; then
-    log "Fichiers runtime ou non triviaux modifiés: redémarrage requis."
   else
-    DO_DEPLOY_RESTART=0
-    log "Redémarrage différé (changements limités au périmètre doc/méta, DEPLOY_SKIP_RESTART_IF_SOFT_ONLY=1)."
+    if declare -F deploy_restart_files >/dev/null; then
+      RESTART_FILES="$(deploy_restart_files "$LOCAL_SHA" "$REMOTE_SHA" "$CHANGED_FILES" "$DEPLOY_SOFT_CHANGE_REGEX")"
+    else
+      RESTART_FILES="$(grep -Ev "$DEPLOY_SOFT_CHANGE_REGEX" <<<"$CHANGED_FILES" || true)"
+    fi
+    if [[ -n "$RESTART_FILES" ]]; then
+      log "Fichiers runtime ou non triviaux modifiés: redémarrage requis ($(printf '%s\n' "$RESTART_FILES" | sed -n '1,3p' | paste -sd ' ' -)$([[ "$(printf '%s\n' "$RESTART_FILES" | wc -l)" -gt 3 ]] && printf ' …'))."
+    else
+      DO_DEPLOY_RESTART=0
+      log "Redémarrage différé (changements sans effet au démarrage : documentation, tests, outillage ou version seule ; DEPLOY_SKIP_RESTART_IF_SOFT_ONLY=1)."
+    fi
   fi
 fi
 
@@ -484,8 +501,14 @@ if [[ "$DEPLOY_SKIP_SYNC_VISIT_PACK_LIB" != "1" ]] && [[ -f "$APP_DIR/scripts/sy
 fi
 
 if grep -Eq '(^|/)(package\.json|package-lock\.json)$' <<<"$CHANGED_FILES"; then
-  log "Dépendances modifiées: npm ci --omit=dev"
-  npm ci --omit=dev --no-audit --no-fund
+  # Le commit de version (champ `version` seul) ne change aucune dépendance : pas de npm ci.
+  if declare -F deploy_dependencies_changed >/dev/null &&
+    ! deploy_dependencies_changed "$PREV_SHA" "$REMOTE_SHA" "$CHANGED_FILES"; then
+    log "package.json : version seule modifiée, dépendances inchangées (pas de npm ci)."
+  else
+    log "Dépendances modifiées: npm ci --omit=dev"
+    npm ci --omit=dev --no-audit --no-fund
+  fi
 fi
 
 # Migrations : celles qu'apporte le lot, ou une base déjà en retard sur le code (le lot n'en

@@ -70,8 +70,10 @@ Lu par le front au login via `GET /api/gl/auth/config`.
 
 ## Studio mascottes
 
-- Catalogue local : `src/utils/glMascotCatalog.js`.
-- Packs persistés : tables `gl_mascot_packs`, `gl_mascot_pack_assets`,
+- Catalogue de jeu = packs **publiés** du studio ForêtMap (`lib/glUnifiedMascotCatalog.js`,
+  peuple : `lib/glMascotType.js`) ; `src/gl/utils/glMascotCatalog.js` n'est plus qu'une palette
+  de repli SVG (nov. 2026).
+- Packs persistés GL (masqués de l'UI, hors catalogue) : tables `gl_mascot_packs`, `gl_mascot_pack_assets`,
   `gl_mascot_sprite_library` ; routes `/api/gl/mascots/packs*` et
   `/api/gl/mascots/sprite-library*` (permission `gl.content.manage`).
 - Validation Zod : `src/utils/glMascotPack.js` + miroir CJS

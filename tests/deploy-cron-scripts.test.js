@@ -53,6 +53,8 @@ function scriptsCalledByCrontab() {
 test('la documentation liste bien des lignes de crontab (le contrôle porte sur quelque chose)', () => {
   assert.deepEqual(scriptsCalledByCrontab(), [
     'auto-deploy-cron.sh',
+    'db-backup-offsite.sh',
+    'db-backup-verify.sh',
     'db-backup.sh',
     'moodle-sync-cron.sh',
     'retention-purge-cron.sh',

@@ -636,4 +636,18 @@ test('foretmap_usage_overview : fenêtre libre refusée (M6) ; journaux en liste
   assert.equal(diag.isError, false, diag.text);
   assert.equal(typeof diag.data.uptimeSeconds, 'number');
   assert.equal(typeof diag.data.database.ok, 'boolean');
+  assert.equal(diag.data.restarts.windowHours, 24);
+  assert.equal(diag.data.restarts.hardKillsByHour.length, 24);
+  assert.equal(typeof diag.data.restarts.byDay, 'object');
+
+  // Fenêtre élargie (tableau des causes sur une semaine), bornée à 31 jours.
+  const week = await fx.callTool(app, adminToken, 'foretmap_diagnostics', {
+    restarts_window_hours: 168,
+  });
+  assert.equal(week.isError, false, week.text);
+  assert.equal(week.data.restarts.windowHours, 168);
+  const tooLong = await fx.callTool(app, adminToken, 'foretmap_diagnostics', {
+    restarts_window_hours: 24 * 400,
+  });
+  assert.equal(tooLong.isError, true);
 });

@@ -8,6 +8,31 @@ Détail et comportement : [`docs/EXPLOITATION.md`](EXPLOITATION.md).
 > Tout repose sur le `.env` serveur (non versionné) pour les secrets : `DEPLOY_SECRET`,
 > `DB_*`, `SMTP_*`, `OPS_ALERT_TO`.
 
+## Vérifier en 2 minutes
+
+Dans le terminal cPanel, depuis n'importe quel dossier (remplacer `<dossier>` par le dossier
+réel de l'application, celui de **Setup Node.js App**, pas forcément `foretmap`) :
+
+```bash
+bash ~/<dossier>/scripts/ops-crontab-check.sh
+```
+
+Le script est **en lecture seule** et n'affiche **aucune valeur secrète** (valeurs masquées
+en `****`, clés du `.env` par leur nom seulement, fichier de clé par ses droits seulement). Il
+rapproche chaque ligne de `crontab -l` des lignes 1 à 9 ci-dessous (présente, absente ou
+différente), compare l'`APP_DIR` de chaque ligne au dossier réel de l'application
+(`PassengerAppRoot` du `.htaccess`), cherche chaque journal dans **tous** les dossiers
+candidats (dossier de l'application, `~/foretmap-logs`, `~/foretmap/logs`, cibles `>>` de la
+crontab), et donne la dernière sauvegarde et les dernières exécutions tracées en base (purge
+de conservation, rapport de santé).
+
+Cas typique : l'application vit dans `~/mon-domaine.fr` alors que la crontab, copiée de ce
+mémo, écrit dans `~/foretmap/logs`. Les tâches tournent, mais `foretmap_cron_status` ne trouve
+pas leurs journaux : il les signale en `log_not_found` (une autre trace prouve que la tâche
+tourne) ou en `never`, avec la liste des dossiers inspectés (`searched_dirs`). Corriger les
+chemins de la crontab, ou déclarer le dossier des journaux dans le `.env` de l'application :
+`MCP_CRON_LOG_DIR=/home/USER/foretmap/logs` (plusieurs dossiers séparés par des virgules).
+
 ## Pré-requis (une fois)
 
 ```bash
@@ -285,6 +310,23 @@ anciennes.
 ```cron
 # 8 bis) Journaux cron : garder les 5000 dernières lignes des fichiers de plus de 5 Mo ; effacer les archives de plus de 90 jours — le 1er du mois à 05:10
 10 5 1 * * find /home/USER/foretmap/logs -name '*.log' -size +5M -exec sh -c 'tail -n 5000 "$1" > "$1.tmp" && mv "$1.tmp" "$1"' _ {} \; ; find /home/USER/foretmap/logs -name '*.gz' -mtime +90 -delete
+```
+
+## Lignes facultatives — vérification et copie hors serveur des sauvegardes
+
+La ligne 2 vérifie déjà chaque sauvegarde (`BACKUP_VERIFY=1`, `scripts/db-backup-verify.sh`,
+journal dans `db-backup.log`). Les deux lignes ci-dessous sont **facultatives** : une
+vérification planifiée seule (journal propre, lu par `foretmap_cron_status` sous
+`db_backup_verify`) et la copie de la dernière sauvegarde **chiffrée** hors du serveur
+(`rclone` installé et `BACKUP_OFFSITE_REMOTE` posé : `docs/EXPLOITATION.md`, « Copie hors du
+serveur » ; sans eux le script sort sans rien faire).
+
+```cron
+# 2 bis) Vérification de la dernière sauvegarde (facultatif) — 03:30
+30 3 * * * APP_DIR=/home/USER/foretmap bash /home/USER/foretmap/scripts/db-backup-verify.sh >> /home/USER/foretmap/logs/db-backup-verify.log 2>&1
+
+# 2 ter) Copie hors serveur de la dernière sauvegarde chiffrée (facultatif) — 03:45
+45 3 * * * APP_DIR=/home/USER/foretmap bash /home/USER/foretmap/scripts/db-backup-offsite.sh >> /home/USER/foretmap/logs/db-backup-offsite.log 2>&1
 ```
 
 ## Ligne 9 — rapport de santé quotidien (connecteur Claude)
