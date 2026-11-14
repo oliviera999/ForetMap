@@ -1,0 +1,77 @@
+{
+ "format": "gl.qcm.feedbacks/2",
+ "note": "Remplacement gardé : n'écrire un retour que si la colonne est vide ou commence par « Non » (retour d'origine). Une retouche d'auteur n'est jamais écrasée.",
+ "feedbacks": {
+  "QCM0069": {
+   "b": "Les fourmis magnan vivent et chassent ensemble, par millions : c'est leur force.",
+   "c": "Les ouvrières n'ont pas d'ailes : elles marchent, en colonne serrée sur le sol.",
+   "d": "Ce sont d'autres fourmis, en Amérique, qui portent des feuilles ; les magnan, elles, chassent.",
+   "e": "Au contraire : elles n'ont pas de nid fixe, la colonie se déplace sans cesse en chassant."
+  },
+  "QCM0251": {
+   "b": "Le baobab est plutôt trapu : 20 à 25 m de haut, mais un tronc énorme.",
+   "c": "Il pousse très lentement, et peut vivre plus de mille ans.",
+   "d": "Ses fruits (le pain de singe) se mangent : animaux et humains en raffolent.",
+   "e": "Il perd ses feuilles en saison sèche pour économiser l'eau, mais il en porte à la saison des pluies."
+  },
+  "QCM0436": {
+   "b": "On les trouve autour de la Méditerranée, là où l'été est chaud et sec.",
+   "c": "Ce sont des arbres de terre sèche, pas des plantes d'eau.",
+   "d": "Au contraire, ils sont riches en résine, ce qui les rend d'ailleurs très inflammables.",
+   "e": "Ils gardent leurs aiguilles toute l'année : leur feuillage est persistant."
+  },
+  "QCM0195": {
+   "b": "Ces fleurs ont besoin des insectes pour être pollinisées : elles ne les fuient pas.",
+   "c": "Ce sont des plantes vivaces : elles reviennent chaque printemps grâce à leur bulbe ou leur tige souterraine.",
+   "d": "Elles en ont besoin, et les premiers bourdons du printemps viennent les visiter.",
+   "e": "Une plante n'a pas peur : elle profite de la lumière quand elle arrive jusqu'au sol, avant que les feuilles des arbres ne la cachent."
+  },
+  "QCM0618": {
+   "b": "Les tourbières sont des milieux d'eau douce, loin de la mer.",
+   "c": "Les sapins sont des arbres, pas des mousses, et ils poussent mal dans un sol gorgé d'eau.",
+   "d": "Le baobab est un arbre des savanes chaudes, bien loin des landes humides.",
+   "e": "Le chêne est un arbre de forêt ; dans une tourbière, ce sont les mousses qui dominent."
+  },
+  "QCM0605": {
+   "b": "Le grand-duc chasse des rongeurs avec un bec crochu, pas des insectes avec un bec-filet.",
+   "c": "Le rouge-gorge est actif le jour et cherche ses proies au sol.",
+   "d": "Le moineau mange surtout des graines, de jour, près des maisons.",
+   "e": "La mésange bleue picore insectes et graines dans les arbres, en plein jour."
+  },
+  "QCM0396": {
+   "b": "C'est l'inverse : l'étang du castor accueille poissons, grenouilles, insectes et oiseaux.",
+   "c": "Le castor ne visite pas les fleurs : il ronge les arbres pour se nourrir et construire.",
+   "d": "Le castor est herbivore ; c'est plutôt le loup qui le chasse.",
+   "e": "La tourbe vient des mousses qui s'accumulent sans pourrir ; le castor, lui, construit des barrages."
+  },
+  "QCM0369": {
+   "b": "Les conifères sont pollinisés par le vent ; un poisson ne peut pas le faire.",
+   "c": "Le saumon creuse un petit nid dans le gravier de la rivière pour ses œufs, pas des terriers dans les rives.",
+   "d": "Un poisson ne monte pas aux arbres ! Mais son corps finit par nourrir ceux de la berge.",
+   "e": "Le saumon ne transporte pas de graines : il transporte la richesse de la mer, dans son corps."
+  },
+  "QCM0138": {
+   "b": "Le pavot arctique est une toute petite plante ; ses fruits sont de petites capsules de graines.",
+   "c": "Pendant l'été polaire, il n'y a pas de nuit : il fleurit sous le soleil de minuit.",
+   "d": "Il pousse au sol pendant le court été, quand la neige a fondu.",
+   "e": "Dans la toundra, le vent et le froid gardent les plantes toutes petites : 10 à 15 cm."
+  }
+ },
+ "remplacement": {
+  "question_code": "GQCM0766",
+  "biome_slug": "savane",
+  "categorie_slug": "faune",
+  "question": "Pendant que son groupe creuse le sable pour trouver des insectes, un suricate reste debout sur une butte. Pourquoi ?",
+  "choix_a": "Il monte la garde et prévient les autres si un rapace ou un chacal approche",
+  "choix_b": "Il attend que les autres lui apportent à manger parce qu'il est le chef",
+  "choix_c": "Il cherche des fruits dans les arbres",
+  "choix_d": "Il écoute s'il va pleuvoir",
+  "choix_e": "Il compte les petits pour n'en oublier aucun",
+  "reponse_correcte": "A",
+  "feedback_correct": "Oui : c'est la sentinelle. Elle guette le ciel et le sol, et pousse un cri d'alarme différent pour un rapace ou pour un prédateur au sol. Les sentinelles se relaient : chacun guette à son tour.",
+  "feedback_b": "Chez les suricates, chacun cherche sa nourriture ; celui qui est debout ne mange pas, il surveille.",
+  "feedback_c": "Les suricates mangent surtout des insectes et des petits animaux du sol, pas des fruits.",
+  "feedback_d": "Il ne regarde pas les nuages : il guette les prédateurs, pour tout le groupe.",
+  "feedback_e": "Ce sont des adultes « nounous », restés au terrier, qui gardent les petits ; la sentinelle, elle, surveille les prédateurs."
+ }
+}

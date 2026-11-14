@@ -1,0 +1,158 @@
+{
+ "format": "gl.tenir.defis-cases/2",
+ "regle": "Une équipe qui s'arrête sur une case « Défi d'équipe » reçoit un défi du plateau (sans répétition dans la partie ; on recommence la liste quand elle est épuisée). Elle le prépare pendant la semaine et le relève à l'ouverture de la séance suivante, ou tout de suite si le prof le choisit. Le prof juge à voix haute : « relevé » → le voile recule pour toute la caravane ; « pas encore » → rien. Jamais de ressource.",
+ "plateaux": {
+  "1": [
+   {
+    "code": "d-p1-chaine",
+    "titre": "Chaîne vivante",
+    "consigne": "Mettez-vous en ligne pour former une chaîne alimentaire de la forêt ou de la savane, de la plante au prédateur. Chacun dit à voix haute : « Je suis… et je mange… ».",
+    "critere": "La chaîne commence par une plante et chaque maillon mange bien le précédent.",
+    "notion": "chaîne alimentaire, producteur, consommateur",
+    "duree_s": 60,
+    "preparation": "Choisissez votre chaîne et répartissez les rôles : qui est la plante, qui mange qui."
+   },
+   {
+    "code": "d-p1-semeurs",
+    "titre": "Qui sème la forêt ?",
+    "consigne": "En 30 secondes, citez deux animaux qui transportent les graines des arbres de la forêt tropicale, et dites comment.",
+    "critere": "Deux animaux justes (calao, éléphant de forêt, gorille, chimpanzé, mandrill…) et le comment (en mangeant les fruits, les graines ressortent plus loin).",
+    "notion": "dispersion des graines",
+    "duree_s": 30,
+    "preparation": "Cherchez dans les fiches de la forêt qui mange des fruits, et ce que deviennent les graines."
+   },
+   {
+    "code": "d-p1-mime",
+    "titre": "Mime de la savane",
+    "consigne": "Un joueur de l'équipe mime un animal de la savane en train d'utiliser son astuce pour survivre. La classe doit trouver l'animal ; l'équipe explique ensuite l'astuce.",
+    "critere": "La classe trouve l'animal et l'équipe explique une astuce juste (girafe et long cou pour les acacias, suricate sentinelle, éléphant qui creuse pour l'eau…).",
+    "notion": "adaptation",
+    "duree_s": 45,
+    "preparation": "Choisissez votre animal en secret et répétez le mime : l'astuce doit se voir."
+   },
+   {
+    "code": "d-p1-mare",
+    "titre": "Le point d'eau",
+    "consigne": "Expliquez en une phrase pourquoi tant d'animaux se retrouvent autour du même point d'eau en saison sèche, puis nommez un prédateur qui en profite.",
+    "critere": "L'eau est rare ailleurs + un prédateur juste (lion, hyène, crocodile, léopard…).",
+    "notion": "saison sèche, ressource rare, proie et prédateur",
+    "duree_s": 60,
+    "preparation": "Préparez votre phrase et choisissez qui la dira."
+   }
+  ],
+  "2": [
+   {
+    "code": "d-p2-mime",
+    "titre": "Mime du désert",
+    "consigne": "Un joueur de l'équipe mime comment un animal du désert résiste à la chaleur ou à la soif. La classe doit trouver l'animal ; l'équipe explique ensuite l'astuce.",
+    "critere": "La classe trouve l'animal et l'équipe explique une astuce juste (fennec et grandes oreilles, gerboise qui sort la nuit, dromadaire et ses réserves, addax qui tire l'eau des plantes…).",
+    "notion": "adaptation à la sécheresse",
+    "duree_s": 45,
+    "preparation": "Choisissez votre animal en secret et répétez le mime : l'astuce doit se voir."
+   },
+   {
+    "code": "d-p2-soif",
+    "titre": "Trois astuces contre la soif",
+    "consigne": "En 45 secondes, citez trois façons dont les vivants du désert économisent l'eau.",
+    "critere": "Trois astuces justes : sortir la nuit, s'enterrer, tirer l'eau de sa nourriture, feuilles en épines, racines très longues, graines qui attendent la pluie…",
+    "notion": "adaptation, dormance",
+    "duree_s": 45,
+    "preparation": "Trouvez vos trois astuces dans les fiches du Sahara."
+   },
+   {
+    "code": "d-p2-feu",
+    "titre": "Après le feu",
+    "consigne": "Expliquez en une phrase pourquoi le pin d'Alep repousse vite après un incendie.",
+    "critere": "Ses cônes s'ouvrent à la chaleur et lâchent leurs graines sur un sol dégagé.",
+    "notion": "adaptation au feu",
+    "duree_s": 60,
+    "preparation": "Lisez la fiche du pin d'Alep et préparez votre phrase."
+   },
+   {
+    "code": "d-p2-endemique",
+    "titre": "Rien qu'ici",
+    "consigne": "Citez une plante qui ne pousse naturellement qu'au Maroc, puis expliquez ce que veut dire « endémique ».",
+    "critere": "L'arganier, ou une autre plante endémique juste, + une définition juste (qui ne vit naturellement que dans une région).",
+    "notion": "endémisme",
+    "duree_s": 60,
+    "preparation": "Cherchez ce que veut dire « endémique », et un exemple marocain."
+   }
+  ],
+  "3": [
+   {
+    "code": "d-p3-recycleurs",
+    "titre": "Les recycleurs",
+    "consigne": "En 30 secondes, citez trois vivants qui font disparaître les feuilles mortes de la forêt.",
+    "critere": "Trois décomposeurs justes : ver de terre, champignons, bactéries, cloporte, collembole, larve de lucane…",
+    "notion": "décomposeurs, recyclage de la matière",
+    "duree_s": 30,
+    "preparation": "Cherchez dans les fiches de la forêt qui mange les feuilles mortes et le bois mort."
+   },
+   {
+    "code": "d-p3-symbiose",
+    "titre": "Dessine la symbiose",
+    "consigne": "En une minute, dessinez un arbre et un champignon sous terre, et montrez avec deux flèches ce que chacun donne à l'autre.",
+    "critere": "Arbre → champignon : du sucre ; champignon → arbre : de l'eau et des sels minéraux.",
+    "notion": "symbiose, mycorhize",
+    "duree_s": 60,
+    "preparation": "Entraînez-vous à refaire le dessin en une minute."
+   },
+   {
+    "code": "d-p3-drosera",
+    "titre": "La plante qui chasse",
+    "consigne": "Expliquez pourquoi le drosera des tourbières attrape des insectes, alors qu'il fait déjà la photosynthèse.",
+    "critere": "Le sol de la tourbière est très pauvre (en azote) : les insectes lui apportent ce qui manque.",
+    "notion": "besoins nutritifs des plantes",
+    "duree_s": 60,
+    "preparation": "Lisez la fiche du drosera et préparez votre explication."
+   },
+   {
+    "code": "d-p3-mare",
+    "titre": "Chaîne de la mare",
+    "consigne": "Formez à voix haute une chaîne de quatre maillons dans une mare de la lande, avec au moins un moustique et une libellule.",
+    "critere": "Chaîne cohérente : algues → larve de moustique → libellule → grenouille ou oiseau (ou équivalent juste).",
+    "notion": "chaîne alimentaire aquatique",
+    "duree_s": 60,
+    "preparation": "Choisissez vos quatre maillons et l'ordre dans lequel vous parlerez."
+   }
+  ],
+  "4": [
+   {
+    "code": "d-p4-oreilles",
+    "titre": "La loi des oreilles",
+    "consigne": "Classez le fennec, le renard roux et le renard polaire de la plus grande à la plus petite oreille, et dites pourquoi.",
+    "critere": "Fennec > renard roux > renard polaire, parce que de grandes oreilles font perdre de la chaleur (utile au désert) et de petites la gardent (utile au froid).",
+    "notion": "adaptation au climat (loi d'Allen)",
+    "duree_s": 60,
+    "preparation": "Comparez les trois renards sur leurs fiches, puis préparez votre « parce que »."
+   },
+   {
+    "code": "d-p4-blanc",
+    "titre": "Manteau d'hiver",
+    "consigne": "Citez deux animaux des Grands Froids qui deviennent blancs en hiver, et l'avantage que ça leur donne.",
+    "critere": "Deux animaux justes (lièvre variable, lièvre arctique, lagopède, renard polaire, hermine) + le camouflage dans la neige.",
+    "notion": "camouflage, saisons",
+    "duree_s": 45,
+    "preparation": "Cherchez dans les fiches de la taïga et de la toundra qui change de couleur en hiver."
+   },
+   {
+    "code": "d-p4-cercle",
+    "titre": "Le cercle contre le froid",
+    "consigne": "Mimez en équipe le cercle des bœufs musqués, puis expliquez pourquoi les petits sont au centre.",
+    "critere": "Mime fait + explication : protégés des loups et au chaud au milieu du groupe.",
+    "notion": "comportement collectif, protection",
+    "duree_s": 45,
+    "preparation": "Répétez le cercle et choisissez qui expliquera."
+   },
+   {
+    "code": "d-p4-degel",
+    "titre": "Le grand dégel",
+    "consigne": "Expliquez en une phrase ce qui se passe quand le pergélisol dégèle.",
+    "critere": "Une conséquence juste : le sol devient mou, il s'affaisse, les arbres penchent, des gaz à effet de serre s'échappent.",
+    "notion": "pergélisol, changement climatique",
+    "duree_s": 60,
+    "preparation": "Préparez votre phrase : une conséquence, et pourquoi."
+   }
+  ]
+ }
+}

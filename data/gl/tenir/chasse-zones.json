@@ -6,7 +6,7 @@
       "plateau": 1,
       "feuillet_code": "ren-jungle-01",
       "titre_prive": "Le cri de la locomotive — le grand oiseau au bec à casque, posé sur une branche chargée de fruits (jamais montré)",
-      "indice": "Là où un bruit d'ailes passe comme une locomotive au-dessus des fruits",
+      "indice": "Là où un bec coiffé d'un casque creux amplifie les cris, et sème plus loin les fruits qu'il avale",
       "polygone": [
         [
           0.1509,
@@ -56,7 +56,7 @@
       "plateau": 1,
       "feuillet_code": "ren-jungle-02",
       "titre_prive": "L'animal découvert hier — l'animal aux pattes rayées et au corps sombre, à demi caché par les feuilles (jamais montré)",
-      "indice": "Là où des pattes rayées se cachent sous un corps sombre, dans l'ombre des feuilles",
+      "indice": "Là où se cache le cousin de la girafe : des rayures de zèbre aux pattes, mais pas de long cou",
       "polygone": [
         [
           0.3859,
@@ -106,7 +106,7 @@
       "plateau": 1,
       "feuillet_code": "sort-jungle-01",
       "titre_prive": "La corne dans la pénombre — le sous-bois le plus sombre, au pied des grands troncs (la boule d'écailles si elle est dessinée) (jamais montré)",
-      "indice": "Là où il fait presque nuit en plein jour, au pied des géants",
+      "indice": "Là où le toit de feuilles garde l'air frais, humide et sombre : un climat à part au pied des géants",
       "polygone": [
         [
           0.5459,
@@ -157,7 +157,7 @@
       "plateau": 1,
       "feuillet_code": "ep-I-colonne",
       "titre_prive": "Tropiques. La colonne. — le fleuve noir de la colonne de fourmis qui traverse le sous-bois (et l'arbre refuge, si la voyageuse y est perchée) (jamais montré)",
-      "indice": "Là où le sol coule, noir et luisant, comme un fleuve qui ne contourne rien",
+      "indice": "Là où des milliers d'insectes chasseurs avancent en colonne et vident le sol de ses petites bêtes",
       "polygone": [
         [
           0.2259,
@@ -208,7 +208,7 @@
       "plateau": 1,
       "feuillet_code": "ep-I-01",
       "titre_prive": "Premier matin — zone existante zf-p1-01 (la savane à l'aube, côté gauche du plateau) — à vérifier sur l'image (jamais montré)",
-      "indice": "Là où l'herbe d'or se lève avec le premier matin, sous un ciel sans hiver",
+      "indice": "Là où les herbes hautes règnent et où les arbres restent loin les uns des autres",
       "polygone": null,
       "polygone_ref": "zf-p1-01",
       "rang_case": null,
@@ -227,7 +227,7 @@
       "plateau": 1,
       "feuillet_code": "ren-savane-01",
       "titre_prive": "L'arbre-citerne et la langue noire — le baobab au tronc énorme (ou l'acacia parasol brouté par la girafe) (jamais montré)",
-      "indice": "Là où un tronc énorme garde l'eau de la saison des pluies",
+      "indice": "Là où un arbre fait de son tronc une citerne pour tenir toute la saison sèche",
       "polygone": [
         [
           0.9309,
@@ -279,7 +279,7 @@
       "plateau": 1,
       "feuillet_code": "ren-savane-02",
       "titre_prive": "La sentinelle — le groupe de petits guetteurs dressés sur le sable, l'un debout en sentinelle (jamais montré)",
-      "indice": "Là où l'un se dresse et guette pendant que les autres creusent le sable",
+      "indice": "Là où un petit carnivore monte la garde debout pendant que son clan fouille le sol",
       "polygone": [
         [
           0.6559,
@@ -329,7 +329,7 @@
       "plateau": 1,
       "feuillet_code": "sort-savane-01",
       "titre_prive": "La carte dans la tête — la harde d'éléphants, la matriarche en tête, ou la mare vers laquelle elle mène (jamais montré)",
-      "indice": "Là où la plus vieille mène sa famille vers une eau qu'elle a vue enfant",
+      "indice": "Là où toute la savane vient boire en saison sèche, guidée par la mémoire des plus vieilles",
       "polygone": [
         [
           0.8459,
@@ -379,7 +379,7 @@
       "plateau": 2,
       "feuillet_code": "ren-sahara-01",
       "titre_prive": "Celui qui ne boit jamais — le petit renard aux oreilles immenses, devant son terrier dans la dune (jamais montré)",
-      "indice": "Là où deux grandes oreilles attendent la nuit sur un corps minuscule",
+      "indice": "Là où de grandes oreilles évacuent la chaleur, sur un animal qui tire son eau de ce qu'il mange",
       "polygone": [
         [
           0.2259,
@@ -429,7 +429,7 @@
       "plateau": 2,
       "feuillet_code": "ren-sahara-02",
       "titre_prive": "La fleur qui attend cent ans — la boule d'épines sèches roulée par le vent sur le sable (jamais montré)",
-      "indice": "Là où une boule d'épines sèches attend la pluie depuis des années",
+      "indice": "Là où une plante en dormance attend des années la pluie qui la réveillera",
       "polygone": [
         [
           0.1109,
@@ -479,7 +479,7 @@
       "plateau": 2,
       "feuillet_code": "sort-sahara-01",
       "titre_prive": "La licorne du désert — l'antilope blanche aux longues cornes droites, dans l'air qui tremble (jamais montré)",
-      "indice": "Là où deux longues cornes droites n'en font plus qu'une, vues de profil",
+      "indice": "Là où une antilope pâle, presque disparue, trouve son eau dans les plantes qu'elle broute",
       "polygone": [
         [
           0.2359,
@@ -530,7 +530,7 @@
       "plateau": 2,
       "feuillet_code": "ep-I-05",
       "titre_prive": "La Grise — zone existante zf-p2-05 (la plaine qui perd ses couleurs, côté désert) — à vérifier sur l'image (jamais montré)",
-      "indice": "Là où les couleurs s'en vont les premières, comme un linge lavé trop de fois",
+      "indice": "Là où une terre fertile s'épuise et devient désert, sans que le sable ait besoin d'avancer",
       "polygone": null,
       "polygone_ref": "zf-p2-05",
       "rang_case": null,
@@ -548,7 +548,7 @@
       "plateau": 2,
       "feuillet_code": "ren-medit-01",
       "titre_prive": "Les chèvres dans l'arbre — les chèvres perchées dans les branches de l'arganier (jamais montré)",
-      "indice": "Là où des brouteuses grimpent dans les branches pour manger les fruits",
+      "indice": "Là où des chèvres grimpent dans un arbre qui ne pousse naturellement qu'au sud-ouest du Maroc",
       "polygone": [
         [
           0.4659,
@@ -598,7 +598,7 @@
       "plateau": 2,
       "feuillet_code": "ren-medit-02",
       "titre_prive": "Le vieux cèdre et ses singes — le vieux cèdre de l'Atlas et les singes sans queue dans ses branches (jamais montré)",
-      "indice": "Là où un vieil arbre à aiguilles abrite des grimpeurs sans queue",
+      "indice": "Là où vit le seul singe sauvage du nord de l'Afrique, dans un vieil arbre à aiguilles de l'Atlas",
       "polygone": [
         [
           0.5959,
@@ -649,7 +649,7 @@
       "plateau": 2,
       "feuillet_code": "sort-medit-01",
       "titre_prive": "La graine qui attend le feu — la garrigue brûlée où le vert repousse (pins aux cônes fermés, cistes) (jamais montré)",
-      "indice": "Là où le noir du feu est passé et où le vert revient déjà",
+      "indice": "Là où des cônes de pin s'ouvrent après l'incendie pour semer sur la cendre",
       "polygone": [
         [
           0.7559,
@@ -701,7 +701,7 @@
       "plateau": 2,
       "feuillet_code": "ep-I-08",
       "titre_prive": "Nommer fait tenir la page — zone existante zf-p2-07 (haut droit du plateau, forêt méditerranéenne) — à vérifier sur l'image (jamais montré)",
-      "indice": "Là où une page tient parce qu'on a pris le temps d'écrire le nom juste",
+      "indice": "Là où poussent des plantes qui n'existent nulle part ailleurs au monde : on les dit endémiques",
       "polygone": null,
       "polygone_ref": "zf-p2-07",
       "rang_case": null,
@@ -718,7 +718,7 @@
       "plateau": 3,
       "feuillet_code": "ren-caduc-01",
       "titre_prive": "Le jardinier qui oublie — l'oiseau criard au plumage rose-brun, un gland au bec, au pied d'un chêne (jamais montré)",
-      "indice": "Là où un oiseau criard enterre des glands qu'il oubliera",
+      "indice": "Là où un oiseau plante des chênes sans le vouloir, en oubliant les glands qu'il a cachés",
       "polygone": [
         [
           0.2609,
@@ -769,7 +769,7 @@
       "plateau": 3,
       "feuillet_code": "ren-caduc-02",
       "titre_prive": "Six semaines de lumière — le tapis de fleurs blanches et bleues au pied des arbres encore nus (jamais montré)",
-      "indice": "Là où le sol fleurit avant que les feuilles des arbres ne ferment le ciel",
+      "indice": "Là où des fleurs se dépêchent d'éclore tant que les arbres sans feuilles laissent passer la lumière",
       "polygone": [
         [
           0.3959,
@@ -820,7 +820,7 @@
       "plateau": 3,
       "feuillet_code": "sort-caduc-01",
       "titre_prive": "Le réseau sous les pieds — les champignons au pied d'un vieux chêne, la mousse et les racines (jamais montré)",
-      "indice": "Là où des champignons relient les racines sous la mousse",
+      "indice": "Là où un champignon et un arbre échangent eau contre sucre : une symbiose sous la mousse",
       "polygone": [
         [
           0.1459,
@@ -871,7 +871,7 @@
       "plateau": 3,
       "feuillet_code": "ep-III-05",
       "titre_prive": "Le grand-père et le ciel d'oiseaux — zone existante zf-p3-11 (haut droit du plateau 3) — à vérifier sur l'image (jamais montré)",
-      "indice": "Là où un ciel presque vide paraît normal à qui n'a pas connu l'autre",
+      "indice": "Là où la forêt recule depuis des millénaires devant les champs et les villes, et le ciel se vide",
       "polygone": null,
       "polygone_ref": "zf-p3-11",
       "rang_case": null,
@@ -889,7 +889,7 @@
       "plateau": 3,
       "feuillet_code": "ren-landes-01",
       "titre_prive": "La forêt naine — le tapis de bruyère rose et d'ajonc jaune sur la lande (jamais montré)",
-      "indice": "Là où une forêt entière tient en dessous du genou, rose et jaune",
+      "indice": "Là où un arbuste épineux ose fleurir en jaune en plein hiver, au milieu de la bruyère rose",
       "polygone": [
         [
           0.5959,
@@ -941,7 +941,7 @@
       "plateau": 3,
       "feuillet_code": "ren-landes-02",
       "titre_prive": "Le piège gluant — la petite plante rouge aux poils gluants, au bord de la tourbière (jamais montré)",
-      "indice": "Là où une plante poisseuse referme ses poils sur un moucheron",
+      "indice": "Là où une plante attrape des moucherons pour trouver l'azote que le sol ne lui donne pas",
       "polygone": [
         [
           0.7659,
@@ -991,7 +991,7 @@
       "plateau": 3,
       "feuillet_code": "sort-landes-01",
       "titre_prive": "La mousse qui guérit — le tapis de mousse spongieuse, verte et rousse, de la tourbière (jamais montré)",
-      "indice": "Là où le pied s'enfonce dans une éponge verte et rousse",
+      "indice": "Là où une mousse boit vingt fois son poids d'eau et fabrique, très lentement, de la tourbe",
       "polygone": [
         [
           0.8659,
@@ -1041,7 +1041,7 @@
       "plateau": 3,
       "feuillet_code": "sc-landes-nuit",
       "titre_prive": "Le moteur dans la nuit — l'oiseau couleur d'écorce, large bec ouvert, au ras de la bruyère dans le crépuscule (jamais montré)",
-      "indice": "Là où un moteur ronfle dans la nuit de la lande, et ce n'est que quelqu'un qui dîne",
+      "indice": "Là où un oiseau couleur d'écorce niche au sol et happe les insectes au crépuscule, bec grand ouvert",
       "polygone": [
         [
           0.6759,
@@ -1091,7 +1091,7 @@
       "plateau": 3,
       "feuillet_code": "ep-I-07",
       "titre_prive": "Pas un chant — zone existante zf-p3-08 (bas gauche du plateau 3 : la forêt silencieuse au réveil) — à vérifier sur l'image (jamais montré)",
-      "indice": "Là où, un matin, il manque quelque chose : pas un chant, pas un seul",
+      "indice": "Là où, en automne, les cerfs devraient bramer, et où ce matin rien ne chante",
       "polygone": null,
       "polygone_ref": "zf-p3-08",
       "rang_case": null,
@@ -1109,7 +1109,7 @@
       "plateau": 3,
       "feuillet_code": "ep-VII-tourb-1",
       "titre_prive": "Les landes. Ni terre ni eau. — la tourbière plate et brune, la bouillie noire où le petit s'enfonce jusqu'aux cuisses (jamais montré)",
-      "indice": "Là où le sol n'est ni terre ni eau, et se referme comme une main molle",
+      "indice": "Là où, faute d'oxygène, rien ne pourrit vraiment : la matière morte s'empile en tourbe",
       "polygone": [
         [
           0.6459,
@@ -1161,7 +1161,7 @@
       "plateau": 4,
       "feuillet_code": "ren-taiga-01",
       "titre_prive": "Les raquettes du lièvre — le lièvre blanc dans la neige (ou le lynx aux oreilles à pinceaux qui le suit) (jamais montré)",
-      "indice": "Là où un manteau devenu blanc se perd dans la neige, et des oreilles à pinceaux le suivent",
+      "indice": "Là où un lièvre blanchit pour l'hiver, et où son chasseur aux oreilles à pinceaux suit ses cycles",
       "polygone": [
         [
           0.1459,
@@ -1212,7 +1212,7 @@
       "plateau": 4,
       "feuillet_code": "ren-taiga-02",
       "titre_prive": "L'ingénieur à dents oranges — la hutte de branchages et le barrage qui fait un étang sur le ruisseau (jamais montré)",
-      "indice": "Là où un tas de branches barre le ruisseau et fait un étang",
+      "indice": "Là où une espèce ingénieure barre le ruisseau et crée un étang plein de nouveaux habitants",
       "polygone": [
         [
           0.1359,
@@ -1262,7 +1262,7 @@
       "plateau": 4,
       "feuillet_code": "sort-taiga-01",
       "titre_prive": "Le saumon qui nourrit les arbres — la rivière où remontent les poissons, sous les conifères de la berge (jamais montré)",
-      "indice": "Là où des poissons remontent la rivière pour mourir sous les arbres",
+      "indice": "Là où des poissons venus de la mer meurent sous les arbres et deviennent leur engrais",
       "polygone": [
         [
           0.2259,
@@ -1312,7 +1312,7 @@
       "plateau": 4,
       "feuillet_code": "ep-I-11",
       "titre_prive": "Le Détricotage — zone existante zf-p4-01 (haut gauche du plateau 4 : le versant de taïga qui se défait) — à vérifier sur l'image (jamais montré)",
-      "indice": "Là où un seul fil cède et cent autres suivent, sur tout un versant",
+      "indice": "Là où il y a si peu d'espèces que chaque lien compte : qu'un seul cède, et tout le versant suit",
       "polygone": null,
       "polygone_ref": "zf-p4-01",
       "rang_case": null,
@@ -1330,7 +1330,7 @@
       "plateau": 4,
       "feuillet_code": "ren-toundra-01",
       "titre_prive": "Le pot de fleurs solaire — la fleur jaune tournée vers le soleil de minuit (été polaire) (jamais montré)",
-      "indice": "Là où une fleur tourne sa corolle vers un soleil qui ne se couche pas",
+      "indice": "Là où une fleur en forme de parabole suit le soleil de minuit pour réchauffer son cœur",
       "polygone": [
         [
           0.6859,
@@ -1380,7 +1380,7 @@
       "plateau": 4,
       "feuillet_code": "ren-toundra-02",
       "titre_prive": "Onze œufs ou aucun — le grand oiseau blanc aux yeux jaunes, posé ou en vol au-dessus de la toundra (jamais montré)",
-      "indice": "Là où un guetteur blanc aux yeux jaunes pond onze œufs, ou aucun",
+      "indice": "Là où un grand oiseau blanc pond beaucoup d'œufs les années à lemmings, et aucun les autres",
       "polygone": [
         [
           0.7459,
@@ -1430,7 +1430,7 @@
       "plateau": 4,
       "feuillet_code": "ren-toundra-03",
       "titre_prive": "Le cercle de cornes — le cercle de grosses bêtes à cornes, les petits au milieu (nuit polaire) (jamais montré)",
-      "indice": "Là où les cornes forment un cercle, les petits au milieu, par moins quarante",
+      "indice": "Là où une double fourrure tient chaud par moins quarante, les petits au centre du cercle",
       "polygone": [
         [
           0.9259,
@@ -1480,7 +1480,7 @@
       "plateau": 4,
       "feuillet_code": "sort-toundra-01",
       "titre_prive": "Le lichen de trois millimètres — le tapis pâle du lichen, brouté par le troupeau de rennes (jamais montré)",
-      "indice": "Là où un tapis pâle pousse de trois millimètres par an",
+      "indice": "Là où un champignon et une algue vivent ensemble en tapis pâle que broutent les rennes",
       "polygone": [
         [
           0.6959,
@@ -1531,7 +1531,7 @@
       "plateau": 4,
       "feuillet_code": "ep-III-03",
       "titre_prive": "À qui trouvera une page blanche — zone existante zf-p4-05 (haut droit du plateau 4 ; la défense prise dans le pergélisol, si elle est peinte là) — à vérifier sur l'image (jamais montré)",
-      "indice": "Là où un rectangle blanc n'est pas une page neuve, mais une page reprise",
+      "indice": "Là où le sol reste gelé toute l'année et garde des restes d'animaux d'un autre âge",
       "polygone": null,
       "polygone_ref": "zf-p4-05",
       "rang_case": null,
@@ -1549,7 +1549,7 @@
       "plateau": 4,
       "feuillet_code": "ep-I-15",
       "titre_prive": "Le dernier blanc — zone existante zf-p4-06 (droite du plateau 4, avant les dalles du pôle) — à vérifier sur l'image (jamais montré)",
-      "indice": "Là où il reste de l'encre pour le nom suivant, même quand un nom s'est effacé",
+      "indice": "Là où la glace de mer fond sous les pattes du grand chasseur blanc des phoques",
       "polygone": null,
       "polygone_ref": "zf-p4-06",
       "rang_case": null,
