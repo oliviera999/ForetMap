@@ -3,7 +3,8 @@
 /**
  * Retours de QCM de « Tenir à deux » (14 novembre 2026) : ils expliquent sans punir.
  *
- * Sur les DONNÉES (corpus semé par les imports et corrigé par la migration 344) :
+ * Sur les DONNÉES (corpus semé par les imports et corrigé par la migration 344, rejouée ici :
+ * une autre suite peut avoir réimporté le classeur QCM entre-temps) :
  * - aucun retour d'une question active ne porte un mot de la liste des garde-fous, une fois
  *   l'amorce « Non » retirée comme à l'affichage (`lib/glRetourQcm.js › nettoyerAmorce`) ;
  * - chaque question de zone de chasse active a un `feedback_correct` et un retour par mauvais
@@ -72,8 +73,22 @@ test('fichier : le bloc `remplacement` est celui que pose la migration 344', () 
   }
 });
 
+/**
+ * Rejoue la migration 344 (réécritures gardées par l'ancienne valeur : idempotente). La suite
+ * `tests/gl-qcm-catalog.test.js` réimporte le classeur `data/gl/qcm-biomes-…-consolide.xlsx`, qui
+ * porte encore les anciens retours : sans ce rejeu, ce contrôle dépendrait de l'ordre des suites.
+ */
+async function rejouerMigration344() {
+  const sql = fs.readFileSync(
+    path.join(ROOT, 'migrations', '344_gl_tenir_retours_qcm.sql'),
+    'utf8',
+  );
+  for (const stmt of db.splitSqlStatements(sql)) await db.pool.query(stmt);
+}
+
 test('base : aucun retour d’une question active ne porte un mot interdit après nettoyage', async (t) => {
   await db.initSchema();
+  await rejouerMigration344();
   const rows = await db.queryAll(
     `SELECT question_code, feedback_correct, feedback_a, feedback_b, feedback_c, feedback_d, feedback_e
        FROM gl_qcm_questions WHERE statut = 'actif'`,
