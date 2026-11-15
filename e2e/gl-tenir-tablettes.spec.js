@@ -177,6 +177,41 @@ test.describe('GL — tablettes d’équipe par le lien de classe', () => {
     expect(texte).not.toMatch(/classement|\brang\b|premier de/i);
     expect(texte).not.toMatch(/\b(faux|raté|perdu)\b/i);
 
+    // --- La console du prof : file « Demandes » (jets en suspens) et feuille du QR -----------
+    const consoleProf = await browser.newContext({
+      viewport: { width: 1440, height: 900 },
+      deviceScaleFactor: 2,
+    });
+    const pageProf = await consoleProf.newPage();
+    await mountGlSession(pageProf, {
+      token: ctx.adminToken,
+      auth: { userType: 'gl_admin', roleSlug: 'gl_admin', displayName: 'MJ e2e' },
+      tab: 'mj',
+    });
+    await expect(pageProf.getByRole('heading', { name: 'Console MJ' })).toBeVisible({
+      timeout: 20_000,
+    });
+    await pageProf
+      .locator('tr', { hasText: ctx.game.name })
+      .getByRole('button', { name: 'Ouvrir' })
+      .click();
+    await expect(pageProf.getByTestId('gl-tour-screen')).toBeVisible({ timeout: 20_000 });
+    const demandes = pageProf.getByTestId('gl-demandes');
+    await expect(demandes).toBeVisible();
+    await expect(pageProf.getByTestId('gl-class-link-sessions-count')).toContainText(
+      '4 équipes sur 4',
+    );
+    await demandes.scrollIntoViewIfNeeded();
+    await pageProf.screenshot({ path: 'docs/captures/tenir-v2/console-demandes.png' });
+    await pageProf.getByTestId('gl-class-link-qr').click();
+    const feuille = pageProf.getByTestId('gl-class-link-sheet');
+    // L'image du QR est enveloppée par le bouton « Agrandir l'image » de l'app.
+    await expect(feuille.locator('img.gl-class-link-sheet__qr')).toBeVisible({ timeout: 15_000 });
+    await expect(feuille).toContainText('Code de la classe');
+    await feuille.scrollIntoViewIfNeeded();
+    await feuille.screenshot({ path: 'docs/captures/tenir-v2/qr-de-la-classe.png' });
+    await consoleProf.close();
+
     // --- Un cinquième appareil : compte élève, même écran d'équipe ---------------------------
     const eleve = ctx.players.find((p) => Number(p.teamId) === Number(ctx.teams[1].id));
     const cinquieme = await browser.newContext(TABLETTE);
