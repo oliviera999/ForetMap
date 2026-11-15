@@ -44,6 +44,15 @@
     "recul_carnet_complet": 3,
     "marche": true,
     "marche_pendant_tour": true,
+    "lecture_pendant_tour": true,
+    "fouille_sous_voile": "aucune",
+    "defis_case": true,
+    "defi_declenchement": "arret",
+    "defi_recul": 2,
+    "defis": true,
+    "defis_par_peuple": true,
+    "defis_pages_par_semaine": 2,
+    "defis_mode_equipe": true,
     "parures": true,
     "lumiere": false,
     "lumiere_palier": 25,
@@ -52,6 +61,9 @@
     "peripeties": true,
     "olu_erreur_du_jour": true,
     "sablier_secondes": 180,
+    "sablier_actif": true,
+    "sablier_phase_secondes": 0,
+    "sablier_phase_auto": false,
     "max_power_points": 8,
     "max_health_points": 8,
     "lore_feuillet_retrigger": "once_per_team",
@@ -94,6 +106,14 @@
           "3": 8,
           "4": 8
         }
+      }
+    },
+    "court": {
+      "libelle": "Court",
+      "description": "Tour en deux étages : pendant le tour on joue (dés, cases, fouilles, sorts) ; le Marché et la lecture des pages se font en veillée.",
+      "ecarts": {
+        "marche_pendant_tour": false,
+        "lecture_pendant_tour": false
       }
     }
   },

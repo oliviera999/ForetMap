@@ -48,7 +48,14 @@ function readResetParamsFromHash() {
   };
 }
 
-export function GLAuthView({ onLogin, oauthNotice, config, appVersion = null }) {
+export function GLAuthView({
+  onLogin,
+  oauthNotice,
+  config,
+  appVersion = null,
+  /** « J'ai le code de la classe » : ouvre l'entrée d'une tablette d'équipe (lot 2). */
+  onClassCode = null,
+}) {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [platformTitle, setPlatformTitle] = useState('Gnomes & Licornes');
@@ -337,6 +344,18 @@ export function GLAuthView({ onLogin, oauthNotice, config, appVersion = null }) 
               disabled={busy}
             >
               Découvrir sans compte
+            </GLButton>
+          ) : null}
+          {onClassCode ? (
+            <GLButton
+              type="button"
+              variant="ghost"
+              className="gl-btn--full"
+              onClick={onClassCode}
+              disabled={busy}
+              data-testid="gl-auth-class-code"
+            >
+              J’ai le code de la classe
             </GLButton>
           ) : null}
         </form>

@@ -15,7 +15,11 @@ const request = require('supertest');
 const { app } = require('../server');
 const db = require('../database');
 const { initSchema, execute, queryOne } = db;
-const { createTenirGame, importExempleChasse } = require('./helpers/glTenirFixtures');
+const {
+  createTenirGame,
+  importExempleChasse,
+  confirmerPresences,
+} = require('./helpers/glTenirFixtures');
 const { resolveTenirMarkerDeltas } = require('../lib/glMarkerVitalityEffects');
 const { caseTirePeripetie, tirerErreurDuJour } = require('../lib/glTour');
 const { assertFenetre } = require('../lib/glSpellFenetres');
@@ -61,6 +65,8 @@ before(async () => {
   await importExempleChasse(db, { game: ctx.game });
   await request(app).get(api('/tenir')).set(auth(ctx.adminToken)).expect(200);
   await request(app).post(api('/tenir/tour/ouvrir')).set(auth(ctx.adminToken)).expect(200);
+  // Lot 2 : sur tablette, un pot attend que l'équipe ait dit s'il manque quelqu'un.
+  await confirmerPresences(ctx);
   await request(app)
     .post(api('/tenir/tour/phase'))
     .set(auth(ctx.adminToken))
@@ -68,7 +74,10 @@ before(async () => {
     .expect(200);
 });
 
-test('C1/C2 : Progression refusée si une autre équipe a joué depuis le jet ; acceptée juste après le jet, sans appliquer la case', async () => {
+// Lot 2 : sur tablette, la fenêtre « après le jet » est celle de l'équipe — elle se ferme quand
+// l'équipe fait un autre geste, plus quand une autre équipe joue (règle du tableau, couverte par
+// `tests/gl-tenir-jets-paralleles.test.js`).
+test('C1/C2 : Progression refusée dès que l’équipe a fait un autre geste depuis son jet ; acceptée juste après le jet, sans appliquer la case', async () => {
   const [gA, gB] = [ctx.teams[0], ctx.teams[1]];
   // gA puis gB jettent (jets libres du prof = « quelqu'un a joué depuis »).
   const jetA = await request(app)
@@ -85,6 +94,11 @@ test('C1/C2 : Progression refusée si une autre équipe a joué depuis le jet ; 
   assert.equal(tour.body.round?.dernierJet?.teamId, Number(gB.id), 'dernier jet du tour mémorisé');
 
   const memberA = membersOf(gA.id)[0];
+  await request(app)
+    .post(api('/chasse/fouiller'))
+    .set(auth(memberA.token))
+    .send({ x: 0.97, y: 0.97 })
+    .expect(201);
   const refus = await cast(memberA.token, {
     spellCode: 'SL002',
     teamId: gA.id,
@@ -93,7 +107,7 @@ test('C1/C2 : Progression refusée si une autre équipe a joué depuis le jet ; 
   });
   assert.equal(refus.status, 409, JSON.stringify(refus.body));
   assert.equal(refus.body.code, 'SPELL_FENETRE');
-  assert.match(refus.body.error, /avant qu’une autre équipe ne joue/);
+  assert.match(refus.body.error, /avant tout autre geste de l’équipe/);
 
   // gB, auteure du dernier jet : placée juste avant une Trame pour vérifier qu'elle ne s'applique pas.
   await execute('UPDATE gl_teams SET position_marker_id = ? WHERE id = ?', [

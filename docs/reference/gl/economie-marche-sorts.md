@@ -294,7 +294,9 @@ les voit, son équipe les voit, vous les voyez ; personne d'autre. On gagne la r
 peuple (gemmes chez les Licornes, cœurs chez les Gnomes) en tenant une page à deux, sur les cases
 de la Trame et quand le carnet de la classe est complet. Rien ne retire une ressource sinon un sort,
 un échange, un don, une case Souffle ou le chapardeur — jamais une mauvaise réponse, jamais le
-voile. Vous pouvez, exceptionnellement, ajuster une bourse avec un motif.
+voile. **Un défi ne donne jamais de ressource** : un défi de case fait reculer le voile, un défi
+de la Trame apporte une page de veillée et un badge. Vous pouvez, exceptionnellement, ajuster
+une bourse avec un motif.
 
 **La place du Marché** : annonces (je cherche, j'offre, je propose), échanges à deux, **dons**
 immédiats, et un **comptoir de parures** pour la mascotte de l'équipe (sans effet de jeu). Un élève
@@ -345,6 +347,29 @@ ce choix ait un sens, la case ne doit pas déjà avoir joué :
 > ⚠️ **Point d'attention** — Tant qu'une case attend, le plateau ne la présente pas (ni question,
 > ni effet). Si une équipe semble « bloquée » sur une case sans rien voir, c'est qu'elle n'a pas
 > encore choisi : « Garder ce jet » débloque la suite.
+
+## Jouer en parallèle : ce qui change pour les sorts (novembre 2026)
+
+En surface **hybride** et **tablette**, les équipes jouent en même temps. Au tableau, rien de ce
+qui suit ne s'applique : les règles ci-dessus restent celles de l'équipe active.
+
+**La Cordée est offerte.** L'équipe qui la lance la **paie seule** : 4 dans la ressource de son
+peuple (4 cœurs pour des Gnomes, 4 gemmes pour des Licornes). L'équipe partenaire, de l'autre
+peuple, ne paie rien et n'a rien à accepter : son écran affiche « L'équipe … vous encorde. ». Le
+reste ne change pas : la Cordée se lance avant les jets des deux équipes, le meilleur des deux
+jets vaut pour les deux, et le voile ne les touche pas ce tour.
+
+- Si l'une des deux équipes **a déjà jeté** quand le sort part, il est refusé et rien n'est
+  débité.
+- Si l'une des deux **ne jette pas** de tout le tour, la cordée ne s'est pas faite : au passage au
+  souffle, l'équipe lanceuse est **remboursée en entier** et la protection contre le voile tombe.
+  Le journal le dit : « Sort rendu ».
+
+**Refuser un sort du prof rembourse.** Un sort que vous appliquez vous-même (Question, Conseil,
+Pause, Nommer, Lettre…) est payé au lancement, puis attend dans votre file. S'il tombe mal, le
+bouton **« Refuser et rembourser »** rend à l'équipe exactement ce qu'elle a payé — bourses et
+réserve de la caravane — et vous pouvez lui laisser un mot, qu'elle lit dans le journal. Le sort
+rendu ne compte pas dans sa limite : l'équipe peut le relancer plus tard dans la séance.
 
 ## Pour aller plus loin
 

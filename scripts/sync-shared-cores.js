@@ -54,6 +54,14 @@ const PAIRS = Object.freeze([
   ['src/shared/glTenirPermissionsCore.js', 'glTenirPermissionsCore.js'],
   // « Tenir à deux » : vérité des cases (effet appliqué = texte lu par l'élève).
   ['src/shared/glTenirCaseEffetCore.js', 'glTenirCaseEffetCore.js'],
+  // « Tenir à deux » : liste unique des chaînes jamais visibles d'un élève (garde-fous § 1).
+  ['src/shared/glGardeFousCore.js', 'glGardeFousCore.js'],
+  // « Tenir à deux », lot 2 : sorts rangés par moment du tour, rôles en conseil.
+  ['src/shared/glSortMomentsCore.js', 'glSortMomentsCore.js'],
+  // « Tenir à deux » : sabliers (durée, pause, temps restant), même calcul serveur et client.
+  ['src/shared/glSablierCore.js', 'glSablierCore.js'],
+  // Cœur des défis de la Trame (lot 3) : noyau du produit G&L, hors de src/shared/.
+  ['src/gl/defis/trameCore.js', 'glTrameCore.js'],
 ]);
 
 function banner(relSrc) {

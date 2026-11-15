@@ -13,10 +13,10 @@ const express = require('express');
 const db = require('../../../database');
 const { withTransaction } = db;
 const {
-  requireGlAuth,
+  requireGlAuthOrTeam,
   requireGlAuthOrProjection,
-  isMj,
 } = require('../../../middleware/requireGlAuth');
+const { resolveGesteActorOrRespond } = require('../../../lib/glActeur');
 const { canAccessGlGame } = require('../../../lib/glGameAccess');
 const { parseId, normalizeOptionalString } = require('../../../lib/shared/httpHelpers');
 const asyncHandler = require('../../../lib/asyncHandler');
@@ -26,7 +26,7 @@ const chasse = require('../../../lib/glChasse');
 const tour = require('../../../lib/glTour');
 const { requireTenirGame } = require('./tenir');
 const { resolveGesteContext, sendTourError, emitAll } = require('./tenir-tour');
-const { resolveTenirSettings, resolveSurface, isPlayerEnRetrait } = require('../../../lib/glTenir');
+const { resolveTenirSettings, resolveSurface } = require('../../../lib/glTenir');
 const { resolveTenirPermissions } = require('../../../lib/shared/glTenirPermissionsCore');
 const { queueGlRewardsForTeam, queueGlRewards } = require('../../../lib/glRewardsHooks');
 
@@ -44,6 +44,7 @@ const CHASSE_ERRORS = {
   JETON_AUTRE_PAGE: 'Le jeton ne porte pas cette page',
   JETON_DEJA_UTILISE: 'Cette présentation a déjà été jouée',
   TENIR_LIRE_SURFACE: 'Sur cette surface, le prof lit pour l’équipe',
+  LECTURE_EN_VEILLEE: 'À lire en veillée.',
   TENIR_RETRAIT: 'En retrait jusqu’à nouvel ordre',
   ZONE_INTROUVABLE: 'Page introuvable',
   PAGE_PAS_TROUVEE: 'Cette page dort encore',
@@ -70,6 +71,28 @@ function sendChasseError(res, err) {
 }
 
 /**
+ * Lot 2 (hybride, tablette) : fouiller, répondre, lire ou tenir une page PENDANT le tour est un
+ * autre geste que le jet — la case en suspens de l'équipe s'applique (elle garde son jet) et sa
+ * fenêtre « après le jet » se ferme. Dans la transaction du geste : un geste refusé n'en garde
+ * aucune trace. Au tableau et en veillée, rien ne change.
+ */
+async function avecGesteDEquipe(tx, gameId, ctx, geste) {
+  const gardees =
+    ctx.via === 'veillee'
+      ? []
+      : await tour.gesteDEquipeTx(tx, {
+          gameId,
+          roundNumber: ctx.roundNumber,
+          teamId: ctx.teamId,
+          settings: ctx.settings,
+          actorType: ctx.actorType,
+          actorId: ctx.actorId,
+        });
+  const result = await geste();
+  return { ...result, events: [...gardees, ...(result.events || [])] };
+}
+
+/**
  * Acteur d'une lecture (tour ou veillée) : joueur → son équipe ; MJ → `teamId`. Les permissions
  * de surface sont rejouées ici (`lire`) : en `tableau`, seul le prof lit pour l'équipe ; un
  * élève en retrait lit et tient (C6) ; la partie doit être en cours. Le client ne fait que griser.
@@ -83,23 +106,10 @@ async function resolveLectureContext(req, res, gameId, teamIdFromBody) {
     res.status(409).json({ error: 'La partie n’est pas en cours' });
     return null;
   }
-  const actorKind = isMj(req) ? 'mj' : 'player';
-  let teamId = teamIdFromBody != null ? parseId(teamIdFromBody) : null;
-  let playerId = null;
-  let enRetrait = false;
-  if (actorKind === 'player') {
-    const membership = await getPlayerGameMembership(gameId, req.glAuth.userId);
-    if (!membership?.team_id) {
-      res.status(403).json({ error: 'Joueur non rattaché à une équipe' });
-      return null;
-    }
-    teamId = Number(membership.team_id);
-    playerId = Number(req.glAuth.userId);
-    enRetrait = await isPlayerEnRetrait(db, gameId, playerId);
-  } else if (teamId == null) {
-    res.status(400).json({ error: 'teamId requis pour le MJ' });
-    return null;
-  }
+  // Acteur unique : prof, élève connecté, ou tablette d'équipe (pendant un tour seulement).
+  const acteur = await resolveGesteActorOrRespond(req, res, gameId, { teamIdFromBody });
+  if (!acteur) return null;
+  const { actorKind, teamId, playerId, enRetrait } = acteur;
   const team = await db.queryOne('SELECT id FROM gl_teams WHERE id = ? AND game_id = ? LIMIT 1', [
     teamId,
     gameId,
@@ -126,7 +136,11 @@ async function resolveLectureContext(req, res, gameId, teamIdFromBody) {
       settings: resolved,
     });
     if (!perms.lire) {
-      res.status(403).json({ error: CHASSE_ERRORS.TENIR_LIRE_SURFACE, code: 'TENIR_LIRE_SURFACE' });
+      // Lot 2 (profil `court`) : pendant le tour, lire et tenir une page attendent la veillée.
+      const enVeillee =
+        resolved.lecture_pendant_tour === false && !!round?.phase && round.phase !== 'clos';
+      const code = enVeillee ? 'LECTURE_EN_VEILLEE' : 'TENIR_LIRE_SURFACE';
+      res.status(enVeillee ? 409 : 403).json({ error: CHASSE_ERRORS[code], code });
       return null;
     }
   }
@@ -137,8 +151,8 @@ async function resolveLectureContext(req, res, gameId, teamIdFromBody) {
     playerId,
     roundNumber,
     via,
-    actorType: actorKind === 'mj' ? 'mj' : 'team',
-    actorId: String(req.glAuth.userId),
+    actorType: acteur.actorType,
+    actorId: acteur.actorId,
   };
 }
 
@@ -154,6 +168,8 @@ async function loadCarnet(req, res, gameId) {
   if (viewer.kind === 'player') {
     const membership = await getPlayerGameMembership(gameId, viewer.playerId);
     viewerTeamId = membership?.team_id != null ? Number(membership.team_id) : null;
+  } else if (viewer.kind === 'team') {
+    viewerTeamId = viewer.teamId ?? null;
   }
   const carnet = await chasse.buildCarnetClasse(db, {
     game: ctx.game,
@@ -212,13 +228,14 @@ router.get(
       tenues: carnet.tenues,
       trouvees: carnet.trouvees,
       carnetCompletAt: carnet.carnetCompletAt,
+      aReparer: carnet.aReparer || [],
     });
   }),
 );
 
 router.post(
   '/games/:id/chasse/fouiller',
-  requireGlAuth,
+  requireGlAuthOrTeam,
   asyncHandler(async (req, res) => {
     const gameId = parseId(req.params.id);
     if (!gameId) return res.status(400).json({ error: 'Identifiant de partie invalide' });
@@ -233,17 +250,19 @@ router.post(
     let result;
     try {
       result = await withTransaction((tx) =>
-        chasse.fouillerTx(tx, {
-          gameId,
-          teamId: ctx.teamId,
-          playerId: ctx.actorKind === 'player' ? Number(req.glAuth.userId) : null,
-          x: req.body?.x,
-          y: req.body?.y,
-          roundNumber: ctx.roundNumber,
-          settings: ctx.settings,
-          actorType: ctx.actorType,
-          actorId: ctx.actorId,
-        }),
+        avecGesteDEquipe(tx, gameId, ctx, () =>
+          chasse.fouillerTx(tx, {
+            gameId,
+            teamId: ctx.teamId,
+            playerId: ctx.playerId,
+            x: req.body?.x,
+            y: req.body?.y,
+            roundNumber: ctx.roundNumber,
+            settings: ctx.settings,
+            actorType: ctx.actorType,
+            actorId: ctx.actorId,
+          }),
+        ),
       );
     } catch (err) {
       return sendChasseError(res, err);
@@ -262,7 +281,7 @@ router.post(
 
 router.post(
   '/games/:id/chasse/repondre',
-  requireGlAuth,
+  requireGlAuthOrTeam,
   asyncHandler(async (req, res) => {
     const gameId = parseId(req.params.id);
     if (!gameId) return res.status(400).json({ error: 'Identifiant de partie invalide' });
@@ -282,17 +301,19 @@ router.post(
     let result;
     try {
       result = await withTransaction((tx) =>
-        chasse.repondreChasseTx(tx, {
-          gameId,
-          teamId: ctx.teamId,
-          roundNumber: ctx.roundNumber,
-          presentationToken,
-          questionCode,
-          choiceId: req.body.choiceId,
-          settings: ctx.settings,
-          actorType: ctx.actorType,
-          actorId: ctx.actorId,
-        }),
+        avecGesteDEquipe(tx, gameId, ctx, () =>
+          chasse.repondreChasseTx(tx, {
+            gameId,
+            teamId: ctx.teamId,
+            roundNumber: ctx.roundNumber,
+            presentationToken,
+            questionCode,
+            choiceId: req.body.choiceId,
+            settings: ctx.settings,
+            actorType: ctx.actorType,
+            actorId: ctx.actorId,
+          }),
+        ),
       );
     } catch (err) {
       return sendChasseError(res, err);
@@ -312,7 +333,7 @@ router.post(
 
 router.post(
   '/games/:id/chasse/pages/:zoneKey/ouvrir',
-  requireGlAuth,
+  requireGlAuthOrTeam,
   asyncHandler(async (req, res) => {
     const gameId = parseId(req.params.id);
     const zoneKey = normalizeOptionalString(req.params.zoneKey);
@@ -325,17 +346,19 @@ router.post(
     let result;
     try {
       result = await withTransaction((tx) =>
-        chasse.ouvrirPageTx(tx, {
-          gameId,
-          teamId: ctx.teamId,
-          playerId: ctx.playerId,
-          zoneKey,
-          via: ctx.via,
-          roundNumber: ctx.roundNumber,
-          settings: ctx.settings,
-          actorType: ctx.actorType,
-          actorId: ctx.actorId,
-        }),
+        avecGesteDEquipe(tx, gameId, ctx, () =>
+          chasse.ouvrirPageTx(tx, {
+            gameId,
+            teamId: ctx.teamId,
+            playerId: ctx.playerId,
+            zoneKey,
+            via: ctx.via,
+            roundNumber: ctx.roundNumber,
+            settings: ctx.settings,
+            actorType: ctx.actorType,
+            actorId: ctx.actorId,
+          }),
+        ),
       );
     } catch (err) {
       return sendChasseError(res, err);
@@ -356,7 +379,7 @@ router.post(
 
 router.post(
   '/games/:id/chasse/pages/:zoneKey/tenir',
-  requireGlAuth,
+  requireGlAuthOrTeam,
   asyncHandler(async (req, res) => {
     const gameId = parseId(req.params.id);
     const zoneKey = normalizeOptionalString(req.params.zoneKey);
@@ -374,20 +397,22 @@ router.post(
     let result;
     try {
       result = await withTransaction((tx) =>
-        chasse.tenirPageTx(tx, {
-          gameId,
-          teamId: ctx.teamId,
-          playerId: ctx.playerId,
-          roundNumber: ctx.roundNumber,
-          presentationToken,
-          questionCode,
-          choiceId: req.body.choiceId,
-          via: ctx.via,
-          settings: ctx.settings,
-          actorType: ctx.actorType,
-          actorId: ctx.actorId,
-          expectedZoneKey: zoneKey,
-        }),
+        avecGesteDEquipe(tx, gameId, ctx, () =>
+          chasse.tenirPageTx(tx, {
+            gameId,
+            teamId: ctx.teamId,
+            playerId: ctx.playerId,
+            roundNumber: ctx.roundNumber,
+            presentationToken,
+            questionCode,
+            choiceId: req.body.choiceId,
+            via: ctx.via,
+            settings: ctx.settings,
+            actorType: ctx.actorType,
+            actorId: ctx.actorId,
+            expectedZoneKey: zoneKey,
+          }),
+        ),
       );
     } catch (err) {
       return sendChasseError(res, err);

@@ -28,9 +28,25 @@ export function GLAppBanners({
   turnTeamLabel,
   roundLabel,
   spellRejectedText,
+  /** « Tenir à deux » : un tour est ouvert et l'élève n'est pas sur l'écran de son équipe. */
+  tourOuvertLabel = null,
+  onGoToTour = null,
 }) {
   return (
     <>
+      {tourOuvertLabel ? (
+        <div className="role-preview-banner fade-in" role="status" data-testid="gl-tour-ouvert">
+          <div className="role-preview-banner__text" style={{ flex: '1 1 200px' }}>
+            <strong>Le tour est ouvert</strong>
+            <span>{tourOuvertLabel}</span>
+          </div>
+          {typeof onGoToTour === 'function' ? (
+            <GLButton type="button" size="sm" onClick={onGoToTour}>
+              Rejoindre mon équipe
+            </GLButton>
+          ) : null}
+        </div>
+      ) : null}
       {error ? (
         // `role="alert"` : la seule bannière qui compte doit être annoncée (audit août § 5.2.4).
         <div className="gl-error-banner" role="alert">

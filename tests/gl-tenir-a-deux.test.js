@@ -104,6 +104,9 @@ test('autre peuple : question de lecture ; « pas encore » ne change rien ; bon
   assert.equal(raté.status, 200, JSON.stringify(raté.body));
   assert.equal(raté.body.correct, false);
   assert.match(raté.body.feedback, /^Pas encore/);
+  // Le retour d'auteur de la question de lecture (`feedback_incorrect`) est bien celui affiché,
+  // et « Pas encore » n'y figure qu'une fois (`lib/glRetourQcm.js`).
+  assert.equal(raté.body.feedback, 'Pas encore. Relis la première ligne de la page.');
   assert.ok(raté.body.question?.presentationToken, 'la question se repose');
   assert.deepEqual(await readPlayerBourses(licorneA().id), avant.licorne);
   assert.deepEqual(await readPlayerBourses(gnomeA().id), avant.gnome);

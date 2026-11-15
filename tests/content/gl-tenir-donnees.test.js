@@ -24,15 +24,16 @@ const assert = require('node:assert/strict');
 
 const DIR = path.join(__dirname, '..', '..', 'data', 'gl', 'tenir');
 const readJson = (name) => JSON.parse(fs.readFileSync(path.join(DIR, `${name}.json`), 'utf8'));
-const { findForbiddenString, isValidPolygon } = require('../../lib/glTenirImport');
+const { isValidPolygon } = require('../../lib/glTenirImport');
+const { findForbiddenString } = require('../../lib/shared/glGardeFousCore');
 
 const EXPECTED = {
   'chasse-zones': ['zones', 36],
   'questions-lecture': ['questions', 36],
   peripeties: ['peripeties', 32],
   missions: ['missions', 20],
-  badges: ['badges', 13],
-  'olu-lignes': ['lignes', 69],
+  badges: ['badges', 15],
+  'olu-lignes': ['lignes', 77],
   parures: ['parures', 12],
   sorts: ['sorts', 25],
 };
@@ -53,6 +54,47 @@ test('comptes attendus par fichier', () => {
     ['1:7', '2:7', '3:9', '4:7'],
   );
   assert.equal(readJson('sorts').voyageur.length, 6);
+});
+
+test('défis de case : 16 défis, 4 par plateau, complets, sans mot interdit ; lignes d’Olu des trois moments', () => {
+  const fichier = readJson('defis-cases');
+  assert.ok(fichier.format, 'clé format');
+  assert.deepEqual(
+    Object.entries(fichier.plateaux).map(([k, v]) => `${k}:${v.length}`),
+    ['1:4', '2:4', '3:4', '4:4'],
+  );
+  const codes = new Set();
+  for (const [plateau, liste] of Object.entries(fichier.plateaux)) {
+    for (const d of liste) {
+      assert.ok(!codes.has(d.code), `${d.code} en double`);
+      codes.add(d.code);
+      assert.match(d.code, new RegExp(`^d-p${plateau}-`), `${d.code} : préfixe du plateau`);
+      for (const champ of ['titre', 'consigne', 'preparation', 'critere', 'notion']) {
+        assert.ok(String(d[champ] || '').trim(), `${d.code}.${champ} vide`);
+        assert.equal(findForbiddenString(d[champ]), null, `${d.code}.${champ}`);
+      }
+      assert.ok(d.titre.length <= 160, `${d.code} titre ≤ 160`);
+      assert.ok(Number.isInteger(d.duree_s) && d.duree_s >= 10 && d.duree_s <= 3600, d.code);
+    }
+  }
+  assert.equal(codes.size, 16);
+  assert.equal(findForbiddenString(fichier.regle), null);
+  // Olu : deux lignes par moment, tous biomes, sans variable ni mot interdit.
+  const lignes = readJson('olu-lignes').lignes;
+  for (const moment of ['defi_case_recu', 'defi_case_releve', 'defi_case_pas_encore']) {
+    const du = lignes.filter((l) => l.moment === moment);
+    assert.equal(du.length, 2, moment);
+    for (const l of du) {
+      assert.equal(findForbiddenString(l.texte), null, l.id);
+      assert.equal(l.plateaux, undefined, `${l.id} : tous biomes`);
+    }
+  }
+  assert.ok(
+    lignes
+      .filter((l) => l.moment === 'defi_case_pas_encore')
+      .every((l) => /^Pas encore/.test(l.texte)),
+    '« Pas encore », jamais « Non »',
+  );
 });
 
 test('zones : 8/8/10/10, ordre sans trou, une question de lecture par zone, codes uniques', () => {

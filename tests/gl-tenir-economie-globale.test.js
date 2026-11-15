@@ -155,6 +155,74 @@ test('page tenue : +1 par membre des deux équipes ; sort : −coût ; souffle :
   assert.equal(classement.length, 0);
 });
 
+test('défi de case (lot 2) : reçu, relevé ou « pas encore », il ne crée ni ne retire aucune ressource', async () => {
+  const defis = require('../lib/glDefisCase');
+  const { resolveTenirSettings } = require('../lib/glTenir');
+  const { getGameplaySettings } = require('../lib/glSettings');
+  const avant = await total();
+  const livreAvant = await queryOne(
+    'SELECT COUNT(*) AS n FROM gl_resource_ledger WHERE game_id = ?',
+    [ctx.game.id],
+  );
+  const game = await queryOne(
+    `SELECT g.*, ch.plateau_number FROM gl_games g LEFT JOIN gl_chapters ch ON ch.id = g.chapter_id WHERE g.id = ?`,
+    [ctx.game.id],
+  );
+  const resolved = resolveTenirSettings(await getGameplaySettings(), game);
+  // Une case du plateau marquée « Défi d'équipe » pour ce test, puis remise comme avant.
+  const marker = ctx.markers[3];
+  const ancienne = await queryOne('SELECT event_config_json FROM gl_chapter_markers WHERE id = ?', [
+    marker.id,
+  ]);
+  const marque = {
+    ...marker,
+    event_config_json: JSON.stringify({ version: 2, tenir: { defi: true } }),
+  };
+  await execute(
+    `INSERT INTO gl_tenir_defis_cases (code, plateau, titre, consigne, duree_s, actif, updated_at)
+     VALUES ('d-eco-test', ?, 'Défi du test', 'Consigne du test.', 60, 1, NOW())
+     ON DUPLICATE KEY UPDATE plateau = VALUES(plateau), actif = 1`,
+    [Number(game.plateau_number)],
+  );
+  const recus = [];
+  for (const team of [ctx.teams[0], ctx.teams[2]]) {
+    await db.withTransaction(async (tx) => {
+      recus.push(
+        ...(await defis.recevoirDefisTx(tx, {
+          gameId: ctx.game.id,
+          teamId: team.id,
+          game,
+          resolved,
+          markers: ctx.markers.map((m) => (Number(m.id) === Number(marker.id) ? marque : m)),
+          marker: marque,
+          roundNumber: Number(game.current_round_number) || 1,
+        })),
+      );
+    });
+  }
+  assert.equal(recus.length, 2, 'deux défis reçus');
+  const [a, b] = recus.map((e) => e.payload.defiId);
+  for (const [defiId, releve] of [
+    [a, true],
+    [b, false],
+  ]) {
+    await db.withTransaction((tx) =>
+      defis.deciderDefiTx(tx, { gameId: ctx.game.id, defiId, releve, actorId: 1, resolved }),
+    );
+  }
+  assert.equal(await total(), avant, 'somme des bourses inchangée');
+  const livreApres = await queryOne(
+    'SELECT COUNT(*) AS n FROM gl_resource_ledger WHERE game_id = ?',
+    [ctx.game.id],
+  );
+  assert.equal(Number(livreApres.n), Number(livreAvant.n), 'aucun mouvement au grand livre');
+  await execute("DELETE FROM gl_tenir_defis_cases WHERE code = 'd-eco-test'");
+  await execute('UPDATE gl_chapter_markers SET event_config_json = ? WHERE id = ?', [
+    ancienne.event_config_json,
+    marker.id,
+  ]);
+});
+
 test('Progression sur une Trame ne crée pas de ressource nette (C1) : −coût seulement', async () => {
   const team = ctx.teams[1];
   const member = ctx.players.find((p) => p.teamId === Number(team.id));

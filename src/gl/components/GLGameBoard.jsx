@@ -44,7 +44,11 @@ import { resolveGlBoardImageUrl } from '../utils/glLegacyMediaUrl.js';
 import { useGlAssetsReady } from './GLFeuilletIllustration.jsx';
 import { DialogShell } from '../../components/DialogShell.jsx';
 import { GLGameBoardRoster } from './GLGameBoardRoster.jsx';
-import { buildMarkerPathNumberMap, sortMarkersByPath } from '../utils/glBoardPath.js';
+import {
+  buildMarkerPathNumberMap,
+  sortMarkersByPath,
+  teamPathIndex,
+} from '../utils/glBoardPath.js';
 import { resolveDicePathAdvance } from '../utils/glDicePathAdvance.js';
 import { GLChasseLayer } from './tenir/GLChasseLayer.jsx';
 import { GLVoileLayer } from './tenir/GLVoileLayer.jsx';
@@ -485,6 +489,18 @@ export function GLGameBoard({
   }
 
   const teamList = Array.isArray(teams) ? teams : [];
+  // « Tenir à deux », lot 2 : distance au voile, en cases, sous chaque mascotte (donnée
+  // publique, calculée à l'affichage). Rien tant que le voile n'est pas sur le plateau.
+  const voilePosition = tenirLayers ? Number(tenirLayers.voilePosition ?? -1) : -1;
+  const sortedPathMarkers = tenirLayers && voilePosition >= 0 ? sortMarkersByPath(markers) : null;
+  const voileLabelForTeam = (team) => {
+    if (!sortedPathMarkers) return null;
+    const index = teamPathIndex(team, sortedPathMarkers);
+    if (index == null || index < 0) return null;
+    const ecart = index - voilePosition;
+    if (ecart <= 0) return 'sous le voile';
+    return `voile à ${ecart} case${ecart > 1 ? 's' : ''}`;
+  };
   const canSelectTeam = Boolean(onSelectTeam) && teamList.length > 0;
 
   const handleSelectTeam = useCallback(
@@ -571,6 +587,7 @@ export function GLGameBoard({
             isSelected={isSelected}
             onSelect={handleSelectTeam}
             zIndex={6 + (isSelected ? 2 : 0)}
+            voileLabel={voileLabelForTeam(team)}
           />
         );
       })}

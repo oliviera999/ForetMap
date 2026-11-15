@@ -1,0 +1,86 @@
+{
+  "format": "gl.tenir.defis-cases/2",
+  "regle": "Une équipe qui s'arrête sur une case « Défi d'équipe » reçoit un défi du plateau (sans répétition dans la partie ; on recommence la liste quand elle est épuisée). Elle le prépare pendant la semaine et le relève à l'ouverture de la séance suivante, ou tout de suite si le prof le choisit. Le prof juge à voix haute : « relevé » → le voile recule pour toute la caravane ; « pas encore » → rien. Jamais de ressource.",
+  "plateaux": {
+    "1": [
+      {
+        "code": "d-ex-p1-a",
+        "titre": "Défi d'exemple A du plateau 1",
+        "consigne": "Formez une chaîne alimentaire et dites-la à voix haute.",
+        "preparation": "Choisissez votre chaîne et répartissez les rôles.",
+        "critere": "La chaîne commence par une plante.",
+        "notion": "chaîne alimentaire",
+        "duree_s": 60
+      },
+      {
+        "code": "d-ex-p1-b",
+        "titre": "Défi d'exemple B du plateau 1",
+        "consigne": "Mimez un animal du biome ; la classe devine.",
+        "preparation": "Choisissez l'animal et ses trois gestes.",
+        "critere": "Trois gestes justes sont reconnus.",
+        "notion": "adaptation",
+        "duree_s": 45
+      }
+    ],
+    "2": [
+      {
+        "code": "d-ex-p2-a",
+        "titre": "Défi d'exemple A du plateau 2",
+        "consigne": "Formez une chaîne alimentaire et dites-la à voix haute.",
+        "preparation": "Choisissez votre chaîne et répartissez les rôles.",
+        "critere": "La chaîne commence par une plante.",
+        "notion": "chaîne alimentaire",
+        "duree_s": 60
+      },
+      {
+        "code": "d-ex-p2-b",
+        "titre": "Défi d'exemple B du plateau 2",
+        "consigne": "Mimez un animal du biome ; la classe devine.",
+        "preparation": "Choisissez l'animal et ses trois gestes.",
+        "critere": "Trois gestes justes sont reconnus.",
+        "notion": "adaptation",
+        "duree_s": 45
+      }
+    ],
+    "3": [
+      {
+        "code": "d-ex-p3-a",
+        "titre": "Défi d'exemple A du plateau 3",
+        "consigne": "Formez une chaîne alimentaire et dites-la à voix haute.",
+        "preparation": "Choisissez votre chaîne et répartissez les rôles.",
+        "critere": "La chaîne commence par une plante.",
+        "notion": "chaîne alimentaire",
+        "duree_s": 60
+      },
+      {
+        "code": "d-ex-p3-b",
+        "titre": "Défi d'exemple B du plateau 3",
+        "consigne": "Mimez un animal du biome ; la classe devine.",
+        "preparation": "Choisissez l'animal et ses trois gestes.",
+        "critere": "Trois gestes justes sont reconnus.",
+        "notion": "adaptation",
+        "duree_s": 45
+      }
+    ],
+    "4": [
+      {
+        "code": "d-ex-p4-a",
+        "titre": "Défi d'exemple A du plateau 4",
+        "consigne": "Formez une chaîne alimentaire et dites-la à voix haute.",
+        "preparation": "Choisissez votre chaîne et répartissez les rôles.",
+        "critere": "La chaîne commence par une plante.",
+        "notion": "chaîne alimentaire",
+        "duree_s": 60
+      },
+      {
+        "code": "d-ex-p4-b",
+        "titre": "Défi d'exemple B du plateau 4",
+        "consigne": "Mimez un animal du biome ; la classe devine.",
+        "preparation": "Choisissez l'animal et ses trois gestes.",
+        "critere": "Trois gestes justes sont reconnus.",
+        "notion": "adaptation",
+        "duree_s": 45
+      }
+    ]
+  }
+}

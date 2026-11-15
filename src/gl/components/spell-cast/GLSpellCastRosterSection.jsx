@@ -1,4 +1,5 @@
 import { GLInput } from '../ui/GLInput.jsx';
+import { GLButton } from '../ui/GLButton.jsx';
 import {
   canEditContributionRow,
   formatPlayerLabel,
@@ -35,6 +36,88 @@ export function remainingAfter(balance, spent) {
   return Math.max(0, rest);
 }
 
+/** Champs de saisie d'une part (gemmes, cœurs) : pot classique, ou compte élève en « Tenir ». */
+function RosterPlayerInputs({ player, row, required, busy, onUpdateContrib, onContribBlur }) {
+  return (
+    <div className="gl-spell-cast-roster__inputs">
+      {required.gems > 0 ? (
+        <label className="gl-spell-cast-roster__field">
+          <span className="gl-visually-hidden">Gemmes pour</span>
+          <span aria-hidden="true">💎</span>
+          <GLInput
+            type="number"
+            min={0}
+            max={player.powerPoints}
+            disabled={busy}
+            value={row.gems}
+            onChange={(e) => onUpdateContrib(player.playerId, 'gems', e.target.value)}
+            onBlur={(e) => onContribBlur(player.playerId, 'gems', e.target.value)}
+          />
+          <span className="gl-spell-cast-roster__remaining gl-hint">
+            il te restera {remainingAfter(player.powerPoints, row.gems)} 💎
+          </span>
+        </label>
+      ) : null}
+      {required.hearts > 0 ? (
+        <label className="gl-spell-cast-roster__field">
+          <span className="gl-visually-hidden">Cœurs pour</span>
+          <span aria-hidden="true">❤️</span>
+          <GLInput
+            type="number"
+            min={0}
+            max={player.healthPoints}
+            disabled={busy}
+            value={row.hearts}
+            onChange={(e) => onUpdateContrib(player.playerId, 'hearts', e.target.value)}
+            onBlur={(e) => onContribBlur(player.playerId, 'hearts', e.target.value)}
+          />
+          <span className="gl-spell-cast-roster__remaining gl-hint">
+            il te restera {remainingAfter(player.healthPoints, row.hearts)} ❤️
+          </span>
+        </label>
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * Ligne du pot « Tenir à deux » (lot 2) : la part automatique d'un présent, « pas moi » pour se
+ * retirer, « remettre » pour revenir. Sur la tablette de l'équipe, aucune saisie de part.
+ */
+function PotPlayerRow({ player, row, required, exclu, peutExclure, busy, onExclure, children }) {
+  return (
+    <li
+      className={`gl-spell-cast-roster__row gl-spell-cast-pot__row${exclu ? ' is-exclu' : ''}`}
+      data-testid={`gl-pot-ligne-${player.playerId}`}
+    >
+      <div className="gl-spell-cast-roster__identity">
+        <strong>{formatPlayerLabel(player)}</strong>
+        {exclu ? (
+          <span className="gl-hint">ne verse pas cette fois</span>
+        ) : children ? null : (
+          <span className="gl-spell-cast-pot__part">
+            {required.hearts > 0 ? `❤️ ${row.hearts}` : ''}
+            {required.hearts > 0 && required.gems > 0 ? ' · ' : ''}
+            {required.gems > 0 ? `💎 ${row.gems}` : ''}
+          </span>
+        )}
+      </div>
+      {exclu ? null : children}
+      {peutExclure ? (
+        <GLButton
+          type="button"
+          variant="ghost"
+          size="sm"
+          disabled={busy}
+          onClick={() => onExclure?.(player.playerId, !exclu)}
+        >
+          {exclu ? 'remettre' : 'pas moi'}
+        </GLButton>
+      ) : null}
+    </li>
+  );
+}
+
 function RosterPlayerRow({
   player,
   row,
@@ -60,44 +143,14 @@ function RosterPlayerRow({
           </span>
         ) : null}
       </div>
-      <div className="gl-spell-cast-roster__inputs">
-        {required.gems > 0 ? (
-          <label className="gl-spell-cast-roster__field">
-            <span className="gl-visually-hidden">Gemmes pour</span>
-            <span aria-hidden="true">💎</span>
-            <GLInput
-              type="number"
-              min={0}
-              max={player.powerPoints}
-              disabled={!editable || busy}
-              value={row.gems}
-              onChange={(e) => onUpdateContrib(player.playerId, 'gems', e.target.value)}
-              onBlur={(e) => onContribBlur(player.playerId, 'gems', e.target.value)}
-            />
-            <span className="gl-spell-cast-roster__remaining gl-hint">
-              il te restera {remainingAfter(player.powerPoints, row.gems)} 💎
-            </span>
-          </label>
-        ) : null}
-        {required.hearts > 0 ? (
-          <label className="gl-spell-cast-roster__field">
-            <span className="gl-visually-hidden">Cœurs pour</span>
-            <span aria-hidden="true">❤️</span>
-            <GLInput
-              type="number"
-              min={0}
-              max={player.healthPoints}
-              disabled={!editable || busy}
-              value={row.hearts}
-              onChange={(e) => onUpdateContrib(player.playerId, 'hearts', e.target.value)}
-              onBlur={(e) => onContribBlur(player.playerId, 'hearts', e.target.value)}
-            />
-            <span className="gl-spell-cast-roster__remaining gl-hint">
-              il te restera {remainingAfter(player.healthPoints, row.hearts)} ❤️
-            </span>
-          </label>
-        ) : null}
-      </div>
+      <RosterPlayerInputs
+        player={player}
+        row={row}
+        required={required}
+        busy={!editable || busy}
+        onUpdateContrib={onUpdateContrib}
+        onContribBlur={onContribBlur}
+      />
     </li>
   );
 }
@@ -129,8 +182,17 @@ export function GLSpellCastRosterSection({
   busy,
   onUpdateContrib,
   onContribBlur,
+  /** Tablette de l'équipe : partage automatique seul, « pas moi » sur chaque ligne. */
+  tablette = false,
+  onExclure = null,
 }) {
-  const roster = draft?.roster || [];
+  // « Tenir à deux » : le pot ne montre que les présents (`draft.presents`) ; un absent ou un
+  // élève en retrait n'y apparaît jamais.
+  const presents = Array.isArray(draft?.presents) ? draft.presents.map(Number) : null;
+  const exclus = Array.isArray(draft?.exclus) ? draft.exclus.map(Number) : [];
+  const roster = (draft?.roster || []).filter(
+    (p) => presents == null || presents.includes(Number(p.playerId)),
+  );
   const rosterEmpty = draft && roster.length === 0;
   const rosterGroups = groupRosterByTeam(roster);
   const casterKind = draft?.casterKind || 'any';
@@ -175,6 +237,36 @@ export function GLSpellCastRosterSection({
                     casterKind,
                     teamType: player.teamType,
                   });
+                  if (presents != null) {
+                    const exclu = exclus.includes(Number(player.playerId));
+                    // « Pas moi » : chacun pour soi ; la tablette et le prof, ligne par ligne.
+                    const peutExclure =
+                      !!onExclure &&
+                      (tablette || isStaff || Number(player.playerId) === Number(playerId));
+                    return (
+                      <PotPlayerRow
+                        key={player.playerId}
+                        player={player}
+                        row={row}
+                        required={required}
+                        exclu={exclu}
+                        peutExclure={peutExclure}
+                        busy={busy}
+                        onExclure={onExclure}
+                      >
+                        {!tablette && editable ? (
+                          <RosterPlayerInputs
+                            player={player}
+                            row={row}
+                            required={required}
+                            busy={busy}
+                            onUpdateContrib={onUpdateContrib}
+                            onContribBlur={onContribBlur}
+                          />
+                        ) : null}
+                      </PotPlayerRow>
+                    );
+                  }
                   return (
                     <RosterPlayerRow
                       key={player.playerId}

@@ -201,9 +201,10 @@ router.post(
       [classId],
     );
     if (!classRow) return res.status(404).json({ error: 'Classe introuvable' });
-    const chapterRow = await queryOne('SELECT id FROM gl_chapters WHERE id = ? LIMIT 1', [
-      chapterId,
-    ]);
+    const chapterRow = await queryOne(
+      'SELECT id, plateau_number FROM gl_chapters WHERE id = ? LIMIT 1',
+      [chapterId],
+    );
     if (!chapterRow) return res.status(404).json({ error: 'Chapitre introuvable' });
 
     // « Tenir à deux » : une partie née quand le mode est actif porte le profil `complet`
@@ -211,12 +212,19 @@ router.post(
     const gameplay = await getGameplaySettings();
     const tenirProfil = isTenirEnabled(gameplay) ? 'complet' : null;
     const tenirSurface = tenirProfil ? gameplay.tenirSurface || 'tableau' : null;
+    // Lot 2 (étape 2.10) : au chapitre 1, la classe apprend le tour — le Marché est éteint
+    // d'office par une surcharge de la partie, que le prof rallume d'un clic. Les parties
+    // existantes ne changent pas.
+    const tenirOverrides =
+      tenirProfil && Number(chapterRow.plateau_number) === 1
+        ? JSON.stringify({ marche: false })
+        : null;
     let insertResult;
     try {
       insertResult = await execute(
-        `INSERT INTO gl_games (class_id, chapter_id, name, status, created_by, tenir_profil, tenir_surface, created_at, updated_at)
-       VALUES (?, ?, ?, 'draft', ?, ?, ?, NOW(), NOW())`,
-        [classId, chapterId, name, req.glAuth.userId, tenirProfil, tenirSurface],
+        `INSERT INTO gl_games (class_id, chapter_id, name, status, created_by, tenir_profil, tenir_surface, tenir_overrides_json, created_at, updated_at)
+       VALUES (?, ?, ?, 'draft', ?, ?, ?, ?, NOW(), NOW())`,
+        [classId, chapterId, name, req.glAuth.userId, tenirProfil, tenirSurface, tenirOverrides],
       );
     } catch (err) {
       // Filet de sécurité en cas de course entre la validation ci-dessus et l'INSERT.
@@ -1101,6 +1109,10 @@ router.use(require('./games/tenir'));
 router.use(require('./games/tenir-tour'));
 router.use(require('./games/chasse'));
 router.use(require('./games/tenir-honneurs'));
+// Défi de case (lot 2, § 7) : défis reçus par les équipes, jugement du prof.
+router.use(require('./games/defis-case'));
+// Lot 3 : défis de la Trame (Retisser, Réparer, La trame altérée, Les fils cachés).
+router.use(require('./games/defis'));
 
 // O10 — sous-domaine feuillet-zones extrait en sous-routeur dédié (chemins inchangés) :
 //   GET  /games/:id/feuillet-zones/presented

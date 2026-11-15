@@ -152,4 +152,12 @@ npm run bump:patch|minor|major  # incrémente package.json (sans tag)
 `foretmap-release` (versionnage/commit/push) · `foretmap-docs-reference` (doc fonctionnelle
 non technique `docs/reference/`) · `foretmap-external-inspiration` (s'inspirer de dépôts/libs
 connus, avec citation).
+**Gnomes & Licornes « Tenir à deux »** : `gl-tenir-garde-fous` (les douze garde-fous, mots
+interdits, ton des retours — à lire avant tout texte visible d'un élève) ·
+`gl-tenir-catalogue` (catalogue `data/gl/tenir` de bout en bout) · `gl-tenir-moteur` (carte du
+tour : phases, surfaces, droits, grand livre, journal) · `gl-banc` (banc de simulation, base
+`_sim`, **jamais la prod**) · `gl-contenu-science` (écrire pour des 6e, sens des flèches, rôles
+trophiques). Sous-agents de relecture en lecture seule, à lancer avant d'ouvrir une PR G&L :
+`gl-relecteur-garde-fous` et `gl-relecteur-science` (`.claude/agents/`). Commande `/gl-verif`
+(`.claude/commands/`) : toutes les vérifications d'un lot G&L d'un coup.
 Pour le détail métier au-delà : `.cursor/skills/**` et `.cursor/rules/**`.

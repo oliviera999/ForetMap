@@ -468,6 +468,369 @@ Accroche : `POST /api/gl/learning/species/:code` renvoie `piste: { zoneKey, limi
 quand l'espèce étudiée est liée au feuillet d'une page endormie (zone → `revelee`, limite
 `tenir_pistes_par_semaine`).
 
+#### Retours de QCM et questions posées en partie (14 novembre 2026)
+
+- **Champ `feedback`** de `POST /api/gl/games/:id/qcm/answer`, `…/chasse/repondre`,
+  `…/chasse/pages/:zoneKey/tenir`, `POST /api/gl/qcm/questions/:code/answer` et
+  `POST /api/gl/lore/qcm/questions/:code/answer` : calculé par une seule fonction
+  (`lib/glRetourQcm.js`). Mauvaise réponse : retour du choix (`feedback_a…e`), sinon retour
+  commun (`feedback_incorrect`, questions de lecture), sinon le défaut. L'amorce « Non »
+  (« Non, », « Non. », « Non : », puis « c'est faux : ») des retours d'auteur est retirée à
+  l'affichage ; la base n'est pas modifiée. En partie « Tenir à deux », le texte commence par
+  « Pas encore », une seule fois.
+- **`gl_qcm_questions.usage_tenir`** (« posée en partie », défaut `1`) : à `0`, la question
+  ne sort plus du tirage d'une case ni d'une question de secours de fouille en partie « Tenir à
+  deux ». Elle reste active partout ailleurs. Les questions fixes des zones de chasse ne passent
+  pas par ce filtre.
+- `GET /api/gl/admin/qcm/questions` (`gl.content.manage`) accepte `?usageTenir=1|0` et renvoie
+  `usage_tenir` (booléen) par question ; `POST` / `PUT /api/gl/admin/qcm/questions[/:code]`
+  acceptent `usage_tenir` (booléen ; absent = valeur gardée). Le cinquième choix (`choix_e`) est
+  facultatif, sauf s'il est la bonne réponse.
+- `POST /api/gl/games/:id/spell-casts/drafts` et `…/drafts/:draftId/launch` : en partie « Tenir
+  à deux » sur la surface `tableau`, un joueur reçoit **403 `TENIR_PERMISSION`** (« Au tableau, ce
+  sort se lance avec le prof. ») pour un sort dont la fenêtre exige la phase `jeu`. Les fenêtres
+  `activite`, `seuil`, `seuil_veillee`, `fin_seance` et `trimestre_3` restent ouvertes. Le prof
+  n'est jamais concerné.
+- `GET /api/gl/games/:id/tenir/tour` : pour le prof seulement, `round.durees` =
+  `{ phases: { ouverture, jeu, souffle }, libelle }` (secondes par phase du tour courant, `null`
+  pour une phase encore ouverte ; `libelle` : « ouverture 1 min 10, jeu 6 min 40, souffle 0 min
+  50 »), ou `null` si le tour n'a pas de mesure. Jamais servi à un élève ni à la projection.
+  Source : `gl_game_round_phases` (migration 346), écrite à l'ouverture du tour, à chaque
+  changement de phase et à la clôture du chapitre.
+- **Sabliers** : `GET /api/gl/games/:id/tenir` et `GET …/tenir/tour` renvoient à tous
+  (prof, élèves, projection) `sablier` = `{ actif, equipeSecondes, phaseSecondes, phaseAuto,
+  phase }`, où `phase` vaut `{ secondes, restantSecondes, enPause, termine, auto }` pendant la
+  phase `jeu` en surface `hybride` ou `tablette` quand un sablier du tour est réglé, sinon
+  `null`. `restantSecondes` est calculé par le serveur à la lecture.
+- `PUT /api/gl/games/:id/tenir/sablier` (`gl.game.manage`, donc **403 pour un joueur**) :
+  `{ actif?, secondes?, phaseSecondes?, phaseAuto?, action? }`. `secondes` (10 à 3600) règle le
+  sablier de l'équipe active au tableau ; `phaseSecondes` (0 = sans, sinon 10 à 3600) le
+  sablier du tour ; `action` ∈ `pause | reprise | zero` agit sur le sablier du tour en cours.
+  Les réglages sont enregistrés dans les surcharges de la partie (`sablier_actif`,
+  `sablier_secondes`, `sablier_phase_secondes`, `sablier_phase_auto`). Changer la durée du
+  sablier du tour le fait repartir plein. Réponse `{ ok, sablier }` ; évènement `sablier_regle`.
+  400 `SABLIER_INVALIDE` (corps vide, durée hors bornes, action inconnue).
+
+#### Présences confirmées par équipe (lot 2)
+
+En `hybride` et sur `tablette`, chaque équipe dit au début du tour s'il manque quelqu'un. Au
+tableau, rien ne change.
+
+- `GET /api/gl/games/:id/tenir/tour` renvoie `presences` = `{ requise, equipes: [{ teamId,
+  confirmee, absents? }] }`. `requise` : surface `hybride` ou `tablette`, phase `ouverture` ou
+  `jeu`. `absents` (identifiants) n'est servi qu'au prof et, pour sa seule équipe, à un membre
+  ou à sa tablette.
+- `POST /api/gl/games/:id/tenir/presences` `{ teamId?, absents: [playerId] }` — élève de
+  l'équipe, tablette d'équipe (phases `ouverture` et `jeu`) ou prof (`teamId`, à tout moment
+  du tour). Remplace les absences des membres de CETTE équipe et confirme sa présence.
+  `{ ok, teamId, absents }`. 400 `PRESENCE_ABSENT_INVALIDE` (un absent n'est pas membre de
+  l'équipe), 409 `PRESENCE_PHASE`, 409 `AUCUN_TOUR`. Évènement `presence_confirmee`
+  (identités privées, nombre public).
+- `POST /api/gl/games/:id/tenir/presences/arrivee` `{ teamId?, playerId }` — « Quelqu'un vient
+  d'arriver » : le retardataire redevient présent. 409 `PRESENCE_PAS_ABSENT`. Évènement
+  `presence_arrivee`.
+- `POST /api/gl/games/:id/tenir/tour/absences` (prof) confirme en plus la présence de **toutes**
+  les équipes : le prof a fait l'appel.
+- `POST /api/gl/games/:id/spell-casts/drafts` : en `hybride` et sur `tablette`, pendant les
+  phases `ouverture` et `jeu`, **409 `PRESENCE_A_CONFIRMER`** (« Dites d'abord s'il manque
+  quelqu'un. ») tant que la présence de l'équipe lanceuse n'est pas confirmée. Le prof n'est
+  pas arrêté.
+- File du prof : une demande `presence_a_confirmer` par équipe à l'ouverture du tour, fermée à
+  la confirmation et d'office à la sortie de la phase `jeu`.
+
+#### Pot de sort : partage automatique et « pas moi » (lot 2)
+
+- Le pot d'un sort « Tenir » (`draft`) porte `presents` (membres présents des équipes du pot,
+  exclus compris) et `exclus` (ceux qui ont touché « pas moi »). Les parts sont suggérées
+  entre les présents non exclus : réserve de la caravane d'abord, parts égales, reste au plus
+  riche, jamais au-delà d'un solde.
+- `POST /api/gl/games/:id/spell-casts/drafts/:draftId/exclure` `{ playerId, exclu }` — l'élève
+  pour lui-même (403 `QUI_AGIT_INVALIDE` sinon), la tablette de l'équipe « au nom de » un
+  membre présent de son équipe, ou le prof. Recalcule le partage et renvoie `{ draft }`. Si le
+  reste ne couvre plus le coût, `draft.ready` vaut `false` et le lancement est refusé (409)
+  sans aucun débit. 409 `EXCLUSION_ABSENT` (absent ou en retrait : il n'est pas dans le pot),
+  409 pot déjà lancé.
+- `PUT …/spell-casts/drafts/:draftId/contributions` : **403 `CONTRIBUTION_TABLETTE`** depuis une
+  tablette d'équipe (plus aucune saisie de part) ; en partie « Tenir », **403
+  `CONTRIBUTION_AUTRE_EQUIPE`** pour un élève qui n'appartient ni à l'équipe lanceuse ni à sa
+  partenaire de pacte.
+- **Le serveur rejoue le pot** (partie « Tenir ») : `POST …/drafts/:draftId/launch` répond
+  **403 `CONTRIBUTION_AUTRE_EQUIPE`** à une équipe qui n'est pas du pot (l'identifiant d'un pot
+  circule dans la salle) ; la partenaire d'une Cordée offerte, qui ne paie rien, ne lit, ne
+  règle ni ne lance ce pot. Une part au nom d'un élève hors du pot (absent, en retrait, « pas
+  moi ») est refusée (**409 `CONTRIBUTION_HORS_POT`**) ; au lancement, et à la reprise d'un pot
+  né à un tour précédent, les parts sont recalculées sur les présents : un absent n'est jamais
+  débité. La charge utile d'un pot porte `equipesDuPot`.
+- Une tablette d'équipe ouvre, lit, lance et annule les pots de **son** équipe pendant un tour
+  ouvert (`teamId` facultatif ; 403 pour une autre équipe) ; un sort à limite par élève lui est
+  refusé : 403 `SPELL_COMPTE_ELEVE`, « Ce sort se lance depuis ton propre compte. »
+- Bourses privées : `GET …/spell-casts/drafts/:draftId` d'un pot « Tenir » répond 403 à une
+  autre équipe, et l'annonce temps réel `gl:spell_cast:draft` ne porte plus que
+  `{ draftId, type, teamId }` (l'écran qui a ouvert le pot le recharge).
+
+#### Jets en suspens et fenêtres par équipe (lot 2, hybride et tablette)
+
+Au tableau, rien ne change. En `hybride` et sur `tablette`, les équipes jouent en parallèle :
+
+- `GET …/tenir/tour` → `round.derniersJets` = `{ [teamId]: { eventId, mode, at,
+  beneficiaryTeamId, gesteSuivant } }` (un jet par équipe ; `round.dernierJet` reste le plus
+  récent, à l'ancienne forme) et `round.questionsEnAttente` = `[{ teamId, markerId }]`.
+- Fenêtre `apres_jet` (Progression, Relance) : l'équipe a jeté ce tour **et n'a rien fait
+  depuis** (`gesteSuivant`), quoi que fassent les autres. Refus : 409 `SPELL_FENETRE`, « …juste
+  après le jet de l'équipe — avant tout autre geste de l'équipe. »
+- Un geste ne confirme que les jets en suspens des équipes concernées : celle qui jette (et
+  celle que son jet fait avancer), celle qu'un sort vise ou déplace (Bourrasque, Relais,
+  Cordée). Fouiller, répondre, lire ou tenir une page pendant le tour **garde le jet** de
+  l'équipe (évènement `arrivee_gardee`, `motif: 'geste'`) et ferme sa fenêtre. Le changement de
+  phase, « Garder ce jet » et le prof confirment comme avant.
+- `POST …/markers/:markerId/present-question` : la question est due à **l'arrivée du tour**, pas
+  à la position — une équipe déplacée par un sort avant sa réponse garde sa question (plus de
+  409 « Votre équipe n'est pas sur ce repère » dans ce cas). Une bonne réponse la solde.
+- File du prof (`GET …/spell-casts/awaiting-effect`) : un sort qui visait une page pâlie
+  (« Nommer ») se retire seul quand la page est réparée entre-temps ; il est rendu à l'équipe
+  (statut `rembourse`, cause `sort_rembourse`, évènement `spell_rembourse` avec
+  `motif: 'page_reparee'`).
+
+#### Cordée offerte (lot 2)
+
+- Catalogue : `SL045` passe à `ressource: "peuple"` — le pot (`required`, `roster`, `presents`,
+  `suggestedContributions`) ne porte que l'équipe **lanceuse**, 4 dans la ressource de son peuple.
+  `partnerTeamId` reste obligatoire (équipe de l'autre peuple, 400 `SPELL_PARTENAIRE`) ; la
+  partenaire ne paie rien.
+- `POST …/spell-casts/drafts/:draftId/launch` : la fenêtre « avant les jets des deux équipes »
+  est revérifiée **sous verrou** des deux équipes ; 409 `SPELL_FENETRE` si l'une a déjà jeté,
+  sans débit.
+- Passage en `souffle` (`POST …/tenir/tour/phase`), avant l'avance du voile : si l'une des deux
+  équipes n'a pas jeté, remboursement intégral (statut `rembourse`, cause `sort_rembourse`),
+  retrait de la protection contre le voile, évènement `spell_rembourse` (`motif: 'cordee'`).
+- `GET …/tenir/tour` → `round.effets` porte l'effet `cordee` (`teamId` = lanceuse,
+  `sourceTeamId` = partenaire) : l'écran de la partenaire affiche « L'équipe … vous encorde. ».
+
+#### Sorts du prof : refuser rembourse (lot 2)
+
+- `POST /api/gl/games/:id/spell-casts/drafts/:draftId/refuser` `{ mot? }` — `gl.game.manage`
+  (403 pour un joueur). Pour un sort **lancé** dont l'effet n'est pas encore appliqué (file du
+  prof : Question, Pause, Nommer…). Remboursement exact des contributions et de la part payée
+  par la réserve (cause `sort_rembourse`), statut `rembourse`, évènement `spell_refuse`
+  (`{ draftId, spellCode, spellName, mot? }`, visible de l'équipe). `{ ok, draftId, teamId,
+  spellCode }`. 409 `DRAFT_NOT_CAST` (déjà rendu ou jamais lancé), 409 effet déjà appliqué.
+- Un sort au statut `rembourse` ne compte plus dans sa limite : il est relançable dans la séance.
+
+#### File unique du prof et « Tout au tableau » (lot 2)
+
+- `GET /api/gl/games/:id/tenir/demandes` — `gl.game.manage`. `{ demandes: [{ id, kind, refId,
+  teamId, teamName, roundNumber, createdAt, titre, action, detail, payload }], total }`, la plus
+  ancienne en haut. `kind` ∈ `des_a_valider` (`refId` = saisie), `jet_en_suspens`,
+  `sort_a_appliquer` et `nommer` (`refId` = pot), `plume`, `chimere`, `presence_a_confirmer`,
+  `defi_case`. Aucun nom d'élève ; le titre d'une page ou le nom d'une chimère est lu à la
+  source pour le `detail`, jamais recopié dans la demande.
+- `GET …/tenir/tour` (prof) : `demandesEnAttente` (compteur) et `surfaceAvantTableau`.
+- Sorties automatiques (aucune demande sans sortie) : à la sortie de la phase `jeu`, les lignes
+  `des_a_valider`, `jet_en_suspens`, `presence_a_confirmer` se ferment ; à la **clôture du
+  tour**, un sort **du tour** que le prof n'a pas appliqué (fenêtres `jeu`, `jeu_avant_fouille`,
+  `avant_jet`, `apres_jet`, `avant_jets_pacte` — ex. Nommer) est **rendu** (statut `rembourse`,
+  évènement `spell_rembourse`, `motif: 'cloture_tour'`) et sa ligne se ferme ; à l'ouverture du
+  tour suivant, un sort d'activité resté sans effet (Question, Pause, Musique… : il s'applique
+  après le tour) est rendu de même (`motif: 'seance_suivante'`) ; au Seuil, tout se ferme
+  (`motif: 'seuil'` ; les propositions d'élèves restent à relire dans leur panneau).
+- `POST /api/gl/games/:id/tenir/surface` `{ tableau: true | false }` — `gl.game.manage`. `true` :
+  la surcharge `surface` passe à `tableau` (l'ancienne est gardée dans
+  `surface_avant_tableau`), les jets en suspens s'appliquent, évènement `surface_changee` ;
+  `false` : retour à la surface d'avant. Les sessions d'équipe restent ouvertes, soumises aux
+  droits de la nouvelle surface. `{ ok, surface, from }`. 409 `SURFACE_DEJA`.
+
+#### Écran d'équipe : sorts par moment, cases à venir, carnet (lot 2)
+
+- `GET /api/gl/games/:id/tenir/sorts` (`?teamId=` pour le prof ; élève : son équipe ; tablette :
+  la sienne) → `{ teamId, moments: [{ key, label, sorts: [{ code, nom, emoji, cout, ressource,
+  fenetre, execution, effetCourt, ouvert, message }] }] }`. Moments, dans l'ordre : `avant`
+  « Avant de lancer » (`avant_jet`, `avant_jets_pacte`), `apres` « Après le jet » (`apres_jet`),
+  `pendant` « Pendant le tour » (`jeu`, `jeu_avant_fouille`), `plus_tard` « Plus tard » (le
+  reste). Ne sont servis que les sorts officiels ouverts au chapitre et compatibles avec le
+  peuple de l'équipe ; un sort hors fenêtre, à sa limite ou réservé au prof sur cette surface
+  est servi `ouvert: false` avec le `message` à afficher (mêmes contrôles qu'au lancement).
+- `GET …/tenir/tour` → chaque équipe porte `casesAVenir` : les six cases suivantes (`index`,
+  `label`, `eventType`, `tonalite`), arrêtées au camp. L'information que donnait la Boussole est
+  donc affichée gratuitement avant le jet.
+- `GET …/chasse` → chaque page porte `attendUnLecteur` (trouvée ou réparée, pas encore tenue :
+  visible des deux peuples) et `protegee` (trouvée ET lue par l'équipe du lecteur : elle ne
+  pâlit pas sous le voile).
+
+#### Règles tranchées par l'audit (lot 2)
+
+- **Marché au chapitre 1** : `POST /api/gl/games` sur un chapitre de plateau 1 crée la partie
+  « Tenir » avec la surcharge `{ marche: false }` (modifiable par `PUT …/tenir/profil`). Les
+  parties existantes ne changent pas.
+- **Profil `court`** (`PUT …/tenir/profil { profil: 'court' }`, à côté de `complet` et
+  `prologue`) : `marche_pendant_tour: false` et `lecture_pendant_tour: false`. Pendant un tour
+  ouvert, `permissions.lire` vaut `false` et `POST …/chasse/pages/:zoneKey/ouvrir` ou
+  `…/tenir` répondent **409 `LECTURE_EN_VEILLEE`**, « À lire en veillée. » ; hors tour, tout
+  reste ouvert. Le prof garde la main.
+- Réglages : `gameplay.tenir_lecture_pendant_tour` (booléen, défaut `true`),
+  `gameplay.tenir_fouille_sous_voile` (`aucune` par défaut, ou `page_palie` : une équipe gnome
+  sous le voile garde une fouille par tour, sur une page pâlie seulement — servie dans
+  `fouilles.reparation`).
+- **Boussole** (`SL038`) : `actif: false` dans le catalogue — statut `propose`, rattachée à aucun
+  chapitre, absente de `GET …/tenir/sorts`. Son information est servie gratuitement
+  (`casesAVenir`).
+- **Farce** (`SL036`) : **409 `SPELL_CIBLE_SOUS_VOILE`**, « Cette équipe résiste déjà au voile :
+  choisissez-en une autre. », si l'équipe visée est sous le voile ; rien n'est débité.
+
+#### Défi de case (lot 2)
+
+Les huit cases « Défi d'équipe » (repères marqués `event_config_json.tenir.defi = true`)
+confient à l'équipe qui s'y arrête un défi **à préparer pour la séance suivante**. Rien ne
+bloque : le tour continue. Aucune ressource n'est jamais créée ni retirée.
+
+- Réception (dans la transaction du déplacement) : un défi du plateau, tiré sans répétition dans
+  la partie (la liste épuisée recommence), ligne `gl_game_defis_case` au statut `a_preparer`,
+  évènement `defi_case_recu` (`{ defiId, code, titre, markerId }`, visible de l'équipe), ligne
+  `defi_case` dans la file du prof. Réglage `defi_declenchement` : `arret` (défaut, à l'arrêt
+  exact) ou `passage` (dès que le pion franchit la case, une fois par équipe et par case).
+  `defis_case: false` coupe la mécanique.
+- `GET /api/gl/games/:id/defis-case` — compte G&L, session d'équipe ou projection.
+  `{ actifs, recul, defis: [{ id, teamId, markerId, code, roundNumber, statut, titre, consigne,
+  preparation, notion, dureeS, createdAt, decidedAt }] }`. Le prof voit tous les défis de la
+  partie, **avec `critere`** ; un élève ou une tablette voit ceux de son équipe ; la projection
+  voit les défis `a_preparer`. **`critere` n'est jamais servi à un élève, à une tablette ni à la
+  projection.** `statut` ∈ `a_preparer`, `releve`, `pas_encore`, `annule`.
+- `POST /api/gl/games/:id/defis-case/:defiId/decider` `{ releve: true | false }` —
+  `gl.game.manage`. Une seule décision : `releve: true` → statut `releve`, le voile recule de
+  `defi_recul` cases (2 par défaut, 0 à 10 ; même fonction que le recul du carnet complet),
+  évènement `defi_case_releve` ; `false` → statut `pas_encore`, évènement
+  `defi_case_pas_encore`, rien d'autre. La ligne de la file se ferme. `{ ok, defiId, teamId,
+  statut, recul }`. 400 `releve` absent, 404 `DEFI_INTROUVABLE`, **409 `DEFI_DEJA_JUGE`** à la
+  seconde décision.
+- Sortie automatique : au Seuil, tout défi encore `a_preparer` passe à `annule`, sans effet, et
+  sa ligne de file se ferme.
+- `GET …/tenir/demandes` : une ligne `defi_case` porte `payload: { consigne, critere, dureeS }`
+  (route du prof seul).
+
+#### Défis de la Trame (lot 3)
+
+Quatre défis sur un même plateau de cartes, hors du temps de jeu : **Retisser** et **Réparer la
+trame** (Gnomes), **La trame altérée** et **Les fils cachés** (Licornes). Réglages, surchargeables
+par partie : `defis` (true), `defis_par_peuple` (true ; à `false`, les quatre pour tous),
+`defis_pages_par_semaine` (2), `defis_mode_equipe` (true). **Aucune ressource n'est jamais créée.**
+Catalogues : `trame-reseaux`, `trame-fils`, `trame-reparer` (`data/gl/tenir/`). Cœur pur :
+`src/gl/defis/trameCore.js` (miroir `lib/shared/glTrameCore.js`). Détail : `docs/GL_DEFIS.md`.
+
+**Qui joue.** Un élève avec son compte (mode `individuel`, à tout moment) ; le prof, ou une
+tablette d'équipe **hors tour ouvert**, pour une équipe (mode `equipe`). **Unités** : `<biome>:<niveau>`
+pour Retisser (niveaux 5, 7, 9, 12, ouverts l'un après l'autre), `<biome>:<code retiré>` pour la
+trame altérée (trois scénarios par biome), `p<plateau>` pour les fils cachés et Réparer.
+
+- `GET /api/gl/games/:id/defis` (`?teamId=` pour le prof) — compte G&L ou session d'équipe.
+  `{ actifs, parPeuple, modeEquipe, peuple, plateau, mode, teamId, tourOuvert, types: [{ type,
+  libelle }], defis: [{ type, libelle, unite, biome?, biomeNom?, niveau?, retiree?, retireeNom?,
+  plateau?, disponible, statut, defiId }], pages: { utilisees, plafond }, aReparer: [{ code,
+  nom }] }`. Les défis sont ceux du peuple de l'équipe, sur les deux biomes du plateau de la
+  partie. Aucune solution.
+- `POST /api/gl/games/:id/defis` `{ type, unite, mode?, teamId? }` — crée ou reprend le défi du
+  porteur. `{ defi }` (201). Le mode découle de l'acteur ; `teamId` obligatoire pour le prof.
+  400 type inconnu, 403 `DEFI_AUTRE_PEUPLE`, 403 `DEFI_EQUIPE_RESERVE` (mode équipe depuis un
+  compte d'élève), 404 `DEFI_UNITE_INCONNUE`, 409 `DEFI_NIVEAU_FERME`, 409 `DEFI_TOUR_OUVERT`
+  (tablette pendant un tour), 409 `DEFIS_FERMES` / `DEFIS_EQUIPE_FERMES`.
+- `GET /api/gl/games/:id/defis/:defiId` — le porteur du défi (le prof lit tout). `{ defi }` :
+  l'état et le modèle **sans les solutions**. Commun : `id`, `type`, `libelle`, `unite`, `mode`,
+  `teamId`, `statut` (`en_cours`, `reussi`), `revision`, `indices`, `titre`, `niveau` (la `note`
+  d'auteur d'un réseau n'est jamais servie).
+  - Retisser et fils cachés : `cartes: [{ code, nom, role, generique, precision, photoUrl,
+    photoCredit }]`, `fleches: [{ de, vers, classement, message }]` (le classement de **ses**
+    flèches : `trouvee`, `inversee`, `a_discuter`, `doublon`, `boucle`), `trouvees` (sans total),
+    `positions`, `complet`, `critere`. Jamais les liens acceptés.
+  - Trame altérée : `cartes`, `liens` (le réseau du niveau 9, donné tissé : c'est l'énoncé),
+    `retiree`, `predictions`, `verification: [{ code, juste, message }] | null` (après
+    « Vérifier » : la bonne prédiction reçoit son explication, les autres « Pas encore », jamais
+    la réponse), `complet`, `message`, `pourAllerPlusLoin` (une fois tout juste). Jamais la cascade.
+  - Réparer : `aClasser: [{ code, nom }]`, `categories`, `rangement`, `rangementVerifie`,
+    `rangementComplet`, puis, une fois les six espèces rangées : `lecon`, `especes: [{ code, nom,
+    menace, signalee }]`, `mesures: [{ code, texte }]`, `mesuresVerifiees`, `requises` ; `choix`,
+    `leconLue`, `pourquoi`, `complet`. Jamais les catégories ni les mesures acceptées.
+  403 `DEFI_AUTRE_PORTEUR`, 404 `DEFI_INTROUVABLE`.
+- `PUT /api/gl/games/:id/defis/:defiId` `{ revision, etat }` — **sauvegarde stricte** : la
+  révision attendue est obligatoire (400), et **409 `edit_conflict`** `{ revision }` si une autre
+  sauvegarde est passée. `etat` selon le type : `{ fleches: [{ de, vers }], positions }`,
+  `{ predictions: { code: augmente | diminue | disparait | rien }, verifie }`, `{ rangement,
+  leconLue, mesures: { code: [codes] }, pourquoi }`. Bornes rejouées : 60 flèches entre cartes
+  connues, textes de 280 caractères, coordonnées de 0 à 100. `{ defi, reussite }` ; à la fin,
+  `reussite: { premiere, page, pagesEpuisees, message }`. Le prof ne joue que les défis d'équipe.
+  Réglages, peuple et état de la partie sont relus à chaque écriture : 409 `DEFIS_FERMES` /
+  `DEFIS_EQUIPE_FERMES`, 403 `DEFI_AUTRE_PEUPLE` (valable aussi pour `…/indice`).
+- `POST /api/gl/games/:id/defis/:defiId/indice` — l'indice suivant, gratuit et illimité :
+  `{ indice: { rang, genre: consigne | structure | piste | revelation, message, carte?, lien? },
+  indices }`. Un indice ne réduit aucune récompense.
+- `GET /api/gl/games/:id/defis/suivi` (`?format=csv`) — `gl.game.manage`. `{ eleves: [{ playerId,
+  nom, pseudo, equipe, defis: { <type>: { reussies: [unités], enCours, indices } }, pages }],
+  phrases: [{ auteur, unite, texte }] }`, **tri alphabétique seulement**. Les phrases
+  facultatives de Réparer sont à parcourir, sans compteur. CSV : une ligne par élève.
+
+**Réussite.** Pour l'élève — ou, en mode équipe, pour chaque membre présent — dont c'est la
+**première réussite de l'unité** : une ligne `gl_trame_reussites` (un point de regard `defi` dans
+le regard du proche, une unité pour les badges Tisserand, Révélateur, Gardien des fils,
+Réparateur) et, sous le plafond hebdomadaire, **une page de veillée** du chapitre à son nom
+(source `defi` ; jamais un feuillet de zone de chasse, une page de route, la page apportée par
+l'oiseau ni une page au titre interdit ; jamais de ressource). Le défi réussi, les réussites, la
+page décidée et l'évènement sont écrits en une transaction ; une page dont l'écriture au carnet
+a été interrompue est rattrapée à la lecture suivante de la liste. Pages épuisées :
+`reussite.message` « Le carnet de ce chapitre n'a plus de page en attente. ». Évènement
+`defi_trame_reussi` (`{ defiId, type, libelle, unite, biome, biomeNom, plateau, mode }`, sans nom
+d'élève). **Lien entre les peuples** : une trame altérée réussie dont la carte retirée est une
+espèce de `trame-reparer` l'ajoute à `aReparer` (aussi servi par `GET …/chasse` et
+`GET …/chasse/carnet`), et le prochain Réparer la propose en premier ; aucun gain.
+
+#### Lien de classe et session d'équipe (lot 2)
+
+Une tablette de classe joue sans compte d'élève : elle ouvre le **lien de la classe** (QR
+imprimé une fois pour l'année, ou code à huit caractères), touche la mascotte de son équipe et
+reçoit une **session d'équipe** de 3 heures.
+
+| Méthode | Route                                         | Corps                        | Accès et réponse                                                                                                                                                                                                                                                              |
+| ------- | --------------------------------------------- | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET     | `/api/gl/classes/:classId/lien`               | —                            | `gl.game.manage`. Crée le lien au besoin, sinon le rend tel quel (permanent). `{ classId, className, code, url }` avec `url = gl.html?classe=<jeton>` (relative, comme le lien de projection). 404 classe inconnue.                                                          |
+| POST    | `/api/gl/classes/:classId/lien/regenerer`     | —                            | `gl.game.manage`. Nouveau jeton et nouveau code : l'ancien QR est refusé, toutes les sessions d'équipe de la classe sont révoquées. Même réponse, plus `sessionsRevoquees`.                                                                                                  |
+| POST    | `/api/gl/class-link/open`                     | `{ token }` ou `{ code }`    | **Public**, limité en débit comme une connexion. `{ className, game: { id, name, status } \| null, teams: [{ teamId, name, type, mascotId, color }], phase }`. **Aucun nom d'élève, aucune bourse.** `game` vaut `null` sans partie « Tenir » en cours. 404 `CLASS_LINK_INCONNU`. |
+| POST    | `/api/gl/class-link/session`                  | `{ token \| code, teamId }`  | **Public**, limité en débit. 201 `{ token, expiresInSeconds, gameId, teamId, teamName, teamType, className }` : JWT `gl_guest` portant `team_session: { gameId, teamId, jti }` (seul le hachage du `jti` est stocké). 409 `CLASS_LINK_SANS_PARTIE`, 404 équipe inconnue.       |
+| GET     | `/api/gl/games/:id/tenir/sessions`            | —                            | `gl.game.manage`. `{ sessions: [{ id, teamId, createdAt, lastSeenAt, expiresAt }] }` : sessions d'équipe ouvertes aujourd'hui, non révoquées. Aucun jeton.                                                                                                                   |
+| DELETE  | `/api/gl/games/:id/tenir/sessions/:sessionId` | —                            | `gl.game.manage`. « Déconnecter » une tablette. `{ ok }`, 404 si la session n'est pas (ou plus) ouverte sur cette partie.                                                                                                                                                    |
+
+Ce qu'une session d'équipe peut faire :
+
+- **Lire** sa partie (`GET /api/gl/games/:id`, `…/tenir`, `…/tenir/tour`, `…/chasse`,
+  `…/tenir/olu`, `…/tenir/chimeres`, journal). `roster` ne porte que **l'effectif de son
+  équipe** (une tablette s'ouvre avec le seul code de la classe : elle ne reçoit pas les noms
+  du reste de la classe). Le bloc `tenir` porte
+  `tablette: { teamId, horsTour, presents }` (`presents` : identifiants des membres présents,
+  non en retrait — vide hors tour ; sert à « Qui agit ? »). **Hors tour : aucune bourse, aucune réserve, toutes les
+  permissions à `false`.** Pendant un tour ouvert : les bourses de son équipe seulement, les
+  droits d'un membre (`resolveTenirPermissions`), jamais « en retrait » (le retrait reste
+  individuel).
+- **Agir pendant un tour ouvert**, pour son équipe : `POST …/tenir/lancer`,
+  `…/tenir/arrivee/garder`, `…/tenir/peripetie/passer`, `…/markers/:markerId/present-question`,
+  `…/markers/:markerId/present-arrival`, `…/qcm/answer`, `…/chasse/fouiller`,
+  `…/chasse/repondre`, `…/chasse/pages/:zoneKey/ouvrir`, `…/chasse/pages/:zoneKey/tenir`. Au
+  journal : `actor_type = 'team'`, `actor_id = 'equipe-<teamId>'` (jamais un identifiant
+  d'élève).
+- **Marché « au nom de »** (`/api/gl/market/*`, pendant un tour ouvert) : un geste de Marché
+  touche la bourse d'un élève, la tablette dit donc **qui agit** — `onBehalfOfPlayerId` (corps
+  ou query) ou en-tête `X-GL-On-Behalf-Of: <playerId>` (posé par l'app). L'élève doit être un
+  membre **présent** de l'équipe, non en retrait ; la suite de la route le traite comme ce
+  joueur (mêmes règles : `MARCHE_FERME`, `MARCHE_PHASE`, plafonds). 400 `QUI_AGIT_REQUIS`
+  (personne de désigné), 403 `QUI_AGIT_INVALIDE` (absent, en retrait, autre équipe), 409
+  `TEAM_SESSION_HORS_TOUR`. Chaque geste abouti écrit un évènement `marche_au_nom_de`
+  (`actor_id = 'equipe-<teamId>'`, payload privé `{ playerId, action }`, vu du prof seul) ; il
+  ne crédite aucun badge « par l'élève ». Un membre en retrait ne retire pas le Marché à la
+  tablette : seuls les autres peuvent y agir.
+- Refus : 409 `TEAM_SESSION_HORS_TOUR` (geste hors tour), 403 `TEAM_SESSION_AUTRE_PARTIE`,
+  403 `TEAM_SESSION_AUTRE_EQUIPE` (`teamId` d'une autre équipe), 401 `TEAM_SESSION_TERMINEE`
+  (session révoquée, expirée, lien régénéré, partie close, équipes rebrassées par
+  `POST …/teams/compose/apply`) ; toute autre route « compte requis » répond 403
+  `guestBlocked`.
+- Catalogues nouveaux de `GET/POST /api/gl/admin/tenir/catalogues[/sync]` :
+  `qcm-feedbacks-zones` (retours de mauvais choix des questions de zone, écrits seulement si la
+  colonne est vide ou commence par « Non ») et `questions-vives` (40 questions de case
+  `VQCM0001…`, `statut` et `usage_tenir` gardés à la mise à jour).
+
 ### Le Seuil — niveau du voyageur et grimoire (`/api/gl/voyageur`)
 
 Réservé aux joueurs (`gl_player` → sinon `403`), module `modules.voyageur_enabled` (sinon `503`).
@@ -476,7 +839,7 @@ sortilège du grimoire a un effet borné appliqué par le serveur (`lib/glVoyage
 
 | Méthode | Route                                     | Corps / query          | Réponse                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | ------- | ----------------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| GET     | `/api/gl/voyageur/me`                     | —                      | `{ points, level, stage:{name,emoji}, affinity:{key,label,emoji}, levelStart, nextLevelAt, pointsToNextLevel, regards:{ proche:{points,sources[]}, loin:{points,sources[]} }, grimoire:[{ code,name,emoji,regard,levelRequired,description,unlocked,charged,usesCount,pointsToRecharge }], expedition:{ gameId,gameName,gameStatus,chapterTitle,teamId,teamName,teamType,mascotId,color,teammates[] } \| null }`. Regard **proche** = acquis `species` / `glossary` / `ecosystem` + questions `qcm` réussies (distinctes) ; **loin** = feuillets trouvés + acquis `feuillet` / `lore_glossary` / `content_page` + questions `qcm_lore` réussies + articles de « Mon journal » (≥ 40 caractères, 2 par semaine au plus). Niveau `n` atteint à `5·n·(n−1)/2` points. |
+| GET     | `/api/gl/voyageur/me`                     | —                      | `{ points, level, stage:{name,emoji}, affinity:{key,label,emoji}, levelStart, nextLevelAt, pointsToNextLevel, regards:{ proche:{points,sources[]}, loin:{points,sources[]} }, grimoire:[{ code,name,emoji,regard,levelRequired,description,unlocked,charged,usesCount,pointsToRecharge }], expedition:{ gameId,gameName,gameStatus,chapterTitle,teamId,teamName,teamType,mascotId,color,teammates[],tenir } \| null }` (`tenir` : la partie joue « Tenir à deux » — le Seuil n'y propose les défis de la Trame que dans ce cas). Regard **proche** = acquis `species` / `glossary` / `ecosystem` + questions `qcm` réussies (distinctes) ; **loin** = feuillets trouvés + acquis `feuillet` / `lore_glossary` / `content_page` + questions `qcm_lore` réussies + articles de « Mon journal » (≥ 40 caractères, 2 par semaine au plus). Niveau `n` atteint à `5·n·(n−1)/2` points. |
 | GET     | `/api/gl/voyageur/spells/:code/targets`   | —                      | `{ spell, items:[{ target, label, … }], emptyMessage }`. `seconde_chance` : délais d'attente en cours (`target` = `type:ref`, `lockedUntil`) ; `memoire` : feuillets du carnet encore effacés (`target` = code, `effacementPct`). Code inconnu → `404`.                                                                                                                                                                                                         |
 | POST    | `/api/gl/voyageur/spells/:code/cast`      | `{ target }` (1–4096)  | `{ success, spell:{…état après lancer}, effect }`. `409` `SPELL_LOCKED` (niveau insuffisant) ou `SPELL_NOT_CHARGED` (la charge revient après 5 nouveaux points), `404` `TARGET_NOT_FOUND` (charge non consommée), `400` cible vide. Effets : `seconde_chance` supprime le délai d'attente de la fiche ; `memoire` ramène l'effacement du feuillet à 0 dans la possession du joueur.                                                                            |
 

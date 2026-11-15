@@ -1,50 +1,30 @@
-import { useEffect, useRef, useState } from 'react';
+import { GLSablier } from '../tenir/GLSablier.jsx';
 
 /**
- * Sablier de l'équipe active (surface tableau) : client seul, rien n'est annulé quand il sonne.
- * `seconds` = `tenir_sablier_secondes`. Se réarme quand `resetKey` change (équipe suivante).
+ * Sablier de l'équipe active (surface tableau) : décompte côté client, rien n'est annulé quand
+ * il sonne. `seconds` = `tenir_sablier_secondes`. Se réarme quand `resetKey` change (équipe
+ * suivante). Avec `onRegler` (prof), un clic ouvre le panneau de réglage (`GLSablier`).
  */
-export function GLTourSablier({ seconds = 180, resetKey = null, running = true, onDone = null }) {
-  const [left, setLeft] = useState(seconds);
-  const doneRef = useRef(false);
-
-  useEffect(() => {
-    setLeft(seconds);
-    doneRef.current = false;
-  }, [seconds, resetKey]);
-
-  useEffect(() => {
-    if (!running) return undefined;
-    const id = setInterval(() => {
-      setLeft((prev) => {
-        if (prev <= 1) {
-          if (!doneRef.current) {
-            doneRef.current = true;
-            onDone?.();
-          }
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(id);
-  }, [running, onDone]);
-
-  const mm = String(Math.floor(left / 60)).padStart(1, '0');
-  const ss = String(left % 60).padStart(2, '0');
+export function GLTourSablier({
+  seconds = 180,
+  resetKey = null,
+  running = true,
+  onDone = null,
+  reglages = null,
+  onRegler = null,
+  busy = false,
+}) {
   return (
-    <div
-      className={`gl-tour-sablier${left === 0 ? ' is-done' : ''}`}
-      role="timer"
-      aria-live="off"
-      data-testid="gl-tour-sablier"
-    >
-      <span className="gl-tour-sablier__time">
-        {mm}:{ss}
-      </span>
-      {left === 0 ? (
-        <span className="gl-hint"> — le sablier a sonné (rien n’est annulé)</span>
-      ) : null}
-    </div>
+    <GLSablier
+      mode="equipe"
+      secondes={seconds}
+      resetKey={resetKey}
+      running={running}
+      onDone={onDone}
+      reglages={reglages}
+      onRegler={onRegler}
+      busy={busy}
+      testId="gl-tour-sablier"
+    />
   );
 }

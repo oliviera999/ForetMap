@@ -10,6 +10,7 @@ const { initSchema, queryAll, queryOne } = db;
 const {
   importChasseZones,
   importQuestionsLecture,
+  importQcmFeedbacksZones,
   importSorts,
   findForbiddenString,
   computeZoneGeometry,
@@ -102,16 +103,33 @@ test('chargement réel idempotent : deux passages = même base, rang_case et cen
   assert.ok(Number.isInteger(Number(zone.rang_case)));
   assert.ok(Number(zone.cx) > 0);
   assert.equal(a.sorts.length, 25);
+  // Défis de case (lot 2) : deux par plateau dans le jeu d'exemple, clé d'upsert `code`.
+  const defis = await queryAll(
+    "SELECT code, plateau, actif FROM gl_tenir_defis_cases WHERE code LIKE 'd-ex-%' ORDER BY code",
+  );
+  assert.equal(defis.length, 8);
+  assert.ok(defis.every((d) => Number(d.actif) === 1));
+  assert.deepEqual([...new Set(defis.map((d) => Number(d.plateau)))], [1, 2, 3, 4]);
   const spells = await queryAll(
     'SELECT spell_code FROM gl_chapter_spells WHERE chapter_id = ? ORDER BY spell_code',
     [corpus.chapters[1].chapter.id],
   );
   assert.ok(spells.some((s) => s.spell_code === 'SL002'));
-  assert.ok(!spells.some((s) => s.spell_code === 'SL038'), 'Boussole ouvre au chapitre 2');
   const ch2 = await queryAll('SELECT spell_code FROM gl_chapter_spells WHERE chapter_id = ?', [
     corpus.chapters[2].chapter.id,
   ]);
-  assert.ok(ch2.some((s) => s.spell_code === 'SL038'));
+  // Lot 2 : la Boussole est `actif: false` — en base (`propose`, non lançable), rattachée à
+  // aucun chapitre ; ses six cases à venir sont affichées gratuitement.
+  assert.ok(!spells.some((s) => s.spell_code === 'SL038'));
+  assert.ok(!ch2.some((s) => s.spell_code === 'SL038'), 'Boussole sortie du grimoire');
+  const boussole = await queryAll(
+    "SELECT statut FROM gl_spells WHERE spell_code = 'SL038' AND tenir_v2 = 1",
+  );
+  assert.equal(boussole[0]?.statut, 'propose');
+  assert.ok(
+    ch2.some((s) => s.spell_code === 'SL042'),
+    'Sentier ouvre au chapitre 2',
+  );
   assert.ok(
     ch2.some((s) => s.spell_code === 'SL002'),
     'ouverture cumulative',
@@ -180,6 +198,73 @@ test('refus questions de lecture : réponse hors A-D, choix en double, feedback 
   assert.match(rep.errors.join('\n'), /reponse hors A-D/);
   assert.match(rep.errors.join('\n'), /choix en double/);
   assert.match(rep.errors.join('\n'), /Pas encore/);
+});
+
+test('retours de zones : écrits si la colonne est vide ou commence par « Non », jamais sur une retouche', async (t) => {
+  // Question jetable, hors de la numérotation des fixtures (`uq_gl_qcm_biome_cat_num`).
+  const code = 'TEX-FBZ-01';
+  await db.execute('DELETE FROM gl_qcm_questions WHERE question_code = ?', [code]);
+  await db.execute(
+    `INSERT INTO gl_qcm_questions (
+       question_code, biome_slug, categorie_slug, numero_dans_categorie, question,
+       choix_a, choix_b, choix_c, choix_d, choix_e, reponse_correcte, niveau, statut,
+       feedback_b, feedback_d, created_at, updated_at
+     ) VALUES (?, 'jungle_afc', 'faune', 99001, 'Question jetable ?', 'La forêt respire',
+       'Le sable chante', 'La neige écoute', 'La rivière compte', '', 'A', '6ème', 'actif',
+       ?, ?, NOW(), NOW())`,
+    [code, 'Non. Le sable ne chante pas ici.', 'Retouche de l’auteur.'],
+  );
+  t.after(() => db.execute('DELETE FROM gl_qcm_questions WHERE question_code = ?', [code]));
+  const json = {
+    format: 'gl.qcm.feedbacks/2',
+    feedbacks: {
+      [code]: {
+        b: 'Le sable est loin de la forêt.',
+        c: 'La neige tombe ailleurs.',
+        d: 'Autre texte.',
+      },
+      'QCM-INCONNUE': { b: 'Rien à écrire.' },
+    },
+  };
+  const rep = await importQcmFeedbacksZones(db, json, {});
+  assert.equal(rep.refuse, false);
+  assert.deepEqual(rep.errors, []);
+  assert.equal(rep.upserted, 1);
+  assert.equal(rep.ecartees, 1, 'question inconnue : écartée avec un avertissement');
+  const lire = () =>
+    queryOne(
+      'SELECT feedback_a, feedback_b, feedback_c, feedback_d FROM gl_qcm_questions WHERE question_code = ?',
+      [code],
+    );
+  assert.deepEqual(
+    { ...(await lire()) },
+    {
+      feedback_a: null,
+      feedback_b: 'Le sable est loin de la forêt.',
+      feedback_c: 'La neige tombe ailleurs.',
+      feedback_d: 'Retouche de l’auteur.',
+    },
+  );
+  // Idempotent : rien n'est plus « d'origine », rien n'est réécrit.
+  const encore = await importQcmFeedbacksZones(db, json, {});
+  assert.equal(encore.upserted, 0);
+
+  // Refus de ligne : retour sur la bonne lettre, amorce « Non », chaîne interdite.
+  const bad = await importQcmFeedbacksZones(
+    db,
+    { feedbacks: { [code]: { a: 'Bravo.', b: 'Non, pas du tout.', c: 'Le corbeau le sait.' } } },
+    { dryRun: true, strict: true },
+  );
+  assert.equal(bad.refuse, true);
+  assert.match(bad.errors.join('\n'), /bonne réponse/);
+  assert.match(bad.errors.join('\n'), /commence par « Non »/);
+  assert.match(bad.errors.join('\n'), /chaîne interdite/);
+  const strict = await importQcmFeedbacksZones(
+    db,
+    { feedbacks: { 'QCM-INCONNUE': { b: 'Rien.' } } },
+    { dryRun: true, strict: true },
+  );
+  assert.match(strict.errors.join('\n'), /question inconnue/);
 });
 
 test('refus sorts : fenêtre inconnue, effet auto invalide ; un sort v2 retiré du fichier passe en propose', async () => {

@@ -92,24 +92,46 @@
     {
       "code": "tisserand",
       "nom": "Tisserand",
-      "critere": "Réservé : défis de la Trame (hors périmètre). Jamais attribué par l'app pour l'instant.",
+      "critere": "Trois niveaux de « Retisser » réussis, seul ou avec son équipe.",
       "regle": {
-        "type": "reserve",
-        "seuil": null,
-        "source": "defis_trame"
+        "type": "compteur",
+        "seuil": 3,
+        "source": "defis_trame_retisser"
       },
       "icone": "fil"
     },
     {
       "code": "revelateur",
       "nom": "Révélateur",
-      "critere": "Réservé : défis de la Trame (hors périmètre). Jamais attribué par l'app pour l'instant.",
+      "critere": "Trois scénarios de « La trame altérée » réussis, seul ou avec son équipe.",
       "regle": {
-        "type": "reserve",
-        "seuil": null,
-        "source": "defis_trame"
+        "type": "compteur",
+        "seuil": 3,
+        "source": "defis_trame_alteree"
       },
       "icone": "etoile"
+    },
+    {
+      "code": "gardien_des_fils",
+      "nom": "Gardien des fils",
+      "critere": "« Les fils cachés » retrouvés sur deux plateaux.",
+      "regle": {
+        "type": "compteur",
+        "seuil": 2,
+        "source": "defis_trame_fils"
+      },
+      "icone": "fil"
+    },
+    {
+      "code": "reparateur",
+      "nom": "Réparateur",
+      "critere": "« Réparer la trame » réussi sur deux plateaux.",
+      "regle": {
+        "type": "compteur",
+        "seuil": 2,
+        "source": "defis_trame_reparer"
+      },
+      "icone": "feuille"
     },
     {
       "code": "chuchoteur",

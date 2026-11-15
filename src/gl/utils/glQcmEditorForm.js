@@ -46,6 +46,8 @@ export const EMPTY_FORM = {
   photo_licence: '',
   photo_legende: '',
   statut: 'actif',
+  // « Posée en partie » (Tenir à deux) : '1' ou '0' (état de formulaire en chaînes).
+  usage_tenir: '1',
   feedback_correct: '',
   feedback_a: '',
   feedback_b: '',
@@ -63,6 +65,7 @@ export const FORM_FIELDS = [
   'difficulte',
   'difficulte_label',
   'statut',
+  'usage_tenir',
   'question',
   'choix_a',
   'choix_b',
@@ -93,11 +96,13 @@ export const questionToForm = createQuestionToForm({
     reponse_correcte: 'A',
     niveau: 'base',
     statut: 'actif',
+    usage_tenir: '1',
   },
 });
 
 export const formToPayload = createFormToPayload({
   slugFields: ['biome_slug', 'categorie_slug'],
+  transform: (payload, form) => ({ ...payload, usage_tenir: String(form.usage_tenir) !== '0' }),
 });
 
 export const filterQcmItems = createFilterItems({

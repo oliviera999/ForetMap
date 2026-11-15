@@ -5,6 +5,8 @@ import { isModuleEnabled } from '../constants/modules.js';
 import { GLButton } from './ui/GLButton.jsx';
 import { GLMascotAvatar } from './GLMascotAvatar.jsx';
 import { GLRewardsPanel } from './GLRewardsPanel.jsx';
+import { GLDefisCasePanel } from './tenir/GLDefisCasePanel.jsx';
+import { GLDefisEntree } from './defis/GLDefisEntree.jsx';
 import {
   GL_VOYAGEUR_SFX_CHANGED_EVENT,
   isVoyageurSfxMuted,
@@ -532,6 +534,10 @@ export function GLSeuilView({ onNavigateTab, modules }) {
                     Rejoindre le plateau
                   </GLButton>
                 ) : null}
+                {/* « Tenir à deux » : le défi de case à préparer pour la prochaine séance. */}
+                {exp.gameId ? <GLDefisCasePanel gameId={exp.gameId} /> : null}
+                {/* Défis de la Trame : à son rythme, en veillée ou une fois l'activité finie. */}
+                {exp.gameId && exp.tenir ? <GLDefisEntree gameId={exp.gameId} /> : null}
                 {data.gestures?.length ? (
                   <div className="gl-seuil-gestures" aria-label="Gestes de la mascotte">
                     {data.gestures.map((g) =>

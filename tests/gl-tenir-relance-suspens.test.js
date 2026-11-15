@@ -55,7 +55,10 @@ after(async () => {
   invalidateModulesCache();
 });
 
-test('une autre équipe qui jette applique d’office l’arrivée restée en suspens', async () => {
+// Lot 2 : sur tablette (surface de ces fixtures), les équipes jouent en parallèle — le jet d'une
+// autre équipe ne touche plus l'arrivée en suspens. La règle du tableau (« une autre équipe qui
+// jette l'applique d'office ») reste couverte par `tests/gl-tenir-jets-paralleles.test.js`.
+test('en parallèle, le jet d’une autre équipe laisse l’arrivée en suspens ; « Garder ce jet » l’applique', async () => {
   const a = await jet(0, [1, 1]);
   assert.equal(a.status, 201, JSON.stringify(a.body));
   assert.equal(a.body.arrival?.enSuspens, true, JSON.stringify(a.body.arrival));
@@ -64,12 +67,18 @@ test('une autre équipe qui jette applique d’office l’arrivée restée en su
   const b = await jet(2, [2, 1]);
   assert.equal(b.status, 201, JSON.stringify(b.body));
   assert.equal(b.body.arrival?.enSuspens, true);
-  assert.equal((await suspens(team(0).id))[0].issue, 'appliquee', 'le jet de A est gardé d’office');
+  assert.equal((await suspens(team(0).id))[0].issue, undefined, 'le jet de A attend toujours A');
+  const garde = await request(app)
+    .post(api('/tenir/arrivee/garder'))
+    .set(auth(ctx.adminToken))
+    .send({ teamId: team(0).id });
+  assert.equal(garde.status, 200, JSON.stringify(garde.body));
+  assert.equal((await suspens(team(0).id))[0].issue, 'appliquee');
   const gardee = await queryOne(
     "SELECT payload_json FROM gl_game_events WHERE game_id = ? AND team_id = ? AND event_type = 'arrivee_gardee' ORDER BY id DESC LIMIT 1",
     [ctx.game.id, team(0).id],
   );
-  assert.equal(JSON.parse(gardee.payload_json).motif, 'auto');
+  assert.equal(JSON.parse(gardee.payload_json).motif, 'garde');
 });
 
 test('la fin de la phase « jeu » applique l’arrivée restée en suspens', async () => {

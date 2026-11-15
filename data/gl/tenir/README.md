@@ -45,15 +45,21 @@ montre comptes, écarts et dernier rapport, et permet de resynchroniser (`POST
 | --- | --- | --- |
 | `chasse-zones.json` | `zone_key` | 36 (8 / 8 / 10 / 10) |
 | `questions-lecture.json` | `zone_key` | 36 |
+| `qcm-feedbacks-zones.json` | `question_code` + lettre (colonnes `feedback_b…e` de `gl_qcm_questions`) | 9 questions, 36 retours |
+| `questions-vives.json` | `question_code` (`VQCM0001…`, table `gl_qcm_questions`) | 40 (5 par biome joué) |
 | `peripeties.json` | `id` | 32 (8 par plateau) |
 | `missions.json` | `id` | 20 |
 | `titres.json` | chemin `honneurs.<honneur>.<biome>` etc. | 16 + 8 + 20 |
-| `badges.json` | `code` | 13 |
-| `olu-lignes.json` | `id` | 69 |
+| `badges.json` | `code` | 15 |
+| `olu-lignes.json` | `id` | 77 |
 | `parures.json` | `code` | 12 |
 | `sorts.json` | `code` (table `gl_spells`) | 25 + 6 voyageur |
 | `reglages-defaut.json` | clé de réglage `gameplay.tenir_*` | — |
 | `passeur-plateau4.json` | `(plateau, ordre)` | 7 / 7 / 9 / 7 |
+| `defis-cases.json` | `code` (table `gl_tenir_defis_cases`) | 16 (4 par plateau) |
+| `trame-reseaux.json` | `biome` (tables `gl_trame_reseaux`, `gl_trame_cartes`, `gl_trame_liens`) | 8 réseaux, 12 cartes chacun |
+| `trame-fils.json` | `plateau` (tables `gl_trame_fils_cartes`, `gl_trame_fils_liens`) | 4 plateaux, 9 cartes chacun |
+| `trame-reparer.json` | `code` de mesure, `plateau` (tables `gl_trame_mesures`, `gl_trame_reparer_especes`, `gl_trame_reparer_a_classer`) | 11 mesures, 6 espèces à ranger par plateau |
 
 ## `chasse-zones.json`
 
@@ -69,7 +75,7 @@ Une zone :
 | `plateau` | 1-4 | |
 | `feuillet_code` | string | feuillet `actif`, `plateau_number` = `plateau`, type `feuillet` (ou `scene` dessinable), jamais `offert_ouverture` / `offert_cloture`, jamais `ep-I-02`, `ep-VI-*`, `ep-I-13`, `ep-III-06`, `ep-I-16`, `ep-I-17`, `ep-III-01`, `ep-I-03`, `ep-I-04`, ni une page `biome` (`page-*`) |
 | `titre_prive` | string | titre + détail du dessin ; **jamais envoyé aux élèves** |
-| `indice` | string | ≤ 120 caractères, sans nom d'espèce, sans corbeau, sans secret ; affiché au carnet de la classe |
+| `indice` | string | ≤ 120 caractères (les 36 indices livrés : ≤ 99), sans nom d'espèce, sans corbeau, sans secret ; **énigme scientifique** (« Là où… » : un fait observable sur le vivant ou le milieu du dessin) ; affiché en entier au carnet de la classe |
 | `polygone` | `[[x,y],…]` ou `null` | ≥ 3 points dans [0,1] ; `null` = à dessiner dans l'éditeur de zones |
 | `polygone_ref` | string ou `null` | identifiant d'une zone de `src/gl/data/zones_feuillets.json` portant le même feuillet |
 | `rang_case` | int ou `null` | case du chemin la plus proche (pour le voile) ; calculé par le chargeur si `null` |
@@ -92,6 +98,35 @@ polygones ne sont jamais envoyés aux élèves.
 - Porte sur le texte réel de la page (un fait, une image, une espèce, un geste), jamais sur le lore
   secret ni sur l'oiseau. Retentatives illimitées, aucune perte : `feedback_incorrect` commence par
   « Pas encore » et renvoie au passage de la page.
+
+## `qcm-feedbacks-zones.json`
+
+`{ "format", "note", "feedbacks": { "<question_code>": { "b": "…", "c": "…", … } }, "remplacement": { … } }`
+
+- Retours de **mauvais choix** des questions fixes de zones de chasse. Le retour de la bonne
+  lettre reste vide (c'est `feedback_correct` qui sert). Un retour ne commence jamais par
+  « Non » : à l'écran, l'app écrit « Pas encore. » devant.
+- **Écriture gardée** : une colonne n'est écrite que si elle est vide ou commence par « Non »
+  (retour d'origine). Une retouche d'auteur n'est jamais écrasée ; relancer ne réécrit rien.
+- Une question absente de la base est écartée avec un avertissement (erreur en `--strict`).
+- `remplacement` : nouvelle rédaction de `GQCM0766` (suricate). Elle est posée par la migration
+  344, gardée par l'ancien énoncé exact ; le chargeur ne fait que la relire (chaînes interdites).
+
+## `questions-vives.json`
+
+`{ "format", "principe", "niveau", "questions": [ { question_code, biome_slug, categorie_slug, question, choix: [ … ], reponse, explication } ] }`
+
+- Questions de **case** écrites pour des 6e : elles partent d'une curiosité (un record, une
+  astuce, une idée reçue), jamais d'un nom à réciter. Une question de taxonomie est refusée.
+- `question_code` : `VQCM` + 4 chiffres ; `biome_slug` : un des 8 biomes joués ; `categorie_slug` :
+  une catégorie de `gl_qcm_categories` ; 5 questions par biome.
+- `choix` : 4 ou 5 textes non vides et distincts ; **le premier est le bon** (`reponse` = `"A"`).
+  La présentation mélange les choix.
+- `explication` : une seule par question, sans amorce « Non ». Elle devient `feedback_correct`
+  et le retour de chaque mauvais choix (l'affichage écrit « Pas encore. » devant).
+- À la création : `niveau` du fichier (`6ème`), `statut = 'actif'`, `usage_tenir = 1`. À la mise
+  à jour, `statut` et `usage_tenir` sont **gardés** (case « Posée en partie » du prof). Une
+  question `VQCM` retirée du fichier passe `inactif`.
 
 ## `peripeties.json`
 
@@ -179,3 +214,68 @@ ni corbeau nommé, chacune avec sa `justification` (réservée au prof). Le mot 
 page `ordre` = numéro du tour, modulo la longueur de la liste, sans reprendre une page déjà lue dans
 la partie. Une page marquée `avertissement` nomme le corbeau dans son **titre** : l'afficher sans
 titre côté élève, ou la passer.
+
+## `defis-cases.json`
+
+Défis des cases « Défi d'équipe » (lot 2 du 15 novembre 2026, § 7 du prompt d'implémentation).
+Structure : `plateaux: { "1": [ … ], "2": [ … ], "3": [ … ], "4": [ … ] }`, quatre défis par
+plateau.
+
+| Champ | Rôle |
+| --- | --- |
+| `code` | clé d'upsert, `d-p<plateau>-<nom>` |
+| `titre`, `consigne`, `preparation` | **visibles** de l'équipe (écran d'équipe, Seuil) et, à la clôture du tour, de la projection |
+| `critere` | **réservé au prof** : jamais servi à un élève, à une tablette ni à la projection |
+| `notion` | notion de programme travaillée |
+| `duree_s` | durée du sablier que le prof peut afficher (10 à 3600 secondes) |
+
+Une équipe reçoit un défi du plateau quand elle s'arrête sur une case marquée
+`event_config_json.tenir.defi = true` (ou la franchit, réglage `defi_declenchement = passage`),
+tiré **sans répétition dans la partie** ; la liste épuisée recommence. Le prof juge « Relevé » (le
+voile recule de `defi_recul` cases) ou « Pas encore » (rien). **Jamais de ressource.** Tous les
+champs sont relus contre la liste des chaînes interdites, `critere` compris.
+
+## Catalogues de la Trame (`trame-*.json`)
+
+Défis de la Trame (lot 3 du 15 novembre 2026, § 8 du prompt d'implémentation). Chargeurs dans
+`lib/glTrameImport.js`, test de contenu `tests/content/gl-trame-catalogues.test.js`. Mécanique
+(classement des flèches, cascade, récompenses) et marche à suivre pour **ajouter un réseau** :
+`docs/GL_DEFIS.md` § 7.
+
+### `trame-reseaux.json`
+
+Un réseau trophique par biome joué (`reseaux[]` : `biome`, `plateau`, `nom`, `note`).
+
+| Champ | Rôle |
+| --- | --- |
+| `especes[]` | **12 cartes, dans l'ordre** : `code` (espèce de `gl_species`, ou `DEC`), `nom`, `role` (`producteur`, `consommateur`, `decomposeur`), `precision`, `generique` (vrai pour `DEC`), `regime` (`charognard`) |
+| `liens_acceptes[]` | `{ de, vers }` : **de la ressource vers celui qui la mange** (« est mangé par ») |
+| `a_discuter[]` | `{ de, vers, pourquoi }` : liens rares ou débattus, ni justes ni refusés |
+| `scenarios_trame_alteree[]` | trois cartes à retirer, parmi les **neuf premières** |
+
+- **Niveaux** : 5, 7, 9 et 12 premières cartes. Chaque niveau doit porter au moins un producteur,
+  au moins un décomposeur, et chaque carte qui n'est pas un décomposeur doit être touchée par un
+  lien accepté du niveau. Changer l'ordre des cartes change les niveaux.
+- **Décomposeurs** : toute carte peut pointer vers une carte de rôle `decomposeur` sans que le
+  lien soit écrit. Les **charognards** (vautours, gypaète) sont des consommateurs : seuls leurs
+  liens écrits comptent.
+- **Espèces** : chaque `code` (hors carte `generique`) doit exister dans `gl_species` et être du
+  biome du réseau. En import tolérant sur une base sans le corpus, c'est un avertissement : la
+  carte garde le nom et le rôle du fichier.
+- Les liens acceptés entre deux espèces réelles sont aussi versés dans `gl_species_interactions`
+  (`herbivorie`, `predation`, ou `decomposition` vers un décomposeur réel), sans jamais rien
+  supprimer.
+
+### `trame-fils.json`
+
+« Les fils cachés » : causes → effets (`chapitres[]` : `plateau`, `titre`, `note`,
+`cartes: [[code, texte]]`, `liens: [[de, vers]]`). Liens entre cartes du même plateau, jamais
+d'une carte vers elle-même ; les **cycles sont permis** (la rétroaction du plateau 4 est voulue).
+
+### `trame-reparer.json`
+
+« Réparer la trame » : `mesures[]` (`code`, `texte`), puis par plateau (`chapitres[]`) :
+`especes[]` (`code`, `menace`, `mesures[]` acceptées, au moins une), `a_classer[]` (**six**
+espèces, `categorie` ∈ `en_danger`, `fragile`, `pas_menace`) et la `lecon` du plateau. La liste à
+ranger est écrite dans le fichier : l'app ne la tire pas au hasard et ne lit pas le statut en
+base. La clé `classement` (statuts par catégorie) est une note de construction, jamais servie.

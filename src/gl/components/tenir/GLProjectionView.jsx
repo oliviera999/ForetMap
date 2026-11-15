@@ -3,6 +3,8 @@ import { apiGL } from '../../services/apiGL.js';
 import { GLTourJournal } from '../mj/GLTourJournal.jsx';
 import { GLGameBoard } from '../GLGameBoard.jsx';
 import { numeroCase } from '../../../shared/glCaseNumeroCore.js';
+import { GLSablier } from './GLSablier.jsx';
+import { GLDefisCasePanel } from './GLDefisCasePanel.jsx';
 import { resolveBoardMovementConfig } from '../../utils/glBoardPath.js';
 
 /** États d'une page du carnet → libellé affiché (jamais l'état brut). */
@@ -76,6 +78,16 @@ export function GLProjectionView({ gameId, token, refreshKey = 0 }) {
           {round ? `Tour ${round.number} — ${round.phase}` : 'En attente du tour'}
           {voileNumero != null ? ` · le voile est à la case ${voileNumero}` : ''}
         </p>
+        {tour?.sablier?.phase && round?.phase === 'jeu' ? (
+          <GLSablier
+            mode="phase"
+            secondes={tour.sablier.phase.secondes}
+            restantSecondes={tour.sablier.phase.restantSecondes}
+            enPause={tour.sablier.phase.enPause}
+            doneHint="le sablier a sonné"
+            testId="gl-sablier-phase"
+          />
+        ) : null}
       </header>
       {error ? <p className="gl-error-banner">{error}</p> : null}
       {state?.game && markers.length ? (
@@ -131,6 +143,10 @@ export function GLProjectionView({ gameId, token, refreshKey = 0 }) {
             ))}
           </ul>
         </section>
+      ) : null}
+      {/* À la clôture du tour : les défis à préparer pour la semaine (jamais le critère). */}
+      {round?.phase === 'clos' ? (
+        <GLDefisCasePanel gameId={gameId} refreshKey={refreshKey} teams={teams} avecEquipe />
       ) : null}
       {round?.passeur ? (
         <blockquote className="gl-tour-passeur">

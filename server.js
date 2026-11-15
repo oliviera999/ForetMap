@@ -85,6 +85,7 @@ const groupsRouter = require('./routes/groups');
 const glAuthRouter = require('./routes/gl/auth');
 const glContentRouter = require('./routes/gl/content');
 const glGamesRouter = require('./routes/gl/games');
+const glClassLinkRouter = require('./routes/gl/class-link');
 const glChaptersRouter = require('./routes/gl/chapters');
 const glMascotsRouter = require('./routes/gl/mascots');
 const glAdminRouter = require('./routes/gl/admin');
@@ -578,6 +579,8 @@ app.use('/api/gl', glSpellsRouter);
 app.use('/api/gl', glGlossaryRouter);
 app.use('/api/gl', glQcmRouter);
 app.use('/api/gl', glGamesRouter);
+// « Tenir à deux », lot 2 : lien de classe (QR permanent) et sessions d'équipe des tablettes.
+app.use('/api/gl', glClassLinkRouter);
 app.use('/api/gl/context-comments', glContextCommentsRouter);
 app.use('/api/gl/forum', glForumRouter);
 app.use('/api/gl/market', glMarketRouter);

@@ -21,6 +21,10 @@ const LIBELLES = {
   'olu-lignes': "Lignes d'Olu",
   parures: 'Parures',
   'passeur-plateau4': 'Pages du Passeur',
+  'defis-cases': 'Défis de case',
+  'trame-reseaux': 'Trame : réseaux trophiques',
+  'trame-fils': 'Trame : fils cachés',
+  'trame-reparer': 'Trame : réparer',
 };
 
 const STATUTS = {

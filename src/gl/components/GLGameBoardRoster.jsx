@@ -97,7 +97,12 @@ export function GLGameBoardRoster({
                 ) : null}
               </header>
               {group.players.length === 0 ? (
-                <p className="gl-map-roster-group__empty gl-hint">Aucun joueur dans cette équipe</p>
+                // Effectif non communiqué (tablette d'équipe, projection) : rien à en dire.
+                roster.length === 0 ? null : (
+                  <p className="gl-map-roster-group__empty gl-hint">
+                    Aucun joueur dans cette équipe
+                  </p>
+                )
               ) : (
                 <ul className="gl-map-roster-group__players">
                   {group.players.map((player) => {

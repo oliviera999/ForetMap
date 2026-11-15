@@ -1,0 +1,71 @@
+{
+ "format": "gl.tenir.fils/2",
+ "sens": "de la cause vers son effet",
+ "chapitres": [
+  {
+   "plateau": 1,
+   "titre": "Les fils de la forêt et de la savane",
+   "cartes": [
+    ["A", "On abat les grands arbres de la forêt"],
+    ["B", "Il y a moins de fruits dans la canopée"],
+    ["C", "Calaos et éléphants de forêt trouvent moins à manger"],
+    ["D", "Moins de graines sont emportées loin de l'arbre"],
+    ["E", "Moins de jeunes arbres repoussent"],
+    ["F", "La saison sèche dure plus longtemps que d'habitude"],
+    ["G", "Les herbes de la savane jaunissent et se raréfient"],
+    ["H", "Zèbres et gnous partent plus loin chercher à manger"],
+    ["I", "Les lions doivent suivre les troupeaux"]
+   ],
+   "liens": [["A", "B"], ["B", "C"], ["C", "D"], ["D", "E"], ["A", "E"], ["F", "G"], ["G", "H"], ["H", "I"]]
+  },
+  {
+   "plateau": 2,
+   "titre": "Les fils du désert et de la garrigue",
+   "cartes": [
+    ["A", "Trop de chèvres broutent la même terre"],
+    ["B", "Les plantes repoussent mal"],
+    ["C", "Le sol n'est plus tenu par les racines"],
+    ["D", "Le vent emporte la terre fertile"],
+    ["E", "La terre devient désert : c'est la désertification"],
+    ["F", "L'été est plus chaud et plus sec"],
+    ["G", "Un incendie traverse la garrigue"],
+    ["H", "Les cônes du pin d'Alep s'ouvrent à la chaleur"],
+    ["I", "De jeunes pins poussent sur la cendre"]
+   ],
+   "liens": [["A", "B"], ["B", "C"], ["C", "D"], ["D", "E"], ["F", "B"], ["F", "G"], ["G", "H"], ["H", "I"]]
+  },
+  {
+   "plateau": 3,
+   "titre": "Les fils de la tourbière et du bois mort",
+   "cartes": [
+    ["A", "On draine une tourbière pour la cultiver"],
+    ["B", "Les sphaignes s'assèchent"],
+    ["C", "La tourbe se décompose enfin"],
+    ["D", "Du carbone part dans l'air"],
+    ["E", "Le climat se réchauffe un peu plus"],
+    ["F", "Droseras et libellules n'ont plus de milieu où vivre"],
+    ["G", "On ramasse tout le bois mort de la forêt"],
+    ["H", "Les larves de lucane n'ont plus de quoi manger"],
+    ["I", "Il y a moins de lucanes en forêt"]
+   ],
+   "liens": [["A", "B"], ["B", "C"], ["C", "D"], ["D", "E"], ["B", "F"], ["G", "H"], ["H", "I"]]
+  },
+  {
+   "plateau": 4,
+   "titre": "Les fils du grand dégel",
+   "cartes": [
+    ["A", "Le climat se réchauffe"],
+    ["B", "La banquise fond plus tôt au printemps"],
+    ["C", "L'ours polaire chasse moins de phoques"],
+    ["D", "Le pergélisol dégèle"],
+    ["E", "Le sol s'affaisse et les arbres penchent"],
+    ["F", "Du méthane et du CO₂ sortent du sol"],
+    ["G", "La neige fond plus tôt"],
+    ["H", "Le lièvre encore blanc se voit sur le sol brun"],
+    ["I", "Le lynx l'attrape plus facilement"]
+   ],
+   "liens": [["A", "B"], ["B", "C"], ["A", "D"], ["D", "E"], ["D", "F"], ["F", "A"], ["A", "G"], ["G", "H"], ["H", "I"]],
+   "note": "F → A ferme une boucle : c'est une rétroaction, le dégel accélère le réchauffement. Le moteur doit accepter ce cycle (seule la flèche d'une carte vers elle-même est refusée)."
+  }
+ ]
+}

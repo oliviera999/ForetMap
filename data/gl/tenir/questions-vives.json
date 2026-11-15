@@ -1,0 +1,359 @@
+{
+ "format": "gl.qcm.questions-vives/1",
+ "principe": "Questions de case écrites pour des élèves de 6e : elles partent de ce qui les intrigue (un record, une astuce, une idée reçue, « tu es… »), jamais d'un nom à réciter. Une seule explication par question, affichée après la réponse, juste ou non. Le premier choix est le bon ; l'app mélange les choix à l'affichage.",
+ "niveau": "6ème",
+ "questions": [
+  {
+   "question_code": "VQCM0001",
+   "biome_slug": "jungle_afc",
+   "categorie_slug": "faune",
+   "question": "L'okapi a une langue bleu-noir de plus de 30 cm. Que peut-il faire avec ?",
+   "choix": ["Se nettoyer les yeux et les oreilles", "Siffler pour appeler ses petits", "Attraper des poissons", "Goûter l'air comme un serpent"],
+   "reponse": "A",
+   "explication": "La langue de l'okapi est si longue qu'il se lave les paupières et les oreilles avec. Elle lui sert surtout à arracher les feuilles, comme sa cousine la girafe."
+  },
+  {
+   "question_code": "VQCM0002",
+   "biome_slug": "jungle_afc",
+   "categorie_slug": "faune",
+   "question": "Tu croises un pangolin qui a peur. Que fait-il ?",
+   "choix": ["Il se roule en boule, protégé par ses écailles", "Il grimpe sur ton dos", "Il crache de l'eau", "Il s'enfuit en volant"],
+   "reponse": "A",
+   "explication": "Le pangolin se roule en boule. Ses écailles sont en kératine, la même matière que tes ongles. C'est pour elles qu'il est braconné."
+  },
+  {
+   "question_code": "VQCM0003",
+   "biome_slug": "jungle_afc",
+   "categorie_slug": "ecosystemes",
+   "question": "Il est midi en forêt équatoriale. Au sol, sous les grands arbres, il fait…",
+   "choix": ["Sombre : les feuilles arrêtent presque toute la lumière", "Aussi clair qu'en plein champ", "Nuit noire", "Plus clair qu'en haut des arbres"],
+   "reponse": "A",
+   "explication": "Les feuilles de la canopée captent presque toute la lumière : il n'en arrive qu'une toute petite part au sol, environ 2 %. Les plantes du sous-bois doivent s'en contenter."
+  },
+  {
+   "question_code": "VQCM0004",
+   "biome_slug": "jungle_afc",
+   "categorie_slug": "faune",
+   "question": "Un chimpanzé veut manger des termites cachés dans leur nid. Comment fait-il ?",
+   "choix": ["Il glisse une brindille dans le nid et lèche les termites accrochés", "Il attend qu'ils sortent tout seuls", "Il casse le nid avec sa tête", "Il demande l'aide d'un gorille"],
+   "reponse": "A",
+   "explication": "Le chimpanzé fabrique un outil : il choisit une brindille, l'effeuille et s'en sert comme d'une canne à pêche. Les jeunes apprennent en regardant leur mère."
+  },
+  {
+   "question_code": "VQCM0005",
+   "biome_slug": "jungle_afc",
+   "categorie_slug": "faune",
+   "question": "Un gorille mâle adulte pèse autant que deux hommes. Que mange-t-il surtout ?",
+   "choix": ["Des feuilles, des tiges et des fruits", "Des antilopes", "Des poissons", "Des œufs d'oiseaux"],
+   "reponse": "A",
+   "explication": "Le gorille est presque entièrement végétarien. Il avale une vingtaine de kilos de plantes par jour, et il sème des graines dans toute la forêt."
+  },
+  {
+   "question_code": "VQCM0006",
+   "biome_slug": "savane",
+   "categorie_slug": "faune",
+   "question": "Le cou de la girafe mesure environ 2 mètres. Combien d'os (de vertèbres) contient-il ?",
+   "choix": ["7, comme le tien", "20", "50", "Plus de 100"],
+   "reponse": "A",
+   "explication": "Girafe ou humain, presque tous les mammifères ont 7 vertèbres dans le cou. Celles de la girafe sont juste géantes : plus de 25 cm chacune."
+  },
+  {
+   "question_code": "VQCM0007",
+   "biome_slug": "savane",
+   "categorie_slug": "faune",
+   "question": "Chez les lions, qui rapporte le plus souvent le repas ?",
+   "choix": ["Les lionnes, qui chassent en équipe", "Le mâle, tout seul", "Les lionceaux", "Personne : ils ne mangent que des animaux déjà morts"],
+   "reponse": "A",
+   "explication": "Ce sont surtout les lionnes qui chassent, à plusieurs, en se répartissant les rôles. Le mâle défend le territoire du groupe."
+  },
+  {
+   "question_code": "VQCM0008",
+   "biome_slug": "savane",
+   "categorie_slug": "faune",
+   "question": "Le vautour mange de la viande pourrie sans tomber malade. Quel est son secret ?",
+   "choix": ["Un estomac très acide qui détruit les microbes", "Il fait cuire la viande au soleil", "Il ne mange que la peau", "Il boit de l'eau salée après le repas"],
+   "reponse": "A",
+   "explication": "Son estomac est l'un des plus acides du monde animal : les microbes n'y résistent pas. En nettoyant les carcasses, le vautour limite les maladies dans la savane."
+  },
+  {
+   "question_code": "VQCM0009",
+   "biome_slug": "savane",
+   "categorie_slug": "ecosystemes",
+   "question": "Une termitière de savane porte de hautes cheminées. À quoi servent-elles ?",
+   "choix": ["À aérer le nid et à garder une température stable", "À guetter les lions", "À faire de la fumée", "À recueillir la pluie pour boire"],
+   "reponse": "A",
+   "explication": "L'air chaud monte et sort par les cheminées, l'air frais entre par le bas : c'est une climatisation naturelle. Des architectes s'en inspirent pour leurs immeubles."
+  },
+  {
+   "question_code": "VQCM0010",
+   "biome_slug": "savane",
+   "categorie_slug": "faune",
+   "question": "Par une journée chaude, combien d'eau un éléphant de savane peut-il boire ?",
+   "choix": ["Plus de 100 litres, presque une baignoire", "2 litres, comme toi", "10 litres, un seau", "Il ne boit jamais"],
+   "reponse": "A",
+   "explication": "Un éléphant adulte boit souvent plus de 100 litres par jour. C'est pourquoi les troupeaux ne s'éloignent jamais longtemps des points d'eau."
+  },
+  {
+   "question_code": "VQCM0011",
+   "biome_slug": "sahara",
+   "categorie_slug": "faune",
+   "question": "Tu es un fennec. Il est midi et il fait 45 °C. Que fais-tu ?",
+   "choix": ["Tu restes au frais dans ton terrier et tu sors la nuit", "Tu cours pour créer du vent", "Tu te couches au soleil", "Tu grimpes dans un palmier"],
+   "reponse": "A",
+   "explication": "Sous le sable, il fait bien plus frais. Comme beaucoup d'animaux du désert, le fennec vit la nuit et dort le jour dans son terrier."
+  },
+  {
+   "question_code": "VQCM0012",
+   "biome_slug": "sahara",
+   "categorie_slug": "faune",
+   "question": "Un dromadaire assoiffé arrive au puits. Combien peut-il boire en dix minutes ?",
+   "choix": ["Environ 100 litres", "1 litre", "5 litres", "1 000 litres"],
+   "reponse": "A",
+   "explication": "Le dromadaire peut boire une centaine de litres en quelques minutes, puis tenir plusieurs jours sans boire. Sa bosse, elle, contient de la graisse, pas de l'eau."
+  },
+  {
+   "question_code": "VQCM0013",
+   "biome_slug": "sahara",
+   "categorie_slug": "faune",
+   "question": "Comment la vipère à cornes avance-t-elle sur le sable brûlant ?",
+   "choix": ["De côté, en ne posant que deux points du corps à la fois", "En sautant comme une grenouille", "En roulant comme une roue", "Elle ne bouge que sous la pluie"],
+   "reponse": "A",
+   "explication": "Elle se déplace de côté : son corps ne touche le sable chaud qu'en deux endroits, et elle ne s'enfonce pas. Elle laisse sur la dune des traits parallèles."
+  },
+  {
+   "question_code": "VQCM0014",
+   "biome_slug": "sahara",
+   "categorie_slug": "ecosystemes",
+   "question": "Dans le Sahara, que se passe-t-il la nuit ?",
+   "choix": ["La température chute : il peut faire très froid", "Il fait aussi chaud qu'à midi", "Il pleut presque chaque nuit", "Le sable devient brûlant"],
+   "reponse": "A",
+   "explication": "L'air du désert est sec et sans nuages : la chaleur du jour s'échappe vite. L'écart entre le jour et la nuit peut dépasser 20 °C."
+  },
+  {
+   "question_code": "VQCM0015",
+   "biome_slug": "sahara",
+   "categorie_slug": "faune",
+   "question": "L'addax a des sabots très larges. À quoi lui servent-ils ?",
+   "choix": ["À marcher sur le sable sans s'enfoncer", "À creuser des puits de 10 mètres", "À nager dans les oasis", "À faire du bruit pour appeler le troupeau"],
+   "reponse": "A",
+   "explication": "Comme des raquettes, les sabots larges répartissent le poids de l'addax sur le sable mou. Le lièvre variable de la taïga a la même astuce… sur la neige."
+  },
+  {
+   "question_code": "VQCM0016",
+   "biome_slug": "foret_mediterraneenne",
+   "categorie_slug": "faune",
+   "question": "Le caméléon repère une sauterelle. Comment la capture-t-il ?",
+   "choix": ["Il projette sa langue collante, aussi longue que son corps", "Il lui saute dessus", "Il la suit pendant des heures", "Il tisse une toile"],
+   "reponse": "A",
+   "explication": "Sa langue jaillit en une fraction de seconde et colle la proie. Ses deux yeux bougent séparément : il peut surveiller deux directions à la fois."
+  },
+  {
+   "question_code": "VQCM0017",
+   "biome_slug": "foret_mediterraneenne",
+   "categorie_slug": "faune",
+   "question": "C'est l'été, les cigales « chantent ». Qui fait ce bruit ?",
+   "choix": ["Seulement les mâles, pour attirer les femelles", "Toutes les cigales, quand elles ont faim", "Les petits, pour appeler leurs parents", "Leurs ailes qui frottent contre les branches"],
+   "reponse": "A",
+   "explication": "Seuls les mâles chantent, grâce à deux petites membranes sur leur ventre, les cymbales. Et seulement quand il fait bien chaud."
+  },
+  {
+   "question_code": "VQCM0018",
+   "biome_slug": "foret_mediterraneenne",
+   "categorie_slug": "faune",
+   "question": "Le gypaète barbu se nourrit surtout d'os. Comment fait-il avec les plus gros ?",
+   "choix": ["Il les lâche de très haut sur les rochers pour les casser", "Il les enterre pour les ramollir", "Il les donne aux vautours", "Il les trempe dans la rivière"],
+   "reponse": "A",
+   "explication": "Il emporte l'os en vol et le laisse tomber sur des rochers, puis avale les morceaux. Son estomac très acide fait le reste."
+  },
+  {
+   "question_code": "VQCM0019",
+   "biome_slug": "foret_mediterraneenne",
+   "categorie_slug": "flore",
+   "question": "Le chêne-liège a une écorce très épaisse. Quel avantage lui donne-t-elle ?",
+   "choix": ["Elle protège le tronc pendant un incendie", "Elle attire la pluie", "Elle fait fuir les sangliers", "Elle garde ses feuilles au chaud"],
+   "reponse": "A",
+   "explication": "Le liège isole le tronc de la chaleur des flammes : l'arbre survit souvent au feu et refait des feuilles. On récolte ce liège sans abattre l'arbre."
+  },
+  {
+   "question_code": "VQCM0020",
+   "biome_slug": "foret_mediterraneenne",
+   "categorie_slug": "faune",
+   "question": "Les petits du sanglier, les marcassins, ont un pelage rayé. Pourquoi ?",
+   "choix": ["Pour se confondre avec le sous-bois", "Pour avoir plus chaud", "Pour que leur mère les compte", "Parce qu'ils se roulent dans la boue"],
+   "reponse": "A",
+   "explication": "Leurs rayures claires et sombres imitent les taches de lumière sous les arbres : c'est un camouflage. Elles disparaissent au bout de quelques mois."
+  },
+  {
+   "question_code": "VQCM0021",
+   "biome_slug": "foret_caducifoliee",
+   "categorie_slug": "faune",
+   "question": "Si un ver de terre est coupé en deux, que se passe-t-il ?",
+   "choix": ["Au mieux, seule la partie avec la tête survit", "On obtient deux vers", "Les deux moitiés se recollent", "Il devient un serpent"],
+   "reponse": "A",
+   "explication": "C'est une légende tenace : on n'obtient pas deux vers. La partie avant peut parfois cicatriser, l'autre meurt. Laissons les lombrics tranquilles : ils fabriquent le sol."
+  },
+  {
+   "question_code": "VQCM0022",
+   "biome_slug": "foret_caducifoliee",
+   "categorie_slug": "flore",
+   "question": "Pourquoi les feuilles des arbres deviennent-elles jaunes et rouges en automne ?",
+   "choix": ["L'arbre récupère le vert de ses feuilles avant de les laisser tomber", "Le froid les repeint", "Elles sèchent au soleil", "Les insectes les colorent"],
+   "reponse": "A",
+   "explication": "Le vert vient de la chlorophylle. En automne, l'arbre la démonte et met ses éléments en réserve : les jaunes et les orangés, cachés tout l'été, apparaissent."
+  },
+  {
+   "question_code": "VQCM0023",
+   "biome_slug": "foret_caducifoliee",
+   "categorie_slug": "faune",
+   "question": "Au printemps, le pic épeiche tambourine très vite sur les troncs. Pourquoi ?",
+   "choix": ["Pour dire « ce territoire est à moi » et attirer une partenaire", "Pour faire tomber les glands", "Pour s'aiguiser le bec", "Pour réveiller les écureuils"],
+   "reponse": "A",
+   "explication": "Le tambourinage est son chant. Il frappe plus de dix fois par seconde, et son crâne amortit les chocs. Pour manger, il creuse plus lentement."
+  },
+  {
+   "question_code": "VQCM0024",
+   "biome_slug": "foret_caducifoliee",
+   "categorie_slug": "faune",
+   "question": "Le hérisson passe l'hiver à dormir. Que devient son cœur ?",
+   "choix": ["Il bat beaucoup plus lentement, pour économiser l'énergie", "Il s'arrête jusqu'au printemps", "Il bat deux fois plus vite", "Rien ne change"],
+   "reponse": "A",
+   "explication": "En hibernation, son cœur passe d'environ 180 battements par minute à une vingtaine, et son corps se refroidit. Il vit sur ses réserves de graisse."
+  },
+  {
+   "question_code": "VQCM0025",
+   "biome_slug": "foret_caducifoliee",
+   "categorie_slug": "faune",
+   "question": "Le lucane mâle porte d'énormes « cornes ». À quoi servent-elles ?",
+   "choix": ["À lutter contre les autres mâles", "À couper le bois", "À porter ses œufs", "À voler plus vite"],
+   "reponse": "A",
+   "explication": "Ce sont des mandibules, des mâchoires géantes. Les mâles s'en servent pour se soulever et se renverser l'un l'autre. Sa larve, elle, grandit plusieurs années dans le bois mort."
+  },
+  {
+   "question_code": "VQCM0026",
+   "biome_slug": "landes",
+   "categorie_slug": "flore",
+   "question": "Comment la drosera retient-elle un moucheron ?",
+   "choix": ["Avec des gouttes de colle au bout de ses poils", "En refermant une mâchoire", "Avec une toile", "En l'aspirant"],
+   "reponse": "A",
+   "explication": "Ses poils rouges portent des gouttelettes collantes qui brillent comme de la rosée. L'insecte englué est ensuite digéré lentement par la feuille."
+  },
+  {
+   "question_code": "VQCM0027",
+   "biome_slug": "landes",
+   "categorie_slug": "faune",
+   "question": "Chez les moustiques, qui pique ?",
+   "choix": ["Seulement les femelles", "Seulement les mâles", "Tous, tout le temps", "Seulement les larves"],
+   "reponse": "A",
+   "explication": "La femelle a besoin de sang pour fabriquer ses œufs. Les mâles, eux, se nourrissent de nectar. Leurs larves vivent dans l'eau, où celles des libellules les mangent."
+  },
+  {
+   "question_code": "VQCM0028",
+   "biome_slug": "landes",
+   "categorie_slug": "faune",
+   "question": "Quelle prouesse de vol réussit la libellule ?",
+   "choix": ["Faire du surplace et voler en arrière", "Voler sous l'eau", "Planer sans ailes", "Voler seulement en ligne droite"],
+   "reponse": "A",
+   "explication": "Ses quatre ailes bougent séparément : surplace, marche arrière, demi-tour éclair. C'est l'un des meilleurs chasseurs en vol. Sa larve, elle, vit sous l'eau."
+  },
+  {
+   "question_code": "VQCM0029",
+   "biome_slug": "landes",
+   "categorie_slug": "ecosystemes",
+   "question": "Dans des tourbières d'Irlande, on a retrouvé du beurre vieux de 2 000 ans, presque intact. Pourquoi ?",
+   "choix": ["L'eau y est acide et sans oxygène : presque rien ne pourrit", "Il y gèle toute l'année", "Le sel de la mer le conserve", "Les mousses le mangent très lentement"],
+   "reponse": "A",
+   "explication": "Dans une tourbière, l'eau acide et le manque d'oxygène bloquent les décomposeurs. Les plantes mortes s'y accumulent aussi sans pourrir : c'est la tourbe."
+  },
+  {
+   "question_code": "VQCM0030",
+   "biome_slug": "landes",
+   "categorie_slug": "faune",
+   "question": "Le lézard vivipare vit jusque dans des régions froides. Quelle est sa particularité ?",
+   "choix": ["Il met au monde des petits déjà formés", "Il pond ses œufs dans la neige", "Il dort onze mois par an", "Il change de couleur comme un caméléon"],
+   "reponse": "A",
+   "explication": "Là où le sol est trop froid pour des œufs, la femelle garde le plus souvent ses petits dans son ventre et se chauffe au soleil pour eux. D'où son nom : vivipare."
+  },
+  {
+   "question_code": "VQCM0031",
+   "biome_slug": "taiga",
+   "categorie_slug": "faune",
+   "question": "Pourquoi les dents du castor sont-elles orange ?",
+   "choix": ["Elles contiennent du fer, qui les rend très dures", "À cause des carottes", "Elles sont rouillées par l'eau", "Il ne se les brosse jamais"],
+   "reponse": "A",
+   "explication": "Le fer renforce l'émail de ses incisives : elles coupent le bois sans s'abîmer. Elles poussent toute sa vie, et ronger les use juste ce qu'il faut."
+  },
+  {
+   "question_code": "VQCM0032",
+   "biome_slug": "taiga",
+   "categorie_slug": "faune",
+   "question": "Que deviennent les bois de l'élan mâle chaque année ?",
+   "choix": ["Ils tombent en hiver et repoussent au printemps", "Ils grandissent toute sa vie sans tomber", "Il les prête aux femelles", "Ils fondent comme de la glace"],
+   "reponse": "A",
+   "explication": "Les bois ne sont pas des cornes : ils tombent chaque hiver et repoussent en quelques mois. C'est l'un des tissus animaux qui poussent le plus vite."
+  },
+  {
+   "question_code": "VQCM0033",
+   "biome_slug": "taiga",
+   "categorie_slug": "faune",
+   "question": "Pourquoi les loups hurlent-ils ?",
+   "choix": ["Pour rester en contact et dire aux autres meutes « ici, c'est chez nous »", "Parce que la lune est pleine", "Parce qu'ils ont mal aux dents", "Pour faire peur aux élans"],
+   "reponse": "A",
+   "explication": "Le hurlement rassemble la meute et marque son territoire sur des kilomètres. La lune n'y est pour rien : c'est une légende."
+  },
+  {
+   "question_code": "VQCM0034",
+   "biome_slug": "taiga",
+   "categorie_slug": "flore",
+   "question": "Pourquoi beaucoup de conifères de la taïga ont-ils une forme pointue ?",
+   "choix": ["La neige glisse au lieu de casser les branches", "Pour toucher les nuages", "Pour faire peur aux oiseaux", "Parce que le vent les taille"],
+   "reponse": "A",
+   "explication": "Des branches souples et inclinées laissent glisser la neige. Leurs aiguilles, fines et cirées, laissent échapper peu d'eau et restent tout l'hiver."
+  },
+  {
+   "question_code": "VQCM0035",
+   "biome_slug": "taiga",
+   "categorie_slug": "faune",
+   "question": "Le saumon né dans une rivière part vivre en mer. Comment retrouve-t-il sa rivière des années après ?",
+   "choix": ["Grâce à l'odeur de l'eau où il est né", "Il suit les castors", "Il lit les étoiles", "Il y retourne par hasard"],
+   "reponse": "A",
+   "explication": "Jeune, le saumon mémorise l'odeur de sa rivière. Adulte, il la remonte « au nez » pour pondre là où il est né."
+  },
+  {"question_code": "VQCM0036", "biome_slug": "toundra", "categorie_slug": "faune", "question": "Sous sa fourrure blanche, de quelle couleur est la peau de l'ours polaire ?", "choix": ["Noire", "Blanche", "Rose", "Bleue"], "reponse": "A", "explication": "Sa peau est noire, et ses poils sont transparents et creux : ils paraissent blancs comme la neige. L'ensemble garde très bien la chaleur."},
+  {
+   "question_code": "VQCM0037",
+   "biome_slug": "toundra",
+   "categorie_slug": "faune",
+   "question": "Les yeux du renne changent de couleur entre l'été et l'hiver. Pourquoi ?",
+   "choix": ["En hiver, ils deviennent bleus pour mieux voir dans la longue nuit", "Pour faire peur aux loups", "Parce qu'il pleure à cause du froid", "Pour ressembler à la glace"],
+   "reponse": "A",
+   "explication": "Dorés en été, bleu foncé en hiver : le fond de l'œil du renne se transforme pour capter le peu de lumière de la nuit polaire."
+  },
+  {
+   "question_code": "VQCM0038",
+   "biome_slug": "toundra",
+   "categorie_slug": "faune",
+   "question": "Où le lemming passe-t-il l'hiver ?",
+   "choix": ["Dans des tunnels sous la neige, où il fait moins froid", "Dans les arbres", "Il part vers le sud", "Il dort sur la banquise"],
+   "reponse": "A",
+   "explication": "La neige est un bon isolant : dessous, la température reste proche de 0 °C même s'il fait −30 °C dehors. Le lemming y trouve des mousses et des racines."
+  },
+  {
+   "question_code": "VQCM0039",
+   "biome_slug": "toundra",
+   "categorie_slug": "ecosystemes",
+   "question": "En plein été dans la toundra, que fait le soleil à minuit ?",
+   "choix": ["Il est encore dans le ciel : il ne se couche pas pendant des semaines", "Il se couche comme partout", "Il devient vert", "Il disparaît pour six mois"],
+   "reponse": "A",
+   "explication": "C'est le soleil de minuit. Les plantes en profitent pour pousser, fleurir et faire leurs graines en quelques semaines. En hiver, c'est l'inverse : la nuit polaire."
+  },
+  {
+   "question_code": "VQCM0040",
+   "biome_slug": "toundra",
+   "categorie_slug": "faune",
+   "question": "Comment le renard polaire dort-il par −30 °C ?",
+   "choix": ["Roulé en boule, le museau sous sa queue touffue", "Debout, pour ne pas toucher la neige", "Sous l'eau", "Il ne dort jamais en hiver"],
+   "reponse": "A",
+   "explication": "Sa queue lui sert de couverture, ses petites oreilles laissent partir peu de chaleur, et sa fourrure d'hiver est l'une des plus chaudes du monde animal."
+  }
+ ]
+}

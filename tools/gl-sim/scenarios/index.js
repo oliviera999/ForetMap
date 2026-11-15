@@ -11,8 +11,15 @@ const base = require('./base');
 const equilibrage = require('./equilibrage');
 const badges = require('./badges');
 const regression = require('./regression-7nov');
+const tabletteParallele = require('./tablette-parallele');
 
-const SCENARIOS = Object.freeze([...base.SCENARIOS, equilibrage, badges, regression]);
+const SCENARIOS = Object.freeze([
+  ...base.SCENARIOS,
+  equilibrage,
+  badges,
+  regression,
+  tabletteParallele,
+]);
 
 function trouverScenario(id) {
   return SCENARIOS.find((s) => s.id === String(id)) || null;

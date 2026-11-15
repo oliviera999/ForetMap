@@ -1,0 +1,97 @@
+{
+ "format": "gl.tenir.reparer/2",
+ "mesures": [
+  {"code": "M1", "texte": "Créer une aire protégée"},
+  {"code": "M2", "texte": "Lutter contre le braconnage"},
+  {"code": "M3", "texte": "Replanter, restaurer le milieu"},
+  {"code": "M4", "texte": "Réintroduire l'espèce à partir d'élevages"},
+  {"code": "M5", "texte": "Limiter le pâturage des troupeaux"},
+  {"code": "M6", "texte": "Laisser du bois mort en forêt"},
+  {"code": "M7", "texte": "Ne plus drainer les zones humides"},
+  {"code": "M8", "texte": "Réduire nos gaz à effet de serre"},
+  {"code": "M9", "texte": "Créer des couloirs entre les milieux naturels"},
+  {"code": "M10", "texte": "Interdire le commerce de l'espèce"},
+  {"code": "M11", "texte": "Interdire les appâts empoisonnés"}
+ ],
+ "classement": {
+  "en_danger": ["CR", "EN", "EW"],
+  "fragile": ["VU", "NT"],
+  "pas_menace": ["LC"],
+  "ignorer": ["NE", "DD"],
+  "consigne": "Range les 6 espèces du plateau : en danger, fragile, pas menacée. La liste est écrite ici (a_classer) : l'app ne la tire pas au hasard et ne lit pas le statut en base."
+ },
+ "chapitres": [
+  {
+   "plateau": 1,
+   "especes": [
+    {"code": "SP0023", "menace": "La forêt est coupée, et on le chasse pour sa viande.", "mesures": ["M1", "M2", "M3", "M9"]},
+    {"code": "SP0029", "menace": "On le capture pour vendre ses écailles.", "mesures": ["M10", "M2", "M1"]},
+    {"code": "SP0027", "menace": "On le tue pour l'ivoire de ses défenses.", "mesures": ["M2", "M10", "M1"]},
+    {"code": "SP0107", "menace": "Il meurt en mangeant des carcasses empoisonnées.", "mesures": ["M11", "M1"]},
+    {"code": "SP0103", "menace": "Son territoire est coupé en morceaux par les champs et les routes.", "mesures": ["M1", "M9"]}
+   ],
+   "a_classer": [
+    {"code": "SP0023", "categorie": "en_danger"},
+    {"code": "SP0107", "categorie": "en_danger"},
+    {"code": "SP0095", "categorie": "fragile"},
+    {"code": "SP0097", "categorie": "fragile"},
+    {"code": "SP0099", "categorie": "pas_menace"},
+    {"code": "SP0101", "categorie": "pas_menace"}
+   ],
+   "lecon": "Sous les tropiques, beaucoup de grandes espèces sont déjà en danger : la forêt recule et le braconnage continue."
+  },
+  {
+   "plateau": 2,
+   "especes": [
+    {"code": "SP0003", "menace": "On l'a chassé presque jusqu'au dernier.", "mesures": ["M2", "M4", "M1"]},
+    {"code": "SP0005", "menace": "Chassée, et privée d'herbe par les troupeaux.", "mesures": ["M2", "M5", "M1"]},
+    {"code": "SP0016", "menace": "Le climat s'assèche et aucun jeune arbre ne pousse.", "mesures": ["M3", "M8", "M1"]},
+    {"code": "SP0180", "menace": "Trop de troupeaux, des coupes, des sécheresses.", "mesures": ["M5", "M3", "M8", "M1"]},
+    {"code": "SP0166", "menace": "On capture les petits pour les vendre, et sa forêt recule.", "mesures": ["M10", "M1", "M3"]}
+   ],
+   "a_classer": [
+    {"code": "SP0003", "categorie": "en_danger"},
+    {"code": "SP0166", "categorie": "en_danger"},
+    {"code": "SP0005", "categorie": "fragile"},
+    {"code": "SP0170", "categorie": "fragile"},
+    {"code": "SP0001", "categorie": "pas_menace"},
+    {"code": "SP0163", "categorie": "pas_menace"}
+   ],
+   "lecon": "Au désert et autour de la Méditerranée, les espèces menacées le sont surtout par la chasse, les troupeaux et la sécheresse."
+  },
+  {
+   "plateau": 3,
+   "especes": [
+    {"code": "SP0081", "menace": "Sa larve vit dans le bois mort, qu'on enlève des forêts.", "mesures": ["M6", "M1"]},
+    {"code": "SP0241", "menace": "Les prairies humides sont drainées ou abandonnées.", "mesures": ["M7", "M3", "M1"]},
+    {"code": "SP0240", "menace": "Sa plante hôte disparaît quand on draine les prés humides.", "mesures": ["M7", "M3"]},
+    {"code": "SP0233", "menace": "Les landes brûlent ou disparaissent sous les cultures.", "mesures": ["M3", "M1"]}
+   ],
+   "a_classer": [
+    {"code": "SP0241", "categorie": "en_danger"},
+    {"code": "SP0081", "categorie": "fragile"},
+    {"code": "SP0240", "categorie": "fragile"},
+    {"code": "SP0233", "categorie": "fragile"},
+    {"code": "SP0069", "categorie": "pas_menace"},
+    {"code": "SP0243", "categorie": "pas_menace"}
+   ],
+   "lecon": "Près de chez nous, ce sont souvent de petites espèces discrètes qui sont fragiles : un papillon, un scarabée, un oiseau des landes."
+  },
+  {
+   "plateau": 4,
+   "especes": [
+    {"code": "SP0047", "menace": "Le climat change et les routes coupent ses migrations.", "mesures": ["M8", "M9", "M1"]},
+    {"code": "SP0049", "menace": "La banquise, son terrain de chasse, fond.", "mesures": ["M8"]}
+   ],
+   "a_classer": [
+    {"code": "SP0047", "categorie": "fragile"},
+    {"code": "SP0049", "categorie": "fragile"},
+    {"code": "SP0052", "categorie": "pas_menace"},
+    {"code": "SP0050", "categorie": "pas_menace"},
+    {"code": "SP0137", "categorie": "pas_menace"},
+    {"code": "SP0142", "categorie": "pas_menace"}
+   ],
+   "lecon": "Dans les Grands Froids, presque aucune espèce n'est classée « en danger » aujourd'hui. Pourtant leur milieu change très vite : la liste des espèces menacées se révise régulièrement."
+  }
+ ]
+}

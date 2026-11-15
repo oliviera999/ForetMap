@@ -240,6 +240,67 @@ chaque carte ne vaut qu'un essai — à chaque « Pas encore », une nouvelle es
 ou en veillée (deux pages tenues en veillée par élève et par semaine). En veillée, étudier la fiche d'une espèce liée à une page endormie ouvre une **piste**
 (la page se révèle, une piste par élève et par semaine).
 
+### Ce que l'élève lit après une erreur
+
+Le retour explique, il ne gronde pas. À l'écran, une erreur commence toujours par **« Pas
+encore. »**, suivi de l'explication écrite pour le choix de l'élève. Les anciens retours qui
+commençaient par « Non » sont affichés sans ce « Non ». Pour une question de lecture (tenir une
+page), c'est le retour commun de la question qui s'affiche : il renvoie au passage à relire.
+
+### Les questions posées en partie
+
+Sur les cases et aux fouilles, l'app ne tire plus les questions de classement (« À quelle
+famille appartient… », « Quel est le nom scientifique de… ») : elles demandent un nom à
+réciter, sans intérêt pour des élèves de 6e. Ces questions ne sont pas supprimées ; elles
+restent disponibles hors partie.
+
+À leur place, **40 questions vives** (cinq par milieu traversé) ont rejoint le tirage. Chaque
+question porte une seule explication, affichée après la réponse, juste ou non.
+
+**Régler le tirage.** Dans l'écran des QCM (Contenus → QCM → édition des questions), chaque
+question porte la case **« Posée en partie »**. Décochée, la question ne sort plus en partie
+« Tenir à deux ». Le filtre « Posée en partie » de la liste montre les unes ou les autres.
+
+### Écrire une bonne question de case
+
+Une question de case part d'une **curiosité**, jamais d'un nom à réciter. Les 40 questions vives
+servent d'étalon.
+
+| À faire                                                               | À éviter                                             |
+| --------------------------------------------------------------------- | ---------------------------------------------------- |
+| Partir d'un record, d'une astuce, d'une idée reçue, d'un « pourquoi » | Demander une famille, un nom latin, une date         |
+| Une phrase, des mots de 6e, un seul fait par question                 | Deux questions en une, une négation dans l'énoncé    |
+| Quatre choix de longueur proche, tous plausibles pour un élève        | Un choix farfelu, une bonne réponse deux fois longue |
+| Une explication qui apprend quelque chose, même à celui qui a juste   | « Non », « c'est l'inverse » sans dire pourquoi      |
+| Vérifier le fait dans la fiche de l'espèce avant d'écrire             | Un chiffre de mémoire, une espèce d'un autre milieu  |
+
+Trois exemples tirés du fichier : « L'okapi a une langue bleu-noir de plus de 30 cm. Que
+peut-il faire avec ? », « Comment le renard polaire dort-il par −30 °C ? », « Pendant que son
+groupe creuse le sable, un suricate reste debout sur une butte. Pourquoi ? ».
+
+## « Tenir à deux » : les défis de la Trame
+
+Les défis de la Trame font travailler deux idées du programme : **un réseau trophique** (qui
+est mangé par qui) et **l'effet d'un changement** sur un milieu.
+
+- **Le sens des flèches.** Une flèche va toujours de celui qui est mangé vers celui qui mange :
+  de l'herbe vers le zèbre, du zèbre vers le lion. C'est l'erreur la plus fréquente en 6e ;
+  l'app la signale par « Regarde le sens », sans la compter.
+- **Les décomposeurs.** Toute carte peut être reliée aux décomposeurs : tout être vivant finit
+  par être décomposé. Un réseau n'est fini que si une flèche au moins y mène.
+- **« À discuter ».** Un lien que le réseau ne prévoit pas, ou qui n'arrive que rarement,
+  n'est ni juste ni refusé. C'est le bon moment pour demander à l'élève : « Qu'est-ce qui te
+  fait dire cela ? »
+- **La trame altérée.** Le modèle est simple, et c'est voulu : une espèce qui perd toute sa
+  nourriture disparaît, celle qui en perd une partie diminue, celle que l'espèce retirée mangeait
+  augmente. La réalité est plus lente et plus nuancée ; la question « Pour aller plus loin »,
+  affichée à la fin et non notée, ouvre cette discussion.
+- **Réparer la trame.** Les six espèces à ranger et la leçon du plateau sont écrites dans le
+  catalogue. La liste des espèces menacées se révise régulièrement : relisez-la une fois l'an.
+
+Les réseaux, les jeux de fils et les mesures se modifient dans les catalogues « Tenir à deux »
+(Contenus → Catalogues). Après toute modification d'un réseau, relisez les cascades.
+
 ## Pour aller plus loin
 
 [Présentation générale](presentation.md) · [Carte du royaume](carte-du-royaume.md) · [Guide du MJ](guide-du-mj.md) · [Sommaire](../README.md)

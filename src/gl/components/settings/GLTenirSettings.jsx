@@ -15,6 +15,17 @@ const TENIR_FLAGS = [
   ['gameplay.tenir_voile', 'Le voile'],
   ['gameplay.tenir_marche', 'Marché (place, dons, parures)'],
   ['gameplay.tenir_marche_pendant_tour', 'Marché pendant le tour (tablette / hybride)'],
+  [
+    'gameplay.tenir_lecture_pendant_tour',
+    'Lire et tenir une page pendant le tour (sinon : en veillée)',
+  ],
+  ['gameplay.tenir_defis_case', 'Défis de case (cases « Défi d’équipe »)'],
+  ['gameplay.tenir_defis', 'Défis de la Trame (Retisser, Réparer, Trame altérée, Fils cachés)'],
+  [
+    'gameplay.tenir_defis_par_peuple',
+    'Défis de la Trame par peuple (sinon : les quatre pour tous)',
+  ],
+  ['gameplay.tenir_defis_mode_equipe', 'Défis de la Trame en équipe (prof, tablette hors tour)'],
   ['gameplay.tenir_parures', 'Parures au comptoir'],
   ['gameplay.tenir_lumiere', 'Lumière (option : cartes Team Spirit → paliers)'],
   ['gameplay.tenir_cartes_vers_cases', 'Cartes Team Spirit → cases à l’ouverture suivante'],
@@ -25,6 +36,8 @@ const TENIR_FLAGS = [
     'Péripéties aussi sur les cases sans effet (tonalité négative ou neutre)',
   ],
   ['gameplay.tenir_olu_erreur_du_jour', 'Erreur du jour d’Olu (filtrée par plateau)'],
+  ['gameplay.tenir_sablier_actif', 'Sabliers (équipe active, tour, défis)'],
+  ['gameplay.tenir_sablier_phase_auto', 'Sablier du tour : passer au souffle à la fin'],
   [
     'gameplay.tenir_progression_applique_case',
     'Progression : appliquer la case d’arrivée (sinon ±1 case seulement)',
@@ -46,12 +59,24 @@ const TENIR_NUMBERS = [
   ],
   ['gameplay.tenir_pistes_par_semaine', 'Pistes de veillée par semaine', 0, 20],
   ['gameplay.tenir_pages_veillee_par_semaine', 'Ouvertures gagnantes en veillée / semaine', 0, 20],
+  [
+    'gameplay.tenir_defis_pages_par_semaine',
+    'Pages gagnées par un défi de la Trame / semaine',
+    0,
+    20,
+  ],
   ['gameplay.tenir_palissement_pct', 'Pâlissement par tour (%)', 0, 100],
   ['gameplay.tenir_palissement_max', 'Pâlissement maximum (%)', 0, 100],
   ['gameplay.tenir_recul_carnet_complet', 'Recul du voile au carnet complet', 0, 20],
   ['gameplay.tenir_recul_lumiere', 'Recul du voile à la Lumière', 0, 20],
   ['gameplay.tenir_lumiere_palier', 'Palier de la Lumière (cartes)', 1, 999],
   ['gameplay.tenir_sablier_secondes', 'Sablier au tableau (secondes)', 10, 3600],
+  [
+    'gameplay.tenir_sablier_phase_secondes',
+    'Sablier du tour, hybride et tablette (secondes, 0 = sans)',
+    0,
+    3600,
+  ],
   ['gameplay.max_health_points', 'Cœurs maximum', 0, 99],
   ['gameplay.max_power_points', 'Gemmes maximum', 0, 99],
 ];
@@ -133,6 +158,16 @@ export function GLTenirSettings({ settings, savingKey, onSaveSetting, onToggle }
   const surface = readSelectSetting(settings, 'gameplay.tenir_surface', 'tableau');
   const desMode = readSelectSetting(settings, 'gameplay.tenir_des_mode', 'physique');
   const validation = readSelectSetting(settings, 'gameplay.tenir_des_physiques_validation', 'prof');
+  const fouilleSousVoile = readSelectSetting(
+    settings,
+    'gameplay.tenir_fouille_sous_voile',
+    'aucune',
+  );
+  const defiDeclenchement = readSelectSetting(
+    settings,
+    'gameplay.tenir_defi_declenchement',
+    'arret',
+  );
   const casesPositives = readSelectSetting(
     settings,
     'gameplay.tenir_cases_positives',
@@ -143,8 +178,9 @@ export function GLTenirSettings({ settings, savingKey, onSaveSetting, onToggle }
       <h4>Tenir à deux (mouture v2)</h4>
       <p className="gl-hint">
         Deux monnaies par élève (plafond 8/8), chasse aux pages, voile, grimoire exécuté, Marché
-        complet. Chaque partie porte un profil (<em>complet</em> ou <em>prologue</em>) et peut
-        surcharger la surface, les dés, le voile, le Marché, le chapardeur et les péripéties.
+        complet. Chaque partie porte un profil (<em>complet</em>, <em>prologue</em> ou{' '}
+        <em>court</em>) et peut surcharger la surface, les dés, le voile, le Marché, le chapardeur
+        et les péripéties.
       </p>
       {TENIR_FLAGS.map(([key, label]) => (
         <label key={key} className="gl-gameplay-toggle-row">
@@ -205,6 +241,32 @@ export function GLTenirSettings({ settings, savingKey, onSaveSetting, onToggle }
           <option value="ressource_peuple">+1 ressource du peuple (comme la Trame)</option>
           <option value="neutre">Aucune ressource</option>
           <option value="brut">Valeur du plateau (ancien comportement)</option>
+        </select>
+      </label>
+      <label>
+        Défi de case : quand l’équipe le reçoit
+        <select
+          value={defiDeclenchement}
+          disabled={savingKey === 'gameplay.tenir_defi_declenchement'}
+          onChange={(event) =>
+            onSaveSetting('gameplay.tenir_defi_declenchement', event.target.value)
+          }
+        >
+          <option value="arret">En s’arrêtant sur la case</option>
+          <option value="passage">En franchissant la case (une fois par équipe et par case)</option>
+        </select>
+      </label>
+      <label>
+        Fouille d’une équipe sous le voile
+        <select
+          value={fouilleSousVoile}
+          disabled={savingKey === 'gameplay.tenir_fouille_sous_voile'}
+          onChange={(event) =>
+            onSaveSetting('gameplay.tenir_fouille_sous_voile', event.target.value)
+          }
+        >
+          <option value="aucune">Aucune (sauf Abri ou Cordée)</option>
+          <option value="page_palie">Une par tour, sur une page pâlie (équipe gnome)</option>
         </select>
       </label>
       <div className="gl-tenir-settings__numbers">

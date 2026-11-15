@@ -1,11 +1,13 @@
 const express = require('express');
 const { queryAll, queryOne, execute, withTransaction } = require('../../../database');
-const { requireGlAuth, hasGlPermission } = require('../../../middleware/requireGlAuth');
+const { requireGlAuthOrTeam, hasGlPermission } = require('../../../middleware/requireGlAuth');
+const { resolveGameActor, refusSiTeamSessionHorsTour } = require('../../../lib/glActeur');
 const { insertGameEvent } = require('../../../lib/glGameEvents');
 const { queueGlRewardsForTeam } = require('../../../lib/glRewardsHooks');
 const { emitGlGameEvent } = require('../../../lib/realtime');
 const { getGameplaySettings } = require('../../../lib/glSettings');
-const { verifyPresentationAnswer, resolveQcmAnswerFeedback } = require('../../../lib/qcmChoices');
+const { verifyPresentationAnswer } = require('../../../lib/qcmChoices');
+const { resoudreRetour } = require('../../../lib/glRetourQcm');
 const { consumePresentationJti } = require('../../../lib/qcmPresentationUse');
 const { combineKeywords } = require('../../../lib/glQcmImport');
 const { combineKeywords: combineLoreKeywords } = require('../../../lib/glQcmLoreImport');
@@ -28,15 +30,13 @@ const {
 } = require('../../../lib/glGameQcmScoring');
 const { sendSafeError } = require('../../../lib/safeErrorResponse');
 const { isTenirGame } = require('../../../lib/glTenir');
-const { bonneReponseDeCaseTx } = require('../../../lib/glTour');
-const { pasEncore } = require('../../../lib/glChasse');
+const {
+  bonneReponseDeCaseTx,
+  solderQuestionDeCaseTx,
+  gesteDEquipeTx,
+} = require('../../../lib/glTour');
 
 const router = express.Router();
-
-/** « Pas encore » : l'erreur ne punit pas et ne dit jamais « faux » (spec § 1). */
-function tenirFeedback(questionRow, verification) {
-  return pasEncore(resolveQcmAnswerFeedback(questionRow, verification));
-}
 
 async function getPlayerGameMembership(gameId, playerId) {
   return queryOne(
@@ -61,6 +61,21 @@ async function resolveQcmAnswerContext(req, gameId) {
   const allowed = await canAccessGlGame(req.glAuth, gameId);
   if (!allowed) {
     return { ok: false, status: 403, error: 'Accès partie refusé' };
+  }
+
+  // Tablette d'équipe (lien de classe) : droits d'un membre, pour SON équipe, pendant un tour.
+  if (req.glAuth.actor?.kind === 'team') {
+    const acteur = await resolveGameActor(req, gameId, { teamIdFromBody: req.body?.teamId });
+    if (!acteur.ok) return acteur;
+    const horsTour = await refusSiTeamSessionHorsTour(req, gameId);
+    if (horsTour) return horsTour;
+    return {
+      ok: true,
+      teamId: acteur.teamId,
+      actorType: acteur.actorType,
+      actorId: acteur.actorId,
+      tablette: true,
+    };
   }
 
   if (req.glAuth.userType === 'gl_player') {
@@ -108,13 +123,15 @@ async function resolveQcmAnswerContext(req, gameId) {
   };
 }
 
-router.post('/games/:id/qcm/answer', requireGlAuth, async (req, res) => {
+router.post('/games/:id/qcm/answer', requireGlAuthOrTeam, async (req, res) => {
   const gameId = parseId(req.params.id);
   if (!gameId) return res.status(400).json({ error: 'Identifiant de partie invalide' });
 
   const answerCtx = await resolveQcmAnswerContext(req, gameId);
   if (!answerCtx.ok) {
-    return res.status(answerCtx.status).json({ error: answerCtx.error });
+    return res
+      .status(answerCtx.status)
+      .json({ error: answerCtx.error, ...(answerCtx.code ? { code: answerCtx.code } : {}) });
   }
   const teamIdForGame = answerCtx.teamId;
 
@@ -125,7 +142,7 @@ router.post('/games/:id/qcm/answer', requireGlAuth, async (req, res) => {
 
   const settings = await getGameplaySettings();
 
-  if (settings.qcmMjOnly && req.glAuth.userType === 'gl_player') {
+  if (settings.qcmMjOnly && (req.glAuth.userType === 'gl_player' || answerCtx.tablette)) {
     return res.status(403).json({ error: 'QCM réservé au maître du jeu' });
   }
 
@@ -261,6 +278,27 @@ router.post('/games/:id/qcm/answer', requireGlAuth, async (req, res) => {
           },
         });
       }
+      if (tenirMode && markerId != null) {
+        // Lot 2 : répondre est un geste de l'équipe (sa fenêtre « après le jet » se ferme) ;
+        // une bonne réponse solde la question due à l'arrivée du tour.
+        const roundNumber = Number(game.current_round_number) || 0;
+        await gesteDEquipeTx(tx, {
+          gameId,
+          roundNumber,
+          teamId: teamIdForGame,
+          settings,
+          actorType: answerCtx.actorType,
+          actorId: answerCtx.actorId,
+        });
+        if (verification.correct) {
+          await solderQuestionDeCaseTx(tx, {
+            gameId,
+            roundNumber,
+            teamId: teamIdForGame,
+            markerId,
+          });
+        }
+      }
       if (verification.correct && tenirMode && markerId != null) {
         tenirBonus = await bonneReponseDeCaseTx(tx, {
           gameId,
@@ -344,10 +382,9 @@ router.post('/games/:id/qcm/answer', requireGlAuth, async (req, res) => {
 
   return res.json({
     correct: verification.correct,
-    feedback:
-      tenirMode && !verification.correct
-        ? tenirFeedback(questionRow, verification)
-        : resolveQcmAnswerFeedback(questionRow, verification),
+    // « Pas encore » en partie « Tenir » : l'erreur ne punit pas (règles § 1-4) ; l'amorce
+    // « Non » des retours d'auteur est retirée partout (`lib/glRetourQcm.js`).
+    feedback: resoudreRetour(questionRow, verification, { tenir: tenirMode, contexte: 'case' }),
     tenir: tenirBonus
       ? {
           bonusCase: tenirBonus.applied,
