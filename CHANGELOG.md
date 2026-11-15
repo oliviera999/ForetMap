@@ -62,6 +62,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   onze assertions, ajouté à `npm run test:sim`), grille `grille-defis.json`, jugement des défis
   par le prof virtuel. **E2e** `e2e/gl-tenir-tablettes.spec.js` : quatre tablettes par le lien
   de classe et un compte élève sur le même écran.
+- **Bordures des écrans d'équipe.** Les styles du lot visaient deux jetons qui n'existent pas
+  (`--line`, `--surface`) : cartes, pastilles et boutons s'affichaient sans trait. Ils portent
+  maintenant `--gl-border` et `--gl-surface`.
 
 ### Ajouté — G&L « Tenir à deux » : vérité et mesure (lot 1 sur 3)
 

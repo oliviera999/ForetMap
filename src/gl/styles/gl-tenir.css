@@ -537,9 +537,9 @@
   width: 100%;
   min-height: 9rem;
   padding: var(--gl-space-3);
-  border: 3px solid var(--gl-team-color, var(--line));
+  border: 3px solid var(--gl-team-color, var(--gl-border));
   border-radius: var(--gl-radius-lg);
-  background: var(--surface);
+  background: var(--gl-surface);
   color: inherit;
   font: inherit;
   cursor: pointer;
@@ -578,7 +578,7 @@
   gap: var(--gl-space-3);
   margin: var(--gl-space-3) 0;
   padding: var(--gl-space-4);
-  border: 1px solid var(--line);
+  border: 1px solid var(--gl-border);
   border-radius: var(--gl-radius-lg);
   background: var(--surface-plain);
   color: var(--ink-strong);
@@ -634,9 +634,9 @@
 .gl-presence__membre {
   min-height: 48px;
   padding: var(--gl-space-2) var(--gl-space-3);
-  border: 2px solid var(--line);
+  border: 2px solid var(--gl-border);
   border-radius: var(--gl-radius-lg);
-  background: var(--surface);
+  background: var(--gl-surface);
   color: inherit;
   font: inherit;
   cursor: pointer;
@@ -663,7 +663,7 @@
   font-size: 0.85em;
 }
 .gl-tour-presence__pastille.is-ok {
-  border-color: var(--line);
+  border-color: var(--gl-border);
   background: transparent;
   color: inherit;
 }
@@ -697,7 +697,7 @@
   justify-content: space-between;
   gap: var(--gl-space-2);
   padding: var(--gl-space-2);
-  border: 1px solid var(--line);
+  border: 1px solid var(--gl-border);
   border-radius: var(--gl-radius-lg);
 }
 .gl-demandes__ligne .gl-btn {
@@ -746,12 +746,12 @@
   display: inline-block;
   margin-right: var(--gl-space-1);
   padding: 0 var(--gl-space-2);
-  border: 1px solid var(--line);
+  border: 1px solid var(--gl-border);
   border-radius: 999px;
   font-size: 0.8em;
 }
 .gl-carnet-pastille--protegee {
-  border-color: var(--leaf, var(--line));
+  border-color: var(--leaf, var(--gl-border));
 }
 .gl-board-mascot__voile {
   font-weight: 600;
@@ -792,9 +792,9 @@
   min-width: 8rem;
   min-height: 3.5rem;
   padding: var(--gl-space-2) var(--gl-space-3);
-  border: 2px solid var(--line);
+  border: 2px solid var(--gl-border);
   border-radius: var(--gl-radius-lg);
-  background: var(--surface);
+  background: var(--gl-surface);
   color: inherit;
   font: inherit;
   font-weight: 600;
