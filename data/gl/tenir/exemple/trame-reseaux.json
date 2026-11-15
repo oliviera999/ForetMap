@@ -1,0 +1,306 @@
+{
+  "format": "gl.tenir.trame/2",
+  "sens_des_fleches": "de la ressource vers celui qui la mange (« est mangé par »)",
+  "regle_decomposeurs": "toute carte peut pointer vers une carte de rôle decomposeur (matière morte, feuilles, excréments) : lien accepté. Les charognards (vautours, gypaète) sont des consommateurs : seuls leurs liens écrits comptent.",
+  "niveaux": [
+    5,
+    7,
+    9,
+    12
+  ],
+  "niveau_trame_alteree": 9,
+  "reseaux": [
+    {
+      "biome": "jungle_afc",
+      "plateau": 1,
+      "nom": "Forêt équatoriale",
+      "especes": [
+        {
+          "code": "SP0045",
+          "nom": "Marantacée",
+          "role": "producteur"
+        },
+        {
+          "code": "SP0023",
+          "nom": "Gorille des plaines",
+          "role": "consommateur"
+        },
+        {
+          "code": "SP0032",
+          "nom": "Bongo",
+          "role": "consommateur"
+        },
+        {
+          "code": "SP0031",
+          "nom": "Léopard",
+          "role": "consommateur"
+        },
+        {
+          "code": "DEC",
+          "nom": "Décomposeurs du sol",
+          "precision": "champignons, bactéries, vers et petites bêtes de la litière",
+          "role": "decomposeur",
+          "generique": true
+        },
+        {
+          "code": "SP0039",
+          "nom": "Moabi",
+          "role": "producteur"
+        },
+        {
+          "code": "SP0033",
+          "nom": "Calao à casque jaune",
+          "role": "consommateur"
+        },
+        {
+          "code": "SP0027",
+          "nom": "Éléphant de forêt",
+          "role": "consommateur"
+        },
+        {
+          "code": "SP0026",
+          "nom": "Okapi",
+          "role": "consommateur"
+        },
+        {
+          "code": "SP0028",
+          "nom": "Mandrill",
+          "role": "consommateur"
+        },
+        {
+          "code": "SP0024",
+          "nom": "Chimpanzé commun",
+          "role": "consommateur"
+        },
+        {
+          "code": "SP0030",
+          "nom": "Hippopotame pygmée",
+          "role": "consommateur"
+        }
+      ],
+      "liens_acceptes": [
+        {
+          "de": "SP0045",
+          "vers": "SP0023"
+        },
+        {
+          "de": "SP0045",
+          "vers": "SP0032"
+        },
+        {
+          "de": "SP0032",
+          "vers": "SP0031"
+        },
+        {
+          "de": "SP0039",
+          "vers": "SP0033"
+        },
+        {
+          "de": "SP0039",
+          "vers": "SP0023"
+        },
+        {
+          "de": "SP0039",
+          "vers": "SP0027"
+        },
+        {
+          "de": "SP0045",
+          "vers": "SP0026"
+        },
+        {
+          "de": "SP0026",
+          "vers": "SP0031"
+        },
+        {
+          "de": "SP0039",
+          "vers": "SP0028"
+        },
+        {
+          "de": "SP0039",
+          "vers": "SP0024"
+        },
+        {
+          "de": "SP0028",
+          "vers": "SP0031"
+        },
+        {
+          "de": "SP0024",
+          "vers": "SP0031"
+        },
+        {
+          "de": "SP0045",
+          "vers": "SP0030"
+        }
+      ],
+      "a_discuter": [
+        {
+          "de": "SP0023",
+          "vers": "SP0031",
+          "pourquoi": "Le léopard chasse très rarement un jeune gorille."
+        }
+      ],
+      "note": null,
+      "scenarios_trame_alteree": [
+        "SP0031",
+        "SP0039",
+        "DEC"
+      ]
+    },
+    {
+      "biome": "savane",
+      "plateau": 1,
+      "nom": "Savane",
+      "especes": [
+        {
+          "code": "SP0116",
+          "nom": "Themeda (herbe rouge)",
+          "role": "producteur"
+        },
+        {
+          "code": "SP0098",
+          "nom": "Zèbre des plaines",
+          "role": "consommateur"
+        },
+        {
+          "code": "SP0099",
+          "nom": "Gnou bleu",
+          "role": "consommateur"
+        },
+        {
+          "code": "SP0095",
+          "nom": "Lion d'Afrique",
+          "role": "consommateur"
+        },
+        {
+          "code": "DEC",
+          "nom": "Décomposeurs du sol",
+          "precision": "champignons, bactéries, vers et petites bêtes de la litière",
+          "role": "decomposeur",
+          "generique": true
+        },
+        {
+          "code": "SP0110",
+          "nom": "Acacia parasol",
+          "role": "producteur"
+        },
+        {
+          "code": "SP0097",
+          "nom": "Girafe",
+          "role": "consommateur"
+        },
+        {
+          "code": "SP0101",
+          "nom": "Hyène tachetée",
+          "role": "consommateur"
+        },
+        {
+          "code": "SP0107",
+          "nom": "Vautour africain",
+          "role": "consommateur",
+          "regime": "charognard",
+          "precision": "mange les animaux déjà morts"
+        },
+        {
+          "code": "SP0109",
+          "nom": "Termite (Macrotermes)",
+          "role": "decomposeur"
+        },
+        {
+          "code": "SP0115",
+          "nom": "Andropogon (herbe à éléphant)",
+          "role": "producteur"
+        },
+        {
+          "code": "SP0102",
+          "nom": "Buffle d'Afrique",
+          "role": "consommateur"
+        }
+      ],
+      "liens_acceptes": [
+        {
+          "de": "SP0116",
+          "vers": "SP0098"
+        },
+        {
+          "de": "SP0116",
+          "vers": "SP0099"
+        },
+        {
+          "de": "SP0098",
+          "vers": "SP0095"
+        },
+        {
+          "de": "SP0099",
+          "vers": "SP0095"
+        },
+        {
+          "de": "SP0110",
+          "vers": "SP0097"
+        },
+        {
+          "de": "SP0097",
+          "vers": "SP0095"
+        },
+        {
+          "de": "SP0098",
+          "vers": "SP0101"
+        },
+        {
+          "de": "SP0099",
+          "vers": "SP0101"
+        },
+        {
+          "de": "SP0098",
+          "vers": "SP0107"
+        },
+        {
+          "de": "SP0099",
+          "vers": "SP0107"
+        },
+        {
+          "de": "SP0097",
+          "vers": "SP0107"
+        },
+        {
+          "de": "SP0095",
+          "vers": "SP0107"
+        },
+        {
+          "de": "SP0116",
+          "vers": "SP0109"
+        },
+        {
+          "de": "SP0115",
+          "vers": "SP0109"
+        },
+        {
+          "de": "SP0110",
+          "vers": "SP0109"
+        },
+        {
+          "de": "SP0115",
+          "vers": "SP0098"
+        },
+        {
+          "de": "SP0115",
+          "vers": "SP0102"
+        },
+        {
+          "de": "SP0116",
+          "vers": "SP0102"
+        },
+        {
+          "de": "SP0102",
+          "vers": "SP0095"
+        }
+      ],
+      "a_discuter": [],
+      "note": null,
+      "scenarios_trame_alteree": [
+        "SP0095",
+        "SP0116",
+        "SP0098"
+      ]
+    }
+  ]
+}

@@ -186,6 +186,7 @@ test('outils de domaine G&L listés (admin) ; contrôles G&L au registre des aud
     'gl_tenir_catalogues',
     'gl_content_snapshot',
     'gl_tour',
+    'gl_seance',
     'gl_sim_reports',
     'gl_rewards',
   ]) {

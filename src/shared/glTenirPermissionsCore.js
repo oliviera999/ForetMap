@@ -62,7 +62,8 @@ const ALL_FALSE = Object.freeze(Object.fromEntries(TENIR_GESTES.map((g) => [g, f
  * @param {boolean} [input.isMember] l'acteur est-il membre de l'équipe visée ? (défaut vrai)
  * @param {boolean} [input.fouilleFenetreOuverte] hybride : fenêtre de fouille ouverte par le prof
  * @param {boolean} [input.enRetrait] l'élève est en retrait (jamais de Marché)
- * @param {object} [input.settings] réglages résolus (`marche`, `marche_pendant_tour`)
+ * @param {object} [input.settings] réglages résolus (`marche`, `marche_pendant_tour`,
+ *   `lecture_pendant_tour`)
  * @returns {Record<string, boolean>}
  */
 export function resolveTenirPermissions(input = {}) {
@@ -79,6 +80,9 @@ export function resolveTenirPermissions(input = {}) {
   const enJeu = phase === 'jeu';
   const enRetrait = input.enRetrait === true;
   const marchePendantTour = settings.marche_pendant_tour !== false;
+  // Lot 2 (profil `court`) : pendant le tour, la lecture attend la veillée.
+  const tourOuvert = !!phase && phase !== 'clos';
+  const lecture = settings.lecture_pendant_tour !== false || !tourOuvert;
 
   const out = { ...ALL_FALSE };
   if (!isMember) {
@@ -94,7 +98,7 @@ export function resolveTenirPermissions(input = {}) {
   if (surface === 'hybride') {
     out.jeter = enJeu;
     out.fouiller = enJeu && input.fouilleFenetreOuverte === true;
-    out.lire = true;
+    out.lire = lecture;
     out.marche =
       marcheActif && !enRetrait && (!phase || phase === 'clos' || (enJeu && marchePendantTour));
     return out;
@@ -104,7 +108,7 @@ export function resolveTenirPermissions(input = {}) {
   out.lancer = enJeu;
   out.repondre = enJeu;
   out.fouiller = enJeu;
-  out.lire = true;
+  out.lire = lecture;
   out.marche =
     marcheActif && !enRetrait && (!phase || phase === 'clos' || (enJeu && marchePendantTour));
   return out;

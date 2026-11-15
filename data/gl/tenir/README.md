@@ -50,12 +50,16 @@ montre comptes, écarts et dernier rapport, et permet de resynchroniser (`POST
 | `peripeties.json` | `id` | 32 (8 par plateau) |
 | `missions.json` | `id` | 20 |
 | `titres.json` | chemin `honneurs.<honneur>.<biome>` etc. | 16 + 8 + 20 |
-| `badges.json` | `code` | 13 |
-| `olu-lignes.json` | `id` | 69 |
+| `badges.json` | `code` | 15 |
+| `olu-lignes.json` | `id` | 77 |
 | `parures.json` | `code` | 12 |
 | `sorts.json` | `code` (table `gl_spells`) | 25 + 6 voyageur |
 | `reglages-defaut.json` | clé de réglage `gameplay.tenir_*` | — |
 | `passeur-plateau4.json` | `(plateau, ordre)` | 7 / 7 / 9 / 7 |
+| `defis-cases.json` | `code` (table `gl_tenir_defis_cases`) | 16 (4 par plateau) |
+| `trame-reseaux.json` | `biome` (tables `gl_trame_reseaux`, `gl_trame_cartes`, `gl_trame_liens`) | 8 réseaux, 12 cartes chacun |
+| `trame-fils.json` | `plateau` (tables `gl_trame_fils_cartes`, `gl_trame_fils_liens`) | 4 plateaux, 9 cartes chacun |
+| `trame-reparer.json` | `code` de mesure, `plateau` (tables `gl_trame_mesures`, `gl_trame_reparer_especes`, `gl_trame_reparer_a_classer`) | 11 mesures, 6 espèces à ranger par plateau |
 
 ## `chasse-zones.json`
 
@@ -210,3 +214,68 @@ ni corbeau nommé, chacune avec sa `justification` (réservée au prof). Le mot 
 page `ordre` = numéro du tour, modulo la longueur de la liste, sans reprendre une page déjà lue dans
 la partie. Une page marquée `avertissement` nomme le corbeau dans son **titre** : l'afficher sans
 titre côté élève, ou la passer.
+
+## `defis-cases.json`
+
+Défis des cases « Défi d'équipe » (lot 2 du 15 novembre 2026, § 7 du prompt d'implémentation).
+Structure : `plateaux: { "1": [ … ], "2": [ … ], "3": [ … ], "4": [ … ] }`, quatre défis par
+plateau.
+
+| Champ | Rôle |
+| --- | --- |
+| `code` | clé d'upsert, `d-p<plateau>-<nom>` |
+| `titre`, `consigne`, `preparation` | **visibles** de l'équipe (écran d'équipe, Seuil) et, à la clôture du tour, de la projection |
+| `critere` | **réservé au prof** : jamais servi à un élève, à une tablette ni à la projection |
+| `notion` | notion de programme travaillée |
+| `duree_s` | durée du sablier que le prof peut afficher (10 à 3600 secondes) |
+
+Une équipe reçoit un défi du plateau quand elle s'arrête sur une case marquée
+`event_config_json.tenir.defi = true` (ou la franchit, réglage `defi_declenchement = passage`),
+tiré **sans répétition dans la partie** ; la liste épuisée recommence. Le prof juge « Relevé » (le
+voile recule de `defi_recul` cases) ou « Pas encore » (rien). **Jamais de ressource.** Tous les
+champs sont relus contre la liste des chaînes interdites, `critere` compris.
+
+## Catalogues de la Trame (`trame-*.json`)
+
+Défis de la Trame (lot 3 du 15 novembre 2026, § 8 du prompt d'implémentation). Chargeurs dans
+`lib/glTrameImport.js`, test de contenu `tests/content/gl-trame-catalogues.test.js`. Mécanique
+(classement des flèches, cascade, récompenses) et marche à suivre pour **ajouter un réseau** :
+`docs/GL_DEFIS.md` § 7.
+
+### `trame-reseaux.json`
+
+Un réseau trophique par biome joué (`reseaux[]` : `biome`, `plateau`, `nom`, `note`).
+
+| Champ | Rôle |
+| --- | --- |
+| `especes[]` | **12 cartes, dans l'ordre** : `code` (espèce de `gl_species`, ou `DEC`), `nom`, `role` (`producteur`, `consommateur`, `decomposeur`), `precision`, `generique` (vrai pour `DEC`), `regime` (`charognard`) |
+| `liens_acceptes[]` | `{ de, vers }` : **de la ressource vers celui qui la mange** (« est mangé par ») |
+| `a_discuter[]` | `{ de, vers, pourquoi }` : liens rares ou débattus, ni justes ni refusés |
+| `scenarios_trame_alteree[]` | trois cartes à retirer, parmi les **neuf premières** |
+
+- **Niveaux** : 5, 7, 9 et 12 premières cartes. Chaque niveau doit porter au moins un producteur,
+  au moins un décomposeur, et chaque carte qui n'est pas un décomposeur doit être touchée par un
+  lien accepté du niveau. Changer l'ordre des cartes change les niveaux.
+- **Décomposeurs** : toute carte peut pointer vers une carte de rôle `decomposeur` sans que le
+  lien soit écrit. Les **charognards** (vautours, gypaète) sont des consommateurs : seuls leurs
+  liens écrits comptent.
+- **Espèces** : chaque `code` (hors carte `generique`) doit exister dans `gl_species` et être du
+  biome du réseau. En import tolérant sur une base sans le corpus, c'est un avertissement : la
+  carte garde le nom et le rôle du fichier.
+- Les liens acceptés entre deux espèces réelles sont aussi versés dans `gl_species_interactions`
+  (`herbivorie`, `predation`, ou `decomposition` vers un décomposeur réel), sans jamais rien
+  supprimer.
+
+### `trame-fils.json`
+
+« Les fils cachés » : causes → effets (`chapitres[]` : `plateau`, `titre`, `note`,
+`cartes: [[code, texte]]`, `liens: [[de, vers]]`). Liens entre cartes du même plateau, jamais
+d'une carte vers elle-même ; les **cycles sont permis** (la rétroaction du plateau 4 est voulue).
+
+### `trame-reparer.json`
+
+« Réparer la trame » : `mesures[]` (`code`, `texte`), puis par plateau (`chapitres[]`) :
+`especes[]` (`code`, `menace`, `mesures[]` acceptées, au moins une), `a_classer[]` (**six**
+espèces, `categorie` ∈ `en_danger`, `fragile`, `pas_menace`) et la `lecon` du plateau. La liste à
+ranger est écrite dans le fichier : l'app ne la tire pas au hasard et ne lit pas le statut en
+base. La clé `classement` (statuts par catégorie) est une note de construction, jamais servie.

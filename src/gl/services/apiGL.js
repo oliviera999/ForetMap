@@ -8,14 +8,37 @@ import {
 import { fetchJsonWithRetry } from '../../shared/fetchJsonWithRetry.js';
 
 const GL_SESSION_KEY = 'gl_session';
+/**
+ * Session d'équipe d'une tablette de classe (« Tenir à deux », lot 2) : gardée dans
+ * `sessionStorage`, elle disparaît à la fermeture de l'onglet et ne recouvre jamais la session
+ * d'un compte (`localStorage`) — elle passe seulement devant, le temps de l'onglet.
+ */
+const GL_TEAM_SESSION_KEY = 'gl_team_session';
 
-function readSession() {
+function readFrom(storage, key) {
   try {
-    const raw = localStorage.getItem(GL_SESSION_KEY);
+    const raw = storage.getItem(key);
     return raw ? JSON.parse(raw) : null;
   } catch (_) {
     return null;
   }
+}
+
+function tabStorage() {
+  try {
+    return typeof sessionStorage !== 'undefined' ? sessionStorage : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+function readTeamSession() {
+  const storage = tabStorage();
+  return storage ? readFrom(storage, GL_TEAM_SESSION_KEY) : null;
+}
+
+function readSession() {
+  return readTeamSession() || readFrom(localStorage, GL_SESSION_KEY);
 }
 
 export function getGlSession() {
@@ -27,15 +50,49 @@ export function getGlToken() {
 }
 
 export function saveGlSession(next) {
-  const current = readSession() || {};
+  const team = readTeamSession();
+  const storage = tabStorage();
+  // Une session d'équipe (nouvelle, ou en cours et simplement complétée) reste dans l'onglet.
+  if (storage && (next?.auth?.teamSession || (team && !next?.token))) {
+    storage.setItem(GL_TEAM_SESSION_KEY, JSON.stringify({ ...(team || {}), ...(next || {}) }));
+    dispatchGlSessionChanged();
+    return;
+  }
+  // Une connexion avec un compte remplace la session d'équipe de l'onglet.
+  if (team && storage) storage.removeItem(GL_TEAM_SESSION_KEY);
+  const current = readFrom(localStorage, GL_SESSION_KEY) || {};
   const merged = { ...current, ...(next || {}) };
   localStorage.setItem(GL_SESSION_KEY, JSON.stringify(merged));
   dispatchGlSessionChanged();
 }
 
 export function clearGlSession() {
-  localStorage.removeItem(GL_SESSION_KEY);
+  const storage = tabStorage();
+  // Quitter une session d'équipe ne déconnecte pas le compte éventuellement ouvert derrière.
+  if (storage && readTeamSession()) storage.removeItem(GL_TEAM_SESSION_KEY);
+  else localStorage.removeItem(GL_SESSION_KEY);
   dispatchGlSessionChanged();
+}
+
+/**
+ * « Qui agit ? » (tablette d'équipe, lot 2) : l'élève au nom de qui la tablette agit au Marché.
+ * Gardé en mémoire seulement (jamais stocké) ; le serveur revérifie à chaque requête.
+ */
+let actingPlayerId = null;
+
+export function setGlActingPlayer(playerId) {
+  actingPlayerId = Number(playerId) > 0 ? Number(playerId) : null;
+}
+
+export function getGlActingPlayer() {
+  return actingPlayerId;
+}
+
+function onBehalfHeaders(path) {
+  if (!actingPlayerId || !String(path).startsWith('/api/gl/market') || !readTeamSession()) {
+    return undefined;
+  }
+  return { 'X-GL-On-Behalf-Of': String(actingPlayerId) };
 }
 
 function glDevUnavailableMessage() {
@@ -69,7 +126,7 @@ export async function apiGL(path, method = 'GET', body = null) {
 async function apiGLRaw(path, method, body) {
   return fetchJsonWithRetry(
     path,
-    { method, body },
+    { method, body, headers: onBehalfHeaders(path) },
     {
       resolveUrl: withAppBase,
       getToken: getGlToken,
@@ -79,6 +136,19 @@ async function apiGLRaw(path, method, body) {
         // DÉRIVE historique (préservée) : contrairement à api() (ForetMap),
         // apiGL() ne reconnaît PAS le code structuré `jwt_expired` — seule la
         // formulation textuelle déclenche la purge. Ne pas aligner sans lot dédié.
+        // Session d'équipe terminée (déconnectée par le prof, lien régénéré, partie close) :
+        // la tablette revient à l'accueil avec le message du serveur.
+        if (errBody.code === 'TEAM_SESSION_TERMINEE') {
+          clearGlSession();
+          const endedErr = new Error(
+            errBody.error || 'Cette tablette n’est plus connectée : scannez de nouveau le code.',
+          );
+          endedErr.status = 401;
+          endedErr.body = errBody;
+          endedErr.sessionExpired = true;
+          endedErr.teamSessionEnded = true;
+          throw endedErr;
+        }
         const sessionExpired =
           errText.includes('token invalide') ||
           errText.includes('expiré') ||

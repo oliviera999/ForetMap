@@ -502,3 +502,610 @@
   outline-offset: var(--gl-space-1);
   border-radius: var(--gl-radius-lg);
 }
+
+/* Lien de classe et tablette d'équipe (lot 2) */
+.gl-class-link {
+  display: grid;
+  gap: var(--gl-space-3);
+  max-width: 44rem;
+  margin: 0 auto;
+  padding: var(--gl-space-4);
+}
+.gl-class-link__code {
+  display: grid;
+  gap: var(--gl-space-1);
+}
+.gl-class-link__code input {
+  min-height: 52px;
+  font-size: var(--text-2xl);
+  letter-spacing: 0.3em;
+  text-align: center;
+  text-transform: uppercase;
+}
+.gl-class-link__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+  gap: var(--gl-space-3);
+  margin: var(--gl-space-3) 0;
+  padding: 0;
+  list-style: none;
+}
+.gl-class-link__team {
+  display: grid;
+  justify-items: center;
+  gap: var(--gl-space-1);
+  width: 100%;
+  min-height: 9rem;
+  padding: var(--gl-space-3);
+  border: 3px solid var(--gl-team-color, var(--gl-border));
+  border-radius: var(--gl-radius-lg);
+  background: var(--gl-surface);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.gl-class-link__team:focus-visible {
+  outline: 3px solid var(--line-warning);
+  outline-offset: 2px;
+}
+.gl-team-session {
+  display: grid;
+  gap: var(--gl-space-3);
+  padding: var(--gl-space-3);
+}
+.gl-team-session__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gl-space-2);
+  min-height: 44px;
+}
+.gl-class-link-panel {
+  margin: var(--gl-space-2) 0;
+}
+.gl-class-link-panel__sessions {
+  margin: var(--gl-space-2) 0;
+  padding: 0;
+  list-style: none;
+}
+.gl-class-link-panel__sessions .gl-btn {
+  min-height: 44px;
+}
+.gl-class-link-sheet {
+  display: grid;
+  justify-items: center;
+  gap: var(--gl-space-3);
+  margin: var(--gl-space-3) 0;
+  padding: var(--gl-space-4);
+  border: 1px solid var(--gl-border);
+  border-radius: var(--gl-radius-lg);
+  background: var(--surface-plain);
+  color: var(--ink-strong);
+  text-align: center;
+}
+.gl-class-link-sheet__qr {
+  width: min(60vw, 22rem);
+  height: auto;
+}
+.gl-class-link-sheet__code {
+  font-size: var(--text-2xl);
+}
+.gl-class-link-sheet__code strong {
+  letter-spacing: 0.2em;
+}
+.gl-class-link-sheet__url {
+  overflow-wrap: anywhere;
+}
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 20mm;
+  }
+  body:has(.gl-class-link-sheet) * {
+    visibility: hidden;
+  }
+  body:has(.gl-class-link-sheet) .gl-class-link-sheet,
+  body:has(.gl-class-link-sheet) .gl-class-link-sheet * {
+    visibility: visible;
+  }
+  .gl-class-link-sheet {
+    position: fixed;
+    inset: 0;
+    border: 0;
+  }
+  .gl-class-link-sheet__qr {
+    width: 120mm;
+  }
+  .gl-class-link-sheet__actions {
+    display: none;
+  }
+}
+
+/* Présences de l'équipe (lot 2) */
+.gl-presence__membres {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gl-space-2);
+  margin: var(--gl-space-2) 0;
+  padding: 0;
+  list-style: none;
+}
+.gl-presence__membre {
+  min-height: 48px;
+  padding: var(--gl-space-2) var(--gl-space-3);
+  border: 2px solid var(--gl-border);
+  border-radius: var(--gl-radius-lg);
+  background: var(--gl-surface);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.gl-presence__membre.is-absent {
+  border-style: dashed;
+  opacity: 0.7;
+  text-decoration: line-through;
+}
+.gl-presence__membre.is-absent .gl-presence__etat {
+  display: inline-block;
+  text-decoration: none;
+}
+.gl-tour-presence {
+  margin: var(--gl-space-1) 0;
+}
+.gl-tour-presence__pastille {
+  display: inline-block;
+  padding: 0 var(--gl-space-2);
+  border: 1px solid var(--line-warning);
+  border-radius: 999px;
+  background: var(--accent-warning);
+  color: var(--ink-warning);
+  font-size: 0.85em;
+}
+.gl-tour-presence__pastille.is-ok {
+  border-color: var(--gl-border);
+  background: transparent;
+  color: inherit;
+}
+
+/* Pot de sort : partage automatique, « pas moi » (lot 2) */
+.gl-spell-cast-pot__row {
+  align-items: center;
+}
+.gl-spell-cast-pot__row .gl-btn {
+  min-height: 44px;
+}
+.gl-spell-cast-pot__row.is-exclu {
+  opacity: 0.6;
+}
+.gl-spell-cast-pot__part {
+  font-variant-numeric: tabular-nums;
+}
+
+/* File unique du prof : panneau « Demandes » (lot 2) */
+.gl-demandes__liste {
+  display: grid;
+  gap: var(--gl-space-2);
+  margin: var(--gl-space-2) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.gl-demandes__ligne {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gl-space-2);
+  padding: var(--gl-space-2);
+  border: 1px solid var(--gl-border);
+  border-radius: var(--gl-radius-lg);
+}
+.gl-demandes__ligne .gl-btn {
+  min-height: 44px;
+}
+.gl-demandes__compteur,
+.gl-demandes__pastille {
+  display: inline-block;
+  min-width: 1.8em;
+  padding: 0 var(--gl-space-2);
+  border: 1px solid var(--line-warning);
+  border-radius: 999px;
+  background: var(--accent-warning);
+  color: var(--ink-warning);
+  text-align: center;
+  text-decoration: none;
+}
+.gl-demandes__pastille {
+  position: sticky;
+  top: var(--gl-space-2);
+  min-height: 44px;
+  line-height: 44px;
+}
+
+/* Écran d'équipe : sorts par moment, rôles en conseil, carnet, cases à venir (lot 2) */
+.gl-sorts-moments__moment h4 {
+  margin: var(--gl-space-2) 0 var(--gl-space-1);
+}
+.gl-sorts-moments__liste {
+  display: grid;
+  gap: var(--gl-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.gl-sorts-moments__liste .gl-btn {
+  min-height: 44px;
+}
+.gl-sorts-moments__liste li.is-ferme .gl-btn {
+  opacity: 0.6;
+}
+.gl-role-conseil {
+  font-style: italic;
+}
+.gl-carnet-pastille {
+  display: inline-block;
+  margin-right: var(--gl-space-1);
+  padding: 0 var(--gl-space-2);
+  border: 1px solid var(--gl-border);
+  border-radius: 999px;
+  font-size: 0.8em;
+}
+.gl-carnet-pastille--protegee {
+  border-color: var(--leaf, var(--gl-border));
+}
+.gl-board-mascot__voile {
+  font-weight: 600;
+}
+
+/* Défi de case (lot 2) */
+.gl-defis-case__liste {
+  display: grid;
+  gap: var(--gl-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.gl-defis-case__liste p {
+  margin: var(--gl-space-1) 0 0;
+}
+.gl-demandes__ligne.is-en-avant {
+  border-color: var(--line-warning);
+  background: var(--accent-warning);
+  color: var(--ink-warning);
+}
+.gl-demandes__critere {
+  margin-top: var(--gl-space-1);
+  font-size: 0.9em;
+  font-style: italic;
+}
+
+/* Marché depuis la tablette d'équipe : « Qui agit ? » (lot 2) */
+.gl-marche-tablette__qui {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gl-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.gl-marche-tablette__eleve {
+  min-width: 8rem;
+  min-height: 3.5rem;
+  padding: var(--gl-space-2) var(--gl-space-3);
+  border: 2px solid var(--gl-border);
+  border-radius: var(--gl-radius-lg);
+  background: var(--gl-surface);
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.gl-marche-tablette__eleve:focus-visible {
+  outline: 3px solid var(--line-warning);
+  outline-offset: 2px;
+}
+
+/* Défis de la Trame (lot 3) : plateau de cartes, flèches, réparer */
+.gl-defi__tete {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--gl-space-2);
+}
+.gl-defi__indice,
+.gl-defi__reussi,
+.gl-trame-plus-loin {
+  padding: var(--gl-space-2) var(--gl-space-3);
+  border: 1px solid var(--gl-border);
+  border-radius: var(--gl-radius-lg);
+  background: var(--gl-surface);
+}
+.gl-defi__reussi {
+  border: 2px solid var(--gl-ink-success);
+  background: var(--gl-accent-success);
+}
+.gl-defis__liste {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gl-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.gl-trame-plateau {
+  position: relative;
+  width: 100%;
+  /* Tient dans l'écran d'une tablette posée à plat, sans défiler pour voir tout le réseau. */
+  height: clamp(26rem, 68vh, 46rem);
+  margin: var(--gl-space-3) 0;
+}
+.gl-trame-plateau__fleches {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  /* Au-dessus des cartes, sans prendre les appuis. */
+  z-index: 1;
+  pointer-events: none;
+}
+.gl-trame-plateau__case {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: min(11rem, 22%);
+}
+.gl-trame-carte {
+  display: grid;
+  justify-items: center;
+  gap: var(--gl-space-1);
+  text-align: center;
+}
+.gl-trame-carte.is-grisee {
+  opacity: 0.45;
+}
+.gl-trame-carte__bouton {
+  display: grid;
+  justify-items: center;
+  gap: var(--gl-space-1);
+  width: 100%;
+  min-height: 4.5rem;
+  padding: var(--gl-space-2);
+  border: 2px solid var(--gl-border);
+  border-radius: var(--gl-radius-lg);
+  background: var(--gl-surface);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.gl-trame-carte__bouton:disabled {
+  cursor: default;
+}
+.gl-trame-carte__bouton.is-selectionnee {
+  border-color: var(--line-warning);
+  border-style: dashed;
+}
+.gl-trame-carte__bouton:focus-visible {
+  outline: 3px solid var(--line-warning);
+  outline-offset: 2px;
+}
+.gl-trame-carte__photo {
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.gl-trame-carte__picto {
+  font-size: var(--text-2xl);
+  line-height: 1;
+}
+.gl-trame-plateau[data-dense] .gl-trame-plateau__case {
+  width: min(9.5rem, 19%);
+}
+.gl-trame-plateau[data-dense] .gl-trame-carte__bouton {
+  min-height: 44px;
+  padding: var(--gl-space-1);
+}
+.gl-trame-plateau[data-dense] .gl-trame-carte__photo {
+  width: 2.5rem;
+  height: 2.5rem;
+}
+.gl-trame-plateau[data-dense] .gl-trame-carte__role,
+.gl-trame-plateau[data-dense] .gl-trame-carte__precision {
+  display: none;
+}
+.gl-trame-sous-cartes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: var(--gl-space-2);
+  margin: 0 0 var(--gl-space-3);
+  padding: 0;
+  list-style: none;
+}
+.gl-trame-sous-cartes__ligne {
+  display: grid;
+  gap: var(--gl-space-1);
+  align-content: start;
+  padding: var(--gl-space-2);
+  border: 1px solid var(--gl-border);
+  border-radius: var(--gl-radius-lg);
+}
+.gl-trame-sous-cartes__ligne.is-grisee {
+  opacity: 0.6;
+}
+.gl-trame-carte__nom {
+  font-weight: 600;
+}
+.gl-trame-carte__credit {
+  font-size: var(--text-2xs);
+}
+.gl-trame-trait {
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
+  opacity: 0.55;
+}
+.gl-trame-trait.is-trouvee {
+  stroke: var(--gl-ink-success);
+  stroke-width: 3;
+  opacity: 1;
+}
+/* À regarder : tirets et teinte ambrée — jamais de rouge, l'erreur ne punit pas. */
+.gl-trame-trait.is-inversee {
+  stroke: var(--gl-ink-warning);
+  stroke-dasharray: 9 5;
+  opacity: 1;
+}
+/* « À discuter » et lien d'indice : teinte neutre ; les tirets viennent de foodWebEdgeStyle. */
+.gl-trame-trait.is-a_discuter,
+.gl-trame-trait.is-suggestion {
+  stroke: var(--gl-color-text-muted);
+}
+.gl-trame-pointe {
+  fill: currentColor;
+}
+.gl-trame-pointe.is-trouvee {
+  fill: var(--gl-ink-success);
+}
+.gl-trame-pointe.is-inversee {
+  fill: var(--gl-ink-warning);
+}
+.gl-trame-pointe.is-a_discuter,
+.gl-trame-pointe.is-suggestion {
+  fill: var(--gl-color-text-muted);
+}
+.gl-trame-fleche {
+  padding-left: var(--gl-space-2);
+  border-left: 4px solid var(--gl-border);
+}
+.gl-trame-fleche.is-trouvee {
+  border-left-color: var(--gl-ink-success);
+}
+.gl-trame-fleche.is-inversee {
+  border-left-style: dashed;
+  border-left-color: var(--gl-ink-warning);
+}
+.gl-trame-fleche.is-a_discuter {
+  border-left-style: dotted;
+  border-left-color: var(--gl-color-text-muted);
+}
+.gl-trame-legende,
+.gl-trame-liste,
+.gl-trame-liste__fleches,
+.gl-trame-reparer__especes {
+  display: grid;
+  gap: var(--gl-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.gl-trame-liste__ligne {
+  padding: var(--gl-space-2);
+  border: 1px solid var(--gl-border);
+  border-radius: var(--gl-radius-lg);
+}
+.gl-trame-liste__relier select,
+.gl-trame-fleche__retirer,
+.gl-trame-prediction__bouton {
+  min-height: 44px;
+  font: inherit;
+}
+.gl-trame-fleche__retirer {
+  margin-left: var(--gl-space-2);
+  padding: 0 var(--gl-space-2);
+  border: 1px solid var(--gl-border);
+  border-radius: var(--gl-radius-lg);
+  background: var(--gl-surface);
+  color: inherit;
+  cursor: pointer;
+}
+.gl-trame-prediction__legende {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gl-space-1) var(--gl-space-3);
+  margin: var(--gl-space-2) 0;
+}
+.gl-trame-prediction__choix {
+  display: flex;
+  justify-content: center;
+  gap: var(--gl-space-1);
+}
+.gl-trame-prediction__bouton {
+  min-width: 44px;
+  font-size: var(--text-lg);
+  border: 2px solid var(--gl-border);
+  border-radius: var(--gl-radius-lg);
+  background: var(--gl-surface);
+  color: inherit;
+  cursor: pointer;
+}
+.gl-trame-prediction__bouton.is-choisi {
+  /* Choix porté par le fond plein et le trait épais, pas par une teinte. */
+  border-color: var(--ink-strong);
+  background: var(--ink-strong);
+  color: var(--surface-plain);
+  font-weight: 700;
+}
+.gl-trame-prediction__bouton:focus-visible {
+  outline: 3px solid var(--line-warning);
+  outline-offset: 2px;
+}
+.gl-trame-reparer__colonnes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--gl-space-2);
+}
+.gl-trame-reparer__colonne {
+  min-height: 6rem;
+  padding: var(--gl-space-2);
+  border: 1px solid var(--gl-border);
+  border-radius: var(--gl-radius-lg);
+}
+.gl-trame-reparer__choix {
+  display: grid;
+  gap: var(--gl-space-1);
+}
+.gl-trame-reparer__choix label {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: var(--gl-space-1);
+}
+.gl-trame-reparer__pourquoi {
+  display: grid;
+  gap: var(--gl-space-1);
+}
+@media (max-width: 640px) {
+  .gl-trame-reparer__colonnes {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Défis de la Trame en plein écran (ouverts depuis le Seuil ou la tablette d'équipe) */
+.gl-defis-plein {
+  position: fixed;
+  inset: 0;
+  z-index: var(--fm-z-modal);
+  display: flex;
+  flex-direction: column;
+  background: var(--gl-color-background);
+  color: var(--gl-color-text);
+}
+.gl-defis-plein__tete {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gl-space-2);
+  padding: max(var(--gl-space-2), env(safe-area-inset-top, 0px)) var(--gl-space-3) var(--gl-space-2);
+  border-bottom: 1px solid var(--gl-border);
+  background: var(--gl-surface);
+}
+.gl-defis-plein__tete h2 {
+  margin: 0;
+  font-size: var(--text-lg);
+}
+.gl-defis-plein__corps {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--gl-space-3) var(--gl-space-3)
+    max(var(--gl-space-3), env(safe-area-inset-bottom, 0px));
+}

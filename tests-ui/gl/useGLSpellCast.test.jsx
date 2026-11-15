@@ -64,6 +64,16 @@ afterEach(() => {
   resetGlSocketClientForTests();
 });
 
+/** Ouvre le pot n° 5 depuis cet écran (`startDraft`), puis oublie l'appel API de l'ouverture. */
+async function ouvrirLePot(result) {
+  apiGLMock.mockResolvedValueOnce({ draft: { id: 5, status: 'draft' } });
+  await act(async () => {
+    await result.current.startDraft({ spellCode: 'SL043', teamId: 1 });
+  });
+  expect(result.current.draft?.id).toBe(5);
+  apiGLMock.mockClear();
+}
+
 describe('useGLSpellCast — étalement du refetch de brouillon', () => {
   it('programme refreshDraft avec le délai jitteré quand l’événement ne porte pas le brouillon', async () => {
     const { result, unmount } = mountHook();
@@ -72,11 +82,18 @@ describe('useGLSpellCast — étalement du refetch de brouillon', () => {
       expect(fakeSocket.on).toHaveBeenCalledWith('gl:spell_cast:draft', expect.any(Function)),
     );
 
-    // Un événement portant le brouillon complet le pose sans appel API.
+    // Le pot d'une AUTRE équipe (jeu en parallèle) ne s'affiche jamais ici.
     act(() => {
-      fakeSocket.fire('gl:spell_cast:draft', { gameId: 3, draft: { id: 5, status: 'draft' } });
+      fakeSocket.fire('gl:spell_cast:draft', { gameId: 3, draft: { id: 8, status: 'draft' } });
     });
-    expect(result.current.draft?.id).toBe(5);
+    expect(result.current.draft).toBeNull();
+    // Le pot ouvert par cet écran…
+    await ouvrirLePot(result);
+    // … se met à jour sans appel API quand l'événement porte le brouillon complet.
+    act(() => {
+      fakeSocket.fire('gl:spell_cast:draft', { gameId: 3, draft: { id: 5, status: 'collecting' } });
+    });
+    expect(result.current.draft?.status).toBe('collecting');
     expect(apiGLMock).not.toHaveBeenCalled();
 
     vi.useFakeTimers();
@@ -101,10 +118,7 @@ describe('useGLSpellCast — étalement du refetch de brouillon', () => {
     await waitFor(() =>
       expect(fakeSocket.on).toHaveBeenCalledWith('gl:spell_cast:draft', expect.any(Function)),
     );
-    act(() => {
-      fakeSocket.fire('gl:spell_cast:draft', { gameId: 3, draft: { id: 5, status: 'draft' } });
-    });
-    expect(result.current.draft?.id).toBe(5);
+    await ouvrirLePot(result);
 
     vi.useFakeTimers();
     act(() => {

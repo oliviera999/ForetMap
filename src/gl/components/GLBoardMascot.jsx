@@ -17,6 +17,8 @@ export function GLBoardMascot({
   selectable = false,
   isSelected = false,
   onSelect = null,
+  /** « Tenir à deux » : distance au voile (« voile à 5 cases », « sous le voile »), ou `null`. */
+  voileLabel = null,
 }) {
   const animationState = useMemo(() => {
     // L'état transitoire (déclenché par `triggerTransient`) peut être un état personnalisé
@@ -77,6 +79,16 @@ export function GLBoardMascot({
       {team.titre ? (
         <span className="gl-board-mascot__titre" data-testid="gl-board-mascot-titre">
           {team.titre}
+        </span>
+      ) : null}
+      {voileLabel ? (
+        <span
+          className="gl-board-mascot__titre gl-board-mascot__voile"
+          data-testid="gl-board-mascot-voile"
+          // La mascotte se retourne en marchant : le texte, lui, reste lisible.
+          style={faceRight ? undefined : { transform: 'scaleX(-1)' }}
+        >
+          {voileLabel}
         </span>
       ) : null}
     </div>

@@ -124,6 +124,9 @@ async function mesurerChapitre(ctx, deroule) {
     'chapardeur',
     'spell_cast',
     'relance_bonus',
+    'defi_case_recu',
+    'defi_case_releve',
+    'defi_case_pas_encore',
   ]);
   const sousVoile = new Set();
   const paliesUneFois = new Set();
@@ -223,6 +226,11 @@ async function mesurerChapitre(ctx, deroule) {
     pagesPaliesPct: pourcent(pages.filter((p) => p.etat === 'palie').length, n),
     pagesPaliesUneFoisPct: pourcent(paliesUneFois.size, n),
     equipesSousVoilePct: pourcent(sousVoile.size, equipes.length || 1),
+    defisCase: {
+      recus: evts.filter((e) => e.type === 'defi_case_recu').length,
+      releves: evts.filter((e) => e.type === 'defi_case_releve').length,
+      pasEncore: evts.filter((e) => e.type === 'defi_case_pas_encore').length,
+    },
     voilePosition: state ? Number(state.voile_position ?? -1) : null,
     carnetComplet: !!state?.carnet_complet_at,
     partGnomesPct: trouvees.length ? pourcent(parGnomes, trouvees.length) : null,

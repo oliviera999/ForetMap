@@ -49,6 +49,16 @@ function acteurPour(ctx, equipe, geste, operateur) {
   if (parProf) {
     return { token: ctx.mjToken, acteur: 'prof', teamIdBody: equipe.id, membres: equipe.membres };
   }
+  // Tablette d'équipe (session ouverte par le lien de classe) : elle porte les gestes du tour
+  // à la place du compte d'un élève ; le serveur sait pour quelle équipe elle joue.
+  if (equipe.sessionToken) {
+    return {
+      token: equipe.sessionToken,
+      acteur: 'eleve',
+      teamIdBody: undefined,
+      membres: equipe.membres,
+    };
+  }
   return {
     token: operateur.token,
     acteur: 'eleve',
@@ -145,9 +155,9 @@ function ressourceDuPeuple(equipe) {
 
 async function sortsAvantJet(ctx, equipe, operateur) {
   if (!ctx.rng.chance(penchant(equipe, 'sorts') * 0.35)) return;
-  if (equipe.type === 'unicorn') {
-    await lancerSort(ctx, equipe, operateur, SORTS.BOUSSOLE);
-  } else {
+  // Lot 2 : la Boussole est sortie du grimoire (ses six cases à venir sont affichées
+  // gratuitement) ; les Licornes n'ont plus de sort « avant de lancer ».
+  if (equipe.type !== 'unicorn') {
     await lancerSort(ctx, equipe, operateur, SORTS.SENTIER);
   }
 }

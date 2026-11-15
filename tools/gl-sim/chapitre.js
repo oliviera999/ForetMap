@@ -48,7 +48,8 @@ function compteursVides() {
  * @param {string} p.composition `explicite` | `auto`
  * @param {number} p.seancesMax
  * @param {number} [p.joursVeillee]
- * @param {object} [p.crochets] `{ apresEquipes(ctx, tour, seance), finChapitre(ctx) }`
+ * @param {object} [p.crochets] `{ avantEquipes(ctx, tour, seance), apresEquipes(ctx, tour, seance),
+ *   apresSeance(ctx, resume, seance), finChapitre(ctx) }`
  */
 async function jouerChapitre({
   base,
@@ -141,9 +142,12 @@ async function jouerChapitre({
       absences: typeof prof.absences === 'function' ? prof.absences(s, joueurs, rng) : [],
       retraits:
         typeof prof.retraits === 'function' ? prof.retraits(joueurs, rng) : prof.retraits || [],
+      avantEquipes: crochets.avantEquipes ? (c, tour) => crochets.avantEquipes(c, tour, s) : null,
       apresEquipes: crochets.apresEquipes ? (c, tour) => crochets.apresEquipes(c, tour, s) : null,
+      sessionsEquipe: scenario.sessionsEquipe === true,
     });
     seances.push(resume);
+    if (crochets.apresSeance) await crochets.apresSeance(ctx, resume, s);
     if (resume.toutesAuCamp) {
       finParCamp = true;
       break;

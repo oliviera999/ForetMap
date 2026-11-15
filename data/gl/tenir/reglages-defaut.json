@@ -44,6 +44,15 @@
     "recul_carnet_complet": 3,
     "marche": true,
     "marche_pendant_tour": true,
+    "lecture_pendant_tour": true,
+    "fouille_sous_voile": "aucune",
+    "defis_case": true,
+    "defi_declenchement": "arret",
+    "defi_recul": 2,
+    "defis": true,
+    "defis_par_peuple": true,
+    "defis_pages_par_semaine": 2,
+    "defis_mode_equipe": true,
     "parures": true,
     "lumiere": false,
     "lumiere_palier": 25,
@@ -106,6 +115,14 @@
           "4": 8
         }
       }
+    },
+    "court": {
+      "libelle": "Court",
+      "description": "Tour en deux étages : pendant le tour on joue (dés, cases, fouilles, sorts) ; le Marché et la lecture des pages se font en veillée.",
+      "ecarts": {
+        "marche_pendant_tour": false,
+        "lecture_pendant_tour": false
+      }
     }
   },
   "notes": {
@@ -120,6 +137,15 @@
     "olu_bourse_pleine": "E5 : quand au moins 3 membres d'une équipe sont au plafond, Olu le dit une fois par séance à l'écran d'équipe (moment bourse_pleine), jamais en projection",
     "sablier_actif": "interrupteur de tous les sabliers (équipe active au tableau, phase, défis) ; un sablier n'annule jamais rien",
     "sablier_phase_secondes": "sablier commun à toutes les équipes pendant la phase jeu, en hybride et sur tablette ; 0 = sans ; départ et durée servis par le serveur",
-    "sablier_phase_auto": "à la fin du sablier de phase, la console ouverte du prof passe au souffle toute seule (dé gris tiré par l'app)"
+    "sablier_phase_auto": "à la fin du sablier de phase, la console ouverte du prof passe au souffle toute seule (dé gris tiré par l'app)",
+    "lecture_pendant_tour": "lot 2 : à false (profil court), lire et tenir une page se font en veillée ; pendant le tour l'écran affiche « À lire en veillée »",
+    "fouille_sous_voile": "lot 2 : `aucune` (une équipe sous le voile ne fouille pas, sauf Abri ou Cordée) ou `page_palie` (une équipe gnome sous le voile garde une fouille par tour, sur une page pâlie seulement)",
+    "defis_case": "lot 2 : les cases « Défi d'équipe » confient un défi du plateau à préparer pour la séance suivante ; relevé, il fait reculer le voile ; jamais de ressource",
+    "defi_declenchement": "`arret` : le défi se reçoit quand l'équipe s'arrête sur la case ; `passage` : dès que son pion la franchit, une fois par équipe et par case",
+    "defi_recul": "cases de recul du voile pour un défi relevé (0 à 10)",
+    "defis": "lot 3 : défis de la Trame (Retisser, Réparer, La trame altérée, Les fils cachés), dès le chapitre 1, sur les deux biomes du plateau ; jamais de ressource",
+    "defis_par_peuple": "Gnomes : Retisser et Réparer ; Licornes : La trame altérée et Les fils cachés ; à false, les quatre pour tous",
+    "defis_pages_par_semaine": "pages de veillée gagnées par cette voie, par élève et par semaine ISO",
+    "defis_mode_equipe": "le prof, ou une tablette d'équipe hors tour, lance un défi pour une équipe"
   }
 }

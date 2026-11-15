@@ -8,6 +8,43 @@ const {
 } = require('../lib/auth/glHydration');
 const logger = require('../lib/logger');
 
+/**
+ * Pose l'acteur unique de la requête (`lib/glActeur.js`) : `mj`, `player`, `team` (tablette
+ * d'équipe validée), `projection` ou `guest`.
+ */
+function attachActor(glAuth) {
+  glAuth.actor = require('../lib/glActeur').buildActor(glAuth);
+  return glAuth;
+}
+
+/**
+ * Valide une session d'équipe (non révoquée, non expirée, partie non close). Une session
+ * valide reçoit le droit de demander un geste (`gl.action.request`), pour SA partie et SON
+ * équipe seulement : les routes de partie rejouent ce périmètre (`resolveGameActor`).
+ * @returns {Promise<boolean>}
+ */
+async function validateTeamSession(glAuth) {
+  if (!glAuth?.teamSession) return false;
+  const database = require('../database');
+  const { findValidTeamSession } = require('../lib/glGuestToken');
+  const session = await findValidTeamSession(database, glAuth.teamSession);
+  if (!session) return false;
+  glAuth.teamSessionValide = true;
+  glAuth.teamSessionId = session.id;
+  glAuth.teamId = session.teamId;
+  glAuth.gameId = session.gameId;
+  glAuth.classId = session.classId;
+  if (!glAuth.permissions.includes('gl.action.request')) {
+    glAuth.permissions = [...glAuth.permissions, 'gl.action.request'];
+  }
+  return true;
+}
+
+const TEAM_SESSION_ENDED = Object.freeze({
+  error: 'Cette tablette n’est plus connectée : scannez de nouveau le code de la classe.',
+  code: 'TEAM_SESSION_TERMINEE',
+});
+
 function hasGlPermission(auth, permission) {
   if (!auth) return false;
   const perms = Array.isArray(auth.permissions) ? auth.permissions : [];
@@ -108,8 +145,45 @@ async function requireGlAuth(req, res, next) {
   if (!result.ok) {
     return sendGlAuthFailure(res, result);
   }
-  req.glAuth = result.glAuth;
+  req.glAuth = attachActor(result.glAuth);
   if (isGlGuest(req.glAuth)) {
+    return res.status(403).json({
+      error: 'Compte requis pour cette ressource',
+      guestBlocked: true,
+    });
+  }
+  if (passwordResetBlocked(req.glAuth, req)) {
+    return res.status(403).json({
+      error: 'Mot de passe à mettre à jour avant de continuer',
+      mustResetPassword: true,
+    });
+  }
+  return next();
+}
+
+/**
+ * Comme `requireGlAuth`, mais laisse passer une **session d'équipe** valide (tablette de
+ * classe, lot 2) : à poser sur les seules routes de partie qu'une tablette peut jouer. Une
+ * session révoquée ou expirée reçoit 401 `TEAM_SESSION_TERMINEE` ; un invité ordinaire et une
+ * projection restent bloqués.
+ */
+async function requireGlAuthOrTeam(req, res, next) {
+  let result;
+  try {
+    result = await authenticateGl(req);
+    if (result.ok && isGlGuest(result.glAuth) && result.glAuth.teamSession) {
+      if (!(await validateTeamSession(result.glAuth))) {
+        return res.status(401).json(TEAM_SESSION_ENDED);
+      }
+    }
+  } catch (err) {
+    return next(err);
+  }
+  if (!result.ok) {
+    return sendGlAuthFailure(res, result);
+  }
+  req.glAuth = attachActor(result.glAuth);
+  if (isGlGuest(req.glAuth) && req.glAuth.actor.kind !== 'team') {
     return res.status(403).json({
       error: 'Compte requis pour cette ressource',
       guestBlocked: true,
@@ -134,14 +208,20 @@ async function requireGlAuthOrProjection(req, res, next) {
   let result;
   try {
     result = await authenticateGl(req);
+    // Une tablette d'équipe lit aussi sa partie (lot 2) : même validation que pour agir.
+    if (result.ok && isGlGuest(result.glAuth) && result.glAuth.teamSession) {
+      if (!(await validateTeamSession(result.glAuth))) {
+        return res.status(401).json(TEAM_SESSION_ENDED);
+      }
+    }
   } catch (err) {
     return next(err);
   }
   if (!result.ok) {
     return sendGlAuthFailure(res, result);
   }
-  req.glAuth = result.glAuth;
-  if (isGlGuest(req.glAuth) && !req.glAuth.projection) {
+  req.glAuth = attachActor(result.glAuth);
+  if (isGlGuest(req.glAuth) && !req.glAuth.projection && req.glAuth.actor.kind !== 'team') {
     return res.status(403).json({
       error: 'Compte requis pour cette ressource',
       guestBlocked: true,
@@ -167,7 +247,7 @@ function requireGlPermission(permission) {
     if (!result.ok) {
       return sendGlAuthFailure(res, result);
     }
-    req.glAuth = result.glAuth;
+    req.glAuth = attachActor(result.glAuth);
     if (!hasGlPermission(req.glAuth, permission)) {
       return res.status(403).json({ error: 'Permission insuffisante' });
     }
@@ -183,6 +263,7 @@ function requireGlPermission(permission) {
 
 module.exports = {
   requireGlAuth,
+  requireGlAuthOrTeam,
   requireGlAuthOrProjection,
   requireGlPermission,
   hasGlPermission,

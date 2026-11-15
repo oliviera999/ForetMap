@@ -21,6 +21,7 @@ export default function GLGameMasterConsoleLive({
   onResolveSpellCast,
   castsAwaitingEffect = [],
   onMarkSpellEffectApplied,
+  onRefuseSpellCast = null,
   onNarrateSpellEffect,
   narrationEnabled,
   playerActionsEnabled,
@@ -283,6 +284,17 @@ export default function GLGameMasterConsoleLive({
                     >
                       Effet appliqué ✔
                     </GLButton>
+                    {onRefuseSpellCast ? (
+                      <GLButton
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => onRefuseSpellCast(draft.id)}
+                        disabled={busy}
+                      >
+                        Refuser et rembourser
+                      </GLButton>
+                    ) : null}
                     {narrationEnabled && effect ? (
                       <GLButton
                         type="button"

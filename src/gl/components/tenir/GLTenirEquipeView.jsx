@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useGlTenirTour } from '../../hooks/useGlTenirTour.js';
 import { useGlTenirOlu } from '../../hooks/useGlTenirOlu.js';
+import { useGlQuestionDeCase } from '../../hooks/useGlQuestionDeCase.js';
 import { GLButton } from '../ui/GLButton.jsx';
 import { GLTourDesSaisie } from '../mj/GLTourDesSaisie.jsx';
 import { GLTenirQuestionCard } from './GLTenirQuestionCard.jsx';
@@ -10,6 +11,10 @@ import { GLOluBulle } from './GLOluBulle.jsx';
 import { GLPeripetieOverlay } from './GLPeripetieOverlay.jsx';
 import { GLBestiairePanel } from './GLBestiairePanel.jsx';
 import { GLSablier } from './GLSablier.jsx';
+import { GLPresencePanel } from './GLPresencePanel.jsx';
+import { GLSortsParMoment } from './GLSortsParMoment.jsx';
+import { GLDefisCasePanel } from './GLDefisCasePanel.jsx';
+import { ROLES_EN_CONSEIL } from '../../../shared/glSortMomentsCore.js';
 import { numeroCase } from '../../../shared/glCaseNumeroCore.js';
 
 const VERDICT_TEXTES = {
@@ -50,6 +55,11 @@ export function GLTenirEquipeView({
   chasse = null,
   /** Modules G&L (`rewardsEnabled` conditionne « Mes badges ») ; `null` = tout allumé. */
   modules = null,
+  /**
+   * Tablette d'équipe (session ouverte par le lien de classe) : même écran, sans ce qui
+   * appartient à un compte (« Mes badges », proposition d'une chimère).
+   */
+  tablette = false,
 }) {
   const gameId = gameState?.game?.id;
   const tourApi = useGlTenirTour({
@@ -57,8 +67,19 @@ export function GLTenirEquipeView({
     enabled: !!gameId && !!tenir?.enabled,
     onChanged: onReloadGame,
   });
+  // Question de case due à l'arrivée du tour (lot 2) : « Répondre » la présente, même si un
+  // sort a déplacé l'équipe entre-temps.
+  const caseQuestion = useGlQuestionDeCase({
+    gameId,
+    onChanged: async () => {
+      await tourApi.refresh();
+      await onReloadGame?.();
+    },
+  });
   const [pending, setPending] = useState(null);
   const [carnetOuvert, setCarnetOuvert] = useState(false);
+  // Lot 2 : « Jeter un sort » déplie les sorts rangés par moment du tour.
+  const [sortsOuverts, setSortsOuverts] = useState(false);
   const [badgesOuverts, setBadgesOuverts] = useState(false);
   const [peripetiesPassees, setPeripetiesPassees] = useState(() => new Set());
   const perms = tenir?.permissions || {};
@@ -109,18 +130,58 @@ export function GLTenirEquipeView({
       ? (tenir.reserves || []).find((r) => Number(r.teamId) === Number(teamId)) || null
       : null;
   const fouilleMode = !!chasse?.fouilleMode;
+  const questionDue =
+    (round?.questionsEnAttente || []).find((q) => Number(q.teamId) === Number(teamId)) || null;
+  // Les six cases à venir (lot 2) : affichées gratuitement avant le jet.
+  const maVue = (tourApi.tour?.teams || []).find((t) => Number(t.id) === Number(teamId)) || null;
+  const casesAVenir =
+    round?.phase === 'jeu' && maVue && !maVue.hasRolledDiceThisRound && !maVue.auCamp
+      ? maVue.casesAVenir || []
+      : [];
+  const lectureEnVeillee =
+    !perms.lire &&
+    tenir.settings?.lecture_pendant_tour === false &&
+    !!round?.phase &&
+    round.phase !== 'clos';
   const gestes = [
-    ['jeter', 'Jeter un sort', onJeter],
+    [
+      'jeter',
+      sortsOuverts ? 'Fermer les sorts' : 'Jeter un sort',
+      onJeter ? () => setSortsOuverts((v) => !v) : null,
+    ],
     ['lancer', 'Lancer', null],
-    ['repondre', 'Répondre', onRepondre],
+    [
+      'repondre',
+      questionDue ? 'Répondre à la question' : 'Répondre',
+      onRepondre || (questionDue ? () => caseQuestion.presenter(questionDue.markerId) : null),
+    ],
     [
       'fouiller',
       fouilleMode ? 'Annuler la fouille' : 'Fouiller',
       chasse ? () => chasse.setFouilleMode(!fouilleMode) : onFouiller,
     ],
-    ['lire', 'Lire', chasse ? () => setCarnetOuvert((v) => !v) : onLire],
+    [
+      'lire',
+      // Lot 2 (profil « court ») : pendant le tour, lire et tenir une page attendent la veillée.
+      lectureEnVeillee ? 'À lire en veillée' : 'Lire',
+      chasse ? () => setCarnetOuvert((v) => !v) : onLire,
+    ],
   ];
   const verdict = chasse?.dernierVerdict || null;
+  // Cordée offerte (lot 2) : l'équipe partenaire ne paie rien et n'a rien à accepter ; son écran
+  // lui dit simplement qui l'encorde ce tour.
+  const cordeeRecue =
+    (round?.effets || []).find(
+      (e) => e.kind === 'cordee' && Number(e.sourceTeamId) === Number(teamId),
+    ) || null;
+  const encordeePar = cordeeRecue
+    ? (gameState?.teams || []).find((t) => Number(t.id) === Number(cordeeRecue.teamId)) || null
+    : null;
+  // Présences (lot 2) : « Il manque quelqu'un ? » tant que l'équipe n'a pas répondu.
+  const presences = tourApi.tour?.presences || null;
+  const presence = presences?.requise
+    ? (presences.equipes || []).find((e) => Number(e.teamId) === Number(teamId)) || null
+    : null;
   // Relance : jet de l'équipe dont la case s'affiche sans s'être appliquée.
   const jetEnSuspens =
     (round?.arriveesEnSuspens || []).find((a) => Number(a.teamId) === Number(teamId)) || null;
@@ -163,6 +224,19 @@ export function GLTenirEquipeView({
           testId="gl-sablier-phase"
         />
       ) : null}
+      {encordeePar ? (
+        <p className="gl-tenir-equipe__encorde" role="status" data-testid="gl-tenir-encorde">
+          <strong>L’équipe {encordeePar.name} vous encorde.</strong> Le meilleur de vos deux jets
+          vaut pour les deux.
+        </p>
+      ) : null}
+      <GLPresencePanel
+        presence={presence}
+        mates={mates}
+        busy={tourApi.busy}
+        onConfirmer={(absents) => tourApi.presences(absents)}
+        onArrivee={(playerId) => tourApi.arrivee(playerId)}
+      />
       <ul className="gl-tenir-equipe__bourses">
         {mates.map((m) => (
           <li key={m.playerId}>
@@ -190,7 +264,9 @@ export function GLTenirEquipeView({
           <GLButton
             key={key}
             type="button"
-            disabled={!perms[key] || tourApi.busy}
+            disabled={
+              !perms[key] || tourApi.busy || (key === 'repondre' && !onRepondre && !questionDue)
+            }
             aria-disabled={!perms[key]}
             data-geste={key}
             onClick={() => {
@@ -246,6 +322,25 @@ export function GLTenirEquipeView({
           </div>
         </section>
       ) : null}
+      {sortsOuverts && onJeter ? (
+        <GLSortsParMoment
+          gameId={gameId}
+          refreshKey={`${round?.number || 0}:${round?.phase || ''}:${events.length}`}
+          disabled={!perms.jeter || tourApi.busy}
+          onJeter={(code) => onJeter(code)}
+        />
+      ) : null}
+      {casesAVenir.length ? (
+        <p className="gl-tenir-equipe__cases" data-testid="gl-tenir-cases-a-venir">
+          <strong>Les {casesAVenir.length} cases à venir :</strong>{' '}
+          {casesAVenir
+            .map((c) => `${numeroCase(c.index) ?? '?'}${c.label ? ` ${c.label}` : ''}`)
+            .join(' · ')}
+        </p>
+      ) : null}
+      {pending === 'lancer' && perms.lancer ? (
+        <p className="gl-hint gl-role-conseil">{ROLES_EN_CONSEIL.lancer}</p>
+      ) : null}
       {pending === 'lancer' && perms.lancer ? (
         <GLTourDesSaisie
           count={tenir.settings?.des_count || 2}
@@ -273,6 +368,7 @@ export function GLTenirEquipeView({
             : ''}
           {fouilles.sousVoile ? ' · sous le voile' : ''}
           {fouilleMode ? ' · touche le plateau pour fouiller' : ''}
+          {fouilleMode ? ` · ${ROLES_EN_CONSEIL.fouiller}` : ''}
         </p>
       ) : null}
       {verdict ? (
@@ -280,6 +376,20 @@ export function GLTenirEquipeView({
           {verdict.feedback || VERDICT_TEXTES[verdict.verdict] || ''}
         </p>
       ) : null}
+      {caseQuestion.question ? (
+        <GLTenirQuestionCard
+          question={caseQuestion.question}
+          title="La question de la case"
+          disabled={caseQuestion.busy}
+          onAnswer={(choiceId) => caseQuestion.repondre(choiceId)}
+          onClose={caseQuestion.fermer}
+        />
+      ) : caseQuestion.feedback ? (
+        <p className="gl-tenir-equipe__verdict" role="status" data-testid="gl-tenir-case-retour">
+          {caseQuestion.feedback}
+        </p>
+      ) : null}
+      {caseQuestion.error ? <p className="gl-error-banner">{caseQuestion.error}</p> : null}
       {chasse?.question ? (
         <GLTenirQuestionCard
           question={chasse.question.question}
@@ -289,26 +399,30 @@ export function GLTenirEquipeView({
           onClose={chasse.clearQuestion}
         />
       ) : null}
+      <GLDefisCasePanel gameId={gameId} refreshKey={events.length} />
       <GLOluBulle line={olu.line} speakerName={olu.speakerName} frozen={olu.frozen} />
       {chasse && carnetOuvert ? (
         <>
+          <p className="gl-hint gl-role-conseil">{ROLES_EN_CONSEIL.lire}</p>
           <GLCarnetClasseView chasse={chasse} />
-          <GLBestiairePanel gameId={gameId} />
+          <GLBestiairePanel gameId={gameId} canPropose={!tablette} />
         </>
       ) : null}
-      <div className="gl-inline-actions">
-        <GLButton
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="gl-rewards__toggle"
-          aria-expanded={badgesOuverts}
-          onClick={() => setBadgesOuverts((v) => !v)}
-        >
-          {badgesOuverts ? 'Fermer mes badges' : 'Mes badges'}
-        </GLButton>
-      </div>
-      {badgesOuverts ? (
+      {tablette ? null : (
+        <div className="gl-inline-actions">
+          <GLButton
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="gl-rewards__toggle"
+            aria-expanded={badgesOuverts}
+            onClick={() => setBadgesOuverts((v) => !v)}
+          >
+            {badgesOuverts ? 'Fermer mes badges' : 'Mes badges'}
+          </GLButton>
+        </div>
+      )}
+      {badgesOuverts && !tablette ? (
         <GLRewardsPanel modules={modules} title="Mes badges" headingLevel={3} />
       ) : null}
       <GLPeripetieOverlay

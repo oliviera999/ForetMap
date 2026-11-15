@@ -101,6 +101,11 @@ router.post(
         seed: body.seed,
         actor: req.glAuth,
       });
+      // Rebrassage : les tablettes d'équipe ouvertes ne valent plus (lot 2) — chacune rescanne
+      // le code de la classe et touche la mascotte de sa nouvelle équipe.
+      await require('../../../lib/glGuestToken').revokeTeamSessions(require('../../../database'), {
+        gameId,
+      });
       return res.status(201).json({
         ok: true,
         gameId,

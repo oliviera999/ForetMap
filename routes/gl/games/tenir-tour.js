@@ -10,23 +10,19 @@ const express = require('express');
 const db = require('../../../database');
 const { queryAll, queryOne, withTransaction } = db;
 const {
-  requireGlAuth,
+  requireGlAuthOrTeam,
   requireGlAuthOrProjection,
   requireGlPermission,
   isMj,
 } = require('../../../middleware/requireGlAuth');
+const { resolveGesteActorOrRespond, actorOf } = require('../../../lib/glActeur');
+const presences = require('../../../lib/glPresences');
 const { canAccessGlGame } = require('../../../lib/glGameAccess');
 const { getGameplaySettings } = require('../../../lib/glSettings');
 const { emitGlGameEvent } = require('../../../lib/realtime');
 const { parseId, normalizeOptionalString } = require('../../../lib/shared/httpHelpers');
 const asyncHandler = require('../../../lib/asyncHandler');
-const { getPlayerGameMembership } = require('../../../lib/gl/gamesRuntime');
-const {
-  resolveTenirSettings,
-  resolveSurface,
-  resolveDesMode,
-  isPlayerEnRetrait,
-} = require('../../../lib/glTenir');
+const { resolveTenirSettings, resolveSurface, resolveDesMode } = require('../../../lib/glTenir');
 const tour = require('../../../lib/glTour');
 const roundPhases = require('../../../lib/glRoundPhases');
 const glSablier = require('../../../lib/glSablier');
@@ -66,6 +62,9 @@ const ERROR_MESSAGES = {
     'Réglage de sablier invalide (durée de 10 secondes à 60 minutes, action pause, reprise ou zero)',
   PAS_D_ERREUR: 'Aucune erreur du jour sur ce tour',
   DEJA_CORRIGE: 'Déjà corrigé',
+  PRESENCE_PHASE: 'Les présences se confirment au début du tour',
+  PRESENCE_ABSENT_INVALIDE: 'Cette personne ne fait pas partie de l’équipe',
+  PRESENCE_PAS_ABSENT: 'Cette personne est déjà comptée présente',
 };
 
 function sendTourError(res, err) {
@@ -88,21 +87,10 @@ async function resolveGesteContext(req, res, gameId, { geste, teamIdFromBody = n
   const surface = resolveSurface(game, settings);
   const roundNumber = Number(game.current_round_number) || 0;
   const round = roundNumber ? await tour.loadRoundView(db, gameId, roundNumber) : null;
-  const actorKind = isMj(req) ? 'mj' : 'player';
-  let teamId = teamIdFromBody != null ? parseId(teamIdFromBody) : null;
-  let enRetrait = false;
-  if (actorKind === 'player') {
-    const membership = await getPlayerGameMembership(gameId, req.glAuth.userId);
-    if (!membership?.team_id) {
-      res.status(403).json({ error: 'Joueur non rattaché à une équipe' });
-      return null;
-    }
-    teamId = Number(membership.team_id);
-    enRetrait = await isPlayerEnRetrait(db, gameId, Number(req.glAuth.userId));
-  } else if (teamId == null) {
-    res.status(400).json({ error: 'teamId requis pour le MJ' });
-    return null;
-  }
+  // Acteur unique (prof, élève connecté ou tablette d'équipe) : `lib/glActeur.js`.
+  const acteur = await resolveGesteActorOrRespond(req, res, gameId, { teamIdFromBody });
+  if (!acteur) return null;
+  const { actorKind, teamId, enRetrait } = acteur;
   const team = await queryOne(
     'SELECT id, type, name FROM gl_teams WHERE id = ? AND game_id = ? LIMIT 1',
     [teamId, gameId],
@@ -141,8 +129,11 @@ async function resolveGesteContext(req, res, gameId, { geste, teamIdFromBody = n
     teamId,
     team,
     actorKind,
-    actorType: actorKind === 'mj' ? 'mj' : 'team',
-    actorId: String(req.glAuth.userId),
+    // Élève connecté : son identifiant (mesures « par l'élève ») ; tablette d'équipe : aucun.
+    playerId: acteur.playerId,
+    acteur,
+    actorType: acteur.actorType,
+    actorId: acteur.actorId,
   };
 }
 
@@ -173,6 +164,18 @@ async function fouillesDuTour(gameId, team, roundNumber, resolved) {
   }
 }
 
+/** Équipe de celui qui lit : la sienne pour un élève, celle de la session pour une tablette. */
+async function equipeDuSpectateur(req, gameId) {
+  const actor = actorOf(req);
+  if (actor.kind === 'team') return Number(actor.teamId);
+  if (actor.kind !== 'player') return null;
+  const row = await queryOne(
+    'SELECT team_id FROM gl_team_members WHERE game_id = ? AND player_id = ? LIMIT 1',
+    [gameId, actor.playerId],
+  );
+  return row?.team_id != null ? Number(row.team_id) : null;
+}
+
 router.get(
   '/games/:id/tenir/tour',
   requireGlAuthOrProjection,
@@ -189,7 +192,30 @@ router.get(
     const round = roundNumber ? await tour.loadRoundView(db, gameId, roundNumber) : null;
     const teams = await tour.loadTeams(db, gameId);
     const markers = await tour.loadPathMarkers(db, game.chapter_id);
-    const { teamPathIndex } = require('../../../lib/shared/glBoardPathCore');
+    const {
+      teamPathIndex,
+      targetMarkerAfterPathSteps,
+      resolveBoardPathStartIndex,
+    } = require('../../../lib/shared/glBoardPathCore');
+    const { markerTonalite } = require('../../../lib/glMarkerVitalityEffects');
+    const startIndex = resolveBoardPathStartIndex(game);
+    // Les six cases à venir (lot 2) : affichées gratuitement avant le jet — l'information que
+    // donnait la Boussole. Donnée publique : le plateau est sous les yeux de tous.
+    const casesAVenir = (team) => {
+      const out = [];
+      for (let i = 1; i <= 6; i += 1) {
+        const cible = targetMarkerAfterPathSteps(markers, team, i, startIndex);
+        if (!cible?.marker) break;
+        out.push({
+          index: cible.index,
+          label: cible.marker.label || null,
+          eventType: cible.marker.event_type,
+          tonalite: markerTonalite(cible.marker) || null,
+        });
+        if (cible.index >= markers.length - 1) break;
+      }
+      return out;
+    };
     const staff = isMj(req);
     // Chronométrage (migration 346) : durées par phase du tour courant, pour le prof seulement.
     let durees = null;
@@ -218,6 +244,7 @@ router.get(
           type: t.type,
           pathIndex: teamPathIndex(t, markers),
           auCamp: tour.isAtCamp(t, markers),
+          casesAVenir: casesAVenir(t),
           hasRolledDiceThisRound:
             roundNumber > 0 && Number(t.last_dice_round_number || 0) >= roundNumber,
           // Console du tour (prof) : quota de fouilles du tour, réparation E2 comprise.
@@ -230,6 +257,27 @@ router.get(
       ),
       campIndex: markers.length ? markers.length - 1 : 0,
       lumiere: await tour.loadLumiere(db, gameId),
+      // File unique du prof (lot 2) : le compteur reste visible depuis tout l'écran du tour.
+      ...(staff
+        ? {
+            demandesEnAttente: await require('../../../lib/glDemandes').compterDemandesEnAttente(
+              db,
+              gameId,
+            ),
+            // « Tout au tableau » : surface à retrouver quand le prof rend la main.
+            surfaceAvantTableau: resolved.overrides?.surface_avant_tableau || null,
+          }
+        : {}),
+      // Présences (lot 2) : confirmée ou non pour chaque équipe (public) ; les absents, pour le
+      // prof et pour les membres (ou la tablette) de l'équipe concernée seulement.
+      presences: await presences.buildPresencesView(db, {
+        gameId,
+        roundNumber,
+        surface: resolveSurface(game, settings),
+        phase: round?.phase || null,
+        viewerTeamId: await equipeDuSpectateur(req, gameId),
+        staff,
+      }),
       // Sabliers : même vue pour le prof, les élèves et la projection (aucun élément privé).
       sablier: glSablier.buildSablierView({
         resolved,
@@ -448,6 +496,223 @@ router.post(
 );
 
 // ---------------------------------------------------------------------
+// Écran d'équipe (lot 2) : sorts rangés par moment du tour
+// ---------------------------------------------------------------------
+
+/**
+ * GET /tenir/sorts?teamId= — sorts de l'équipe rangés par moment (« Avant de lancer », « Après
+ * le jet », « Pendant le tour », « Plus tard »). Un sort hors fenêtre reste servi, `ouvert:
+ * false`, avec son message. Élève : son équipe ; tablette : la sienne ; prof : `teamId`.
+ */
+router.get(
+  '/games/:id/tenir/sorts',
+  requireGlAuthOrTeam,
+  asyncHandler(async (req, res) => {
+    const gameId = parseId(req.params.id);
+    if (!gameId) return res.status(400).json({ error: 'Identifiant de partie invalide' });
+    if (!(await canAccessGlGame(req.glAuth, gameId)))
+      return res.status(403).json({ error: 'Accès partie refusé' });
+    const ctx = await requireTenirGame(req, res, gameId);
+    if (!ctx) return undefined;
+    const teamId = isMj(req) ? parseId(req.query?.teamId) : await equipeDuSpectateur(req, gameId);
+    if (!teamId) return res.status(400).json({ error: 'teamId requis' });
+    try {
+      return res.json(
+        await require('../../../lib/glSpellCast').buildSortsParMoment({ gameId, teamId }),
+      );
+    } catch (err) {
+      if (err?.status === 404)
+        return res.status(404).json({ error: ERROR_MESSAGES.TEAM_NOT_FOUND });
+      throw err;
+    }
+  }),
+);
+
+// ---------------------------------------------------------------------
+// File unique du prof et « Tout au tableau » (lot 2)
+// ---------------------------------------------------------------------
+
+/** GET /tenir/demandes — file unique du prof, la plus ancienne en haut. */
+router.get(
+  '/games/:id/tenir/demandes',
+  requireGlPermission('gl.game.manage'),
+  asyncHandler(async (req, res) => {
+    const gameId = parseId(req.params.id);
+    const ctx = await requireTenirGame(req, res, gameId);
+    if (!ctx) return undefined;
+    const demandes = await require('../../../lib/glDemandes').buildFileDuProf(db, gameId);
+    return res.json({ demandes, total: demandes.length });
+  }),
+);
+
+/**
+ * POST /tenir/surface { tableau: true|false } — « Tout au tableau » : le prof reprend tous les
+ * gestes en pleine séance (surcharge `surface` = `tableau`), puis rend la main (`false`). Les
+ * jets en suspens s'appliquent ; les tablettes d'équipe restent connectées, soumises aux droits
+ * de la nouvelle surface.
+ */
+router.post(
+  '/games/:id/tenir/surface',
+  requireGlPermission('gl.game.manage'),
+  asyncHandler(async (req, res) => {
+    const gameId = parseId(req.params.id);
+    const ctx = await requireTenirGame(req, res, gameId);
+    if (!ctx) return undefined;
+    const versTableau = req.body?.tableau !== false;
+    const { parseOverrides } = require('../../../lib/glTenir');
+    const actuelle = resolveSurface(ctx.game, ctx.settings);
+    const overrides = { ...parseOverrides(ctx.game.tenir_overrides_json) };
+    let surface;
+    if (versTableau) {
+      if (actuelle === 'tableau') {
+        return res
+          .status(409)
+          .json({ error: 'La partie se joue déjà au tableau', code: 'SURFACE_DEJA' });
+      }
+      overrides.surface_avant_tableau = actuelle;
+      overrides.surface = 'tableau';
+      surface = 'tableau';
+    } else {
+      if (!overrides.surface_avant_tableau) {
+        return res.status(409).json({
+          error: 'Rien à rendre : la partie n’a pas été passée au tableau',
+          code: 'SURFACE_DEJA',
+        });
+      }
+      surface = overrides.surface_avant_tableau;
+      overrides.surface = surface;
+      delete overrides.surface_avant_tableau;
+    }
+    const events = [];
+    await withTransaction(async (tx) => {
+      await tx.execute(
+        'UPDATE gl_games SET tenir_overrides_json = ?, tenir_surface = ?, updated_at = NOW() WHERE id = ?',
+        [JSON.stringify(overrides), surface, gameId],
+      );
+      // Les jets en suspens s'appliquent : au tableau, le prof repart d'un plateau net.
+      const confirmees = await require('../../../lib/glArriveeSuspendue').confirmerArriveesTx(tx, {
+        gameId,
+        settings: ctx.settings,
+        actorType: 'mj',
+        actorId: String(req.glAuth.userId),
+        motif: 'surface',
+      });
+      events.push(...confirmees.events);
+      events.push(
+        await require('../../../lib/glGameEvents').insertGameEvent(tx, {
+          gameId,
+          actorType: 'mj',
+          actorId: String(req.glAuth.userId),
+          eventType: 'surface_changee',
+          payload: { surface, from: actuelle },
+        }),
+      );
+    });
+    emitAll(gameId, events);
+    return res.json({ ok: true, surface, from: actuelle, retourPossible: versTableau });
+  }),
+);
+
+// ---------------------------------------------------------------------
+// Présences (lot 2) : « Il manque quelqu'un ? », « Quelqu'un vient d'arriver »
+// ---------------------------------------------------------------------
+
+/** Contexte d'un geste de présence : partie « Tenir », tour ouvert, acteur et son équipe. */
+async function resolvePresenceContext(req, res, gameId) {
+  if (!(await canAccessGlGame(req.glAuth, gameId))) {
+    res.status(403).json({ error: 'Accès partie refusé' });
+    return null;
+  }
+  const ctx = await requireTenirGame(req, res, gameId);
+  if (!ctx) return null;
+  const roundNumber = Number(ctx.game.current_round_number) || 0;
+  if (!roundNumber) {
+    res.status(409).json({ error: ERROR_MESSAGES.AUCUN_TOUR, code: 'AUCUN_TOUR' });
+    return null;
+  }
+  const acteur = await resolveGesteActorOrRespond(req, res, gameId, {
+    teamIdFromBody: req.body?.teamId,
+  });
+  if (!acteur) return null;
+  const team = await queryOne('SELECT id FROM gl_teams WHERE id = ? AND game_id = ? LIMIT 1', [
+    acteur.teamId,
+    gameId,
+  ]);
+  if (!team) {
+    res.status(404).json({ error: ERROR_MESSAGES.TEAM_NOT_FOUND });
+    return null;
+  }
+  const round = await queryOne(
+    'SELECT phase FROM gl_game_rounds WHERE game_id = ? AND round_number = ? LIMIT 1',
+    [gameId, roundNumber],
+  );
+  return { ...ctx, roundNumber, acteur, phase: round?.phase || null };
+}
+
+/**
+ * POST /tenir/presences { teamId?, absents: [playerId] } — l'équipe (élève connecté, tablette
+ * d'équipe) ou le prof dit qui manque ; la présence de l'équipe est confirmée pour le tour.
+ */
+router.post(
+  '/games/:id/tenir/presences',
+  requireGlAuthOrTeam,
+  asyncHandler(async (req, res) => {
+    const gameId = parseId(req.params.id);
+    if (!gameId) return res.status(400).json({ error: 'Identifiant de partie invalide' });
+    const ctx = await resolvePresenceContext(req, res, gameId);
+    if (!ctx) return undefined;
+    try {
+      let result;
+      await withTransaction(async (tx) => {
+        result = await presences.confirmerPresenceTx(tx, {
+          gameId,
+          roundNumber: ctx.roundNumber,
+          teamId: ctx.acteur.teamId,
+          absentPlayerIds: Array.isArray(req.body?.absents) ? req.body.absents : [],
+          actorType: ctx.acteur.actorType,
+          actorId: ctx.acteur.actorId,
+          phase: ctx.phase,
+        });
+      });
+      emitAll(gameId, result.events);
+      return res.json({ ok: true, teamId: result.teamId, absents: result.absents });
+    } catch (err) {
+      return sendTourError(res, err);
+    }
+  }),
+);
+
+/** POST /tenir/presences/arrivee { teamId?, playerId } — un retardataire rejoint le tour. */
+router.post(
+  '/games/:id/tenir/presences/arrivee',
+  requireGlAuthOrTeam,
+  asyncHandler(async (req, res) => {
+    const gameId = parseId(req.params.id);
+    const playerId = parseId(req.body?.playerId);
+    if (!gameId || !playerId) return res.status(400).json({ error: 'playerId requis' });
+    const ctx = await resolvePresenceContext(req, res, gameId);
+    if (!ctx) return undefined;
+    try {
+      let result;
+      await withTransaction(async (tx) => {
+        result = await presences.arriveeRetardataireTx(tx, {
+          gameId,
+          roundNumber: ctx.roundNumber,
+          teamId: ctx.acteur.teamId,
+          playerId,
+          actorType: ctx.acteur.actorType,
+          actorId: ctx.acteur.actorId,
+        });
+      });
+      emitAll(gameId, result.events);
+      return res.json({ ok: true, teamId: result.teamId, playerId: result.playerId });
+    } catch (err) {
+      return sendTourError(res, err);
+    }
+  }),
+);
+
+// ---------------------------------------------------------------------
 // Lancer : serveur | physique | libre (prof) ; saisies en attente
 // ---------------------------------------------------------------------
 
@@ -464,7 +729,7 @@ function parseFaces(raw, count) {
  */
 router.post(
   '/games/:id/tenir/lancer',
-  requireGlAuth,
+  requireGlAuthOrTeam,
   asyncHandler(async (req, res) => {
     const gameId = parseId(req.params.id);
     if (!gameId) return res.status(400).json({ error: 'Identifiant de partie invalide' });
@@ -598,7 +863,7 @@ router.post(
  */
 router.post(
   '/games/:id/tenir/arrivee/garder',
-  requireGlAuth,
+  requireGlAuthOrTeam,
   asyncHandler(async (req, res) => {
     const gameId = parseId(req.params.id);
     if (!gameId) return res.status(400).json({ error: 'Identifiant de partie invalide' });
@@ -606,15 +871,11 @@ router.post(
       return res.status(403).json({ error: 'Accès partie refusé' });
     const ctx = await requireTenirGame(req, res, gameId);
     if (!ctx) return undefined;
-    let teamId = req.body?.teamId != null ? parseId(req.body.teamId) : null;
-    if (!isMj(req)) {
-      const membership = await getPlayerGameMembership(gameId, req.glAuth.userId);
-      if (!membership?.team_id)
-        return res.status(403).json({ error: 'Joueur non rattaché à une équipe' });
-      teamId = Number(membership.team_id);
-    } else if (teamId == null) {
-      return res.status(400).json({ error: 'teamId requis pour le MJ' });
-    }
+    const acteur = await resolveGesteActorOrRespond(req, res, gameId, {
+      teamIdFromBody: req.body?.teamId,
+    });
+    if (!acteur) return undefined;
+    const teamId = acteur.teamId;
     const { confirmerArriveesTx } = require('../../../lib/glArriveeSuspendue');
     let result;
     await withTransaction(async (tx) => {
@@ -622,8 +883,8 @@ router.post(
         gameId,
         teamId,
         settings: ctx.settings,
-        actorType: isMj(req) ? 'mj' : 'team',
-        actorId: String(req.glAuth.userId),
+        actorType: acteur.actorType,
+        actorId: acteur.actorId,
         motif: 'garde',
       });
     });
@@ -804,7 +1065,7 @@ router.post(
 /** « On passe » : une péripétie se ferme sans rien perdre. */
 router.post(
   '/games/:id/tenir/peripetie/passer',
-  requireGlAuth,
+  requireGlAuthOrTeam,
   asyncHandler(async (req, res) => {
     const gameId = parseId(req.params.id);
     if (!gameId) return res.status(400).json({ error: 'Identifiant de partie invalide' });
@@ -812,29 +1073,24 @@ router.post(
       return res.status(403).json({ error: 'Accès partie refusé' });
     const ctx = await requireTenirGame(req, res, gameId);
     if (!ctx) return undefined;
-    let teamId = null;
-    if (isMj(req)) {
-      if (req.body?.teamId != null) {
-        teamId = parseId(req.body.teamId);
-        const team = teamId
-          ? await queryOne('SELECT id FROM gl_teams WHERE id = ? AND game_id = ? LIMIT 1', [
-              teamId,
-              gameId,
-            ])
-          : null;
-        if (!team) return res.status(404).json({ error: 'Équipe introuvable dans cette partie' });
-      }
-    } else {
-      const membership = await getPlayerGameMembership(gameId, req.glAuth.userId);
-      if (!membership?.team_id)
-        return res.status(403).json({ error: 'Joueur non rattaché à une équipe' });
-      teamId = Number(membership.team_id);
+    const acteur = await resolveGesteActorOrRespond(req, res, gameId, {
+      teamIdFromBody: req.body?.teamId,
+      teamRequired: false,
+    });
+    if (!acteur) return undefined;
+    const teamId = acteur.teamId;
+    if (acteur.kind === 'mj' && teamId != null) {
+      const team = await queryOne('SELECT id FROM gl_teams WHERE id = ? AND game_id = ? LIMIT 1', [
+        teamId,
+        gameId,
+      ]);
+      if (!team) return res.status(404).json({ error: 'Équipe introuvable dans cette partie' });
     }
     const evt = await require('../../../lib/glGameEvents').insertGameEvent(db, {
       gameId,
       teamId,
-      actorType: isMj(req) ? 'mj' : 'team',
-      actorId: String(req.glAuth.userId),
+      actorType: acteur.actorType,
+      actorId: acteur.actorId,
       eventType: 'peripetie_passee',
       payload: { id: req.body?.id ? String(req.body.id) : null },
     });

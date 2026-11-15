@@ -4,6 +4,7 @@ import { GLTourJournal } from '../mj/GLTourJournal.jsx';
 import { GLGameBoard } from '../GLGameBoard.jsx';
 import { numeroCase } from '../../../shared/glCaseNumeroCore.js';
 import { GLSablier } from './GLSablier.jsx';
+import { GLDefisCasePanel } from './GLDefisCasePanel.jsx';
 import { resolveBoardMovementConfig } from '../../utils/glBoardPath.js';
 
 /** États d'une page du carnet → libellé affiché (jamais l'état brut). */
@@ -142,6 +143,10 @@ export function GLProjectionView({ gameId, token, refreshKey = 0 }) {
             ))}
           </ul>
         </section>
+      ) : null}
+      {/* À la clôture du tour : les défis à préparer pour la semaine (jamais le critère). */}
+      {round?.phase === 'clos' ? (
+        <GLDefisCasePanel gameId={gameId} refreshKey={refreshKey} teams={teams} avecEquipe />
       ) : null}
       {round?.passeur ? (
         <blockquote className="gl-tour-passeur">

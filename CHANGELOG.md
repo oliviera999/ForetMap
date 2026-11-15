@@ -9,6 +9,110 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — G&L « Tenir à deux » : défis de la Trame (lot 3 sur 3)
+
+- **Quatre défis sur un même plateau de cartes, hors du temps de jeu** : pour les équipes qui
+  ont fini l'activité du jour et pour l'élève seul en veillée. Gnomes : **Retisser** (un réseau
+  « est mangé par », niveaux de 5, 7, 9 puis 12 cartes) et **Réparer la trame** (ranger six
+  espèces, lire la leçon, choisir ce qui protégerait deux espèces menacées). Licornes : **La
+  trame altérée** (une carte retirée d'un réseau donné tissé : dire ce que devient chaque autre
+  carte) et **Les fils cachés** (de la cause vers l'effet). Sur les deux biomes du plateau de la
+  partie, dès le chapitre 1.
+- **Catalogues** `trame-reseaux.json` (8 réseaux de 12 cartes), `trame-fils.json` (4 jeux),
+  `trame-reparer.json` (11 mesures, 6 espèces à ranger par plateau) : tables `gl_trame_*`
+  (migration `354`), chargeurs tolérant et strict (`lib/glTrameImport.js`), synchronisation par
+  empreinte, carte d'administration, test de contenu. Les liens acceptés entre espèces réelles
+  rejoignent `gl_species_interactions`, sans rien supprimer.
+- **Cœur pur** `src/gl/defis/trameCore.js` (miroir `lib/shared/glTrameCore.js`), couvert à
+  100 % des branches : classement de chaque flèche (« Lien trouvé », « Regarde le sens », « À
+  discuter » — jamais « faux »), fin d'un niveau, cascade de la trame altérée (les 24 cascades de
+  référence retrouvées exactement), fils cachés, Réparer, indices en échelle.
+- **En partie** : `gl_trame_defis` et `gl_trame_reussites` (migration `355`), routes
+  `GET|POST /api/gl/games/:id/defis`, `GET|PUT …/defis/:defiId`, `POST …/indice`,
+  `GET …/defis/suivi` (CSV). **Sauvegarde stricte** par révision (409 `edit_conflict`) : l'élève
+  reprend sur n'importe quel appareil. Les solutions ne quittent jamais le serveur.
+- **Récompense sans aucune ressource** : à la première réussite de chaque unité, une page de
+  veillée du chapitre au nom de l'élève (jamais un feuillet de zone de chasse, une page de route
+  ni une page dont le titre nomme l'oiseau ; deux par semaine au plus par cette voie), un point de regard, un badge — **Tisserand** et **Révélateur** ne
+  sont plus réservés, **Gardien des fils** et **Réparateur** les rejoignent. En mode équipe, la
+  réussite vaut pour chaque membre présent. Évènement `defi_trame_reussi`, une ligne d'Olu.
+- **Lien entre les peuples** : une trame altérée réussie par une Licorne signale l'espèce
+  retirée dans « À réparer » du carnet de la classe ; le prochain Réparer d'un Gnome la propose
+  en premier. Aucun gain.
+- **Écrans** : entrée « Défis de la Trame » au Seuil et sur la tablette d'équipe hors tour, en
+  plein écran ; flèche par appui sur la carte de départ puis d'arrivée, au doigt comme au
+  clavier ; classement dit par pictogramme, libellé et annonce vocale, jamais par la couleur
+  seule ; liste « relier à… » sur téléphone. Onglet **« Défis »** de la console : lancer pour
+  une équipe, suivi par élève dans l'ordre alphabétique, sans classement, export CSV.
+- **Réglages**, surchargeables par partie : `tenir_defis` (true), `tenir_defis_par_peuple`
+  (true), `tenir_defis_pages_par_semaine` (2), `tenir_defis_mode_equipe` (true).
+- **Outil MCP `gl_seance`** : `apres` compte aussi les défis de la Trame par type (réussites,
+  élèves distincts, pages, défis en cours), sans aucun nom. **E2e**
+  `e2e/gl-tenir-defis-trame.spec.js` : Retisser niveau 5 sur tablette, trame altérée sur
+  téléphone, suivi du prof. Documentation : `docs/GL_DEFIS.md`.
+
+### Corrigé — G&L : texte réservé aux lecteurs d'écran
+
+- La classe `.gl-visually-hidden`, utilisée par plusieurs écrans (dés, pot de sort), n'avait
+  aucun style : ses libellés s'affichaient. Elle est maintenant définie.
+
+### Ajouté — G&L « Tenir à deux » : tablettes d'équipe, console, défi de case (lot 2 sur 3)
+
+- **Les équipes jouent en même temps.** En hybride et sur tablette, plus d'équipe « active » :
+  dernier jet, fenêtre « après le jet » et jet en suspens (Relance) se tiennent par équipe ; une
+  question de case due suit l'équipe si elle est déplacée (« Répondre » sur son écran). Au
+  tableau, rien ne change.
+- **QR de la classe et tablette d'équipe.** Un lien permanent par classe (`gl_class_links`,
+  migration `349`), imprimable (QR + code de huit caractères). La tablette touche la mascotte
+  de son équipe et joue avec les droits d'un membre, trois heures, sans compte : acteur `team`
+  (`lib/glActeur.js`), gestes seulement quand un tour est ouvert, aucune bourse hors tour, rien
+  gardé après fermeture de l'onglet. Console : tablettes connectées, « Déconnecter »,
+  « Régénérer… ». Un élève connecté avec son compte arrive sur le même écran d'équipe.
+- **Marché depuis la tablette : « Qui agit ? »** Un geste de Marché touche la bourse d'un
+  élève : la tablette demande qui agit (membres présents, non en retrait), la route reçoit
+  `onBehalfOfPlayerId` et le geste est journalisé pour le prof (`marche_au_nom_de`).
+- **Présences par équipe** (`gl_game_round_presences`, migration `350`) : « Il manque
+  quelqu'un ? », « Quelqu'un vient d'arriver », « Tout le monde est là » pour le prof.
+- **Pot de sort sans calcul** (migration `351`) : part automatique des présents, « pas moi »
+  par ligne ; le pot d'une équipe n'est plus diffusé aux autres.
+- **Cordée offerte** : payée par l'équipe qui l'offre, à une équipe de l'autre peuple ; rendue
+  si l'une des deux n'a pas jeté avant le souffle.
+- **« Refuser et rembourser »** un sort du prof, avec un mot facultatif (remboursement exact,
+  cause de livre `sort_rembourse`).
+- **File unique « Demandes »** (`gl_game_demandes`, migration `348`) : dés à valider, jets en
+  suspens, sorts à appliquer, Nommer, pages et chimères à relire, présences, défis à juger.
+  **Aucune attente sans sortie automatique** : fin de la phase jeu, clôture du tour (sort du
+  tour non appliqué : rendu), ouverture du tour suivant (sort d'activité : rendu), Seuil.
+- **« Tout au tableau »** et retour, en pleine séance (`POST …/tenir/surface`).
+- **Écran d'équipe** : sorts rangés par moment, rôles en conseil, six cases à venir affichées
+  gratuitement, distance au voile, pages qui « attendent un lecteur » ou sont « protégées ».
+- **Règles tranchées par l'audit** (migration `352`) : Marché fermé au chapitre 1 (surcharge
+  pré-cochée à la création), profil `court` (lecture en veillée), réglage
+  `tenir_fouille_sous_voile`, Boussole sortie du grimoire (`actif: false`), Farce refusée sur
+  une équipe sous le voile.
+- **Défi de case** (migration `353`, catalogue `defis-cases.json`, 16 défis) : les huit cases
+  « Défi d'équipe » confient un défi à préparer pour la séance suivante ; le tour continue. Le
+  prof juge d'un geste (« Relevé » : le voile recule de `tenir_defi_recul` cases ; « Pas
+  encore » : rien), une seule décision ; annulé au Seuil. Aucune ressource. Le critère n'est
+  servi qu'au prof. Réglages `tenir_defis_case`, `tenir_defi_declenchement` (`arret` |
+  `passage`), `tenir_defi_recul` ; six lignes d'Olu.
+- **Le serveur rejoue le pot.** Seule une équipe du pot le lance ou le règle (l'identifiant d'un
+  pot circule dans la salle) ; la partenaire d'une Cordée offerte ne lit plus les bourses de la
+  lanceuse ; un absent, un élève en retrait ou un « pas moi » n'est jamais débité (parts
+  recalculées au lancement et à la reprise d'un pot né à un tour précédent). Une tablette ne
+  reçoit que l'effectif de son équipe. Sur tablette, l'assistant de sort va droit au pot, et ne
+  revient plus à sa première étape à chaque évènement de la partie.
+- **Outil MCP `gl_seance`** (lecture seule) : `avant` (catalogues, partie en cours, phase, lien
+  de classe, défis à juger) et `apres` (durées par phase, demandes en attente, défis reçus,
+  questions posées).
+- **Banc** : scénario `tablette-parallele-absences` (quatre tablettes d'équipe en parallèle,
+  onze assertions, ajouté à `npm run test:sim`), grille `grille-defis.json`, jugement des défis
+  par le prof virtuel. **E2e** `e2e/gl-tenir-tablettes.spec.js` : quatre tablettes par le lien
+  de classe et un compte élève sur le même écran.
+- **Bordures des écrans d'équipe.** Les styles du lot visaient deux jetons qui n'existent pas
+  (`--line`, `--surface`) : cartes, pastilles et boutons s'affichaient sans trait. Ils portent
+  maintenant `--gl-border` et `--gl-surface`.
+
 ### Ajouté — G&L « Tenir à deux » : vérité et mesure (lot 1 sur 3)
 
 - **Retours de QCM qui expliquent sans punir.** Une seule fonction de retour

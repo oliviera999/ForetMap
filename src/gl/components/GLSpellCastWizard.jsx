@@ -44,6 +44,8 @@ export function GLSpellCastWizard({
   /** « Tenir à deux » : roster (Héritage) et pages pâlies (Nommer) pour les paramètres d'effet. */
   roster = [],
   pagesPalies = [],
+  /** Tablette de l'équipe (lot 2) : pot partagé automatiquement, aucune saisie de part. */
+  tablette = false,
 }) {
   const { confirm } = useAppDialogs();
   const titleId = useId();
@@ -56,6 +58,8 @@ export function GLSpellCastWizard({
   const [effectParams, setEffectParams] = useState({});
   const closeTimerRef = useRef(null);
   const staffDraftStartedRef = useRef(false);
+  // Tablette d'équipe : elle ne lance que pour SON équipe, l'étape « quelle équipe ? » saute.
+  const tabletteTeamAutoRef = useRef(null);
 
   const activeSpellCode = spellCode || pickSpellCode;
   const activeSpell = useMemo(() => {
@@ -90,6 +94,10 @@ export function GLSpellCastWizard({
       }),
     [teams, teamScope, playerTeamId, isStaff, casterKind],
   );
+  // Clé stable des équipes sélectionnables : l'état de partie se recharge à chaque évènement
+  // (en jeu parallèle, sans arrêt) et livre un tableau neuf — l'assistant ne doit pas pour
+  // autant revenir à sa première étape au milieu d'un pot.
+  const selectableTeamIdsKey = selectableTeams.map((t) => Number(t.id)).join(',');
 
   const beginFundDraft = useCallback(
     async ({ spell, teamId, options = null }) => {
@@ -152,19 +160,18 @@ export function GLSpellCastWizard({
     staffDraftStartedRef.current = false;
     setFundLoading(false);
     setStep(resolveSpellCastInitialStep({ isStaff, activeSpellCode }));
-    if (
-      playerTeamId != null &&
-      selectableTeams.some((t) => Number(t.id) === Number(playerTeamId))
-    ) {
+    tabletteTeamAutoRef.current = null;
+    const selectableIds = selectableTeamIdsKey ? selectableTeamIdsKey.split(',').map(Number) : [];
+    if (playerTeamId != null && selectableIds.includes(Number(playerTeamId))) {
       setSelectedTeamId(Number(playerTeamId));
-    } else if (selectableTeams.length === 1) {
-      setSelectedTeamId(Number(selectableTeams[0].id));
+    } else if (selectableIds.length === 1) {
+      setSelectedTeamId(selectableIds[0]);
     } else if (isStaff && currentTeamId != null) {
       setSelectedTeamId(Number(currentTeamId));
     } else {
       setSelectedTeamId(null);
     }
-  }, [open, activeSpellCode, playerTeamId, selectableTeams, isStaff, currentTeamId]);
+  }, [open, activeSpellCode, playerTeamId, selectableTeamIdsKey, isStaff, currentTeamId]);
 
   useEffect(() => {
     if (!open || !isStaff || !activeSpellCode || !gameId) return;
@@ -227,6 +234,19 @@ export function GLSpellCastWizard({
       options: buildDraftOptions(params),
     });
   }
+
+  useEffect(() => {
+    if (!open) {
+      tabletteTeamAutoRef.current = null;
+      return;
+    }
+    if (!tablette || isStaff || step !== 'team' || !activeSpellCode || playerTeamId == null) return;
+    if (tabletteTeamAutoRef.current === activeSpellCode) return;
+    tabletteTeamAutoRef.current = activeSpellCode;
+    handleSelectTeam(Number(playerTeamId));
+    // handleSelectTeam est recréée à chaque rendu : la garde par référence suffit.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, tablette, isStaff, step, activeSpellCode, playerTeamId]);
 
   function handlePickSpell(code) {
     setPickSpellCode(code);
@@ -292,8 +312,11 @@ export function GLSpellCastWizard({
   async function handleLaunch() {
     if (!spellCast?.draft?.id || !readyLocal) return;
     try {
+      // Tablette de l'équipe : le partage vient du serveur, rien à enregistrer avant de lancer.
       const payload = buildContributionsSavePayload(spellCast.draft.roster, localContribs);
-      const savedDraft = await spellCast.saveContributions(spellCast.draft.id, payload);
+      const savedDraft = tablette
+        ? spellCast.draft
+        : await spellCast.saveContributions(spellCast.draft.id, payload);
       if (!savedDraft?.ready && !isSpellCastReady(savedDraft?.totals, required)) {
         return;
       }
@@ -434,6 +457,13 @@ export function GLSpellCastWizard({
                 busy={spellCast.busy}
                 onUpdateContrib={updateContrib}
                 onContribBlur={handleContribBlur}
+                tablette={tablette}
+                onExclure={
+                  spellCast.exclure
+                    ? (targetId, exclu) =>
+                        spellCast.exclure(spellCast.draft.id, targetId, exclu).catch(() => {})
+                    : null
+                }
               />
             ) : null}
           </div>

@@ -65,6 +65,11 @@ export function useGlTenirTour({ gameId, enabled = true, onChanged = null }) {
     phase: (phase, extra = {}) => post('/tour/phase', { phase, ...extra }),
     equipeSuivante: () => post('/tour/equipe-suivante'),
     absences: (playerIds) => post('/tour/absences', { playerIds }),
+    // Présences (lot 2) : l'équipe dit qui manque ; un retardataire rejoint le tour.
+    presences: (absents, teamId = null) =>
+      post('/presences', { absents, ...(teamId != null ? { teamId } : {}) }),
+    arrivee: (playerId, teamId = null) =>
+      post('/presences/arrivee', { playerId, ...(teamId != null ? { teamId } : {}) }),
     fouilleFenetre: (teamId, ouverte) => post('/tour/fouille-fenetre', { teamId, ouverte }),
     lancer: (body) => post('/lancer', body),
     // Relance : l'équipe garde son jet, la case restée en suspens s'applique.
@@ -76,6 +81,8 @@ export function useGlTenirTour({ gameId, enabled = true, onChanged = null }) {
     oluCorrige: (teamId) => post('/tour/olu-corrige', { teamId }),
     retrait: (playerId, entree, motif) => post('/retrait', { playerId, entree, motif }),
     peripetiePasser: (id, teamId) => post('/peripetie/passer', { id, teamId }),
+    // « Tout au tableau » (lot 2) : le prof reprend tous les gestes, puis rend la main.
+    toutAuTableau: (tableau = true) => post('/surface', { tableau }),
     // Sabliers réglables d'un clic (prof) : réglages enregistrés pour la partie, ou action
     // `pause` / `reprise` / `zero` sur le sablier de phase.
     sablier: (body) => put('/sablier', body),

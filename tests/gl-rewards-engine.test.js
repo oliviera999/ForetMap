@@ -76,8 +76,20 @@ after(async () => {
   invalidateModulesCache();
 });
 
-test('catalogue : 16 entrées, paliers de la Trame, réservés hors catalogue, aucun mot interdit', () => {
-  assert.equal(GL_REWARD_CATALOGUE.length, 16);
+test('catalogue : 20 entrées, paliers de la Trame, plus aucun badge réservé, aucun mot interdit', () => {
+  assert.equal(GL_REWARD_CATALOGUE.length, 20);
+  // Lot 3 : Tisserand et Révélateur ne sont plus réservés ; avec Gardien des fils et
+  // Réparateur, ce sont les quatre badges des défis de la Trame.
+  assert.deepEqual(RESERVED_REWARDS, []);
+  assert.deepEqual(
+    GL_REWARD_CATALOGUE.filter((e) => e.family === 'trame').map((e) => [e.title, e.tiers[0]]),
+    [
+      ['Tisserand', 3],
+      ['Révélateur', 3],
+      ['Gardien des fils', 2],
+      ['Réparateur', 2],
+    ],
+  );
   assert.deepEqual(
     glRewards.publicCatalogue().tiers.map((t) => `${t.emoji} ${t.label}`),
     ['🧵 Fil', '🪢 Nœud', '🧶 Étoffe'],
@@ -305,7 +317,7 @@ test('GET /api/gl/rewards/me : joueur seul, catalogue + paliers Fil/Nœud/Étoff
     res.body.tiers.map((t) => t.label),
     ['Fil', 'Nœud', 'Étoffe'],
   );
-  assert.equal(res.body.catalogue.length, 16);
+  assert.equal(res.body.catalogue.length, 20);
   assert.ok(res.body.rewards.some((r) => r.key === 'cooperation.dons.2' && r.seen === false));
   assert.ok(res.body.families.some((f) => f.key === 'manuel'));
   assertNoRankingKeys(res.body);

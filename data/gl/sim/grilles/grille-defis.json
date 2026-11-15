@@ -1,0 +1,27 @@
+{
+  "format": "gl-sim-grille v1",
+  "description": "Déclenchement du défi de case (lot 2, § 7) joué par le scénario `equilibrage` : à l'arrêt exact sur la case (défaut) ou au passage. Sert à comparer la part d'équipes sous le voile par plateau.",
+  "variantes": [
+    {
+      "id": "arret",
+      "libelle": "Défi à l'arrêt exact (défaut)",
+      "reglages": {
+        "gameplay.tenir_defi_declenchement": "arret"
+      }
+    },
+    {
+      "id": "passage",
+      "libelle": "Défi au passage",
+      "reglages": {
+        "gameplay.tenir_defi_declenchement": "passage"
+      }
+    },
+    {
+      "id": "sans-defi",
+      "libelle": "Sans défi de case (témoin)",
+      "reglages": {
+        "gameplay.tenir_defis_case": false
+      }
+    }
+  ]
+}

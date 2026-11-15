@@ -103,16 +103,33 @@ test('chargement réel idempotent : deux passages = même base, rang_case et cen
   assert.ok(Number.isInteger(Number(zone.rang_case)));
   assert.ok(Number(zone.cx) > 0);
   assert.equal(a.sorts.length, 25);
+  // Défis de case (lot 2) : deux par plateau dans le jeu d'exemple, clé d'upsert `code`.
+  const defis = await queryAll(
+    "SELECT code, plateau, actif FROM gl_tenir_defis_cases WHERE code LIKE 'd-ex-%' ORDER BY code",
+  );
+  assert.equal(defis.length, 8);
+  assert.ok(defis.every((d) => Number(d.actif) === 1));
+  assert.deepEqual([...new Set(defis.map((d) => Number(d.plateau)))], [1, 2, 3, 4]);
   const spells = await queryAll(
     'SELECT spell_code FROM gl_chapter_spells WHERE chapter_id = ? ORDER BY spell_code',
     [corpus.chapters[1].chapter.id],
   );
   assert.ok(spells.some((s) => s.spell_code === 'SL002'));
-  assert.ok(!spells.some((s) => s.spell_code === 'SL038'), 'Boussole ouvre au chapitre 2');
   const ch2 = await queryAll('SELECT spell_code FROM gl_chapter_spells WHERE chapter_id = ?', [
     corpus.chapters[2].chapter.id,
   ]);
-  assert.ok(ch2.some((s) => s.spell_code === 'SL038'));
+  // Lot 2 : la Boussole est `actif: false` — en base (`propose`, non lançable), rattachée à
+  // aucun chapitre ; ses six cases à venir sont affichées gratuitement.
+  assert.ok(!spells.some((s) => s.spell_code === 'SL038'));
+  assert.ok(!ch2.some((s) => s.spell_code === 'SL038'), 'Boussole sortie du grimoire');
+  const boussole = await queryAll(
+    "SELECT statut FROM gl_spells WHERE spell_code = 'SL038' AND tenir_v2 = 1",
+  );
+  assert.equal(boussole[0]?.statut, 'propose');
+  assert.ok(
+    ch2.some((s) => s.spell_code === 'SL042'),
+    'Sentier ouvre au chapitre 2',
+  );
   assert.ok(
     ch2.some((s) => s.spell_code === 'SL002'),
     'ouverture cumulative',

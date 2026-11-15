@@ -34,6 +34,10 @@ describe('GLTenirEquipeView', () => {
   });
 
   test('grise les gestes selon les permissions servies (tablette en jeu : tout ouvert)', async () => {
+    // « Répondre » s'allume quand une question de case attend l'équipe (lot 2).
+    apiGlMock.mockResolvedValue({
+      round: { number: 1, phase: 'jeu', questionsEnAttente: [{ teamId: 2, markerId: 31 }] },
+    });
     render(
       <GLTenirEquipeView
         gameState={gameState}
@@ -132,6 +136,65 @@ describe('GLTenirEquipeView', () => {
     await waitFor(() =>
       expect(apiGlMock).toHaveBeenCalledWith('/api/gl/games/7/tenir/arrivee/garder', 'POST', {}),
     );
+  });
+
+  test('« Répondre » : éteint sans question due ; présente la question de la case due, puis le retour du serveur', async () => {
+    const round = { number: 1, phase: 'jeu', questionsEnAttente: [] };
+    apiGlMock.mockImplementation(async (path, method) => {
+      if (path === '/api/gl/games/7/tenir/tour') return { round };
+      if (path === '/api/gl/games/7/markers/31/present-question' && method === 'POST') {
+        return {
+          questionCode: 'TEX-P1-01',
+          presentation: {
+            presentationToken: 'jeton',
+            question: 'Qui disperse les graines du figuier ?',
+            choices: [
+              { id: 'c1', text: 'Le calao' },
+              { id: 'c2', text: 'Le vent seul' },
+            ],
+          },
+        };
+      }
+      if (path === '/api/gl/games/7/qcm/answer') {
+        return { correct: false, feedback: 'Pas encore : le figuier compte sur un oiseau.' };
+      }
+      return {};
+    });
+    const { rerender } = render(
+      <GLTenirEquipeView
+        gameState={gameState}
+        tenir={tenirWith({ jeter: true, lancer: true, repondre: true, fouiller: true, lire: true })}
+        teamId={2}
+        onReloadGame={vi.fn()}
+      />,
+    );
+    await waitFor(() => expect(screen.getByTestId('gl-tenir-equipe')).toBeInTheDocument());
+    expect(screen.getByRole('button', { name: 'Répondre' }).disabled).toBe(true);
+
+    // Une question attend l'équipe (elle a pu être déplacée depuis par un sort).
+    round.questionsEnAttente = [{ teamId: 2, markerId: 31 }];
+    fireEvent.click(screen.getByRole('button', { name: 'Actualiser' }));
+    rerender(
+      <GLTenirEquipeView
+        gameState={gameState}
+        tenir={tenirWith({ jeter: true, lancer: true, repondre: true, fouiller: true, lire: true })}
+        teamId={2}
+        onReloadGame={vi.fn()}
+      />,
+    );
+    const bouton = await screen.findByRole('button', { name: 'Répondre à la question' });
+    expect(bouton.disabled).toBe(false);
+    fireEvent.click(bouton);
+    await screen.findByText('Qui disperse les graines du figuier ?');
+    fireEvent.click(screen.getByLabelText('Le vent seul'));
+    fireEvent.click(screen.getByRole('button', { name: 'Répondre' }));
+    const retour = await screen.findByTestId('gl-tenir-case-retour');
+    expect(retour.textContent).toBe('Pas encore : le figuier compte sur un oiseau.');
+    expect(apiGlMock).toHaveBeenCalledWith('/api/gl/games/7/qcm/answer', 'POST', {
+      questionCode: 'TEX-P1-01',
+      presentationToken: 'jeton',
+      choiceId: 'c2',
+    });
   });
 
   test('sans jet en suspens pour l’équipe : pas de carte', async () => {
