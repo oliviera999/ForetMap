@@ -8,6 +8,7 @@ import { GLVoileLayer } from '../../src/gl/components/tenir/GLVoileLayer.jsx';
 import { GLTenirQuestionCard } from '../../src/gl/components/tenir/GLTenirQuestionCard.jsx';
 import { GLOluBulle } from '../../src/gl/components/tenir/GLOluBulle.jsx';
 import { TENIR_OLU_FALLBACK, TENIR_VERDICT_TEXTES } from '../../src/gl/constants/tenirTextes.js';
+import { findForbiddenString } from '../../src/shared/glGardeFousCore.js';
 import {
   FENETRE_LABELS,
   GLSpellCastEffectParams,
@@ -18,9 +19,11 @@ vi.mock('../../src/gl/services/apiGL.js', () => ({
   getGlToken: () => 'tok',
 }));
 
-/** Spec § 2 : jamais visible côté élève (identifiant technique `kraa` toléré dans le code). */
-const FORBIDDEN =
-  /monstre|ennemi|attaque|poursui|corbeau|Krâ|Kraa|Grise|\bfaux\b|raté|perdu|classement/;
+/**
+ * Spec § 1 : jamais visible côté élève (identifiant technique `kraa` toléré dans le code).
+ * La liste vient du noyau partagé, source unique (import, banc, tests de contenu, ce test).
+ */
+const texteInterdit = (text) => findForbiddenString(text);
 
 const gameState = {
   game: { id: 7, status: 'live' },
@@ -179,7 +182,7 @@ describe('chaînes interdites côté élève (spec § 2)', () => {
         />
       </>,
     );
-    expect(container.textContent).not.toMatch(FORBIDDEN);
+    expect(texteInterdit(container.textContent)).toBeNull();
     expect(container.querySelector('polygon')).toBeNull();
     // L'oiseau n'a ni nom ni texte ; le motif de retrait n'apparaît jamais.
     expect(container.querySelector('[data-testid="gl-kraa"]').textContent).toBe('');
@@ -194,6 +197,6 @@ describe('chaînes interdites côté élève (spec § 2)', () => {
       ...Object.values(TENIR_VERDICT_TEXTES),
       ...Object.values(FENETRE_LABELS),
     ].join(' ');
-    expect(all).not.toMatch(FORBIDDEN);
+    expect(texteInterdit(all)).toBeNull();
   });
 });

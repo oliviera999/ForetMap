@@ -6,8 +6,8 @@
  * - porte `Authorization: Bearer <jeton>` et `X-GL-Sim-Clock` (heure simulée) ;
  * - est compté (appels, durée, codes) ;
  * - **échoue l'exécution** sur un 5xx (`SimEchec` `HTTP_5XX`) ;
- * - pour un **élève**, est passé au crible : mots interdits (`findForbiddenString` de
- *   `lib/glTenirImport.js`) sur toute chaîne du corps — une chaîne du **moteur** fait échouer,
+ * - pour un **élève**, est passé au crible : mots interdits (`findForbiddenString` du noyau
+ *   `src/shared/glGardeFousCore.js`) sur toute chaîne du corps — une chaîne du **moteur** fait échouer,
  *   une chaîne de **corpus** (texte de feuillet, question, choix, retour de QCM, description de
  *   case…) est comptée en avertissement, car le corpus réel en porte (« corbeau », « attaque »)
  *   et relève du contenu, pas du moteur (`--mots-interdits strict` pour tout faire échouer) ;
@@ -17,7 +17,7 @@
  */
 
 const request = require('supertest');
-const { findForbiddenString } = require('../../lib/glTenirImport');
+const { findForbiddenString } = require('../../lib/shared/glGardeFousCore');
 
 class SimEchec extends Error {
   constructor(code, message, contexte = {}) {

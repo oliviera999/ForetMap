@@ -27,7 +27,7 @@ const {
   resolveTenirCaseEffet,
   formatTenirCaseEffet,
 } = require('../../lib/shared/glTenirCaseEffetCore');
-const { findForbiddenString } = require('../../lib/glTenirImport');
+const { findForbiddenString } = require('../../lib/shared/glGardeFousCore');
 
 async function loadPlateauMarkers() {
   await db.initSchema();

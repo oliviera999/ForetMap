@@ -24,7 +24,9 @@ serveur. Les **règles de référence** sont dans [`GL_TENIR_A_DEUX_REGLES.md`](
 - **Aucun classement d'élèves** ; aucune donnée nominative dans les logs ni les tests (fixtures
   `joueur-a-<stamp>`).
 - Chaînes interdites côté élève (`monstre, ennemi, attaque, poursui, corbeau, Krâ, Kraa, Grise,
-faux, raté, perdu, classement`) : `lib/glTenirImport.js › findForbiddenString` à l'import,
+faux, raté, perdu, classement`) : liste unique dans `src/shared/glGardeFousCore.js`
+  (`findForbiddenString`, miroir `lib/shared/`), lue par l'import (`lib/glTenirImport.js`), le
+  banc (`--mots-interdits`), les tests de contenu et
   `tests-ui/gl/tenir-chaines-interdites.test.jsx` au rendu.
 - Isolement GL/ForetMap intact : `/api/gl/*`, `src/gl/`, `lib/gl*`, tables `gl_*`.
 

@@ -24,7 +24,8 @@ const assert = require('node:assert/strict');
 
 const DIR = path.join(__dirname, '..', '..', 'data', 'gl', 'tenir');
 const readJson = (name) => JSON.parse(fs.readFileSync(path.join(DIR, `${name}.json`), 'utf8'));
-const { findForbiddenString, isValidPolygon } = require('../../lib/glTenirImport');
+const { isValidPolygon } = require('../../lib/glTenirImport');
+const { findForbiddenString } = require('../../lib/shared/glGardeFousCore');
 
 const EXPECTED = {
   'chasse-zones': ['zones', 36],
