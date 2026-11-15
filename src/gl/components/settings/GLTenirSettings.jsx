@@ -19,6 +19,7 @@ const TENIR_FLAGS = [
     'gameplay.tenir_lecture_pendant_tour',
     'Lire et tenir une page pendant le tour (sinon : en veillée)',
   ],
+  ['gameplay.tenir_defis_case', 'Défis de case (cases « Défi d’équipe »)'],
   ['gameplay.tenir_parures', 'Parures au comptoir'],
   ['gameplay.tenir_lumiere', 'Lumière (option : cartes Team Spirit → paliers)'],
   ['gameplay.tenir_cartes_vers_cases', 'Cartes Team Spirit → cases à l’ouverture suivante'],
@@ -150,6 +151,11 @@ export function GLTenirSettings({ settings, savingKey, onSaveSetting, onToggle }
     'gameplay.tenir_fouille_sous_voile',
     'aucune',
   );
+  const defiDeclenchement = readSelectSetting(
+    settings,
+    'gameplay.tenir_defi_declenchement',
+    'arret',
+  );
   const casesPositives = readSelectSetting(
     settings,
     'gameplay.tenir_cases_positives',
@@ -223,6 +229,19 @@ export function GLTenirSettings({ settings, savingKey, onSaveSetting, onToggle }
           <option value="ressource_peuple">+1 ressource du peuple (comme la Trame)</option>
           <option value="neutre">Aucune ressource</option>
           <option value="brut">Valeur du plateau (ancien comportement)</option>
+        </select>
+      </label>
+      <label>
+        Défi de case : quand l’équipe le reçoit
+        <select
+          value={defiDeclenchement}
+          disabled={savingKey === 'gameplay.tenir_defi_declenchement'}
+          onChange={(event) =>
+            onSaveSetting('gameplay.tenir_defi_declenchement', event.target.value)
+          }
+        >
+          <option value="arret">En s’arrêtant sur la case</option>
+          <option value="passage">En franchissant la case (une fois par équipe et par case)</option>
         </select>
       </label>
       <label>

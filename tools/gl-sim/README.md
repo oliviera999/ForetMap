@@ -102,6 +102,8 @@ Un scénario = `{ id, description, classe, effectif, surface, plateaux, seances,
 
 `data/gl/sim/grilles/grille-voile.json` (`gl-sim-grille v1`) : `actuel` {4,4,5,6} sans E2/E3/E4 ; `e1` {3,4,5,6} + E2 + E3 ; `douce` {3,3,4,4} + E2 + E3 ; `3-3-4-5` + E2 + E3 ; `e1-sans-e2` ; `e1-sans-e3` ; `e1-e2-e3-e4`. Les clés `tenir_fouilles_reparation_gnome`, `tenir_palissement_rang_plancher`, `tenir_surplus_reserve` (E2, E3, E4) sont posées dans `gl_settings` par variante et lues par le moteur.
 
+`data/gl/sim/grilles/grille-defis.json` : déclenchement du défi de case, `arret` (défaut), `passage`, `sans-defi` (témoin). Le prof virtuel juge à l'ouverture de chaque séance les défis reçus aux séances précédentes (`seance.js › jugerDefisDeCase`) : une équipe relève le sien avec la probabilité de justesse moyenne de ses membres ; un défi reçu à la dernière séance s'annule au Seuil. Les mesures d'un chapitre portent `defisCase` (`recus`, `releves`, `pasEncore`).
+
 Les attendus (`attendus.js`, tableau du § 7.6 du cahier des charges) sont des **avertissements** du rapport, par classe (moyenne ; difficulté ; experte lit la colonne moyenne) et par plateau. `data/gl/sim/modele-rapide-reference.json` porte les médianes du modèle rapide pour `e1` et `actuel` ; le rapport d'`equilibrage` signale tout écart de plus de 10 points (comparaison sur la médiane du banc).
 
 ## Modèle rapide vs banc

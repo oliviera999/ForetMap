@@ -46,6 +46,9 @@
     "marche_pendant_tour": true,
     "lecture_pendant_tour": true,
     "fouille_sous_voile": "aucune",
+    "defis_case": true,
+    "defi_declenchement": "arret",
+    "defi_recul": 2,
     "parures": true,
     "lumiere": false,
     "lumiere_palier": 25,
@@ -132,6 +135,9 @@
     "sablier_phase_secondes": "sablier commun à toutes les équipes pendant la phase jeu, en hybride et sur tablette ; 0 = sans ; départ et durée servis par le serveur",
     "sablier_phase_auto": "à la fin du sablier de phase, la console ouverte du prof passe au souffle toute seule (dé gris tiré par l'app)",
     "lecture_pendant_tour": "lot 2 : à false (profil court), lire et tenir une page se font en veillée ; pendant le tour l'écran affiche « À lire en veillée »",
-    "fouille_sous_voile": "lot 2 : `aucune` (une équipe sous le voile ne fouille pas, sauf Abri ou Cordée) ou `page_palie` (une équipe gnome sous le voile garde une fouille par tour, sur une page pâlie seulement)"
+    "fouille_sous_voile": "lot 2 : `aucune` (une équipe sous le voile ne fouille pas, sauf Abri ou Cordée) ou `page_palie` (une équipe gnome sous le voile garde une fouille par tour, sur une page pâlie seulement)",
+    "defis_case": "lot 2 : les cases « Défi d'équipe » confient un défi du plateau à préparer pour la séance suivante ; relevé, il fait reculer le voile ; jamais de ressource",
+    "defi_declenchement": "`arret` : le défi se reçoit quand l'équipe s'arrête sur la case ; `passage` : dès que son pion la franchit, une fois par équipe et par case",
+    "defi_recul": "cases de recul du voile pour un défi relevé (0 à 10)"
   }
 }

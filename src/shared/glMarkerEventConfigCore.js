@@ -146,6 +146,14 @@ function normalizeEventMeta(input) {
   const rarete = String(src.rarete || '').trim() || null;
   return tonalite || rarete ? { tonalite, rarete } : null;
 }
+/**
+ * « Tenir à deux » (lot 2, § 7) : marque d'une case « Défi d'équipe » — `tenir: { defi: true }`.
+ * Le moteur lit cette configuration, jamais le libellé de la case.
+ */
+function normalizeTenirMeta(input) {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) return null;
+  return input.defi === true ? { defi: true } : null;
+}
 function normalizeQuestionSet(value) {
   return String(value || '')
     .trim()
@@ -236,11 +244,18 @@ function normalizeEventConfig(input) {
   const question = src.question != null ? normalizeQuestionConfig(src.question) : null;
   const effects = normalizeMarkerEffects(src.effects);
   const eventMeta = normalizeEventMeta(src.eventMeta);
-  const out = { version: effects || eventMeta ? Math.max(version, 2) : version };
+  const tenir = normalizeTenirMeta(src.tenir);
+  const out = { version: effects || eventMeta || tenir ? Math.max(version, 2) : version };
   if (question) out.question = question;
   if (effects) out.effects = effects;
   if (eventMeta) out.eventMeta = eventMeta;
-  return question || effects || eventMeta ? out : null;
+  if (tenir) out.tenir = tenir;
+  return question || effects || eventMeta || tenir ? out : null;
+}
+/** La case est-elle une case « Défi d'équipe » (`event_config_json.tenir.defi`) ? */
+function isDefiMarker(marker) {
+  const raw = marker?.event_config_json ?? marker?.eventConfig ?? marker?.event_config ?? null;
+  return normalizeEventConfig(raw)?.tenir?.defi === true;
 }
 function defaultEventConfigForQuestion() {
   return {
@@ -301,8 +316,10 @@ function mergeEventConfigWithImport(eventConfig, importExtras = {}) {
         ? { effects: base.effects }
         : {}),
     ...(eventMeta ? { eventMeta } : base.eventMeta ? { eventMeta: base.eventMeta } : {}),
+    // Un réimport du classeur des chapitres garde la marque « Défi d'équipe » de la case.
+    ...(base.tenir ? { tenir: base.tenir } : {}),
   };
-  return out.question || out.effects || out.eventMeta ? out : null;
+  return out.question || out.effects || out.eventMeta || out.tenir ? out : null;
 }
 function migrateLegacyMarkerQcmConfig(marker) {
   if (!marker) return null;
@@ -456,6 +473,8 @@ export {
   normalizeEffectBranch,
   normalizeMarkerEffects,
   normalizeEventMeta,
+  normalizeTenirMeta,
+  isDefiMarker,
   normalizeEventTypeAlias,
   normalizeEventConfig,
   defaultEventConfigForQuestion,

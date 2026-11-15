@@ -220,9 +220,11 @@ Chaque sort a : `code`, `nom`, `peuple` (`any` | `gnome` | `unicorn` | `pacte` |
 
 Deux **profils** sélectionnables d'un clic sur une partie : `complet` (défauts ci-dessus) et `prologue` (`voile` false, `marche` false, `chapardeur` false, `zones_par_plateau` 8, tout le reste identique) pour un chapitre d'apprentissage.
 
+**Défi de case** (15 novembre 2026). Les huit cases « Défi d'équipe » (cases 21 et 41 de chaque plateau) confient à l'équipe qui s'y **arrête** un défi du plateau, tiré sans répétition dans la partie, **à préparer pour la séance suivante**. Le tour continue sans attendre. Titre, consigne et préparation s'affichent sur l'écran de l'équipe, au Seuil de ses membres et, tour clos, sur la projection ; le **critère** n'est visible que du prof. Le prof juge d'un geste, à la séance suivante ou tout de suite : « Relevé » → le voile recule de `defi_recul` cases (2) ; « Pas encore » → rien. **Aucune ressource, jamais.** Au Seuil, un défi resté sans décision s'annule sans effet. Réglages, surchargeables par partie : `defis_case` (true), `defi_declenchement` `arret`|`passage` (arret ; `passage` : une fois par équipe et par case), `defi_recul` (2, de 0 à 10).
+
 ## 16. Fichiers de données (livrés, à verser dans `data/gl/tenir/`)
 
-`chasse-zones.json` (36 zones), `questions-lecture.json` (36), `peripeties.json` (32), `missions.json` (20), `titres.json`, `badges.json`, `olu-lignes.json`, `parures.json`, `sorts.json` (grimoire v2), `reglages-defaut.json`, `passeur-plateau4.json` (les 7 pages de route du plateau 4). Chaque fichier a un chargeur idempotent et un test de contenu.
+`chasse-zones.json` (36 zones), `questions-lecture.json` (36), `peripeties.json` (32), `missions.json` (20), `titres.json`, `badges.json`, `olu-lignes.json`, `parures.json`, `sorts.json` (grimoire v2), `reglages-defaut.json`, `passeur-plateau4.json` (les 7 pages de route du plateau 4), `defis-cases.json` (16 défis de case, 4 par plateau). Chaque fichier a un chargeur idempotent et un test de contenu.
 
 ## 17. Hors périmètre
 

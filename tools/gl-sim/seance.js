@@ -110,6 +110,39 @@ async function controlerEcransEleves(ctx) {
   }
 }
 
+/**
+ * Défis de case (lot 2) : à l'ouverture d'une séance, le prof juge les défis reçus aux séances
+ * précédentes. Une équipe relève le sien avec la probabilité de justesse moyenne de ses membres.
+ * Un défi reçu à la dernière séance n'est jamais jugé : le Seuil l'annule.
+ */
+async function jugerDefisDeCase(ctx, roundNumber) {
+  const res = await ctx.client.appel({
+    token: ctx.mjToken,
+    method: 'get',
+    path: api(ctx, '/defis-case'),
+    geste: 'lire-defis',
+  });
+  if (res.status !== 200) return;
+  for (const d of res.body.defis || []) {
+    if (d.statut !== 'a_preparer' || Number(d.roundNumber) >= Number(roundNumber)) continue;
+    const eq = ctx.equipeParId(Number(d.teamId));
+    const ps = (eq?.membres || []).map((id) => ctx.joueurs.get(id)?.persona.justesse);
+    const connus = ps.filter((p) => Number.isFinite(p));
+    const justesse = connus.length ? connus.reduce((a, b) => a + b, 0) / connus.length : 0.5;
+    attendu(
+      await ctx.client.appel({
+        token: ctx.mjToken,
+        method: 'post',
+        path: api(ctx, `/defis-case/${d.id}/decider`),
+        body: { releve: ctx.rng.chance(justesse) },
+        geste: 'juger-defi',
+      }),
+      200,
+      'jugement du défi de case',
+    );
+  }
+}
+
 async function bilanTeamSpirit(ctx, roundNumber) {
   const bilans = ctx.partie.equipes.map((eq) => ({
     teamId: eq.id,
@@ -162,6 +195,7 @@ async function jouerSeance(ctx, numero, opts = {}) {
     });
   }
   await appliquerRetraits(ctx, numero, opts.retraits);
+  await jugerDefisDeCase(ctx, roundNumber);
   await ctx.verifierInvariants('ouverture du tour');
 
   ctx.client.setContexte({ phase: 'jeu' });
@@ -265,5 +299,6 @@ module.exports = {
   tirerPresences,
   appliquerRetraits,
   controlerEcransEleves,
+  jugerDefisDeCase,
   jouerSeance,
 };

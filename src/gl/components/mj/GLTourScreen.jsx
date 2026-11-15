@@ -375,6 +375,7 @@ export function GLTourScreen({
               tourApi={tourApi}
               refreshKey={refreshKey}
               total={view?.demandesEnAttente ?? null}
+              roundNumber={view?.roundNumber || 0}
               onChanged={async () => {
                 await tourApi.refresh();
                 await onReloadGame?.();

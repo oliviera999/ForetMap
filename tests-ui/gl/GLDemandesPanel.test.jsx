@@ -132,6 +132,44 @@ describe('GLDemandesPanel — file unique du prof', () => {
     expect(screen.getByTestId('relecture')).toBeTruthy();
   });
 
+  test('défi de case : consigne, critère pour le prof seul, sablier à la demande, une décision', async () => {
+    const defi = {
+      id: 9,
+      kind: 'defi_case',
+      refId: '12',
+      teamId: 2,
+      teamName: 'Gnomes A',
+      roundNumber: 1,
+      titre: 'Défi : La chaîne en trente secondes',
+      action: 'Relevé',
+      detail: '',
+      payload: { consigne: 'Dites une chaîne.', critere: 'Trois maillons.', dureeS: 30 },
+    };
+    apiGlMock.mockImplementation(async (path) =>
+      path.endsWith('/tenir/demandes') ? { demandes: [defi], total: 1 } : {},
+    );
+    render(<GLDemandesPanel game={{ id: 7 }} tourApi={tourApi()} roundNumber={2} />);
+    await waitFor(() => screen.getByText('Dites une chaîne.'));
+    expect(screen.getByTestId('gl-defi-critere').textContent).toContain('Trois maillons.');
+    // Reçu à un tour précédent : la ligne ressort au moment du Souffle suivant.
+    expect(document.querySelector('.gl-demandes__ligne').className).toContain('is-en-avant');
+    expect(screen.queryByTestId('gl-defi-sablier')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Sablier' }));
+    expect(screen.getByTestId('gl-defi-sablier')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Pas encore' }));
+    await waitFor(() =>
+      expect(apiGlMock).toHaveBeenCalledWith('/api/gl/games/7/defis-case/12/decider', 'POST', {
+        releve: false,
+      }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Relevé' }));
+    await waitFor(() =>
+      expect(apiGlMock).toHaveBeenCalledWith('/api/gl/games/7/defis-case/12/decider', 'POST', {
+        releve: true,
+      }),
+    );
+  });
+
   test('file vide : rien n’attend', async () => {
     apiGlMock.mockResolvedValue({ demandes: [], total: 0 });
     render(<GLDemandesPanel game={{ id: 7 }} tourApi={tourApi()} />);

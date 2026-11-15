@@ -756,3 +756,25 @@
 .gl-board-mascot__voile {
   font-weight: 600;
 }
+
+/* Défi de case (lot 2) */
+.gl-defis-case__liste {
+  display: grid;
+  gap: var(--gl-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.gl-defis-case__liste p {
+  margin: var(--gl-space-1) 0 0;
+}
+.gl-demandes__ligne.is-en-avant {
+  border-color: var(--line-warning);
+  background: var(--accent-warning);
+  color: var(--ink-warning);
+}
+.gl-demandes__critere {
+  margin-top: var(--gl-space-1);
+  font-size: 0.9em;
+  font-style: italic;
+}

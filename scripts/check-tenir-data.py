@@ -25,7 +25,8 @@ BIOMES = {
 CATEGORIES = {"biome", "ecosystemes", "faune", "flore", "geologie", "perturbations"}
 ZONES_PAR_PLATEAU = {1: 8, 2: 8, 3: 10, 4: 10}
 FEUILLETS_INTERDITS = {"ep-I-02", "ep-I-13", "ep-III-06", "ep-I-16", "ep-I-17", "ep-III-01", "ep-I-03", "ep-I-04"}
-MOMENTS = {"ouverture", "jet", "question", "fouille", "tenir", "voile", "sort", "seuil", "peripetie", "bestiaire", "oiseau", "erreur"}
+MOMENTS = {"ouverture", "jet", "question", "fouille", "tenir", "voile", "sort", "seuil", "peripetie", "bestiaire", "oiseau", "erreur", "bourse_pleine",
+           "defi_case_recu", "defi_case_releve", "defi_case_pas_encore"}
 EXPRESSIONS = {"neutre", "joie", "curieux", "surpris", "agace", "pensif", "explique", "peur"}
 BIOMES_TITRES = {"tropiques", "aride", "tempere", "grands_froids"}
 PEUPLES = {"any", "gnome", "unicorn", "pacte", "classe"}
@@ -641,7 +642,10 @@ def check_sorts(d, rep, use_db):
     names = set()
     for s in items:
         code = str(s.get("code", "?"))
-        require_keys(rep, name, s, keys, code)
+        # `actif: false` (lot 2) : le sort reste au fichier, sort du grimoire des parties.
+        require_keys(rep, name, {k: v for k, v in s.items() if k != "actif"}, keys, code)
+        if "actif" in s and not isinstance(s["actif"], bool):
+            rep.err(f"{name} {code}: actif doit être un booléen")
         if not re.fullmatch(r"SL\d{3}", code):
             rep.err(f"{name} {code}: code hors motif SL0xx")
         if code in codes:
@@ -675,8 +679,9 @@ def check_sorts(d, rep, use_db):
         co = s.get("chapitre_ouverture")
         if co not in (1, 2, 3, 4, "retour"):
             rep.err(f"{name} {code}: chapitre_ouverture invalide")
-        if s.get("peuple") == "pacte" and s.get("ressource") != "pacte":
-            rep.err(f"{name} {code}: un sort du pacte se paie en pacte")
+        # Lot 2 : un sort du pacte se paie à deux (`pacte`) ou est offert par la lanceuse (`peuple`).
+        if s.get("peuple") == "pacte" and s.get("ressource") not in ("pacte", "peuple"):
+            rep.err(f"{name} {code}: un sort du pacte se paie en pacte, ou est offert (peuple)")
         if s.get("peuple") == "unicorn" and s.get("ressource") != "gemmes":
             rep.err(f"{name} {code}: un sort licorne se paie en gemmes")
         if s.get("peuple") == "gnome" and s.get("ressource") != "coeurs":
@@ -767,8 +772,8 @@ def check_reglages(d, rep):
         if key in defaut and not isinstance(defaut[key], bool):
             rep.err(f"{name}: defaut.{key} doit être un booléen")
     profils = data.get("profils")
-    if not isinstance(profils, dict) or set(profils) != {"complet", "prologue"}:
-        rep.err(f"{name}: profils complet et prologue attendus")
+    if not isinstance(profils, dict) or set(profils) != {"complet", "prologue", "court"}:
+        rep.err(f"{name}: profils complet, prologue et court attendus")
     else:
         for pname, p in profils.items():
             ecarts = p.get("ecarts")
@@ -862,6 +867,36 @@ SKIP_FORBIDDEN = {
 }
 
 
+def check_defis_cases(d, rep):
+    """Défis de case (lot 2) : 4 par plateau, code unique, durée de 10 s à 1 h."""
+    name = "defis-cases.json"
+    data = load(d, name, rep)
+    if not data:
+        return
+    plateaux = data.get("plateaux")
+    if not isinstance(plateaux, dict):
+        rep.err(f"{name}: `plateaux` doit être un objet")
+        return
+    seen = set()
+    keys = ["code", "titre", "consigne", "preparation", "critere", "notion", "duree_s"]
+    for cle, liste in plateaux.items():
+        if cle not in ("1", "2", "3", "4") or not isinstance(liste, list):
+            rep.err(f"{name}: plateau {cle!r} inconnu ou sans liste")
+            continue
+        for defi in liste:
+            code = str(defi.get("code", "?"))
+            require_keys(rep, name, defi, keys, code)
+            if code in seen:
+                rep.err(f"{name} {code}: code en double")
+            seen.add(code)
+            duree = defi.get("duree_s")
+            if not isinstance(duree, int) or not 10 <= duree <= 3600:
+                rep.err(f"{name} {code}: duree_s entier de 10 à 3600")
+            for champ in ("titre", "consigne"):
+                if not isinstance(defi.get(champ), str) or not defi[champ].strip():
+                    rep.err(f"{name} {code}: {champ} vide")
+
+
 def check_forbidden_everywhere(d, rep):
     for fname in sorted(os.listdir(d)):
         if not fname.endswith(".json"):
@@ -937,6 +972,7 @@ def main(argv):
     check_sorts(d, rep, use_db)
     check_reglages(d, rep)
     check_passeur(d, rep, use_db)
+    check_defis_cases(d, rep)
     check_forbidden_everywhere(d, rep)
     if not os.path.isfile(os.path.join(d, "README.md")):
         rep.err("README.md absent")

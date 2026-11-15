@@ -12,6 +12,10 @@ vi.mock('../../src/gl/services/apiGL.js', () => ({
 vi.mock('../../src/gl/components/GLRewardsPanel.jsx', () => ({
   GLRewardsPanel: () => <div data-testid="stub-gl-rewards" />,
 }));
+// Même raison pour le défi de case à préparer (GLDefisCasePanel.test.jsx).
+vi.mock('../../src/gl/components/tenir/GLDefisCasePanel.jsx', () => ({
+  GLDefisCasePanel: () => <div data-testid="stub-gl-defis-case" />,
+}));
 
 import { GLSeuilView, buildSeuilSuggestions } from '../../src/gl/components/GLSeuilView.jsx';
 import { GL_MODULE_DEFAULTS } from '../../src/gl/constants/modules.js';

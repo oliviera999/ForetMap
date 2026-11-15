@@ -103,6 +103,13 @@ test('chargement réel idempotent : deux passages = même base, rang_case et cen
   assert.ok(Number.isInteger(Number(zone.rang_case)));
   assert.ok(Number(zone.cx) > 0);
   assert.equal(a.sorts.length, 25);
+  // Défis de case (lot 2) : deux par plateau dans le jeu d'exemple, clé d'upsert `code`.
+  const defis = await queryAll(
+    "SELECT code, plateau, actif FROM gl_tenir_defis_cases WHERE code LIKE 'd-ex-%' ORDER BY code",
+  );
+  assert.equal(defis.length, 8);
+  assert.ok(defis.every((d) => Number(d.actif) === 1));
+  assert.deepEqual([...new Set(defis.map((d) => Number(d.plateau)))], [1, 2, 3, 4]);
   const spells = await queryAll(
     'SELECT spell_code FROM gl_chapter_spells WHERE chapter_id = ? ORDER BY spell_code',
     [corpus.chapters[1].chapter.id],

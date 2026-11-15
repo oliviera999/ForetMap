@@ -51,11 +51,12 @@ montre comptes, écarts et dernier rapport, et permet de resynchroniser (`POST
 | `missions.json` | `id` | 20 |
 | `titres.json` | chemin `honneurs.<honneur>.<biome>` etc. | 16 + 8 + 20 |
 | `badges.json` | `code` | 13 |
-| `olu-lignes.json` | `id` | 69 |
+| `olu-lignes.json` | `id` | 75 |
 | `parures.json` | `code` | 12 |
 | `sorts.json` | `code` (table `gl_spells`) | 25 + 6 voyageur |
 | `reglages-defaut.json` | clé de réglage `gameplay.tenir_*` | — |
 | `passeur-plateau4.json` | `(plateau, ordre)` | 7 / 7 / 9 / 7 |
+| `defis-cases.json` | `code` (table `gl_tenir_defis_cases`) | 16 (4 par plateau) |
 
 ## `chasse-zones.json`
 
@@ -210,3 +211,23 @@ ni corbeau nommé, chacune avec sa `justification` (réservée au prof). Le mot 
 page `ordre` = numéro du tour, modulo la longueur de la liste, sans reprendre une page déjà lue dans
 la partie. Une page marquée `avertissement` nomme le corbeau dans son **titre** : l'afficher sans
 titre côté élève, ou la passer.
+
+## `defis-cases.json`
+
+Défis des cases « Défi d'équipe » (lot 2 du 15 novembre 2026, § 7 du prompt d'implémentation).
+Structure : `plateaux: { "1": [ … ], "2": [ … ], "3": [ … ], "4": [ … ] }`, quatre défis par
+plateau.
+
+| Champ | Rôle |
+| --- | --- |
+| `code` | clé d'upsert, `d-p<plateau>-<nom>` |
+| `titre`, `consigne`, `preparation` | **visibles** de l'équipe (écran d'équipe, Seuil) et, à la clôture du tour, de la projection |
+| `critere` | **réservé au prof** : jamais servi à un élève, à une tablette ni à la projection |
+| `notion` | notion de programme travaillée |
+| `duree_s` | durée du sablier que le prof peut afficher (10 à 3600 secondes) |
+
+Une équipe reçoit un défi du plateau quand elle s'arrête sur une case marquée
+`event_config_json.tenir.defi = true` (ou la franchit, réglage `defi_declenchement = passage`),
+tiré **sans répétition dans la partie** ; la liste épuisée recommence. Le prof juge « Relevé » (le
+voile recule de `defi_recul` cases) ou « Pas encore » (rien). **Jamais de ressource.** Tous les
+champs sont relus contre la liste des chaînes interdites, `critere` compris.

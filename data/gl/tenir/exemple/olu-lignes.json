@@ -233,6 +233,48 @@
       "texte": "Le renne est une girafe des neiges.",
       "variables": [],
       "correction": "C'est un cervidé, comme le cerf ; et chez le renne, même les femelles ont des bois."
+    },
+    {
+      "id": "olu-70",
+      "moment": "defi_case_recu",
+      "expression": "curieux",
+      "texte": "Un défi pour la caravane ! Vous avez jusqu'à la prochaine séance pour le préparer.",
+      "variables": []
+    },
+    {
+      "id": "olu-71",
+      "moment": "defi_case_recu",
+      "expression": "explique",
+      "texte": "Voilà de quoi vous occuper d'ici la prochaine séance. Les fiches vous aideront.",
+      "variables": []
+    },
+    {
+      "id": "olu-72",
+      "moment": "defi_case_releve",
+      "expression": "joie",
+      "texte": "Défi relevé : le voile recule. Toute la caravane respire.",
+      "variables": []
+    },
+    {
+      "id": "olu-73",
+      "moment": "defi_case_releve",
+      "expression": "joie",
+      "texte": "Bien préparé, bien joué. Regardez le voile : il a cédé du terrain.",
+      "variables": []
+    },
+    {
+      "id": "olu-74",
+      "moment": "defi_case_pas_encore",
+      "expression": "pensif",
+      "texte": "Pas encore. Ce défi reste une belle question à creuser.",
+      "variables": []
+    },
+    {
+      "id": "olu-75",
+      "moment": "defi_case_pas_encore",
+      "expression": "neutre",
+      "texte": "Pas encore, et rien n'est retiré. On y reviendra.",
+      "variables": []
     }
   ]
 }

@@ -13,6 +13,7 @@ import { GLBestiairePanel } from './GLBestiairePanel.jsx';
 import { GLSablier } from './GLSablier.jsx';
 import { GLPresencePanel } from './GLPresencePanel.jsx';
 import { GLSortsParMoment } from './GLSortsParMoment.jsx';
+import { GLDefisCasePanel } from './GLDefisCasePanel.jsx';
 import { ROLES_EN_CONSEIL } from '../../../shared/glSortMomentsCore.js';
 import { numeroCase } from '../../../shared/glCaseNumeroCore.js';
 
@@ -398,6 +399,7 @@ export function GLTenirEquipeView({
           onClose={chasse.clearQuestion}
         />
       ) : null}
+      <GLDefisCasePanel gameId={gameId} refreshKey={events.length} />
       <GLOluBulle line={olu.line} speakerName={olu.speakerName} frozen={olu.frozen} />
       {chasse && carnetOuvert ? (
         <>

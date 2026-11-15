@@ -666,6 +666,36 @@ Au tableau, rien ne change. En `hybride` et sur `tablette`, les équipes jouent 
 - **Farce** (`SL036`) : **409 `SPELL_CIBLE_SOUS_VOILE`**, « Cette équipe résiste déjà au voile :
   choisissez-en une autre. », si l'équipe visée est sous le voile ; rien n'est débité.
 
+#### Défi de case (lot 2)
+
+Les huit cases « Défi d'équipe » (repères marqués `event_config_json.tenir.defi = true`)
+confient à l'équipe qui s'y arrête un défi **à préparer pour la séance suivante**. Rien ne
+bloque : le tour continue. Aucune ressource n'est jamais créée ni retirée.
+
+- Réception (dans la transaction du déplacement) : un défi du plateau, tiré sans répétition dans
+  la partie (la liste épuisée recommence), ligne `gl_game_defis_case` au statut `a_preparer`,
+  évènement `defi_case_recu` (`{ defiId, code, titre, markerId }`, visible de l'équipe), ligne
+  `defi_case` dans la file du prof. Réglage `defi_declenchement` : `arret` (défaut, à l'arrêt
+  exact) ou `passage` (dès que le pion franchit la case, une fois par équipe et par case).
+  `defis_case: false` coupe la mécanique.
+- `GET /api/gl/games/:id/defis-case` — compte G&L, session d'équipe ou projection.
+  `{ actifs, recul, defis: [{ id, teamId, markerId, code, roundNumber, statut, titre, consigne,
+  preparation, notion, dureeS, createdAt, decidedAt }] }`. Le prof voit tous les défis de la
+  partie, **avec `critere`** ; un élève ou une tablette voit ceux de son équipe ; la projection
+  voit les défis `a_preparer`. **`critere` n'est jamais servi à un élève, à une tablette ni à la
+  projection.** `statut` ∈ `a_preparer`, `releve`, `pas_encore`, `annule`.
+- `POST /api/gl/games/:id/defis-case/:defiId/decider` `{ releve: true | false }` —
+  `gl.game.manage`. Une seule décision : `releve: true` → statut `releve`, le voile recule de
+  `defi_recul` cases (2 par défaut, 0 à 10 ; même fonction que le recul du carnet complet),
+  évènement `defi_case_releve` ; `false` → statut `pas_encore`, évènement
+  `defi_case_pas_encore`, rien d'autre. La ligne de la file se ferme. `{ ok, defiId, teamId,
+  statut, recul }`. 400 `releve` absent, 404 `DEFI_INTROUVABLE`, **409 `DEFI_DEJA_JUGE`** à la
+  seconde décision.
+- Sortie automatique : au Seuil, tout défi encore `a_preparer` passe à `annule`, sans effet, et
+  sa ligne de file se ferme.
+- `GET …/tenir/demandes` : une ligne `defi_case` porte `payload: { consigne, critere, dureeS }`
+  (route du prof seul).
+
 #### Lien de classe et session d'équipe (lot 2)
 
 Une tablette de classe joue sans compte d'élève : elle ouvre le **lien de la classe** (QR

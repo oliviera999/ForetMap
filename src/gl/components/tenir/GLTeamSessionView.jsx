@@ -11,6 +11,7 @@ import { GLButton } from '../ui/GLButton.jsx';
 import { GLMapView } from '../GLMapView.jsx';
 import { GLTenirEquipeView } from './GLTenirEquipeView.jsx';
 import { GLCarnetClasseView } from './GLCarnetClasseView.jsx';
+import { GLDefisCasePanel } from './GLDefisCasePanel.jsx';
 
 const NOOP = () => {};
 /** Rechargement après un évènement temps réel : regroupé, et étalé entre tablettes. */
@@ -147,6 +148,8 @@ export function GLTeamSessionView({ auth, token, onQuit, onEnded }) {
                 <GLButton type="button" variant="ghost" onClick={reloadGame}>
                   Actualiser
                 </GLButton>
+                {/* Hors tour : le défi à préparer reste lisible (lecture seule). */}
+                <GLDefisCasePanel gameId={gameId} refreshKey={gameState?.events?.length || 0} />
               </section>
             )}
             <GLMapView
