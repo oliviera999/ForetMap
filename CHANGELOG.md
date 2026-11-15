@@ -9,6 +9,26 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — G&L : courses entre requêtes simultanées et import des QCM (audit du 15 novembre)
+
+- **Sorts, grand livre des bourses** : les parts d'un pot sont relues sous le verrou du
+  brouillon au lancement (refus propre `DRAFT_CHANGED` si une saisie ou un « pas moi » est
+  arrivé entre-temps) et écrites sous ce verrou, statut relu : une saisie concurrente ne
+  s'écrit plus sur un sort déjà payé, et un remboursement ne rend plus que ce qui a été débité.
+  Annuler un pot ne peut plus écraser un sort lancé au même instant. Les remboursements en
+  masse (clôture du tour, sorts sans objet) laissent un sort dont le prof vient d'appliquer
+  l'effet, au lieu de le rendre ou de faire échouer le changement de phase. Un compte élève ne
+  peut plus engager un camarade sur un sort limité par élève (Héritage). Les évènements d'une
+  tentative annulée par un interblocage ne sont plus émis.
+- **Moteur de tour** (base en REPEATABLE READ) : une Relance ne peut plus être consommée par
+  deux jets simultanés ; la position de l'équipe, du bénéficiaire au camp et de la partenaire
+  de Cordée est relue sous verrou (un déplacement concurrent n'est plus écrasé) ; un double
+  clic sur « Ouvrir le tour » n'ouvre plus deux tours, et un Team Spirit enregistré deux fois
+  ne compte plus deux fois la Lumière.
+- **Import XLSX des QCM** : une question de taxonomie (« À quelle famille appartient… »,
+  « nom scientifique ») créée par l'import sort du tirage des parties, comme l'avait fait la
+  migration 345 ; une question existante garde le réglage « Posée en partie » du prof.
+
 ### Ajouté — G&L « Tenir à deux » : défis de la Trame (lot 3 sur 3)
 
 - **Quatre défis sur un même plateau de cartes, hors du temps de jeu** : pour les équipes qui
