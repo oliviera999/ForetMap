@@ -363,6 +363,12 @@ jets vaut pour les deux, et le voile ne les touche pas ce tour.
   souffle, l'équipe lanceuse est **remboursée en entier** et la protection contre le voile tombe.
   Le journal le dit : « Sort rendu ».
 
+**Refuser un sort du prof rembourse.** Un sort que vous appliquez vous-même (Question, Conseil,
+Pause, Nommer, Lettre…) est payé au lancement, puis attend dans votre file. S'il tombe mal, le
+bouton **« Refuser et rembourser »** rend à l'équipe exactement ce qu'elle a payé — bourses et
+réserve de la caravane — et vous pouvez lui laisser un mot, qu'elle lit dans le journal. Le sort
+rendu ne compte pas dans sa limite : l'équipe peut le relancer plus tard dans la séance.
+
 ## Pour aller plus loin
 
 [Présentation générale](presentation.md) · [Guide du MJ](guide-du-mj.md) · [Les deux peuples du seuil](lore-deux-peuples.md) · [Sommaire](../README.md)

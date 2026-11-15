@@ -62,7 +62,7 @@ export function GLGameMasterConsole({
   canSpellCast = false,
   onLaunchSpell = null,
 }) {
-  const { confirm } = useAppDialogs();
+  const { confirm, prompt } = useAppDialogs();
   const [mjSection, setMjSection] = useState('parties');
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [createName, setCreateName] = useState('Partie découverte');
@@ -619,6 +619,30 @@ export function GLGameMasterConsole({
     }
   }
 
+  /** Lot 2 — « Refuser et rembourser » : le sort est rendu à l'équipe, avec un mot facultatif. */
+  async function refuseSpellCast(draftId) {
+    if (!game?.id || draftId == null) return;
+    const mot = await prompt({
+      title: 'Refuser et rembourser',
+      message: 'Un mot pour l’équipe (facultatif). Les cœurs et les gemmes lui sont rendus.',
+      required: false,
+    });
+    if (mot == null) return;
+    setBusy(true);
+    try {
+      await apiGL(`/api/gl/games/${game.id}/spell-casts/drafts/${draftId}/refuser`, 'POST', {
+        mot: String(mot || '').trim(),
+      });
+      await loadCastsAwaitingEffect();
+      await onReloadGame?.();
+      showSuccess('Sort refusé : l’équipe est remboursée.');
+    } catch (err) {
+      showFailure(err.message || 'Refus du sort impossible');
+    } finally {
+      setBusy(false);
+    }
+  }
+
   /**
    * G11 — raccourci « raconter » : pré-remplit la narration avec l'effet du sort.
    * Le MJ relit, ajuste et envoie — on n'écrit jamais au journal à sa place.
@@ -1016,6 +1040,7 @@ export function GLGameMasterConsole({
             onResolveSpellCast={resolveSpellCast}
             castsAwaitingEffect={castsAwaitingEffect}
             onMarkSpellEffectApplied={markSpellEffectApplied}
+            onRefuseSpellCast={refuseSpellCast}
             onNarrateSpellEffect={prefillNarrationFromSpell}
             narrationEnabled={narrationEnabled}
             playerActionsEnabled={playerActionsEnabled}

@@ -599,6 +599,16 @@ Au tableau, rien ne change. En `hybride` et sur `tablette`, les équipes jouent 
 - `GET …/tenir/tour` → `round.effets` porte l'effet `cordee` (`teamId` = lanceuse,
   `sourceTeamId` = partenaire) : l'écran de la partenaire affiche « L'équipe … vous encorde. ».
 
+#### Sorts du prof : refuser rembourse (lot 2)
+
+- `POST /api/gl/games/:id/spell-casts/drafts/:draftId/refuser` `{ mot? }` — `gl.game.manage`
+  (403 pour un joueur). Pour un sort **lancé** dont l'effet n'est pas encore appliqué (file du
+  prof : Question, Pause, Nommer…). Remboursement exact des contributions et de la part payée
+  par la réserve (cause `sort_rembourse`), statut `rembourse`, évènement `spell_refuse`
+  (`{ draftId, spellCode, spellName, mot? }`, visible de l'équipe). `{ ok, draftId, teamId,
+  spellCode }`. 409 `DRAFT_NOT_CAST` (déjà rendu ou jamais lancé), 409 effet déjà appliqué.
+- Un sort au statut `rembourse` ne compte plus dans sa limite : il est relançable dans la séance.
+
 #### Lien de classe et session d'équipe (lot 2)
 
 Une tablette de classe joue sans compte d'élève : elle ouvre le **lien de la classe** (QR

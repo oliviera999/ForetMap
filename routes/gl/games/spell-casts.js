@@ -18,6 +18,7 @@ const {
   getDraftById,
   updateDraftContributions,
   setDraftExclusion,
+  refuserCast,
   launchDraft,
   resolveDraftApproval,
   listPendingApprovalDrafts,
@@ -418,6 +419,34 @@ router.post(
     });
   },
 );
+
+/**
+ * « Refuser et rembourser » (lot 2) : `{ mot? }`. Prof seul, pour un sort lancé dont l'effet
+ * n'est pas appliqué. Remboursement exact, évènement `spell_refuse` (mot visible de l'équipe).
+ */
+router.post('/games/:id/spell-casts/drafts/:draftId/refuser', requireGlAuth, async (req, res) => {
+  if (!hasGlPermission(req.glAuth, 'gl.game.manage')) {
+    return res.status(403).json({ error: 'Réservé au maître du jeu' });
+  }
+  return handleSpellCastRoute(req, res, async ({ gameId }) => {
+    const draftId = parseId(req.params.draftId);
+    if (!draftId) return res.status(400).json({ error: 'draftId invalide' });
+    const result = await refuserCast({
+      gameId,
+      draftId,
+      auth: req.glAuth,
+      mot: req.body?.mot,
+    });
+    if (result.event) emitGlGameEvent(gameId, result.event);
+    emitGlSpellCastDraftChanged(gameId, { draftId, type: 'draft_refused', teamId: result.teamId });
+    return res.json({
+      ok: true,
+      draftId: result.draftId,
+      teamId: result.teamId,
+      spellCode: result.spellCode,
+    });
+  });
+});
 
 router.delete(
   '/games/:id/spell-casts/drafts/:draftId',
