@@ -194,7 +194,7 @@ router.post(
     if (!allowed) return res.status(403).json({ error: 'Accès partie refusé' });
 
     const game = await queryOne(
-      'SELECT id, chapter_id, status, tenir_profil FROM gl_games WHERE id = ? LIMIT 1',
+      'SELECT id, chapter_id, status, tenir_profil, current_round_number FROM gl_games WHERE id = ? LIMIT 1',
       [gameId],
     );
     if (!game) return res.status(404).json({ error: 'Partie introuvable' });
@@ -239,8 +239,20 @@ router.post(
     // un joueur pouvait re-présenter la même question à volonté (retrigger `every_arrival`) et
     // gonfler le score d'équipe sans se déplacer. Le MJ garde la présentation à distance —
     // même règle que `present-arrival`.
+    //
+    // « Tenir à deux », lot 2 (défaut relevé par le banc le 8 novembre) : la question est due à
+    // l'ARRIVÉE du tour, pas à la position. Une équipe qu'une Bourrasque ou un Relais a déplacée
+    // avant sa réponse garde sa question.
     if (acteur.kind !== 'mj' && Number(team.position_marker_id) !== Number(markerId)) {
-      return res.status(409).json({ error: 'Votre équipe n’est pas sur ce repère' });
+      const due =
+        isTenirGame(settings, game) &&
+        (await require('../../../lib/glTour').questionDeCaseDue(db, {
+          gameId,
+          roundNumber: Number(game.current_round_number) || 0,
+          teamId,
+          markerId,
+        }));
+      if (!due) return res.status(409).json({ error: 'Votre équipe n’est pas sur ce repère' });
     }
     // « Tenir à deux » : répondre à la question de la case, c'est garder son jet (Relance).
     await garderArriveeEnSuspens({ gameId, game, settings, teamId, acteur });

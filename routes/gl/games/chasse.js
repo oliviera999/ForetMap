@@ -70,6 +70,28 @@ function sendChasseError(res, err) {
 }
 
 /**
+ * Lot 2 (hybride, tablette) : fouiller, répondre, lire ou tenir une page PENDANT le tour est un
+ * autre geste que le jet — la case en suspens de l'équipe s'applique (elle garde son jet) et sa
+ * fenêtre « après le jet » se ferme. Dans la transaction du geste : un geste refusé n'en garde
+ * aucune trace. Au tableau et en veillée, rien ne change.
+ */
+async function avecGesteDEquipe(tx, gameId, ctx, geste) {
+  const gardees =
+    ctx.via === 'veillee'
+      ? []
+      : await tour.gesteDEquipeTx(tx, {
+          gameId,
+          roundNumber: ctx.roundNumber,
+          teamId: ctx.teamId,
+          settings: ctx.settings,
+          actorType: ctx.actorType,
+          actorId: ctx.actorId,
+        });
+  const result = await geste();
+  return { ...result, events: [...gardees, ...(result.events || [])] };
+}
+
+/**
  * Acteur d'une lecture (tour ou veillée) : joueur → son équipe ; MJ → `teamId`. Les permissions
  * de surface sont rejouées ici (`lire`) : en `tableau`, seul le prof lit pour l'équipe ; un
  * élève en retrait lit et tient (C6) ; la partie doit être en cours. Le client ne fait que griser.
@@ -222,17 +244,19 @@ router.post(
     let result;
     try {
       result = await withTransaction((tx) =>
-        chasse.fouillerTx(tx, {
-          gameId,
-          teamId: ctx.teamId,
-          playerId: ctx.playerId,
-          x: req.body?.x,
-          y: req.body?.y,
-          roundNumber: ctx.roundNumber,
-          settings: ctx.settings,
-          actorType: ctx.actorType,
-          actorId: ctx.actorId,
-        }),
+        avecGesteDEquipe(tx, gameId, ctx, () =>
+          chasse.fouillerTx(tx, {
+            gameId,
+            teamId: ctx.teamId,
+            playerId: ctx.playerId,
+            x: req.body?.x,
+            y: req.body?.y,
+            roundNumber: ctx.roundNumber,
+            settings: ctx.settings,
+            actorType: ctx.actorType,
+            actorId: ctx.actorId,
+          }),
+        ),
       );
     } catch (err) {
       return sendChasseError(res, err);
@@ -271,17 +295,19 @@ router.post(
     let result;
     try {
       result = await withTransaction((tx) =>
-        chasse.repondreChasseTx(tx, {
-          gameId,
-          teamId: ctx.teamId,
-          roundNumber: ctx.roundNumber,
-          presentationToken,
-          questionCode,
-          choiceId: req.body.choiceId,
-          settings: ctx.settings,
-          actorType: ctx.actorType,
-          actorId: ctx.actorId,
-        }),
+        avecGesteDEquipe(tx, gameId, ctx, () =>
+          chasse.repondreChasseTx(tx, {
+            gameId,
+            teamId: ctx.teamId,
+            roundNumber: ctx.roundNumber,
+            presentationToken,
+            questionCode,
+            choiceId: req.body.choiceId,
+            settings: ctx.settings,
+            actorType: ctx.actorType,
+            actorId: ctx.actorId,
+          }),
+        ),
       );
     } catch (err) {
       return sendChasseError(res, err);
@@ -314,17 +340,19 @@ router.post(
     let result;
     try {
       result = await withTransaction((tx) =>
-        chasse.ouvrirPageTx(tx, {
-          gameId,
-          teamId: ctx.teamId,
-          playerId: ctx.playerId,
-          zoneKey,
-          via: ctx.via,
-          roundNumber: ctx.roundNumber,
-          settings: ctx.settings,
-          actorType: ctx.actorType,
-          actorId: ctx.actorId,
-        }),
+        avecGesteDEquipe(tx, gameId, ctx, () =>
+          chasse.ouvrirPageTx(tx, {
+            gameId,
+            teamId: ctx.teamId,
+            playerId: ctx.playerId,
+            zoneKey,
+            via: ctx.via,
+            roundNumber: ctx.roundNumber,
+            settings: ctx.settings,
+            actorType: ctx.actorType,
+            actorId: ctx.actorId,
+          }),
+        ),
       );
     } catch (err) {
       return sendChasseError(res, err);
@@ -363,20 +391,22 @@ router.post(
     let result;
     try {
       result = await withTransaction((tx) =>
-        chasse.tenirPageTx(tx, {
-          gameId,
-          teamId: ctx.teamId,
-          playerId: ctx.playerId,
-          roundNumber: ctx.roundNumber,
-          presentationToken,
-          questionCode,
-          choiceId: req.body.choiceId,
-          via: ctx.via,
-          settings: ctx.settings,
-          actorType: ctx.actorType,
-          actorId: ctx.actorId,
-          expectedZoneKey: zoneKey,
-        }),
+        avecGesteDEquipe(tx, gameId, ctx, () =>
+          chasse.tenirPageTx(tx, {
+            gameId,
+            teamId: ctx.teamId,
+            playerId: ctx.playerId,
+            roundNumber: ctx.roundNumber,
+            presentationToken,
+            questionCode,
+            choiceId: req.body.choiceId,
+            via: ctx.via,
+            settings: ctx.settings,
+            actorType: ctx.actorType,
+            actorId: ctx.actorId,
+            expectedZoneKey: zoneKey,
+          }),
+        ),
       );
     } catch (err) {
       return sendChasseError(res, err);

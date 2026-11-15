@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useGlTenirTour } from '../../hooks/useGlTenirTour.js';
 import { useGlTenirOlu } from '../../hooks/useGlTenirOlu.js';
+import { useGlQuestionDeCase } from '../../hooks/useGlQuestionDeCase.js';
 import { GLButton } from '../ui/GLButton.jsx';
 import { GLTourDesSaisie } from '../mj/GLTourDesSaisie.jsx';
 import { GLTenirQuestionCard } from './GLTenirQuestionCard.jsx';
@@ -63,6 +64,15 @@ export function GLTenirEquipeView({
     enabled: !!gameId && !!tenir?.enabled,
     onChanged: onReloadGame,
   });
+  // Question de case due à l'arrivée du tour (lot 2) : « Répondre » la présente, même si un
+  // sort a déplacé l'équipe entre-temps.
+  const caseQuestion = useGlQuestionDeCase({
+    gameId,
+    onChanged: async () => {
+      await tourApi.refresh();
+      await onReloadGame?.();
+    },
+  });
   const [pending, setPending] = useState(null);
   const [carnetOuvert, setCarnetOuvert] = useState(false);
   const [badgesOuverts, setBadgesOuverts] = useState(false);
@@ -115,10 +125,16 @@ export function GLTenirEquipeView({
       ? (tenir.reserves || []).find((r) => Number(r.teamId) === Number(teamId)) || null
       : null;
   const fouilleMode = !!chasse?.fouilleMode;
+  const questionDue =
+    (round?.questionsEnAttente || []).find((q) => Number(q.teamId) === Number(teamId)) || null;
   const gestes = [
     ['jeter', 'Jeter un sort', onJeter],
     ['lancer', 'Lancer', null],
-    ['repondre', 'Répondre', onRepondre],
+    [
+      'repondre',
+      questionDue ? 'Répondre à la question' : 'Répondre',
+      onRepondre || (questionDue ? () => caseQuestion.presenter(questionDue.markerId) : null),
+    ],
     [
       'fouiller',
       fouilleMode ? 'Annuler la fouille' : 'Fouiller',
@@ -208,7 +224,9 @@ export function GLTenirEquipeView({
           <GLButton
             key={key}
             type="button"
-            disabled={!perms[key] || tourApi.busy}
+            disabled={
+              !perms[key] || tourApi.busy || (key === 'repondre' && !onRepondre && !questionDue)
+            }
             aria-disabled={!perms[key]}
             data-geste={key}
             onClick={() => {
@@ -298,6 +316,20 @@ export function GLTenirEquipeView({
           {verdict.feedback || VERDICT_TEXTES[verdict.verdict] || ''}
         </p>
       ) : null}
+      {caseQuestion.question ? (
+        <GLTenirQuestionCard
+          question={caseQuestion.question}
+          title="La question de la case"
+          disabled={caseQuestion.busy}
+          onAnswer={(choiceId) => caseQuestion.repondre(choiceId)}
+          onClose={caseQuestion.fermer}
+        />
+      ) : caseQuestion.feedback ? (
+        <p className="gl-tenir-equipe__verdict" role="status" data-testid="gl-tenir-case-retour">
+          {caseQuestion.feedback}
+        </p>
+      ) : null}
+      {caseQuestion.error ? <p className="gl-error-banner">{caseQuestion.error}</p> : null}
       {chasse?.question ? (
         <GLTenirQuestionCard
           question={chasse.question.question}

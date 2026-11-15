@@ -30,7 +30,11 @@ const {
 } = require('../../../lib/glGameQcmScoring');
 const { sendSafeError } = require('../../../lib/safeErrorResponse');
 const { isTenirGame } = require('../../../lib/glTenir');
-const { bonneReponseDeCaseTx } = require('../../../lib/glTour');
+const {
+  bonneReponseDeCaseTx,
+  solderQuestionDeCaseTx,
+  gesteDEquipeTx,
+} = require('../../../lib/glTour');
 
 const router = express.Router();
 
@@ -273,6 +277,27 @@ router.post('/games/:id/qcm/answer', requireGlAuthOrTeam, async (req, res) => {
             roundNumber: Number(game.current_round_number) || 0,
           },
         });
+      }
+      if (tenirMode && markerId != null) {
+        // Lot 2 : répondre est un geste de l'équipe (sa fenêtre « après le jet » se ferme) ;
+        // une bonne réponse solde la question due à l'arrivée du tour.
+        const roundNumber = Number(game.current_round_number) || 0;
+        await gesteDEquipeTx(tx, {
+          gameId,
+          roundNumber,
+          teamId: teamIdForGame,
+          settings,
+          actorType: answerCtx.actorType,
+          actorId: answerCtx.actorId,
+        });
+        if (verification.correct) {
+          await solderQuestionDeCaseTx(tx, {
+            gameId,
+            roundNumber,
+            teamId: teamIdForGame,
+            markerId,
+          });
+        }
       }
       if (verification.correct && tenirMode && markerId != null) {
         tenirBonus = await bonneReponseDeCaseTx(tx, {

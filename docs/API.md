@@ -561,6 +561,29 @@ tableau, rien ne change.
   autre équipe, et l'annonce temps réel `gl:spell_cast:draft` ne porte plus que
   `{ draftId, type, teamId }` (l'écran qui a ouvert le pot le recharge).
 
+#### Jets en suspens et fenêtres par équipe (lot 2, hybride et tablette)
+
+Au tableau, rien ne change. En `hybride` et sur `tablette`, les équipes jouent en parallèle :
+
+- `GET …/tenir/tour` → `round.derniersJets` = `{ [teamId]: { eventId, mode, at,
+  beneficiaryTeamId, gesteSuivant } }` (un jet par équipe ; `round.dernierJet` reste le plus
+  récent, à l'ancienne forme) et `round.questionsEnAttente` = `[{ teamId, markerId }]`.
+- Fenêtre `apres_jet` (Progression, Relance) : l'équipe a jeté ce tour **et n'a rien fait
+  depuis** (`gesteSuivant`), quoi que fassent les autres. Refus : 409 `SPELL_FENETRE`, « …juste
+  après le jet de l'équipe — avant tout autre geste de l'équipe. »
+- Un geste ne confirme que les jets en suspens des équipes concernées : celle qui jette (et
+  celle que son jet fait avancer), celle qu'un sort vise ou déplace (Bourrasque, Relais,
+  Cordée). Fouiller, répondre, lire ou tenir une page pendant le tour **garde le jet** de
+  l'équipe (évènement `arrivee_gardee`, `motif: 'geste'`) et ferme sa fenêtre. Le changement de
+  phase, « Garder ce jet » et le prof confirment comme avant.
+- `POST …/markers/:markerId/present-question` : la question est due à **l'arrivée du tour**, pas
+  à la position — une équipe déplacée par un sort avant sa réponse garde sa question (plus de
+  409 « Votre équipe n'est pas sur ce repère » dans ce cas). Une bonne réponse la solde.
+- File du prof (`GET …/spell-casts/awaiting-effect`) : un sort qui visait une page pâlie
+  (« Nommer ») se retire seul quand la page est réparée entre-temps ; il est rendu à l'équipe
+  (statut `rembourse`, cause `sort_rembourse`, évènement `spell_rembourse` avec
+  `motif: 'page_reparee'`).
+
 #### Lien de classe et session d'équipe (lot 2)
 
 Une tablette de classe joue sans compte d'élève : elle ouvre le **lien de la classe** (QR
