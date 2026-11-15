@@ -13,7 +13,10 @@ serveur. Les **règles de référence** sont dans [`GL_TENIR_A_DEUX_REGLES.md`](
 - L'oiseau témoin est **muet et sans nom** côté élève (`GLKraaWitness`, `aria-hidden`, aucun
   texte) ; l'identifiant technique `kraa` est toléré dans le code et les payloads.
 - **L'erreur ne punit jamais** : une mauvaise réponse révèle (`revelee`) ou se repose ; retour
-  « Pas encore… » (`lib/glChasse.js › pasEncore`, `routes/gl/games/qcm.js › tenirFeedback`).
+  « Pas encore… », une seule fois, par une seule fonction pour la chasse, la lecture et la
+  question de case (`lib/glRetourQcm.js › resoudreRetour` : retour du choix, puis
+  `feedback_incorrect`, puis le défaut ; l'amorce « Non » des retours d'auteur est retirée à
+  l'affichage, y compris hors partie).
 - **Aucune ressource** pour une bonne réponse de case, une lecture, une arrivée, une fouille, un
   badge, un honneur (`tests/gl-tenir-economie-globale.test.js`). Les ressources viennent des pages
   tenues, de la Trame, du carnet complet, du Marché ; elles partent par les sorts, les échanges,
@@ -56,6 +59,7 @@ chasse initialisées, les Héritages de la classe versés.
 | 338 | **équilibrage E1-E5** : réglages `gameplay.tenir_fouilles_reparation_gnome`, `tenir_palissement_rang_plancher`, `tenir_surplus_reserve`, `tenir_olu_bourse_pleine` (défauts) ; `voile_bonus_par_plateau` → `{1:3,2:4,3:5,4:6}` si encore à l'ancien défaut ; `gl_game_team_reserves` (réserve de la caravane) ; `gl_resource_ledger` : `kind` bourse / réserve, `team_id`, `player_id` facultatif, causes `reserve_entree` / `reserve_sortie` / `reserve_seuil` ; `gl_game_chasse_empreintes.reparation` |
 | 339 | `gl_player_rewards` (badges individuels sur le moteur commun, voir `REWARDS_ENGINE.md` § 5) |
 | 340 | contenu : les 11 sorts `officiel` hors v2 passent en `propose` (non lançables) ; cases 251 et 253 (P4) bornées en difficulté comme leurs voisines |
+| 344 | contenu : 17 retours de QCM réécrits (mot de la liste des garde-fous après retrait de l'amorce « Non »), question de zone `GQCM0766` (suricate) remplacée — chaque UPDATE gardé par l'ancienne valeur exacte |
 
 Le chargeur `npm run gl:import:tenir -- --fichier tous|<nom> [--dry-run] [--forcer] [--strict]`
 (`lib/glTenirImport.js`, données `data/gl/tenir/`, README des clés) reste maître des catalogues ;

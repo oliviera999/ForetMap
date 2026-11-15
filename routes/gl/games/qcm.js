@@ -5,7 +5,8 @@ const { insertGameEvent } = require('../../../lib/glGameEvents');
 const { queueGlRewardsForTeam } = require('../../../lib/glRewardsHooks');
 const { emitGlGameEvent } = require('../../../lib/realtime');
 const { getGameplaySettings } = require('../../../lib/glSettings');
-const { verifyPresentationAnswer, resolveQcmAnswerFeedback } = require('../../../lib/qcmChoices');
+const { verifyPresentationAnswer } = require('../../../lib/qcmChoices');
+const { resoudreRetour } = require('../../../lib/glRetourQcm');
 const { consumePresentationJti } = require('../../../lib/qcmPresentationUse');
 const { combineKeywords } = require('../../../lib/glQcmImport');
 const { combineKeywords: combineLoreKeywords } = require('../../../lib/glQcmLoreImport');
@@ -29,14 +30,8 @@ const {
 const { sendSafeError } = require('../../../lib/safeErrorResponse');
 const { isTenirGame } = require('../../../lib/glTenir');
 const { bonneReponseDeCaseTx } = require('../../../lib/glTour');
-const { pasEncore } = require('../../../lib/glChasse');
 
 const router = express.Router();
-
-/** « Pas encore » : l'erreur ne punit pas et ne dit jamais « faux » (spec § 1). */
-function tenirFeedback(questionRow, verification) {
-  return pasEncore(resolveQcmAnswerFeedback(questionRow, verification));
-}
 
 async function getPlayerGameMembership(gameId, playerId) {
   return queryOne(
@@ -344,10 +339,9 @@ router.post('/games/:id/qcm/answer', requireGlAuth, async (req, res) => {
 
   return res.json({
     correct: verification.correct,
-    feedback:
-      tenirMode && !verification.correct
-        ? tenirFeedback(questionRow, verification)
-        : resolveQcmAnswerFeedback(questionRow, verification),
+    // « Pas encore » en partie « Tenir » : l'erreur ne punit pas (règles § 1-4) ; l'amorce
+    // « Non » des retours d'auteur est retirée partout (`lib/glRetourQcm.js`).
+    feedback: resoudreRetour(questionRow, verification, { tenir: tenirMode, contexte: 'case' }),
     tenir: tenirBonus
       ? {
           bonusCase: tenirBonus.applied,

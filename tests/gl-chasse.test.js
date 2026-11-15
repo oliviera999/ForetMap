@@ -115,6 +115,12 @@ test('fouiller dans une zone : question fixe, mauvaise réponse → page révél
     'première tentative : la question fixe',
   );
   const wrong = res.body.question.choices.find((c) => c.text !== 'La forêt respire');
+  // Retours d'origine du corpus : amorce « Non » retirée à l'affichage (`lib/glRetourQcm.js`).
+  await execute(
+    `UPDATE gl_qcm_questions SET feedback_a = ?, feedback_b = ?, feedback_c = ?, feedback_d = ?
+      WHERE question_code = 'TEX-P1-01'`,
+    Array(4).fill("Non, c'est tout l'inverse : la forêt respire."),
+  );
   const answer = await request(app).post(api('/chasse/repondre')).set(auth(gnomeA().token)).send({
     presentationToken: res.body.question.presentationToken,
     questionCode: res.body.question.questionCode,
@@ -124,6 +130,7 @@ test('fouiller dans une zone : question fixe, mauvaise réponse → page révél
   assert.equal(answer.body.correct, false);
   assert.equal(answer.body.etat, 'revelee');
   assert.match(answer.body.feedback, /^Pas encore/);
+  assert.equal(answer.body.feedback, "Pas encore. C'est tout l'inverse : la forêt respire.");
   assert.doesNotMatch(answer.body.feedback, /faux|raté|perdu/i);
   assert.deepEqual(await readPlayerBourses(gnomeA().id), before, 'aucune ressource retirée');
   const carnet = await request(app).get(api('/chasse')).set(auth(licorneA().token));

@@ -45,6 +45,7 @@ montre comptes, écarts et dernier rapport, et permet de resynchroniser (`POST
 | --- | --- | --- |
 | `chasse-zones.json` | `zone_key` | 36 (8 / 8 / 10 / 10) |
 | `questions-lecture.json` | `zone_key` | 36 |
+| `qcm-feedbacks-zones.json` | `question_code` + lettre (colonnes `feedback_b…e` de `gl_qcm_questions`) | 9 questions, 36 retours |
 | `peripeties.json` | `id` | 32 (8 par plateau) |
 | `missions.json` | `id` | 20 |
 | `titres.json` | chemin `honneurs.<honneur>.<biome>` etc. | 16 + 8 + 20 |
@@ -92,6 +93,19 @@ polygones ne sont jamais envoyés aux élèves.
 - Porte sur le texte réel de la page (un fait, une image, une espèce, un geste), jamais sur le lore
   secret ni sur l'oiseau. Retentatives illimitées, aucune perte : `feedback_incorrect` commence par
   « Pas encore » et renvoie au passage de la page.
+
+## `qcm-feedbacks-zones.json`
+
+`{ "format", "note", "feedbacks": { "<question_code>": { "b": "…", "c": "…", … } }, "remplacement": { … } }`
+
+- Retours de **mauvais choix** des questions fixes de zones de chasse. Le retour de la bonne
+  lettre reste vide (c'est `feedback_correct` qui sert). Un retour ne commence jamais par
+  « Non » : à l'écran, l'app écrit « Pas encore. » devant.
+- **Écriture gardée** : une colonne n'est écrite que si elle est vide ou commence par « Non »
+  (retour d'origine). Une retouche d'auteur n'est jamais écrasée ; relancer ne réécrit rien.
+- Une question absente de la base est écartée avec un avertissement (erreur en `--strict`).
+- `remplacement` : nouvelle rédaction de `GQCM0766` (suricate). Elle est posée par la migration
+  344, gardée par l'ancien énoncé exact ; le chargeur ne fait que la relire (chaînes interdites).
 
 ## `peripeties.json`
 

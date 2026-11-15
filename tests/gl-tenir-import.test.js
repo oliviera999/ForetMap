@@ -10,6 +10,7 @@ const { initSchema, queryAll, queryOne } = db;
 const {
   importChasseZones,
   importQuestionsLecture,
+  importQcmFeedbacksZones,
   importSorts,
   findForbiddenString,
   computeZoneGeometry,
@@ -180,6 +181,73 @@ test('refus questions de lecture : réponse hors A-D, choix en double, feedback 
   assert.match(rep.errors.join('\n'), /reponse hors A-D/);
   assert.match(rep.errors.join('\n'), /choix en double/);
   assert.match(rep.errors.join('\n'), /Pas encore/);
+});
+
+test('retours de zones : écrits si la colonne est vide ou commence par « Non », jamais sur une retouche', async (t) => {
+  // Question jetable, hors de la numérotation des fixtures (`uq_gl_qcm_biome_cat_num`).
+  const code = 'TEX-FBZ-01';
+  await db.execute('DELETE FROM gl_qcm_questions WHERE question_code = ?', [code]);
+  await db.execute(
+    `INSERT INTO gl_qcm_questions (
+       question_code, biome_slug, categorie_slug, numero_dans_categorie, question,
+       choix_a, choix_b, choix_c, choix_d, choix_e, reponse_correcte, niveau, statut,
+       feedback_b, feedback_d, created_at, updated_at
+     ) VALUES (?, 'jungle_afc', 'faune', 99001, 'Question jetable ?', 'La forêt respire',
+       'Le sable chante', 'La neige écoute', 'La rivière compte', '', 'A', '6ème', 'actif',
+       ?, ?, NOW(), NOW())`,
+    [code, 'Non. Le sable ne chante pas ici.', 'Retouche de l’auteur.'],
+  );
+  t.after(() => db.execute('DELETE FROM gl_qcm_questions WHERE question_code = ?', [code]));
+  const json = {
+    format: 'gl.qcm.feedbacks/2',
+    feedbacks: {
+      [code]: {
+        b: 'Le sable est loin de la forêt.',
+        c: 'La neige tombe ailleurs.',
+        d: 'Autre texte.',
+      },
+      'QCM-INCONNUE': { b: 'Rien à écrire.' },
+    },
+  };
+  const rep = await importQcmFeedbacksZones(db, json, {});
+  assert.equal(rep.refuse, false);
+  assert.deepEqual(rep.errors, []);
+  assert.equal(rep.upserted, 1);
+  assert.equal(rep.ecartees, 1, 'question inconnue : écartée avec un avertissement');
+  const lire = () =>
+    queryOne(
+      'SELECT feedback_a, feedback_b, feedback_c, feedback_d FROM gl_qcm_questions WHERE question_code = ?',
+      [code],
+    );
+  assert.deepEqual(
+    { ...(await lire()) },
+    {
+      feedback_a: null,
+      feedback_b: 'Le sable est loin de la forêt.',
+      feedback_c: 'La neige tombe ailleurs.',
+      feedback_d: 'Retouche de l’auteur.',
+    },
+  );
+  // Idempotent : rien n'est plus « d'origine », rien n'est réécrit.
+  const encore = await importQcmFeedbacksZones(db, json, {});
+  assert.equal(encore.upserted, 0);
+
+  // Refus de ligne : retour sur la bonne lettre, amorce « Non », chaîne interdite.
+  const bad = await importQcmFeedbacksZones(
+    db,
+    { feedbacks: { [code]: { a: 'Bravo.', b: 'Non, pas du tout.', c: 'Le corbeau le sait.' } } },
+    { dryRun: true, strict: true },
+  );
+  assert.equal(bad.refuse, true);
+  assert.match(bad.errors.join('\n'), /bonne réponse/);
+  assert.match(bad.errors.join('\n'), /commence par « Non »/);
+  assert.match(bad.errors.join('\n'), /chaîne interdite/);
+  const strict = await importQcmFeedbacksZones(
+    db,
+    { feedbacks: { 'QCM-INCONNUE': { b: 'Rien.' } } },
+    { dryRun: true, strict: true },
+  );
+  assert.match(strict.errors.join('\n'), /question inconnue/);
 });
 
 test('refus sorts : fenêtre inconnue, effet auto invalide ; un sort v2 retiré du fichier passe en propose', async () => {

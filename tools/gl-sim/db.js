@@ -189,6 +189,37 @@ async function adapterInstantaneAncien(db) {
   return out;
 }
 
+/**
+ * Rejoue les migrations **postérieures à l'instantané** : celui-ci est chargé après
+ * `initSchema()`, donc une correction de contenu apportée par une migration plus récente
+ * (retours de QCM réécrits, questions sorties du tirage…) ne s'appliquerait jamais au contenu
+ * du banc. Les migrations sont idempotentes et gardées par l'ancienne valeur : les rejouer est
+ * sans risque. Un instantané sans numéro de migration ne rejoue rien.
+ */
+async function rejouerMigrationsApresInstantane(db, snapshot) {
+  const depuis = Number(snapshot?.source?.migration);
+  if (!Number.isInteger(depuis)) return { depuis: null, rejouees: [] };
+  const dir = path.join(__dirname, '..', '..', 'migrations');
+  const files = fs
+    .readdirSync(dir)
+    .filter((f) => /^\d{3}_.*\.sql$/.test(f) && Number(f.slice(0, 3)) > depuis)
+    .sort();
+  const rejouees = [];
+  for (const file of files) {
+    let erreurs = 0;
+    for (const stmt of db.splitSqlStatements(fs.readFileSync(path.join(dir, file), 'utf8'))) {
+      try {
+        await db.pool.query(stmt);
+      } catch (_) {
+        // DDL déjà appliqué par `initSchema()` (colonne, table, index existants) : attendu.
+        erreurs += 1;
+      }
+    }
+    rejouees.push({ file, erreurs });
+  }
+  return { depuis, rejouees };
+}
+
 /** Vérifie le contenu minimal du banc (plateaux 1-4). */
 async function verifierContenu(db) {
   const chapitres = await db.queryAll(
@@ -271,6 +302,10 @@ async function preparerBaseSim({ snapshotPath = null, log = () => {} } = {}) {
   const comptes = await chargerSnapshot(db, dbName, snapshot);
   const adaptation = await adapterInstantaneAncien(db);
   if (adaptation.applique) log('Instantané antérieur à la fusion des chapitres 4 et 5 : adapté.');
+  const migrationsRejouees = await rejouerMigrationsApresInstantane(db, snapshot);
+  if (migrationsRejouees.rejouees.length) {
+    log(`Migrations postérieures à l'instantané rejouées : ${migrationsRejouees.rejouees.length}.`);
+  }
   log('Synchronisation des catalogues data/gl/tenir…');
   const { syncTenirCatalogues } = require('../../lib/glTenirSync');
   const sync = await syncTenirCatalogues(db, { force: true });
@@ -284,6 +319,7 @@ async function preparerBaseSim({ snapshotPath = null, log = () => {} } = {}) {
     tablesVidees: videes.length,
     comptes,
     adaptation,
+    migrationsRejouees,
     sync: sync.files.map((f) => ({
       fichier: f.fichier,
       status: f.status,
@@ -328,6 +364,7 @@ module.exports = {
   valeurSql,
   viderTablesGl,
   chargerSnapshot,
+  rejouerMigrationsApresInstantane,
   verifierContenu,
   preparerBaseSim,
 };

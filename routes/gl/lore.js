@@ -92,7 +92,8 @@ const {
   listAdminQuestions: listAdminLoreQuestions,
   upsertGlQcmLoreQuestion,
 } = require('../../lib/glQcmLoreCrud');
-const { verifyPresentationAnswer, resolveQcmAnswerFeedback } = require('../../lib/qcmChoices');
+const { verifyPresentationAnswer } = require('../../lib/qcmChoices');
+const { resoudreRetour } = require('../../lib/glRetourQcm');
 const { consumeFreePresentationJti } = require('../../lib/qcmPresentationUse');
 const { sendSafeError, looksInternal, isBusinessError } = require('../../lib/safeErrorResponse');
 const {
@@ -1564,7 +1565,7 @@ router.post(
         : null;
       return res.json({
         correct: result.correct,
-        feedback: resolveQcmAnswerFeedback(row, result),
+        feedback: resoudreRetour(row, result),
         correctChoiceId: result.correct ? result.correctChoiceId : undefined,
         qcmSet: 'lore',
         loreGlossaryTerms: result.correct ? loreGlossaryTerms : undefined,

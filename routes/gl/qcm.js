@@ -21,11 +21,8 @@ const {
   listAdminQuestions,
   upsertGlQcmQuestion,
 } = require('../../lib/glQcmCrud');
-const {
-  presentQuestion,
-  verifyPresentationAnswer,
-  resolveQcmAnswerFeedback,
-} = require('../../lib/qcmChoices');
+const { presentQuestion, verifyPresentationAnswer } = require('../../lib/qcmChoices');
+const { resoudreRetour } = require('../../lib/glRetourQcm');
 const { consumeFreePresentationJti } = require('../../lib/qcmPresentationUse');
 const { sendSafeError } = require('../../lib/safeErrorResponse');
 const {
@@ -353,7 +350,7 @@ router.post(
         : null;
       return res.json({
         correct: result.correct,
-        feedback: resolveQcmAnswerFeedback(row, result),
+        feedback: resoudreRetour(row, result),
         correctChoiceId: result.correct ? result.correctChoiceId : undefined,
         glossaryTerms: result.correct ? glossaryTerms : undefined,
         cooldown: cooldown || undefined,

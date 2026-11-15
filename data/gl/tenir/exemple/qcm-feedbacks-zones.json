@@ -1,0 +1,10 @@
+{
+  "format": "gl.qcm.feedbacks/2 (jeu d’exemple des tests)",
+  "feedbacks": {
+    "TEX-P1-01": {
+      "b": "Le sable chante dans un autre chapitre.",
+      "c": "La neige écoute bien plus au nord.",
+      "d": "La rivière compte ailleurs sur la page."
+    }
+  }
+}
