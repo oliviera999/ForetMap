@@ -89,6 +89,23 @@ test('lancement : seule la lanceuse est débitée ; la partenaire est prévenue 
   assert.equal(d.status, 201, JSON.stringify(d.body));
   assert.deepEqual(d.body.draft.required, { gems: 4, hearts: 0 });
   assert.ok(d.body.draft.presents.every((id) => membres(2).some((m) => m.id === id)));
+  // La partenaire ne paie rien : elle ne lit pas ce pot (bourses de la lanceuse), ne le règle
+  // pas et ne le lance pas.
+  const partenaire = membres(0)[0];
+  const lecture = await request(app)
+    .get(api(`/spell-casts/drafts/${d.body.draft.id}`))
+    .set(auth(partenaire.token));
+  assert.equal(lecture.status, 403, JSON.stringify(lecture.body));
+  const reglage = await request(app)
+    .put(api(`/spell-casts/drafts/${d.body.draft.id}/contributions`))
+    .set(auth(partenaire.token))
+    .send({ contributions: [{ playerId: membres(2)[0].id, gems: 4, hearts: 0 }] });
+  assert.equal(reglage.status, 403, JSON.stringify(reglage.body));
+  assert.equal(reglage.body.code, 'CONTRIBUTION_AUTRE_EQUIPE');
+  const lancement = await request(app)
+    .post(api(`/spell-casts/drafts/${d.body.draft.id}/launch`))
+    .set(auth(partenaire.token));
+  assert.equal(lancement.status, 403, JSON.stringify(lancement.body));
   const l = await request(app)
     .post(api(`/spell-casts/drafts/${d.body.draft.id}/launch`))
     .set(auth(membres(2)[0].token));

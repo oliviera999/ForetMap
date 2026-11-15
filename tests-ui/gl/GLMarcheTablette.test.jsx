@@ -16,9 +16,9 @@ vi.mock('../../src/gl/components/GLMarketView.jsx', () => ({
 import { GLMarcheTablette } from '../../src/gl/components/tenir/GLMarcheTablette.jsx';
 
 const roster = [
-  { playerId: 11, pseudo: 'Ada', teamId: 2, healthPoints: 3, powerPoints: 4 },
-  { playerId: 12, pseudo: 'Blaise', teamId: 2, healthPoints: 2, powerPoints: 1 },
-  { playerId: 13, pseudo: 'Chloé', teamId: 2, healthPoints: 5, powerPoints: 5 },
+  { playerId: 11, pseudo: 'joueur-a', teamId: 2, healthPoints: 3, powerPoints: 4 },
+  { playerId: 12, pseudo: 'joueur-b', teamId: 2, healthPoints: 2, powerPoints: 1 },
+  { playerId: 13, pseudo: 'joueur-c', teamId: 2, healthPoints: 5, powerPoints: 5 },
 ];
 
 describe('GLMarcheTablette — « Qui agit ? »', () => {
@@ -47,7 +47,7 @@ describe('GLMarcheTablette — « Qui agit ? »', () => {
     expect(setActing).toHaveBeenLastCalledWith(13);
     await waitFor(() => screen.getByTestId('stub-marche'));
     expect(screen.getByTestId('stub-marche').textContent).toContain('marché de 13 · 5');
-    expect(screen.getByTestId('gl-qui-agit-choisi').textContent).toContain('Chloé');
+    expect(screen.getByTestId('gl-qui-agit-choisi').textContent).toContain('joueur-c');
 
     // « Changer » : on oublie qui agissait et on redemande.
     fireEvent.click(screen.getByRole('button', { name: 'Changer' }));

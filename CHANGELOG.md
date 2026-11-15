@@ -49,6 +49,12 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   encore » : rien), une seule décision ; annulé au Seuil. Aucune ressource. Le critère n'est
   servi qu'au prof. Réglages `tenir_defis_case`, `tenir_defi_declenchement` (`arret` |
   `passage`), `tenir_defi_recul` ; six lignes d'Olu.
+- **Le serveur rejoue le pot.** Seule une équipe du pot le lance ou le règle (l'identifiant d'un
+  pot circule dans la salle) ; la partenaire d'une Cordée offerte ne lit plus les bourses de la
+  lanceuse ; un absent, un élève en retrait ou un « pas moi » n'est jamais débité (parts
+  recalculées au lancement et à la reprise d'un pot né à un tour précédent). Une tablette ne
+  reçoit que l'effectif de son équipe. Sur tablette, l'assistant de sort va droit au pot, et ne
+  revient plus à sa première étape à chaque évènement de la partie.
 - **Outil MCP `gl_seance`** (lecture seule) : `avant` (catalogues, partie en cours, phase, lien
   de classe, défis à juger) et `apres` (durées par phase, demandes en attente, défis reçus,
   questions posées).

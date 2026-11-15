@@ -44,7 +44,7 @@ const router = express.Router();
 function emitDraftChanged(gameId, payload) {
   const draft = payload?.draft;
   if (draft?.spell?.tenirV2) {
-    const { draft: _prive, ...rest } = payload; // eslint-disable-line no-unused-vars
+    const { draft: _prive, ...rest } = payload;
     return emitGlSpellCastDraftChanged(gameId, { ...rest, teamId: draft.teamId });
   }
   return emitGlSpellCastDraftChanged(gameId, payload);
@@ -65,7 +65,10 @@ async function peutLireLePot(req, gameId, draft) {
     );
     teamId = row?.team_id != null ? Number(row.team_id) : null;
   }
-  return teamId != null && [Number(draft.teamId), Number(draft.partnerTeamId)].includes(teamId);
+  const equipes = Array.isArray(draft.equipesDuPot)
+    ? draft.equipesDuPot.map(Number)
+    : [Number(draft.teamId)];
+  return teamId != null && equipes.includes(teamId);
 }
 
 /** Élève connecté, prof, ou tablette d'équipe (session ouverte par le lien de classe). */

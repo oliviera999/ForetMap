@@ -58,6 +58,8 @@ export function GLSpellCastWizard({
   const [effectParams, setEffectParams] = useState({});
   const closeTimerRef = useRef(null);
   const staffDraftStartedRef = useRef(false);
+  // Tablette d'équipe : elle ne lance que pour SON équipe, l'étape « quelle équipe ? » saute.
+  const tabletteTeamAutoRef = useRef(null);
 
   const activeSpellCode = spellCode || pickSpellCode;
   const activeSpell = useMemo(() => {
@@ -92,6 +94,10 @@ export function GLSpellCastWizard({
       }),
     [teams, teamScope, playerTeamId, isStaff, casterKind],
   );
+  // Clé stable des équipes sélectionnables : l'état de partie se recharge à chaque évènement
+  // (en jeu parallèle, sans arrêt) et livre un tableau neuf — l'assistant ne doit pas pour
+  // autant revenir à sa première étape au milieu d'un pot.
+  const selectableTeamIdsKey = selectableTeams.map((t) => Number(t.id)).join(',');
 
   const beginFundDraft = useCallback(
     async ({ spell, teamId, options = null }) => {
@@ -154,19 +160,18 @@ export function GLSpellCastWizard({
     staffDraftStartedRef.current = false;
     setFundLoading(false);
     setStep(resolveSpellCastInitialStep({ isStaff, activeSpellCode }));
-    if (
-      playerTeamId != null &&
-      selectableTeams.some((t) => Number(t.id) === Number(playerTeamId))
-    ) {
+    tabletteTeamAutoRef.current = null;
+    const selectableIds = selectableTeamIdsKey ? selectableTeamIdsKey.split(',').map(Number) : [];
+    if (playerTeamId != null && selectableIds.includes(Number(playerTeamId))) {
       setSelectedTeamId(Number(playerTeamId));
-    } else if (selectableTeams.length === 1) {
-      setSelectedTeamId(Number(selectableTeams[0].id));
+    } else if (selectableIds.length === 1) {
+      setSelectedTeamId(selectableIds[0]);
     } else if (isStaff && currentTeamId != null) {
       setSelectedTeamId(Number(currentTeamId));
     } else {
       setSelectedTeamId(null);
     }
-  }, [open, activeSpellCode, playerTeamId, selectableTeams, isStaff, currentTeamId]);
+  }, [open, activeSpellCode, playerTeamId, selectableTeamIdsKey, isStaff, currentTeamId]);
 
   useEffect(() => {
     if (!open || !isStaff || !activeSpellCode || !gameId) return;
@@ -229,6 +234,19 @@ export function GLSpellCastWizard({
       options: buildDraftOptions(params),
     });
   }
+
+  useEffect(() => {
+    if (!open) {
+      tabletteTeamAutoRef.current = null;
+      return;
+    }
+    if (!tablette || isStaff || step !== 'team' || !activeSpellCode || playerTeamId == null) return;
+    if (tabletteTeamAutoRef.current === activeSpellCode) return;
+    tabletteTeamAutoRef.current = activeSpellCode;
+    handleSelectTeam(Number(playerTeamId));
+    // handleSelectTeam est recréée à chaque rendu : la garde par référence suffit.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, tablette, isStaff, step, activeSpellCode, playerTeamId]);
 
   function handlePickSpell(code) {
     setPickSpellCode(code);

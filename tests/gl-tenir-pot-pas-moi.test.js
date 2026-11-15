@@ -246,3 +246,68 @@ test('compte élève : la saisie de part reste possible, pour l’équipe lanceu
     .set(auth(l1.token))
     .expect(200);
 });
+
+test('le serveur rejoue le pot : une autre équipe ne le lance pas ; une absence saisie après coup n’est jamais débitée', async () => {
+  const gnomesB = ctx.teams[1];
+  const equipe = membres(gnomesB.id);
+  const [b1, b2] = equipe;
+  assert.ok(equipe.length >= 3, 'trois membres dans Gnomes B');
+  for (const p of equipe) await setPlayerBourses(p.id, 4, 4);
+  const coeurs = async (liste) => {
+    let total = 0;
+    for (const p of liste) total += (await readPlayerBourses(p.id)).health;
+    return total;
+  };
+  const cree = await pot(b1.token, {
+    spellCode: 'SL043',
+    teamId: gnomesB.id,
+    effectParams: { targetTeamId: ctx.teams[2].id },
+  });
+  assert.equal(cree.status, 201, JSON.stringify(cree.body));
+  const draft = cree.body.draft;
+  const lancer = (token) =>
+    request(app)
+      .post(api(`/spell-casts/drafts/${draft.id}/launch`))
+      .set(auth(token));
+
+  // L'identifiant d'un pot circule dans la salle : il ne suffit pas pour le lancer.
+  const parUnEleve = await lancer(a.token);
+  assert.equal(parUnEleve.status, 403, JSON.stringify(parUnEleve.body));
+  assert.equal(parUnEleve.body.code, 'CONTRIBUTION_AUTRE_EQUIPE');
+  const tabletteA = await issueTeamSession(db, { gameId: ctx.game.id, teamId: gnomes.id });
+  const parUneTablette = await lancer(tabletteA.token);
+  assert.equal(parUneTablette.status, 403, JSON.stringify(parUneTablette.body));
+  assert.equal(await coeurs(equipe), equipe.length * 4, 'aucun débit');
+
+  // b2 est noté absent après l'ouverture du pot : sa part ne part pas, on ne la lui redonne pas.
+  await request(app)
+    .post(api('/tenir/presences'))
+    .set(auth(b1.token))
+    .send({ absents: [b2.id] })
+    .expect(200);
+  const auNomDeLAbsent = await request(app)
+    .put(api(`/spell-casts/drafts/${draft.id}/contributions`))
+    .set(auth(b1.token))
+    .send({ contributions: [{ playerId: b2.id, hearts: 1, gems: 0 }] });
+  assert.equal(auNomDeLAbsent.status, 409, JSON.stringify(auNomDeLAbsent.body));
+  assert.equal(auNomDeLAbsent.body.code, 'CONTRIBUTION_HORS_POT');
+  assert.ok(!/retrait/i.test(auNomDeLAbsent.body.error), 'un refus ne parle jamais de retrait');
+
+  const lance = await lancer(b1.token);
+  assert.equal(lance.status, 200, JSON.stringify(lance.body));
+  assert.deepEqual(await readPlayerBourses(b2.id), { health: 4, power: 4 }, 'l’absent garde tout');
+  assert.equal(
+    await coeurs(equipe.filter((p) => p.id !== b2.id)),
+    (equipe.length - 1) * 4 - 2,
+    'les deux cœurs viennent des présents',
+  );
+  const inv = await checkTenirInvariantsFromDb(db, ctx.game.id, {
+    settings: await getGameplaySettings(),
+  });
+  assert.deepEqual(inv.violations || [], []);
+  await request(app)
+    .post(api('/tenir/presences/arrivee'))
+    .set(auth(b1.token))
+    .send({ playerId: b2.id })
+    .expect(200);
+});

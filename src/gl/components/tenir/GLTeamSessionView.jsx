@@ -194,7 +194,6 @@ export function GLTeamSessionView({ auth, token, onQuit, onEnded }) {
               canSpellCast={false}
               canRollDice={false}
               showPlateauMarkers
-              roster={gameState.roster || []}
               tenirLayers={tenirLayers}
               fouilleMode={chasse.fouilleMode}
               onFouille={chasse.fouiller}

@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { queryOne } = require('../database');
+const { queryOne, execute } = require('../database');
 const { createTenirGame } = require('../tests/helpers/glTenirFixtures');
 const { mountGlSession } = require('./fixtures/gl.fixture');
 
@@ -16,6 +16,8 @@ const GL = { 'X-Foretmap-Product': 'gl' };
 async function ouvrirTablette(browser) {
   const context = await browser.newContext(TABLETTE);
   const page = await context.newPage();
+  // Un geste qui n'aboutit pas échoue à sa ligne, pas au délai global du test.
+  page.setDefaultTimeout(20_000);
   await page.setExtraHTTPHeaders(GL);
   // L'intro et les visites guidées ne sont pas l'objet du test.
   await page.addInitScript(() => {
@@ -29,6 +31,17 @@ async function ouvrirTablette(browser) {
 }
 
 test.describe('GL — tablettes d’équipe par le lien de classe', () => {
+  // Case du plateau d'exemple marquée « Défi d'équipe » le temps du test, puis remise.
+  let caseMarquee = null;
+  test.afterEach(async () => {
+    if (!caseMarquee) return;
+    await execute('UPDATE gl_chapter_markers SET event_config_json = ? WHERE id = ?', [
+      caseMarquee.avant,
+      caseMarquee.id,
+    ]);
+    caseMarquee = null;
+  });
+
   test('quatre tablettes rejoignent leur équipe, confirment leur présence et jouent en parallèle ; un compte élève arrive sur le même écran', async ({
     browser,
     request,
@@ -115,6 +128,9 @@ test.describe('GL — tablettes d’équipe par le lien de classe', () => {
       }).toPass({ timeout: 30_000 });
       // « Il manque quelqu'un ? » : personne ne manque.
       await expect(t.page.getByTestId('gl-presence')).toBeVisible({ timeout: 15_000 });
+      if (t === tablettes[0]) {
+        await t.page.screenshot({ path: 'docs/captures/tenir-v2/tablette-presences.png' });
+      }
       await t.page.getByTestId('gl-presence-ok').click();
       await expect(t.page.getByTestId('gl-presence')).toBeHidden({ timeout: 15_000 });
     }
@@ -157,6 +173,27 @@ test.describe('GL — tablettes d’équipe par le lien de classe', () => {
       path: 'docs/captures/tenir-v2/tablette-ecran-equipe.png',
     });
 
+    // Le pot d'un sort sur la tablette : part automatique des présents, « pas moi » par ligne.
+    const potier = tablettes[1].page;
+    await potier.getByRole('button', { name: 'Jeter un sort' }).click();
+    await potier.getByTestId('gl-sorts-moments').locator('[data-sort="SL043"]').click();
+    const lignes = potier.locator('[data-testid^="gl-pot-ligne-"]');
+    await expect(lignes).toHaveCount(2, { timeout: 15_000 });
+    await expect(lignes.first()).toContainText('❤️ 1');
+    await potier.screenshot({ path: 'docs/captures/tenir-v2/tablette-pot-pas-moi.png' });
+    await lignes.first().getByRole('button', { name: 'pas moi' }).click();
+    await expect(lignes.first()).toContainText('ne verse pas cette fois', { timeout: 15_000 });
+    await expect(lignes.nth(1)).toContainText('❤️ 2');
+    await potier.getByRole('button', { name: 'Annuler le brouillon' }).click();
+    await expect(lignes).toHaveCount(0, { timeout: 15_000 });
+    const assistant = potier.getByRole('dialog');
+    if (await assistant.isVisible()) {
+      await assistant.getByRole('button', { name: 'Fermer' }).first().click();
+    }
+    await expect(assistant).toBeHidden({ timeout: 15_000 });
+    const fermerSorts = potier.getByRole('button', { name: 'Fermer les sorts' });
+    if (await fermerSorts.isVisible()) await fermerSorts.click();
+
     // Le Marché depuis la tablette : « Qui agit ? », puis la place au nom de l'élève choisi.
     const marcheur = ctx.players.find((p) => Number(p.teamId) === Number(tablettes[1].team.id));
     await tablettes[1].page.getByTestId('gl-team-session-marche').click();
@@ -176,6 +213,44 @@ test.describe('GL — tablettes d’équipe par le lien de classe', () => {
     const texte = await tablettes[1].page.locator('body').innerText();
     expect(texte).not.toMatch(/classement|\brang\b|premier de/i);
     expect(texte).not.toMatch(/\b(faux|raté|perdu)\b/i);
+
+    // --- Défi de case : Licornes B s'arrête sur une case « Défi d'équipe » -------------------
+    // La case « Étape » (trois cases après le départ) est marquée le temps du test.
+    const caseDefi = ctx.markers[3];
+    caseMarquee = {
+      id: caseDefi.id,
+      avant: (
+        await queryOne('SELECT event_config_json FROM gl_chapter_markers WHERE id = ?', [
+          caseDefi.id,
+        ])
+      ).event_config_json,
+    };
+    await execute('UPDATE gl_chapter_markers SET event_config_json = ? WHERE id = ?', [
+      JSON.stringify({ version: 2, tenir: { defi: true } }),
+      caseDefi.id,
+    ]);
+    const avance = await request.post(api('/tenir/lancer'), {
+      headers: prof,
+      data: { mode: 'libre', teamId: ctx.teams[3].id, cases: 3, motif: 'case Défi (e2e)' },
+    });
+    expect(avance.ok(), await avance.text()).toBeTruthy();
+    const defiRecu = (await (await request.get(api('/defis-case'), { headers: prof })).json())
+      .defis[0];
+    expect(defiRecu.statut).toBe('a_preparer');
+    expect(defiRecu.critere).toBeTruthy();
+    const pageDefi = tablettes[3].page;
+    const panneauDefi = pageDefi.getByTestId('gl-defis-case');
+    await expect(async () => {
+      if (!(await panneauDefi.isVisible())) {
+        await pageDefi.getByRole('button', { name: 'Actualiser' }).first().click();
+      }
+      await expect(panneauDefi).toBeVisible({ timeout: 3_000 });
+    }).toPass({ timeout: 30_000 });
+    await expect(panneauDefi).toContainText(defiRecu.titre);
+    // Le critère de réussite est pour le prof seul.
+    expect(await pageDefi.locator('body').innerText()).not.toContain(defiRecu.critere);
+    await panneauDefi.scrollIntoViewIfNeeded();
+    await pageDefi.screenshot({ path: 'docs/captures/tenir-v2/tablette-defi-de-case.png' });
 
     // --- La console du prof : file « Demandes » (jets en suspens) et feuille du QR -----------
     const consoleProf = await browser.newContext({
@@ -203,6 +278,14 @@ test.describe('GL — tablettes d’équipe par le lien de classe', () => {
     );
     await demandes.scrollIntoViewIfNeeded();
     await pageProf.screenshot({ path: 'docs/captures/tenir-v2/console-demandes.png' });
+    // La ligne du défi : consigne, critère pour le prof seul, « Relevé » / « Pas encore ».
+    const ligneDefi = demandes.locator('[data-kind="defi_case"]');
+    await expect(ligneDefi).toContainText('Licornes B');
+    await expect(ligneDefi.getByTestId('gl-defi-critere')).toContainText(defiRecu.critere);
+    await ligneDefi.getByRole('button', { name: 'Sablier' }).click();
+    await expect(ligneDefi.getByTestId('gl-defi-sablier')).toBeVisible();
+    await ligneDefi.scrollIntoViewIfNeeded();
+    await ligneDefi.screenshot({ path: 'docs/captures/tenir-v2/console-defi-a-juger.png' });
     await pageProf.getByTestId('gl-class-link-qr').click();
     const feuille = pageProf.getByTestId('gl-class-link-sheet');
     // L'image du QR est enveloppée par le bouton « Agrandir l'image » de l'app.
@@ -237,8 +320,17 @@ test.describe('GL — tablettes d’équipe par le lien de classe', () => {
       const res = await request.post(api('/tenir/tour/phase'), { headers: prof, data: body });
       expect(res.ok(), await res.text()).toBeTruthy();
     }
+    // Seul le défi à préparer passe la clôture du tour ; jugé, il ne reste rien.
     const file = await (await request.get(api('/tenir/demandes'), { headers: prof })).json();
-    expect(file.total).toBe(0);
+    expect(file.demandes.map((d) => d.kind)).toEqual(['defi_case']);
+    const juge = await request.post(api(`/defis-case/${defiRecu.id}/decider`), {
+      headers: prof,
+      data: { releve: true },
+    });
+    expect(juge.ok(), await juge.text()).toBeTruthy();
+    expect((await juge.json()).statut).toBe('releve');
+    const vide = await (await request.get(api('/tenir/demandes'), { headers: prof })).json();
+    expect(vide.total).toBe(0);
     await expect(async () => {
       const attente = tablettes[3].page.getByTestId('gl-team-session-attente');
       if (!(await attente.isVisible())) await tablettes[3].page.reload();

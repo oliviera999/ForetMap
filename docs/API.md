@@ -554,6 +554,13 @@ tableau, rien ne change.
   tablette d'équipe (plus aucune saisie de part) ; en partie « Tenir », **403
   `CONTRIBUTION_AUTRE_EQUIPE`** pour un élève qui n'appartient ni à l'équipe lanceuse ni à sa
   partenaire de pacte.
+- **Le serveur rejoue le pot** (partie « Tenir ») : `POST …/drafts/:draftId/launch` répond
+  **403 `CONTRIBUTION_AUTRE_EQUIPE`** à une équipe qui n'est pas du pot (l'identifiant d'un pot
+  circule dans la salle) ; la partenaire d'une Cordée offerte, qui ne paie rien, ne lit, ne
+  règle ni ne lance ce pot. Une part au nom d'un élève hors du pot (absent, en retrait, « pas
+  moi ») est refusée (**409 `CONTRIBUTION_HORS_POT`**) ; au lancement, et à la reprise d'un pot
+  né à un tour précédent, les parts sont recalculées sur les présents : un absent n'est jamais
+  débité. La charge utile d'un pot porte `equipesDuPot`.
 - Une tablette d'équipe ouvre, lit, lance et annule les pots de **son** équipe pendant un tour
   ouvert (`teamId` facultatif ; 403 pour une autre équipe) ; un sort à limite par élève lui est
   refusé : 403 `SPELL_COMPTE_ELEVE`, « Ce sort se lance depuis ton propre compte. »
@@ -717,7 +724,9 @@ reçoit une **session d'équipe** de 3 heures.
 Ce qu'une session d'équipe peut faire :
 
 - **Lire** sa partie (`GET /api/gl/games/:id`, `…/tenir`, `…/tenir/tour`, `…/chasse`,
-  `…/tenir/olu`, `…/tenir/chimeres`, journal). Le bloc `tenir` porte
+  `…/tenir/olu`, `…/tenir/chimeres`, journal). `roster` ne porte que **l'effectif de son
+  équipe** (une tablette s'ouvre avec le seul code de la classe : elle ne reçoit pas les noms
+  du reste de la classe). Le bloc `tenir` porte
   `tablette: { teamId, horsTour, presents }` (`presents` : identifiants des membres présents,
   non en retrait — vide hors tour ; sert à « Qui agit ? »). **Hors tour : aucune bourse, aucune réserve, toutes les
   permissions à `false`.** Pendant un tour ouvert : les bourses de son équipe seulement, les

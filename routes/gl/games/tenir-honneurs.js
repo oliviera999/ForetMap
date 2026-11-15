@@ -348,7 +348,7 @@ router.post(
     } else {
       // File unique du prof (lot 2) : la chimère attend sa relecture.
       await withTransaction((tx) =>
-        require('../../../lib/glDemandes').creerDemandeTx(tx, {
+        require('../../../lib/glDemandes').creerDemandeSiPartieEnCoursTx(tx, {
           gameId,
           kind: 'chimere',
           refId: Number(r.insertId),

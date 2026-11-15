@@ -125,6 +125,11 @@ test('hors tour : la tablette lit sa partie sans aucune bourse, et ne fait aucun
   const etat = await request(app).get(api('')).set(auth(s.token));
   assert.equal(etat.status, 200, JSON.stringify(etat.body));
   assert.equal(etat.body.tenir.tablette.horsTour, true);
+  assert.ok(etat.body.roster.length > 0);
+  assert.ok(
+    etat.body.roster.every((r) => Number(r.teamId) === Number(team.id)),
+    'la tablette ne reçoit que l’effectif de son équipe, jamais les noms du reste de la classe',
+  );
   for (const r of etat.body.roster) {
     assert.equal('healthPoints' in r, false, 'aucune bourse hors tour');
     assert.equal('powerPoints' in r, false);

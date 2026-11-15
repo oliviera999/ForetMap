@@ -148,6 +148,10 @@ test('aucune attente sans sortie : la phase ferme dés et jets ; le tour suivant
 
   await phase({ phase: 'souffle', dort: true }).expect(200);
   assert.deepEqual(await kinds(), ['sort_a_appliquer'], 'les dés à valider n’attendent plus');
+  const saisie = await db.queryOne('SELECT statut FROM gl_game_des_saisies WHERE id = ?', [
+    jet.body.saisieId,
+  ]);
+  assert.equal(saisie.statut, 'refusee', 'la saisie non validée ne reste pas « en attente »');
   await phase({ phase: 'clos' }).expect(200);
   assert.deepEqual(await kinds(), ['sort_a_appliquer'], 'le sort du prof peut encore s’appliquer');
 
@@ -355,4 +359,16 @@ test('Seuil : plus aucune demande en attente', async () => {
     chimere.body.chimere.id,
   ]);
   assert.equal(c.statut, 'proposee');
+
+  // Après le Seuil, une proposition ne rouvre aucune ligne : plus rien ne la fermerait.
+  const tardive = await request(app)
+    .post(api('/tenir/chimeres'))
+    .set(auth(membres(1)[0].token))
+    .send({ nom: 'Hérisson-loutre', histoire: 'Il nage dans la rivière et se met en boule.' });
+  assert.ok(tardive.status < 500, JSON.stringify(tardive.body));
+  const apresSeuil = await db.queryOne(
+    "SELECT COUNT(*) AS n FROM gl_game_demandes WHERE game_id = ? AND statut = 'en_attente'",
+    [ctx.game.id],
+  );
+  assert.equal(Number(apresSeuil.n), 0);
 });
