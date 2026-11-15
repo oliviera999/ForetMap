@@ -49,6 +49,16 @@ function acteurPour(ctx, equipe, geste, operateur) {
   if (parProf) {
     return { token: ctx.mjToken, acteur: 'prof', teamIdBody: equipe.id, membres: equipe.membres };
   }
+  // Tablette d'équipe (session ouverte par le lien de classe) : elle porte les gestes du tour
+  // à la place du compte d'un élève ; le serveur sait pour quelle équipe elle joue.
+  if (equipe.sessionToken) {
+    return {
+      token: equipe.sessionToken,
+      acteur: 'eleve',
+      teamIdBody: undefined,
+      membres: equipe.membres,
+    };
+  }
   return {
     token: operateur.token,
     acteur: 'eleve',

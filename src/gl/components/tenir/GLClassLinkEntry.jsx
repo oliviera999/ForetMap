@@ -61,7 +61,7 @@ export function GLClassLinkEntry({ initialToken = null, notice = '', onSession, 
   const canon = normalizeClassCode(code);
   return (
     <section className="gl-class-link" data-testid="gl-class-link">
-      <h2>J’ai le code de la classe</h2>
+      <h2>{opened ? 'Votre équipe' : 'J’ai le code de la classe'}</h2>
       {notice ? (
         <p className="gl-hint" role="status">
           {notice}

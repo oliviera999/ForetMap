@@ -371,6 +371,57 @@ main, la relecture des pages écrites et des chimères s'y saisissent aussi.
   annulé : l'écran vous propose de passer au souffle. Si vous cochez « Passer au souffle à la
   fin », l'écran du tour y passe seul (l'app lance alors le dé gris).
 
+**Depuis le 15 novembre 2026 — les équipes jouent en même temps, sur les tablettes de la classe.**
+
+En hybride et sur tablette, il n'y a plus d'équipe « active » : les quatre équipes jouent en
+parallèle. Au tableau, rien ne change.
+
+- **Une tablette par équipe, sans compte.** Sur l'écran « Jouer le tour », le bouton **« QR de
+  la classe »** affiche une feuille à imprimer une fois pour l'année : un QR et un code de huit
+  caractères. L'équipe scanne le QR avec l'appareil photo de la tablette (ou tape le code depuis
+  « J'ai le code de la classe »), puis touche sa mascotte. La tablette joue pour l'équipe, le
+  temps de la séance. Vous voyez les tablettes connectées et pouvez en **déconnecter** une.
+  « Régénérer… » annule l'ancien QR et déconnecte toutes les tablettes. Un élève connecté avec
+  son propre compte arrive sur le même écran d'équipe.
+- **Les présences se confirment par équipe.** À l'ouverture du tour, chaque tablette demande
+  « Il manque quelqu'un ? » : l'équipe touche les absents, puis « C'est bon ». Un retardataire
+  se signale par « Quelqu'un vient d'arriver ». Votre bouton « Tout le monde est là » confirme
+  toute la classe d'un coup. Tant qu'une équipe n'a pas confirmé, elle ne lance pas de sort.
+- **Un sort se paie à plusieurs, sans calcul.** Sur la tablette, le coût se partage seul entre
+  les présents ; un élève qui ne veut pas verser touche « pas moi » sur sa ligne. La bourse de
+  chacun reste la sienne : une équipe ne voit jamais le pot d'une autre.
+- **Tout ce qui attend votre geste est au même endroit.** Le panneau **« Demandes »** réunit
+  les dés à valider, les jets en suspens, les sorts à appliquer, les présences, les pages et
+  chimères à relire, les défis à juger. Une ligne par demande, la plus ancienne en haut, un
+  bouton par ligne ; un compteur reste visible. **Rien ne reste bloqué** : ce que vous n'avez
+  pas traité se règle seul — à la fin de la phase de jeu pour les dés et les présences, à la
+  clôture du tour pour un sort du tour (il est rendu à l'équipe), à la séance suivante pour un
+  sort d'activité, à la clôture du chapitre pour le reste.
+- **« Refuser et rembourser ».** Un sort que vous ne voulez pas accorder se refuse d'un bouton,
+  avec un mot facultatif : l'équipe retrouve exactement ce qu'elle a versé.
+- **« Tout au tableau ».** Si la classe s'agite ou si le réseau flanche, ce bouton vous rend la
+  main en pleine séance : vous jouez pour chaque équipe comme au tableau. « Rendre la main aux
+  équipes » revient à l'état précédent. Les tablettes restent connectées.
+- **L'écran d'équipe guide le tour.** Les sorts y sont rangés par moment (« Avant de lancer »,
+  « Après le jet », « Pendant le tour », « Plus tard »), les six cases à venir sont affichées
+  avant le jet, la distance au voile se lit sous chaque mascotte, et le carnet de la classe
+  signale les pages qui « attendent un lecteur ».
+- **Le défi de case.** Les deux cases « Défi d'équipe » de chaque plateau confient à l'équipe
+  qui s'y arrête un défi **à préparer pour la séance suivante** (titre, consigne, préparation
+  sur son écran et à son Seuil). Le tour continue. Dans « Demandes », la ligne du défi vous
+  montre le **critère de réussite, pour vous seul**, et un sablier à la demande : touchez
+  « Relevé » (le voile recule de deux cases) ou « Pas encore » (rien n'est retiré). Un défi ne
+  donne jamais de ressource. Trois réglages : défis actifs ou non, déclenchement à l'arrêt ou au
+  passage, nombre de cases de recul.
+- **Le Marché depuis la tablette.** Le bouton « Marché » de la tablette demande d'abord « Qui
+  agit ? » : l'élève qui vient avec sa bourse touche son prénom. Chaque geste est noté dans
+  votre journal de partie.
+- **Trois règles tranchées.** Le Marché est fermé au chapitre 1 (case pré-cochée à la création
+  de la partie, que vous pouvez décocher). Le profil
+  **« Court »** réserve la lecture des pages à la veillée, pour une séance plus brève. La Farce
+  ne vise plus une équipe déjà sous le voile. Détail dans
+  [Économie, Marché et sorts](economie-marche-sorts.md).
+
 ## Pour aller plus loin
 
 [Présentation générale](presentation.md) · [Chapitres et progression](chapitres-et-progression.md) · [Économie du jeu](economie-marche-sorts.md) · [QCM et pédagogie](qcm-et-pedagogie.md) · [Sommaire](../README.md)

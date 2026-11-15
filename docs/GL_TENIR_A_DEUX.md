@@ -229,16 +229,39 @@ séance type, la base du banc jouant le tour en quelques secondes).
 
 ## Surfaces et verrous
 
-| Surface  | Lancer / répondre / fouiller                               | Lire | Marché pendant `jeu` |
-| -------- | ---------------------------------------------------------- | ---- | -------------------- |
-| tableau  | prof seulement (écran du tour, équipe active)              | oui  | non                  |
-| hybride  | équipe active ; fouille sur fenêtre ouverte par le prof    | oui  | oui                  |
-| tablette | chaque équipe, en phase `jeu` (dés physiques validés prof) | oui  | oui                  |
+| Surface  | Lancer / répondre                                                  | Fouiller                                       | Lire | Marché pendant `jeu` |
+| -------- | ------------------------------------------------------------------ | ---------------------------------------------- | ---- | -------------------- |
+| tableau  | prof seulement (écran du tour, équipe active, l'une après l'autre) | prof                                           | oui  | non                  |
+| hybride  | prof, pour chaque équipe, **sans ordre imposé**                    | chaque équipe, sur fenêtre ouverte par le prof | oui  | oui                  |
+| tablette | chaque équipe, en phase `jeu` (dés physiques validés prof)         | chaque équipe                                  | oui  | oui                  |
 
 Le serveur rejoue les permissions (`assertActionOuverte` pour lancer / répondre / fouiller,
 `resolveLectureContext` pour lire et tenir, le routeur du Marché pour toute action) ; le client ne
 fait que griser. Un élève ne force pas un mode de dés hors de sa surface, sauf vers la file de
 validation du prof.
+
+**Jeu en parallèle** (lot 2, 15 novembre 2026). En `hybride` comme sur `tablette`, **les équipes
+jouent en même temps** : il n'y a d'« équipe active » qu'au tableau. Ce qui en découle :
+
+- **Qui agit** : un compte d'élève, ou la **tablette de l'équipe** (session ouverte par le lien de
+  classe, `lib/glClassLink.js`, acteur `team` de `lib/glActeur.js`). Une tablette a les droits
+  d'un membre, pour sa partie et son équipe, tant qu'un tour est ouvert (409
+  `TEAM_SESSION_HORS_TOUR` sinon) ; un geste qui touche une bourse individuelle passe par « Qui
+  agit ? » (`resolveActingPlayer`).
+- **Présences** : chaque équipe confirme la sienne à l'ouverture du tour (`lib/glPresences.js`) ;
+  sans confirmation, aucun pot ne se crée (409 `PRESENCE_A_CONFIRMER`). L'appel du prof confirme
+  toutes les équipes d'un coup.
+- **Jets et fenêtres par équipe** : le dernier jet, la fenêtre « après le jet » et le jet en
+  suspens (Relance) se tiennent **par équipe** (`derniersJets`, `lib/glArriveeSuspendue.js`) ; un
+  autre geste de l'équipe (fouiller, répondre, lire, tenir) garde son jet. Une question de case
+  due à une arrivée suit l'équipe si elle est déplacée (`questionsEnAttente`).
+- **File unique du prof** (`gl_game_demandes`, `lib/glDemandes.js`) : tout ce qui attend son
+  geste y prend une ligne, et **chaque ligne a sa sortie automatique** — sortie de la phase `jeu`
+  (présences, dés à valider, jets en suspens), **clôture du tour** (sort du tour non appliqué,
+  ex. Nommer : rendu à l'équipe), ouverture du tour suivant (sort d'activité non appliqué :
+  rendu), Seuil (tout le reste, défis de case compris).
+- **« Tout au tableau »** (`POST …/tenir/surface`) : en pleine séance, le prof reprend la main ;
+  les jets en suspens s'appliquent, les tablettes restent connectées sous les droits du tableau.
 
 **Sorts** (14 novembre 2026) : la permission de surface est rejouée à la création et au
 lancement d'un sort (`lib/glSpellCast.js › assertTenirSurfacePermission`, noyau

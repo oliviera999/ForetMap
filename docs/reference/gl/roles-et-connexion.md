@@ -305,6 +305,29 @@ explicite d'un **Admin** (pas d'un MJ), supprimer les comptes miroirs orphelins.
 - **Désactiver un élève** dans ForetMap le coupe aussi du jeu, immédiatement. Désactiver un
   **joueur** dans le jeu ne touche pas à son compte ForetMap.
 
+## La tablette d'équipe (QR de la classe)
+
+Depuis le 15 novembre 2026, une équipe peut jouer une séance « Tenir à deux » sur une tablette
+de la classe, **sans qu'aucun élève ne se connecte**.
+
+- Le MJ imprime une fois la **feuille de la classe** (bouton « QR de la classe » de l'écran
+  « Jouer le tour ») : un QR et un code de huit caractères, valables toute l'année.
+- L'équipe scanne le QR avec l'appareil photo de la tablette — ou touche **« J'ai le code de la
+  classe »** sur l'écran de connexion et tape le code — puis touche sa mascotte.
+- La tablette a les droits d'un membre de l'équipe, pour cette partie et cette équipe
+  seulement, pendant trois heures. Elle n'agit que lorsqu'un tour est ouvert ; le reste du
+  temps elle montre le plateau et le carnet, en lecture seule.
+- **Au Marché, la tablette demande « Qui agit ? »** : l'équipe touche le prénom de l'élève qui
+  vient avec sa bourse (parmi les présents), sans mot de passe. Le geste est noté pour le MJ.
+  Un élève absent ou mis en retrait n'est pas proposé, et son retrait ne ferme pas le Marché
+  aux autres. Les gestes personnels (journal, badges, sorts réservés à un élève) restent sur
+  le compte de chacun.
+- Le MJ voit les tablettes connectées, peut en déconnecter une, et **régénérer** le QR : l'ancien
+  ne vaut alors plus rien et toutes les tablettes sont déconnectées. Recomposer les équipes les
+  déconnecte aussi.
+- Une tablette d'équipe ne remplace jamais une session ouverte avec un compte : sur un appareil
+  où un élève est connecté, c'est son compte qui reste.
+
 ## La projection (vidéoprojecteur)
 
 Pour une partie « Tenir à deux », le MJ génère depuis la console un **lien de projection** valable

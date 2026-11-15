@@ -42,6 +42,7 @@ const GL_TOOLS = [
   'gl_tenir_catalogues',
   'gl_content_snapshot',
   'gl_tour',
+  'gl_seance',
   'gl_sim_reports',
   'gl_rewards',
 ];
@@ -312,6 +313,87 @@ test('gl_tour : écriture par le pont G&L (ouvrir, phase, avance libre, absences
   const clos = await call('gl_tour', { action: 'phase', game_id: gameId, phase: 'clos' });
   assert.equal(clos.isError, false, clos.text);
   assert.equal(clos.data.apres.phase, 'clos');
+});
+
+test('gl_seance : avant (catalogues, partie, phase, lien, défis à juger) et après (durées, demandes, défis, questions) — lecture seule', async () => {
+  const gameId = Number(ctx.game.id);
+  const classId = Number(ctx.cls.id);
+  const teamId = Number(ctx.teams[0].id);
+  // Un défi reçu au tour 1 et sa ligne dans la file du prof (le critère reste dans la console).
+  await execute(
+    `INSERT INTO gl_tenir_defis_cases (code, plateau, titre, consigne, critere, duree_s, actif, updated_at)
+     VALUES ('d-mcp-seance', 1, 'Défi du connecteur', 'Consigne.', 'Critère du prof seul', 60, 0, NOW())
+     ON DUPLICATE KEY UPDATE titre = VALUES(titre)`,
+  );
+  const defi = await execute(
+    `INSERT INTO gl_game_defis_case (game_id, team_id, defi_code, round_number, statut, created_at)
+     VALUES (?, ?, 'd-mcp-seance', 1, 'a_preparer', NOW())`,
+    [gameId, teamId],
+  );
+  await db.withTransaction((tx) =>
+    require('../lib/glDemandes').creerDemandeTx(tx, {
+      gameId,
+      roundNumber: 1,
+      teamId,
+      kind: 'defi_case',
+      refId: defi.insertId,
+    }),
+  );
+
+  const avant = await call('gl_seance', { action: 'avant', class_id: classId }, readToken);
+  assert.equal(avant.isError, false, avant.text);
+  assertAnonymous(avant.text, 'gl_seance avant');
+  assert.equal(typeof avant.data.catalogues.aJour, 'boolean');
+  assert.ok(Array.isArray(avant.data.catalogues.ecarts));
+  assert.equal(avant.data.partie.id, gameId);
+  assert.equal(avant.data.partie.tenir, true);
+  assert.equal(avant.data.tour.number, 1);
+  assert.equal(avant.data.tour.phase, 'clos');
+  assert.equal(avant.data.lienDeClasse.cree, false);
+  assert.ok(avant.data.aFaire.some((l) => /lien de classe/.test(l)));
+  assert.deepEqual(
+    avant.data.defisAJuger.map((d) => [d.titre, d.teamId, d.statut]),
+    [['Défi du connecteur', teamId, 'a_preparer']],
+  );
+  assert.ok(avant.data.aFaire.some((l) => /1 défi\(s\) de case à juger/.test(l)));
+  assert.equal(avant.data.demandesEnAttente, 1);
+  assert.ok(!avant.text.includes('Critère du prof seul'), 'le critère reste dans la console');
+
+  // Le lien créé : son existence seule est dite, jamais son code.
+  const lien = await require('../lib/glClassLink').ensureClassLink(db, { classId });
+  const avant2 = await call('gl_seance', { action: 'avant', class_id: classId });
+  assert.equal(avant2.data.lienDeClasse.cree, true);
+  assert.ok(!avant2.text.includes(lien.code), 'le code de la classe ne sort pas');
+  assert.ok(!avant2.data.aFaire.some((l) => /lien de classe/.test(l)));
+
+  const apres = await call('gl_seance', { action: 'apres', game_id: gameId });
+  assert.equal(apres.isError, false, apres.text);
+  assertAnonymous(apres.text, 'gl_seance apres');
+  assert.equal(apres.data.tour.number, 1);
+  assert.ok(apres.data.durees, 'durées par phase du tour');
+  assert.equal(typeof apres.data.durees.libelle, 'string');
+  assert.ok('jeu' in apres.data.durees.phases);
+  assert.deepEqual(
+    apres.data.demandesEnAttente.parType.map((d) => [d.kind, d.titre, d.nombre]),
+    [['defi_case', 'Défi à juger', 1]],
+  );
+  assert.equal(apres.data.defisRecus.length, 1);
+  assert.deepEqual(Object.keys(apres.data.questions).sort(), ['justes', 'posees', 'reponses']);
+  assert.ok(!apres.text.includes('Critère du prof seul'));
+
+  const vide = await call('gl_seance', { action: 'avant', class_id: 99999999 });
+  assert.equal(vide.isError, false, vide.text);
+  assert.equal(vide.data.partie, null);
+  const sansTour = await call('gl_seance', { action: 'apres', game_id: gameId, round_number: 9 });
+  assert.equal(sansTour.data.tour, null);
+  assert.equal(sansTour.data.durees, null);
+  const inconnue = await call('gl_seance', { action: 'apres', game_id: 99999999 });
+  assert.equal(inconnue.isError, true);
+
+  // La file et le défi du test ne gênent pas la suite.
+  await execute("DELETE FROM gl_game_demandes WHERE game_id = ? AND kind = 'defi_case'", [gameId]);
+  await execute('DELETE FROM gl_game_defis_case WHERE game_id = ?', [gameId]);
+  await execute("DELETE FROM gl_tenir_defis_cases WHERE code = 'd-mcp-seance'");
 });
 
 test('gl_game_journal : libellés de l’app, filtres, payload privé expurgé sans bypass', async () => {

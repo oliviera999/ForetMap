@@ -12,6 +12,7 @@ import { GLMapView } from '../GLMapView.jsx';
 import { GLTenirEquipeView } from './GLTenirEquipeView.jsx';
 import { GLCarnetClasseView } from './GLCarnetClasseView.jsx';
 import { GLDefisCasePanel } from './GLDefisCasePanel.jsx';
+import { GLMarcheTablette } from './GLMarcheTablette.jsx';
 
 const NOOP = () => {};
 /** Rechargement après un évènement temps réel : regroupé, et étalé entre tablettes. */
@@ -88,6 +89,9 @@ export function GLTeamSessionView({ auth, token, onQuit, onEnded }) {
     enabled: !!tenir?.enabled && live,
     onChanged: reloadGame,
   });
+  // Marché : un geste y touche la bourse d'un élève → la tablette demande « Qui agit ? ».
+  const [marcheOuvert, setMarcheOuvert] = useState(false);
+  const marchePermis = tourOuvert && tenir?.permissions?.marche === true;
   // Jeter un sort : même assistant que l'élève connecté ; le pot s'y partage tout seul.
   const [sort, setSort] = useState({ open: false, code: null });
   const spellCast = useGLSpellCast({
@@ -139,7 +143,28 @@ export function GLTeamSessionView({ auth, token, onQuit, onEnded }) {
                 chasse={chasse}
                 tablette
               />
-            ) : (
+            ) : null}
+            {marchePermis && !marcheOuvert ? (
+              <GLButton
+                type="button"
+                variant="secondary"
+                onClick={() => setMarcheOuvert(true)}
+                data-testid="gl-team-session-marche"
+              >
+                Marché
+              </GLButton>
+            ) : null}
+            {marchePermis && marcheOuvert ? (
+              <GLMarcheTablette
+                token={token}
+                classId={gameState.game?.class_id ?? gameState.game?.classId ?? null}
+                roster={(gameState.roster || []).filter((p) => Number(p.teamId) === Number(teamId))}
+                presents={tenir.tablette?.presents || []}
+                onChanged={reloadGame}
+                onClose={() => setMarcheOuvert(false)}
+              />
+            ) : null}
+            {tourOuvert ? null : (
               <section className="gl-tenir-equipe" data-testid="gl-team-session-attente">
                 <p role="status">
                   <strong>Le tour n’est pas ouvert.</strong> Regardez le plateau et le carnet de la
@@ -169,6 +194,7 @@ export function GLTeamSessionView({ auth, token, onQuit, onEnded }) {
               canSpellCast={false}
               canRollDice={false}
               showPlateauMarkers
+              roster={gameState.roster || []}
               tenirLayers={tenirLayers}
               fouilleMode={chasse.fouilleMode}
               onFouille={chasse.fouiller}

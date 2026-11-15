@@ -619,10 +619,13 @@ Au tableau, rien ne change. En `hybride` et sur `tablette`, les équipes jouent 
   source pour le `detail`, jamais recopié dans la demande.
 - `GET …/tenir/tour` (prof) : `demandesEnAttente` (compteur) et `surfaceAvantTableau`.
 - Sorties automatiques (aucune demande sans sortie) : à la sortie de la phase `jeu`, les lignes
-  `des_a_valider`, `jet_en_suspens`, `presence_a_confirmer` se ferment ; à l'ouverture du tour
-  suivant, un sort du prof resté sans effet est **rendu** (statut `rembourse`, évènement
-  `spell_rembourse`, `motif: 'seance_suivante'`) et sa ligne se ferme ; au Seuil, tout se ferme
-  (les propositions d'élèves restent à relire dans leur panneau).
+  `des_a_valider`, `jet_en_suspens`, `presence_a_confirmer` se ferment ; à la **clôture du
+  tour**, un sort **du tour** que le prof n'a pas appliqué (fenêtres `jeu`, `jeu_avant_fouille`,
+  `avant_jet`, `apres_jet`, `avant_jets_pacte` — ex. Nommer) est **rendu** (statut `rembourse`,
+  évènement `spell_rembourse`, `motif: 'cloture_tour'`) et sa ligne se ferme ; à l'ouverture du
+  tour suivant, un sort d'activité resté sans effet (Question, Pause, Musique… : il s'applique
+  après le tour) est rendu de même (`motif: 'seance_suivante'`) ; au Seuil, tout se ferme
+  (`motif: 'seuil'` ; les propositions d'élèves restent à relire dans leur panneau).
 - `POST /api/gl/games/:id/tenir/surface` `{ tableau: true | false }` — `gl.game.manage`. `true` :
   la surcharge `surface` passe à `tableau` (l'ancienne est gardée dans
   `surface_avant_tableau`), les jets en suspens s'appliquent, évènement `surface_changee` ;
@@ -715,7 +718,8 @@ Ce qu'une session d'équipe peut faire :
 
 - **Lire** sa partie (`GET /api/gl/games/:id`, `…/tenir`, `…/tenir/tour`, `…/chasse`,
   `…/tenir/olu`, `…/tenir/chimeres`, journal). Le bloc `tenir` porte
-  `tablette: { teamId, horsTour }`. **Hors tour : aucune bourse, aucune réserve, toutes les
+  `tablette: { teamId, horsTour, presents }` (`presents` : identifiants des membres présents,
+  non en retrait — vide hors tour ; sert à « Qui agit ? »). **Hors tour : aucune bourse, aucune réserve, toutes les
   permissions à `false`.** Pendant un tour ouvert : les bourses de son équipe seulement, les
   droits d'un membre (`resolveTenirPermissions`), jamais « en retrait » (le retrait reste
   individuel).
@@ -725,6 +729,16 @@ Ce qu'une session d'équipe peut faire :
   `…/chasse/repondre`, `…/chasse/pages/:zoneKey/ouvrir`, `…/chasse/pages/:zoneKey/tenir`. Au
   journal : `actor_type = 'team'`, `actor_id = 'equipe-<teamId>'` (jamais un identifiant
   d'élève).
+- **Marché « au nom de »** (`/api/gl/market/*`, pendant un tour ouvert) : un geste de Marché
+  touche la bourse d'un élève, la tablette dit donc **qui agit** — `onBehalfOfPlayerId` (corps
+  ou query) ou en-tête `X-GL-On-Behalf-Of: <playerId>` (posé par l'app). L'élève doit être un
+  membre **présent** de l'équipe, non en retrait ; la suite de la route le traite comme ce
+  joueur (mêmes règles : `MARCHE_FERME`, `MARCHE_PHASE`, plafonds). 400 `QUI_AGIT_REQUIS`
+  (personne de désigné), 403 `QUI_AGIT_INVALIDE` (absent, en retrait, autre équipe), 409
+  `TEAM_SESSION_HORS_TOUR`. Chaque geste abouti écrit un évènement `marche_au_nom_de`
+  (`actor_id = 'equipe-<teamId>'`, payload privé `{ playerId, action }`, vu du prof seul) ; il
+  ne crédite aucun badge « par l'élève ». Un membre en retrait ne retire pas le Marché à la
+  tablette : seuls les autres peuvent y agir.
 - Refus : 409 `TEAM_SESSION_HORS_TOUR` (geste hors tour), 403 `TEAM_SESSION_AUTRE_PARTIE`,
   403 `TEAM_SESSION_AUTRE_EQUIPE` (`teamId` d'une autre équipe), 401 `TEAM_SESSION_TERMINEE`
   (session révoquée, expirée, lien régénéré, partie close, équipes rebrassées par

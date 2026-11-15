@@ -249,6 +249,81 @@ test('« Tout au tableau » : les jets en suspens s’appliquent, les tablettes 
   );
 });
 
+test('clôture du tour : un « Nommer » que le prof n’a pas appliqué est rendu, sa ligne se ferme', async () => {
+  await require('./helpers/glTenirFixtures').importExempleChasse(db, { game: ctx.game });
+  const zone = await db.queryOne(
+    `SELECT z.id, z.zone_key FROM gl_chasse_zones z
+       INNER JOIN gl_game_chasse_pages p ON p.zone_id = z.id AND p.game_id = ? LIMIT 1`,
+    [ctx.game.id],
+  );
+  assert.ok(zone, 'une page de chasse');
+  const etatAvant = await db.queryOne(
+    'SELECT etat FROM gl_game_chasse_pages WHERE game_id = ? AND zone_id = ?',
+    [ctx.game.id, zone.id],
+  );
+  await db.execute(
+    "UPDATE gl_game_chasse_pages SET etat = 'palie' WHERE game_id = ? AND zone_id = ?",
+    [ctx.game.id, zone.id],
+  );
+  const somme = async () => {
+    let coeurs = 0;
+    let gemmes = 0;
+    for (const p of membres(0)) {
+      const b = await readPlayerBourses(p.id);
+      coeurs += b.health;
+      gemmes += b.power;
+    }
+    return { coeurs, gemmes };
+  };
+  const avant = await somme();
+  const d = await request(app)
+    .post(api('/spell-casts/drafts'))
+    .set(auth(membres(0)[0].token))
+    .send({ spellCode: 'SL041', teamId: team(0).id, effectParams: { zoneKey: zone.zone_key } });
+  assert.equal(d.status, 201, JSON.stringify(d.body));
+  const lance = await request(app)
+    .post(api(`/spell-casts/drafts/${d.body.draft.id}/launch`))
+    .set(auth(membres(0)[0].token));
+  assert.equal(lance.status, 200, JSON.stringify(lance.body));
+  assert.ok((await kinds()).includes('nommer'));
+  assert.equal((await somme()).coeurs, avant.coeurs - 2, 'Nommer coûte deux cœurs à l’équipe');
+
+  await phase({ phase: 'souffle', dort: true }).expect(200);
+  assert.ok(
+    (await kinds()).includes('nommer'),
+    'le prof peut encore l’appliquer pendant le souffle',
+  );
+  // Lu après le souffle : ce qui s'y joue (chapardeur…) ne se confond pas avec le rendu.
+  const avantCloture = await somme();
+  await phase({ phase: 'clos' }).expect(200);
+  assert.ok(!(await kinds()).includes('nommer'), 'plus de ligne après la clôture du tour');
+  assert.deepEqual(
+    await somme(),
+    { coeurs: avantCloture.coeurs + 2, gemmes: avantCloture.gemmes },
+    'remboursement exact',
+  );
+  const draft = await db.queryOne('SELECT status FROM gl_spell_cast_drafts WHERE id = ?', [
+    d.body.draft.id,
+  ]);
+  assert.equal(draft.status, 'rembourse');
+  const evt = await db.queryOne(
+    "SELECT payload_json FROM gl_game_events WHERE game_id = ? AND event_type = 'spell_rembourse' ORDER BY id DESC LIMIT 1",
+    [ctx.game.id],
+  );
+  assert.equal(JSON.parse(evt.payload_json).motif, 'cloture_tour');
+  const inv = await checkTenirInvariantsFromDb(db, ctx.game.id, {
+    settings: await getGameplaySettings(),
+  });
+  assert.deepEqual(inv.violations || [], []);
+
+  await db.execute('UPDATE gl_game_chasse_pages SET etat = ? WHERE game_id = ? AND zone_id = ?', [
+    etatAvant.etat,
+    ctx.game.id,
+    zone.id,
+  ]);
+  await ouvrirTourEnJeu(request, app, ctx);
+});
+
 test('Seuil : plus aucune demande en attente', async () => {
   // Une chimère proposée par un élève attend sa relecture.
   const chimere = await request(app)

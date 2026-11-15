@@ -74,6 +74,27 @@ export function clearGlSession() {
   dispatchGlSessionChanged();
 }
 
+/**
+ * « Qui agit ? » (tablette d'équipe, lot 2) : l'élève au nom de qui la tablette agit au Marché.
+ * Gardé en mémoire seulement (jamais stocké) ; le serveur revérifie à chaque requête.
+ */
+let actingPlayerId = null;
+
+export function setGlActingPlayer(playerId) {
+  actingPlayerId = Number(playerId) > 0 ? Number(playerId) : null;
+}
+
+export function getGlActingPlayer() {
+  return actingPlayerId;
+}
+
+function onBehalfHeaders(path) {
+  if (!actingPlayerId || !String(path).startsWith('/api/gl/market') || !readTeamSession()) {
+    return undefined;
+  }
+  return { 'X-GL-On-Behalf-Of': String(actingPlayerId) };
+}
+
 function glDevUnavailableMessage() {
   return 'Serveur indisponible — lancez l’API ForetMap (port 3000) ou vérifiez NODE_ENV et le fichier .env.';
 }
@@ -105,7 +126,7 @@ export async function apiGL(path, method = 'GET', body = null) {
 async function apiGLRaw(path, method, body) {
   return fetchJsonWithRetry(
     path,
-    { method, body },
+    { method, body, headers: onBehalfHeaders(path) },
     {
       resolveUrl: withAppBase,
       getToken: getGlToken,

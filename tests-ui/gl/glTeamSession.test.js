@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeEach } from 'vitest';
+import { describe, test, expect, beforeEach, vi } from 'vitest';
 import {
   isGlTeamSession,
   readClassLinkTokenFromUrl,
@@ -11,6 +11,9 @@ import {
   getGlToken,
   saveGlSession,
   clearGlSession,
+  apiGL,
+  setGlActingPlayer,
+  getGlActingPlayer,
 } from '../../src/gl/services/apiGL.js';
 
 describe('session d’équipe (tablette de classe)', () => {
@@ -55,6 +58,34 @@ describe('session d’équipe (tablette de classe)', () => {
     expect(getGlToken()).toBe('compte');
     clearGlSession();
     expect(getGlSession()).toBeNull();
+  });
+
+  test('« Qui agit ? » : la tablette n’annonce l’élève qu’au Marché, jamais avec un compte', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: { get: () => 'application/json' },
+      json: async () => ({ items: [] }),
+      text: async () => '{"items":[]}',
+    });
+    const entetes = () => fetchMock.mock.calls.at(-1)[1].headers;
+    saveGlSession(buildTeamSession({ token: 'equipe', gameId: 7, teamId: 12 }));
+    setGlActingPlayer(41);
+    expect(getGlActingPlayer()).toBe(41);
+    await apiGL('/api/gl/market/annonces');
+    expect(entetes()['X-GL-On-Behalf-Of']).toBe('41');
+    await apiGL('/api/gl/games/7');
+    expect(entetes()['X-GL-On-Behalf-Of']).toBeUndefined();
+    setGlActingPlayer(null);
+    await apiGL('/api/gl/market/annonces');
+    expect(entetes()['X-GL-On-Behalf-Of']).toBeUndefined();
+    // Avec un compte d'élève, on n'agit que pour soi : aucun en-tête.
+    setGlActingPlayer(41);
+    saveGlSession({ token: 'compte', auth: { userType: 'gl_player', userId: '4' } });
+    await apiGL('/api/gl/market/annonces');
+    expect(entetes()['X-GL-On-Behalf-Of']).toBeUndefined();
+    setGlActingPlayer(null);
+    fetchMock.mockRestore();
   });
 
   test('une connexion avec un compte remplace la session d’équipe de l’onglet', () => {
