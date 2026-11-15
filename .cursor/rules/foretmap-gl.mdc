@@ -10,6 +10,13 @@ alwaysApply: false
 > large (auth dédiée, chapitres, carte du royaume, lore, marché, sorts, QCM, journal…).
 > Détail d'architecture : skill **foretmap-gl-project** et `docs/GL_ARCHITECTURE.md`.
 > QA par personae : skill **foretmap-gl-qa-personae**.
+> Mouture **« Tenir à deux »** : les garde-fous priment sur tout (skill Claude Code
+> **gl-tenir-garde-fous**, liste des mots interdits dans `src/shared/glGardeFousCore.js`) ;
+> catalogues `data/gl/tenir` : **gl-tenir-catalogue** ; tour, droits, grand livre, journal :
+> **gl-tenir-moteur** ; banc de simulation (jamais la prod) : **gl-banc** ; contenus pour des
+> 6e : **gl-contenu-science**. Ces skills vivent dans `.claude/skills/`, avec deux relecteurs
+> (`.claude/agents/gl-relecteur-garde-fous.md`, `gl-relecteur-science.md`) et la commande
+> `/gl-verif` (`.claude/commands/gl-verif.md`).
 
 ## Routage & isolement (non négociable)
 - Routage host via `lib/productResolver.js` : `gl.*` (ou header `X-Foretmap-Product: gl`)
