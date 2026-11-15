@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { queryOne, queryAll } = require('../database');
+const { queryOne, queryAll, execute } = require('../database');
 const { createTenirGame } = require('../tests/helpers/glTenirFixtures');
 const { mountGlSession } = require('./fixtures/gl.fixture');
 const core = require('../lib/shared/glTrameCore');
@@ -24,6 +24,20 @@ async function bourses(gameId) {
     [gameId],
   );
   return `${row.pv}|${row.gemmes}`;
+}
+
+/** Trois pages de veillée du plateau 1, hors de toute zone de chasse : ce qu'un défi peut donner. */
+async function semerPagesDeVeillee() {
+  for (const [i, lettre] of ['a', 'b', 'c'].entries()) {
+    await execute(
+      `INSERT INTO gl_lore_feuillets (feuillet_code, type, titre, incipit, texte, texte_accessible, biome_slug,
+          plateau_number, mode_apparition, ordre_voyage, statut, created_at, updated_at)
+       VALUES (?, 'feuillet', ?, 'La savane respire.', 'La savane respire.', 'La savane respire.', 'savane',
+          1, 'boite', ?, 'actif', NOW(), NOW())
+       ON DUPLICATE KEY UPDATE statut = 'actif'`,
+      [`e2e-trame-veillee-${lettre}`, `Page de veillée ${lettre}`, -20 + i],
+    );
+  }
 }
 
 async function sansIntro(page) {
@@ -58,6 +72,7 @@ test.describe('GL — défis de la Trame', () => {
       data: { profil: 'complet', overrides: { surface: 'tablette' } },
     });
     expect(profil.ok(), await profil.text()).toBeTruthy();
+    await semerPagesDeVeillee();
     const avant = await bourses(gameId);
 
     // --- Tablette d'équipe (Gnomes), hors tour : Retisser niveau 5 ---------------------------
