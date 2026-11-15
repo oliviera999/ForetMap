@@ -37,14 +37,18 @@ export const FORBIDDEN_WORDS_CI = Object.freeze([
 export const FORBIDDEN_WORDS_CS = Object.freeze(['Krâ', 'Kraa', 'Grise']);
 
 /**
- * Exceptions connues : ce que la liste ne vise pas. Chaque lecteur du noyau applique la même
- * tolérance, pour qu'un contrôle ne soit ni plus dur ni plus doux qu'un autre.
+ * Exceptions connues : ce que la liste ne vise pas. Chaque chargeur choisit les champs qu'il
+ * contrôle (`checkVisible` de `lib/glTenirImport.js`) ; ce relevé nomme ceux qui ne sont jamais
+ * servis à un élève, pour qu'un nouveau contrôle ne les refuse pas à tort.
  */
 export const GARDE_FOUS_EXCEPTIONS = Object.freeze({
   /** Identifiants techniques tolérés dans le code, les clés de payload et les attributs. */
   identifiantsTechniques: Object.freeze(['kraa']),
-  /** Champs jamais montrés à un élève : hors contrôle (titre privé d'une zone, notes du prof). */
-  champsReservesProf: Object.freeze(['titre_prive', 'justification', 'critere', 'avertissement']),
+  /**
+   * Champs jamais montrés à un élève : titre privé d'une zone de chasse, justification et
+   * avertissement d'une page du Passeur. (Le `critere` d'un badge, lui, est visible.)
+   */
+  champsReservesProf: Object.freeze(['titre_prive', 'justification', 'avertissement']),
   /** Mots permis malgré « l'erreur ne punit jamais » : « l'erreur du jour d'Olu » existe. */
   motsPermis: Object.freeze(['erreur']),
 });

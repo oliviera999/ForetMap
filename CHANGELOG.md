@@ -9,6 +9,61 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — G&L « Tenir à deux » : vérité et mesure (lot 1 sur 3)
+
+- **Retours de QCM qui expliquent sans punir.** Une seule fonction de retour
+  (`lib/glRetourQcm.js › resoudreRetour`) pour la chasse, la lecture, la question de case et
+  les QCM hors partie : retour du choix (`feedback_a…e`), puis retour commun
+  (`feedback_incorrect`, jamais lu jusqu'ici pour les 35 questions de lecture), puis le défaut.
+  L'amorce « Non » (3 709 retours sur 3 742) et « c'est faux : » sont retirées à l'affichage ;
+  « Pas encore » n'apparaît qu'une fois.
+- Migration `344_gl_tenir_retours_qcm.sql`, gardée par l'ancienne valeur exacte : 17 retours
+  réécrits (mot de la liste des garde-fous), question de zone `GQCM0766` (suricate) remplacée.
+  Catalogue `qcm-feedbacks-zones` : 36 retours de mauvais choix pour 9 questions de zone, écrits
+  seulement si la colonne est vide ou commence par « Non ».
+- **Questions de case qui stimulent.** Colonne `gl_qcm_questions.usage_tenir` (migration
+  `345_gl_qcm_usage_tenir.sql`) : les 254 questions de taxonomie générée (« À quelle famille
+  appartient… », « nom scientifique ») sortent du tirage des cases et des fouilles de secours,
+  sans être désactivées ailleurs. Catalogue `questions-vives` : 40 questions `VQCM0001…`, cinq
+  par biome joué. Écran des QCM : case « Posée en partie » et filtre ; le cinquième choix d'une
+  question devient facultatif.
+- **Indices de chasse scientifiques** : 36 énigmes « Là où… » (`chasse-zones.json`), affichées
+  en entier dans le carnet de la classe et en projection.
+- **Chronométrage des séances.** Table `gl_game_round_phases` (migration
+  `346_gl_game_round_phases.sql`, `lib/glRoundPhases.js`). Diagnostic et outil MCP
+  `gl_game_diagnostic` : durées par phase et par tour, écart entre le premier et le dernier
+  geste de chaque équipe pendant la phase jeu, gestes du prof par tour. Console : ligne
+  « Ce tour : ouverture 1 min 10, jeu 6 min 40, souffle 0 min 50 » après la clôture, pour le
+  prof seulement (`round.durees` de `GET /api/gl/games/:id/tenir/tour`).
+- **Sabliers réglables d'un clic.** Réglages `tenir_sablier_actif`,
+  `tenir_sablier_phase_secondes` (0 = sans), `tenir_sablier_phase_auto`, surchargeables par
+  partie comme `tenir_sablier_secondes` (migration `347_gl_tenir_sabliers.sql` ; défauts =
+  comportement d'avant). Sablier du tour commun à toutes les équipes en hybride et sur
+  tablette : départ, pause et remise à zéro côté serveur (`gl_game_rounds.sablier_json`), même
+  affichage sur la console, les tablettes et la projection. `PUT
+  /api/gl/games/:id/tenir/sablier` (prof) ; composant `GLSablier`, noyau `glSablierCore`. À
+  zéro rien n'est annulé : la console met en avant le passage au souffle, ou y passe seule si
+  le prof l'a demandé.
+- Outillage : skills `gl-tenir-garde-fous`, `gl-tenir-catalogue`, `gl-tenir-moteur`, `gl-banc`,
+  `gl-contenu-science`, sous-agents `gl-relecteur-garde-fous` et `gl-relecteur-science`,
+  commande `/gl-verif`. Cahier des charges du lot :
+  `docs/GL_UNIFIE_TABLETTE_SCIENCE_DEFIS_PROMPT.md`.
+
+### Corrigé — G&L « Tenir à deux » : droits et source unique
+
+- Au tableau, un élève pouvait créer et lancer depuis son compte un sort de la phase jeu : seul
+  l'écran le grisait. Le serveur rejoue la permission de surface (403 `TENIR_PERMISSION`,
+  `isSortPermisSurSurface`). Sorts de seuil, de veillée, d'activité et de fin de séance
+  inchangés.
+- La liste des mots jamais visibles d'un élève vit dans un noyau partagé
+  (`src/shared/glGardeFousCore.js`), lu par l'import, le banc, les tests de contenu et le test
+  de rendu. La liste ne change pas.
+- Banc de simulation : les migrations postérieures à l'instantané de contenu sont rejouées
+  après son chargement, pour que leurs corrections s'appliquent au corpus du banc.
+- Tests : `gl-retour-qcm`, `gl-tenir-usage-questions`, `gl-tenir-sorts-surface`,
+  `gl-tenir-chronometrage`, `gl-tenir-sablier`, `content/gl-tenir-feedbacks`,
+  `content/gl-tenir-questions-case`, `tests-ui/gl/GLSablier`, `GLCarnetClasseIndice`.
+
 ### Corrigé — G&L : la clôture applique la case restée en suspens
 
 - Clore le chapitre alors qu'une équipe n'a pas encore gardé son jet (Relance encore possible)

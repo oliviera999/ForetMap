@@ -25,6 +25,7 @@ const {
 } = require('../lib/shared/glSablierCore');
 const { buildSablierView, lireReglage } = require('../lib/glSablier');
 const { OVERRIDABLE_KEYS, validateOverrides } = require('../lib/glTenir');
+const { presentTenirJournalEvent } = require('../lib/glJournalPresentTenir');
 
 let ctx;
 const auth = (t) => ({ Authorization: `Bearer ${t}` });
@@ -193,6 +194,7 @@ test('durée changée d’un clic : enregistrée pour la partie, conservée apr�
     [ctx.game.id],
   );
   assert.equal(JSON.parse(evt.payload_json).phaseSecondes, 300);
+  assert.equal(JSON.parse(evt.payload_json).regle, 'phase');
 });
 
 test('pause, reprise, remise à zéro ; la durée du sablier de l’équipe active se règle aussi', async () => {
@@ -262,4 +264,17 @@ test('un nouveau tour : le sablier de phase repart à l’entrée en « jeu »',
   const jeu = await lireTenir(ctx.adminToken);
   assert.ok(jeu.body.sablier.phase.restantSecondes > 295);
   assert.equal(jeu.body.sablier.phase.enPause, false);
+});
+
+test('journal : le libellé dit le geste du prof, pas l’état courant du sablier', () => {
+  const etat = { actif: true, equipeSecondes: 120, phaseSecondes: 300, phaseAuto: true };
+  const corps = (extra) => presentTenirJournalEvent('sablier_regle', { ...etat, ...extra }).body;
+  assert.equal(corps({ regle: 'phase' }), 'Sablier du tour : 5 min.');
+  assert.equal(corps({ regle: 'phase', phaseSecondes: 0 }), 'Le tour se joue sans sablier.');
+  assert.equal(corps({ regle: 'equipe' }), 'Sablier de l’équipe active : 2 min.');
+  assert.equal(corps({ regle: 'auto' }), 'À la fin du sablier, le tour passera au souffle.');
+  assert.equal(corps({ regle: 'actif' }), 'Le sablier est allumé.');
+  assert.equal(corps({ regle: 'actif', actif: false }), 'Le sablier est éteint.');
+  assert.equal(corps({ regle: 'action', action: 'pause' }), 'Le sablier est en pause.');
+  assert.equal(corps({ regle: 'action', action: 'zero' }), 'Le sablier repart de zéro.');
 });

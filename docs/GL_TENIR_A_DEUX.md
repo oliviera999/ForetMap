@@ -211,6 +211,12 @@ en lecture seule), `apres-2-ecran-equipe-tablette-1024x768.png`, `apres-5-ecran-
 `docs/captures/tenir-v2/` : écran du tour projeté avec voile, écran d'équipe (tablette),
 projection, Marché (partie d'exemple anonyme, profil `complet`).
 
+Lot « Vérité et mesure » (14 novembre 2026, base du banc, élèves fictifs) :
+`lot1-retour-pas-encore-tablette-1024x768.png` (retour « Pas encore. … » après une fouille),
+`lot1-sablier-panneau-console-1440x900.png` (panneau de réglage du sablier du tour),
+`lot1-durees-du-tour-console-1440x900.png` (ligne « Ce tour : … » ; durées reportées sur une
+séance type, la base du banc jouant le tour en quelques secondes).
+
 ## Surfaces et verrous
 
 | Surface  | Lancer / répondre / fouiller                               | Lire | Marché pendant `jeu` |

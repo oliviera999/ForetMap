@@ -38,7 +38,7 @@ Source unique : `src/shared/glGardeFousCore.js` (miroir `lib/shared/`, `npm run 
   poursui, corbeau, faux, raté, ratée, perdu, classement.
 - `FORBIDDEN_WORDS_CS` (casse exacte) : Krâ, Kraa, Grise (« une bande grise » reste permis).
 - `findForbiddenString(texte)` → premier mot trouvé ou `null` ; `GARDE_FOUS_EXCEPTIONS` liste
-  les champs réservés au prof (`titre_prive`, `justification`, `critere`).
+  les champs réservés au prof (`titre_prive`, `justification`, `avertissement`).
 - Piège : la règle est un **préfixe**. « perdurer », « poursuivre », « s'attaquer » sont refusés.
   Réécrire (« durer », « continuer », « s'en prendre à »), ne pas toucher à la liste.
 
