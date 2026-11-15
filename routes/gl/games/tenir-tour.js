@@ -15,7 +15,8 @@ const {
   requireGlPermission,
   isMj,
 } = require('../../../middleware/requireGlAuth');
-const { resolveGesteActorOrRespond } = require('../../../lib/glActeur');
+const { resolveGesteActorOrRespond, actorOf } = require('../../../lib/glActeur');
+const presences = require('../../../lib/glPresences');
 const { canAccessGlGame } = require('../../../lib/glGameAccess');
 const { getGameplaySettings } = require('../../../lib/glSettings');
 const { emitGlGameEvent } = require('../../../lib/realtime');
@@ -61,6 +62,9 @@ const ERROR_MESSAGES = {
     'Réglage de sablier invalide (durée de 10 secondes à 60 minutes, action pause, reprise ou zero)',
   PAS_D_ERREUR: 'Aucune erreur du jour sur ce tour',
   DEJA_CORRIGE: 'Déjà corrigé',
+  PRESENCE_PHASE: 'Les présences se confirment au début du tour',
+  PRESENCE_ABSENT_INVALIDE: 'Cette personne ne fait pas partie de l’équipe',
+  PRESENCE_PAS_ABSENT: 'Cette personne est déjà comptée présente',
 };
 
 function sendTourError(res, err) {
@@ -160,6 +164,18 @@ async function fouillesDuTour(gameId, team, roundNumber, resolved) {
   }
 }
 
+/** Équipe de celui qui lit : la sienne pour un élève, celle de la session pour une tablette. */
+async function equipeDuSpectateur(req, gameId) {
+  const actor = actorOf(req);
+  if (actor.kind === 'team') return Number(actor.teamId);
+  if (actor.kind !== 'player') return null;
+  const row = await queryOne(
+    'SELECT team_id FROM gl_team_members WHERE game_id = ? AND player_id = ? LIMIT 1',
+    [gameId, actor.playerId],
+  );
+  return row?.team_id != null ? Number(row.team_id) : null;
+}
+
 router.get(
   '/games/:id/tenir/tour',
   requireGlAuthOrProjection,
@@ -217,6 +233,16 @@ router.get(
       ),
       campIndex: markers.length ? markers.length - 1 : 0,
       lumiere: await tour.loadLumiere(db, gameId),
+      // Présences (lot 2) : confirmée ou non pour chaque équipe (public) ; les absents, pour le
+      // prof et pour les membres (ou la tablette) de l'équipe concernée seulement.
+      presences: await presences.buildPresencesView(db, {
+        gameId,
+        roundNumber,
+        surface: resolveSurface(game, settings),
+        phase: round?.phase || null,
+        viewerTeamId: await equipeDuSpectateur(req, gameId),
+        staff,
+      }),
       // Sabliers : même vue pour le prof, les élèves et la projection (aucun élément privé).
       sablier: glSablier.buildSablierView({
         resolved,
@@ -431,6 +457,105 @@ router.post(
     });
     emitGlGameEvent(gameId, evt);
     return res.json({ ok: true, teamId, ouverte: req.body?.ouverte === true });
+  }),
+);
+
+// ---------------------------------------------------------------------
+// Présences (lot 2) : « Il manque quelqu'un ? », « Quelqu'un vient d'arriver »
+// ---------------------------------------------------------------------
+
+/** Contexte d'un geste de présence : partie « Tenir », tour ouvert, acteur et son équipe. */
+async function resolvePresenceContext(req, res, gameId) {
+  if (!(await canAccessGlGame(req.glAuth, gameId))) {
+    res.status(403).json({ error: 'Accès partie refusé' });
+    return null;
+  }
+  const ctx = await requireTenirGame(req, res, gameId);
+  if (!ctx) return null;
+  const roundNumber = Number(ctx.game.current_round_number) || 0;
+  if (!roundNumber) {
+    res.status(409).json({ error: ERROR_MESSAGES.AUCUN_TOUR, code: 'AUCUN_TOUR' });
+    return null;
+  }
+  const acteur = await resolveGesteActorOrRespond(req, res, gameId, {
+    teamIdFromBody: req.body?.teamId,
+  });
+  if (!acteur) return null;
+  const team = await queryOne('SELECT id FROM gl_teams WHERE id = ? AND game_id = ? LIMIT 1', [
+    acteur.teamId,
+    gameId,
+  ]);
+  if (!team) {
+    res.status(404).json({ error: ERROR_MESSAGES.TEAM_NOT_FOUND });
+    return null;
+  }
+  const round = await queryOne(
+    'SELECT phase FROM gl_game_rounds WHERE game_id = ? AND round_number = ? LIMIT 1',
+    [gameId, roundNumber],
+  );
+  return { ...ctx, roundNumber, acteur, phase: round?.phase || null };
+}
+
+/**
+ * POST /tenir/presences { teamId?, absents: [playerId] } — l'équipe (élève connecté, tablette
+ * d'équipe) ou le prof dit qui manque ; la présence de l'équipe est confirmée pour le tour.
+ */
+router.post(
+  '/games/:id/tenir/presences',
+  requireGlAuthOrTeam,
+  asyncHandler(async (req, res) => {
+    const gameId = parseId(req.params.id);
+    if (!gameId) return res.status(400).json({ error: 'Identifiant de partie invalide' });
+    const ctx = await resolvePresenceContext(req, res, gameId);
+    if (!ctx) return undefined;
+    try {
+      let result;
+      await withTransaction(async (tx) => {
+        result = await presences.confirmerPresenceTx(tx, {
+          gameId,
+          roundNumber: ctx.roundNumber,
+          teamId: ctx.acteur.teamId,
+          absentPlayerIds: Array.isArray(req.body?.absents) ? req.body.absents : [],
+          actorType: ctx.acteur.actorType,
+          actorId: ctx.acteur.actorId,
+          phase: ctx.phase,
+        });
+      });
+      emitAll(gameId, result.events);
+      return res.json({ ok: true, teamId: result.teamId, absents: result.absents });
+    } catch (err) {
+      return sendTourError(res, err);
+    }
+  }),
+);
+
+/** POST /tenir/presences/arrivee { teamId?, playerId } — un retardataire rejoint le tour. */
+router.post(
+  '/games/:id/tenir/presences/arrivee',
+  requireGlAuthOrTeam,
+  asyncHandler(async (req, res) => {
+    const gameId = parseId(req.params.id);
+    const playerId = parseId(req.body?.playerId);
+    if (!gameId || !playerId) return res.status(400).json({ error: 'playerId requis' });
+    const ctx = await resolvePresenceContext(req, res, gameId);
+    if (!ctx) return undefined;
+    try {
+      let result;
+      await withTransaction(async (tx) => {
+        result = await presences.arriveeRetardataireTx(tx, {
+          gameId,
+          roundNumber: ctx.roundNumber,
+          teamId: ctx.acteur.teamId,
+          playerId,
+          actorType: ctx.acteur.actorType,
+          actorId: ctx.acteur.actorId,
+        });
+      });
+      emitAll(gameId, result.events);
+      return res.json({ ok: true, teamId: result.teamId, playerId: result.playerId });
+    } catch (err) {
+      return sendTourError(res, err);
+    }
   }),
 );
 

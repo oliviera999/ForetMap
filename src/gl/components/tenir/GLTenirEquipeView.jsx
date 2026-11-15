@@ -10,6 +10,7 @@ import { GLOluBulle } from './GLOluBulle.jsx';
 import { GLPeripetieOverlay } from './GLPeripetieOverlay.jsx';
 import { GLBestiairePanel } from './GLBestiairePanel.jsx';
 import { GLSablier } from './GLSablier.jsx';
+import { GLPresencePanel } from './GLPresencePanel.jsx';
 import { numeroCase } from '../../../shared/glCaseNumeroCore.js';
 
 const VERDICT_TEXTES = {
@@ -126,6 +127,11 @@ export function GLTenirEquipeView({
     ['lire', 'Lire', chasse ? () => setCarnetOuvert((v) => !v) : onLire],
   ];
   const verdict = chasse?.dernierVerdict || null;
+  // Présences (lot 2) : « Il manque quelqu'un ? » tant que l'équipe n'a pas répondu.
+  const presences = tourApi.tour?.presences || null;
+  const presence = presences?.requise
+    ? (presences.equipes || []).find((e) => Number(e.teamId) === Number(teamId)) || null
+    : null;
   // Relance : jet de l'équipe dont la case s'affiche sans s'être appliquée.
   const jetEnSuspens =
     (round?.arriveesEnSuspens || []).find((a) => Number(a.teamId) === Number(teamId)) || null;
@@ -168,6 +174,13 @@ export function GLTenirEquipeView({
           testId="gl-sablier-phase"
         />
       ) : null}
+      <GLPresencePanel
+        presence={presence}
+        mates={mates}
+        busy={tourApi.busy}
+        onConfirmer={(absents) => tourApi.presences(absents)}
+        onArrivee={(playerId) => tourApi.arrivee(playerId)}
+      />
       <ul className="gl-tenir-equipe__bourses">
         {mates.map((m) => (
           <li key={m.playerId}>

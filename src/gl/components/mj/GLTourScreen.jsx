@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useGlTenirTour } from '../../hooks/useGlTenirTour.js';
 import { useAppDialogs } from '../../../shared/components/AppDialogsProvider.jsx';
 import { useGlTenirOlu } from '../../hooks/useGlTenirOlu.js';
@@ -20,7 +20,20 @@ const PHASE_LABELS = {
   clos: 'Clos',
 };
 
-function TeamCard({ team, round, surface, tenir, busy, onLancer, onSuivante, isActive }) {
+function TeamCard({
+  team,
+  round,
+  surface,
+  tenir,
+  busy,
+  onLancer,
+  onSuivante,
+  isActive,
+  presence = null,
+  roster = [],
+  onPresence = null,
+  onArrivee = null,
+}) {
   const fenetre = round?.fenetresFouille || {};
   const fenetreOuverte = fenetre[String(team.id)] ?? fenetre.tous ?? false;
   const reserve = (tenir?.reserves || []).find((r) => Number(r.teamId) === Number(team.id));
@@ -48,6 +61,47 @@ function TeamCard({ team, round, surface, tenir, busy, onLancer, onSuivante, isA
             : ''}
         </span>
       </header>
+      {presence ? (
+        <p className="gl-tour-presence" data-testid={`gl-tour-presence-${team.id}`}>
+          <span
+            className={`gl-tour-presence__pastille${presence.confirmee ? ' is-ok' : ''}`}
+            role="status"
+          >
+            {presence.confirmee
+              ? `présences confirmées${presence.absents?.length ? ` · ${presence.absents.length} absent${presence.absents.length > 1 ? 's' : ''}` : ''}`
+              : 'présences à confirmer'}
+          </span>{' '}
+          {!presence.confirmee ? (
+            <GLButton
+              type="button"
+              variant="ghost"
+              size="sm"
+              disabled={busy}
+              onClick={() => onPresence?.(team.id, presence.absents || [])}
+            >
+              Tout le monde est là
+            </GLButton>
+          ) : null}
+          {(presence.absents || []).map((playerId) => {
+            const eleve = roster.find((r) => Number(r.playerId) === Number(playerId));
+            const nom = eleve
+              ? eleve.pseudo || `${eleve.firstName} ${eleve.lastName}`.trim()
+              : 'Un élève';
+            return (
+              <GLButton
+                key={playerId}
+                type="button"
+                variant="ghost"
+                size="sm"
+                disabled={busy}
+                onClick={() => onArrivee?.(team.id, playerId)}
+              >
+                {nom} vient d’arriver
+              </GLButton>
+            );
+          })}
+        </p>
+      ) : null}
       {round?.phase === 'jeu' ? (
         <>
           <GLTourDesSaisie
@@ -97,6 +151,13 @@ export function GLTourScreen({
   const [projectionUrl, setProjectionUrl] = useState('');
   const view = tourApi.tour;
   const round = view?.round || null;
+  // Les équipes disent elles-mêmes qui manque (lot 2) : la liste du prof suit le serveur, pour
+  // qu'« Enregistrer les absences » corrige sans effacer ce que les équipes ont confirmé.
+  const absencesServeur = Array.isArray(round?.absences) ? round.absences.join(',') : null;
+  useEffect(() => {
+    if (absencesServeur == null) return;
+    setAbsences(new Set(absencesServeur ? absencesServeur.split(',').map(Number) : []));
+  }, [absencesServeur]);
   const surface = view?.surface || tenir?.surface || 'tableau';
   const settings = tenir?.settings || {};
   // Sabliers : la vue vient du serveur (même état que les tablettes et la projection).
@@ -348,6 +409,16 @@ export function GLTourScreen({
                 }
                 onLancer={(body) => act(() => tourApi.lancer(body))}
                 onSuivante={() => act(() => tourApi.equipeSuivante())}
+                presence={
+                  view?.presences?.requise
+                    ? (view.presences.equipes || []).find(
+                        (e) => Number(e.teamId) === Number(team.id),
+                      ) || null
+                    : null
+                }
+                roster={roster}
+                onPresence={(teamId, absents) => act(() => tourApi.presences(absents, teamId))}
+                onArrivee={(teamId, playerId) => act(() => tourApi.arrivee(playerId, teamId))}
               />
             ))}
           </div>

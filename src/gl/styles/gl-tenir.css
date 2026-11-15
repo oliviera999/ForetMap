@@ -621,3 +621,49 @@
     display: none;
   }
 }
+
+/* Présences de l'équipe (lot 2) */
+.gl-presence__membres {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gl-space-2);
+  margin: var(--gl-space-2) 0;
+  padding: 0;
+  list-style: none;
+}
+.gl-presence__membre {
+  min-height: 48px;
+  padding: var(--gl-space-2) var(--gl-space-3);
+  border: 2px solid var(--line);
+  border-radius: var(--gl-radius-lg);
+  background: var(--surface);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.gl-presence__membre.is-absent {
+  border-style: dashed;
+  opacity: 0.7;
+  text-decoration: line-through;
+}
+.gl-presence__membre.is-absent .gl-presence__etat {
+  display: inline-block;
+  text-decoration: none;
+}
+.gl-tour-presence {
+  margin: var(--gl-space-1) 0;
+}
+.gl-tour-presence__pastille {
+  display: inline-block;
+  padding: 0 var(--gl-space-2);
+  border: 1px solid var(--line-warning);
+  border-radius: 999px;
+  background: var(--accent-warning);
+  color: var(--ink-warning);
+  font-size: 0.85em;
+}
+.gl-tour-presence__pastille.is-ok {
+  border-color: var(--line);
+  background: transparent;
+  color: inherit;
+}

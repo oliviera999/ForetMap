@@ -149,7 +149,10 @@ async function jouerSeance(ctx, numero, opts = {}) {
     `ouverture du tour ${numero}`,
   );
   const roundNumber = Number(ouvert.roundNumber);
-  if (absents.length) {
+  // Le prof fait l'appel à chaque séance, même sans absent : en hybride et sur tablette, c'est
+  // lui qui confirme ici la présence de toutes les équipes (sans quoi aucun pot ne se crée).
+  // Le scénario `tablette-parallele-absences` laisse les équipes le faire elles-mêmes.
+  if (absents.length || opts.appelDuProf !== false) {
     await ctx.client.appel({
       token: ctx.mjToken,
       method: 'post',

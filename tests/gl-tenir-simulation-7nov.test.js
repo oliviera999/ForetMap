@@ -15,7 +15,11 @@ const request = require('supertest');
 const { app } = require('../server');
 const db = require('../database');
 const { initSchema, execute, queryOne } = db;
-const { createTenirGame, importExempleChasse } = require('./helpers/glTenirFixtures');
+const {
+  createTenirGame,
+  importExempleChasse,
+  confirmerPresences,
+} = require('./helpers/glTenirFixtures');
 const { resolveTenirMarkerDeltas } = require('../lib/glMarkerVitalityEffects');
 const { caseTirePeripetie, tirerErreurDuJour } = require('../lib/glTour');
 const { assertFenetre } = require('../lib/glSpellFenetres');
@@ -61,6 +65,8 @@ before(async () => {
   await importExempleChasse(db, { game: ctx.game });
   await request(app).get(api('/tenir')).set(auth(ctx.adminToken)).expect(200);
   await request(app).post(api('/tenir/tour/ouvrir')).set(auth(ctx.adminToken)).expect(200);
+  // Lot 2 : sur tablette, un pot attend que l'équipe ait dit s'il manque quelqu'un.
+  await confirmerPresences(ctx);
   await request(app)
     .post(api('/tenir/tour/phase'))
     .set(auth(ctx.adminToken))

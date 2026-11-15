@@ -398,14 +398,36 @@ async function importExempleChasse(db, { game = null } = {}) {
   return reports;
 }
 
-/** Ouvre un tour et passe en phase `jeu` (via l'API, jeton MJ). */
-async function ouvrirTourEnJeu(request, app, ctx, { phase = 'jeu' } = {}) {
+/**
+ * Présences du tour courant confirmées pour toutes les équipes (lot 2) : posées en base, sans
+ * évènement, comme si chaque équipe avait répondu « C'est bon » sans absent.
+ */
+async function confirmerPresences(ctx) {
+  const game = await queryOne('SELECT current_round_number AS r FROM gl_games WHERE id = ?', [
+    ctx.game.id,
+  ]);
+  for (const team of ctx.teams) {
+    await execute(
+      `INSERT IGNORE INTO gl_game_round_presences
+         (game_id, round_number, team_id, confirmed_at, confirmed_by_type, confirmed_by_id)
+       VALUES (?, ?, ?, NOW(), 'team', ?)`,
+      [ctx.game.id, Number(game.r) || 0, team.id, `equipe-${team.id}`],
+    );
+  }
+}
+
+/**
+ * Ouvre un tour et passe en phase `jeu` (via l'API, jeton MJ). Les présences sont confirmées
+ * d'office (`presences: false` pour tester le flux « Il manque quelqu'un ? »).
+ */
+async function ouvrirTourEnJeu(request, app, ctx, { phase = 'jeu', presences = true } = {}) {
   const auth = { Authorization: `Bearer ${ctx.adminToken}` };
   const ouvert = await request(app)
     .post(`/api/gl/games/${ctx.game.id}/tenir/tour/ouvrir`)
     .set(auth);
   if (ouvert.status !== 200)
     throw new Error(`ouvrir : ${ouvert.status} ${JSON.stringify(ouvert.body)}`);
+  if (presences) await confirmerPresences(ctx);
   if (phase === 'ouverture') return ouvert.body;
   const jeu = await request(app)
     .post(`/api/gl/games/${ctx.game.id}/tenir/tour/phase`)
@@ -416,6 +438,7 @@ async function ouvrirTourEnJeu(request, app, ctx, { phase = 'jeu' } = {}) {
 }
 
 module.exports = {
+  confirmerPresences,
   attachTenirSpells,
   importExempleChasse,
   ouvrirTourEnJeu,

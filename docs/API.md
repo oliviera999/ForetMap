@@ -511,6 +511,33 @@ quand l'espèce étudiée est liée au feuillet d'une page endormie (zone → `r
   sablier du tour le fait repartir plein. Réponse `{ ok, sablier }` ; évènement `sablier_regle`.
   400 `SABLIER_INVALIDE` (corps vide, durée hors bornes, action inconnue).
 
+#### Présences confirmées par équipe (lot 2)
+
+En `hybride` et sur `tablette`, chaque équipe dit au début du tour s'il manque quelqu'un. Au
+tableau, rien ne change.
+
+- `GET /api/gl/games/:id/tenir/tour` renvoie `presences` = `{ requise, equipes: [{ teamId,
+  confirmee, absents? }] }`. `requise` : surface `hybride` ou `tablette`, phase `ouverture` ou
+  `jeu`. `absents` (identifiants) n'est servi qu'au prof et, pour sa seule équipe, à un membre
+  ou à sa tablette.
+- `POST /api/gl/games/:id/tenir/presences` `{ teamId?, absents: [playerId] }` — élève de
+  l'équipe, tablette d'équipe (phases `ouverture` et `jeu`) ou prof (`teamId`, à tout moment
+  du tour). Remplace les absences des membres de CETTE équipe et confirme sa présence.
+  `{ ok, teamId, absents }`. 400 `PRESENCE_ABSENT_INVALIDE` (un absent n'est pas membre de
+  l'équipe), 409 `PRESENCE_PHASE`, 409 `AUCUN_TOUR`. Évènement `presence_confirmee`
+  (identités privées, nombre public).
+- `POST /api/gl/games/:id/tenir/presences/arrivee` `{ teamId?, playerId }` — « Quelqu'un vient
+  d'arriver » : le retardataire redevient présent. 409 `PRESENCE_PAS_ABSENT`. Évènement
+  `presence_arrivee`.
+- `POST /api/gl/games/:id/tenir/tour/absences` (prof) confirme en plus la présence de **toutes**
+  les équipes : le prof a fait l'appel.
+- `POST /api/gl/games/:id/spell-casts/drafts` : en `hybride` et sur `tablette`, pendant les
+  phases `ouverture` et `jeu`, **409 `PRESENCE_A_CONFIRMER`** (« Dites d'abord s'il manque
+  quelqu'un. ») tant que la présence de l'équipe lanceuse n'est pas confirmée. Le prof n'est
+  pas arrêté.
+- File du prof : une demande `presence_a_confirmer` par équipe à l'ouverture du tour, fermée à
+  la confirmation et d'office à la sortie de la phase `jeu`.
+
 #### Lien de classe et session d'équipe (lot 2)
 
 Une tablette de classe joue sans compte d'élève : elle ouvre le **lien de la classe** (QR

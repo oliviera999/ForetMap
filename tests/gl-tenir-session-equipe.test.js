@@ -149,13 +149,6 @@ test('hors tour : la tablette lit sa partie sans aucune bourse, et ne fait aucun
 test('quatre sessions d’équipe jouent un tour complet en parallèle', async () => {
   const sessions = await Promise.all(ctx.teams.map((t) => ouvrirSession(t.id)));
   await ouvrirTourEnJeu(request, app, ctx);
-  const tour = Number(
-    (
-      await db.queryOne('SELECT current_round_number AS r FROM gl_games WHERE id = ?', [
-        ctx.game.id,
-      ])
-    ).r,
-  );
 
   // Pendant le tour : les bourses de SON équipe seulement.
   const etat = await request(app).get(api('')).set(auth(sessions[0].token));
@@ -228,9 +221,11 @@ test('quatre sessions d’équipe jouent un tour complet en parallèle', async (
     gestes.map((g) => g.actor_id).sort(),
     ctx.teams.map((t) => `equipe-${t.id}`).sort(),
   );
+  // Quatre jets, un par équipe (une bonne réponse de case rend ensuite son jet à l'équipe :
+  // on compte donc les jets au journal, pas le marqueur « a déjà jeté »).
   const jetsDuTour = await db.queryOne(
-    'SELECT COUNT(*) AS c FROM gl_teams WHERE game_id = ? AND last_dice_round_number = ?',
-    [ctx.game.id, tour],
+    "SELECT COUNT(DISTINCT team_id) AS c FROM gl_game_events WHERE game_id = ? AND event_type = 'dice_roll'",
+    [ctx.game.id],
   );
   assert.equal(Number(jetsDuTour.c), 4);
   const inv = await checkTenirInvariantsFromDb(db, ctx.game.id, {
