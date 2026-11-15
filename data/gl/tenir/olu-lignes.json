@@ -607,6 +607,20 @@
       "expression": "neutre",
       "texte": "Pas encore, et rien n'est retiré. On y reviendra.",
       "variables": []
+    },
+    {
+      "id": "olu-76",
+      "moment": "defi_trame_reussi",
+      "expression": "joie",
+      "texte": "Un fil de plus dans la Trame : bien tissé.",
+      "variables": []
+    },
+    {
+      "id": "olu-77",
+      "moment": "defi_trame_reussi",
+      "expression": "explique",
+      "texte": "La Trame se resserre. Chaque lien retrouvé compte.",
+      "variables": []
     }
   ]
 }

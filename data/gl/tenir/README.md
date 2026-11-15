@@ -50,8 +50,8 @@ montre comptes, écarts et dernier rapport, et permet de resynchroniser (`POST
 | `peripeties.json` | `id` | 32 (8 par plateau) |
 | `missions.json` | `id` | 20 |
 | `titres.json` | chemin `honneurs.<honneur>.<biome>` etc. | 16 + 8 + 20 |
-| `badges.json` | `code` | 13 |
-| `olu-lignes.json` | `id` | 75 |
+| `badges.json` | `code` | 15 |
+| `olu-lignes.json` | `id` | 77 |
 | `parures.json` | `code` | 12 |
 | `sorts.json` | `code` (table `gl_spells`) | 25 + 6 voyageur |
 | `reglages-defaut.json` | clé de réglage `gameplay.tenir_*` | — |

@@ -706,6 +706,73 @@ bloque : le tour continue. Aucune ressource n'est jamais créée ni retirée.
 - `GET …/tenir/demandes` : une ligne `defi_case` porte `payload: { consigne, critere, dureeS }`
   (route du prof seul).
 
+#### Défis de la Trame (lot 3)
+
+Quatre défis sur un même plateau de cartes, hors du temps de jeu : **Retisser** et **Réparer la
+trame** (Gnomes), **La trame altérée** et **Les fils cachés** (Licornes). Réglages, surchargeables
+par partie : `defis` (true), `defis_par_peuple` (true ; à `false`, les quatre pour tous),
+`defis_pages_par_semaine` (2), `defis_mode_equipe` (true). **Aucune ressource n'est jamais créée.**
+Catalogues : `trame-reseaux`, `trame-fils`, `trame-reparer` (`data/gl/tenir/`). Cœur pur :
+`src/gl/defis/trameCore.js` (miroir `lib/shared/glTrameCore.js`). Détail : `docs/GL_DEFIS.md`.
+
+**Qui joue.** Un élève avec son compte (mode `individuel`, à tout moment) ; le prof, ou une
+tablette d'équipe **hors tour ouvert**, pour une équipe (mode `equipe`). **Unités** : `<biome>:<niveau>`
+pour Retisser (niveaux 5, 7, 9, 12, ouverts l'un après l'autre), `<biome>:<code retiré>` pour la
+trame altérée (trois scénarios par biome), `p<plateau>` pour les fils cachés et Réparer.
+
+- `GET /api/gl/games/:id/defis` (`?teamId=` pour le prof) — compte G&L ou session d'équipe.
+  `{ actifs, parPeuple, modeEquipe, peuple, plateau, mode, teamId, tourOuvert, types: [{ type,
+  libelle }], defis: [{ type, libelle, unite, biome?, biomeNom?, niveau?, retiree?, retireeNom?,
+  plateau?, disponible, statut, defiId }], pages: { utilisees, plafond }, aReparer: [{ code,
+  nom }] }`. Les défis sont ceux du peuple de l'équipe, sur les deux biomes du plateau de la
+  partie. Aucune solution.
+- `POST /api/gl/games/:id/defis` `{ type, unite, mode?, teamId? }` — crée ou reprend le défi du
+  porteur. `{ defi }` (201). Le mode découle de l'acteur ; `teamId` obligatoire pour le prof.
+  400 type inconnu, 403 `DEFI_AUTRE_PEUPLE`, 403 `DEFI_EQUIPE_RESERVE` (mode équipe depuis un
+  compte d'élève), 404 `DEFI_UNITE_INCONNUE`, 409 `DEFI_NIVEAU_FERME`, 409 `DEFI_TOUR_OUVERT`
+  (tablette pendant un tour), 409 `DEFIS_FERMES` / `DEFIS_EQUIPE_FERMES`.
+- `GET /api/gl/games/:id/defis/:defiId` — le porteur du défi (le prof lit tout). `{ defi }` :
+  l'état et le modèle **sans les solutions**. Commun : `id`, `type`, `libelle`, `unite`, `mode`,
+  `teamId`, `statut` (`en_cours`, `reussi`), `revision`, `indices`, `titre`, `note`, `niveau`.
+  - Retisser et fils cachés : `cartes: [{ code, nom, role, generique, precision, photoUrl,
+    photoCredit }]`, `fleches: [{ de, vers, classement, message }]` (le classement de **ses**
+    flèches : `trouvee`, `inversee`, `a_discuter`, `doublon`, `boucle`), `trouvees` (sans total),
+    `positions`, `complet`, `critere`. Jamais les liens acceptés.
+  - Trame altérée : `cartes`, `liens` (le réseau du niveau 9, donné tissé : c'est l'énoncé),
+    `retiree`, `predictions`, `verification: [{ code, juste, message }] | null` (après
+    « Vérifier » : la bonne prédiction reçoit son explication, les autres « Pas encore », jamais
+    la réponse), `complet`, `message`, `pourAllerPlusLoin` (une fois tout juste). Jamais la cascade.
+  - Réparer : `aClasser: [{ code, nom }]`, `categories`, `rangement`, `rangementVerifie`,
+    `rangementComplet`, puis, une fois les six espèces rangées : `lecon`, `especes: [{ code, nom,
+    menace, signalee }]`, `mesures: [{ code, texte }]`, `mesuresVerifiees`, `requises` ; `choix`,
+    `leconLue`, `pourquoi`, `complet`. Jamais les catégories ni les mesures acceptées.
+  403 `DEFI_AUTRE_PORTEUR`, 404 `DEFI_INTROUVABLE`.
+- `PUT /api/gl/games/:id/defis/:defiId` `{ revision, etat }` — **sauvegarde stricte** : la
+  révision attendue est obligatoire (400), et **409 `edit_conflict`** `{ revision }` si une autre
+  sauvegarde est passée. `etat` selon le type : `{ fleches: [{ de, vers }], positions }`,
+  `{ predictions: { code: augmente | diminue | disparait | rien }, verifie }`, `{ rangement,
+  leconLue, mesures: { code: [codes] }, pourquoi }`. Bornes rejouées : 60 flèches entre cartes
+  connues, textes de 280 caractères, coordonnées de 0 à 100. `{ defi, reussite }` ; à la fin,
+  `reussite: { premiere, page, pagesEpuisees, message }`. Le prof ne joue que les défis d'équipe.
+- `POST /api/gl/games/:id/defis/:defiId/indice` — l'indice suivant, gratuit et illimité :
+  `{ indice: { rang, genre: consigne | structure | piste | revelation, message, carte?, lien? },
+  indices }`. Un indice ne réduit aucune récompense.
+- `GET /api/gl/games/:id/defis/suivi` (`?format=csv`) — `gl.game.manage`. `{ eleves: [{ playerId,
+  nom, pseudo, equipe, defis: { <type>: { reussies: [unités], enCours, indices } }, pages }],
+  phrases: [{ auteur, unite, texte }] }`, **tri alphabétique seulement**. Les phrases
+  facultatives de Réparer sont à parcourir, sans compteur. CSV : une ligne par élève.
+
+**Réussite.** Pour l'élève — ou, en mode équipe, pour chaque membre présent — dont c'est la
+**première réussite de l'unité** : une ligne `gl_trame_reussites` (un point de regard `defi` dans
+le regard du proche, une unité pour les badges Tisserand, Révélateur, Gardien des fils,
+Réparateur) et, sous le plafond hebdomadaire, **une page de veillée** du chapitre à son nom
+(source `defi`, jamais un feuillet de zone de chasse, jamais de ressource). Pages épuisées :
+`reussite.message` « Le carnet de ce chapitre n'a plus de page en attente. ». Évènement
+`defi_trame_reussi` (`{ defiId, type, libelle, unite, biome, biomeNom, plateau, mode }`, sans nom
+d'élève). **Lien entre les peuples** : une trame altérée réussie dont la carte retirée est une
+espèce de `trame-reparer` l'ajoute à `aReparer` (aussi servi par `GET …/chasse` et
+`GET …/chasse/carnet`), et le prochain Réparer la propose en premier ; aucun gain.
+
 #### Lien de classe et session d'équipe (lot 2)
 
 Une tablette de classe joue sans compte d'élève : elle ouvre le **lien de la classe** (QR
