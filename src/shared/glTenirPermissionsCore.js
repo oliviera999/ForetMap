@@ -6,7 +6,7 @@
  * d'action (403 `TENIR_PERMISSION`) ; le client ne fait que griser.
  *
  * | Geste          | tableau                      | hybride                               | tablette              |
- * | Jeter          | prof (équipe active)         | membre, pendant `jeu`                 | membre, pendant `jeu` |
+ * | Jeter (un sort)| prof (équipe active)         | membre, pendant `jeu`                 | membre, pendant `jeu` |
  * | Lancer         | prof                         | prof                                  | membre, pendant `jeu` |
  * | Répondre       | prof                         | prof                                  | membre                |
  * | Fouiller       | prof                         | membre, pendant la fenêtre du prof    | membre                |
@@ -15,6 +15,9 @@
  * | Retrait, avance libre, absences, validation des dés : prof partout.
  *
  * Le prof peut toujours tout faire. Une projection ne peut rien faire.
+ *
+ * Sorts : `isSortPermisSurSurface` (au tableau, un élève ne crée ni ne lance un sort dont la
+ * fenêtre exige la phase `jeu` ; seuil, veillée, activité et fin de séance restent ouverts).
  */
 
 export const TENIR_SURFACES = Object.freeze(['tableau', 'hybride', 'tablette']);
@@ -105,6 +108,38 @@ export function resolveTenirPermissions(input = {}) {
   out.marche =
     marcheActif && !enRetrait && (!phase || phase === 'clos' || (enJeu && marchePendantTour));
   return out;
+}
+
+/**
+ * Fenêtres de sort qui exigent la phase `jeu`. Les autres (`activite`, `seuil`,
+ * `seuil_veillee`, `fin_seance`, `trimestre_3`) se jouent hors du tour.
+ */
+export const FENETRES_SORT_PHASE_JEU = Object.freeze([
+  'avant_jet',
+  'apres_jet',
+  'jeu',
+  'jeu_avant_fouille',
+  'avant_jets_pacte',
+]);
+
+/**
+ * Un acteur peut-il créer ou lancer un sort de cette fenêtre sur cette surface ? Au tableau, le
+ * prof porte les gestes du tour : un sort dont la fenêtre exige la phase `jeu` lui est réservé
+ * (403 `TENIR_PERMISSION` côté serveur). Les sorts de seuil, de veillée, d'activité et de fin de
+ * séance restent ouverts aux élèves. La fenêtre elle-même (phase, jet déjà fait…) est contrôlée
+ * à part (`lib/glSpellFenetres.js`).
+ *
+ * @param {object} input
+ * @param {string} input.surface `tableau` | `hybride` | `tablette`
+ * @param {'mj'|'player'|'projection'} input.actorKind
+ * @param {string|null} input.fenetre fenêtre du sort (`gl_spells.fenetre`)
+ */
+export function isSortPermisSurSurface(input = {}) {
+  const actorKind = String(input.actorKind || 'player');
+  if (actorKind === 'projection') return false;
+  if (actorKind === 'mj') return true;
+  if (normalizeTenirSurface(input.surface) !== 'tableau') return true;
+  return !FENETRES_SORT_PHASE_JEU.includes(String(input.fenetre || ''));
 }
 
 /** Vrai si `geste` est permis pour l'acteur décrit par `input` (cf. `resolveTenirPermissions`). */

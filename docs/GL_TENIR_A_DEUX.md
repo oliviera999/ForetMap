@@ -220,6 +220,13 @@ Le serveur rejoue les permissions (`assertActionOuverte` pour lancer / répondre
 fait que griser. Un élève ne force pas un mode de dés hors de sa surface, sauf vers la file de
 validation du prof.
 
+**Sorts** (14 novembre 2026) : la permission de surface est rejouée à la création et au
+lancement d'un sort (`lib/glSpellCast.js › assertTenirSurfacePermission`, noyau
+`isSortPermisSurSurface`). Au tableau, un élève reçoit 403 `TENIR_PERMISSION` pour un sort dont
+la fenêtre exige la phase `jeu` (`avant_jet`, `apres_jet`, `jeu`, `jeu_avant_fouille`,
+`avant_jets_pacte`) ; les sorts de seuil, de veillée, d'activité et de fin de séance restent
+ouverts. En hybride et sur tablette, seule la fenêtre du sort décide.
+
 ## Temps réel
 
 `lib/realtime.js › emitGlGameEvent` est le seul point d'émission vers la salle de partie

@@ -486,6 +486,11 @@ quand l'espèce étudiée est liée au feuillet d'une page endormie (zone → `r
   `usage_tenir` (booléen) par question ; `POST` / `PUT /api/gl/admin/qcm/questions[/:code]`
   acceptent `usage_tenir` (booléen ; absent = valeur gardée). Le cinquième choix (`choix_e`) est
   facultatif, sauf s'il est la bonne réponse.
+- `POST /api/gl/games/:id/spell-casts/drafts` et `…/drafts/:draftId/launch` : en partie « Tenir
+  à deux » sur la surface `tableau`, un joueur reçoit **403 `TENIR_PERMISSION`** (« Au tableau, ce
+  sort se lance avec le prof. ») pour un sort dont la fenêtre exige la phase `jeu`. Les fenêtres
+  `activite`, `seuil`, `seuil_veillee`, `fin_seance` et `trimestre_3` restent ouvertes. Le prof
+  n'est jamais concerné.
 - Catalogues nouveaux de `GET/POST /api/gl/admin/tenir/catalogues[/sync]` :
   `qcm-feedbacks-zones` (retours de mauvais choix des questions de zone, écrits seulement si la
   colonne est vide ou commence par « Non ») et `questions-vives` (40 questions de case
