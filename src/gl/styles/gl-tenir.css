@@ -1017,6 +1017,12 @@
   color: inherit;
   cursor: pointer;
 }
+.gl-trame-prediction__legende {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gl-space-1) var(--gl-space-3);
+  margin: var(--gl-space-2) 0;
+}
 .gl-trame-prediction__choix {
   display: flex;
   justify-content: center;

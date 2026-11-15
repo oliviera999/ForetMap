@@ -144,3 +144,33 @@ test('en base : import strict à blanc (espèces présentes et du bon biome) —
     assert.equal(rep.ecartees, 0, fichier);
   }
 });
+
+test('pages de veillée gagnées par un défi : sur le corpus, aucune ne nomme l’oiseau ni ne sort du Passeur', async () => {
+  const db = require('../../database');
+  const { pagesTirables } = require('../../lib/glTrameDefis');
+  await db.initSchema();
+  const chapitres = await db.queryAll(
+    `SELECT MIN(id) AS id, plateau_number FROM gl_chapters
+      WHERE plateau_number BETWEEN 1 AND 4 GROUP BY plateau_number ORDER BY plateau_number`,
+  );
+  const chasse = new Set(
+    (
+      await db.queryAll('SELECT feuillet_code FROM gl_chasse_zones WHERE feuillet_code IS NOT NULL')
+    ).map((r) => String(r.feuillet_code)),
+  );
+  let vues = 0;
+  for (const ch of chapitres) {
+    const pages = await pagesTirables(db, { chapter_id: ch.id });
+    for (const f of pages) {
+      vues += 1;
+      const ou = `plateau ${ch.plateau_number}, ${f.feuillet_code}`;
+      assert.equal(findForbiddenString(f.titre), null, `${ou} : titre`);
+      assert.equal(findForbiddenString(f.incipit), null, `${ou} : incipit`);
+      assert.ok(!['corbeau', 'carnet_route'].includes(String(f.mode_apparition)), ou);
+      assert.ok(!chasse.has(String(f.feuillet_code)), `${ou} : page de zone de chasse`);
+    }
+  }
+  // Une base sans corpus de pages (CI minimale) n'a rien à tirer : le contrôle est sans objet.
+  if (!vues) return;
+  assert.ok(vues >= chapitres.length, 'au moins une page à gagner par plateau');
+});

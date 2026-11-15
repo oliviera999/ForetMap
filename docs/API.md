@@ -733,7 +733,8 @@ trame altérée (trois scénarios par biome), `p<plateau>` pour les fils cachés
   (tablette pendant un tour), 409 `DEFIS_FERMES` / `DEFIS_EQUIPE_FERMES`.
 - `GET /api/gl/games/:id/defis/:defiId` — le porteur du défi (le prof lit tout). `{ defi }` :
   l'état et le modèle **sans les solutions**. Commun : `id`, `type`, `libelle`, `unite`, `mode`,
-  `teamId`, `statut` (`en_cours`, `reussi`), `revision`, `indices`, `titre`, `note`, `niveau`.
+  `teamId`, `statut` (`en_cours`, `reussi`), `revision`, `indices`, `titre`, `niveau` (la `note`
+  d'auteur d'un réseau n'est jamais servie).
   - Retisser et fils cachés : `cartes: [{ code, nom, role, generique, precision, photoUrl,
     photoCredit }]`, `fleches: [{ de, vers, classement, message }]` (le classement de **ses**
     flèches : `trouvee`, `inversee`, `a_discuter`, `doublon`, `boucle`), `trouvees` (sans total),
@@ -754,6 +755,8 @@ trame altérée (trois scénarios par biome), `p<plateau>` pour les fils cachés
   leconLue, mesures: { code: [codes] }, pourquoi }`. Bornes rejouées : 60 flèches entre cartes
   connues, textes de 280 caractères, coordonnées de 0 à 100. `{ defi, reussite }` ; à la fin,
   `reussite: { premiere, page, pagesEpuisees, message }`. Le prof ne joue que les défis d'équipe.
+  Réglages, peuple et état de la partie sont relus à chaque écriture : 409 `DEFIS_FERMES` /
+  `DEFIS_EQUIPE_FERMES`, 403 `DEFI_AUTRE_PEUPLE` (valable aussi pour `…/indice`).
 - `POST /api/gl/games/:id/defis/:defiId/indice` — l'indice suivant, gratuit et illimité :
   `{ indice: { rang, genre: consigne | structure | piste | revelation, message, carte?, lien? },
   indices }`. Un indice ne réduit aucune récompense.
@@ -766,7 +769,10 @@ trame altérée (trois scénarios par biome), `p<plateau>` pour les fils cachés
 **première réussite de l'unité** : une ligne `gl_trame_reussites` (un point de regard `defi` dans
 le regard du proche, une unité pour les badges Tisserand, Révélateur, Gardien des fils,
 Réparateur) et, sous le plafond hebdomadaire, **une page de veillée** du chapitre à son nom
-(source `defi`, jamais un feuillet de zone de chasse, jamais de ressource). Pages épuisées :
+(source `defi` ; jamais un feuillet de zone de chasse, une page de route, la page apportée par
+l'oiseau ni une page au titre interdit ; jamais de ressource). Le défi réussi, les réussites, la
+page décidée et l'évènement sont écrits en une transaction ; une page dont l'écriture au carnet
+a été interrompue est rattrapée à la lecture suivante de la liste. Pages épuisées :
 `reussite.message` « Le carnet de ce chapitre n'a plus de page en attente. ». Évènement
 `defi_trame_reussi` (`{ defiId, type, libelle, unite, biome, biomeNom, plateau, mode }`, sans nom
 d'élève). **Lien entre les peuples** : une trame altérée réussie dont la carte retirée est une
@@ -833,7 +839,7 @@ sortilège du grimoire a un effet borné appliqué par le serveur (`lib/glVoyage
 
 | Méthode | Route                                     | Corps / query          | Réponse                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | ------- | ----------------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| GET     | `/api/gl/voyageur/me`                     | —                      | `{ points, level, stage:{name,emoji}, affinity:{key,label,emoji}, levelStart, nextLevelAt, pointsToNextLevel, regards:{ proche:{points,sources[]}, loin:{points,sources[]} }, grimoire:[{ code,name,emoji,regard,levelRequired,description,unlocked,charged,usesCount,pointsToRecharge }], expedition:{ gameId,gameName,gameStatus,chapterTitle,teamId,teamName,teamType,mascotId,color,teammates[] } \| null }`. Regard **proche** = acquis `species` / `glossary` / `ecosystem` + questions `qcm` réussies (distinctes) ; **loin** = feuillets trouvés + acquis `feuillet` / `lore_glossary` / `content_page` + questions `qcm_lore` réussies + articles de « Mon journal » (≥ 40 caractères, 2 par semaine au plus). Niveau `n` atteint à `5·n·(n−1)/2` points. |
+| GET     | `/api/gl/voyageur/me`                     | —                      | `{ points, level, stage:{name,emoji}, affinity:{key,label,emoji}, levelStart, nextLevelAt, pointsToNextLevel, regards:{ proche:{points,sources[]}, loin:{points,sources[]} }, grimoire:[{ code,name,emoji,regard,levelRequired,description,unlocked,charged,usesCount,pointsToRecharge }], expedition:{ gameId,gameName,gameStatus,chapterTitle,teamId,teamName,teamType,mascotId,color,teammates[],tenir } \| null }` (`tenir` : la partie joue « Tenir à deux » — le Seuil n'y propose les défis de la Trame que dans ce cas). Regard **proche** = acquis `species` / `glossary` / `ecosystem` + questions `qcm` réussies (distinctes) ; **loin** = feuillets trouvés + acquis `feuillet` / `lore_glossary` / `content_page` + questions `qcm_lore` réussies + articles de « Mon journal » (≥ 40 caractères, 2 par semaine au plus). Niveau `n` atteint à `5·n·(n−1)/2` points. |
 | GET     | `/api/gl/voyageur/spells/:code/targets`   | —                      | `{ spell, items:[{ target, label, … }], emptyMessage }`. `seconde_chance` : délais d'attente en cours (`target` = `type:ref`, `lockedUntil`) ; `memoire` : feuillets du carnet encore effacés (`target` = code, `effacementPct`). Code inconnu → `404`.                                                                                                                                                                                                         |
 | POST    | `/api/gl/voyageur/spells/:code/cast`      | `{ target }` (1–4096)  | `{ success, spell:{…état après lancer}, effect }`. `409` `SPELL_LOCKED` (niveau insuffisant) ou `SPELL_NOT_CHARGED` (la charge revient après 5 nouveaux points), `404` `TARGET_NOT_FOUND` (charge non consommée), `400` cible vide. Effets : `seconde_chance` supprime le délai d'attente de la fiche ; `memoire` ramène l'effacement du feuillet à 0 dans la possession du joueur.                                                                            |
 

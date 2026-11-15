@@ -100,7 +100,9 @@ describe('GLDefiPlayer — un défi de la Trame à l’écran', () => {
     await waitFor(() => screen.getByText(/modifié sur un autre appareil/));
     expect(apiGlMock).toHaveBeenCalledWith('/api/gl/games/7/defis/4');
     expect(
-      screen.getByRole('button', { name: 'Retirer la flèche de Zèbre vers Lion' }),
+      screen.getByRole('button', {
+        name: 'Retirer la flèche de la carte « Zèbre » vers la carte « Lion »',
+      }),
     ).toBeTruthy();
   });
 
@@ -174,7 +176,11 @@ describe('GLDefiPlayer — un défi de la Trame à l’écran', () => {
           verification: body.etat.verifie
             ? [
                 { code: 'P', juste: false, message: 'Pas encore.' },
-                { code: 'H', juste: true, message: 'Zèbre est moins mangé.' },
+                {
+                  code: 'H',
+                  juste: true,
+                  message: '« Lion » ne mange plus « Zèbre » : il y en a davantage.',
+                },
               ]
             : null,
         }),
@@ -184,6 +190,10 @@ describe('GLDefiPlayer — un défi de la Trame à l’écran', () => {
     render(<GLDefiPlayer gameId={7} cible={{ type: 'alteree', unite: 'savane:C' }} />);
     await waitFor(() => screen.getByTestId('gl-trame-board'));
     expect(screen.getByTestId('gl-trame-verifier').disabled).toBe(true);
+    // Le sens des quatre boutons est écrit en toutes lettres.
+    expect(screen.getByTestId('gl-trame-prediction-legende').textContent).toMatch(
+      /il y en a plus.*il y en a moins.*il n’y en a plus.*pas de changement/,
+    );
     expect(screen.getByText('carte retirée')).toBeTruthy();
     fireEvent.click(screen.getByTestId('gl-trame-prediction-P-rien'));
     fireEvent.click(screen.getByTestId('gl-trame-prediction-H-augmente'));
@@ -194,7 +204,7 @@ describe('GLDefiPlayer — un défi de la Trame à l’écran', () => {
     fireEvent.click(screen.getByTestId('gl-trame-verifier'));
     await waitFor(() => screen.getByTestId('gl-trame-retour-P'));
     expect(screen.getByTestId('gl-trame-retour-P').textContent).toContain('Pas encore.');
-    expect(screen.getByTestId('gl-trame-retour-H').textContent).toContain('moins mangé');
+    expect(screen.getByTestId('gl-trame-retour-H').textContent).toContain('il y en a davantage');
     const dernier = apiGlMock.mock.calls.filter((c) => c[1] === 'PUT').at(-1);
     expect(dernier[2].etat).toEqual({ predictions: { P: 'rien', H: 'augmente' }, verifie: true });
   });

@@ -133,7 +133,7 @@ export function GLTrameBoard({
   suggestion = null,
   mode = null,
   sousCarte = null,
-  flecheLabel = 'est mangé par',
+  flecheLabel = 'sert de nourriture à',
   disabled = false,
 }) {
   const liste = useModeListe(mode);
@@ -218,7 +218,7 @@ export function GLTrameBoard({
                           type="button"
                           className="gl-trame-fleche__retirer"
                           onClick={() => onRetirer?.(f.de, f.vers)}
-                          aria-label={`Retirer la flèche de ${nom.get(f.de)} vers ${nom.get(f.vers)}`}
+                          aria-label={`Retirer la flèche de la carte « ${nom.get(f.de)} » vers la carte « ${nom.get(f.vers)} »`}
                         >
                           retirer
                         </button>
@@ -354,7 +354,7 @@ export function GLTrameBoard({
                     type="button"
                     className="gl-trame-fleche__retirer"
                     onClick={() => onRetirer?.(f.de, f.vers)}
-                    aria-label={`Retirer la flèche de ${nom.get(f.de)} vers ${nom.get(f.vers)}`}
+                    aria-label={`Retirer la flèche de la carte « ${nom.get(f.de)} » vers la carte « ${nom.get(f.vers)} »`}
                   >
                     retirer
                   </button>
@@ -370,8 +370,8 @@ export function GLTrameBoard({
       ) : null}
       {!liste && suggestion ? (
         <p className="gl-hint" data-testid="gl-trame-suggestion">
-          En pointillés : un lien à tracer toi-même, de {nom.get(suggestion.de)} vers{' '}
-          {nom.get(suggestion.vers)}.
+          En pointillés : un lien à tracer toi-même, de la carte « {nom.get(suggestion.de)} » vers
+          la carte « {nom.get(suggestion.vers)} ».
         </p>
       ) : null}
     </div>

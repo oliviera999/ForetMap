@@ -50,7 +50,11 @@ export const TRAME_MESSAGES = Object.freeze({
     'Chaque animal a trouvé quelque chose à manger, chaque plante a une suite, et une flèche au moins va vers les décomposeurs.',
   filsComplet: 'Tous les fils sont retrouvés, chacun dans le bon sens.',
   matiereMorte:
-    'Sans décomposeurs, la matière morte s’accumule : le sol ne rend plus aux plantes ce dont elles ont besoin.',
+    'Sans ces décomposeurs, la matière morte s’accumule : elle n’est plus transformée en éléments utiles aux plantes.',
+  etapeManquante: 'C’est vrai, mais il manque une étape entre les deux.',
+  sansChangement:
+    'Pas de changement direct pour cette carte : elle ne mange pas la carte retirée et n’est pas mangée par elle.',
+  resteAMatiereMorte: 'Il reste toujours de la matière morte à décomposer.',
   pasEncore: 'Pas encore.',
 });
 
@@ -149,7 +153,10 @@ export function classifyLink(model, de, vers, existantes = []) {
   if (idx.decomposeurs.has(b)) {
     return { classement: 'trouvee', message: TRAME_MESSAGES.trouvee, viaDecomposeur: true };
   }
-  if (idx.acceptes.has(cleDe(b, a))) {
+  // Fils cachés : une cause qui mène à l'effet par une ou plusieurs étapes n'est pas à l'envers,
+  // même si le fil direct existe dans l'autre sens (la boucle du plateau 4) — il manque une étape.
+  const raccourci = model.type === 'fils' && meneA(model, a, b);
+  if (idx.acceptes.has(cleDe(b, a)) && !raccourci) {
     return {
       classement: 'inversee',
       message: model.type === 'fils' ? TRAME_MESSAGES.inverseeFils : TRAME_MESSAGES.inversee,
@@ -157,8 +164,26 @@ export function classifyLink(model, de, vers, existantes = []) {
   }
   return {
     classement: 'a_discuter',
-    message: idx.discutes.get(cleDe(a, b)) || TRAME_MESSAGES.a_discuter,
+    message:
+      idx.discutes.get(cleDe(a, b)) ||
+      (raccourci ? TRAME_MESSAGES.etapeManquante : TRAME_MESSAGES.a_discuter),
   };
+}
+
+/** Une suite de liens acceptés mène-t-elle de `de` à `vers` ? */
+function meneA(model, de, vers) {
+  const vues = new Set([de]);
+  const file = [de];
+  while (file.length) {
+    const courant = file.shift();
+    for (const l of model.liens) {
+      if (l.de !== courant || vues.has(l.vers)) continue;
+      if (l.vers === vers) return true;
+      vues.add(l.vers);
+      file.push(l.vers);
+    }
+  }
+  return false;
 }
 
 /** Flèches d'un état, dédoublonnées, chacune avec son classement et son message. */
@@ -232,9 +257,17 @@ export function isFilsComplet(model, fleches) {
 // La trame altérée : cascade
 // ---------------------------------------------------------------------
 
+/**
+ * Un nom de carte dans une phrase : entre guillemets, sans article. Les phrases sont composées
+ * à partir des noms du catalogue, dont on ne connaît ni le genre ni l'élision (« Élan »,
+ * « Girafe », « Décomposeurs du sol ») : aucune ne s'accorde avec le nom.
+ */
+const cite = (nom) => `« ${nom} »`;
+
 function listeDeNoms(noms) {
-  if (noms.length <= 1) return noms.join('');
-  return `${noms.slice(0, -1).join(', ')} et ${noms[noms.length - 1]}`;
+  const cites = noms.map(cite);
+  if (cites.length <= 1) return cites.join('');
+  return `${cites.slice(0, -1).join(', ')} et ${cites[cites.length - 1]}`;
 }
 
 /**
@@ -282,20 +315,21 @@ export function cascade(model, retiree) {
     if (disparues.has(c.code)) {
       effets[c.code] = 'disparait';
       explications[c.code] =
-        `${c.nom} ne trouve plus rien à manger : ${listeDeNoms(perdues.map(nom))} a disparu.`;
+        `Dans ce réseau, il ne reste plus rien à manger pour ${cite(c.nom)} : ${listeDeNoms(perdues.map(nom))} ${perdues.length > 1 ? 'ont' : 'a'} disparu.`;
     } else if (mobile(c) && perdues.length) {
       effets[c.code] = 'diminue';
       explications[c.code] =
-        `${c.nom} perd une partie de sa nourriture (${listeDeNoms(perdues.map(nom))}), mais il lui reste ${listeDeNoms(res.filter((r) => !disparues.has(r)).map(nom))}.`;
+        `${cite(c.nom)} perd une partie de sa nourriture : ${listeDeNoms(perdues.map(nom))}. Il lui reste ${listeDeNoms(res.filter((r) => !disparues.has(r)).map(nom))}.`;
     } else if (decomposeurRetire) {
       if (c.role === 'producteur') {
         effets[c.code] = 'diminue';
         explications[c.code] =
-          `${c.nom} pousse moins bien : sans ${retire.nom}, la matière morte n’est plus rendue au sol.`;
+          `${cite(c.nom)} pousse moins bien : sans ${retire.generique ? 'les décomposeurs' : cite(retire.nom)}, la matière morte n’est plus transformée en éléments utiles aux plantes.`;
       }
     } else if (proies.has(c.code)) {
       effets[c.code] = 'augmente';
-      explications[c.code] = `${c.nom} est moins mangé : ${retire.nom} n’est plus là.`;
+      explications[c.code] =
+        `${cite(retire.nom)} ne mange plus ${cite(c.nom)} : il y en a davantage.`;
     }
   }
   return {
@@ -327,10 +361,13 @@ function pourAllerPlusLoin(model, effets, retire) {
     return 'Et les animaux qui mangent ces plantes, que deviendraient-ils ?';
   }
   const disparues = Object.keys(effets).filter((c) => effets[c] === 'disparait');
+  if (disparues.length && retire.role === 'producteur') {
+    return `${cite(retire.nom)} en moins, et tant de cartes touchées : pourquoi les êtres vivants du début des chaînes comptent-ils autant dans un milieu ?`;
+  }
   if (disparues.length) {
     return `Sans ${listeDeNoms(disparues.map(nom))}, qui profiterait de la place laissée libre ?`;
   }
-  return `Si ${retire.nom} revenait, combien de temps faudrait-il pour que tout se rétablisse ?`;
+  return `Si ${cite(retire.nom)} revenait, combien de temps faudrait-il pour que tout se rétablisse ?`;
 }
 
 /**
@@ -351,7 +388,8 @@ export function verifierPredictions(model, retiree, predictions) {
         code: c.code,
         juste,
         message: juste
-          ? attendu.explications[c.code] || `${c.nom} ne dépend pas de la carte retirée.`
+          ? attendu.explications[c.code] ||
+            (c.generique ? TRAME_MESSAGES.resteAMatiereMorte : TRAME_MESSAGES.sansChangement)
           : TRAME_MESSAGES.pasEncore,
       };
     });
@@ -369,7 +407,11 @@ export function verifierPredictions(model, retiree, predictions) {
 export function verifierRangement(model, rangement) {
   const cartes = (model?.aClasser || []).map((e) => {
     const juste = texte(rangement?.[e.code]) === e.categorie;
-    return { code: e.code, juste, message: juste ? 'Bien rangée.' : TRAME_MESSAGES.pasEncore };
+    return {
+      code: e.code,
+      juste,
+      message: juste ? 'C’est la bonne colonne.' : TRAME_MESSAGES.pasEncore,
+    };
   });
   return { complet: cartes.length > 0 && cartes.every((c) => c.juste), cartes };
 }
@@ -440,7 +482,7 @@ export function nextHint(model, etat) {
       rang,
       genre: 'structure',
       message: fils
-        ? 'Cherche la carte par laquelle tout commence : celle que rien ne provoque.'
+        ? 'Cherche une carte qui peut servir de départ, puis demande-toi : et alors, que se passe-t-il ? Il peut y avoir plusieurs départs.'
         : 'Commence par une plante : qui la mange ?',
     };
   }
@@ -461,8 +503,10 @@ export function nextHint(model, etat) {
         genre: 'piste',
         carte: isolee.code,
         message: fils
-          ? `« ${isolee.nom} » n’est reliée à rien : qu’est-ce qui la provoque, ou que provoque-t-elle ?`
-          : `${isolee.nom} n’est encore relié à rien : que mange-t-il, ou qui le mange ?`,
+          ? `La carte ${cite(isolee.nom)} n’est reliée à rien : qu’est-ce qui la provoque, ou que provoque-t-elle ?`
+          : isolee.role === 'producteur'
+            ? `La carte ${cite(isolee.nom)} n’est reliée à rien : qui s’en nourrit ?`
+            : `La carte ${cite(isolee.nom)} n’est reliée à rien : de quoi se nourrit-elle, et qui s’en nourrit ?`,
       };
     }
   }
@@ -481,8 +525,8 @@ export function nextHint(model, etat) {
     genre: 'revelation',
     lien: { de: lien.de, vers: lien.vers },
     message: fils
-      ? `Un fil à tracer : « ${nom(lien.de)} » mène à « ${nom(lien.vers)} ».`
-      : `Un lien à tracer : ${nom(lien.de)} est mangé par ${nom(lien.vers)}.`,
+      ? `Un fil à tracer : ${cite(nom(lien.de))} mène à ${cite(nom(lien.vers))}.`
+      : `${cite(nom(lien.vers))} se nourrit de ${cite(nom(lien.de))} : trace la flèche de ${cite(nom(lien.de))} vers ${cite(nom(lien.vers))}.`,
   };
 }
 

@@ -90,6 +90,11 @@ Dans cet ordre :
 5. `a_discuter` — tout le reste : lien prévu comme débattu (avec son « pourquoi »), ou non prévu
    (« À discuter avec ton équipe ou avec ton professeur. »).
 
+Un cas propre aux **fils cachés** : quand une suite de fils mène de la cause à l'effet (un
+raccourci, ou la boucle voulue du plateau 4), la flèche n'est pas « à l'envers », même si le fil
+direct existe dans l'autre sens. Elle est classée `a_discuter` avec « C'est vrai, mais il manque
+une étape entre les deux. »
+
 Aucun classement ne dit « faux ». « À discuter » garde une teinte neutre et une bulle ; le sens à
 regarder est en tirets ambrés ; rien n'est en rouge, et un pictogramme et un libellé doublent
 toujours la teinte. Le compteur dit les liens trouvés, **sans total**.
@@ -119,15 +124,17 @@ cœur calcule ce que devient chacune des autres :
   la matière morte s'accumule… ») et rien n'augmente ;
 - toutes les autres cartes : `rien`.
 
-Chaque effet porte son explication en une phrase (« Gnou bleu est moins mangé : Lion d'Afrique
-n'est plus là. »). Après « Vérifier », une prédiction juste reçoit son explication ; les autres
+Chaque effet porte son explication en une phrase, composée à partir des noms des cartes, mis
+entre guillemets parce que leur genre n'est pas connu (« « Lion d'Afrique » ne mange plus « Gnou
+bleu » : il y en a davantage. »). Après « Vérifier », une prédiction juste reçoit son explication ; les autres
 reçoivent « Pas encore. », **sans la réponse**. Une fois tout juste, une question d'ouverture non
 notée (`pourAllerPlusLoin`) invite à penser l'étage suivant.
 
-Le modèle est volontairement simple : un seul étage d'effet direct, pas de compétition, pas de
-délai. Les 24 cascades de référence (8 biomes × 3 cartes retirées) sont reproduites exactement
-par `tests/gl-trame-core.test.js` ; elles sont à relire par un enseignant après chaque
-modification d'un réseau.
+Le modèle est volontairement simple : seule la **disparition** se propage de proche en proche ;
+« augmente » et « diminue » ne touchent que les voisines directes ; il n'y a ni compétition, ni
+délai, ni régime alimentaire hors des cartes du niveau. Les 24 cascades de référence (8 biomes ×
+3 cartes retirées) sont reproduites exactement par `tests/gl-trame-core.test.js` ; elles sont à
+relire par un enseignant après chaque modification d'un réseau.
 
 ### Indices (`nextHint`)
 
@@ -149,18 +156,26 @@ L'élève reprend où il en était, sur n'importe quel appareil. Aucun code de l
 importé.
 
 Droits rejoués par le serveur à chaque appel : peuple de l'équipe, niveau ouvert, porteur du
-défi, tour fermé pour une tablette d'équipe, compte d'élève exclu du mode équipe.
+défi, tour fermé pour une tablette d'équipe, compte d'élève exclu du mode équipe. Les réglages
+(`defis`, `defis_mode_equipe`, `defis_par_peuple`) et l'état de la partie sont relus à **chaque
+écriture** (`assertDefiJouable`) : fermer les défis en cours de séance arrête aussi un défi déjà
+ouvert (409 `DEFIS_FERMES`), une partie terminée n'en donne plus ; la lecture reste permise. La
+`note` d'un réseau ou d'un jeu de fils est une note d'auteur : elle n'est jamais servie.
 
 ## 5. Récompenses
 
 À la réussite, pour l'élève — ou, en mode équipe, pour chaque membre présent — dont c'est la
 **première réussite de l'unité dans la partie** (`gl_trame_reussites`) :
 
-1. **Une page de veillée** du chapitre à son nom, tirée parmi les pages du chapitre **hors
-   zones de chasse**, écrite par `commitFeuilletDiscovery` avec la source `defi` et l'option
-   `sansRessource`. Plafond : `defis_pages_par_semaine` (2) par semaine ISO et par élève,
-   compteur propre à cette voie. Pages épuisées : « Le carnet de ce chapitre n'a plus de page en
-   attente. »
+1. **Une page de veillée** du chapitre à son nom, écrite par `commitFeuilletDiscovery` avec la
+   source `defi` et l'option `sansRessource`. Plafond : `defis_pages_par_semaine` (2) par
+   semaine ISO et par élève, compteur propre à cette voie. Pages épuisées : « Le carnet de ce
+   chapitre n'a plus de page en attente. » Une page est **tirable** (`pagesTirables`) si elle est
+   du chapitre et n'est : ni une page de zone de chasse (elle se cherche sur le plateau), ni une
+   page de route (`carnet_route` : le Passeur les lit, ou sa liste les a écartées), ni la page
+   apportée par l'oiseau (mode `corbeau`), ni une page dont le titre ou l'incipit porte une
+   chaîne interdite ou un terme `secret` du lore. Sur le corpus du 7 novembre 2026 : 18, 7, 12
+   et 14 pages tirables aux plateaux 1 à 4.
 2. **Un point de regard** du proche (source `defi`, `lib/glVoyageur.js`).
 3. **Un badge** du moteur commun, famille « Défis de la Trame » (`lib/glRewardsCatalog.js`) :
 
@@ -176,6 +191,13 @@ défi, tour fermé pour une tablette d'équipe, compte d'élève exclu du mode �
 
 Une réussite suivante de la même unité ne donne plus de page. **Jamais** un cœur, une gemme, un
 recul du voile ou un rang.
+
+**Une transaction, puis une écriture rattrapable.** Le passage du défi à « réussi », les lignes
+de réussite, la page décidée pour chaque élève (`page_feuillet_code`, plafond compté sous
+verrou) et l'évènement sont écrits dans **la même transaction** (`inscrireReussite`). L'écriture
+de la page au carnet (`commitFeuilletDiscovery` ouvre sa propre transaction) suit ; si elle est
+interrompue, la page reste promise et `livrerPagesEnAttente` l'écrit à la prochaine lecture de
+la liste des défis — une seule fois.
 
 **Lien entre les peuples.** Une trame altérée réussie dont la carte retirée est une espèce de
 `trame-reparer.json` ajoute cette espèce à « À réparer » du carnet de la classe (« signalée par

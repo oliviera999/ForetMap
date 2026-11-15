@@ -277,7 +277,9 @@ router.post(
     try {
       const row = await defis.loadDefi(db, ctx.gameId, defiId);
       await assertPorteurDuDefi(req, ctx, row, { ecriture: true });
-      return res.json(await defis.demanderIndice(db, { game: ctx.game, defiId }));
+      return res.json(
+        await defis.demanderIndice(db, { game: ctx.game, resolved: ctx.resolved, defiId }),
+      );
     } catch (err) {
       return refuser(res, err);
     }

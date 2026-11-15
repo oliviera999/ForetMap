@@ -626,3 +626,135 @@ test('réglages : défis fermés, défis ouverts aux deux peuples, mode équipe 
   assert.equal(ferme.body.code, 'DEFIS_FERMES');
   await profil({});
 });
+
+test('pages de veillée : ni page de route, ni page de l’oiseau, ni titre interdit ; la note d’auteur ne sort pas', async () => {
+  const defis = require('../lib/glTrameDefis');
+  // Le mot interdit est composé ici : aucun fichier du dépôt ne le porte dans un titre.
+  const oiseau = ['cor', 'beau'].join('');
+  const pages = [
+    ['trame-test-p1-oiseau', `Le ${oiseau} du matin`, 'boite', -104],
+    ['trame-test-p1-route', 'Sur la route', 'carnet_route', -103],
+    ['trame-test-p1-apporte', 'Une page apportée', 'corbeau', -102],
+    ['trame-test-p1-d', 'Page de veillée d', 'boite', -101],
+  ];
+  for (const [code, titre, mode, ordre] of pages) {
+    await db.execute(
+      `INSERT INTO gl_lore_feuillets (feuillet_code, type, titre, incipit, texte, texte_accessible, biome_slug,
+          plateau_number, mode_apparition, ordre_voyage, statut, created_at, updated_at)
+       VALUES (?, 'feuillet', ?, 'La forêt respire.', 'La forêt respire.', 'La forêt respire.', 'jungle_afc',
+          1, ?, ?, 'actif', NOW(), NOW())
+       ON DUPLICATE KEY UPDATE statut = 'actif', titre = VALUES(titre),
+          mode_apparition = VALUES(mode_apparition), ordre_voyage = VALUES(ordre_voyage)`,
+      [code, titre, mode, ordre],
+    );
+  }
+  const tirables = (await defis.pagesTirables(db, ctx.game)).map((f) => String(f.feuillet_code));
+  // Les trois premières du voyage sont écartées : la quatrième passe en tête.
+  assert.equal(tirables[0], 'trame-test-p1-d');
+  for (const code of ['trame-test-p1-oiseau', 'trame-test-p1-route', 'trame-test-p1-apporte']) {
+    assert.ok(!tirables.includes(code), `${code} ne se gagne pas par un défi`);
+  }
+  const chasse = await db.queryAll(
+    'SELECT feuillet_code FROM gl_chasse_zones WHERE feuillet_code IS NOT NULL',
+  );
+  assert.ok(chasse.length > 0);
+  for (const z of chasse) assert.ok(!tirables.includes(String(z.feuillet_code)));
+
+  // La note d'un réseau est une note d'auteur : elle peut citer un lien accepté.
+  await db.execute("UPDATE gl_trame_reseaux SET note = ? WHERE biome = 'jungle_afc'", [
+    'NOTE-AUTEUR : la flèche A vers B est juste.',
+  ]);
+  const [licorneB] = membres(3);
+  const cree = await ouvrir(licorneB.token, { type: 'alteree', unite: 'jungle_afc:DEC' });
+  assert.equal(cree.status, 201, JSON.stringify(cree.body));
+  const lu = await voir(licorneB.token, cree.body.defi.id);
+  for (const corps of [cree.body, lu.body]) {
+    assert.ok(!JSON.stringify(corps).includes('NOTE-AUTEUR'), 'la note ne quitte pas le serveur');
+    assert.equal('note' in corps.defi, false);
+  }
+  await db.execute("UPDATE gl_trame_reseaux SET note = NULL WHERE biome = 'jungle_afc'");
+
+  // Carte retirée = décomposeurs : l'échelle d'indices parle des plantes, pas de « moins mangé ».
+  const indice = () =>
+    request(app)
+      .post(api(`/defis/${cree.body.defi.id}/indice`))
+      .set(auth(licorneB.token));
+  await indice();
+  const deux = await indice();
+  assert.match(deux.body.indice.message, /transforment la matière morte/);
+  const trois = await indice();
+  assert.doesNotMatch(trois.body.indice.message, /moins mangé/);
+});
+
+test('fermer les défis en cours de séance arrête aussi un défi déjà ouvert ; une partie terminée n’en donne plus', async () => {
+  const defis = require('../lib/glTrameDefis');
+  const [licorneB] = membres(3);
+  const cree = await ouvrir(licorneB.token, { type: 'alteree', unite: 'jungle_afc:DEC' });
+  const id = cree.body.defi.id;
+  const profil = (overrides) =>
+    request(app)
+      .put(api('/tenir/profil'))
+      .set(auth(ctx.adminToken))
+      .send({ profil: 'complet', overrides: { surface: 'tablette', ...overrides } })
+      .expect(200);
+  await profil({ defis: false });
+  const sauve = await sauver(licorneB.token, id, cree.body.defi.revision, { predictions: {} });
+  assert.equal(sauve.status, 409, JSON.stringify(sauve.body));
+  assert.equal(sauve.body.code, 'DEFIS_FERMES');
+  const aide = await request(app)
+    .post(api(`/defis/${id}/indice`))
+    .set(auth(licorneB.token));
+  assert.equal(aide.status, 409);
+  assert.equal(aide.body.code, 'DEFIS_FERMES');
+  // La lecture reste permise : rien n'est perdu.
+  assert.equal((await voir(licorneB.token, id)).status, 200);
+  await profil({});
+  const repris = await sauver(licorneB.token, id, cree.body.defi.revision, { predictions: {} });
+  assert.equal(repris.status, 200, JSON.stringify(repris.body));
+
+  const jouable = (game) =>
+    defis.assertDefiJouable({
+      game,
+      resolved: {},
+      teamType: 'gnome',
+      mode: 'individuel',
+      type: 'retisser',
+    });
+  assert.doesNotThrow(() => jouable({ status: 'live' }));
+  assert.doesNotThrow(() => jouable({ status: 'paused' }));
+  assert.throws(() => jouable({ status: 'ended' }), /DEFIS_FERMES/);
+});
+
+test('une page décidée mais pas encore écrite au carnet est rattrapée à la lecture, une seule fois, sans ressource', async () => {
+  const [licorneB] = membres(3);
+  const teamId = Number(team(3).id);
+  const avant = await sommeDesBourses();
+  // Une réussite inscrite avec sa page, dont l'écriture au carnet a été interrompue.
+  const cree = await ouvrir(licorneB.token, { type: 'fils', unite: 'p1' });
+  await db.execute(
+    `INSERT INTO gl_trame_reussites
+       (game_id, player_id, team_id, type, unite, defi_id, mode, page_feuillet_code, semaine_iso, created_at)
+     VALUES (?, ?, ?, 'fils', 'p1', ?, 'individuel', 'trame-test-p1-d', '1999-W01', NOW())`,
+    [ctx.game.id, licorneB.id, teamId, cree.body.defi.id],
+  );
+  const etats = async () =>
+    db.queryAll(
+      `SELECT feuillet_code FROM gl_game_feuillet_states
+        WHERE game_id = ? AND team_id = ? AND feuillet_code = 'trame-test-p1-d'
+          AND (discovered_at IS NOT NULL OR status <> 'locked')`,
+      [ctx.game.id, teamId],
+    );
+  assert.equal((await etats()).length, 0);
+  assert.equal((await lister(licorneB.token)).status, 200);
+  assert.equal((await etats()).length, 1, 'la page promise est au carnet de l’équipe');
+  assert.equal((await lister(licorneB.token)).status, 200);
+  assert.equal((await etats()).length, 1);
+  const decouvertes = await db.queryAll(
+    `SELECT id FROM gl_game_events
+      WHERE game_id = ? AND team_id = ? AND event_type = 'feuillet_discovered'
+        AND payload_json LIKE '%trame-test-p1-d%'`,
+    [ctx.game.id, teamId],
+  );
+  assert.equal(decouvertes.length, 1, 'écrite une seule fois');
+  assert.equal(await sommeDesBourses(), avant, 'aucune ressource');
+});

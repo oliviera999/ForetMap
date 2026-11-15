@@ -288,11 +288,11 @@ est mangé par qui) et **l'effet d'un changement** sur un milieu.
   l'app la signale par « Regarde le sens », sans la compter.
 - **Les décomposeurs.** Toute carte peut être reliée aux décomposeurs : tout être vivant finit
   par être décomposé. Un réseau n'est fini que si une flèche au moins y mène.
-- **« À discuter ».** Un lien que le réseau ne prévoit pas, ou que les spécialistes discutent,
+- **« À discuter ».** Un lien que le réseau ne prévoit pas, ou qui n'arrive que rarement,
   n'est ni juste ni refusé. C'est le bon moment pour demander à l'élève : « Qu'est-ce qui te
   fait dire cela ? »
 - **La trame altérée.** Le modèle est simple, et c'est voulu : une espèce qui perd toute sa
-  nourriture disparaît, celle qui en perd une partie diminue, celle qui n'est plus mangée
+  nourriture disparaît, celle qui en perd une partie diminue, celle que l'espèce retirée mangeait
   augmente. La réalité est plus lente et plus nuancée ; la question « Pour aller plus loin »,
   affichée à la fin et non notée, ouvre cette discussion.
 - **Réparer la trame.** Les six espèces à ranger et la leçon du plateau sont écrites dans le

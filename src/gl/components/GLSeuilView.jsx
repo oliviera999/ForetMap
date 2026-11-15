@@ -537,7 +537,7 @@ export function GLSeuilView({ onNavigateTab, modules }) {
                 {/* « Tenir à deux » : le défi de case à préparer pour la prochaine séance. */}
                 {exp.gameId ? <GLDefisCasePanel gameId={exp.gameId} /> : null}
                 {/* Défis de la Trame : à son rythme, en veillée ou une fois l'activité finie. */}
-                {exp.gameId ? <GLDefisEntree gameId={exp.gameId} /> : null}
+                {exp.gameId && exp.tenir ? <GLDefisEntree gameId={exp.gameId} /> : null}
                 {data.gestures?.length ? (
                   <div className="gl-seuil-gestures" aria-label="Gestes de la mascotte">
                     {data.gestures.map((g) =>

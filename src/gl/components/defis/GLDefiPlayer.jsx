@@ -14,10 +14,10 @@ const CONSIGNES = Object.freeze({
 });
 
 const PREDICTIONS = Object.freeze([
-  ['augmente', '↑', 'augmente'],
-  ['diminue', '↓', 'diminue'],
-  ['disparait', '✕', 'disparaît'],
-  ['rien', '=', 'ne change pas'],
+  ['augmente', '↑', 'il y en a plus'],
+  ['diminue', '↓', 'il y en a moins'],
+  ['disparait', '✕', 'il n’y en a plus'],
+  ['rien', '=', 'pas de changement'],
 ]);
 
 const CATEGORIES = Object.freeze({
@@ -35,7 +35,7 @@ function Tisser({ defi, vue, enregistrer, indice }) {
     <GLTrameBoard
       cartes={defi.cartes}
       fleches={fleches}
-      flecheLabel={defi.type === 'fils' ? 'provoque' : 'est mangé par'}
+      flecheLabel={defi.type === 'fils' ? 'provoque' : 'sert de nourriture à'}
       suggestion={indice?.lien || null}
       disabled={defi.statut === 'reussi'}
       onAjouter={(de, vers) =>
@@ -62,6 +62,14 @@ function Alteree({ defi, vue, enregistrer }) {
   const pret = aPrevoir.every((c) => predictions[c.code]);
   return (
     <>
+      {/* Le sens des quatre boutons est écrit : un `title` ne se lit pas au doigt. */}
+      <p className="gl-trame-prediction__legende" data-testid="gl-trame-prediction-legende">
+        {PREDICTIONS.map(([valeur, picto, label]) => (
+          <span key={valeur}>
+            <strong aria-hidden="true">{picto}</strong> {label}
+          </span>
+        ))}
+      </p>
       <GLTrameBoard
         cartes={defi.cartes}
         liensFixes={defi.liens}
@@ -82,7 +90,7 @@ function Alteree({ defi, vue, enregistrer }) {
                     type="button"
                     role="radio"
                     aria-checked={predictions[carte.code] === valeur}
-                    aria-label={`${carte.nom} ${label}`}
+                    aria-label={`${carte.nom} : ${label}`}
                     title={label}
                     className={`gl-trame-prediction__bouton${
                       predictions[carte.code] === valeur ? ' is-choisi' : ''
@@ -120,7 +128,7 @@ function Alteree({ defi, vue, enregistrer }) {
         </GLButton>
       ) : null}
       {!pret && !fini ? (
-        <p className="gl-hint">Donne une prédiction pour chaque carte avant de vérifier.</p>
+        <p className="gl-hint">Choisis une réponse pour chaque carte avant de vérifier.</p>
       ) : null}
       {defi.message ? <p role="status">{defi.message}</p> : null}
       {defi.pourAllerPlusLoin ? (

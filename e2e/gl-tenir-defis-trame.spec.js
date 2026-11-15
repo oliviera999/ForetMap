@@ -101,7 +101,7 @@ test.describe('GL — défis de la Trame', () => {
     await expect(inversee).toContainText('Regarde le sens');
     await page
       .getByRole('button', {
-        name: `Retirer la flèche de ${nom[premier.vers]} vers ${nom[premier.de]}`,
+        name: `Retirer la flèche de la carte « ${nom[premier.vers]} » vers la carte « ${nom[premier.de]} »`,
       })
       .click();
     await expect(inversee).toHaveCount(0);

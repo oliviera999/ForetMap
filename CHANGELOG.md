@@ -32,8 +32,8 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   `GET …/defis/suivi` (CSV). **Sauvegarde stricte** par révision (409 `edit_conflict`) : l'élève
   reprend sur n'importe quel appareil. Les solutions ne quittent jamais le serveur.
 - **Récompense sans aucune ressource** : à la première réussite de chaque unité, une page de
-  veillée du chapitre au nom de l'élève (jamais un feuillet de zone de chasse ; deux par semaine
-  au plus par cette voie), un point de regard, un badge — **Tisserand** et **Révélateur** ne
+  veillée du chapitre au nom de l'élève (jamais un feuillet de zone de chasse, une page de route
+  ni une page dont le titre nomme l'oiseau ; deux par semaine au plus par cette voie), un point de regard, un badge — **Tisserand** et **Révélateur** ne
   sont plus réservés, **Gardien des fils** et **Réparateur** les rejoignent. En mode équipe, la
   réussite vaut pour chaque membre présent. Évènement `defi_trame_reussi`, une ligne d'Olu.
 - **Lien entre les peuples** : une trame altérée réussie par une Licorne signale l'espèce

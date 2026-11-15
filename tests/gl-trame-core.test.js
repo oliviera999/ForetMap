@@ -112,7 +112,11 @@ test('cascade : carte inconnue → rien ; « pour aller plus loin » selon l’�
   assert.match(core.cascade(jungle, 'DEC').pourAllerPlusLoin, /animaux qui mangent ces plantes/);
   assert.equal(core.cascade(jungle, 'DEC').message, core.TRAME_MESSAGES.matiereMorte);
   const themeda = core.cascade(savane, carte(savane, 'Themeda').code);
-  assert.match(themeda.pourAllerPlusLoin, /^Sans .*, qui profiterait/);
+  // Un producteur en moins et des cartes qui disparaissent : la question porte sur son rôle.
+  assert.match(
+    themeda.pourAllerPlusLoin,
+    /^« Themeda \(herbe rouge\) » en moins, et tant de cartes/,
+  );
   // Réseaux d'école : une proie sans ressource en jeu, puis une carte sans aucun effet.
   const mini = core.buildReseau(
     {
@@ -140,7 +144,38 @@ test('cascade : carte inconnue → rien ; « pour aller plus loin » selon l’�
     },
     2,
   );
-  assert.match(core.cascade(isole, 'A').pourAllerPlusLoin, /^Si Aigle revenait/);
+  assert.match(core.cascade(isole, 'A').pourAllerPlusLoin, /^Si « Aigle » revenait/);
+  // Une proie sans ressource en jeu disparaît : son seul mangeur la suit.
+  const chaine = core.buildReseau(
+    {
+      cartes: [
+        { code: 'A', nom: 'Mulot', role: 'consommateur' },
+        { code: 'B', nom: 'Buse', role: 'consommateur' },
+      ],
+      liens: [['A', 'B']],
+    },
+    2,
+  );
+  const sansMulot = core.cascade(chaine, 'A');
+  assert.deepEqual(sansMulot.effets, { B: 'disparait' });
+  assert.equal(
+    sansMulot.explications.B,
+    'Dans ce réseau, il ne reste plus rien à manger pour « Buse » : « Mulot » a disparu.',
+  );
+  assert.equal(
+    sansMulot.pourAllerPlusLoin,
+    'Sans « Buse », qui profiterait de la place laissée libre ?',
+  );
+  // Les phrases citent les noms entre guillemets : aucun accord à deviner.
+  assert.equal(
+    lion.explications[carte(savane, 'Girafe').code],
+    "« Lion d'Afrique » ne mange plus « Girafe » : il y en a davantage.",
+  );
+  assert.match(themeda.explications[carte(savane, 'Hyène').code], / et « .* » ont disparu\.$/);
+  assert.match(
+    core.cascade(jungle, 'DEC').explications[carte(jungle, 'Moabi').code],
+    /sans les décomposeurs, la matière morte n’est plus transformée/,
+  );
 });
 
 test('prédictions : la bonne reçoit l’explication, les autres « Pas encore », jamais la réponse', () => {
@@ -161,7 +196,12 @@ test('prédictions : la bonne reçoit l’explication, les autres « Pas encore 
   const juste = core.verifierPredictions(model, lion, tout);
   assert.equal(juste.complet, true);
   assert.ok(juste.cartes.every((c) => c.juste && c.message && c.message !== 'Pas encore.'));
-  assert.ok(juste.cartes.some((c) => /ne dépend pas de la carte retirée/.test(c.message)));
+  assert.ok(juste.cartes.some((c) => c.message === core.TRAME_MESSAGES.sansChangement));
+  // Les décomposeurs du sol ne manquent jamais de matière morte.
+  assert.equal(
+    juste.cartes.find((c) => c.code === 'DEC').message,
+    'Il reste toujours de la matière morte à décomposer.',
+  );
   const zebre = carte(model, 'Zèbre').code;
   const presque = core.verifierPredictions(model, lion, { ...tout, [zebre]: 'diminue' });
   assert.equal(presque.complet, false);
@@ -308,6 +348,23 @@ test('fils cachés : mêmes gestes ; fini quand chaque lien est trouvé et qu’
     'une flèche inversée reste',
   );
   assert.equal(core.classifyLink(m, 'A', 'I').classement, 'a_discuter');
+  // Un raccourci (la cause mène à l'effet par une étape) : vrai, mais il manque une étape.
+  const directs = new Set(m.liens.map((l) => `${l.de}>${l.vers}`));
+  const [l1, l2] = m.liens
+    .flatMap((a) => m.liens.filter((b) => b.de === a.vers).map((b) => [a, b]))
+    .find(([a, b]) => !directs.has(`${a.de}>${b.vers}`) && !directs.has(`${b.vers}>${a.de}`));
+  assert.deepEqual(core.classifyLink(m, l1.de, l2.vers), {
+    classement: 'a_discuter',
+    message: 'C’est vrai, mais il manque une étape entre les deux.',
+  });
+  // Plateau 4 : la boucle F → A est voulue. A → F n'est pas « à l'envers » : A mène bien à F.
+  const boucle = core.buildFils(chapitres[3]);
+  assert.equal(core.classifyLink(boucle, 'F', 'A').classement, 'trouvee');
+  assert.deepEqual(core.classifyLink(boucle, 'A', 'F'), {
+    classement: 'a_discuter',
+    message: 'C’est vrai, mais il manque une étape entre les deux.',
+  });
+  assert.equal(core.isFilsComplet(boucle, [...boucle.liens, { de: 'A', vers: 'F' }]), true);
   // Forme objet des cartes et des liens, cartes inconnues écartées.
   const objet = core.buildFils({
     plateau: 9,
@@ -367,7 +424,18 @@ test('indices : déterministes, en échelle — consigne, structure, piste sur u
   const revelation = genres({ indices: 3, fleches: [{ de: 'SP0045', vers: 'SP0023' }] });
   assert.equal(revelation.genre, 'revelation');
   assert.deepEqual(revelation.lien, { de: 'SP0032', vers: 'SP0031' });
-  assert.match(revelation.message, /Bongo est mangé par Léopard/);
+  assert.equal(
+    revelation.message,
+    '« Léopard » se nourrit de « Bongo » : trace la flèche de « Bongo » vers « Léopard ».',
+  );
+  // La piste s'adapte à la carte : un animal mange et est mangé, une plante nourrit.
+  assert.match(piste.message, /^La carte « Bongo » n’est reliée à rien : de quoi se nourrit-elle/);
+  const pistePlante = genres({ indices: 2, fleches: [{ de: 'SP0032', vers: 'SP0031' }] });
+  assert.equal(pistePlante.carte, 'SP0045');
+  assert.equal(
+    pistePlante.message,
+    'La carte « Marantacée » n’est reliée à rien : qui s’en nourrit ?',
+  );
   assert.deepEqual(genres({ indices: 3, fleches: [{ de: 'SP0045', vers: 'SP0023' }] }), revelation);
   // Toutes les cartes sont reliées mais un lien manque : on révèle, sans piste.
   const tousRelies = [
@@ -381,7 +449,7 @@ test('indices : déterministes, en échelle — consigne, structure, piste sur u
   assert.match(fini.message, /décomposeurs/);
   const fils = core.buildFils(lire('trame-fils').chapitres[0]);
   assert.match(core.nextHint(fils, {}).message, /d’une cause vers son effet/);
-  assert.match(core.nextHint(fils, { indices: 1 }).message, /par laquelle tout commence/);
+  assert.match(core.nextHint(fils, { indices: 1 }).message, /peut servir de départ/);
   assert.match(core.nextHint(fils, { indices: 2 }).message, /n’est reliée à rien/);
   assert.match(core.nextHint(fils, { indices: 3 }).message, /^Un fil à tracer/);
   assert.match(

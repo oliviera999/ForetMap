@@ -65,7 +65,11 @@ describe('GLTrameBoard — plateau de cartes de la Trame', () => {
     expect(lignes[2].className).toContain('is-a_discuter');
     // Le dernier classement reçu est dit à voix haute.
     expect(screen.getByTestId('gl-trame-annonce').textContent).toContain('Zèbre → Herbe');
-    fireEvent.click(screen.getByRole('button', { name: 'Retirer la flèche de Lion vers Zèbre' }));
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Retirer la flèche de la carte « Lion » vers la carte « Zèbre »',
+      }),
+    );
     expect(onRetirer).toHaveBeenCalledWith('C', 'H');
     expect(document.querySelectorAll('line.gl-trame-trait')).toHaveLength(3);
   });
@@ -86,8 +90,12 @@ describe('GLTrameBoard — plateau de cartes de la Trame', () => {
     expect(document.querySelector('svg')).toBeNull();
     fireEvent.change(screen.getByTestId('gl-trame-relier-C'), { target: { value: 'DEC' } });
     expect(onAjouter).toHaveBeenCalledWith('C', 'DEC');
-    expect(screen.getByText(/est mangé par/, { selector: '.is-trouvee' })).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Retirer la flèche de Herbe vers Zèbre' }));
+    expect(screen.getByText(/sert de nourriture à/, { selector: '.is-trouvee' })).toBeTruthy();
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Retirer la flèche de la carte « Herbe » vers la carte « Zèbre »',
+      }),
+    );
     expect(onRetirer).toHaveBeenCalledWith('P', 'H');
   });
 
@@ -123,7 +131,9 @@ describe('GLTrameBoard — plateau de cartes de la Trame', () => {
       />,
     );
     expect(document.querySelectorAll('line.is-suggestion')).toHaveLength(1);
-    expect(screen.getByTestId('gl-trame-suggestion').textContent).toMatch(/de Zèbre vers Lion/);
+    expect(screen.getByTestId('gl-trame-suggestion').textContent).toMatch(
+      /de la carte « Zèbre » vers\s+la carte « Lion »/,
+    );
     const pos = dispositionEnOvale(['A', 'B', 'C', 'D']);
     expect(pos).toEqual(dispositionEnOvale(['A', 'B', 'C', 'D']));
     for (const p of Object.values(pos)) {
