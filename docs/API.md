@@ -629,6 +629,23 @@ Au tableau, rien ne change. En `hybride` et sur `tablette`, les équipes jouent 
   `false` : retour à la surface d'avant. Les sessions d'équipe restent ouvertes, soumises aux
   droits de la nouvelle surface. `{ ok, surface, from }`. 409 `SURFACE_DEJA`.
 
+#### Écran d'équipe : sorts par moment, cases à venir, carnet (lot 2)
+
+- `GET /api/gl/games/:id/tenir/sorts` (`?teamId=` pour le prof ; élève : son équipe ; tablette :
+  la sienne) → `{ teamId, moments: [{ key, label, sorts: [{ code, nom, emoji, cout, ressource,
+  fenetre, execution, effetCourt, ouvert, message }] }] }`. Moments, dans l'ordre : `avant`
+  « Avant de lancer » (`avant_jet`, `avant_jets_pacte`), `apres` « Après le jet » (`apres_jet`),
+  `pendant` « Pendant le tour » (`jeu`, `jeu_avant_fouille`), `plus_tard` « Plus tard » (le
+  reste). Ne sont servis que les sorts officiels ouverts au chapitre et compatibles avec le
+  peuple de l'équipe ; un sort hors fenêtre, à sa limite ou réservé au prof sur cette surface
+  est servi `ouvert: false` avec le `message` à afficher (mêmes contrôles qu'au lancement).
+- `GET …/tenir/tour` → chaque équipe porte `casesAVenir` : les six cases suivantes (`index`,
+  `label`, `eventType`, `tonalite`), arrêtées au camp. L'information que donnait la Boussole est
+  donc affichée gratuitement avant le jet.
+- `GET …/chasse` → chaque page porte `attendUnLecteur` (trouvée ou réparée, pas encore tenue :
+  visible des deux peuples) et `protegee` (trouvée ET lue par l'équipe du lecteur : elle ne
+  pâlit pas sous le voile).
+
 #### Lien de classe et session d'équipe (lot 2)
 
 Une tablette de classe joue sans compte d'élève : elle ouvre le **lien de la classe** (QR

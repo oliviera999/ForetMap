@@ -12,6 +12,8 @@ import { GLPeripetieOverlay } from './GLPeripetieOverlay.jsx';
 import { GLBestiairePanel } from './GLBestiairePanel.jsx';
 import { GLSablier } from './GLSablier.jsx';
 import { GLPresencePanel } from './GLPresencePanel.jsx';
+import { GLSortsParMoment } from './GLSortsParMoment.jsx';
+import { ROLES_EN_CONSEIL } from '../../../shared/glSortMomentsCore.js';
 import { numeroCase } from '../../../shared/glCaseNumeroCore.js';
 
 const VERDICT_TEXTES = {
@@ -75,6 +77,8 @@ export function GLTenirEquipeView({
   });
   const [pending, setPending] = useState(null);
   const [carnetOuvert, setCarnetOuvert] = useState(false);
+  // Lot 2 : « Jeter un sort » déplie les sorts rangés par moment du tour.
+  const [sortsOuverts, setSortsOuverts] = useState(false);
   const [badgesOuverts, setBadgesOuverts] = useState(false);
   const [peripetiesPassees, setPeripetiesPassees] = useState(() => new Set());
   const perms = tenir?.permissions || {};
@@ -127,8 +131,18 @@ export function GLTenirEquipeView({
   const fouilleMode = !!chasse?.fouilleMode;
   const questionDue =
     (round?.questionsEnAttente || []).find((q) => Number(q.teamId) === Number(teamId)) || null;
+  // Les six cases à venir (lot 2) : affichées gratuitement avant le jet.
+  const maVue = (tourApi.tour?.teams || []).find((t) => Number(t.id) === Number(teamId)) || null;
+  const casesAVenir =
+    round?.phase === 'jeu' && maVue && !maVue.hasRolledDiceThisRound && !maVue.auCamp
+      ? maVue.casesAVenir || []
+      : [];
   const gestes = [
-    ['jeter', 'Jeter un sort', onJeter],
+    [
+      'jeter',
+      sortsOuverts ? 'Fermer les sorts' : 'Jeter un sort',
+      onJeter ? () => setSortsOuverts((v) => !v) : null,
+    ],
     ['lancer', 'Lancer', null],
     [
       'repondre',
@@ -297,6 +311,25 @@ export function GLTenirEquipeView({
           </div>
         </section>
       ) : null}
+      {sortsOuverts && onJeter ? (
+        <GLSortsParMoment
+          gameId={gameId}
+          refreshKey={`${round?.number || 0}:${round?.phase || ''}:${events.length}`}
+          disabled={!perms.jeter || tourApi.busy}
+          onJeter={(code) => onJeter(code)}
+        />
+      ) : null}
+      {casesAVenir.length ? (
+        <p className="gl-tenir-equipe__cases" data-testid="gl-tenir-cases-a-venir">
+          <strong>Les {casesAVenir.length} cases à venir :</strong>{' '}
+          {casesAVenir
+            .map((c) => `${numeroCase(c.index) ?? '?'}${c.label ? ` ${c.label}` : ''}`)
+            .join(' · ')}
+        </p>
+      ) : null}
+      {pending === 'lancer' && perms.lancer ? (
+        <p className="gl-hint gl-role-conseil">{ROLES_EN_CONSEIL.lancer}</p>
+      ) : null}
       {pending === 'lancer' && perms.lancer ? (
         <GLTourDesSaisie
           count={tenir.settings?.des_count || 2}
@@ -324,6 +357,7 @@ export function GLTenirEquipeView({
             : ''}
           {fouilles.sousVoile ? ' · sous le voile' : ''}
           {fouilleMode ? ' · touche le plateau pour fouiller' : ''}
+          {fouilleMode ? ` · ${ROLES_EN_CONSEIL.fouiller}` : ''}
         </p>
       ) : null}
       {verdict ? (
@@ -357,6 +391,7 @@ export function GLTenirEquipeView({
       <GLOluBulle line={olu.line} speakerName={olu.speakerName} frozen={olu.frozen} />
       {chasse && carnetOuvert ? (
         <>
+          <p className="gl-hint gl-role-conseil">{ROLES_EN_CONSEIL.lire}</p>
           <GLCarnetClasseView chasse={chasse} />
           <GLBestiairePanel gameId={gameId} canPropose={!tablette} />
         </>

@@ -721,3 +721,38 @@
   min-height: 44px;
   line-height: 44px;
 }
+
+/* Écran d'équipe : sorts par moment, rôles en conseil, carnet, cases à venir (lot 2) */
+.gl-sorts-moments__moment h4 {
+  margin: var(--gl-space-2) 0 var(--gl-space-1);
+}
+.gl-sorts-moments__liste {
+  display: grid;
+  gap: var(--gl-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.gl-sorts-moments__liste .gl-btn {
+  min-height: 44px;
+}
+.gl-sorts-moments__liste li.is-ferme .gl-btn {
+  opacity: 0.6;
+}
+.gl-role-conseil {
+  font-style: italic;
+}
+.gl-carnet-pastille {
+  display: inline-block;
+  margin-right: var(--gl-space-1);
+  padding: 0 var(--gl-space-2);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 0.8em;
+}
+.gl-carnet-pastille--protegee {
+  border-color: var(--leaf, var(--line));
+}
+.gl-board-mascot__voile {
+  font-weight: 600;
+}

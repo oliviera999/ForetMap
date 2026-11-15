@@ -192,7 +192,30 @@ router.get(
     const round = roundNumber ? await tour.loadRoundView(db, gameId, roundNumber) : null;
     const teams = await tour.loadTeams(db, gameId);
     const markers = await tour.loadPathMarkers(db, game.chapter_id);
-    const { teamPathIndex } = require('../../../lib/shared/glBoardPathCore');
+    const {
+      teamPathIndex,
+      targetMarkerAfterPathSteps,
+      resolveBoardPathStartIndex,
+    } = require('../../../lib/shared/glBoardPathCore');
+    const { markerTonalite } = require('../../../lib/glMarkerVitalityEffects');
+    const startIndex = resolveBoardPathStartIndex(game);
+    // Les six cases à venir (lot 2) : affichées gratuitement avant le jet — l'information que
+    // donnait la Boussole. Donnée publique : le plateau est sous les yeux de tous.
+    const casesAVenir = (team) => {
+      const out = [];
+      for (let i = 1; i <= 6; i += 1) {
+        const cible = targetMarkerAfterPathSteps(markers, team, i, startIndex);
+        if (!cible?.marker) break;
+        out.push({
+          index: cible.index,
+          label: cible.marker.label || null,
+          eventType: cible.marker.event_type,
+          tonalite: markerTonalite(cible.marker) || null,
+        });
+        if (cible.index >= markers.length - 1) break;
+      }
+      return out;
+    };
     const staff = isMj(req);
     // Chronométrage (migration 346) : durées par phase du tour courant, pour le prof seulement.
     let durees = null;
@@ -221,6 +244,7 @@ router.get(
           type: t.type,
           pathIndex: teamPathIndex(t, markers),
           auCamp: tour.isAtCamp(t, markers),
+          casesAVenir: casesAVenir(t),
           hasRolledDiceThisRound:
             roundNumber > 0 && Number(t.last_dice_round_number || 0) >= roundNumber,
           // Console du tour (prof) : quota de fouilles du tour, réparation E2 comprise.
@@ -468,6 +492,39 @@ router.post(
     });
     emitGlGameEvent(gameId, evt);
     return res.json({ ok: true, teamId, ouverte: req.body?.ouverte === true });
+  }),
+);
+
+// ---------------------------------------------------------------------
+// Écran d'équipe (lot 2) : sorts rangés par moment du tour
+// ---------------------------------------------------------------------
+
+/**
+ * GET /tenir/sorts?teamId= — sorts de l'équipe rangés par moment (« Avant de lancer », « Après
+ * le jet », « Pendant le tour », « Plus tard »). Un sort hors fenêtre reste servi, `ouvert:
+ * false`, avec son message. Élève : son équipe ; tablette : la sienne ; prof : `teamId`.
+ */
+router.get(
+  '/games/:id/tenir/sorts',
+  requireGlAuthOrTeam,
+  asyncHandler(async (req, res) => {
+    const gameId = parseId(req.params.id);
+    if (!gameId) return res.status(400).json({ error: 'Identifiant de partie invalide' });
+    if (!(await canAccessGlGame(req.glAuth, gameId)))
+      return res.status(403).json({ error: 'Accès partie refusé' });
+    const ctx = await requireTenirGame(req, res, gameId);
+    if (!ctx) return undefined;
+    const teamId = isMj(req) ? parseId(req.query?.teamId) : await equipeDuSpectateur(req, gameId);
+    if (!teamId) return res.status(400).json({ error: 'teamId requis' });
+    try {
+      return res.json(
+        await require('../../../lib/glSpellCast').buildSortsParMoment({ gameId, teamId }),
+      );
+    } catch (err) {
+      if (err?.status === 404)
+        return res.status(404).json({ error: ERROR_MESSAGES.TEAM_NOT_FOUND });
+      throw err;
+    }
   }),
 );
 

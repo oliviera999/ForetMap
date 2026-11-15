@@ -42,6 +42,14 @@ export function GLCarnetClasseView({ chasse, teamId = null, readOnly = false }) 
                   {p.tenuePar ? ` · tenue par ${p.tenuePar.name}` : ''}
                   {p.palissementPct > 0 ? ` · pâlie à ${p.palissementPct} %` : ''}
                 </div>
+                {/* Lot 2 : une page trouvée attend un lecteur de l'autre peuple ; une page que
+                    l'équipe a trouvée et lue ne pâlit pas sous le voile. */}
+                {p.protegee ? (
+                  <span className="gl-carnet-pastille gl-carnet-pastille--protegee">protégée</span>
+                ) : null}
+                {p.attendUnLecteur ? (
+                  <span className="gl-carnet-pastille">attend un lecteur</span>
+                ) : null}
               </div>
               {!readOnly && lisible ? (
                 <GLButton
