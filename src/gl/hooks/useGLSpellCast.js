@@ -95,6 +95,24 @@ export function useGLSpellCast({ token, gameId, enabled, onCastComplete }) {
     [gameId, runAction],
   );
 
+  // « Pas moi » (lot 2) : un membre présent se retire du pot ou y revient ; le serveur
+  // recalcule le partage entre les présents restants.
+  const exclure = useCallback(
+    async (draftId, playerId, exclu = true) => {
+      if (!gameId || draftId == null) return null;
+      return runAction(async () => {
+        const data = await apiGL(
+          `/api/gl/games/${gameId}/spell-casts/drafts/${draftId}/exclure`,
+          'POST',
+          { playerId, exclu },
+        );
+        setDraft(data?.draft || null);
+        return data?.draft;
+      });
+    },
+    [gameId, runAction],
+  );
+
   const launch = useCallback(
     async (draftId) => {
       if (!gameId || draftId == null) return null;
@@ -139,10 +157,12 @@ export function useGLSpellCast({ token, gameId, enabled, onCastComplete }) {
     const unsubGame = subscribeGlGame(token, gameId);
     const onDraft = (evt) => {
       if (Number(evt?.gameId) !== Number(gameId)) return;
+      // Seul le pot ouvert ici compte : en parallèle, le pot d'une autre équipe ne doit ni
+      // remplacer celui-ci ni s'afficher (ses bourses sont privées).
+      const current = draftRef.current?.id;
+      if (current == null || Number(evt?.draftId ?? evt?.draft?.id) !== Number(current)) return;
       if (evt?.draft) setDraft(evt.draft);
-      else if (evt?.draftId && draftRef.current?.id === evt.draftId) {
-        scheduleDraftRefresh(evt.draftId);
-      }
+      else scheduleDraftRefresh(evt.draftId);
     };
     socket.on('gl:spell_cast:draft', onDraft);
     return () => {
@@ -160,6 +180,7 @@ export function useGLSpellCast({ token, gameId, enabled, onCastComplete }) {
     startDraft,
     refreshDraft,
     saveContributions,
+    exclure,
     launch,
     cancelDraft,
     reset,

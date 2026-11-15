@@ -538,6 +538,29 @@ tableau, rien ne change.
 - File du prof : une demande `presence_a_confirmer` par équipe à l'ouverture du tour, fermée à
   la confirmation et d'office à la sortie de la phase `jeu`.
 
+#### Pot de sort : partage automatique et « pas moi » (lot 2)
+
+- Le pot d'un sort « Tenir » (`draft`) porte `presents` (membres présents des équipes du pot,
+  exclus compris) et `exclus` (ceux qui ont touché « pas moi »). Les parts sont suggérées
+  entre les présents non exclus : réserve de la caravane d'abord, parts égales, reste au plus
+  riche, jamais au-delà d'un solde.
+- `POST /api/gl/games/:id/spell-casts/drafts/:draftId/exclure` `{ playerId, exclu }` — l'élève
+  pour lui-même (403 `QUI_AGIT_INVALIDE` sinon), la tablette de l'équipe « au nom de » un
+  membre présent de son équipe, ou le prof. Recalcule le partage et renvoie `{ draft }`. Si le
+  reste ne couvre plus le coût, `draft.ready` vaut `false` et le lancement est refusé (409)
+  sans aucun débit. 409 `EXCLUSION_ABSENT` (absent ou en retrait : il n'est pas dans le pot),
+  409 pot déjà lancé.
+- `PUT …/spell-casts/drafts/:draftId/contributions` : **403 `CONTRIBUTION_TABLETTE`** depuis une
+  tablette d'équipe (plus aucune saisie de part) ; en partie « Tenir », **403
+  `CONTRIBUTION_AUTRE_EQUIPE`** pour un élève qui n'appartient ni à l'équipe lanceuse ni à sa
+  partenaire de pacte.
+- Une tablette d'équipe ouvre, lit, lance et annule les pots de **son** équipe pendant un tour
+  ouvert (`teamId` facultatif ; 403 pour une autre équipe) ; un sort à limite par élève lui est
+  refusé : 403 `SPELL_COMPTE_ELEVE`, « Ce sort se lance depuis ton propre compte. »
+- Bourses privées : `GET …/spell-casts/drafts/:draftId` d'un pot « Tenir » répond 403 à une
+  autre équipe, et l'annonce temps réel `gl:spell_cast:draft` ne porte plus que
+  `{ draftId, type, teamId }` (l'écran qui a ouvert le pot le recharge).
+
 #### Lien de classe et session d'équipe (lot 2)
 
 Une tablette de classe joue sans compte d'élève : elle ouvre le **lien de la classe** (QR

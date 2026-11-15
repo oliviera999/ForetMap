@@ -667,3 +667,17 @@
   background: transparent;
   color: inherit;
 }
+
+/* Pot de sort : partage automatique, « pas moi » (lot 2) */
+.gl-spell-cast-pot__row {
+  align-items: center;
+}
+.gl-spell-cast-pot__row .gl-btn {
+  min-height: 44px;
+}
+.gl-spell-cast-pot__row.is-exclu {
+  opacity: 0.6;
+}
+.gl-spell-cast-pot__part {
+  font-variant-numeric: tabular-nums;
+}

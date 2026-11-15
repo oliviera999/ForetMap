@@ -4,6 +4,8 @@ import { acquireGlSocket, subscribeGlGame } from '../../realtime/glSocketClient.
 import { toGameViewModel } from '../../utils/glAppShellHelpers.js';
 import { resolveBoardMovementConfig } from '../../utils/glBoardPath.js';
 import { useGlChasse } from '../../hooks/useGlChasse.js';
+import { useGLSpellCast } from '../../hooks/useGLSpellCast.js';
+import { GLSpellCastWizard } from '../GLSpellCastWizard.jsx';
 import { GLMascotCatalogProvider } from '../../context/GLMascotCatalogContext.jsx';
 import { GLButton } from '../ui/GLButton.jsx';
 import { GLMapView } from '../GLMapView.jsx';
@@ -85,6 +87,14 @@ export function GLTeamSessionView({ auth, token, onQuit, onEnded }) {
     enabled: !!tenir?.enabled && live,
     onChanged: reloadGame,
   });
+  // Jeter un sort : même assistant que l'élève connecté ; le pot s'y partage tout seul.
+  const [sort, setSort] = useState({ open: false, code: null });
+  const spellCast = useGLSpellCast({
+    token,
+    gameId,
+    enabled: sort.open,
+    onCastComplete: reloadGame,
+  });
   const tenirLayers = useMemo(
     () =>
       tenir?.enabled
@@ -122,6 +132,9 @@ export function GLTeamSessionView({ auth, token, onQuit, onEnded }) {
                 tenir={tenir}
                 teamId={teamId}
                 onReloadGame={reloadGame}
+                onJeter={(code) =>
+                  setSort({ open: true, code: code ? String(code).toUpperCase() : null })
+                }
                 chasse={chasse}
                 tablette
               />
@@ -164,6 +177,25 @@ export function GLTeamSessionView({ auth, token, onQuit, onEnded }) {
             Chargement de la partie…
           </p>
         ) : null}
+        <GLSpellCastWizard
+          open={sort.open && tourOuvert}
+          onClose={() => setSort({ open: false, code: null })}
+          spellCode={sort.code}
+          teams={gameState?.teams || []}
+          gameId={gameId}
+          playerId={null}
+          playerTeamId={teamId}
+          currentTeamId={teamId}
+          contributionMode="self_only"
+          teamScope="own_team"
+          isStaff={false}
+          spellCast={spellCast}
+          roster={gameState?.roster || []}
+          pagesPalies={(chasse.carnet?.pages || []).filter((p) => p.etat === 'palie')}
+          chapterSpells={gameState?.game?.chapter_spells || []}
+          onPickSpell={(code) => setSort({ open: true, code })}
+          tablette
+        />
       </div>
     </GLMascotCatalogProvider>
   );

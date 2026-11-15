@@ -1,6 +1,11 @@
 const express = require('express');
 const { queryOne } = require('../../../database');
-const { requireGlAuth, hasGlPermission } = require('../../../middleware/requireGlAuth');
+const {
+  requireGlAuth,
+  requireGlAuthOrTeam,
+  hasGlPermission,
+} = require('../../../middleware/requireGlAuth');
+const { refusSiTeamSessionHorsTour, resolveActingPlayer } = require('../../../lib/glActeur');
 const { normalizeEventRow } = require('../../../lib/glGameEvents');
 const { emitGlGameEvent, emitGlSpellCastDraftChanged } = require('../../../lib/realtime');
 const {
@@ -12,6 +17,7 @@ const {
   createOrGetDraft,
   getDraftById,
   updateDraftContributions,
+  setDraftExclusion,
   launchDraft,
   resolveDraftApproval,
   listPendingApprovalDrafts,
@@ -28,8 +34,42 @@ const { queueGlRewardsForSpellCast } = require('../../../lib/glRewardsHooks');
 
 const router = express.Router();
 
+/**
+ * Annonce temps réel d'un pot. La room d'une partie réunit toutes les équipes et la
+ * projection : en « Tenir à deux », où les bourses sont privées, on n'y envoie que
+ * l'identifiant du pot — l'écran qui l'a ouvert le recharge par HTTP (`GET …/drafts/:id`,
+ * réservé à l'équipe lanceuse, à sa partenaire et au prof).
+ */
+function emitDraftChanged(gameId, payload) {
+  const draft = payload?.draft;
+  if (draft?.spell?.tenirV2) {
+    const { draft: _prive, ...rest } = payload; // eslint-disable-line no-unused-vars
+    return emitGlSpellCastDraftChanged(gameId, { ...rest, teamId: draft.teamId });
+  }
+  return emitGlSpellCastDraftChanged(gameId, payload);
+}
+
+/**
+ * « Tenir à deux » : un pot (parts, bourses des membres) ne se lit que par l'équipe lanceuse,
+ * sa partenaire de pacte et le prof.
+ */
+async function peutLireLePot(req, gameId, draft) {
+  if (!draft?.spell?.tenirV2 || isStaff(req.glAuth)) return true;
+  const actor = req.glAuth.actor || {};
+  let teamId = actor.kind === 'team' ? Number(actor.teamId) : null;
+  if (actor.kind === 'player') {
+    const row = await queryOne(
+      'SELECT team_id FROM gl_team_members WHERE game_id = ? AND player_id = ? LIMIT 1',
+      [gameId, actor.playerId],
+    );
+    teamId = row?.team_id != null ? Number(row.team_id) : null;
+  }
+  return teamId != null && [Number(draft.teamId), Number(draft.partnerTeamId)].includes(teamId);
+}
+
+/** Élève connecté, prof, ou tablette d'équipe (session ouverte par le lien de classe). */
 function requireSpellCastPermission(req, res, next) {
-  requireGlAuth(req, res, () => {
+  requireGlAuthOrTeam(req, res, () => {
     if (
       hasGlPermission(req.glAuth, 'gl.action.request') ||
       hasGlPermission(req.glAuth, 'gl.event.emit')
@@ -46,6 +86,11 @@ async function handleSpellCastRoute(req, res, handler) {
     if (!gameId) return res.status(400).json({ error: 'Identifiant de partie invalide' });
     const allowed = await canAccessGlGame(req.glAuth, gameId);
     if (!allowed) return res.status(403).json({ error: 'Accès partie refusé' });
+    // Une tablette d'équipe ne jette un sort que pendant un tour ouvert (hors tour : lecture).
+    const horsTour = await refusSiTeamSessionHorsTour(req, gameId);
+    if (horsTour) {
+      return res.status(horsTour.status).json({ error: horsTour.error, code: horsTour.code });
+    }
     const config = await getSpellCastConfig();
     await assertSpellCastAvailable(config);
     // Audit S11 — `spell_cast_mj_only` réserve au MJ le *lancement*, pas la lecture :
@@ -70,7 +115,7 @@ async function handleSpellCastRoute(req, res, handler) {
   }
 }
 
-router.get('/spell-cast-settings', requireGlAuth, async (_req, res) => {
+router.get('/spell-cast-settings', requireGlAuthOrTeam, async (_req, res) => {
   const config = await getSpellCastConfig();
   return res.json({
     settings: {
@@ -90,7 +135,10 @@ router.post('/games/:id/spell-casts/drafts', requireSpellCastPermission, async (
     if (!spellCode) {
       return res.status(400).json({ error: 'spellCode requis' });
     }
-    const teamId = parseId(req.body?.teamId);
+    // Tablette d'équipe : son équipe par défaut (le serveur refuse toute autre équipe).
+    const teamId =
+      parseId(req.body?.teamId) ||
+      (req.glAuth.actor?.kind === 'team' ? Number(req.glAuth.actor.teamId) : null);
     if (!teamId && !isStaff(req.glAuth)) {
       return res.status(400).json({ error: 'teamId requis pour les joueurs' });
     }
@@ -112,7 +160,7 @@ router.post('/games/:id/spell-casts/drafts', requireSpellCastPermission, async (
         playerId: req.body?.playerId,
       },
     });
-    emitGlSpellCastDraftChanged(gameId, { draftId: draft.id, type: 'draft_updated', draft });
+    emitDraftChanged(gameId, { draftId: draft.id, type: 'draft_updated', draft });
     return res.status(201).json({ draft });
   });
 });
@@ -125,6 +173,9 @@ router.get(
       const draftId = parseId(req.params.draftId);
       if (!draftId) return res.status(400).json({ error: 'draftId invalide' });
       const draft = await getDraftById(draftId, gameId);
+      if (!(await peutLireLePot(req, gameId, draft))) {
+        return res.status(403).json({ error: 'Ce pot est celui d’une autre équipe' });
+      }
       return res.json({ draft });
     });
   },
@@ -145,7 +196,53 @@ router.put(
         auth: req.glAuth,
         config,
       });
-      emitGlSpellCastDraftChanged(gameId, { draftId: draft.id, type: 'draft_updated', draft });
+      emitDraftChanged(gameId, { draftId: draft.id, type: 'draft_updated', draft });
+      return res.json({ draft });
+    });
+  },
+);
+
+/**
+ * « Pas moi » (lot 2) : `{ playerId, exclu }`. L'élève pour lui-même, la tablette de l'équipe
+ * « au nom de » un membre présent, ou le prof. Le partage se recalcule sur les présents non
+ * exclus.
+ */
+router.post(
+  '/games/:id/spell-casts/drafts/:draftId/exclure',
+  requireSpellCastPermission,
+  async (req, res) => {
+    return handleSpellCastRoute(req, res, async ({ gameId }) => {
+      const draftId = parseId(req.params.draftId);
+      if (!draftId) return res.status(400).json({ error: 'draftId invalide' });
+      let playerId = parseId(req.body?.playerId);
+      const row = await queryOne(
+        'SELECT team_id FROM gl_spell_cast_drafts WHERE id = ? AND game_id = ? LIMIT 1',
+        [draftId, gameId],
+      );
+      if (!row) return res.status(404).json({ error: 'Brouillon introuvable' });
+      // Tablette d'équipe : « Qui agit ? » — un membre présent de SON équipe, non en retrait.
+      if (req.glAuth.actor?.kind !== 'mj') {
+        const agit = await resolveActingPlayer(req, {
+          gameId,
+          teamId: Number(row.team_id),
+          onBehalfOfPlayerId: playerId,
+        });
+        if (!agit.ok) {
+          return res
+            .status(agit.status)
+            .json({ error: agit.error, ...(agit.code ? { code: agit.code } : {}) });
+        }
+        playerId = agit.playerId;
+      }
+      if (!playerId) return res.status(400).json({ error: 'playerId requis' });
+      const draft = await setDraftExclusion({
+        gameId,
+        draftId,
+        playerId,
+        exclu: req.body?.exclu !== false,
+        auth: req.glAuth,
+      });
+      emitDraftChanged(gameId, { draftId: draft.id, type: 'draft_updated', draft });
       return res.json({ draft });
     });
   },
@@ -188,7 +285,7 @@ router.post(
             .json({ error: 'Événement de sortilège incohérent après soumission' });
         }
         emitGlGameEvent(gameId, normalized);
-        emitGlSpellCastDraftChanged(gameId, { draftId: draft.id, type: 'draft_pending', draft });
+        emitDraftChanged(gameId, { draftId: draft.id, type: 'draft_pending', draft });
         return res.json({
           ok: true,
           pending: true,
@@ -204,7 +301,7 @@ router.post(
       }
       emitGlGameEvent(gameId, normalized);
       for (const effectEvt of effectEvents || []) if (effectEvt) emitGlGameEvent(gameId, effectEvt);
-      emitGlSpellCastDraftChanged(gameId, { draftId: draft.id, type: 'draft_cast', draft });
+      emitDraftChanged(gameId, { draftId: draft.id, type: 'draft_cast', draft });
       return res.json({
         ok: true,
         draft,
@@ -262,7 +359,7 @@ router.post('/games/:id/spell-casts/drafts/:draftId/resolve', requireGlAuth, asy
       : null;
     const normalized = evt ? normalizeEventRow(evt) : null;
     if (normalized) emitGlGameEvent(gameId, normalized);
-    emitGlSpellCastDraftChanged(gameId, {
+    emitDraftChanged(gameId, {
       draftId: draft.id,
       type: decision === 'accept' ? 'draft_cast' : 'draft_rejected',
       draft,
@@ -312,7 +409,7 @@ router.post(
         : null;
       const normalized = evt ? normalizeEventRow(evt) : null;
       if (normalized) emitGlGameEvent(gameId, normalized);
-      emitGlSpellCastDraftChanged(gameId, {
+      emitDraftChanged(gameId, {
         draftId: draft.id,
         type: 'draft_effect_applied',
         draft,
@@ -330,7 +427,7 @@ router.delete(
       const draftId = parseId(req.params.draftId);
       if (!draftId) return res.status(400).json({ error: 'draftId invalide' });
       await cancelDraft({ gameId, draftId, auth: req.glAuth });
-      emitGlSpellCastDraftChanged(gameId, { draftId, type: 'draft_cancelled' });
+      emitDraftChanged(gameId, { draftId, type: 'draft_cancelled' });
       return res.json({ ok: true });
     });
   },

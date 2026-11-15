@@ -44,6 +44,8 @@ export function GLSpellCastWizard({
   /** « Tenir à deux » : roster (Héritage) et pages pâlies (Nommer) pour les paramètres d'effet. */
   roster = [],
   pagesPalies = [],
+  /** Tablette de l'équipe (lot 2) : pot partagé automatiquement, aucune saisie de part. */
+  tablette = false,
 }) {
   const { confirm } = useAppDialogs();
   const titleId = useId();
@@ -292,8 +294,11 @@ export function GLSpellCastWizard({
   async function handleLaunch() {
     if (!spellCast?.draft?.id || !readyLocal) return;
     try {
+      // Tablette de l'équipe : le partage vient du serveur, rien à enregistrer avant de lancer.
       const payload = buildContributionsSavePayload(spellCast.draft.roster, localContribs);
-      const savedDraft = await spellCast.saveContributions(spellCast.draft.id, payload);
+      const savedDraft = tablette
+        ? spellCast.draft
+        : await spellCast.saveContributions(spellCast.draft.id, payload);
       if (!savedDraft?.ready && !isSpellCastReady(savedDraft?.totals, required)) {
         return;
       }
@@ -434,6 +439,13 @@ export function GLSpellCastWizard({
                 busy={spellCast.busy}
                 onUpdateContrib={updateContrib}
                 onContribBlur={handleContribBlur}
+                tablette={tablette}
+                onExclure={
+                  spellCast.exclure
+                    ? (targetId, exclu) =>
+                        spellCast.exclure(spellCast.draft.id, targetId, exclu).catch(() => {})
+                    : null
+                }
               />
             ) : null}
           </div>

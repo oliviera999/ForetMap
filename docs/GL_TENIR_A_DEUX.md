@@ -66,6 +66,7 @@ chasse initialisées, les Héritages de la classe versés.
 | 348 | socle du jeu en parallèle : `gl_guest_tokens` (sessions d'équipe révocables, hachage du `jti`), `gl_game_demandes` (file unique des demandes au prof), cause `sort_rembourse` du grand livre |
 | 349 | lien de classe permanent : `gl_class_links` (un lien par classe, hachage du jeton, code à huit caractères sans caractère ambigu) |
 | 350 | présences confirmées par équipe : `gl_game_round_presences` (une ligne = présence confirmée pour partie, tour, équipe) |
+| 351 | « pas moi » dans le pot d'un sort : `gl_spell_cast_drafts.exclus_json` |
 
 Le chargeur `npm run gl:import:tenir -- --fichier tous|<nom> [--dry-run] [--forcer] [--strict]`
 (`lib/glTenirImport.js`, données `data/gl/tenir/`, README des clés) reste maître des catalogues ;
