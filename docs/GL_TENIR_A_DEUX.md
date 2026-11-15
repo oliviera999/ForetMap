@@ -69,6 +69,7 @@ chasse initialisées, les Héritages de la classe versés.
 | 351 | « pas moi » dans le pot d'un sort : `gl_spell_cast_drafts.exclus_json` |
 | 352 | règles tranchées par l'audit : réglages `tenir_lecture_pendant_tour` et `tenir_fouille_sous_voile`, profil `court` dans `gl_games.tenir_profil` |
 | 353 | défi de case : catalogue `gl_tenir_defis_cases`, défis reçus `gl_game_defis_case`, réglages `tenir_defis_case`, `tenir_defi_declenchement`, `tenir_defi_recul`, marquage gardé des huit cases (`event_config_json.tenir.defi`), textes des huit cases, `gl_tenir_olu_lignes.moment` élargi à 32 caractères |
+| 354 | catalogues de la Trame : `gl_trame_reseaux`, `gl_trame_cartes`, `gl_trame_liens`, `gl_trame_fils_cartes`, `gl_trame_fils_liens`, `gl_trame_mesures`, `gl_trame_reparer_especes`, `gl_trame_reparer_a_classer` |
 
 Le chargeur `npm run gl:import:tenir -- --fichier tous|<nom> [--dry-run] [--forcer] [--strict]`
 (`lib/glTenirImport.js`, données `data/gl/tenir/`, README des clés) reste maître des catalogues ;

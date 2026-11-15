@@ -1,0 +1,82 @@
+{
+  "format": "gl.tenir.fils/2",
+  "sens": "de la cause vers son effet",
+  "chapitres": [
+    {
+      "plateau": 1,
+      "titre": "Les fils de la forêt et de la savane",
+      "cartes": [
+        [
+          "A",
+          "On abat les grands arbres de la forêt"
+        ],
+        [
+          "B",
+          "Il y a moins de fruits dans la canopée"
+        ],
+        [
+          "C",
+          "Calaos et éléphants de forêt trouvent moins à manger"
+        ],
+        [
+          "D",
+          "Moins de graines sont emportées loin de l'arbre"
+        ],
+        [
+          "E",
+          "Moins de jeunes arbres repoussent"
+        ],
+        [
+          "F",
+          "La saison sèche dure plus longtemps que d'habitude"
+        ],
+        [
+          "G",
+          "Les herbes de la savane jaunissent et se raréfient"
+        ],
+        [
+          "H",
+          "Zèbres et gnous partent plus loin chercher à manger"
+        ],
+        [
+          "I",
+          "Les lions doivent suivre les troupeaux"
+        ]
+      ],
+      "liens": [
+        [
+          "A",
+          "B"
+        ],
+        [
+          "B",
+          "C"
+        ],
+        [
+          "C",
+          "D"
+        ],
+        [
+          "D",
+          "E"
+        ],
+        [
+          "A",
+          "E"
+        ],
+        [
+          "F",
+          "G"
+        ],
+        [
+          "G",
+          "H"
+        ],
+        [
+          "H",
+          "I"
+        ]
+      ]
+    }
+  ]
+}
