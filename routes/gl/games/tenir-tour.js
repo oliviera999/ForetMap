@@ -28,6 +28,7 @@ const {
   isPlayerEnRetrait,
 } = require('../../../lib/glTenir');
 const tour = require('../../../lib/glTour');
+const roundPhases = require('../../../lib/glRoundPhases');
 const { issueProjectionToken, revokeProjectionToken } = require('../../../lib/glProjection');
 const { requireTenirGame } = require('./tenir');
 const { DICE_SIDES } = require('../../../lib/glDiceRoll');
@@ -187,6 +188,13 @@ router.get(
     const markers = await tour.loadPathMarkers(db, game.chapter_id);
     const { teamPathIndex } = require('../../../lib/shared/glBoardPathCore');
     const staff = isMj(req);
+    // Chronométrage (migration 346) : durées par phase du tour courant, pour le prof seulement.
+    let durees = null;
+    if (staff && round) {
+      const { loadRoundPhases, dureesParTour, formatDureesTour } = roundPhases;
+      const [mesure] = dureesParTour(await loadRoundPhases(db, gameId, roundNumber));
+      if (mesure) durees = { phases: mesure.phases, libelle: formatDureesTour(mesure.phases) };
+    }
     const view = {
       gameId,
       roundNumber,
@@ -197,6 +205,7 @@ router.get(
             ...round,
             operateurs: staff ? round.operateurs : null,
             absences: staff ? round.absences : round.absences.length,
+            ...(staff ? { durees } : {}),
           }
         : null,
       teams: await Promise.all(

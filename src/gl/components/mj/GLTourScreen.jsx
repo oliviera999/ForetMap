@@ -212,6 +212,11 @@ export function GLTourScreen({
             Projection (12 h) : <code>{projectionUrl}</code>
           </p>
         ) : null}
+        {round?.phase === 'clos' && round.durees?.libelle ? (
+          <p className="gl-hint gl-tour-durees" data-testid="gl-tour-durees">
+            Ce tour : {round.durees.libelle}
+          </p>
+        ) : null}
         {tourApi.error ? <p className="gl-error-banner">{tourApi.error}</p> : null}
         <GLOluBulle line={olu.line} speakerName={olu.speakerName} frozen={olu.frozen} />
         {round?.oluErreur ? (

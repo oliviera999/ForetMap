@@ -345,6 +345,24 @@ rien n'y est cliquable, aucune bourse ne s'y affiche. Les **exports** (Team Spir
 téléchargent depuis le panneau « Tenir à deux » de la console ; la mission réussie, le badge à la
 main, la relecture des pages écrites et des chimères s'y saisissent aussi.
 
+**Depuis le 14 novembre 2026 — des retours qui expliquent, un temps qui se mesure.**
+
+- **Retours des questions.** Après une erreur, l'élève lit « Pas encore. », puis l'explication
+  de son choix. Plus aucun retour ne commence par « Non ». Détail dans
+  [Les QCM et la pédagogie](qcm-et-pedagogie.md).
+- **Questions de case.** Les questions de classement (famille, nom scientifique) ne sortent
+  plus en partie ; 40 questions vives les remplacent. La case « Posée en partie » de l'écran
+  des QCM règle le tirage question par question.
+- **Indices de chasse.** Les 36 indices du carnet de la classe sont devenus des énigmes
+  scientifiques (« Là où… »). Ils s'affichent en entier, sur tablette comme en projection.
+- **Au tableau, les sorts du tour passent par vous.** Un élève ne peut plus lancer depuis son
+  compte un sort qui se joue pendant la phase jeu : l'app lui répond « Au tableau, ce sort se
+  lance avec le prof. ». Les sorts de veillée, de seuil et d'activité restent ouverts.
+- **Durées de la séance.** À la clôture d'un tour, l'écran « Jouer le tour » affiche une ligne
+  **« Ce tour : ouverture 1 min 10, jeu 6 min 40, souffle 0 min 50 »**. Vous seul la voyez. Le
+  détail (durées de chaque tour, temps de jeu de chaque équipe) se lit avec l'assistant
+  (« diagnostic de la partie »).
+
 ## Pour aller plus loin
 
 [Présentation générale](presentation.md) · [Chapitres et progression](chapitres-et-progression.md) · [Économie du jeu](economie-marche-sorts.md) · [QCM et pédagogie](qcm-et-pedagogie.md) · [Sommaire](../README.md)

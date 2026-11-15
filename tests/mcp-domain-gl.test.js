@@ -372,6 +372,17 @@ test('gl_game_diagnostic : invariants, grand livre, réserves, durées, compteur
   assert.equal(d.data.reserves.length, 4);
   assert.equal(d.data.durees.tours, 1);
   assert.equal(d.data.durees.toursClos, 1);
+  // Chronométrage (migration 346) : durées par phase du tour clos, rythme par équipe.
+  assert.equal(d.data.durees.phases.toursMesures, 1);
+  assert.deepEqual(Object.keys(d.data.durees.phases.tours[0].phases).sort(), [
+    'jeu',
+    'ouverture',
+    'souffle',
+  ]);
+  assert.match(d.data.durees.phases.tours[0].libelle, /^ouverture \d+ min \d{2}, jeu /);
+  assert.equal(d.data.rythme.tours.length, 1);
+  assert.ok(d.data.rythme.tours[0].gestesProf >= 3, 'ouvrir, phases, clore');
+  assert.equal(d.data.rythme.tours[0].phaseJeuMesuree, true);
   assert.ok(d.data.compteurs.pages.total > 0);
   assert.equal(d.data.compteurs.fouilles, 0);
   assert.ok(d.data.compteurs.evenements.tour_ouvert >= 1);

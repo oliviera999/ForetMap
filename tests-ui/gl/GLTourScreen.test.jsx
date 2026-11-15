@@ -149,4 +149,63 @@ describe('GLTourScreen', () => {
       expect(apiGlMock).toHaveBeenCalledWith('/api/gl/games/7/tenir/tour/ouvrir', 'POST', {}),
     );
   });
+  test('tour clos : la ligne « Ce tour : … » donne les durées par phase ; rien pendant le jeu', async () => {
+    const libelle = 'ouverture 1 min 10, jeu 6 min 40, souffle 0 min 50';
+    apiGlMock.mockImplementation(async (path) => {
+      if (path.endsWith('/tenir/tour')) {
+        const view = tourView();
+        return {
+          ...view,
+          round: {
+            ...view.round,
+            phase: 'clos',
+            durees: { phases: { ouverture: 70, jeu: 400, souffle: 50 }, libelle },
+          },
+        };
+      }
+      if (path.includes('/journal/')) return { events: [], teams: [] };
+      return { ok: true };
+    });
+    const { unmount } = render(
+      <GLTourScreen
+        game={{ id: 7 }}
+        teams={teams}
+        roster={[]}
+        tenir={tenir}
+        token="tok"
+        onReloadGame={vi.fn()}
+      />,
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('gl-tour-durees')).toHaveTextContent(`Ce tour : ${libelle}`),
+    );
+    unmount();
+
+    apiGlMock.mockImplementation(async (path) => {
+      if (path.endsWith('/tenir/tour')) {
+        const view = tourView();
+        return {
+          ...view,
+          round: {
+            ...view.round,
+            durees: { phases: { ouverture: 70 }, libelle: 'ouverture 1 min 10' },
+          },
+        };
+      }
+      if (path.includes('/journal/')) return { events: [], teams: [] };
+      return { ok: true };
+    });
+    render(
+      <GLTourScreen
+        game={{ id: 7 }}
+        teams={teams}
+        roster={[]}
+        tenir={tenir}
+        token="tok"
+        onReloadGame={vi.fn()}
+      />,
+    );
+    await waitFor(() => expect(screen.getByText(/Tour 1 · Jeu · tableau/)).toBeInTheDocument());
+    expect(screen.queryByTestId('gl-tour-durees')).toBeNull();
+  });
 });

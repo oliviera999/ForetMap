@@ -491,6 +491,12 @@ quand l'espèce étudiée est liée au feuillet d'une page endormie (zone → `r
   sort se lance avec le prof. ») pour un sort dont la fenêtre exige la phase `jeu`. Les fenêtres
   `activite`, `seuil`, `seuil_veillee`, `fin_seance` et `trimestre_3` restent ouvertes. Le prof
   n'est jamais concerné.
+- `GET /api/gl/games/:id/tenir/tour` : pour le prof seulement, `round.durees` =
+  `{ phases: { ouverture, jeu, souffle }, libelle }` (secondes par phase du tour courant, `null`
+  pour une phase encore ouverte ; `libelle` : « ouverture 1 min 10, jeu 6 min 40, souffle 0 min
+  50 »), ou `null` si le tour n'a pas de mesure. Jamais servi à un élève ni à la projection.
+  Source : `gl_game_round_phases` (migration 346), écrite à l'ouverture du tour, à chaque
+  changement de phase et à la clôture du chapitre.
 - Catalogues nouveaux de `GET/POST /api/gl/admin/tenir/catalogues[/sync]` :
   `qcm-feedbacks-zones` (retours de mauvais choix des questions de zone, écrits seulement si la
   colonne est vide ou commence par « Non ») et `questions-vives` (40 questions de case

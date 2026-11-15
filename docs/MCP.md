@@ -285,6 +285,13 @@ secrète pour le SQL libre) lisible **uniquement** par `gl_settings` via la rout
 | `gl_sim_reports`      | list, get (`reports/gl-sim/<date>-<scenario>/summary.json`, ≤ 512 Ko, jamais le HTML ; dossier absent = liste vide ; `GL_SIM_REPORTS_DIR` pour déplacer la racine)                                                                                                         | staff G&L ; fichiers                                                                             |
 | `gl_rewards`          | vitrine (game_id ou class_id : familles × paliers par membre, « à un pas du palier », tri par nom, **jamais de classement** ; pseudos seulement si bypass actif), award é (`POST /api/gl/rewards/games/:id/award`, mot obligatoire)                                        | staff G&L + `gl.game.manage` (routes) ; award : write ; routes non livrées → `MCP_NOT_AVAILABLE` |
 
+`gl_game_diagnostic get` renvoie aussi, depuis le 14 novembre 2026 : `durees.phases` (durées
+de chaque phase par tour, en secondes, moyennes et libellé « ouverture 1 min 10, jeu 6 min 40,
+souffle 0 min 50 » — table `gl_game_round_phases`, migration 346 ; un tour joué avant n'a pas
+de mesure) et `rythme.tours[]` (`gestesProf` : évènements émis par le prof dans le tour ;
+`equipes[]` : `gestes`, `premierGesteAt`, `dernierGesteAt`, `ecartSecondes` pendant la phase
+`jeu`). Équipes seulement, aucun nom d'élève.
+
 Prompt guidé `diagnostiquer_partie_gl` (« Diagnostiquer une partie G&L ») : `gl_games list` →
 `gl_game_state get` → `gl_game_diagnostic get` → `gl_game_journal list` (derniers tours) →
 `gl_rewards vitrine` → `foretmap_audit` sur `gl_marker_promises`, `gl_tenir_zones`,
