@@ -497,6 +497,7 @@ router.get(
         biomeSlug: req.query?.biomeSlug,
         categorieSlug: req.query?.categorieSlug,
         niveau: req.query?.niveau,
+        usageTenir: req.query?.usageTenir,
         q: req.query?.q,
         statut: req.query?.statut,
         sort: req.query?.sort,

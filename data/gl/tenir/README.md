@@ -46,6 +46,7 @@ montre comptes, écarts et dernier rapport, et permet de resynchroniser (`POST
 | `chasse-zones.json` | `zone_key` | 36 (8 / 8 / 10 / 10) |
 | `questions-lecture.json` | `zone_key` | 36 |
 | `qcm-feedbacks-zones.json` | `question_code` + lettre (colonnes `feedback_b…e` de `gl_qcm_questions`) | 9 questions, 36 retours |
+| `questions-vives.json` | `question_code` (`VQCM0001…`, table `gl_qcm_questions`) | 40 (5 par biome joué) |
 | `peripeties.json` | `id` | 32 (8 par plateau) |
 | `missions.json` | `id` | 20 |
 | `titres.json` | chemin `honneurs.<honneur>.<biome>` etc. | 16 + 8 + 20 |
@@ -106,6 +107,22 @@ polygones ne sont jamais envoyés aux élèves.
 - Une question absente de la base est écartée avec un avertissement (erreur en `--strict`).
 - `remplacement` : nouvelle rédaction de `GQCM0766` (suricate). Elle est posée par la migration
   344, gardée par l'ancien énoncé exact ; le chargeur ne fait que la relire (chaînes interdites).
+
+## `questions-vives.json`
+
+`{ "format", "principe", "niveau", "questions": [ { question_code, biome_slug, categorie_slug, question, choix: [ … ], reponse, explication } ] }`
+
+- Questions de **case** écrites pour des 6e : elles partent d'une curiosité (un record, une
+  astuce, une idée reçue), jamais d'un nom à réciter. Une question de taxonomie est refusée.
+- `question_code` : `VQCM` + 4 chiffres ; `biome_slug` : un des 8 biomes joués ; `categorie_slug` :
+  une catégorie de `gl_qcm_categories` ; 5 questions par biome.
+- `choix` : 4 ou 5 textes non vides et distincts ; **le premier est le bon** (`reponse` = `"A"`).
+  La présentation mélange les choix.
+- `explication` : une seule par question, sans amorce « Non ». Elle devient `feedback_correct`
+  et le retour de chaque mauvais choix (l'affichage écrit « Pas encore. » devant).
+- À la création : `niveau` du fichier (`6ème`), `statut = 'actif'`, `usage_tenir = 1`. À la mise
+  à jour, `statut` et `usage_tenir` sont **gardés** (case « Posée en partie » du prof). Une
+  question `VQCM` retirée du fichier passe `inactif`.
 
 ## `peripeties.json`
 

@@ -60,6 +60,7 @@ chasse initialisées, les Héritages de la classe versés.
 | 339 | `gl_player_rewards` (badges individuels sur le moteur commun, voir `REWARDS_ENGINE.md` § 5) |
 | 340 | contenu : les 11 sorts `officiel` hors v2 passent en `propose` (non lançables) ; cases 251 et 253 (P4) bornées en difficulté comme leurs voisines |
 | 344 | contenu : 17 retours de QCM réécrits (mot de la liste des garde-fous après retrait de l'amorce « Non »), question de zone `GQCM0766` (suricate) remplacée — chaque UPDATE gardé par l'ancienne valeur exacte |
+| 345 | `gl_qcm_questions.usage_tenir` (« posée en partie », défaut 1) ; `0` pour la taxonomie générée (« À quelle famille appartient… », « nom scientifique ») : hors du tirage des cases et des fouilles de secours, active ailleurs |
 
 Le chargeur `npm run gl:import:tenir -- --fichier tous|<nom> [--dry-run] [--forcer] [--strict]`
 (`lib/glTenirImport.js`, données `data/gl/tenir/`, README des clés) reste maître des catalogues ;

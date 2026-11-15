@@ -468,6 +468,29 @@ Accroche : `POST /api/gl/learning/species/:code` renvoie `piste: { zoneKey, limi
 quand l'espèce étudiée est liée au feuillet d'une page endormie (zone → `revelee`, limite
 `tenir_pistes_par_semaine`).
 
+#### Retours de QCM et questions posées en partie (14 novembre 2026)
+
+- **Champ `feedback`** de `POST /api/gl/games/:id/qcm/answer`, `…/chasse/repondre`,
+  `…/chasse/pages/:zoneKey/tenir`, `POST /api/gl/qcm/questions/:code/answer` et
+  `POST /api/gl/lore/qcm/questions/:code/answer` : calculé par une seule fonction
+  (`lib/glRetourQcm.js`). Mauvaise réponse : retour du choix (`feedback_a…e`), sinon retour
+  commun (`feedback_incorrect`, questions de lecture), sinon le défaut. L'amorce « Non »
+  (« Non, », « Non. », « Non : », puis « c'est faux : ») des retours d'auteur est retirée à
+  l'affichage ; la base n'est pas modifiée. En partie « Tenir à deux », le texte commence par
+  « Pas encore », une seule fois.
+- **`gl_qcm_questions.usage_tenir`** (« posée en partie », défaut `1`) : à `0`, la question
+  ne sort plus du tirage d'une case ni d'une question de secours de fouille en partie « Tenir à
+  deux ». Elle reste active partout ailleurs. Les questions fixes des zones de chasse ne passent
+  pas par ce filtre.
+- `GET /api/gl/admin/qcm/questions` (`gl.content.manage`) accepte `?usageTenir=1|0` et renvoie
+  `usage_tenir` (booléen) par question ; `POST` / `PUT /api/gl/admin/qcm/questions[/:code]`
+  acceptent `usage_tenir` (booléen ; absent = valeur gardée). Le cinquième choix (`choix_e`) est
+  facultatif, sauf s'il est la bonne réponse.
+- Catalogues nouveaux de `GET/POST /api/gl/admin/tenir/catalogues[/sync]` :
+  `qcm-feedbacks-zones` (retours de mauvais choix des questions de zone, écrits seulement si la
+  colonne est vide ou commence par « Non ») et `questions-vives` (40 questions de case
+  `VQCM0001…`, `statut` et `usage_tenir` gardés à la mise à jour).
+
 ### Le Seuil — niveau du voyageur et grimoire (`/api/gl/voyageur`)
 
 Réservé aux joueurs (`gl_player` → sinon `403`), module `modules.voyageur_enabled` (sinon `503`).

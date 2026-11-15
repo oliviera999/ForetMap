@@ -1,0 +1,20 @@
+{
+  "format": "gl.qcm.questions-vives/1 (jeu d’exemple des tests)",
+  "niveau": "6ème",
+  "questions": [
+    {
+      "question_code": "VQCM9001",
+      "biome_slug": "jungle_afc",
+      "categorie_slug": "faune",
+      "question": "Pourquoi la page d'exemple dit-elle que la forêt respire ?",
+      "choix": [
+        "Parce que ses feuilles échangent des gaz avec l'air",
+        "Parce qu'elle a des poumons",
+        "Parce que le vent la secoue",
+        "Parce que les oiseaux y chantent"
+      ],
+      "reponse": "A",
+      "explication": "Les feuilles prennent et rejettent des gaz : c'est ce qu'on appelle la respiration des plantes."
+    }
+  ]
+}

@@ -22,6 +22,7 @@ export const QUESTION_FIELD_LABELS = {
   difficulte: 'Difficulté (1 à 5)',
   difficulte_label: 'Libellé de difficulté',
   statut: 'Statut',
+  usage_tenir: 'Posée en partie',
   question: 'Énoncé de la question',
   choix_a: 'Choix A',
   choix_b: 'Choix B',

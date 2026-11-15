@@ -82,6 +82,18 @@ const GL_QCM_EDITOR_CONFIG = {
       initial: '',
       options: () => [{ value: '', label: 'Tous' }, ...NIVEAU_OPTIONS],
     },
+    {
+      // « Tenir à deux » : questions tirées sur les cases et aux fouilles (`usage_tenir`).
+      key: 'usageTenir',
+      label: 'Posée en partie',
+      param: 'usageTenir',
+      initial: '',
+      options: () => [
+        { value: '', label: 'Toutes' },
+        { value: '1', label: 'Oui' },
+        { value: '0', label: 'Non' },
+      ],
+    },
   ],
   sort: {
     initial: 'biome',
@@ -112,6 +124,19 @@ const GL_QCM_EDITOR_CONFIG = {
           ))}
         </GLSelect>
       </GLField>
+    ),
+    usage_tenir: ({ form, setField }) => (
+      <label
+        className="gl-checkbox-row"
+        title="Décochée, la question ne sort plus sur les cases ni aux fouilles d’une partie « Tenir à deux ». Elle reste active ailleurs."
+      >
+        <input
+          type="checkbox"
+          checked={String(form.usage_tenir) !== '0'}
+          onChange={(e) => setField('usage_tenir', e.target.checked ? '1' : '0')}
+        />{' '}
+        Posée en partie (« Tenir à deux »)
+      </label>
     ),
     niveau: ({ form, setField }) => (
       <GLField label="Niveau">
