@@ -245,6 +245,9 @@ test('questions vives : import idempotent, premier choix = bonne réponse, une e
   assert.equal(row.statut, 'actif');
   assert.equal(Number(row.usage_tenir), 1);
   assert.equal(row.choix_e, '');
+  // Plage réservée : sur une base neuve, une question vive arrive avant le classeur de QCM et ne
+  // doit pas occuper un de ses numéros (l'import du classeur échouerait sur la clé d'unicité).
+  assert.ok(Number(row.numero_dans_categorie) >= 100001, String(row.numero_dans_categorie));
   assert.equal(row.feedback_a, null, 'le retour de la bonne lettre reste vide');
   for (const col of ['feedback_correct', 'feedback_b', 'feedback_c', 'feedback_d']) {
     assert.equal(row[col], 'La femelle ferme l’entrée du nid : les petits y grandissent à l’abri.');

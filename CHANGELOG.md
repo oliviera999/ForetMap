@@ -80,7 +80,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   appartient… », « nom scientifique ») sortent du tirage des cases et des fouilles de secours,
   sans être désactivées ailleurs. Catalogue `questions-vives` : 40 questions `VQCM0001…`, cinq
   par biome joué. Écran des QCM : case « Posée en partie » et filtre ; le cinquième choix d'une
-  question devient facultatif.
+  question devient facultatif. Les questions vives prennent leurs numéros dans une
+  plage réservée (au-delà de 100 000) : sur une base neuve, elles arrivent avant le classeur de
+  QCM et n'occupent plus ses numéros (l'import du classeur échouait sinon).
 - **Indices de chasse scientifiques** : 36 énigmes « Là où… » (`chasse-zones.json`), affichées
   en entier dans le carnet de la classe et en projection.
 - **Chronométrage des séances.** Table `gl_game_round_phases` (migration
