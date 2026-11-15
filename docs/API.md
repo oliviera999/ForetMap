@@ -609,6 +609,26 @@ Au tableau, rien ne change. En `hybride` et sur `tablette`, les équipes jouent 
   spellCode }`. 409 `DRAFT_NOT_CAST` (déjà rendu ou jamais lancé), 409 effet déjà appliqué.
 - Un sort au statut `rembourse` ne compte plus dans sa limite : il est relançable dans la séance.
 
+#### File unique du prof et « Tout au tableau » (lot 2)
+
+- `GET /api/gl/games/:id/tenir/demandes` — `gl.game.manage`. `{ demandes: [{ id, kind, refId,
+  teamId, teamName, roundNumber, createdAt, titre, action, detail, payload }], total }`, la plus
+  ancienne en haut. `kind` ∈ `des_a_valider` (`refId` = saisie), `jet_en_suspens`,
+  `sort_a_appliquer` et `nommer` (`refId` = pot), `plume`, `chimere`, `presence_a_confirmer`,
+  `defi_case`. Aucun nom d'élève ; le titre d'une page ou le nom d'une chimère est lu à la
+  source pour le `detail`, jamais recopié dans la demande.
+- `GET …/tenir/tour` (prof) : `demandesEnAttente` (compteur) et `surfaceAvantTableau`.
+- Sorties automatiques (aucune demande sans sortie) : à la sortie de la phase `jeu`, les lignes
+  `des_a_valider`, `jet_en_suspens`, `presence_a_confirmer` se ferment ; à l'ouverture du tour
+  suivant, un sort du prof resté sans effet est **rendu** (statut `rembourse`, évènement
+  `spell_rembourse`, `motif: 'seance_suivante'`) et sa ligne se ferme ; au Seuil, tout se ferme
+  (les propositions d'élèves restent à relire dans leur panneau).
+- `POST /api/gl/games/:id/tenir/surface` `{ tableau: true | false }` — `gl.game.manage`. `true` :
+  la surcharge `surface` passe à `tableau` (l'ancienne est gardée dans
+  `surface_avant_tableau`), les jets en suspens s'appliquent, évènement `surface_changee` ;
+  `false` : retour à la surface d'avant. Les sessions d'équipe restent ouvertes, soumises aux
+  droits de la nouvelle surface. `{ ok, surface, from }`. 409 `SURFACE_DEJA`.
+
 #### Lien de classe et session d'équipe (lot 2)
 
 Une tablette de classe joue sans compte d'élève : elle ouvre le **lien de la classe** (QR

@@ -414,6 +414,12 @@ async function confirmerPresences(ctx) {
       [ctx.game.id, Number(game.r) || 0, team.id, `equipe-${team.id}`],
     );
   }
+  // La ligne « présences à confirmer » de la file du prof se ferme avec la confirmation.
+  await execute(
+    `UPDATE gl_game_demandes SET statut = 'traitee', resolved_at = NOW()
+      WHERE game_id = ? AND kind = 'presence_a_confirmer' AND statut = 'en_attente'`,
+    [ctx.game.id],
+  );
 }
 
 /**

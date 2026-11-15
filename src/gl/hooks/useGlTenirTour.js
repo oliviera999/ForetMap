@@ -81,6 +81,8 @@ export function useGlTenirTour({ gameId, enabled = true, onChanged = null }) {
     oluCorrige: (teamId) => post('/tour/olu-corrige', { teamId }),
     retrait: (playerId, entree, motif) => post('/retrait', { playerId, entree, motif }),
     peripetiePasser: (id, teamId) => post('/peripetie/passer', { id, teamId }),
+    // « Tout au tableau » (lot 2) : le prof reprend tous les gestes, puis rend la main.
+    toutAuTableau: (tableau = true) => post('/surface', { tableau }),
     // Sabliers réglables d'un clic (prof) : réglages enregistrés pour la partie, ou action
     // `pause` / `reprise` / `zero` sur le sablier de phase.
     sablier: (body) => put('/sablier', body),

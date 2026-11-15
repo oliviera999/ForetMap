@@ -233,6 +233,17 @@ router.get(
       ),
       campIndex: markers.length ? markers.length - 1 : 0,
       lumiere: await tour.loadLumiere(db, gameId),
+      // File unique du prof (lot 2) : le compteur reste visible depuis tout l'écran du tour.
+      ...(staff
+        ? {
+            demandesEnAttente: await require('../../../lib/glDemandes').compterDemandesEnAttente(
+              db,
+              gameId,
+            ),
+            // « Tout au tableau » : surface à retrouver quand le prof rend la main.
+            surfaceAvantTableau: resolved.overrides?.surface_avant_tableau || null,
+          }
+        : {}),
       // Présences (lot 2) : confirmée ou non pour chaque équipe (public) ; les absents, pour le
       // prof et pour les membres (ou la tablette) de l'équipe concernée seulement.
       presences: await presences.buildPresencesView(db, {
@@ -457,6 +468,91 @@ router.post(
     });
     emitGlGameEvent(gameId, evt);
     return res.json({ ok: true, teamId, ouverte: req.body?.ouverte === true });
+  }),
+);
+
+// ---------------------------------------------------------------------
+// File unique du prof et « Tout au tableau » (lot 2)
+// ---------------------------------------------------------------------
+
+/** GET /tenir/demandes — file unique du prof, la plus ancienne en haut. */
+router.get(
+  '/games/:id/tenir/demandes',
+  requireGlPermission('gl.game.manage'),
+  asyncHandler(async (req, res) => {
+    const gameId = parseId(req.params.id);
+    const ctx = await requireTenirGame(req, res, gameId);
+    if (!ctx) return undefined;
+    const demandes = await require('../../../lib/glDemandes').buildFileDuProf(db, gameId);
+    return res.json({ demandes, total: demandes.length });
+  }),
+);
+
+/**
+ * POST /tenir/surface { tableau: true|false } — « Tout au tableau » : le prof reprend tous les
+ * gestes en pleine séance (surcharge `surface` = `tableau`), puis rend la main (`false`). Les
+ * jets en suspens s'appliquent ; les tablettes d'équipe restent connectées, soumises aux droits
+ * de la nouvelle surface.
+ */
+router.post(
+  '/games/:id/tenir/surface',
+  requireGlPermission('gl.game.manage'),
+  asyncHandler(async (req, res) => {
+    const gameId = parseId(req.params.id);
+    const ctx = await requireTenirGame(req, res, gameId);
+    if (!ctx) return undefined;
+    const versTableau = req.body?.tableau !== false;
+    const { parseOverrides } = require('../../../lib/glTenir');
+    const actuelle = resolveSurface(ctx.game, ctx.settings);
+    const overrides = { ...parseOverrides(ctx.game.tenir_overrides_json) };
+    let surface;
+    if (versTableau) {
+      if (actuelle === 'tableau') {
+        return res
+          .status(409)
+          .json({ error: 'La partie se joue déjà au tableau', code: 'SURFACE_DEJA' });
+      }
+      overrides.surface_avant_tableau = actuelle;
+      overrides.surface = 'tableau';
+      surface = 'tableau';
+    } else {
+      if (!overrides.surface_avant_tableau) {
+        return res.status(409).json({
+          error: 'Rien à rendre : la partie n’a pas été passée au tableau',
+          code: 'SURFACE_DEJA',
+        });
+      }
+      surface = overrides.surface_avant_tableau;
+      overrides.surface = surface;
+      delete overrides.surface_avant_tableau;
+    }
+    const events = [];
+    await withTransaction(async (tx) => {
+      await tx.execute(
+        'UPDATE gl_games SET tenir_overrides_json = ?, tenir_surface = ?, updated_at = NOW() WHERE id = ?',
+        [JSON.stringify(overrides), surface, gameId],
+      );
+      // Les jets en suspens s'appliquent : au tableau, le prof repart d'un plateau net.
+      const confirmees = await require('../../../lib/glArriveeSuspendue').confirmerArriveesTx(tx, {
+        gameId,
+        settings: ctx.settings,
+        actorType: 'mj',
+        actorId: String(req.glAuth.userId),
+        motif: 'surface',
+      });
+      events.push(...confirmees.events);
+      events.push(
+        await require('../../../lib/glGameEvents').insertGameEvent(tx, {
+          gameId,
+          actorType: 'mj',
+          actorId: String(req.glAuth.userId),
+          eventType: 'surface_changee',
+          payload: { surface, from: actuelle },
+        }),
+      );
+    });
+    emitAll(gameId, events);
+    return res.json({ ok: true, surface, from: actuelle, retourPossible: versTableau });
   }),
 );
 

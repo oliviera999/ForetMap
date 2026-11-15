@@ -11,6 +11,7 @@ import { GLTourSouffle } from './GLTourSouffle.jsx';
 import { GLTeamSpiritPanel } from './GLTeamSpiritPanel.jsx';
 import { GLTourJournal } from './GLTourJournal.jsx';
 import { GLClassLinkPanel } from './GLClassLinkPanel.jsx';
+import { GLDemandesPanel } from './GLDemandesPanel.jsx';
 import { numeroCase } from '../../../shared/glCaseNumeroCore.js';
 
 const PHASE_LABELS = {
@@ -279,6 +280,36 @@ export function GLTourScreen({
           >
             Actualiser
           </GLButton>
+          {surface !== 'tableau' ? (
+            <GLButton
+              type="button"
+              variant="secondary"
+              disabled={tourApi.busy}
+              onClick={() => act(() => tourApi.toutAuTableau(true))}
+              data-testid="gl-tour-tout-au-tableau"
+            >
+              Tout au tableau
+            </GLButton>
+          ) : view?.surfaceAvantTableau ? (
+            <GLButton
+              type="button"
+              variant="secondary"
+              disabled={tourApi.busy}
+              onClick={() => act(() => tourApi.toutAuTableau(false))}
+              data-testid="gl-tour-rendre-la-main"
+            >
+              Rendre la main aux équipes
+            </GLButton>
+          ) : null}
+          {view?.demandesEnAttente ? (
+            <a
+              href="#gl-demandes"
+              className="gl-demandes__pastille"
+              data-testid="gl-demandes-pastille"
+            >
+              Demandes : {view.demandesEnAttente}
+            </a>
+          ) : null}
           <GLButton
             type="button"
             variant="secondary"
@@ -337,6 +368,21 @@ export function GLTourScreen({
 
       <div className="gl-tour-screen__layout">
         <main className="gl-tour-screen__main">
+          <div id="gl-demandes">
+            <GLDemandesPanel
+              game={game}
+              teams={teams}
+              tourApi={tourApi}
+              refreshKey={refreshKey}
+              total={view?.demandesEnAttente ?? null}
+              onChanged={async () => {
+                await tourApi.refresh();
+                await onReloadGame?.();
+                setRefreshKey((k) => k + 1);
+              }}
+              showFailure={showFailure}
+            />
+          </div>
           {surface === 'tableau' && round?.phase === 'jeu' ? (
             sablierActif ? (
               <GLTourSablier

@@ -345,6 +345,15 @@ router.post(
         }),
       );
       emitGlGameEvent(gameId, evt);
+    } else {
+      // File unique du prof (lot 2) : la chimère attend sa relecture.
+      await withTransaction((tx) =>
+        require('../../../lib/glDemandes').creerDemandeTx(tx, {
+          gameId,
+          kind: 'chimere',
+          refId: Number(r.insertId),
+        }),
+      );
     }
     return res.status(201).json({ chimere: formatChimere(row, { mj }) });
   }),
@@ -373,6 +382,13 @@ router.put(
     await db.execute(
       'UPDATE gl_game_chimeres SET nom = ?, histoire = ?, statut = ?, valide_par = ?, valide_at = NOW(), updated_at = NOW() WHERE id = ?',
       [nom, histoire, statut, String(req.glAuth.userId), chimereId],
+    );
+    await withTransaction((tx) =>
+      require('../../../lib/glDemandes').resoudreDemandeTx(tx, {
+        gameId,
+        kind: 'chimere',
+        refId: chimereId,
+      }),
     );
     if (statut === 'validee' && String(row.statut) !== 'validee') {
       const evt = await withTransaction((tx) =>

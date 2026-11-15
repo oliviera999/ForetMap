@@ -681,3 +681,43 @@
 .gl-spell-cast-pot__part {
   font-variant-numeric: tabular-nums;
 }
+
+/* File unique du prof : panneau « Demandes » (lot 2) */
+.gl-demandes__liste {
+  display: grid;
+  gap: var(--gl-space-2);
+  margin: var(--gl-space-2) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.gl-demandes__ligne {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gl-space-2);
+  padding: var(--gl-space-2);
+  border: 1px solid var(--line);
+  border-radius: var(--gl-radius-lg);
+}
+.gl-demandes__ligne .gl-btn {
+  min-height: 44px;
+}
+.gl-demandes__compteur,
+.gl-demandes__pastille {
+  display: inline-block;
+  min-width: 1.8em;
+  padding: 0 var(--gl-space-2);
+  border: 1px solid var(--line-warning);
+  border-radius: 999px;
+  background: var(--accent-warning);
+  color: var(--ink-warning);
+  text-align: center;
+  text-decoration: none;
+}
+.gl-demandes__pastille {
+  position: sticky;
+  top: var(--gl-space-2);
+  min-height: 44px;
+  line-height: 44px;
+}
