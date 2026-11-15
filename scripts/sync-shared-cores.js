@@ -60,6 +60,8 @@ const PAIRS = Object.freeze([
   ['src/shared/glSortMomentsCore.js', 'glSortMomentsCore.js'],
   // « Tenir à deux » : sabliers (durée, pause, temps restant), même calcul serveur et client.
   ['src/shared/glSablierCore.js', 'glSablierCore.js'],
+  // Cœur des défis de la Trame (lot 3) : noyau du produit G&L, hors de src/shared/.
+  ['src/gl/defis/trameCore.js', 'glTrameCore.js'],
 ]);
 
 function banner(relSrc) {
