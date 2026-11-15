@@ -87,16 +87,28 @@ before(async () => {
 });
 
 test('Héritage : un compte élève ne désigne pas un camarade comme élève engagé (403)', async () => {
-  const camarade = membres(2).find((m) => m.id !== p(2).id);
-  const r = await draft(p(2).token, {
-    spellCode: 'SL033',
-    teamId: team(2).id,
-    ressource: 'gemmes',
-    playerId: camarade.id,
-    effectParams: { beneficiairePlayerId: p(0).id, ressource: 'coeurs' },
-  });
-  assert.equal(r.status, 403, JSON.stringify(r.body));
-  assert.equal(r.body.code, 'SPELL_COMPTE_ELEVE');
+  // Le statut du sort vit dans le catalogue partagé de la base de test : une autre suite peut
+  // l'avoir laissé « proposé » (409 SPELL_NOT_OFFICIEL, contrôlé avant). Il est fixé ici, puis
+  // remis tel quel.
+  const avant = await db.queryOne("SELECT statut FROM gl_spells WHERE spell_code = 'SL033'");
+  await db.execute("UPDATE gl_spells SET statut = 'officiel' WHERE spell_code = 'SL033'");
+  try {
+    const camarade = membres(2).find((m) => m.id !== p(2).id);
+    const r = await draft(p(2).token, {
+      spellCode: 'SL033',
+      teamId: team(2).id,
+      ressource: 'gemmes',
+      playerId: camarade.id,
+      effectParams: { beneficiairePlayerId: p(0).id, ressource: 'coeurs' },
+    });
+    assert.equal(r.status, 403, JSON.stringify(r.body));
+    assert.equal(r.body.code, 'SPELL_COMPTE_ELEVE');
+  } finally {
+    await db.execute('UPDATE gl_spells SET statut = ? WHERE spell_code = ?', [
+      avant.statut,
+      'SL033',
+    ]);
+  }
 });
 
 test('annuler pendant un lancement : jamais un sort payé puis « annulé »', async () => {
