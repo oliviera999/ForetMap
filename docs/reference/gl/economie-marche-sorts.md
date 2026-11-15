@@ -346,6 +346,23 @@ ce choix ait un sens, la case ne doit pas déjà avoir joué :
 > ni effet). Si une équipe semble « bloquée » sur une case sans rien voir, c'est qu'elle n'a pas
 > encore choisi : « Garder ce jet » débloque la suite.
 
+## Jouer en parallèle : ce qui change pour les sorts (novembre 2026)
+
+En surface **hybride** et **tablette**, les équipes jouent en même temps. Au tableau, rien de ce
+qui suit ne s'applique : les règles ci-dessus restent celles de l'équipe active.
+
+**La Cordée est offerte.** L'équipe qui la lance la **paie seule** : 4 dans la ressource de son
+peuple (4 cœurs pour des Gnomes, 4 gemmes pour des Licornes). L'équipe partenaire, de l'autre
+peuple, ne paie rien et n'a rien à accepter : son écran affiche « L'équipe … vous encorde. ». Le
+reste ne change pas : la Cordée se lance avant les jets des deux équipes, le meilleur des deux
+jets vaut pour les deux, et le voile ne les touche pas ce tour.
+
+- Si l'une des deux équipes **a déjà jeté** quand le sort part, il est refusé et rien n'est
+  débité.
+- Si l'une des deux **ne jette pas** de tout le tour, la cordée ne s'est pas faite : au passage au
+  souffle, l'équipe lanceuse est **remboursée en entier** et la protection contre le voile tombe.
+  Le journal le dit : « Sort rendu ».
+
 ## Pour aller plus loin
 
 [Présentation générale](presentation.md) · [Guide du MJ](guide-du-mj.md) · [Les deux peuples du seuil](lore-deux-peuples.md) · [Sommaire](../README.md)

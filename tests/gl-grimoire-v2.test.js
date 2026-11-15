@@ -341,7 +341,9 @@ test('Sentier : avant le jet seulement ; la prochaine case Souffle n’a pas d�
   assert.equal(JSON.parse(evt.payload_json).sentier, true);
 });
 
-test('Cordée (pacte) : cœurs des Gnomes + gemmes des Licornes, avant les jets des deux équipes ; le meilleur des deux jets', async () => {
+// Lot 2 : la Cordée est OFFERTE — l'équipe lanceuse paie seule (4, dans la ressource de son
+// peuple), la partenaire de l'autre peuple ne paie rien.
+test('Cordée offerte : la lanceuse paie seule, avant les jets des deux équipes ; le meilleur des deux jets', async () => {
   await place(gA().id, 0);
   await place(lA().id, 0);
   await execute('UPDATE gl_teams SET last_dice_round_number = 0 WHERE id IN (?, ?)', [
@@ -358,16 +360,20 @@ test('Cordée (pacte) : cœurs des Gnomes + gemmes des Licornes, avant les jets 
     partnerTeamId: lA().id,
   });
   assert.equal(d.status, 201, JSON.stringify(d.body));
-  assert.deepEqual(d.body.draft.required, { gems: 2, hearts: 2 });
-  const hearts = d.body.draft.suggestedContributions.filter((c) => c.hearts > 0);
-  const gems = d.body.draft.suggestedContributions.filter((c) => c.gems > 0);
-  assert.ok(
-    hearts.every((c) => c.teamId === gA().id),
-    'cœurs des Gnomes',
+  assert.deepEqual(d.body.draft.required, { gems: 0, hearts: 4 });
+  const parts = d.body.draft.suggestedContributions;
+  assert.equal(
+    parts.reduce((s, c) => s + c.hearts, 0),
+    4,
+    'quatre cœurs',
   );
   assert.ok(
-    gems.every((c) => c.teamId === lA().id),
-    'gemmes des Licornes',
+    parts.every((c) => c.teamId === gA().id && c.gems === 0),
+    'les Gnomes paient seuls, rien n’est demandé aux Licornes',
+  );
+  assert.ok(
+    d.body.draft.roster.every((r) => Number(r.teamId) === Number(gA().id)),
+    'le pot ne montre que l’équipe lanceuse',
   );
   const l = await launch(p(0).token, d.body.draft.id);
   assert.equal(l.status, 200, JSON.stringify(l.body));

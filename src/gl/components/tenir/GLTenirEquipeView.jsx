@@ -143,6 +143,15 @@ export function GLTenirEquipeView({
     ['lire', 'Lire', chasse ? () => setCarnetOuvert((v) => !v) : onLire],
   ];
   const verdict = chasse?.dernierVerdict || null;
+  // Cordée offerte (lot 2) : l'équipe partenaire ne paie rien et n'a rien à accepter ; son écran
+  // lui dit simplement qui l'encorde ce tour.
+  const cordeeRecue =
+    (round?.effets || []).find(
+      (e) => e.kind === 'cordee' && Number(e.sourceTeamId) === Number(teamId),
+    ) || null;
+  const encordeePar = cordeeRecue
+    ? (gameState?.teams || []).find((t) => Number(t.id) === Number(cordeeRecue.teamId)) || null
+    : null;
   // Présences (lot 2) : « Il manque quelqu'un ? » tant que l'équipe n'a pas répondu.
   const presences = tourApi.tour?.presences || null;
   const presence = presences?.requise
@@ -189,6 +198,12 @@ export function GLTenirEquipeView({
           doneHint="le sablier a sonné : finissez votre geste"
           testId="gl-sablier-phase"
         />
+      ) : null}
+      {encordeePar ? (
+        <p className="gl-tenir-equipe__encorde" role="status" data-testid="gl-tenir-encorde">
+          <strong>L’équipe {encordeePar.name} vous encorde.</strong> Le meilleur de vos deux jets
+          vaut pour les deux.
+        </p>
       ) : null}
       <GLPresencePanel
         presence={presence}

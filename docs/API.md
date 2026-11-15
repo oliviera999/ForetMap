@@ -584,6 +584,21 @@ Au tableau, rien ne change. En `hybride` et sur `tablette`, les équipes jouent 
   (statut `rembourse`, cause `sort_rembourse`, évènement `spell_rembourse` avec
   `motif: 'page_reparee'`).
 
+#### Cordée offerte (lot 2)
+
+- Catalogue : `SL045` passe à `ressource: "peuple"` — le pot (`required`, `roster`, `presents`,
+  `suggestedContributions`) ne porte que l'équipe **lanceuse**, 4 dans la ressource de son peuple.
+  `partnerTeamId` reste obligatoire (équipe de l'autre peuple, 400 `SPELL_PARTENAIRE`) ; la
+  partenaire ne paie rien.
+- `POST …/spell-casts/drafts/:draftId/launch` : la fenêtre « avant les jets des deux équipes »
+  est revérifiée **sous verrou** des deux équipes ; 409 `SPELL_FENETRE` si l'une a déjà jeté,
+  sans débit.
+- Passage en `souffle` (`POST …/tenir/tour/phase`), avant l'avance du voile : si l'une des deux
+  équipes n'a pas jeté, remboursement intégral (statut `rembourse`, cause `sort_rembourse`),
+  retrait de la protection contre le voile, évènement `spell_rembourse` (`motif: 'cordee'`).
+- `GET …/tenir/tour` → `round.effets` porte l'effet `cordee` (`teamId` = lanceuse,
+  `sourceTeamId` = partenaire) : l'écran de la partenaire affiche « L'équipe … vous encorde. ».
+
 #### Lien de classe et session d'équipe (lot 2)
 
 Une tablette de classe joue sans compte d'élève : elle ouvre le **lien de la classe** (QR
