@@ -821,7 +821,8 @@
   background: var(--gl-surface);
 }
 .gl-defi__reussi {
-  border-color: var(--gl-accent-success);
+  border: 2px solid var(--gl-ink-success);
+  background: var(--gl-accent-success);
 }
 .gl-defis__liste {
   display: flex;
@@ -943,18 +944,48 @@
   opacity: 0.55;
 }
 .gl-trame-trait.is-trouvee {
+  stroke: var(--gl-ink-success);
   stroke-width: 3;
   opacity: 1;
 }
-.gl-trame-trait.is-inversee,
-.gl-trame-trait.is-suggestion {
-  stroke-dasharray: 6 5;
+/* À regarder : tirets et teinte ambrée — jamais de rouge, l'erreur ne punit pas. */
+.gl-trame-trait.is-inversee {
+  stroke: var(--gl-ink-warning);
+  stroke-dasharray: 9 5;
+  opacity: 1;
 }
-.gl-trame-trait.is-a_discuter {
-  stroke-dasharray: 2 4;
+/* « À discuter » et lien d'indice : teinte neutre ; les tirets viennent de foodWebEdgeStyle. */
+.gl-trame-trait.is-a_discuter,
+.gl-trame-trait.is-suggestion {
+  stroke: var(--gl-color-text-muted);
 }
 .gl-trame-pointe {
   fill: currentColor;
+}
+.gl-trame-pointe.is-trouvee {
+  fill: var(--gl-ink-success);
+}
+.gl-trame-pointe.is-inversee {
+  fill: var(--gl-ink-warning);
+}
+.gl-trame-pointe.is-a_discuter,
+.gl-trame-pointe.is-suggestion {
+  fill: var(--gl-color-text-muted);
+}
+.gl-trame-fleche {
+  padding-left: var(--gl-space-2);
+  border-left: 4px solid var(--gl-border);
+}
+.gl-trame-fleche.is-trouvee {
+  border-left-color: var(--gl-ink-success);
+}
+.gl-trame-fleche.is-inversee {
+  border-left-style: dashed;
+  border-left-color: var(--gl-ink-warning);
+}
+.gl-trame-fleche.is-a_discuter {
+  border-left-style: dotted;
+  border-left-color: var(--gl-color-text-muted);
 }
 .gl-trame-legende,
 .gl-trame-liste,

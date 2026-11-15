@@ -1,4 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
+import {
+  EVIDENCE_HYPOTHESIS_DASH,
+  EVIDENCE_HYPOTHESIS_OPACITY,
+} from '../../../shared/foodWebEdgeStyle.js';
+
+/**
+ * Trait d'un lien « incertain » : la convention du réseau trophique de l'app (tirets courts et
+ * espacés, trait atténué) sert ici au lien « à discuter » et au lien révélé par un indice.
+ */
+const TRAIT_INCERTAIN = Object.freeze({
+  strokeDasharray: EVIDENCE_HYPOTHESIS_DASH,
+  opacity: EVIDENCE_HYPOTHESIS_OPACITY,
+});
+const estIncertain = (classement) => classement === 'a_discuter' || classement === 'suggestion';
 
 /** Pictogramme et libellé d'un classement : rien n'est porté par la couleur seule. */
 export const TRAME_CLASSEMENT_UI = Object.freeze({
@@ -284,6 +298,7 @@ export function GLTrameBoard({
                     x2={b.x - dx * t}
                     y2={b.y - dy * t}
                     className={`gl-trame-trait is-${f.classement}`}
+                    style={estIncertain(f.classement) ? TRAIT_INCERTAIN : undefined}
                     markerEnd={`url(#gl-trame-pointe-${f.classement})`}
                     vectorEffect="non-scaling-stroke"
                   />
