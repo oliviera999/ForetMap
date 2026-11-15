@@ -72,6 +72,7 @@ export function GLTenirProfilPanel({ gameId, tenir, onChanged, showFailure }) {
           >
             <option value="complet">Complet</option>
             <option value="prologue">Prologue (pas de voile, de Marché ni de chapardeur)</option>
+            <option value="court">Court (Marché et lecture en veillée)</option>
           </select>
         </label>
         <label>

@@ -67,6 +67,7 @@ chasse initialisées, les Héritages de la classe versés.
 | 349 | lien de classe permanent : `gl_class_links` (un lien par classe, hachage du jeton, code à huit caractères sans caractère ambigu) |
 | 350 | présences confirmées par équipe : `gl_game_round_presences` (une ligne = présence confirmée pour partie, tour, équipe) |
 | 351 | « pas moi » dans le pot d'un sort : `gl_spell_cast_drafts.exclus_json` |
+| 352 | règles tranchées par l'audit : réglages `tenir_lecture_pendant_tour` et `tenir_fouille_sous_voile`, profil `court` dans `gl_games.tenir_profil` |
 
 Le chargeur `npm run gl:import:tenir -- --fichier tous|<nom> [--dry-run] [--forcer] [--strict]`
 (`lib/glTenirImport.js`, données `data/gl/tenir/`, README des clés) reste maître des catalogues ;

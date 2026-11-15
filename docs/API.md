@@ -646,6 +646,26 @@ Au tableau, rien ne change. En `hybride` et sur `tablette`, les équipes jouent 
   visible des deux peuples) et `protegee` (trouvée ET lue par l'équipe du lecteur : elle ne
   pâlit pas sous le voile).
 
+#### Règles tranchées par l'audit (lot 2)
+
+- **Marché au chapitre 1** : `POST /api/gl/games` sur un chapitre de plateau 1 crée la partie
+  « Tenir » avec la surcharge `{ marche: false }` (modifiable par `PUT …/tenir/profil`). Les
+  parties existantes ne changent pas.
+- **Profil `court`** (`PUT …/tenir/profil { profil: 'court' }`, à côté de `complet` et
+  `prologue`) : `marche_pendant_tour: false` et `lecture_pendant_tour: false`. Pendant un tour
+  ouvert, `permissions.lire` vaut `false` et `POST …/chasse/pages/:zoneKey/ouvrir` ou
+  `…/tenir` répondent **409 `LECTURE_EN_VEILLEE`**, « À lire en veillée. » ; hors tour, tout
+  reste ouvert. Le prof garde la main.
+- Réglages : `gameplay.tenir_lecture_pendant_tour` (booléen, défaut `true`),
+  `gameplay.tenir_fouille_sous_voile` (`aucune` par défaut, ou `page_palie` : une équipe gnome
+  sous le voile garde une fouille par tour, sur une page pâlie seulement — servie dans
+  `fouilles.reparation`).
+- **Boussole** (`SL038`) : `actif: false` dans le catalogue — statut `propose`, rattachée à aucun
+  chapitre, absente de `GET …/tenir/sorts`. Son information est servie gratuitement
+  (`casesAVenir`).
+- **Farce** (`SL036`) : **409 `SPELL_CIBLE_SOUS_VOILE`**, « Cette équipe résiste déjà au voile :
+  choisissez-en une autre. », si l'équipe visée est sous le voile ; rien n'est débité.
+
 #### Lien de classe et session d'équipe (lot 2)
 
 Une tablette de classe joue sans compte d'élève : elle ouvre le **lien de la classe** (QR

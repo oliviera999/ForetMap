@@ -137,6 +137,11 @@ export function GLTenirEquipeView({
     round?.phase === 'jeu' && maVue && !maVue.hasRolledDiceThisRound && !maVue.auCamp
       ? maVue.casesAVenir || []
       : [];
+  const lectureEnVeillee =
+    !perms.lire &&
+    tenir.settings?.lecture_pendant_tour === false &&
+    !!round?.phase &&
+    round.phase !== 'clos';
   const gestes = [
     [
       'jeter',
@@ -154,7 +159,12 @@ export function GLTenirEquipeView({
       fouilleMode ? 'Annuler la fouille' : 'Fouiller',
       chasse ? () => chasse.setFouilleMode(!fouilleMode) : onFouiller,
     ],
-    ['lire', 'Lire', chasse ? () => setCarnetOuvert((v) => !v) : onLire],
+    [
+      'lire',
+      // Lot 2 (profil « court ») : pendant le tour, lire et tenir une page attendent la veillée.
+      lectureEnVeillee ? 'À lire en veillée' : 'Lire',
+      chasse ? () => setCarnetOuvert((v) => !v) : onLire,
+    ],
   ];
   const verdict = chasse?.dernierVerdict || null;
   // Cordée offerte (lot 2) : l'équipe partenaire ne paie rien et n'a rien à accepter ; son écran

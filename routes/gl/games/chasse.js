@@ -44,6 +44,7 @@ const CHASSE_ERRORS = {
   JETON_AUTRE_PAGE: 'Le jeton ne porte pas cette page',
   JETON_DEJA_UTILISE: 'Cette présentation a déjà été jouée',
   TENIR_LIRE_SURFACE: 'Sur cette surface, le prof lit pour l’équipe',
+  LECTURE_EN_VEILLEE: 'À lire en veillée.',
   TENIR_RETRAIT: 'En retrait jusqu’à nouvel ordre',
   ZONE_INTROUVABLE: 'Page introuvable',
   PAGE_PAS_TROUVEE: 'Cette page dort encore',
@@ -135,7 +136,11 @@ async function resolveLectureContext(req, res, gameId, teamIdFromBody) {
       settings: resolved,
     });
     if (!perms.lire) {
-      res.status(403).json({ error: CHASSE_ERRORS.TENIR_LIRE_SURFACE, code: 'TENIR_LIRE_SURFACE' });
+      // Lot 2 (profil `court`) : pendant le tour, lire et tenir une page attendent la veillée.
+      const enVeillee =
+        resolved.lecture_pendant_tour === false && !!round?.phase && round.phase !== 'clos';
+      const code = enVeillee ? 'LECTURE_EN_VEILLEE' : 'TENIR_LIRE_SURFACE';
+      res.status(enVeillee ? 409 : 403).json({ error: CHASSE_ERRORS[code], code });
       return null;
     }
   }

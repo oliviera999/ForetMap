@@ -44,6 +44,8 @@
     "recul_carnet_complet": 3,
     "marche": true,
     "marche_pendant_tour": true,
+    "lecture_pendant_tour": true,
+    "fouille_sous_voile": "aucune",
     "parures": true,
     "lumiere": false,
     "lumiere_palier": 25,
@@ -106,6 +108,14 @@
           "4": 8
         }
       }
+    },
+    "court": {
+      "libelle": "Court",
+      "description": "Tour en deux étages : pendant le tour on joue (dés, cases, fouilles, sorts) ; le Marché et la lecture des pages se font en veillée.",
+      "ecarts": {
+        "marche_pendant_tour": false,
+        "lecture_pendant_tour": false
+      }
     }
   },
   "notes": {
@@ -120,6 +130,8 @@
     "olu_bourse_pleine": "E5 : quand au moins 3 membres d'une équipe sont au plafond, Olu le dit une fois par séance à l'écran d'équipe (moment bourse_pleine), jamais en projection",
     "sablier_actif": "interrupteur de tous les sabliers (équipe active au tableau, phase, défis) ; un sablier n'annule jamais rien",
     "sablier_phase_secondes": "sablier commun à toutes les équipes pendant la phase jeu, en hybride et sur tablette ; 0 = sans ; départ et durée servis par le serveur",
-    "sablier_phase_auto": "à la fin du sablier de phase, la console ouverte du prof passe au souffle toute seule (dé gris tiré par l'app)"
+    "sablier_phase_auto": "à la fin du sablier de phase, la console ouverte du prof passe au souffle toute seule (dé gris tiré par l'app)",
+    "lecture_pendant_tour": "lot 2 : à false (profil court), lire et tenir une page se font en veillée ; pendant le tour l'écran affiche « À lire en veillée »",
+    "fouille_sous_voile": "lot 2 : `aucune` (une équipe sous le voile ne fouille pas, sauf Abri ou Cordée) ou `page_palie` (une équipe gnome sous le voile garde une fouille par tour, sur une page pâlie seulement)"
   }
 }

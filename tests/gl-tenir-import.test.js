@@ -108,11 +108,21 @@ test('chargement réel idempotent : deux passages = même base, rang_case et cen
     [corpus.chapters[1].chapter.id],
   );
   assert.ok(spells.some((s) => s.spell_code === 'SL002'));
-  assert.ok(!spells.some((s) => s.spell_code === 'SL038'), 'Boussole ouvre au chapitre 2');
   const ch2 = await queryAll('SELECT spell_code FROM gl_chapter_spells WHERE chapter_id = ?', [
     corpus.chapters[2].chapter.id,
   ]);
-  assert.ok(ch2.some((s) => s.spell_code === 'SL038'));
+  // Lot 2 : la Boussole est `actif: false` — en base (`propose`, non lançable), rattachée à
+  // aucun chapitre ; ses six cases à venir sont affichées gratuitement.
+  assert.ok(!spells.some((s) => s.spell_code === 'SL038'));
+  assert.ok(!ch2.some((s) => s.spell_code === 'SL038'), 'Boussole sortie du grimoire');
+  const boussole = await queryAll(
+    "SELECT statut FROM gl_spells WHERE spell_code = 'SL038' AND tenir_v2 = 1",
+  );
+  assert.equal(boussole[0]?.statut, 'propose');
+  assert.ok(
+    ch2.some((s) => s.spell_code === 'SL042'),
+    'Sentier ouvre au chapitre 2',
+  );
   assert.ok(
     ch2.some((s) => s.spell_code === 'SL002'),
     'ouverture cumulative',

@@ -15,6 +15,10 @@ const TENIR_FLAGS = [
   ['gameplay.tenir_voile', 'Le voile'],
   ['gameplay.tenir_marche', 'Marché (place, dons, parures)'],
   ['gameplay.tenir_marche_pendant_tour', 'Marché pendant le tour (tablette / hybride)'],
+  [
+    'gameplay.tenir_lecture_pendant_tour',
+    'Lire et tenir une page pendant le tour (sinon : en veillée)',
+  ],
   ['gameplay.tenir_parures', 'Parures au comptoir'],
   ['gameplay.tenir_lumiere', 'Lumière (option : cartes Team Spirit → paliers)'],
   ['gameplay.tenir_cartes_vers_cases', 'Cartes Team Spirit → cases à l’ouverture suivante'],
@@ -141,6 +145,11 @@ export function GLTenirSettings({ settings, savingKey, onSaveSetting, onToggle }
   const surface = readSelectSetting(settings, 'gameplay.tenir_surface', 'tableau');
   const desMode = readSelectSetting(settings, 'gameplay.tenir_des_mode', 'physique');
   const validation = readSelectSetting(settings, 'gameplay.tenir_des_physiques_validation', 'prof');
+  const fouilleSousVoile = readSelectSetting(
+    settings,
+    'gameplay.tenir_fouille_sous_voile',
+    'aucune',
+  );
   const casesPositives = readSelectSetting(
     settings,
     'gameplay.tenir_cases_positives',
@@ -151,8 +160,9 @@ export function GLTenirSettings({ settings, savingKey, onSaveSetting, onToggle }
       <h4>Tenir à deux (mouture v2)</h4>
       <p className="gl-hint">
         Deux monnaies par élève (plafond 8/8), chasse aux pages, voile, grimoire exécuté, Marché
-        complet. Chaque partie porte un profil (<em>complet</em> ou <em>prologue</em>) et peut
-        surcharger la surface, les dés, le voile, le Marché, le chapardeur et les péripéties.
+        complet. Chaque partie porte un profil (<em>complet</em>, <em>prologue</em> ou{' '}
+        <em>court</em>) et peut surcharger la surface, les dés, le voile, le Marché, le chapardeur
+        et les péripéties.
       </p>
       {TENIR_FLAGS.map(([key, label]) => (
         <label key={key} className="gl-gameplay-toggle-row">
@@ -213,6 +223,19 @@ export function GLTenirSettings({ settings, savingKey, onSaveSetting, onToggle }
           <option value="ressource_peuple">+1 ressource du peuple (comme la Trame)</option>
           <option value="neutre">Aucune ressource</option>
           <option value="brut">Valeur du plateau (ancien comportement)</option>
+        </select>
+      </label>
+      <label>
+        Fouille d’une équipe sous le voile
+        <select
+          value={fouilleSousVoile}
+          disabled={savingKey === 'gameplay.tenir_fouille_sous_voile'}
+          onChange={(event) =>
+            onSaveSetting('gameplay.tenir_fouille_sous_voile', event.target.value)
+          }
+        >
+          <option value="aucune">Aucune (sauf Abri ou Cordée)</option>
+          <option value="page_palie">Une par tour, sur une page pâlie (équipe gnome)</option>
         </select>
       </label>
       <div className="gl-tenir-settings__numbers">

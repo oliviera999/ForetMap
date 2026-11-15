@@ -118,7 +118,7 @@ router.put(
     else if (rawProfil === undefined) profil = game.tenir_profil || 'complet';
     else profil = String(rawProfil).trim().toLowerCase();
     if (profil !== null && !TENIR_PROFILS.includes(profil)) {
-      return res.status(400).json({ error: 'Profil invalide (complet, prologue, ou null)' });
+      return res.status(400).json({ error: 'Profil invalide (complet, prologue, court, ou null)' });
     }
     const checked = validateOverrides(req.body?.overrides);
     if (checked.error) return res.status(400).json({ error: checked.error });

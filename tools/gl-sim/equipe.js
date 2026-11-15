@@ -145,9 +145,9 @@ function ressourceDuPeuple(equipe) {
 
 async function sortsAvantJet(ctx, equipe, operateur) {
   if (!ctx.rng.chance(penchant(equipe, 'sorts') * 0.35)) return;
-  if (equipe.type === 'unicorn') {
-    await lancerSort(ctx, equipe, operateur, SORTS.BOUSSOLE);
-  } else {
+  // Lot 2 : la Boussole est sortie du grimoire (ses six cases à venir sont affichées
+  // gratuitement) ; les Licornes n'ont plus de sort « avant de lancer ».
+  if (equipe.type !== 'unicorn') {
     await lancerSort(ctx, equipe, operateur, SORTS.SENTIER);
   }
 }
