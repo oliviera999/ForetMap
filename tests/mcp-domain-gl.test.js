@@ -379,6 +379,19 @@ test('gl_seance : avant (catalogues, partie, phase, lien, défis à juger) et ap
   );
   assert.equal(apres.data.defisRecus.length, 1);
   assert.deepEqual(Object.keys(apres.data.questions).sort(), ['justes', 'posees', 'reponses']);
+  // Défis de la Trame : des comptes par type, jamais un nom ni un rang.
+  assert.deepEqual(Object.keys(apres.data.defisTrame).sort(), [
+    'alteree',
+    'fils',
+    'reparer',
+    'retisser',
+  ]);
+  assert.deepEqual(apres.data.defisTrame.retisser, {
+    reussites: 0,
+    eleves: 0,
+    pages: 0,
+    enCours: 0,
+  });
   assert.ok(!apres.text.includes('Critère du prof seul'));
 
   const vide = await call('gl_seance', { action: 'avant', class_id: 99999999 });

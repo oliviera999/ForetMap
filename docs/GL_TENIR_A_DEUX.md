@@ -126,7 +126,9 @@ Toutes sous `/api/gl/games/:id/…` sauf mention (détail dans [`API.md`](API.md
 `tenir/honneurs|missions|badges|chimeres|plumes` (`badges` hérité, délègue au moteur commun), `spell-casts/*` (v2), `/api/gl/market/annonces|dons|parures`,
 `/api/gl/rewards/me|me/seen|games/:id|games/:id/award` (badges, `routes/gl/rewards.js`),
 `/api/gl/voyageur/spells/flair|plume/cast`, `/api/gl/admin/classes/:classId/exports/*.csv`,
-`/api/gl/admin/chasse-zones`, `/api/gl/admin/tenir/catalogues[/sync]`.
+`/api/gl/admin/chasse-zones`, `/api/gl/admin/tenir/catalogues[/sync]`,
+`defis-case/*` (lot 2), `defis`, `defis/:defiId`, `defis/:defiId/indice`, `defis/suivi` (lot 3,
+défis de la Trame : [`GL_DEFIS.md`](GL_DEFIS.md)).
 
 ## Événements du journal (`gl_game_events`)
 
@@ -138,7 +140,7 @@ Toutes sous `/api/gl/games/:id/…` sauf mention (détail dans [`API.md`](API.md
 `retrait`, `team_spirit`, `lumiere_palier`, `lumiere_choix`, `olu_erreur`, `olu_corrige`, `olu_bourse_pleine` (privé, E5),
 `spell_cast`, `spell_effect`, `spell_file`, `spell_effect_applied`, `heritage_recu` (privé),
 `honneur`, `mission_reussie`, `badge` (privé), `pas_encore` (réponse fausse de chasse, de lecture ou de case : rien ne se retire), `chimere_validee`, `plume_validee`, `seuil_clos`,
-`don`, `annonce_*`, `parure_*`.
+`don`, `annonce_*`, `parure_*`, `defi_trame_reussi` (lot 3 : type, biome, mode ; sans nom d'élève).
 
 Libellés lisibles (élève / MJ / projection) : `lib/glJournalPresentTenir.js`, branché dans
 `lib/glJournalPresent.js` ; en partie tenir (`context.tenir`, posé par `routes/gl/journal.js`),
@@ -230,6 +232,12 @@ Lot « Vérité et mesure » (14 novembre 2026, base du banc, élèves fictifs) 
 `lot1-durees-du-tour-console-1440x900.png` (ligne « Ce tour : … » ; durées reportées sur une
 séance type, la base du banc jouant le tour en quelques secondes).
 
+Lot « Défis de la Trame » (15 novembre 2026, partie d'exemple, élèves fictifs, produites par
+`e2e/gl-tenir-defis-trame.spec.js`) : `defis-retisser-tablette.png` et
+`defis-retisser-reussi.png` (Retisser niveau 5 sur une tablette d'équipe, 1024 × 768),
+`defis-alteree-telephone.png` (la trame altérée en mode liste, 390 × 844, un retour « Pas
+encore. »), `defis-suivi-console.png` (onglet « Défis » de la console, 1920 × 1080).
+
 ## Surfaces et verrous
 
 | Surface  | Lancer / répondre                                                  | Fouiller                                       | Lire | Marché pendant `jeu` |
@@ -265,6 +273,13 @@ jouent en même temps** : il n'y a d'« équipe active » qu'au tableau. Ce qui 
   rendu), Seuil (tout le reste, défis de case compris).
 - **« Tout au tableau »** (`POST …/tenir/surface`) : en pleine séance, le prof reprend la main ;
   les jets en suspens s'appliquent, les tablettes restent connectées sous les droits du tableau.
+
+**Défis de la Trame** (lot 3, 15 novembre 2026). Ils se jouent **hors du tour** et ne dépendent
+pas de la surface : un compte d'élève y joue à tout moment (mode `individuel`), le prof ou une
+tablette d'équipe **quand aucun tour n'est ouvert** (mode `equipe` ; 409 `DEFI_TOUR_OUVERT`
+sinon). Le serveur rejoue le peuple, le niveau ouvert et le porteur à chaque appel, classe les
+flèches avec le cœur pur et ne sert jamais une solution. Aucun défi n'attend un geste du prof :
+rien n'entre dans la file « Demandes ». Détail : [`GL_DEFIS.md`](GL_DEFIS.md).
 
 **Sorts** (14 novembre 2026) : la permission de surface est rejouée à la création et au
 lancement d'un sort (`lib/glSpellCast.js › assertTenirSurfacePermission`, noyau

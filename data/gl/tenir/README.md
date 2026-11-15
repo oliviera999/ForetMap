@@ -238,7 +238,9 @@ champs sont relus contre la liste des chaînes interdites, `critere` compris.
 ## Catalogues de la Trame (`trame-*.json`)
 
 Défis de la Trame (lot 3 du 15 novembre 2026, § 8 du prompt d'implémentation). Chargeurs dans
-`lib/glTrameImport.js`, test de contenu `tests/content/gl-trame-catalogues.test.js`.
+`lib/glTrameImport.js`, test de contenu `tests/content/gl-trame-catalogues.test.js`. Mécanique
+(classement des flèches, cascade, récompenses) et marche à suivre pour **ajouter un réseau** :
+`docs/GL_DEFIS.md` § 7.
 
 ### `trame-reseaux.json`
 

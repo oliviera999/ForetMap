@@ -106,7 +106,8 @@ test('cascade : carte inconnue → rien ; « pour aller plus loin » selon l’�
     pourAllerPlusLoin: null,
   });
   const lion = core.cascade(savane, carte(savane, 'Lion').code);
-  assert.match(lion.pourAllerPlusLoin, /^Avec plus de .*, que deviendrait /);
+  // Deux plantes à suivre : le verbe s'accorde.
+  assert.match(lion.pourAllerPlusLoin, /^Avec plus de .*, que deviendraient .* et .* \?$/);
   const jungle = core.buildReseau(reseau('jungle_afc'), 9);
   assert.match(core.cascade(jungle, 'DEC').pourAllerPlusLoin, /animaux qui mangent ces plantes/);
   assert.equal(core.cascade(jungle, 'DEC').message, core.TRAME_MESSAGES.matiereMorte);
