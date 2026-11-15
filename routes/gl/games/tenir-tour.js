@@ -10,23 +10,18 @@ const express = require('express');
 const db = require('../../../database');
 const { queryAll, queryOne, withTransaction } = db;
 const {
-  requireGlAuth,
+  requireGlAuthOrTeam,
   requireGlAuthOrProjection,
   requireGlPermission,
   isMj,
 } = require('../../../middleware/requireGlAuth');
+const { resolveGesteActorOrRespond } = require('../../../lib/glActeur');
 const { canAccessGlGame } = require('../../../lib/glGameAccess');
 const { getGameplaySettings } = require('../../../lib/glSettings');
 const { emitGlGameEvent } = require('../../../lib/realtime');
 const { parseId, normalizeOptionalString } = require('../../../lib/shared/httpHelpers');
 const asyncHandler = require('../../../lib/asyncHandler');
-const { getPlayerGameMembership } = require('../../../lib/gl/gamesRuntime');
-const {
-  resolveTenirSettings,
-  resolveSurface,
-  resolveDesMode,
-  isPlayerEnRetrait,
-} = require('../../../lib/glTenir');
+const { resolveTenirSettings, resolveSurface, resolveDesMode } = require('../../../lib/glTenir');
 const tour = require('../../../lib/glTour');
 const roundPhases = require('../../../lib/glRoundPhases');
 const glSablier = require('../../../lib/glSablier');
@@ -88,21 +83,10 @@ async function resolveGesteContext(req, res, gameId, { geste, teamIdFromBody = n
   const surface = resolveSurface(game, settings);
   const roundNumber = Number(game.current_round_number) || 0;
   const round = roundNumber ? await tour.loadRoundView(db, gameId, roundNumber) : null;
-  const actorKind = isMj(req) ? 'mj' : 'player';
-  let teamId = teamIdFromBody != null ? parseId(teamIdFromBody) : null;
-  let enRetrait = false;
-  if (actorKind === 'player') {
-    const membership = await getPlayerGameMembership(gameId, req.glAuth.userId);
-    if (!membership?.team_id) {
-      res.status(403).json({ error: 'Joueur non rattaché à une équipe' });
-      return null;
-    }
-    teamId = Number(membership.team_id);
-    enRetrait = await isPlayerEnRetrait(db, gameId, Number(req.glAuth.userId));
-  } else if (teamId == null) {
-    res.status(400).json({ error: 'teamId requis pour le MJ' });
-    return null;
-  }
+  // Acteur unique (prof, élève connecté ou tablette d'équipe) : `lib/glActeur.js`.
+  const acteur = await resolveGesteActorOrRespond(req, res, gameId, { teamIdFromBody });
+  if (!acteur) return null;
+  const { actorKind, teamId, enRetrait } = acteur;
   const team = await queryOne(
     'SELECT id, type, name FROM gl_teams WHERE id = ? AND game_id = ? LIMIT 1',
     [teamId, gameId],
@@ -141,8 +125,11 @@ async function resolveGesteContext(req, res, gameId, { geste, teamIdFromBody = n
     teamId,
     team,
     actorKind,
-    actorType: actorKind === 'mj' ? 'mj' : 'team',
-    actorId: String(req.glAuth.userId),
+    // Élève connecté : son identifiant (mesures « par l'élève ») ; tablette d'équipe : aucun.
+    playerId: acteur.playerId,
+    acteur,
+    actorType: acteur.actorType,
+    actorId: acteur.actorId,
   };
 }
 
@@ -464,7 +451,7 @@ function parseFaces(raw, count) {
  */
 router.post(
   '/games/:id/tenir/lancer',
-  requireGlAuth,
+  requireGlAuthOrTeam,
   asyncHandler(async (req, res) => {
     const gameId = parseId(req.params.id);
     if (!gameId) return res.status(400).json({ error: 'Identifiant de partie invalide' });
@@ -598,7 +585,7 @@ router.post(
  */
 router.post(
   '/games/:id/tenir/arrivee/garder',
-  requireGlAuth,
+  requireGlAuthOrTeam,
   asyncHandler(async (req, res) => {
     const gameId = parseId(req.params.id);
     if (!gameId) return res.status(400).json({ error: 'Identifiant de partie invalide' });
@@ -606,15 +593,11 @@ router.post(
       return res.status(403).json({ error: 'Accès partie refusé' });
     const ctx = await requireTenirGame(req, res, gameId);
     if (!ctx) return undefined;
-    let teamId = req.body?.teamId != null ? parseId(req.body.teamId) : null;
-    if (!isMj(req)) {
-      const membership = await getPlayerGameMembership(gameId, req.glAuth.userId);
-      if (!membership?.team_id)
-        return res.status(403).json({ error: 'Joueur non rattaché à une équipe' });
-      teamId = Number(membership.team_id);
-    } else if (teamId == null) {
-      return res.status(400).json({ error: 'teamId requis pour le MJ' });
-    }
+    const acteur = await resolveGesteActorOrRespond(req, res, gameId, {
+      teamIdFromBody: req.body?.teamId,
+    });
+    if (!acteur) return undefined;
+    const teamId = acteur.teamId;
     const { confirmerArriveesTx } = require('../../../lib/glArriveeSuspendue');
     let result;
     await withTransaction(async (tx) => {
@@ -622,8 +605,8 @@ router.post(
         gameId,
         teamId,
         settings: ctx.settings,
-        actorType: isMj(req) ? 'mj' : 'team',
-        actorId: String(req.glAuth.userId),
+        actorType: acteur.actorType,
+        actorId: acteur.actorId,
         motif: 'garde',
       });
     });
@@ -804,7 +787,7 @@ router.post(
 /** « On passe » : une péripétie se ferme sans rien perdre. */
 router.post(
   '/games/:id/tenir/peripetie/passer',
-  requireGlAuth,
+  requireGlAuthOrTeam,
   asyncHandler(async (req, res) => {
     const gameId = parseId(req.params.id);
     if (!gameId) return res.status(400).json({ error: 'Identifiant de partie invalide' });
@@ -812,29 +795,24 @@ router.post(
       return res.status(403).json({ error: 'Accès partie refusé' });
     const ctx = await requireTenirGame(req, res, gameId);
     if (!ctx) return undefined;
-    let teamId = null;
-    if (isMj(req)) {
-      if (req.body?.teamId != null) {
-        teamId = parseId(req.body.teamId);
-        const team = teamId
-          ? await queryOne('SELECT id FROM gl_teams WHERE id = ? AND game_id = ? LIMIT 1', [
-              teamId,
-              gameId,
-            ])
-          : null;
-        if (!team) return res.status(404).json({ error: 'Équipe introuvable dans cette partie' });
-      }
-    } else {
-      const membership = await getPlayerGameMembership(gameId, req.glAuth.userId);
-      if (!membership?.team_id)
-        return res.status(403).json({ error: 'Joueur non rattaché à une équipe' });
-      teamId = Number(membership.team_id);
+    const acteur = await resolveGesteActorOrRespond(req, res, gameId, {
+      teamIdFromBody: req.body?.teamId,
+      teamRequired: false,
+    });
+    if (!acteur) return undefined;
+    const teamId = acteur.teamId;
+    if (acteur.kind === 'mj' && teamId != null) {
+      const team = await queryOne('SELECT id FROM gl_teams WHERE id = ? AND game_id = ? LIMIT 1', [
+        teamId,
+        gameId,
+      ]);
+      if (!team) return res.status(404).json({ error: 'Équipe introuvable dans cette partie' });
     }
     const evt = await require('../../../lib/glGameEvents').insertGameEvent(db, {
       gameId,
       teamId,
-      actorType: isMj(req) ? 'mj' : 'team',
-      actorId: String(req.glAuth.userId),
+      actorType: acteur.actorType,
+      actorId: acteur.actorId,
       eventType: 'peripetie_passee',
       payload: { id: req.body?.id ? String(req.body.id) : null },
     });

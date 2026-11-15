@@ -502,3 +502,122 @@
   outline-offset: var(--gl-space-1);
   border-radius: var(--gl-radius-lg);
 }
+
+/* Lien de classe et tablette d'équipe (lot 2) */
+.gl-class-link {
+  display: grid;
+  gap: var(--gl-space-3);
+  max-width: 44rem;
+  margin: 0 auto;
+  padding: var(--gl-space-4);
+}
+.gl-class-link__code {
+  display: grid;
+  gap: var(--gl-space-1);
+}
+.gl-class-link__code input {
+  min-height: 52px;
+  font-size: 1.6rem;
+  letter-spacing: 0.3em;
+  text-align: center;
+  text-transform: uppercase;
+}
+.gl-class-link__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+  gap: var(--gl-space-3);
+  margin: var(--gl-space-3) 0;
+  padding: 0;
+  list-style: none;
+}
+.gl-class-link__team {
+  display: grid;
+  justify-items: center;
+  gap: var(--gl-space-1);
+  width: 100%;
+  min-height: 9rem;
+  padding: var(--gl-space-3);
+  border: 3px solid var(--gl-team-color, var(--line));
+  border-radius: var(--gl-radius-lg);
+  background: var(--surface);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.gl-class-link__team:focus-visible {
+  outline: 3px solid var(--line-warning);
+  outline-offset: 2px;
+}
+.gl-team-session {
+  display: grid;
+  gap: var(--gl-space-3);
+  padding: var(--gl-space-3);
+}
+.gl-team-session__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gl-space-2);
+  min-height: 44px;
+}
+.gl-class-link-panel {
+  margin: var(--gl-space-2) 0;
+}
+.gl-class-link-panel__sessions {
+  margin: var(--gl-space-2) 0;
+  padding: 0;
+  list-style: none;
+}
+.gl-class-link-panel__sessions .gl-btn {
+  min-height: 44px;
+}
+.gl-class-link-sheet {
+  display: grid;
+  justify-items: center;
+  gap: var(--gl-space-3);
+  margin: var(--gl-space-3) 0;
+  padding: var(--gl-space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--gl-radius-lg);
+  background: #fff;
+  color: #111;
+  text-align: center;
+}
+.gl-class-link-sheet__qr {
+  width: min(60vw, 22rem);
+  height: auto;
+}
+.gl-class-link-sheet__code {
+  font-size: 1.6rem;
+}
+.gl-class-link-sheet__code strong {
+  letter-spacing: 0.2em;
+}
+.gl-class-link-sheet__url {
+  overflow-wrap: anywhere;
+}
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 20mm;
+  }
+  body:has(.gl-class-link-sheet) * {
+    visibility: hidden;
+  }
+  body:has(.gl-class-link-sheet) .gl-class-link-sheet,
+  body:has(.gl-class-link-sheet) .gl-class-link-sheet * {
+    visibility: visible;
+  }
+  .gl-class-link-sheet {
+    position: fixed;
+    inset: 0;
+    border: 0;
+  }
+  .gl-class-link-sheet__qr {
+    width: 120mm;
+  }
+  .gl-class-link-sheet__actions {
+    display: none;
+  }
+}

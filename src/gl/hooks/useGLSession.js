@@ -11,7 +11,8 @@ export function useGLSession() {
 
   const logout = useCallback(() => {
     clearGlSession();
-    setSession(null);
+    // Quitter une session d'équipe (onglet) rend la main au compte éventuellement ouvert.
+    setSession(getGlSession());
   }, []);
 
   const auth = useMemo(() => session?.auth || null, [session]);

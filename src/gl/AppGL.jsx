@@ -128,6 +128,13 @@ import {
   buildProjectionSession,
 } from './utils/glGuestMode.js';
 import { GLProjectionView } from './components/tenir/GLProjectionView.jsx';
+import { GLTeamSessionView } from './components/tenir/GLTeamSessionView.jsx';
+import { GLClassLinkEntry } from './components/tenir/GLClassLinkEntry.jsx';
+import {
+  isGlTeamSession,
+  readClassLinkTokenFromUrl,
+  removeClassLinkTokenFromUrl,
+} from './utils/glTeamSession.js';
 import { GLTenirEquipeView } from './components/tenir/GLTenirEquipeView.jsx';
 import { useGlChasse } from './hooks/useGlChasse.js';
 import { reportUsage } from '../shared/usage/reportUsage.js';
@@ -137,6 +144,17 @@ export function AppGL() {
   const { session, auth, token, updateSession, logout } = useGLSession();
   const isGuest = isGlGuest(auth);
   const isProjection = isGlProjection(auth);
+  const isTeamSession = isGlTeamSession(auth);
+  // Lien de classe (« Tenir à deux », lot 2) : `gl.html?classe=<jeton>` (QR) ou le bouton
+  // « J'ai le code de la classe » ouvrent l'entrée d'une tablette d'équipe. Le jeton est lu une
+  // fois puis retiré de l'adresse.
+  const [classLink, setClassLink] = useState(() => {
+    const classToken = readClassLinkTokenFromUrl();
+    return { open: !!classToken, token: classToken, notice: '' };
+  });
+  useEffect(() => {
+    if (classLink.token) removeClassLinkTokenFromUrl();
+  }, [classLink.token]);
   // Projection « Tenir à deux » : `gl.html?projection=<jeton>` ouvre une session invitée
   // lecture seule sur UNE partie, puis retire le jeton de l'URL.
   useEffect(() => {
@@ -768,6 +786,26 @@ export function AppGL() {
     enabled: tenirChasseEnabled,
     onChanged: reloadGame,
   });
+  // Un seul écran d'équipe, deux entrées (lot 2) : quand un tour s'ouvre, l'élève connecté
+  // arrive directement sur l'écran de son équipe ; ailleurs dans l'app, un bandeau l'y ramène.
+  const tourOuvertNumero =
+    gameState?.tenir?.enabled &&
+    showsPlayerChrome &&
+    !isGuest &&
+    auth?.teamId != null &&
+    String(gameState?.game?.status || '') === 'live' &&
+    gameState.tenir.surface !== 'tableau' &&
+    gameState.tenir.round?.phase &&
+    gameState.tenir.round.phase !== 'clos'
+      ? Number(gameState.tenir.round.number) || 0
+      : 0;
+  const tourOuvertPourMoi = tourOuvertNumero > 0;
+  const tourRejointRef = useRef(0);
+  useEffect(() => {
+    if (!tourOuvertNumero || tourRejointRef.current === tourOuvertNumero) return;
+    tourRejointRef.current = tourOuvertNumero;
+    navigateTab('maps');
+  }, [tourOuvertNumero, navigateTab]);
   const tenirLayers = useMemo(
     () =>
       tenirChasseEnabled
@@ -845,6 +883,45 @@ export function AppGL() {
     // Setters issus de useGlGameRuntime : setters useState, références stables.
   }, [logout, setShowProfile, setGameState, setActiveGameId, setGlProfile]);
 
+  if (classLink.open) {
+    return (
+      <div className="gl-app gl-app--guest" style={glAppStyle}>
+        <AppStatusSticky />
+        <main className="gl-auth auth-wrap">
+          <GLClassLinkEntry
+            initialToken={classLink.token}
+            notice={classLink.notice}
+            onSession={(next) => {
+              updateSession(next);
+              setClassLink({ open: false, token: null, notice: '' });
+            }}
+            onCancel={() => setClassLink({ open: false, token: null, notice: '' })}
+          />
+        </main>
+      </div>
+    );
+  }
+
+  if (session?.token && isTeamSession) {
+    return (
+      <div className="gl-app gl-app--guest gl-app--team-session" style={glAppStyle}>
+        <AppStatusSticky />
+        <GLTeamSessionView
+          auth={auth}
+          token={token}
+          onQuit={() => {
+            logout();
+            setClassLink({ open: true, token: null, notice: '' });
+          }}
+          onEnded={(message) => {
+            logout();
+            setClassLink({ open: true, token: null, notice: message || '' });
+          }}
+        />
+      </div>
+    );
+  }
+
   if (session?.token && isProjection) {
     return (
       <div className="gl-app gl-app--guest gl-app--projection" style={glAppStyle}>
@@ -865,6 +942,7 @@ export function AppGL() {
           config={glConfig}
           oauthNotice={oauthNotice}
           appVersion={appVersion}
+          onClassCode={() => setClassLink({ open: true, token: null, notice: '' })}
           onLogin={(data) => {
             updateSession({ token: data.authToken, auth: data.auth });
             setTab(defaultTabForGlAuth(data?.auth));
@@ -984,6 +1062,12 @@ export function AppGL() {
               }
               roundLabel={roundToast ? `n°${roundToast.roundNumber}` : null}
               spellRejectedText={spellRejectedToast?.spellName || null}
+              tourOuvertLabel={
+                tourOuvertPourMoi && tab !== 'maps'
+                  ? 'Ton équipe joue en ce moment : rejoins-la sur le plateau.'
+                  : null
+              }
+              onGoToTour={() => navigateTab('maps')}
             />
 
             <main className="gl-main" id="gl-main-content">

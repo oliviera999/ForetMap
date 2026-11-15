@@ -1,6 +1,7 @@
 const express = require('express');
 const { queryAll, queryOne, execute, withTransaction } = require('../../../database');
-const { requireGlAuth, hasGlPermission } = require('../../../middleware/requireGlAuth');
+const { requireGlAuthOrTeam, hasGlPermission } = require('../../../middleware/requireGlAuth');
+const { resolveGameActor, refusSiTeamSessionHorsTour } = require('../../../lib/glActeur');
 const { insertGameEvent } = require('../../../lib/glGameEvents');
 const { queueGlRewardsForTeam } = require('../../../lib/glRewardsHooks');
 const { emitGlGameEvent } = require('../../../lib/realtime');
@@ -58,6 +59,21 @@ async function resolveQcmAnswerContext(req, gameId) {
     return { ok: false, status: 403, error: 'Accès partie refusé' };
   }
 
+  // Tablette d'équipe (lien de classe) : droits d'un membre, pour SON équipe, pendant un tour.
+  if (req.glAuth.actor?.kind === 'team') {
+    const acteur = await resolveGameActor(req, gameId, { teamIdFromBody: req.body?.teamId });
+    if (!acteur.ok) return acteur;
+    const horsTour = await refusSiTeamSessionHorsTour(req, gameId);
+    if (horsTour) return horsTour;
+    return {
+      ok: true,
+      teamId: acteur.teamId,
+      actorType: acteur.actorType,
+      actorId: acteur.actorId,
+      tablette: true,
+    };
+  }
+
   if (req.glAuth.userType === 'gl_player') {
     if (!hasGlPermission(req.glAuth, 'gl.action.request')) {
       return { ok: false, status: 403, error: 'Permission insuffisante' };
@@ -103,13 +119,15 @@ async function resolveQcmAnswerContext(req, gameId) {
   };
 }
 
-router.post('/games/:id/qcm/answer', requireGlAuth, async (req, res) => {
+router.post('/games/:id/qcm/answer', requireGlAuthOrTeam, async (req, res) => {
   const gameId = parseId(req.params.id);
   if (!gameId) return res.status(400).json({ error: 'Identifiant de partie invalide' });
 
   const answerCtx = await resolveQcmAnswerContext(req, gameId);
   if (!answerCtx.ok) {
-    return res.status(answerCtx.status).json({ error: answerCtx.error });
+    return res
+      .status(answerCtx.status)
+      .json({ error: answerCtx.error, ...(answerCtx.code ? { code: answerCtx.code } : {}) });
   }
   const teamIdForGame = answerCtx.teamId;
 
@@ -120,7 +138,7 @@ router.post('/games/:id/qcm/answer', requireGlAuth, async (req, res) => {
 
   const settings = await getGameplaySettings();
 
-  if (settings.qcmMjOnly && req.glAuth.userType === 'gl_player') {
+  if (settings.qcmMjOnly && (req.glAuth.userType === 'gl_player' || answerCtx.tablette)) {
     return res.status(403).json({ error: 'QCM réservé au maître du jeu' });
   }
 

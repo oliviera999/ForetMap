@@ -13,10 +13,10 @@ const express = require('express');
 const db = require('../../../database');
 const { withTransaction } = db;
 const {
-  requireGlAuth,
+  requireGlAuthOrTeam,
   requireGlAuthOrProjection,
-  isMj,
 } = require('../../../middleware/requireGlAuth');
+const { resolveGesteActorOrRespond } = require('../../../lib/glActeur');
 const { canAccessGlGame } = require('../../../lib/glGameAccess');
 const { parseId, normalizeOptionalString } = require('../../../lib/shared/httpHelpers');
 const asyncHandler = require('../../../lib/asyncHandler');
@@ -26,7 +26,7 @@ const chasse = require('../../../lib/glChasse');
 const tour = require('../../../lib/glTour');
 const { requireTenirGame } = require('./tenir');
 const { resolveGesteContext, sendTourError, emitAll } = require('./tenir-tour');
-const { resolveTenirSettings, resolveSurface, isPlayerEnRetrait } = require('../../../lib/glTenir');
+const { resolveTenirSettings, resolveSurface } = require('../../../lib/glTenir');
 const { resolveTenirPermissions } = require('../../../lib/shared/glTenirPermissionsCore');
 const { queueGlRewardsForTeam, queueGlRewards } = require('../../../lib/glRewardsHooks');
 
@@ -83,23 +83,10 @@ async function resolveLectureContext(req, res, gameId, teamIdFromBody) {
     res.status(409).json({ error: 'La partie n’est pas en cours' });
     return null;
   }
-  const actorKind = isMj(req) ? 'mj' : 'player';
-  let teamId = teamIdFromBody != null ? parseId(teamIdFromBody) : null;
-  let playerId = null;
-  let enRetrait = false;
-  if (actorKind === 'player') {
-    const membership = await getPlayerGameMembership(gameId, req.glAuth.userId);
-    if (!membership?.team_id) {
-      res.status(403).json({ error: 'Joueur non rattaché à une équipe' });
-      return null;
-    }
-    teamId = Number(membership.team_id);
-    playerId = Number(req.glAuth.userId);
-    enRetrait = await isPlayerEnRetrait(db, gameId, playerId);
-  } else if (teamId == null) {
-    res.status(400).json({ error: 'teamId requis pour le MJ' });
-    return null;
-  }
+  // Acteur unique : prof, élève connecté, ou tablette d'équipe (pendant un tour seulement).
+  const acteur = await resolveGesteActorOrRespond(req, res, gameId, { teamIdFromBody });
+  if (!acteur) return null;
+  const { actorKind, teamId, playerId, enRetrait } = acteur;
   const team = await db.queryOne('SELECT id FROM gl_teams WHERE id = ? AND game_id = ? LIMIT 1', [
     teamId,
     gameId,
@@ -137,8 +124,8 @@ async function resolveLectureContext(req, res, gameId, teamIdFromBody) {
     playerId,
     roundNumber,
     via,
-    actorType: actorKind === 'mj' ? 'mj' : 'team',
-    actorId: String(req.glAuth.userId),
+    actorType: acteur.actorType,
+    actorId: acteur.actorId,
   };
 }
 
@@ -154,6 +141,8 @@ async function loadCarnet(req, res, gameId) {
   if (viewer.kind === 'player') {
     const membership = await getPlayerGameMembership(gameId, viewer.playerId);
     viewerTeamId = membership?.team_id != null ? Number(membership.team_id) : null;
+  } else if (viewer.kind === 'team') {
+    viewerTeamId = viewer.teamId ?? null;
   }
   const carnet = await chasse.buildCarnetClasse(db, {
     game: ctx.game,
@@ -218,7 +207,7 @@ router.get(
 
 router.post(
   '/games/:id/chasse/fouiller',
-  requireGlAuth,
+  requireGlAuthOrTeam,
   asyncHandler(async (req, res) => {
     const gameId = parseId(req.params.id);
     if (!gameId) return res.status(400).json({ error: 'Identifiant de partie invalide' });
@@ -236,7 +225,7 @@ router.post(
         chasse.fouillerTx(tx, {
           gameId,
           teamId: ctx.teamId,
-          playerId: ctx.actorKind === 'player' ? Number(req.glAuth.userId) : null,
+          playerId: ctx.playerId,
           x: req.body?.x,
           y: req.body?.y,
           roundNumber: ctx.roundNumber,
@@ -262,7 +251,7 @@ router.post(
 
 router.post(
   '/games/:id/chasse/repondre',
-  requireGlAuth,
+  requireGlAuthOrTeam,
   asyncHandler(async (req, res) => {
     const gameId = parseId(req.params.id);
     if (!gameId) return res.status(400).json({ error: 'Identifiant de partie invalide' });
@@ -312,7 +301,7 @@ router.post(
 
 router.post(
   '/games/:id/chasse/pages/:zoneKey/ouvrir',
-  requireGlAuth,
+  requireGlAuthOrTeam,
   asyncHandler(async (req, res) => {
     const gameId = parseId(req.params.id);
     const zoneKey = normalizeOptionalString(req.params.zoneKey);
@@ -356,7 +345,7 @@ router.post(
 
 router.post(
   '/games/:id/chasse/pages/:zoneKey/tenir',
-  requireGlAuth,
+  requireGlAuthOrTeam,
   asyncHandler(async (req, res) => {
     const gameId = parseId(req.params.id);
     const zoneKey = normalizeOptionalString(req.params.zoneKey);

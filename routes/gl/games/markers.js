@@ -1,11 +1,8 @@
 const express = require('express');
 const db = require('../../../database');
 const { queryAll, queryOne, withTransaction } = db;
-const {
-  requireGlAuth,
-  requireGlPermission,
-  actorTypeOf,
-} = require('../../../middleware/requireGlAuth');
+const { requireGlAuthOrTeam, requireGlPermission } = require('../../../middleware/requireGlAuth');
+const { resolveGesteActorOrRespond } = require('../../../lib/glActeur');
 const { insertGameEvent } = require('../../../lib/glGameEvents');
 const { emitGlGameEvent } = require('../../../lib/realtime');
 const { getGameplaySettings } = require('../../../lib/glSettings');
@@ -42,10 +39,7 @@ const {
   isLoreQuestionCode,
 } = require('../../../lib/glQcmResolve');
 // O10 — helpers runtime à I/O (DB) partagés via lib/gl/gamesRuntime.js (déplacement pur).
-const {
-  getPlayerGameMembership,
-  recordVitalityChangeEvent,
-} = require('../../../lib/gl/gamesRuntime');
+const { recordVitalityChangeEvent } = require('../../../lib/gl/gamesRuntime');
 const { parseId } = require('../../../lib/shared/httpHelpers');
 const asyncHandler = require('../../../lib/asyncHandler');
 const { sendSafeError } = require('../../../lib/safeErrorResponse');
@@ -168,7 +162,7 @@ async function enrichQuestionWithGlossary(questionRow, glossaryByKey) {
  * « Tenir à deux » : applique l'arrivée en suspens de l'équipe (jet gardé, cf.
  * `lib/glArriveeSuspendue.js`) avant de présenter la case. Sans arrivée en suspens : rien.
  */
-async function garderArriveeEnSuspens({ gameId, game, settings, teamId, req }) {
+async function garderArriveeEnSuspens({ gameId, game, settings, teamId, acteur }) {
   if (teamId == null || !isTenirGame(settings, game)) return;
   const { listEnSuspens, confirmerArriveesTx } = require('../../../lib/glArriveeSuspendue');
   if (!(await listEnSuspens(db, gameId, { teamId: Number(teamId) })).length) return;
@@ -178,8 +172,8 @@ async function garderArriveeEnSuspens({ gameId, game, settings, teamId, req }) {
       gameId,
       teamId: Number(teamId),
       settings,
-      actorType: actorTypeOf(req),
-      actorId: String(req.glAuth.userId),
+      actorType: acteur.actorType,
+      actorId: acteur.actorId,
       motif: 'presentation',
     });
   });
@@ -188,7 +182,7 @@ async function garderArriveeEnSuspens({ gameId, game, settings, teamId, req }) {
 
 router.post(
   '/games/:id/markers/:markerId/present-question',
-  requireGlAuth,
+  requireGlAuthOrTeam,
   asyncHandler(async (req, res) => {
     const gameId = parseId(req.params.id);
     const markerId = parseId(req.params.markerId);
@@ -224,19 +218,16 @@ router.post(
     }
 
     const settings = await getGameplaySettings();
-    if (settings.qcmMjOnly && req.glAuth.userType === 'gl_player') {
+    if (settings.qcmMjOnly && req.glAuth.actor?.kind !== 'mj') {
       return res.status(403).json({ error: 'QCM réservé au maître du jeu' });
     }
 
-    let teamId = req.body?.teamId != null ? parseId(req.body.teamId) : null;
-    if (req.glAuth.userType === 'gl_player') {
-      const membership = await getPlayerGameMembership(gameId, req.glAuth.userId);
-      if (!membership?.team_id)
-        return res.status(403).json({ error: 'Joueur non rattaché à une équipe' });
-      teamId = Number(membership.team_id);
-    } else if (teamId == null) {
-      return res.status(400).json({ error: 'teamId requis pour le MJ' });
-    }
+    // Acteur unique : prof (`teamId`), élève connecté, ou tablette d'équipe pendant un tour.
+    const acteur = await resolveGesteActorOrRespond(req, res, gameId, {
+      teamIdFromBody: req.body?.teamId,
+    });
+    if (!acteur) return undefined;
+    const teamId = acteur.teamId;
 
     const team = await queryOne(
       'SELECT id, position_marker_id FROM gl_teams WHERE id = ? AND game_id = ? LIMIT 1',
@@ -248,14 +239,11 @@ router.post(
     // un joueur pouvait re-présenter la même question à volonté (retrigger `every_arrival`) et
     // gonfler le score d'équipe sans se déplacer. Le MJ garde la présentation à distance —
     // même règle que `present-arrival`.
-    if (
-      req.glAuth.userType === 'gl_player' &&
-      Number(team.position_marker_id) !== Number(markerId)
-    ) {
+    if (acteur.kind !== 'mj' && Number(team.position_marker_id) !== Number(markerId)) {
       return res.status(409).json({ error: 'Votre équipe n’est pas sur ce repère' });
     }
     // « Tenir à deux » : répondre à la question de la case, c'est garder son jet (Relance).
-    await garderArriveeEnSuspens({ gameId, game, settings, teamId, req });
+    await garderArriveeEnSuspens({ gameId, game, settings, teamId, acteur });
     const canPresent = await canPresentMarkerQuestion(
       { queryAll },
       {
@@ -321,12 +309,11 @@ router.post(
       });
     }
 
-    const actorType = actorTypeOf(req);
     const presentedEvent = await insertGameEvent(db, {
       gameId,
       teamId,
-      actorType,
-      actorId: String(req.glAuth.userId),
+      actorType: acteur.actorType,
+      actorId: acteur.actorId,
       eventType: 'marker_question_presented',
       payload: {
         markerId,
@@ -350,7 +337,7 @@ router.post(
 /** POST /api/gl/games/:id/markers/:markerId/present-arrival — résumé d'arrivée sur repère (effets plateau). */
 router.post(
   '/games/:id/markers/:markerId/present-arrival',
-  requireGlAuth,
+  requireGlAuthOrTeam,
   asyncHandler(async (req, res) => {
     const gameId = parseId(req.params.id);
     const markerId = parseId(req.params.markerId);
@@ -383,19 +370,16 @@ router.post(
     }
 
     const settings = await getGameplaySettings();
-    if (settings.qcmMjOnly && req.glAuth.userType === 'gl_player') {
+    if (settings.qcmMjOnly && req.glAuth.actor?.kind !== 'mj') {
       return res.status(403).json({ error: 'Présentation réservée au maître du jeu' });
     }
 
-    let teamId = req.body?.teamId != null ? parseId(req.body.teamId) : null;
-    if (req.glAuth.userType === 'gl_player') {
-      const membership = await getPlayerGameMembership(gameId, req.glAuth.userId);
-      if (!membership?.team_id)
-        return res.status(403).json({ error: 'Joueur non rattaché à une équipe' });
-      teamId = Number(membership.team_id);
-    } else if (teamId == null) {
-      return res.status(400).json({ error: 'teamId requis pour le MJ' });
-    }
+    // Acteur unique : prof (`teamId`), élève connecté, ou tablette d'équipe pendant un tour.
+    const acteur = await resolveGesteActorOrRespond(req, res, gameId, {
+      teamIdFromBody: req.body?.teamId,
+    });
+    if (!acteur) return undefined;
+    const teamId = acteur.teamId;
 
     const team = await queryOne(
       'SELECT id, type, name, position_marker_id FROM gl_teams WHERE id = ? AND game_id = ? LIMIT 1',
@@ -406,29 +390,26 @@ router.post(
     // Anti-farm : « présenter une arrivée » suppose d'être arrivé. Sans cette garde, un
     // joueur déclenchait les bonus (cœurs, gemmes, déplacement automatique) de tous les
     // repères à effet du plateau sans s'y rendre. Le MJ garde la présentation à distance.
-    if (
-      req.glAuth.userType === 'gl_player' &&
-      Number(team.position_marker_id) !== Number(markerId)
-    ) {
+    if (acteur.kind !== 'mj' && Number(team.position_marker_id) !== Number(markerId)) {
       return res.status(409).json({ error: 'Votre équipe n’est pas sur ce repère' });
     }
     // Une case en suspens (Relance encore possible) s'applique avant d'être présentée : sa
     // présentation vaut « garder le jet », et l'effet n'est jamais appliqué deux fois.
-    await garderArriveeEnSuspens({ gameId, game, settings, teamId, req });
+    await garderArriveeEnSuspens({ gameId, game, settings, teamId, acteur });
 
     // Mode « Tenir à deux » : le texte lu par l'élève est calculé depuis l'effet appliqué
     // (Sentier compris), jamais depuis le champ d'auteur `effet_mecanique`.
     const arrivalCtx = await resolveTenirMarkerContext(db, settings, game, teamId);
     const arrival = buildMarkerArrivalPayload(marker, team, arrivalCtx);
-    const actorType = actorTypeOf(req);
-    const actorId = String(req.glAuth.userId);
+    const actorType = acteur.actorType;
+    const actorId = acteur.actorId;
     const reason = String(marker.label || 'Repère').trim();
 
     // `playerIds` cible un sous-ensemble de l'équipe : c'est un geste d'animation, réservé
     // au MJ. Laissé au joueur, il permettait de choisir qui encaisse un gain ou subit une
     // perte — y compris, avant la validation de roster ci-dessous, hors de son équipe.
     let playerIds = null;
-    if (req.glAuth.userType !== 'gl_player') {
+    if (acteur.kind === 'mj') {
       const playerIdsRaw = req.body?.playerIds;
       playerIds = Array.isArray(playerIdsRaw)
         ? playerIdsRaw

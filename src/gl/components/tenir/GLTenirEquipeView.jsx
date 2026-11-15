@@ -50,6 +50,11 @@ export function GLTenirEquipeView({
   chasse = null,
   /** Modules G&L (`rewardsEnabled` conditionne « Mes badges ») ; `null` = tout allumé. */
   modules = null,
+  /**
+   * Tablette d'équipe (session ouverte par le lien de classe) : même écran, sans ce qui
+   * appartient à un compte (« Mes badges », proposition d'une chimère).
+   */
+  tablette = false,
 }) {
   const gameId = gameState?.game?.id;
   const tourApi = useGlTenirTour({
@@ -293,22 +298,24 @@ export function GLTenirEquipeView({
       {chasse && carnetOuvert ? (
         <>
           <GLCarnetClasseView chasse={chasse} />
-          <GLBestiairePanel gameId={gameId} />
+          <GLBestiairePanel gameId={gameId} canPropose={!tablette} />
         </>
       ) : null}
-      <div className="gl-inline-actions">
-        <GLButton
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="gl-rewards__toggle"
-          aria-expanded={badgesOuverts}
-          onClick={() => setBadgesOuverts((v) => !v)}
-        >
-          {badgesOuverts ? 'Fermer mes badges' : 'Mes badges'}
-        </GLButton>
-      </div>
-      {badgesOuverts ? (
+      {tablette ? null : (
+        <div className="gl-inline-actions">
+          <GLButton
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="gl-rewards__toggle"
+            aria-expanded={badgesOuverts}
+            onClick={() => setBadgesOuverts((v) => !v)}
+          >
+            {badgesOuverts ? 'Fermer mes badges' : 'Mes badges'}
+          </GLButton>
+        </div>
+      )}
+      {badgesOuverts && !tablette ? (
         <GLRewardsPanel modules={modules} title="Mes badges" headingLevel={3} />
       ) : null}
       <GLPeripetieOverlay

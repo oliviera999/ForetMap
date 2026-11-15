@@ -78,6 +78,8 @@ router.get(
     if (viewer.kind === 'player') {
       const membership = await getPlayerGameMembership(gameId, viewer.playerId);
       teamOfViewer = membership?.team_id != null ? Number(membership.team_id) : null;
+    } else if (viewer.kind === 'team') {
+      teamOfViewer = viewer.teamId ?? null;
     }
     const tenir = await buildTenirBlock(
       { queryOne, queryAll, execute },

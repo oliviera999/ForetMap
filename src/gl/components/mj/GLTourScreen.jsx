@@ -10,6 +10,7 @@ import { GLTourDesSaisie } from './GLTourDesSaisie.jsx';
 import { GLTourSouffle } from './GLTourSouffle.jsx';
 import { GLTeamSpiritPanel } from './GLTeamSpiritPanel.jsx';
 import { GLTourJournal } from './GLTourJournal.jsx';
+import { GLClassLinkPanel } from './GLClassLinkPanel.jsx';
 import { numeroCase } from '../../../shared/glCaseNumeroCore.js';
 
 const PHASE_LABELS = {
@@ -238,6 +239,9 @@ export function GLTourScreen({
           <p className="gl-hint">
             Projection (12 h) : <code>{projectionUrl}</code>
           </p>
+        ) : null}
+        {surface !== 'tableau' ? (
+          <GLClassLinkPanel game={game} teams={teams} refreshKey={refreshKey} />
         ) : null}
         {round?.phase === 'clos' && round.durees?.libelle ? (
           <p className="gl-hint gl-tour-durees" data-testid="gl-tour-durees">

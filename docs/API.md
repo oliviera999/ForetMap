@@ -510,6 +510,41 @@ quand l'espèce étudiée est liée au feuillet d'une page endormie (zone → `r
   `sablier_secondes`, `sablier_phase_secondes`, `sablier_phase_auto`). Changer la durée du
   sablier du tour le fait repartir plein. Réponse `{ ok, sablier }` ; évènement `sablier_regle`.
   400 `SABLIER_INVALIDE` (corps vide, durée hors bornes, action inconnue).
+
+#### Lien de classe et session d'équipe (lot 2)
+
+Une tablette de classe joue sans compte d'élève : elle ouvre le **lien de la classe** (QR
+imprimé une fois pour l'année, ou code à huit caractères), touche la mascotte de son équipe et
+reçoit une **session d'équipe** de 3 heures.
+
+| Méthode | Route                                         | Corps                        | Accès et réponse                                                                                                                                                                                                                                                              |
+| ------- | --------------------------------------------- | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET     | `/api/gl/classes/:classId/lien`               | —                            | `gl.game.manage`. Crée le lien au besoin, sinon le rend tel quel (permanent). `{ classId, className, code, url }` avec `url = gl.html?classe=<jeton>` (relative, comme le lien de projection). 404 classe inconnue.                                                          |
+| POST    | `/api/gl/classes/:classId/lien/regenerer`     | —                            | `gl.game.manage`. Nouveau jeton et nouveau code : l'ancien QR est refusé, toutes les sessions d'équipe de la classe sont révoquées. Même réponse, plus `sessionsRevoquees`.                                                                                                  |
+| POST    | `/api/gl/class-link/open`                     | `{ token }` ou `{ code }`    | **Public**, limité en débit comme une connexion. `{ className, game: { id, name, status } \| null, teams: [{ teamId, name, type, mascotId, color }], phase }`. **Aucun nom d'élève, aucune bourse.** `game` vaut `null` sans partie « Tenir » en cours. 404 `CLASS_LINK_INCONNU`. |
+| POST    | `/api/gl/class-link/session`                  | `{ token \| code, teamId }`  | **Public**, limité en débit. 201 `{ token, expiresInSeconds, gameId, teamId, teamName, teamType, className }` : JWT `gl_guest` portant `team_session: { gameId, teamId, jti }` (seul le hachage du `jti` est stocké). 409 `CLASS_LINK_SANS_PARTIE`, 404 équipe inconnue.       |
+| GET     | `/api/gl/games/:id/tenir/sessions`            | —                            | `gl.game.manage`. `{ sessions: [{ id, teamId, createdAt, lastSeenAt, expiresAt }] }` : sessions d'équipe ouvertes aujourd'hui, non révoquées. Aucun jeton.                                                                                                                   |
+| DELETE  | `/api/gl/games/:id/tenir/sessions/:sessionId` | —                            | `gl.game.manage`. « Déconnecter » une tablette. `{ ok }`, 404 si la session n'est pas (ou plus) ouverte sur cette partie.                                                                                                                                                    |
+
+Ce qu'une session d'équipe peut faire :
+
+- **Lire** sa partie (`GET /api/gl/games/:id`, `…/tenir`, `…/tenir/tour`, `…/chasse`,
+  `…/tenir/olu`, `…/tenir/chimeres`, journal). Le bloc `tenir` porte
+  `tablette: { teamId, horsTour }`. **Hors tour : aucune bourse, aucune réserve, toutes les
+  permissions à `false`.** Pendant un tour ouvert : les bourses de son équipe seulement, les
+  droits d'un membre (`resolveTenirPermissions`), jamais « en retrait » (le retrait reste
+  individuel).
+- **Agir pendant un tour ouvert**, pour son équipe : `POST …/tenir/lancer`,
+  `…/tenir/arrivee/garder`, `…/tenir/peripetie/passer`, `…/markers/:markerId/present-question`,
+  `…/markers/:markerId/present-arrival`, `…/qcm/answer`, `…/chasse/fouiller`,
+  `…/chasse/repondre`, `…/chasse/pages/:zoneKey/ouvrir`, `…/chasse/pages/:zoneKey/tenir`. Au
+  journal : `actor_type = 'team'`, `actor_id = 'equipe-<teamId>'` (jamais un identifiant
+  d'élève).
+- Refus : 409 `TEAM_SESSION_HORS_TOUR` (geste hors tour), 403 `TEAM_SESSION_AUTRE_PARTIE`,
+  403 `TEAM_SESSION_AUTRE_EQUIPE` (`teamId` d'une autre équipe), 401 `TEAM_SESSION_TERMINEE`
+  (session révoquée, expirée, lien régénéré, partie close, équipes rebrassées par
+  `POST …/teams/compose/apply`) ; toute autre route « compte requis » répond 403
+  `guestBlocked`.
 - Catalogues nouveaux de `GET/POST /api/gl/admin/tenir/catalogues[/sync]` :
   `qcm-feedbacks-zones` (retours de mauvais choix des questions de zone, écrits seulement si la
   colonne est vide ou commence par « Non ») et `questions-vives` (40 questions de case
