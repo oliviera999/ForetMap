@@ -51,6 +51,16 @@
   padding: 0.35rem 0;
   border-bottom: 1px solid var(--line-soft);
 }
+/* L'indice (une énigme, jusqu'à 120 caractères) s'affiche en entier : il passe à la ligne,
+   jamais de troncature, et le bouton « Lire » garde sa taille. */
+.gl-carnet-page__texte {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.gl-carnet-page > .gl-btn {
+  flex: 0 0 auto;
+}
 .gl-carnet-page--endormie .gl-carnet-page__texte {
   opacity: 0.7;
 }
@@ -217,6 +227,12 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
   gap: 0.5rem;
+}
+/* En projection, l'indice prend toute la largeur de sa carte ; l'état passe dessous. */
+.gl-projection__carnet .gl-carnet-page {
+  flex-direction: column;
+  align-items: flex-start;
+  overflow-wrap: anywhere;
 }
 
 /* Olu commentateur */

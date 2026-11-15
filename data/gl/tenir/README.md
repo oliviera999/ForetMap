@@ -71,7 +71,7 @@ Une zone :
 | `plateau` | 1-4 | |
 | `feuillet_code` | string | feuillet `actif`, `plateau_number` = `plateau`, type `feuillet` (ou `scene` dessinable), jamais `offert_ouverture` / `offert_cloture`, jamais `ep-I-02`, `ep-VI-*`, `ep-I-13`, `ep-III-06`, `ep-I-16`, `ep-I-17`, `ep-III-01`, `ep-I-03`, `ep-I-04`, ni une page `biome` (`page-*`) |
 | `titre_prive` | string | titre + détail du dessin ; **jamais envoyé aux élèves** |
-| `indice` | string | ≤ 120 caractères, sans nom d'espèce, sans corbeau, sans secret ; affiché au carnet de la classe |
+| `indice` | string | ≤ 120 caractères (les 36 indices livrés : ≤ 99), sans nom d'espèce, sans corbeau, sans secret ; **énigme scientifique** (« Là où… » : un fait observable sur le vivant ou le milieu du dessin) ; affiché en entier au carnet de la classe |
 | `polygone` | `[[x,y],…]` ou `null` | ≥ 3 points dans [0,1] ; `null` = à dessiner dans l'éditeur de zones |
 | `polygone_ref` | string ou `null` | identifiant d'une zone de `src/gl/data/zones_feuillets.json` portant le même feuillet |
 | `rang_case` | int ou `null` | case du chemin la plus proche (pour le voile) ; calculé par le chargeur si `null` |
