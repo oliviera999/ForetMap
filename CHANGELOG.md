@@ -28,6 +28,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Import XLSX des QCM** : une question de taxonomie (« À quelle famille appartient… »,
   « nom scientifique ») créée par l'import sort du tirage des parties, comme l'avait fait la
   migration 345 ; une question existante garde le réglage « Posée en partie » du prof.
+### Corrigé — G&L : tests « Tenir à deux » verts sur une base neuve
+
+- Sur la base neuve de la CI, six tests de la Cordée offerte et du Relais échouaient : le
+  grimoire y gardait les sorts semés par les migrations, antérieurs à `sorts.json`. La fixture
+  `createTenirGame` synchronise maintenant le catalogue des sorts par empreinte, comme le fait
+  le serveur au démarrage. Le test des indices des défis de la Trame sème assez de pages de
+  veillée pour ne plus dépendre de celles qu'une autre suite aurait laissées. Aucun changement
+  de comportement du jeu : la production synchronisait déjà ses catalogues.
 
 ### Ajouté — G&L « Tenir à deux » : défis de la Trame (lot 3 sur 3)
 

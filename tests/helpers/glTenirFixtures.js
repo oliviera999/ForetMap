@@ -214,8 +214,31 @@ async function ensureChapter(plateau) {
   return { chapter, markers };
 }
 
+let sortsSynchronises = null;
+
+/**
+ * Le grimoire de la base suit `data/gl/tenir/sorts.json`, comme au démarrage du serveur
+ * (synchronisation par empreinte, sans effet quand le fichier n'a pas changé). Sans cela, une
+ * base neuve — celle de la CI — garde les sorts semés par les migrations, antérieurs au
+ * catalogue (Cordée payée par les deux peuples, par exemple), et les tests ne passent que sur
+ * une base où une autre suite a déjà importé le fichier.
+ */
+function ensureSortsCatalogue() {
+  if (!sortsSynchronises) {
+    const db = require('../../database');
+    const { syncTenirCatalogues } = require('../../lib/glTenirSync');
+    sortsSynchronises = syncTenirCatalogues(db, { fichier: 'sorts' }).then((res) => {
+      const refuse = res.files.find((f) => f.status === 'refuse');
+      if (refuse) throw new Error(`Catalogue des sorts refusé : ${JSON.stringify(refuse)}`);
+      return res;
+    });
+  }
+  return sortsSynchronises;
+}
+
 /** Sorts v2 ouverts au plateau (cumulatifs, `data/gl/tenir/sorts.json`), sur un chapitre. */
 async function attachTenirSpells(chapterId, plateau) {
+  await ensureSortsCatalogue();
   const path = require('node:path');
   const fs = require('node:fs');
   const file = path.join(__dirname, '..', '..', 'data', 'gl', 'tenir', 'sorts.json');
