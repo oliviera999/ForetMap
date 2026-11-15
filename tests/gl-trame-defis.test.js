@@ -108,8 +108,10 @@ before(async () => {
     const [rep] = await runImports(db, { fichier, dossier: EXEMPLE });
     assert.deepEqual(rep.errors, [], fichier);
   }
-  // Trois pages de veillée du plateau 1, hors de toute zone de chasse.
-  for (const lettre of ['a', 'b', 'c']) {
+  // Six pages de veillée du plateau 1, hors de toute zone de chasse : assez pour toutes les
+  // réussites de la suite, sur une base neuve comme sur une base déjà servie (la lettre « d »
+  // est réservée au test des pages tirables).
+  for (const lettre of ['a', 'b', 'c', 'e', 'f', 'g']) {
     await db.execute(
       `INSERT INTO gl_lore_feuillets (feuillet_code, type, titre, incipit, texte, texte_accessible, biome_slug,
           plateau_number, mode_apparition, ordre_voyage, statut, created_at, updated_at)
