@@ -497,6 +497,19 @@ quand l'espèce étudiée est liée au feuillet d'une page endormie (zone → `r
   50 »), ou `null` si le tour n'a pas de mesure. Jamais servi à un élève ni à la projection.
   Source : `gl_game_round_phases` (migration 346), écrite à l'ouverture du tour, à chaque
   changement de phase et à la clôture du chapitre.
+- **Sabliers** : `GET /api/gl/games/:id/tenir` et `GET …/tenir/tour` renvoient à tous
+  (prof, élèves, projection) `sablier` = `{ actif, equipeSecondes, phaseSecondes, phaseAuto,
+  phase }`, où `phase` vaut `{ secondes, restantSecondes, enPause, termine, auto }` pendant la
+  phase `jeu` en surface `hybride` ou `tablette` quand un sablier du tour est réglé, sinon
+  `null`. `restantSecondes` est calculé par le serveur à la lecture.
+- `PUT /api/gl/games/:id/tenir/sablier` (`gl.game.manage`, donc **403 pour un joueur**) :
+  `{ actif?, secondes?, phaseSecondes?, phaseAuto?, action? }`. `secondes` (10 à 3600) règle le
+  sablier de l'équipe active au tableau ; `phaseSecondes` (0 = sans, sinon 10 à 3600) le
+  sablier du tour ; `action` ∈ `pause | reprise | zero` agit sur le sablier du tour en cours.
+  Les réglages sont enregistrés dans les surcharges de la partie (`sablier_actif`,
+  `sablier_secondes`, `sablier_phase_secondes`, `sablier_phase_auto`). Changer la durée du
+  sablier du tour le fait repartir plein. Réponse `{ ok, sablier }` ; évènement `sablier_regle`.
+  400 `SABLIER_INVALIDE` (corps vide, durée hors bornes, action inconnue).
 - Catalogues nouveaux de `GET/POST /api/gl/admin/tenir/catalogues[/sync]` :
   `qcm-feedbacks-zones` (retours de mauvais choix des questions de zone, écrits seulement si la
   colonne est vide ou commence par « Non ») et `questions-vives` (40 questions de case

@@ -1,10 +1,11 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { useGlTenirTour } from '../../hooks/useGlTenirTour.js';
 import { useAppDialogs } from '../../../shared/components/AppDialogsProvider.jsx';
 import { useGlTenirOlu } from '../../hooks/useGlTenirOlu.js';
 import { GLOluBulle } from '../tenir/GLOluBulle.jsx';
 import { GLButton } from '../ui/GLButton.jsx';
 import { GLTourSablier } from './GLTourSablier.jsx';
+import { GLSablier, GLSablierReglage } from '../tenir/GLSablier.jsx';
 import { GLTourDesSaisie } from './GLTourDesSaisie.jsx';
 import { GLTourSouffle } from './GLTourSouffle.jsx';
 import { GLTeamSpiritPanel } from './GLTeamSpiritPanel.jsx';
@@ -97,6 +98,17 @@ export function GLTourScreen({
   const round = view?.round || null;
   const surface = view?.surface || tenir?.surface || 'tableau';
   const settings = tenir?.settings || {};
+  // Sabliers : la vue vient du serveur (même état que les tablettes et la projection).
+  const sablier = view?.sablier || tenir?.sablier || null;
+  const sablierActif = sablier ? sablier.actif !== false : settings.sablier_actif !== false;
+  const sablierPhase = sablier?.phase || null;
+  // « A sonné » se lit pour un tour, une phase et une durée : il retombe seul quand l'un change.
+  const [sonnePour, setSonnePour] = useState(null);
+  const autoFaitRef = useRef(null);
+  const souffleRef = useRef(null);
+  const phaseKey = `${view?.roundNumber || 0}:${round?.phase || ''}`;
+  const sonnerieKey = `${phaseKey}:${sablierPhase?.secondes || 0}`;
+  const sablierSonne = sonnePour === sonnerieKey;
 
   const orderedTeams = useMemo(() => {
     const byId = new Map((view?.teams || []).map((t) => [Number(t.id), t]));
@@ -127,6 +139,21 @@ export function GLTourScreen({
       /* silencieux */
     }
   }, [voyageurSoundsEnabled]);
+
+  /**
+   * Fin du sablier de phase : rien n'est annulé. La console met en avant le passage au
+   * souffle ; avec « Passer au souffle à la fin », elle y passe toute seule, une fois par
+   * tour (dé gris tiré par l'app).
+   */
+  const sablierPhaseFini = useCallback(() => {
+    sonnerie();
+    setSonnePour(sonnerieKey);
+    if (sablierPhase?.auto && round?.phase === 'jeu' && autoFaitRef.current !== phaseKey) {
+      autoFaitRef.current = phaseKey;
+      act(() => tourApi.phase('souffle', {}));
+    }
+  }, [sonnerie, sonnerieKey, sablierPhase?.auto, round?.phase, phaseKey, act, tourApi]);
+  const reglerSablier = useCallback((body) => act(() => tourApi.sablier(body)), [act, tourApi]);
 
   async function cloreChapitre() {
     const ok = await confirm({
@@ -246,12 +273,62 @@ export function GLTourScreen({
       <div className="gl-tour-screen__layout">
         <main className="gl-tour-screen__main">
           {surface === 'tableau' && round?.phase === 'jeu' ? (
-            <GLTourSablier
-              seconds={Number(settings.sablier_secondes) || 180}
-              resetKey={round.equipeActiveId}
-              running
-              onDone={sonnerie}
-            />
+            sablierActif ? (
+              <GLTourSablier
+                seconds={Number(sablier?.equipeSecondes ?? settings.sablier_secondes) || 180}
+                resetKey={round.equipeActiveId}
+                running
+                onDone={sonnerie}
+                reglages={sablier}
+                onRegler={reglerSablier}
+                busy={tourApi.busy}
+              />
+            ) : (
+              <GLSablierReglage
+                mode="equipe"
+                reglages={sablier}
+                onRegler={reglerSablier}
+                busy={tourApi.busy}
+              />
+            )
+          ) : null}
+          {surface !== 'tableau' && round?.phase === 'jeu' ? (
+            sablierPhase ? (
+              <GLSablier
+                mode="phase"
+                secondes={sablierPhase.secondes}
+                restantSecondes={sablierPhase.restantSecondes}
+                enPause={sablierPhase.enPause}
+                onDone={sablierPhaseFini}
+                doneHint="le sablier du tour a sonné (rien n’est annulé)"
+                reglages={sablier}
+                onRegler={reglerSablier}
+                busy={tourApi.busy}
+                testId="gl-sablier-phase"
+              />
+            ) : (
+              <GLSablierReglage
+                mode="phase"
+                reglages={sablier}
+                onRegler={reglerSablier}
+                busy={tourApi.busy}
+              />
+            )
+          ) : null}
+          {sablierSonne && round?.phase === 'jeu' && surface !== 'tableau' ? (
+            <p className="gl-tour-sablier-alerte" role="status" data-testid="gl-sablier-alerte">
+              Le sablier a sonné : c’est le moment de passer au souffle.{' '}
+              <GLButton
+                type="button"
+                size="sm"
+                onClick={() => {
+                  souffleRef.current?.scrollIntoView?.({ block: 'center' });
+                  souffleRef.current?.querySelector?.('button, select')?.focus?.();
+                }}
+              >
+                Passer au souffle
+              </GLButton>
+            </p>
           ) : null}
           <div className="gl-tour-teams">
             {orderedTeams.map((team) => (
@@ -352,12 +429,17 @@ export function GLTourScreen({
           ) : null}
 
           {round && round.phase === 'jeu' ? (
-            <GLTourSouffle
-              round={round}
-              voileActif={settings.voile !== false}
-              disabled={tourApi.busy}
-              onSouffle={(body) => act(() => tourApi.phase('souffle', body))}
-            />
+            <div
+              ref={souffleRef}
+              className={sablierSonne && surface !== 'tableau' ? 'gl-tour-souffle-attention' : ''}
+            >
+              <GLTourSouffle
+                round={round}
+                voileActif={settings.voile !== false}
+                disabled={tourApi.busy}
+                onSouffle={(body) => act(() => tourApi.phase('souffle', body))}
+              />
+            </div>
           ) : round && round.phase !== 'ouverture' ? (
             <GLTourSouffle round={round} voileActif={settings.voile !== false} disabled />
           ) : null}

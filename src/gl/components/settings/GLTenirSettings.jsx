@@ -25,6 +25,8 @@ const TENIR_FLAGS = [
     'Péripéties aussi sur les cases sans effet (tonalité négative ou neutre)',
   ],
   ['gameplay.tenir_olu_erreur_du_jour', 'Erreur du jour d’Olu (filtrée par plateau)'],
+  ['gameplay.tenir_sablier_actif', 'Sabliers (équipe active, tour, défis)'],
+  ['gameplay.tenir_sablier_phase_auto', 'Sablier du tour : passer au souffle à la fin'],
   [
     'gameplay.tenir_progression_applique_case',
     'Progression : appliquer la case d’arrivée (sinon ±1 case seulement)',
@@ -52,6 +54,12 @@ const TENIR_NUMBERS = [
   ['gameplay.tenir_recul_lumiere', 'Recul du voile à la Lumière', 0, 20],
   ['gameplay.tenir_lumiere_palier', 'Palier de la Lumière (cartes)', 1, 999],
   ['gameplay.tenir_sablier_secondes', 'Sablier au tableau (secondes)', 10, 3600],
+  [
+    'gameplay.tenir_sablier_phase_secondes',
+    'Sablier du tour, hybride et tablette (secondes, 0 = sans)',
+    0,
+    3600,
+  ],
   ['gameplay.max_health_points', 'Cœurs maximum', 0, 99],
   ['gameplay.max_power_points', 'Gemmes maximum', 0, 99],
 ];

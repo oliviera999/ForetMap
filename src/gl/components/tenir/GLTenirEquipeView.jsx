@@ -9,6 +9,7 @@ import { GLRewardsPanel } from '../GLRewardsPanel.jsx';
 import { GLOluBulle } from './GLOluBulle.jsx';
 import { GLPeripetieOverlay } from './GLPeripetieOverlay.jsx';
 import { GLBestiairePanel } from './GLBestiairePanel.jsx';
+import { GLSablier } from './GLSablier.jsx';
 import { numeroCase } from '../../../shared/glCaseNumeroCore.js';
 
 const VERDICT_TEXTES = {
@@ -151,6 +152,17 @@ export function GLTenirEquipeView({
           Actualiser
         </GLButton>
       </header>
+      {/* Sablier du tour : même état que la console du prof ; l'équipe le voit sans le régler. */}
+      {(tourApi.tour?.sablier || tenir.sablier)?.phase && round?.phase === 'jeu' ? (
+        <GLSablier
+          mode="phase"
+          secondes={(tourApi.tour?.sablier || tenir.sablier).phase.secondes}
+          restantSecondes={(tourApi.tour?.sablier || tenir.sablier).phase.restantSecondes}
+          enPause={(tourApi.tour?.sablier || tenir.sablier).phase.enPause}
+          doneHint="le sablier a sonné : finissez votre geste"
+          testId="gl-sablier-phase"
+        />
+      ) : null}
       <ul className="gl-tenir-equipe__bourses">
         {mates.map((m) => (
           <li key={m.playerId}>

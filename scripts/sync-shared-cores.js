@@ -56,6 +56,8 @@ const PAIRS = Object.freeze([
   ['src/shared/glTenirCaseEffetCore.js', 'glTenirCaseEffetCore.js'],
   // « Tenir à deux » : liste unique des chaînes jamais visibles d'un élève (garde-fous § 1).
   ['src/shared/glGardeFousCore.js', 'glGardeFousCore.js'],
+  // « Tenir à deux » : sabliers (durée, pause, temps restant), même calcul serveur et client.
+  ['src/shared/glSablierCore.js', 'glSablierCore.js'],
 ]);
 
 function banner(relSrc) {

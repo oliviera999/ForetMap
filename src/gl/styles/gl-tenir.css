@@ -420,3 +420,85 @@
 .gl-projection__board .gl-board {
   pointer-events: none;
 }
+
+/* Sabliers (équipe active, phase, défis) : un rythme, jamais une sanction. */
+.gl-tour-sablier {
+  position: relative;
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--gl-space-2);
+  font-variant-numeric: tabular-nums;
+}
+.gl-tour-sablier__time {
+  font-size: var(--text-xl);
+  font-weight: var(--fw-semibold);
+}
+.gl-tour-sablier__etat {
+  font-size: var(--text-sm);
+  font-weight: var(--fw-regular);
+  color: var(--ink-muted);
+}
+.gl-tour-sablier__bouton {
+  min-height: 44px;
+  min-width: 44px;
+  padding: var(--gl-space-1) var(--gl-space-3);
+  border: 1px solid var(--gl-border);
+  border-radius: var(--gl-radius-lg);
+  background: var(--gl-surface);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.gl-tour-sablier.is-done .gl-tour-sablier__time {
+  color: var(--ink-warning);
+}
+.gl-tour-sablier.is-paused .gl-tour-sablier__time {
+  color: var(--ink-muted);
+}
+.gl-sablier-panneau {
+  position: absolute;
+  z-index: 5;
+  inset-block-start: 100%;
+  inset-inline-start: 0;
+  display: grid;
+  gap: var(--gl-space-2);
+  min-width: min(20rem, 90vw);
+  margin-top: var(--gl-space-1);
+  padding: var(--gl-space-3);
+  border: 1px solid var(--gl-border);
+  border-radius: var(--gl-radius-lg);
+  background: var(--gl-surface);
+  box-shadow: var(--shadow-panel-floating);
+  font-size: var(--text-base);
+  font-weight: var(--fw-regular);
+}
+.gl-sablier-panneau__durees {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gl-space-1);
+}
+.gl-sablier-panneau__durees .gl-btn,
+.gl-sablier-panneau__ligne .gl-btn {
+  min-height: 44px;
+}
+.gl-sablier-panneau__ligne {
+  min-height: 44px;
+  align-items: center;
+}
+.gl-sablier-panneau__saisie {
+  width: 6em;
+}
+.gl-tour-sablier-alerte {
+  margin: var(--gl-space-2) 0;
+  padding: var(--gl-space-2) var(--gl-space-3);
+  border: 1px solid var(--line-warning);
+  border-radius: var(--gl-radius-lg);
+  background: var(--accent-warning);
+  color: var(--ink-warning);
+}
+.gl-tour-souffle-attention {
+  outline: 2px solid var(--line-warning);
+  outline-offset: var(--gl-space-1);
+  border-radius: var(--gl-radius-lg);
+}

@@ -29,6 +29,7 @@ const {
 } = require('../../../lib/glTenir');
 const tour = require('../../../lib/glTour');
 const roundPhases = require('../../../lib/glRoundPhases');
+const glSablier = require('../../../lib/glSablier');
 const { issueProjectionToken, revokeProjectionToken } = require('../../../lib/glProjection');
 const { requireTenirGame } = require('./tenir');
 const { DICE_SIDES } = require('../../../lib/glDiceRoll');
@@ -61,6 +62,8 @@ const ERROR_MESSAGES = {
   PALIER_NON_ATTEINT: 'Palier non atteint',
   PALIER_DEJA_CHOISI: 'Ce palier a déjà son choix',
   CHOIX_INVALIDE: 'Choix invalide (voile, sort)',
+  SABLIER_INVALIDE:
+    'Réglage de sablier invalide (durée de 10 secondes à 60 minutes, action pause, reprise ou zero)',
   PAS_D_ERREUR: 'Aucune erreur du jour sur ce tour',
   DEJA_CORRIGE: 'Déjà corrigé',
 };
@@ -227,6 +230,12 @@ router.get(
       ),
       campIndex: markers.length ? markers.length - 1 : 0,
       lumiere: await tour.loadLumiere(db, gameId),
+      // Sabliers : même vue pour le prof, les élèves et la projection (aucun élément privé).
+      sablier: glSablier.buildSablierView({
+        resolved,
+        surface: resolveSurface(game, settings),
+        round,
+      }),
     };
     return res.json(view);
   }),
@@ -298,6 +307,36 @@ router.post(
         souffle: result.souffle,
         passeur: result.passeur,
       });
+    } catch (err) {
+      return sendTourError(res, err);
+    }
+  }),
+);
+
+/**
+ * Sabliers réglables d'un clic (prof) : `{ actif?, secondes?, phaseSecondes?, phaseAuto?,
+ * action? }`. Les réglages sont enregistrés pour la partie ; `action` (`pause`, `reprise`,
+ * `zero`) agit sur le sablier de phase du tour en cours.
+ */
+router.put(
+  '/games/:id/tenir/sablier',
+  requireGlPermission('gl.game.manage'),
+  asyncHandler(async (req, res) => {
+    const gameId = parseId(req.params.id);
+    const ctx = await requireTenirGame(req, res, gameId);
+    if (!ctx) return undefined;
+    try {
+      let result;
+      await withTransaction(async (tx) => {
+        result = await glSablier.reglerSablierTx(tx, {
+          gameId,
+          actorId: req.glAuth.userId,
+          settings: ctx.settings,
+          body: req.body || {},
+        });
+      });
+      emitAll(gameId, [result.event]);
+      return res.json({ ok: true, sablier: result.sablier });
     } catch (err) {
       return sendTourError(res, err);
     }

@@ -52,6 +52,9 @@
     "peripeties": true,
     "olu_erreur_du_jour": true,
     "sablier_secondes": 180,
+    "sablier_actif": true,
+    "sablier_phase_secondes": 0,
+    "sablier_phase_auto": false,
     "max_power_points": 8,
     "max_health_points": 8,
     "lore_feuillet_retrigger": "once_per_team",
@@ -114,6 +117,9 @@
     "fouilles_reparation_gnome": "E2 : +n fouille(s) par tour pour une équipe gnome, utilisable(s) seulement sur une page pâlie s'il en existe ; comptée dans le quota affiché (« 1 + 1 réparation ») ; 0 sous le voile sauf Abri ; 0 = désactivé",
     "palissement_rang_plancher": "E3 : pour le pâlissement par le voile, une zone de rang < plancher est traitée comme de ce rang (les zones proches du départ ne pâlissent plus dès le premier dé gris) ; géométrie et rang affiché inchangés ; 0 = désactivé",
     "surplus_reserve": "E4 : un gain qui dépasserait le plafond d'un élève va à la réserve de la caravane de son équipe (ressource du peuple, par partie) ; la réserve paie en premier le pot des sorts, visible de l'équipe et du prof, remise à zéro au Seuil",
-    "olu_bourse_pleine": "E5 : quand au moins 3 membres d'une équipe sont au plafond, Olu le dit une fois par séance à l'écran d'équipe (moment bourse_pleine), jamais en projection"
+    "olu_bourse_pleine": "E5 : quand au moins 3 membres d'une équipe sont au plafond, Olu le dit une fois par séance à l'écran d'équipe (moment bourse_pleine), jamais en projection",
+    "sablier_actif": "interrupteur de tous les sabliers (équipe active au tableau, phase, défis) ; un sablier n'annule jamais rien",
+    "sablier_phase_secondes": "sablier commun à toutes les équipes pendant la phase jeu, en hybride et sur tablette ; 0 = sans ; départ et durée servis par le serveur",
+    "sablier_phase_auto": "à la fin du sablier de phase, la console ouverte du prof passe au souffle toute seule (dé gris tiré par l'app)"
   }
 }

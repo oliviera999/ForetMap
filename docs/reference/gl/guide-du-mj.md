@@ -362,6 +362,14 @@ main, la relecture des pages écrites et des chimères s'y saisissent aussi.
   **« Ce tour : ouverture 1 min 10, jeu 6 min 40, souffle 0 min 50 »**. Vous seul la voyez. Le
   détail (durées de chaque tour, temps de jeu de chaque équipe) se lit avec l'assistant
   (« diagnostic de la partie »).
+- **Sabliers réglables d'un clic.** Cliquez sur un sablier pour ouvrir son panneau :
+  interrupteur « Sablier », durée (1, 2, 3, 5, 8 ou 10 minutes, ou une durée saisie), pause,
+  reprise, remise à zéro. Le réglage est gardé pour la partie. Au tableau, c'est le sablier de
+  l'équipe active, comme avant. En hybride et sur tablette, le bouton « Sablier » de l'écran du
+  tour allume un **sablier du tour**, commun à toutes les équipes pendant la phase jeu : les
+  tablettes et la projection l'affichent aussi, sans pouvoir le régler. À zéro, rien n'est
+  annulé : l'écran vous propose de passer au souffle. Si vous cochez « Passer au souffle à la
+  fin », l'écran du tour y passe seul (l'app lance alors le dé gris).
 
 ## Pour aller plus loin
 
