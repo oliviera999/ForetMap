@@ -413,6 +413,26 @@ parallèle. Au tableau, rien ne change.
   « Relevé » (le voile recule de deux cases) ou « Pas encore » (rien n'est retiré). Un défi ne
   donne jamais de ressource. Trois réglages : défis actifs ou non, déclenchement à l'arrêt ou au
   passage, nombre de cases de recul.
+- **Les défis de la Trame, pour qui a fini.** Quatre défis sur un plateau de cartes, **hors du
+  temps de jeu** : une équipe qui a fini l'activité du jour, ou un élève seul en veillée. Les
+  Gnomes **retissent** un réseau (qui est mangé par qui, de 5 à 12 cartes) et **réparent la
+  trame** (ranger six espèces, puis choisir ce qui protégerait deux espèces menacées) ; les
+  Licornes prévoient ce que devient un milieu quand **une carte est retirée** et retrouvent
+  **les fils cachés** (de la cause vers l'effet). L'élève ouvre « Défis de la Trame » depuis
+  son Seuil ; la tablette d'une équipe y accède quand aucun tour n'est ouvert ; vous pouvez
+  lancer un défi pour une équipe depuis l'onglet **« Défis »** de votre console.
+  - Une flèche se pose en touchant la carte de départ, puis la carte d'arrivée. L'app répond
+    « Lien trouvé », « Regarde le sens » ou « À discuter » — ce dernier n'est pas une erreur :
+    c'est une invitation à en parler avec vous. Une prédiction à côté reçoit « Pas encore. »,
+    sans la réponse. Les indices sont gratuits et sans limite.
+  - **Un défi ne donne aucune ressource.** La première réussite de chaque défi apporte à
+    l'élève une page de veillée à son nom (deux par semaine au plus par cette voie), un point de
+    regard et l'avancée d'un badge (Tisserand, Révélateur, Gardien des fils, Réparateur).
+  - L'onglet « Défis » montre le **suivi** : par élève, ce qui est réussi et les indices
+    demandés, dans l'ordre alphabétique, sans classement, avec un export. Les phrases « Dis
+    pourquoi » écrites dans Réparer s'y lisent d'un coup d'œil.
+  - Quatre réglages : défis ouverts ou non, défis réservés par peuple ou ouverts à tous, nombre
+    de pages par semaine, mode équipe.
 - **Le Marché depuis la tablette.** Le bouton « Marché » de la tablette demande d'abord « Qui
   agit ? » : l'élève qui vient avec sa bourse touche son prénom. Chaque geste est noté dans
   votre journal de partie.

@@ -278,6 +278,29 @@ Trois exemples tirés du fichier : « L'okapi a une langue bleu-noir de plus de 
 peut-il faire avec ? », « Comment le renard polaire dort-il par −30 °C ? », « Pendant que son
 groupe creuse le sable, un suricate reste debout sur une butte. Pourquoi ? ».
 
+## « Tenir à deux » : les défis de la Trame
+
+Les défis de la Trame font travailler deux idées du programme : **un réseau trophique** (qui
+est mangé par qui) et **l'effet d'un changement** sur un milieu.
+
+- **Le sens des flèches.** Une flèche va toujours de celui qui est mangé vers celui qui mange :
+  de l'herbe vers le zèbre, du zèbre vers le lion. C'est l'erreur la plus fréquente en 6e ;
+  l'app la signale par « Regarde le sens », sans la compter.
+- **Les décomposeurs.** Toute carte peut être reliée aux décomposeurs : tout être vivant finit
+  par être décomposé. Un réseau n'est fini que si une flèche au moins y mène.
+- **« À discuter ».** Un lien que le réseau ne prévoit pas, ou qui n'arrive que rarement,
+  n'est ni juste ni refusé. C'est le bon moment pour demander à l'élève : « Qu'est-ce qui te
+  fait dire cela ? »
+- **La trame altérée.** Le modèle est simple, et c'est voulu : une espèce qui perd toute sa
+  nourriture disparaît, celle qui en perd une partie diminue, celle que l'espèce retirée mangeait
+  augmente. La réalité est plus lente et plus nuancée ; la question « Pour aller plus loin »,
+  affichée à la fin et non notée, ouvre cette discussion.
+- **Réparer la trame.** Les six espèces à ranger et la leçon du plateau sont écrites dans le
+  catalogue. La liste des espèces menacées se révise régulièrement : relisez-la une fois l'an.
+
+Les réseaux, les jeux de fils et les mesures se modifient dans les catalogues « Tenir à deux »
+(Contenus → Catalogues). Après toute modification d'un réseau, relisez les cascades.
+
 ## Pour aller plus loin
 
 [Présentation générale](presentation.md) · [Carte du royaume](carte-du-royaume.md) · [Guide du MJ](guide-du-mj.md) · [Sommaire](../README.md)

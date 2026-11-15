@@ -28,6 +28,12 @@ export function GLCarnetClasseView({ chasse, teamId = null, readOnly = false }) 
           {carnet.carnetCompletAt ? ' · carnet complet' : ''}
         </p>
       </header>
+      {carnet.aReparer?.length ? (
+        <p className="gl-carnet-classe__a-reparer" data-testid="gl-carnet-a-reparer">
+          <strong>À réparer</strong> (signalé par une Licorne) :{' '}
+          {carnet.aReparer.map((e) => e.nom).join(', ')}
+        </p>
+      ) : null}
       <ol className="gl-carnet-classe__pages">
         {(carnet.pages || []).map((p) => {
           const lisible = ['trouvee', 'reparee', 'tenue'].includes(p.etat);

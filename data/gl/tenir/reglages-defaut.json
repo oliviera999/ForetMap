@@ -49,6 +49,10 @@
     "defis_case": true,
     "defi_declenchement": "arret",
     "defi_recul": 2,
+    "defis": true,
+    "defis_par_peuple": true,
+    "defis_pages_par_semaine": 2,
+    "defis_mode_equipe": true,
     "parures": true,
     "lumiere": false,
     "lumiere_palier": 25,
@@ -138,6 +142,10 @@
     "fouille_sous_voile": "lot 2 : `aucune` (une équipe sous le voile ne fouille pas, sauf Abri ou Cordée) ou `page_palie` (une équipe gnome sous le voile garde une fouille par tour, sur une page pâlie seulement)",
     "defis_case": "lot 2 : les cases « Défi d'équipe » confient un défi du plateau à préparer pour la séance suivante ; relevé, il fait reculer le voile ; jamais de ressource",
     "defi_declenchement": "`arret` : le défi se reçoit quand l'équipe s'arrête sur la case ; `passage` : dès que son pion la franchit, une fois par équipe et par case",
-    "defi_recul": "cases de recul du voile pour un défi relevé (0 à 10)"
+    "defi_recul": "cases de recul du voile pour un défi relevé (0 à 10)",
+    "defis": "lot 3 : défis de la Trame (Retisser, Réparer, La trame altérée, Les fils cachés), dès le chapitre 1, sur les deux biomes du plateau ; jamais de ressource",
+    "defis_par_peuple": "Gnomes : Retisser et Réparer ; Licornes : La trame altérée et Les fils cachés ; à false, les quatre pour tous",
+    "defis_pages_par_semaine": "pages de veillée gagnées par cette voie, par élève et par semaine ISO",
+    "defis_mode_equipe": "le prof, ou une tablette d'équipe hors tour, lance un défi pour une équipe"
   }
 }

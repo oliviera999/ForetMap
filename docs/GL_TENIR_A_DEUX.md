@@ -69,6 +69,8 @@ chasse initialisées, les Héritages de la classe versés.
 | 351 | « pas moi » dans le pot d'un sort : `gl_spell_cast_drafts.exclus_json` |
 | 352 | règles tranchées par l'audit : réglages `tenir_lecture_pendant_tour` et `tenir_fouille_sous_voile`, profil `court` dans `gl_games.tenir_profil` |
 | 353 | défi de case : catalogue `gl_tenir_defis_cases`, défis reçus `gl_game_defis_case`, réglages `tenir_defis_case`, `tenir_defi_declenchement`, `tenir_defi_recul`, marquage gardé des huit cases (`event_config_json.tenir.defi`), textes des huit cases, `gl_tenir_olu_lignes.moment` élargi à 32 caractères |
+| 354 | catalogues de la Trame : `gl_trame_reseaux`, `gl_trame_cartes`, `gl_trame_liens`, `gl_trame_fils_cartes`, `gl_trame_fils_liens`, `gl_trame_mesures`, `gl_trame_reparer_especes`, `gl_trame_reparer_a_classer` |
+| 355 | défis de la Trame en partie : `gl_trame_defis` (un défi par porteur, type et unité ; `revision` de la sauvegarde stricte), `gl_trame_reussites` (une ligne par élève et par unité réussie, page de veillée reçue, semaine ISO), réglages `tenir_defis`, `tenir_defis_par_peuple`, `tenir_defis_pages_par_semaine`, `tenir_defis_mode_equipe` |
 
 Le chargeur `npm run gl:import:tenir -- --fichier tous|<nom> [--dry-run] [--forcer] [--strict]`
 (`lib/glTenirImport.js`, données `data/gl/tenir/`, README des clés) reste maître des catalogues ;
@@ -95,6 +97,7 @@ Contenus → Chapitres (`GET/POST /api/gl/admin/tenir/catalogues[/sync]`).
 | `lib/glClassLink.js`, `routes/gl/class-link.js`                                                                                    | lot 2 : lien de classe (QR permanent, code, régénération qui révoque les sessions), ouverture par une tablette (classe, partie en cours, équipes — aucun nom d'élève), session d'équipe. Côté client : `src/gl/components/tenir/GLClassLinkEntry.jsx` (« J'ai le code de la classe »), `GLTeamSessionView.jsx` (écran de la tablette : même `GLTenirEquipeView` que l'élève connecté), `src/gl/components/mj/GLClassLinkPanel.jsx` (feuille A4 imprimable, tablettes connectées, « Déconnecter ») ; session gardée dans `sessionStorage` (`src/gl/services/apiGL.js`) |
 | `lib/glPresences.js`                                                                                                               | lot 2 : présences du tour par équipe (« Il manque quelqu'un ? », « Quelqu'un vient d'arriver ») — `confirmerPresenceTx`, `arriveeRetardataireTx`, `buildPresencesView` ; les absents restent dans `gl_game_round_absences`. En hybride et sur tablette, `lib/glSpellCast.js › assertPresenceConfirmee` refuse un pot tant que l'équipe n'a pas répondu (409 `PRESENCE_A_CONFIRMER`). Écran : `src/gl/components/tenir/GLPresencePanel.jsx`                                                                                                                            |
 | `lib/glDefisCase.js`, `routes/gl/games/defis-case.js`                                                                              | lot 2 : défi de case — tirage sans répétition (`tirerDefiTx`), réception à l'arrêt ou au passage (`recevoirDefisTx`, appelé par `applyArrivalTx`), décision unique du prof (`deciderDefiTx` : recul du voile par `retreatVoileTx`), annulation au Seuil (`annulerDefisEnCoursTx`), lecture par rôle (`listDefis` : critère pour le prof seul). Case marquée par `event_config_json.tenir.defi` (`isDefiMarker` du cœur `glMarkerEventConfigCore`)                                                                                                                     |
+| `lib/glTrameImport.js`, `lib/glTrameDefis.js`, `routes/gl/games/defis.js`, `src/gl/defis/trameCore.js`                             | lot 3 : défis de la Trame — chargeurs des trois catalogues ; cœur pur (classement des flèches, fin de niveau, cascade, indices, bornes d'un état) ; données de partie (modèles sans solutions, sauvegarde stricte, récompense sans ressource, suivi) ; routes. Détail : `docs/GL_DEFIS.md`                                                                                                                                                                                                                                                                            |
 | `lib/glSpellFenetres.js`                                                                                                           | fenêtres (message), limites, pot pré-rempli                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | `lib/glSpellEffectsApply.js`                                                                                                       | exécution des effets automatiques, « Nommer » au clic du prof                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | `lib/glSpellCast.js`                                                                                                               | coût par ressource, pacte, file du prof, intégration des effets                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
@@ -123,7 +126,9 @@ Toutes sous `/api/gl/games/:id/…` sauf mention (détail dans [`API.md`](API.md
 `tenir/honneurs|missions|badges|chimeres|plumes` (`badges` hérité, délègue au moteur commun), `spell-casts/*` (v2), `/api/gl/market/annonces|dons|parures`,
 `/api/gl/rewards/me|me/seen|games/:id|games/:id/award` (badges, `routes/gl/rewards.js`),
 `/api/gl/voyageur/spells/flair|plume/cast`, `/api/gl/admin/classes/:classId/exports/*.csv`,
-`/api/gl/admin/chasse-zones`, `/api/gl/admin/tenir/catalogues[/sync]`.
+`/api/gl/admin/chasse-zones`, `/api/gl/admin/tenir/catalogues[/sync]`,
+`defis-case/*` (lot 2), `defis`, `defis/:defiId`, `defis/:defiId/indice`, `defis/suivi` (lot 3,
+défis de la Trame : [`GL_DEFIS.md`](GL_DEFIS.md)).
 
 ## Événements du journal (`gl_game_events`)
 
@@ -135,7 +140,7 @@ Toutes sous `/api/gl/games/:id/…` sauf mention (détail dans [`API.md`](API.md
 `retrait`, `team_spirit`, `lumiere_palier`, `lumiere_choix`, `olu_erreur`, `olu_corrige`, `olu_bourse_pleine` (privé, E5),
 `spell_cast`, `spell_effect`, `spell_file`, `spell_effect_applied`, `heritage_recu` (privé),
 `honneur`, `mission_reussie`, `badge` (privé), `pas_encore` (réponse fausse de chasse, de lecture ou de case : rien ne se retire), `chimere_validee`, `plume_validee`, `seuil_clos`,
-`don`, `annonce_*`, `parure_*`.
+`don`, `annonce_*`, `parure_*`, `defi_trame_reussi` (lot 3 : type, biome, mode ; sans nom d'élève).
 
 Libellés lisibles (élève / MJ / projection) : `lib/glJournalPresentTenir.js`, branché dans
 `lib/glJournalPresent.js` ; en partie tenir (`context.tenir`, posé par `routes/gl/journal.js`),
@@ -227,6 +232,12 @@ Lot « Vérité et mesure » (14 novembre 2026, base du banc, élèves fictifs) 
 `lot1-durees-du-tour-console-1440x900.png` (ligne « Ce tour : … » ; durées reportées sur une
 séance type, la base du banc jouant le tour en quelques secondes).
 
+Lot « Défis de la Trame » (15 novembre 2026, partie d'exemple, élèves fictifs, produites par
+`e2e/gl-tenir-defis-trame.spec.js`) : `defis-retisser-tablette.png` et
+`defis-retisser-reussi.png` (Retisser niveau 5 sur une tablette d'équipe, 1024 × 768),
+`defis-alteree-telephone.png` (la trame altérée en mode liste, 390 × 844, un retour « Pas
+encore. »), `defis-suivi-console.png` (onglet « Défis » de la console, 1920 × 1080).
+
 ## Surfaces et verrous
 
 | Surface  | Lancer / répondre                                                  | Fouiller                                       | Lire | Marché pendant `jeu` |
@@ -262,6 +273,13 @@ jouent en même temps** : il n'y a d'« équipe active » qu'au tableau. Ce qui 
   rendu), Seuil (tout le reste, défis de case compris).
 - **« Tout au tableau »** (`POST …/tenir/surface`) : en pleine séance, le prof reprend la main ;
   les jets en suspens s'appliquent, les tablettes restent connectées sous les droits du tableau.
+
+**Défis de la Trame** (lot 3, 15 novembre 2026). Ils se jouent **hors du tour** et ne dépendent
+pas de la surface : un compte d'élève y joue à tout moment (mode `individuel`), le prof ou une
+tablette d'équipe **quand aucun tour n'est ouvert** (mode `equipe` ; 409 `DEFI_TOUR_OUVERT`
+sinon). Le serveur rejoue le peuple, le niveau ouvert et le porteur à chaque appel, classe les
+flèches avec le cœur pur et ne sert jamais une solution. Aucun défi n'attend un geste du prof :
+rien n'entre dans la file « Demandes ». Détail : [`GL_DEFIS.md`](GL_DEFIS.md).
 
 **Sorts** (14 novembre 2026) : la permission de surface est rejouée à la création et au
 lancement d'un sort (`lib/glSpellCast.js › assertTenirSurfacePermission`, noyau

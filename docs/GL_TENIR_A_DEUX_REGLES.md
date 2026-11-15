@@ -177,26 +177,30 @@ Chaque sort a : `code`, `nom`, `peuple` (`any` | `gnome` | `unicorn` | `pacte` |
 - **Titres** : un par honneur et par biome (`titres.json`), affiché sous la mascotte au chapitre suivant pour l'équipe qui l'a gagné (le titre suit les élèves dans Mes traversées quand les équipes changent) ; titres de mission (sceau) sur saisie du prof.
 - **Badges individuels** (8 novembre 2026 : sur le **moteur de badges commun**, `docs/REWARDS_ENGINE.md` § 5, table `gl_player_rewards`) : des familles et **trois paliers** aux noms de la Trame — **Fil** 🧵, **Nœud** 🪢, **Étoffe** 🧶 — évalués au fil de l'eau (dès le premier chapitre), jamais retirés, célébrés avec Olu à l'écran de l'élève (jamais en projection), visibles dans Mes traversées, l'écran d'équipe et la vitrine du prof (triée par nom, « à un pas du palier suivant »). Équité : on récompense l'effort, la curiosité, la persévérance et l'aide, **jamais** la justesse, la vitesse, l'arrivée ou un rang ; **aucun badge ne donne de ressource**. « Présence » = membre non absent au tour.
 
-  | Famille         | Badge                | Mesure                                                                                           | Fil · Nœud · Étoffe |
-  | --------------- | -------------------- | ------------------------------------------------------------------------------------------------ | ------------------- |
-  | Chasse          | Fouilleur            | fouilles faites, quel que soit le verdict (par l'élève ou son équipe en sa présence)             | 5 · 20 · 50         |
-  | Chasse          | Trouveur             | pages trouvées ou réparées par son équipe en sa présence                                         | 1 · 4 · 10          |
-  | Lecture         | Lecteur              | pages lues entièrement (tour ou veillée)                                                         | 3 · 10 · 25         |
-  | Lecture         | Passeur de page      | pages tenues pour l'autre peuple (en sa présence ou par lui en veillée)                          | 1 · 4 · 10          |
-  | Persévérance    | Pas encore           | réussites après un « pas encore » sur la même zone, question de lecture ou case                  | 1 · 5 · 15          |
-  | Coopération     | Mains tendues        | dons faits au Marché                                                                             | 1 · 3 · 8           |
-  | Coopération     | Épaule               | sorts d'aide de son équipe (Abri, Relais, Cordée, Bourrasque) avec sa présence ou sa part au pot | 1 · 3 · 8           |
-  | Coopération     | Mains de la Trame    | pages réparées par son équipe gnome en sa présence                                               | 1 · 3 · 6           |
-  | Savoirs         | Nommeur              | espèces étudiées (fiche consultée entièrement)                                                   | 3 · 10 · 25         |
-  | Savoirs         | Cartographe          | pages biome étudiées                                                                             | 1 · 3 · 6           |
-  | Veillée         | Veilleur             | meilleure série de semaines de veillée                                                           | 2 · 4 · 8           |
-  | Voyage          | Passeur de seuil     | chapitres traversés                                                                              | 1 · 2 · 4           |
-  | Voyage          | Deux peuples         | a joué Gnome et Licorne (un seul palier)                                                         | 1                   |
-  | Badges décernés | Chuchoteur           | mission secrète réussie (saisie prof existante)                                                  | décerné             |
-  | Badges décernés | Correcteur du renard | erreur d'Olu corrigée (saisie prof existante)                                                    | décerné             |
-  | Badges décernés | Esprit d'équipe      | décerné par le prof **avec un mot** (cartes Team Spirit)                                         | décerné             |
+  | Famille           | Badge                | Mesure                                                                                           | Fil · Nœud · Étoffe |
+  | ----------------- | -------------------- | ------------------------------------------------------------------------------------------------ | ------------------- |
+  | Chasse            | Fouilleur            | fouilles faites, quel que soit le verdict (par l'élève ou son équipe en sa présence)             | 5 · 20 · 50         |
+  | Chasse            | Trouveur             | pages trouvées ou réparées par son équipe en sa présence                                         | 1 · 4 · 10          |
+  | Lecture           | Lecteur              | pages lues entièrement (tour ou veillée)                                                         | 3 · 10 · 25         |
+  | Lecture           | Passeur de page      | pages tenues pour l'autre peuple (en sa présence ou par lui en veillée)                          | 1 · 4 · 10          |
+  | Persévérance      | Pas encore           | réussites après un « pas encore » sur la même zone, question de lecture ou case                  | 1 · 5 · 15          |
+  | Coopération       | Mains tendues        | dons faits au Marché                                                                             | 1 · 3 · 8           |
+  | Coopération       | Épaule               | sorts d'aide de son équipe (Abri, Relais, Cordée, Bourrasque) avec sa présence ou sa part au pot | 1 · 3 · 8           |
+  | Coopération       | Mains de la Trame    | pages réparées par son équipe gnome en sa présence                                               | 1 · 3 · 6           |
+  | Savoirs           | Nommeur              | espèces étudiées (fiche consultée entièrement)                                                   | 3 · 10 · 25         |
+  | Savoirs           | Cartographe          | pages biome étudiées                                                                             | 1 · 3 · 6           |
+  | Défis de la Trame | Tisserand            | niveaux de Retisser réussis (seul ou avec son équipe en sa présence)                             | 3 · 8 · 16          |
+  | Défis de la Trame | Révélateur           | trames altérées prévues                                                                          | 3 · 6 · 12          |
+  | Défis de la Trame | Gardien des fils     | plateaux dont les fils cachés sont retrouvés                                                     | 2 · 3 · 4           |
+  | Défis de la Trame | Réparateur           | plateaux réparés (Réparer la trame)                                                              | 2 · 3 · 4           |
+  | Veillée           | Veilleur             | meilleure série de semaines de veillée                                                           | 2 · 4 · 8           |
+  | Voyage            | Passeur de seuil     | chapitres traversés                                                                              | 1 · 2 · 4           |
+  | Voyage            | Deux peuples         | a joué Gnome et Licorne (un seul palier)                                                         | 1                   |
+  | Badges décernés   | Chuchoteur           | mission secrète réussie (saisie prof existante)                                                  | décerné             |
+  | Badges décernés   | Correcteur du renard | erreur d'Olu corrigée (saisie prof existante)                                                    | décerné             |
+  | Badges décernés   | Esprit d'équipe      | décerné par le prof **avec un mot** (cartes Team Spirit)                                         | décerné             |
 
-  `Tisserand` et `Révélateur` (défis de la Trame) restent réservés, invisibles ; « Trouveur (Opérateur) » disparaît (il dépendait de la saisie facultative du rôle). Les 13 anciens badges plats (`badges.json`, `gl_player_badges`) sont convertis en paliers par `scripts/gl-rewards-backfill.js` puis conservés en lecture seule. L'évènement de journal `pas_encore` (réponse fausse de chasse, de lecture ou de case) nourrit la mesure Persévérance.
+  `Tisserand` et `Révélateur` ne sont plus réservés (15 novembre 2026 : défis de la Trame, § 15), rejoints par `Gardien des fils` et `Réparateur` ; « Trouveur (Opérateur) » disparaît (il dépendait de la saisie facultative du rôle). Les 13 anciens badges plats (`badges.json`, `gl_player_badges`) sont convertis en paliers par `scripts/gl-rewards-backfill.js` puis conservés en lecture seule. L'évènement de journal `pas_encore` (réponse fausse de chasse, de lecture ou de case) nourrit la mesure Persévérance.
 
 ## 13. Greffes
 
@@ -209,8 +213,8 @@ Chaque sort a : `code`, `nom`, `peuple` (`any` | `gnome` | `unicorn` | `pacte` |
 
 ## 14. Veillée
 
-- Vue élève : carnet de la classe (lire, tenir), carnet personnel, étude des espèces (piste) et des biomes (page biome à son nom, 2 par plateau, 4 au plateau 4 : la consultation complète de la fiche biome inscrit la page `biome` du corpus au carnet personnel et au carnet de la classe comme « étudiée par … »), journal, Marché, grimoire du voyageur, badges, traversées, défis (Fresque du Climat dans ForetMap : saisie prof « défi réussi » → une page « encore effacée » au choix de l'élève, limite 2 pages/semaine ; défis de la Trame hors périmètre).
-- Limites : `pages_veillee_par_semaine` (2), `pistes_par_semaine` (1).
+- Vue élève : carnet de la classe (lire, tenir), carnet personnel, étude des espèces (piste) et des biomes (page biome à son nom, 2 par plateau, 4 au plateau 4 : la consultation complète de la fiche biome inscrit la page `biome` du corpus au carnet personnel et au carnet de la classe comme « étudiée par … »), journal, Marché, grimoire du voyageur, badges, traversées, défis (Fresque du Climat dans ForetMap : saisie prof « défi réussi » → une page « encore effacée » au choix de l'élève, limite 2 pages/semaine ; **défis de la Trame** : entrée « Défis de la Trame » du Seuil, à son rythme, § 15).
+- Limites : `pages_veillee_par_semaine` (2), `pistes_par_semaine` (1), `defis_pages_par_semaine` (2 pages de veillée par semaine et par élève gagnées par un défi de la Trame, compteur propre).
 
 ## 15. Réglages (groupe `gameplay`, préfixe `tenir_`)
 
@@ -222,13 +226,24 @@ Deux **profils** sélectionnables d'un clic sur une partie : `complet` (défauts
 
 **Défi de case** (15 novembre 2026). Les huit cases « Défi d'équipe » (cases 21 et 41 de chaque plateau) confient à l'équipe qui s'y **arrête** un défi du plateau, tiré sans répétition dans la partie, **à préparer pour la séance suivante**. Le tour continue sans attendre. Titre, consigne et préparation s'affichent sur l'écran de l'équipe, au Seuil de ses membres et, tour clos, sur la projection ; le **critère** n'est visible que du prof. Le prof juge d'un geste, à la séance suivante ou tout de suite : « Relevé » → le voile recule de `defi_recul` cases (2) ; « Pas encore » → rien. **Aucune ressource, jamais.** Au Seuil, un défi resté sans décision s'annule sans effet. Réglages, surchargeables par partie : `defis_case` (true), `defi_declenchement` `arret`|`passage` (arret ; `passage` : une fois par équipe et par case), `defi_recul` (2, de 0 à 10).
 
+**Défis de la Trame** (15 novembre 2026). Quatre défis sur un même plateau de cartes, **hors du temps de jeu** : pour les équipes qui ont fini l'activité du jour, et pour l'élève seul en veillée. Détail technique : `docs/GL_DEFIS.md`.
+
+- **Par peuple** (`defis_par_peuple`, true ; à `false`, les quatre pour tous). Gnomes : **Retisser** (relier les cartes d'un réseau, « est mangé par » ; niveaux de 5, 7, 9 puis 12 cartes, ouverts l'un après l'autre, sur les deux biomes du plateau) et **Réparer la trame** (ranger six espèces en « en danger », « fragile », « pas menacée », lire la leçon, puis choisir ce qui protégerait deux espèces menacées). Licornes : **La trame altérée** (une carte est retirée d'un réseau donné tissé ; dire pour chaque autre carte si elle augmente, diminue, disparaît ou ne change pas ; trois cartes à retirer par biome) et **Les fils cachés** (relier des cartes de texte, de la cause vers l'effet ; un jeu par plateau).
+- **Qui joue.** Un élève avec son compte, à tout moment (Seuil). En mode équipe (`defis_mode_equipe`, true) : le prof depuis l'onglet « Défis » de sa console, ou la tablette d'une équipe **quand aucun tour n'est ouvert**.
+- **Une flèche se pose** par appui sur la carte de départ puis sur la carte d'arrivée. L'app dit pour chacune : « Lien trouvé », « Regarde le sens », ou « À discuter » (lien non prévu ou débattu : jamais compté comme une erreur). Le compteur dit les liens trouvés, **sans total**. Toute carte peut aller vers les décomposeurs. Sur téléphone, le plateau devient une liste « relier à… ».
+- **L'erreur ne punit pas.** Une prédiction ou un rangement à côté reçoit « Pas encore. », sans la réponse ; on réessaie autant qu'on veut. **Indices** gratuits, illimités, en échelle (la consigne, par où commencer, une carte isolée, puis un lien à tracer soi-même) ; ils ne réduisent aucune récompense.
+- **Récompense, sans aucune ressource.** À la **première réussite** de chaque unité : une **page de veillée** du chapitre au nom de l'élève (jamais une page des zones de chasse ni une page de route du Passeur), dans la limite de `defis_pages_par_semaine` ; un point de regard du proche ; l'avancée d'un badge (§ 12). Ensuite : badge et regard seulement. Pages épuisées : « Le carnet de ce chapitre n'a plus de page en attente. » En mode équipe, la réussite vaut pour chaque membre présent, chacun dans la limite de son plafond. Jamais un cœur, jamais une gemme, jamais un recul du voile.
+- **Lien entre les peuples.** Quand une Licorne réussit une trame altérée dont la carte retirée est une espèce menacée du catalogue, l'espèce paraît dans « À réparer » du carnet de la classe (« signalée par une Licorne ») et le prochain Réparer d'un Gnome la propose en premier. Aucun gain.
+- **Suivi du prof** : par élève et par type, unités réussies et indices utilisés, **dans l'ordre alphabétique, sans classement** ; les phrases facultatives de Réparer (« Dis pourquoi ») sont à parcourir ; export CSV.
+- Réglages, surchargeables par partie : `defis` (true), `defis_par_peuple` (true), `defis_pages_par_semaine` (2), `defis_mode_equipe` (true).
+
 ## 16. Fichiers de données (livrés, à verser dans `data/gl/tenir/`)
 
-`chasse-zones.json` (36 zones), `questions-lecture.json` (36), `peripeties.json` (32), `missions.json` (20), `titres.json`, `badges.json`, `olu-lignes.json`, `parures.json`, `sorts.json` (grimoire v2), `reglages-defaut.json`, `passeur-plateau4.json` (les 7 pages de route du plateau 4), `defis-cases.json` (16 défis de case, 4 par plateau). Chaque fichier a un chargeur idempotent et un test de contenu.
+`chasse-zones.json` (36 zones), `questions-lecture.json` (36), `peripeties.json` (32), `missions.json` (20), `titres.json`, `badges.json`, `olu-lignes.json`, `parures.json`, `sorts.json` (grimoire v2), `reglages-defaut.json`, `passeur-plateau4.json` (les 7 pages de route du plateau 4), `defis-cases.json` (16 défis de case, 4 par plateau), `trame-reseaux.json` (8 réseaux de 12 cartes, deux par plateau), `trame-fils.json` (4 jeux de fils cachés), `trame-reparer.json` (11 mesures, 6 espèces à ranger par plateau). Chaque fichier a un chargeur idempotent et un test de contenu.
 
 ## 17. Hors périmètre
 
-Défis de la Trame (moteur de la Fresque, janvier), Deux Caravanes et Messager, Conseil des peuples, rituels, tablettes avec compte par élève en classe (la tablette d'équipe suffit), toute modification de ForetMap hors montage du Mode Découverte sur une partie.
+Deux Caravanes et Messager, Conseil des peuples, rituels, tablettes avec compte par élève en classe (la tablette d'équipe suffit), toute modification de ForetMap hors montage du Mode Découverte sur une partie.
 
 ## 18. Attendus de livraison
 

@@ -13,6 +13,7 @@ import { GLTenirEquipeView } from './GLTenirEquipeView.jsx';
 import { GLCarnetClasseView } from './GLCarnetClasseView.jsx';
 import { GLDefisCasePanel } from './GLDefisCasePanel.jsx';
 import { GLMarcheTablette } from './GLMarcheTablette.jsx';
+import { GLDefisEntree } from '../defis/GLDefisEntree.jsx';
 
 const NOOP = () => {};
 /** Rechargement après un évènement temps réel : regroupé, et étalé entre tablettes. */
@@ -175,6 +176,8 @@ export function GLTeamSessionView({ auth, token, onQuit, onEnded }) {
                 </GLButton>
                 {/* Hors tour : le défi à préparer reste lisible (lecture seule). */}
                 <GLDefisCasePanel gameId={gameId} refreshKey={gameState?.events?.length || 0} />
+                {/* Hors tour : l'équipe qui a fini l'activité du jour peut relever un défi. */}
+                <GLDefisEntree gameId={gameId} />
               </section>
             )}
             <GLMapView

@@ -84,3 +84,16 @@ button {
   --font-sans:
     'Caudex', 'Apple Color Emoji', 'ForetMapColorEmoji', 'Segoe UI Emoji', 'Noto Color Emoji', serif;
 }
+
+/* Texte réservé aux lecteurs d'écran (libellés de champs, annonces). */
+.gl-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

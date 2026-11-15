@@ -32,8 +32,8 @@ const EXPECTED = {
   'questions-lecture': ['questions', 36],
   peripeties: ['peripeties', 32],
   missions: ['missions', 20],
-  badges: ['badges', 13],
-  'olu-lignes': ['lignes', 75],
+  badges: ['badges', 15],
+  'olu-lignes': ['lignes', 77],
   parures: ['parures', 12],
   sorts: ['sorts', 25],
 };

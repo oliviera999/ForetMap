@@ -1111,6 +1111,8 @@ router.use(require('./games/chasse'));
 router.use(require('./games/tenir-honneurs'));
 // Défi de case (lot 2, § 7) : défis reçus par les équipes, jugement du prof.
 router.use(require('./games/defis-case'));
+// Lot 3 : défis de la Trame (Retisser, Réparer, La trame altérée, Les fils cachés).
+router.use(require('./games/defis'));
 
 // O10 — sous-domaine feuillet-zones extrait en sous-routeur dédié (chemins inchangés) :
 //   GET  /games/:id/feuillet-zones/presented

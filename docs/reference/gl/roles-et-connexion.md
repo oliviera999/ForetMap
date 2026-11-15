@@ -317,6 +317,9 @@ de la classe, **sans qu'aucun élève ne se connecte**.
 - La tablette a les droits d'un membre de l'équipe, pour cette partie et cette équipe
   seulement, pendant trois heures. Elle n'agit que lorsqu'un tour est ouvert ; le reste du
   temps elle montre le plateau et le carnet, en lecture seule.
+- **Quand aucun tour n'est ouvert, la tablette propose les « Défis de la Trame »** de son
+  peuple, pour l'équipe : aucune bourse n'y est touchée, et la réussite vaut pour chaque membre
+  présent. Un élève connecté avec son compte les retrouve à son Seuil, pour lui seul.
 - **Au Marché, la tablette demande « Qui agit ? »** : l'équipe touche le prénom de l'élève qui
   vient avec sa bourse (parmi les présents), sans mot de passe. Le geste est noté pour le MJ.
   Un élève absent ou mis en retrait n'est pas proposé, et son retrait ne ferme pas le Marché

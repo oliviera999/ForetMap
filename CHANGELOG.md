@@ -9,6 +9,53 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — G&L « Tenir à deux » : défis de la Trame (lot 3 sur 3)
+
+- **Quatre défis sur un même plateau de cartes, hors du temps de jeu** : pour les équipes qui
+  ont fini l'activité du jour et pour l'élève seul en veillée. Gnomes : **Retisser** (un réseau
+  « est mangé par », niveaux de 5, 7, 9 puis 12 cartes) et **Réparer la trame** (ranger six
+  espèces, lire la leçon, choisir ce qui protégerait deux espèces menacées). Licornes : **La
+  trame altérée** (une carte retirée d'un réseau donné tissé : dire ce que devient chaque autre
+  carte) et **Les fils cachés** (de la cause vers l'effet). Sur les deux biomes du plateau de la
+  partie, dès le chapitre 1.
+- **Catalogues** `trame-reseaux.json` (8 réseaux de 12 cartes), `trame-fils.json` (4 jeux),
+  `trame-reparer.json` (11 mesures, 6 espèces à ranger par plateau) : tables `gl_trame_*`
+  (migration `354`), chargeurs tolérant et strict (`lib/glTrameImport.js`), synchronisation par
+  empreinte, carte d'administration, test de contenu. Les liens acceptés entre espèces réelles
+  rejoignent `gl_species_interactions`, sans rien supprimer.
+- **Cœur pur** `src/gl/defis/trameCore.js` (miroir `lib/shared/glTrameCore.js`), couvert à
+  100 % des branches : classement de chaque flèche (« Lien trouvé », « Regarde le sens », « À
+  discuter » — jamais « faux »), fin d'un niveau, cascade de la trame altérée (les 24 cascades de
+  référence retrouvées exactement), fils cachés, Réparer, indices en échelle.
+- **En partie** : `gl_trame_defis` et `gl_trame_reussites` (migration `355`), routes
+  `GET|POST /api/gl/games/:id/defis`, `GET|PUT …/defis/:defiId`, `POST …/indice`,
+  `GET …/defis/suivi` (CSV). **Sauvegarde stricte** par révision (409 `edit_conflict`) : l'élève
+  reprend sur n'importe quel appareil. Les solutions ne quittent jamais le serveur.
+- **Récompense sans aucune ressource** : à la première réussite de chaque unité, une page de
+  veillée du chapitre au nom de l'élève (jamais un feuillet de zone de chasse, une page de route
+  ni une page dont le titre nomme l'oiseau ; deux par semaine au plus par cette voie), un point de regard, un badge — **Tisserand** et **Révélateur** ne
+  sont plus réservés, **Gardien des fils** et **Réparateur** les rejoignent. En mode équipe, la
+  réussite vaut pour chaque membre présent. Évènement `defi_trame_reussi`, une ligne d'Olu.
+- **Lien entre les peuples** : une trame altérée réussie par une Licorne signale l'espèce
+  retirée dans « À réparer » du carnet de la classe ; le prochain Réparer d'un Gnome la propose
+  en premier. Aucun gain.
+- **Écrans** : entrée « Défis de la Trame » au Seuil et sur la tablette d'équipe hors tour, en
+  plein écran ; flèche par appui sur la carte de départ puis d'arrivée, au doigt comme au
+  clavier ; classement dit par pictogramme, libellé et annonce vocale, jamais par la couleur
+  seule ; liste « relier à… » sur téléphone. Onglet **« Défis »** de la console : lancer pour
+  une équipe, suivi par élève dans l'ordre alphabétique, sans classement, export CSV.
+- **Réglages**, surchargeables par partie : `tenir_defis` (true), `tenir_defis_par_peuple`
+  (true), `tenir_defis_pages_par_semaine` (2), `tenir_defis_mode_equipe` (true).
+- **Outil MCP `gl_seance`** : `apres` compte aussi les défis de la Trame par type (réussites,
+  élèves distincts, pages, défis en cours), sans aucun nom. **E2e**
+  `e2e/gl-tenir-defis-trame.spec.js` : Retisser niveau 5 sur tablette, trame altérée sur
+  téléphone, suivi du prof. Documentation : `docs/GL_DEFIS.md`.
+
+### Corrigé — G&L : texte réservé aux lecteurs d'écran
+
+- La classe `.gl-visually-hidden`, utilisée par plusieurs écrans (dés, pot de sort), n'avait
+  aucun style : ses libellés s'affichaient. Elle est maintenant définie.
+
 ### Ajouté — G&L « Tenir à deux » : tablettes d'équipe, console, défi de case (lot 2 sur 3)
 
 - **Les équipes jouent en même temps.** En hybride et sur tablette, plus d'équipe « active » :

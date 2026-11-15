@@ -294,7 +294,9 @@ les voit, son équipe les voit, vous les voyez ; personne d'autre. On gagne la r
 peuple (gemmes chez les Licornes, cœurs chez les Gnomes) en tenant une page à deux, sur les cases
 de la Trame et quand le carnet de la classe est complet. Rien ne retire une ressource sinon un sort,
 un échange, un don, une case Souffle ou le chapardeur — jamais une mauvaise réponse, jamais le
-voile. Vous pouvez, exceptionnellement, ajuster une bourse avec un motif.
+voile. **Un défi ne donne jamais de ressource** : un défi de case fait reculer le voile, un défi
+de la Trame apporte une page de veillée et un badge. Vous pouvez, exceptionnellement, ajuster
+une bourse avec un motif.
 
 **La place du Marché** : annonces (je cherche, j'offre, je propose), échanges à deux, **dons**
 immédiats, et un **comptoir de parures** pour la mascotte de l'équipe (sans effet de jeu). Un élève

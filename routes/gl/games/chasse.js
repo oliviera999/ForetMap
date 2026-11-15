@@ -228,6 +228,7 @@ router.get(
       tenues: carnet.tenues,
       trouvees: carnet.trouvees,
       carnetCompletAt: carnet.carnetCompletAt,
+      aReparer: carnet.aReparer || [],
     });
   }),
 );

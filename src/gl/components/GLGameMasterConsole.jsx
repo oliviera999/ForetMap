@@ -25,6 +25,9 @@ const GLGameMasterConsoleActiveGameBanner = lazy(
 const GLGameMasterConsoleParties = lazy(() => import('./mj/GLGameMasterConsoleParties.jsx'));
 const GLGameMasterConsoleTeams = lazy(() => import('./mj/GLGameMasterConsoleTeams.jsx'));
 const GLGameMasterConsoleLive = lazy(() => import('./mj/GLGameMasterConsoleLive.jsx'));
+const GLDefisConsolePanel = lazy(() =>
+  import('./defis/GLDefisConsolePanel.jsx').then((m) => ({ default: m.GLDefisConsolePanel })),
+);
 
 function MjSectionFallback() {
   return <p className="gl-hint">Chargement de la section…</p>;
@@ -956,6 +959,17 @@ export function GLGameMasterConsole({
             Jouer le tour
           </button>
         ) : null}
+        {gameState?.tenir?.enabled ? (
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mjSection === 'defis'}
+            className={mjSection === 'defis' ? 'is-active' : ''}
+            onClick={() => setMjSection('defis')}
+          >
+            Défis
+          </button>
+        ) : null}
       </nav>
 
       <Suspense fallback={<MjSectionFallback />}>
@@ -1010,6 +1024,9 @@ export function GLGameMasterConsole({
             profileRecipesEnabled={profileRecipesEnabled}
             scoringEnabled={scoringEnabled}
           />
+        )}
+        {mjSection === 'defis' && gameState?.tenir?.enabled && (
+          <GLDefisConsolePanel game={game} teams={teams} />
         )}
         {mjSection === 'tour' && gameState?.tenir?.enabled && (
           <GLTourScreen
