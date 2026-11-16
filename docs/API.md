@@ -563,7 +563,15 @@ tableau, rien ne change.
   débité. La charge utile d'un pot porte `equipesDuPot`.
 - Une tablette d'équipe ouvre, lit, lance et annule les pots de **son** équipe pendant un tour
   ouvert (`teamId` facultatif ; 403 pour une autre équipe) ; un sort à limite par élève lui est
-  refusé : 403 `SPELL_COMPTE_ELEVE`, « Ce sort se lance depuis ton propre compte. »
+  refusé : 403 `SPELL_COMPTE_ELEVE`, « Ce sort se lance depuis ton propre compte. » Le même
+  403 répond à un compte élève qui envoie le `playerId` d'un camarade sur un sort limité par
+  élève (seul le prof engage un autre élève que lui-même).
+- **Pot figé au lancement** (15 novembre 2026) : `POST …/drafts/:draftId/launch` relit les
+  parts sous le verrou du brouillon ; si une saisie ou un « pas moi » a changé le pot depuis
+  sa lecture, **409 `DRAFT_CHANGED`** (« Le pot vient de changer : relisez les parts puis
+  relancez »), rien n'est débité. `PUT …/contributions` écrit sous ce même verrou et répond
+  **409 `DRAFT_NOT_COLLECTING`** si le pot vient d'être lancé ; `DELETE …/drafts/:draftId`
+  aussi, au lieu d'annuler un sort lancé au même instant.
 - Bourses privées : `GET …/spell-casts/drafts/:draftId` d'un pot « Tenir » répond 403 à une
   autre équipe, et l'annonce temps réel `gl:spell_cast:draft` ne porte plus que
   `{ draftId, type, teamId }` (l'écran qui a ouvert le pot le recharge).
