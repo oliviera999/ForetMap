@@ -319,17 +319,35 @@ de la classe, **sans qu'aucun élève ne se connecte**.
   « Jouer le tour ») : un QR et un code de huit caractères, valables toute l'année.
 - L'équipe scanne le QR avec l'appareil photo de la tablette — ou touche **« J'ai le code de la
   classe »** sur l'écran de connexion et tape le code — puis touche sa mascotte.
+- **La tablette demande alors à rejoindre l'équipe, et attend** (depuis le 17 novembre 2026).
+  La première tablette de chaque équipe est acceptée par le MJ : sur l'écran « Jouer le tour »,
+  le bouton **« Tout accepter »** les fait entrer d'un seul appui en début de séance (ou
+  « Accepter » / « Refuser », une par une). Une tablette de plus pour la même équipe peut être
+  acceptée par un appareil déjà dans l'équipe, qui voit « Une tablette demande à rejoindre
+  l'équipe. ». Sans réponse, la demande s'éteint seule au bout de deux minutes : l'équipe
+  touche de nouveau sa mascotte. Le code de la classe ne suffit donc plus à jouer pour une
+  équipe qui n'est pas la sienne.
 - La tablette a les droits d'un membre de l'équipe, pour cette partie et cette équipe
   seulement, pendant trois heures. Elle n'agit que lorsqu'un tour est ouvert ; le reste du
   temps elle montre le plateau et le carnet, en lecture seule.
 - **Quand aucun tour n'est ouvert, la tablette propose les « Défis de la Trame »** de son
   peuple, et les trois défis ouverts aux deux peuples, pour l'équipe : aucune bourse n'y est touchée, et la réussite vaut pour chaque membre
   présent. Un élève connecté avec son compte les retrouve à son Seuil, pour lui seul.
-- **Au Marché, la tablette demande « Qui agit ? »** : l'équipe touche le prénom de l'élève qui
-  vient avec sa bourse (parmi les présents), sans mot de passe. Le geste est noté pour le MJ.
-  Un élève absent ou mis en retrait n'est pas proposé, et son retrait ne ferme pas le Marché
-  aux autres. Les gestes personnels (journal, badges, sorts réservés à un élève) restent sur
-  le compte de chacun.
+- **La tablette d'équipe ne touche la bourse de personne** (depuis le 17 novembre 2026). Elle
+  fait les gestes de l'équipe : lancer les dés, répondre, fouiller, lire et faire tenir une
+  page, préparer un sort (le coût se partage tout seul entre les présents). **Le Marché, le
+  Seuil et « pas moi » passent par le compte de chacun** — ou par vous. L'ancien « Qui agit ? »
+  a disparu. Les gestes personnels (journal, badges, sorts réservés à un élève) restent eux
+  aussi sur le compte de chacun.
+- **Plusieurs appareils pour une même équipe** : deux tablettes, ou une tablette et les comptes
+  des élèves, peuvent servir la même équipe. Un seul joue à la fois les gestes qui comptent :
+  quand un appareil répond à une question, fouille, fait tenir une page ou prépare un sort, les
+  autres affichent **« Lina répond… »** (le prénom seul ; « Une autre tablette… » pour une
+  tablette) et attendent, une minute au plus. Si deux écrans jouent le même geste au même
+  instant, un seul compte ; l'autre lit « L'équipe a déjà joué ce geste. Voici où vous en
+  êtes. » et se met à jour. Rien n'est jamais retiré à l'équipe.
+- **Un élève absent, ou mis en retrait, regarde** : s'il se connecte avec son compte pendant
+  le tour, il voit tout et ne joue rien. Le tour clos, il rejoue.
 - Le MJ voit les tablettes connectées, peut en déconnecter une, et **régénérer** le QR : l'ancien
   ne vaut alors plus rien et toutes les tablettes sont déconnectées. Recomposer les équipes les
   déconnecte aussi.

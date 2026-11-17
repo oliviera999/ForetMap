@@ -300,7 +300,9 @@ une bourse avec un motif.
 
 **La place du Marché** : annonces (je cherche, j'offre, je propose), échanges à deux, **dons**
 immédiats, et un **comptoir de parures** pour la mascotte de l'équipe (sans effet de jeu). Un élève
-en retrait ne voit pas la place.
+en retrait ne voit pas la place. **Chacun vient au Marché avec son propre compte** : depuis le
+17 novembre 2026, la tablette de l'équipe ne l'ouvre plus (une bourse ne bouge que depuis le
+compte de son propriétaire, ou par le MJ).
 
 **Le grimoire** : chaque sort a un peuple, un coût, une fenêtre (avant le jet, après le jet, en
 phase jeu, au seuil…) et une limite (par tour et par équipe, par partie, par chapitre et par élève,

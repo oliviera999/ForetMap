@@ -382,8 +382,11 @@ parallèle. Au tableau, rien ne change.
 - **Une tablette par équipe, sans compte.** Sur l'écran « Jouer le tour », le bouton **« QR de
   la classe »** affiche une feuille à imprimer une fois pour l'année : un QR et un code de huit
   caractères. L'équipe scanne le QR avec l'appareil photo de la tablette (ou tape le code depuis
-  « J'ai le code de la classe »), puis touche sa mascotte. La tablette joue pour l'équipe, le
-  temps de la séance. Vous voyez les tablettes connectées et pouvez en **déconnecter** une.
+  « J'ai le code de la classe »), puis touche sa mascotte. **La tablette demande alors à
+  entrer : touchez « Tout accepter »** en début de séance (ou « Accepter » / « Refuser », une
+  par une). Une demande sans réponse s'éteint seule au bout de deux minutes. La tablette joue
+  pour l'équipe, le temps de la séance. Vous voyez les tablettes connectées et pouvez en
+  **déconnecter** une.
   « Régénérer… » annule l'ancien QR et déconnecte toutes les tablettes. Un élève connecté avec
   son propre compte arrive sur le même écran d'équipe.
 - **Chacun est présent par défaut.** Plus rien à confirmer à l'ouverture du tour : une équipe
@@ -392,8 +395,10 @@ parallèle. Au tableau, rien ne change.
   d'arriver ». Vous pouvez faire la même chose depuis votre écran. _(Depuis le 17 novembre 2026 :
   auparavant, chaque équipe devait confirmer ses présences avant de lancer un sort.)_
 - **Un sort se paie à plusieurs, sans calcul.** Sur la tablette, le coût se partage seul entre
-  les présents ; un élève qui ne veut pas verser touche « pas moi » sur sa ligne. La bourse de
-  chacun reste la sienne : une équipe ne voit jamais le pot d'une autre.
+  les présents ; un élève qui ne veut pas verser touche « pas moi » sur sa ligne **depuis son
+  propre compte** (ou vous le faites pour lui : depuis le 17 novembre 2026, la tablette de
+  l'équipe ne le propose plus). La bourse de chacun reste la sienne : une équipe ne voit jamais
+  le pot d'une autre.
 - **Tout ce qui attend votre geste est au même endroit.** Le panneau **« Demandes »** réunit
   les dés à valider, les jets en suspens, les sorts à honorer, les Lettres à relire, les
   Mentorats à écouter, les chimères à relire, les défis à juger. Une ligne par demande, la plus ancienne en haut, un
@@ -451,6 +456,25 @@ parallèle. Au tableau, rien ne change.
   **« Court »** réserve la lecture des pages à la veillée, pour une séance plus brève. La Farce
   ne vise plus une équipe déjà sous le voile. Détail dans
   [Économie, Marché et sorts](economie-marche-sorts.md).
+
+### Ensemble unifié : plusieurs écrans par équipe (17 novembre 2026)
+
+- **Deux tablettes, ou une tablette et des comptes d'élèves, pour une même équipe.** Vous
+  acceptez la première tablette de chaque équipe ; les suivantes peuvent l'être par un appareil
+  déjà dans l'équipe.
+- **Un seul écran joue à la fois les gestes qui comptent.** Quand un appareil répond, fouille,
+  fait tenir une page ou prépare un sort, les autres affichent « Lina répond… » et attendent,
+  une minute au plus. Si deux écrans jouent le même geste au même instant, un seul compte ;
+  l'autre lit « L'équipe a déjà joué ce geste. Voici où vous en êtes. ». Vous, vous n'êtes
+  jamais retenu : votre geste pour une équipe passe toujours.
+- **Le temps de se mettre d'accord.** Sur une question de case, le bouton « Valider » s'allume
+  après huit secondes (réglage « Délai de débat », de 0 à 60 secondes ; 0 pour l'enlever).
+- **La bourse suit son propriétaire.** La tablette de l'équipe ne va plus au Marché et ne dit
+  plus « pas moi » pour un élève : chacun le fait depuis son compte, ou vous le faites pour lui.
+  Le coût d'un sort d'équipe se partage toujours tout seul entre les présents.
+- **Un absent regarde.** Un élève noté absent, ou mis en retrait, qui se connecte avec son
+  compte pendant le tour voit tout et ne joue rien. Il rejoue dès que le tour est clos, ou dès
+  qu'un camarade ou vous-même le dites arrivé.
 
 ### Ensemble unifié : moins de gestes pour vous (17 novembre 2026)
 

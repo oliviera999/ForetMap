@@ -65,6 +65,37 @@ Côté serveur : `assertActionOuverte` (`lib/glTour.js`) pour lancer / répondre
 (`lib/glSpellCast.js`) pour les sorts. Refus : 403 `TENIR_PERMISSION`, 409 `TENIR_PHASE`.
 Les routes prof portent `requireGlPermission('gl.game.manage')`.
 
+## Plusieurs appareils par équipe (ensemble unifié, M13)
+
+Une équipe joue sur plusieurs écrans (tablettes de classe, comptes de ses élèves). L'état vit
+dans `gl_team_etat` (une ligne par équipe, née à son premier geste) — **jamais dans `gl_teams`**,
+dont les transactions du moteur verrouillent la ligne (un compteur posé dessus s'y interbloquait).
+
+- Cœur pur `src/shared/glMainCore.js` (miroir `lib/shared/`) ; serveur `lib/glEquipeEtat.js`.
+- **`gardeDEquipe({ prend?, rend?, sansMain? })`** se pose sur une route d'équipe, après le
+  middleware d'authentification. Elle fait trois choses pendant un tour ouvert d'une partie
+  « Tenir » (et laisse passer sinon) :
+  1. **version d'état** : l'écran envoie la version vue (`X-GL-Etat-Version`) ; un `UPDATE`
+     conditionnel l'avance — périmée, 409 `ETAT_PERIME`, sans perte. Un geste que le moteur
+     refuse rend sa version ; un geste abouti rend `etatVersion` dans sa réponse ;
+  2. **la main** : `prend: 'repondre' | 'fouiller' | 'tenir' | 'sort'` la prend pour 60 s au
+     plus ; `rend: true` la rend à la fin du geste (la route peut poser
+     `req.glGarde.rend = false` pour la garder : une fouille qui ouvre une question). Un autre
+     appareil reçoit 409 `MAIN_AILLEURS`. Elle se rend aussi à l'échéance, sur
+     `POST …/tenir/main/rendre`, à la déconnexion de la socket, au changement de phase ;
+  3. **absent spectateur** : compte d'élève absent du tour ou en retrait → 403 `SPECTATEUR`.
+- Le prof n'est jamais retenu ; son geste pour une équipe avance la version. Un geste
+  **personnel** (sa part d'un pot, « pas moi ») ne passe pas par la garde.
+- **Bourses au propriétaire** : une tablette d'équipe ne touche la bourse de personne
+  (`resolveActingPlayer` → 403 `BOURSE_AU_PROPRIETAIRE` ; Marché fermé aux sessions d'équipe).
+  « Qui agit ? » a disparu.
+- **Sessions protégées** (`lib/glGuestToken.js`) : `issueTeamSession` rend une **demande**
+  (`accepted_at` nul, deux minutes) ; `acceptTeamSessions` la fait valoir 3 heures. En test :
+  `ouvrirTablette` (`tests/helpers/glTenirFixtures.js`) rend une tablette déjà acceptée.
+- Écran : bloc `tenir.equipe` (`version`, `main`, `appareils`), `tenir.spectateur`, signal socket
+  `gl:game:equipe` (sans donnée : on recharge), `GLEquipeAppareils`.
+- Un geste d'équipe nouveau : poser `gardeDEquipe()` sur sa route, et rien d'autre.
+
 ## Écrire dans une partie
 
 - Une route = `withTransaction(async (tx) => …)` puis `emitAll(gameId, events)` **après** le
@@ -97,7 +128,8 @@ Les routes prof portent `requireGlPermission('gl.game.manage')`.
 ## Brancher un nouveau geste : la liste
 
 1. Le droit dans `glTenirPermissionsCore` (puis `npm run sync:shared-cores`) et son contrôle serveur.
-2. La fonction `…Tx` dans le module du domaine, la route dans `routes/gl/games/`.
+2. La fonction `…Tx` dans le module du domaine, la route dans `routes/gl/games/`, avec
+   `gardeDEquipe()` si une équipe le joue pendant le tour (version d'état, main, spectateur).
 3. L'évènement, son libellé de journal, son éventuelle ligne d'Olu (`lib/glTenirOlu.js`).
 4. Sa **sortie automatique** s'il attend quelqu'un (changement de phase, clôture, séance
    suivante, camp).
