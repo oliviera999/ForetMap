@@ -970,7 +970,16 @@ router.put(
         gameId,
         result.events.map((e) =>
           e.eventType === 'team_spirit'
-            ? { ...e, payload: { roundNumber, bilans: result.bilans, redacted: true } }
+            ? {
+                ...e,
+                payload: {
+                  roundNumber,
+                  bilans: result.bilans,
+                  redacted: true,
+                  // La ligne d'Olu « première fois » se dit à toute la classe.
+                  ...(e.payload?.olu ? { olu: e.payload.olu } : {}),
+                },
+              }
             : e,
         ),
       );

@@ -26,7 +26,12 @@ CATEGORIES = {"biome", "ecosystemes", "faune", "flore", "geologie", "perturbatio
 ZONES_PAR_PLATEAU = {1: 8, 2: 8, 3: 10, 4: 10}
 FEUILLETS_INTERDITS = {"ep-I-02", "ep-I-13", "ep-III-06", "ep-I-16", "ep-I-17", "ep-III-01", "ep-I-03", "ep-I-04"}
 MOMENTS = {"ouverture", "jet", "question", "fouille", "tenir", "voile", "sort", "seuil", "peripetie", "bestiaire", "oiseau", "erreur", "bourse_pleine",
-           "defi_case_recu", "defi_case_releve", "defi_case_pas_encore", "defi_trame_reussi"}
+           "defi_case_recu", "defi_case_releve", "defi_case_pas_encore", "defi_trame_reussi", "premiere_fois"}
+PREMIERE_FOIS_CLES = {
+    "avancer", "question_pas_encore", "chercher", "chaud_froid", "peripetie", "defi_case", "trame", "role",
+    "tenir", "erreur_du_jour", "voile", "sous_le_voile", "page_temoin", "palissement", "sorts", "lumiere",
+    "marche", "un_de_pose", "un_de_joue", "main", "camp", "cordee_offerte", "lettre",
+}
 EXPRESSIONS = {"neutre", "joie", "curieux", "surpris", "agace", "pensif", "explique", "peur"}
 BIOMES_TITRES = {"tropiques", "aride", "tempere", "grands_froids"}
 PEUPLES = {"any", "gnome", "unicorn", "pacte", "classe"}
@@ -559,11 +564,13 @@ def check_olu(d, rep):
         rep.err(f"{name}: `lignes` doit être une liste")
         return
     seen = set()
+    cles = set()
     moments = set()
     n_err = 0
     for l in items:
         lid = str(l.get("id", "?"))
-        allowed = ["id", "moment", "expression", "texte", "variables", "correction", "plateaux", "actif"]
+        allowed = ["id", "moment", "expression", "texte", "variables", "correction", "plateaux", "actif",
+                   "cle", "seance_escalier"]
         extra = [k for k in l if k not in allowed]
         if "actif" in l and not isinstance(l["actif"], bool):
             rep.err(f"{name} {lid}: actif doit être un booléen")
@@ -573,6 +580,17 @@ def check_olu(d, rep):
         if lid in seen:
             rep.err(f"{name} {lid}: id en double")
         seen.add(lid)
+        if l.get("moment") == "premiere_fois":
+            if l.get("cle") not in PREMIERE_FOIS_CLES:
+                rep.err(f"{name} {lid}: cle {l.get('cle')!r} inconnue")
+            if l.get("cle") in cles:
+                rep.err(f"{name} {lid}: cle {l.get('cle')!r} en double")
+            cles.add(l.get("cle"))
+            se = l.get("seance_escalier")
+            if not isinstance(se, int) or isinstance(se, bool) or not 0 <= se <= 6:
+                rep.err(f"{name} {lid}: seance_escalier entier de 0 à 6")
+        elif "cle" in l or "seance_escalier" in l:
+            rep.err(f"{name} {lid}: cle et seance_escalier réservées au moment premiere_fois")
         if l.get("moment") not in MOMENTS:
             rep.err(f"{name} {lid}: moment {l.get('moment')!r} invalide")
         moments.add(l.get("moment"))
@@ -606,6 +624,8 @@ def check_olu(d, rep):
         rep.warn(f"{name}: aucune ligne pour le moment {m}")
     if n_err < 5:
         rep.err(f"{name}: {n_err} erreurs volontaires, au moins 5 attendues")
+    if cles != PREMIERE_FOIS_CLES:
+        rep.err(f"{name}: lignes « première fois » manquantes {sorted(PREMIERE_FOIS_CLES - cles)}")
 
 
 def check_parures(d, rep):

@@ -232,7 +232,7 @@ async function loadOluLignes() {
   let rows = [];
   try {
     rows = await queryAll(
-      'SELECT id, moment, expression, texte, variables_json, correction FROM gl_tenir_olu_lignes WHERE actif = 1 ORDER BY id ASC',
+      'SELECT id, moment, expression, texte, variables_json FROM gl_tenir_olu_lignes WHERE actif = 1 ORDER BY id ASC',
     );
   } catch (_) {
     rows = [];
