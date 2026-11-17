@@ -41,13 +41,13 @@ rencontre les règles une à une au lieu de les entendre d'un bloc.
   (`escalier`, `escalier_pas`) : + 1 à chaque tour clos, + 1 sur « Ouvrir la suite »
   (`POST /api/gl/games/:id/tenir/escalier/suite`), jamais en arrière. **Page témoin** : à
   l'ouverture de la séance 3, la zone endormie la plus proche du départ pâlit d'office. Nouveau
-  réglage `gameplay.tenir_escalier` (`true`). Migration 368.
+  réglage `gameplay.tenir_escalier` (`true`). Migration 369.
 - **Olu « première fois » (M8, étape 2.2)** : 23 lignes dites une seule fois par partie (par
   équipe quand la ligne porte `{equipe}`), à la première occurrence du geste ; le serveur désigne
   la ligne sur l'évènement (`payload.olu`) et s'en souvient (`gl_game_olu_premieres`). Une ligne
   ne se dit pas pour ce que la partie n'a pas (rôles au tableau, camp au plateau 4, défis,
   Lumière ou Marché coupés). La ligne « un seul écran joue à la fois » attend la PR 3.
-  Migration 369.
+  Migration 370.
 - **Deux écrans (M8, M10, étape 2.3)** : « Maintenant, vous pouvez… » en tête de l'écran
   d'équipe — les gestes possibles à cet instant, chacun avec l'appel du rôle (Gestionnaire,
   Éclaireuse ou Éclaireur, Opératrice ou Opérateur, Secrétaire, Assistante ou Assistant ;
@@ -58,12 +58,12 @@ rencontre les règles une à une au lieu de les entendre d'un bloc.
 - **Une seule limite de veillée (M8, étape 2.4)** : `gameplay.tenir_pages_par_semaine` (4) — un
   compteur par élève et par semaine ISO, toutes sources (page tenue en veillée, défi de la
   Trame) ; `tenir_pistes_par_semaine` (1) reste à part. Le carnet et la liste des défis disent
-  « Encore N pages à gagner cette semaine. » Migration 367.
+  « Encore N pages à gagner cette semaine. » Migration 368.
 - **Trois défis de la Trame de plus (M21, étape 2.5)**, ouverts aux deux peuples, sans nouvel
   écran : « Le bon rôle » et « Le bon pays » (type `ranger`, catalogue `trame-ranger.json`),
   « Les fils de l'adaptation » (type `adaptation`, catalogue `trame-adaptations.json`). Les
   solutions ne quittent pas le serveur ; jamais de gemme. « Gardien des fils » compte aussi les
-  fils de l'adaptation ; badge « Bon rangeur » proposé. Migration 366.
+  fils de l'adaptation ; badge « Bon rangeur » proposé. Migration 367.
 - **Retiré** : le profil `prologue` (une partie qui le portait passe en `complet` avec
   l'escalier), les réglages `tenir_pages_veillee_par_semaine` et `tenir_defis_pages_par_semaine`,
   le Marché éteint d'office à la création d'une partie du chapitre 1 (l'escalier l'ouvre à la

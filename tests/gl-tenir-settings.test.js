@@ -144,7 +144,7 @@ test('résolution : profil court → Marché et lecture en veillée ; override p
   assert.equal(override.max_health_points, 8);
   assert.equal(override.lore_gemme_costs_enabled, false);
   // Ensemble unifié (M8) : `prologue` n'est plus un profil — une ligne restée en base (avant la
-  // migration 368) se résout sans écart et sans profil.
+  // migration 369) se résout sans écart et sans profil.
   const disparu = resolveTenirSettings(settings, { tenir_profil: 'prologue' });
   assert.equal(disparu.profil, null);
   assert.equal(disparu.voile, true);

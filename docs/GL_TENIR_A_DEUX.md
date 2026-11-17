@@ -82,10 +82,10 @@ chasse initialisées, les Héritages de la classe versés.
 | 363 | ensemble unifié (M14) : présences sans confirmation — les demandes `presence_a_confirmer` encore en attente sont fermées |
 | 364 | ensemble unifié (L2) : cases d'arrivée des plateaux 1 à 4, « l'honneur de l'Avant-garde » (description et promesse, gardé par l'ancien texte) |
 | 365 | ensemble unifié (M22, L5) : `gl_chasse_zones.glossaire_json`, `gl_tenir_questions_lecture.retours_json`, 5 questions de zone `GQCM9301` à `GQCM9305`, fiche `SP0277`, termes `GL0279` et `GL0280`, une phrase ajoutée à `GL0038` et `GL0192`, `usage_tenir = 0` pour les 5 questions remplacées |
-| 366 | ensemble unifié (M21) : catalogues `gl_trame_ranger_familles`, `gl_trame_ranger_jeux`, `gl_trame_ranger_cartes`, `gl_trame_adaptation_jeux`, `gl_trame_adaptation_cartes`, `gl_trame_adaptation_liens` ; types `ranger` et `adaptation` dans `gl_trame_defis.type` et `gl_trame_reussites.type` |
-| 367 | ensemble unifié (M8) : `tenir_pages_par_semaine` (4, somme des deux anciennes limites reprise) remplace `tenir_pages_veillee_par_semaine` et `tenir_defis_pages_par_semaine` |
-| 368 | ensemble unifié (M8) : réglage `tenir_escalier` (true) ; une partie restée en profil `prologue` passe en `complet` avec `escalier` et `escalier_pas` (tours clos + 1, 4 au plus) dans ses surcharges |
-| 369 | ensemble unifié (M8) : `gl_tenir_olu_lignes.id` à 48 caractères, colonnes `cle` et `seance_escalier` ; mémoire `gl_game_olu_premieres` (partie, clé, équipe ou 0) |
+| 367 | ensemble unifié (M21) : catalogues `gl_trame_ranger_familles`, `gl_trame_ranger_jeux`, `gl_trame_ranger_cartes`, `gl_trame_adaptation_jeux`, `gl_trame_adaptation_cartes`, `gl_trame_adaptation_liens` ; types `ranger` et `adaptation` dans `gl_trame_defis.type` et `gl_trame_reussites.type` |
+| 368 | ensemble unifié (M8) : `tenir_pages_par_semaine` (4, somme des deux anciennes limites reprise) remplace `tenir_pages_veillee_par_semaine` et `tenir_defis_pages_par_semaine` |
+| 369 | ensemble unifié (M8) : réglage `tenir_escalier` (true) ; une partie restée en profil `prologue` passe en `complet` avec `escalier` et `escalier_pas` (tours clos + 1, 4 au plus) dans ses surcharges |
+| 370 | ensemble unifié (M8) : `gl_tenir_olu_lignes.id` à 48 caractères, colonnes `cle` et `seance_escalier` ; mémoire `gl_game_olu_premieres` (partie, clé, équipe ou 0) |
 
 Le chargeur `npm run gl:import:tenir -- --fichier tous|<nom> [--dry-run] [--forcer] [--strict]`
 (`lib/glTenirImport.js`, données `data/gl/tenir/`, README des clés) reste maître des catalogues ;

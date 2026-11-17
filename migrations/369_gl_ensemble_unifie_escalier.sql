@@ -1,5 +1,5 @@
 -- =====================================================================
--- 368 — G&L ensemble unifié, PR 2, étape 2.1 : l'escalier du chapitre 1 (M8).
+-- 369 — G&L ensemble unifié, PR 2, étape 2.1 : l'escalier du chapitre 1 (M8).
 --
 -- Au plateau 1, les règles s'ouvrent séance après séance (`src/shared/glTenirEscalierCore.js`).
 -- L'escalier remplace le profil `prologue` : son état vit dans les surcharges de la partie

@@ -438,11 +438,11 @@ test('une partie hors escalier garde toutes ses règles dès le premier tour (pl
   assert.equal(suite.body.code, 'ESCALIER_INACTIF');
 });
 
-test('migration 368 : une partie restée en profil prologue passe en complet, avec l’escalier à sa séance', async () => {
+test('migration 369 : une partie restée en profil prologue passe en complet, avec l’escalier à sa séance', async () => {
   const fs = require('node:fs');
   const path = require('node:path');
   const sql = fs.readFileSync(
-    path.join(__dirname, '..', 'migrations', '368_gl_ensemble_unifie_escalier.sql'),
+    path.join(__dirname, '..', 'migrations', '369_gl_ensemble_unifie_escalier.sql'),
     'utf8',
   );
   const update = sql.slice(sql.indexOf('UPDATE gl_games g')).replace(/;\s*$/, '');

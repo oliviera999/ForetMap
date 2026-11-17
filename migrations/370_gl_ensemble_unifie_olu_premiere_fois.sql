@@ -1,5 +1,5 @@
 -- =====================================================================
--- 369 — G&L ensemble unifié, PR 2, étape 2.2 : Olu « première fois » (M8).
+-- 370 — G&L ensemble unifié, PR 2, étape 2.2 : Olu « première fois » (M8).
 --
 -- 23 lignes dites une seule fois par partie (ou par équipe quand la ligne porte `{equipe}`), à
 -- la première occurrence d'un évènement : Olu dit le geste au moment où la classe le rencontre.

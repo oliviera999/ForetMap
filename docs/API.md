@@ -814,7 +814,7 @@ camp ou en veillée » ; badges `lecture.tenues` Porte-page, `voyage.chapitres` 
 
 #### Ensemble unifié, PR 2 — apprendre en jouant (17 novembre 2026)
 
-Prompt `docs/GL_ENSEMBLE_UNIFIE_PROMPT.md` § 7. Migrations 366 à 369.
+Prompt `docs/GL_ENSEMBLE_UNIFIE_PROMPT.md` § 7. Migrations 367 à 370.
 
 **L'escalier du chapitre 1 (M8).** Au plateau 1, les règles s'ouvrent séance après séance
 (cœur pur `src/shared/glTenirEscalierCore.js`, miroir `lib/shared/` ; côté partie
@@ -847,7 +847,7 @@ Lumière ; 4 le Marché, trois sorts (`SL005`, `SL036`, `SL004`).
   tour), la zone `endormie` la plus proche du départ passe `palie`, une seule fois par partie.
 - Évènements : `escalier_pas` `{ pas, modules, sorts, motif: 'tour_clos' | 'prof', roundNumber }`,
   `page_temoin` `{ zoneKey, roundNumber }`.
-- Le profil `prologue` est supprimé (migration 368 : `complet` + escalier à la séance atteinte).
+- Le profil `prologue` est supprimé (migration 369 : `complet` + escalier à la séance atteinte).
 
 **Olu « première fois » (M8).** `olu-lignes.json` porte 23 lignes de moment `premiere_fois`
 (`cle`, `seance_escalier`). Le serveur les désigne sur l'évènement qui les déclenche :
@@ -877,7 +877,7 @@ Catalogues nouveaux de `GET/POST /api/gl/admin/tenir/catalogues[/sync]` : `trame
 
 **Réglages.** Nouveaux : `gameplay.tenir_pages_par_semaine` (entier 0 à 20, défaut 4),
 `gameplay.tenir_escalier` (booléen, défaut `true`). Retirés : `tenir_pages_veillee_par_semaine`,
-`tenir_defis_pages_par_semaine` (migration 367 : la somme des deux valeurs est reprise).
+`tenir_defis_pages_par_semaine` (migration 368 : la somme des deux valeurs est reprise).
 
 #### Défi de case (lot 2)
 

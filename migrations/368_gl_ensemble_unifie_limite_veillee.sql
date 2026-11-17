@@ -1,5 +1,5 @@
 -- =====================================================================
--- 367 — G&L ensemble unifié, PR 2, étape 2.4 : une seule limite de veillée (M8).
+-- 368 — G&L ensemble unifié, PR 2, étape 2.4 : une seule limite de veillée (M8).
 --
 -- `gameplay.tenir_pages_par_semaine` (4) remplace `tenir_pages_veillee_par_semaine` (2) et
 -- `tenir_defis_pages_par_semaine` (2) : un seul compteur par élève et par semaine ISO, toutes

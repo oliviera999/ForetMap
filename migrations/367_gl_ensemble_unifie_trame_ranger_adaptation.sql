@@ -1,5 +1,5 @@
 -- =====================================================================
--- 366 — G&L ensemble unifié, PR 2, étape 2.5 : trois défis de la Trame de plus (M21).
+-- 367 — G&L ensemble unifié, PR 2, étape 2.5 : trois défis de la Trame de plus (M21).
 --
 -- « Le bon rôle » et « Le bon pays » (type `ranger`, catalogue `trame-ranger.json`) et « Les fils
 -- de l'adaptation » (type `adaptation`, catalogue `trame-adaptations.json`), ouverts aux deux
