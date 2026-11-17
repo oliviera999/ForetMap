@@ -38,6 +38,10 @@ const TENIR_FLAGS = [
     'Péripéties aussi sur les cases sans effet (tonalité négative ou neutre)',
   ],
   ['gameplay.tenir_olu_erreur_du_jour', 'Erreur du jour d’Olu (filtrée par plateau)'],
+  [
+    'gameplay.tenir_escalier',
+    'Escalier du chapitre 1 : une partie neuve du plateau 1 ouvre ses règles séance après séance',
+  ],
   ['gameplay.tenir_sablier_actif', 'Sabliers (équipe active, tour, défis)'],
   ['gameplay.tenir_sablier_phase_auto', 'Sablier du tour : passer au souffle à la fin'],
   [
@@ -189,9 +193,9 @@ export function GLTenirSettings({ settings, savingKey, onSaveSetting, onToggle }
       <h4>Tenir à deux (mouture v2)</h4>
       <p className="gl-hint">
         Deux monnaies par élève (plafond 8/8), chasse aux pages, voile, grimoire exécuté, Marché
-        complet. Chaque partie porte un profil (<em>complet</em>, <em>prologue</em> ou{' '}
-        <em>court</em>) et peut surcharger la surface, les dés, le voile, le Marché, le chapardeur
-        et les péripéties.
+        complet. Chaque partie porte un profil (<em>complet</em> ou <em>court</em>) et peut
+        surcharger la surface, les dés, le voile, le Marché, le chapardeur et les péripéties. Au
+        plateau 1, une partie neuve monte l’escalier : ses règles s’ouvrent séance après séance.
       </p>
       {TENIR_FLAGS.map(([key, label]) => (
         <label key={key} className="gl-gameplay-toggle-row">

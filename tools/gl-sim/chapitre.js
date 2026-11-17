@@ -92,6 +92,7 @@ async function jouerChapitre({
     plateau,
     surface: scenario.surface,
     profil: scenario.profil || 'complet',
+    escalier: scenario.escalier === true,
     composition,
     rng,
     nom: `Sim ${scenario.id}`,

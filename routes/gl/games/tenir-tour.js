@@ -1001,7 +1001,8 @@ router.get(
         note: r.note || null,
         saisiAt: r.saisi_at,
       })),
-      lumiere: await tour.loadLumiere(db, gameId, ctx.resolved),
+      // Réglages résolus de la partie : la jauge dit si elle est montrée (`active`).
+      lumiere: await tour.loadLumiere(db, gameId, resolveTenirSettings(ctx.settings, ctx.game)),
     });
   }),
 );

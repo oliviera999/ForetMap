@@ -52,6 +52,8 @@ const PAIRS = Object.freeze([
   ['src/shared/fresque/fresqueCore.js', 'fresqueCore.js'],
   // « Tenir à deux » v2 : permissions par surface (serveur = vérité, client = grisage).
   ['src/shared/glTenirPermissionsCore.js', 'glTenirPermissionsCore.js'],
+  // « Tenir à deux », ensemble unifié (M8) : l'escalier du chapitre 1 (modules ouverts par séance).
+  ['src/shared/glTenirEscalierCore.js', 'glTenirEscalierCore.js'],
   // « Tenir à deux » : vérité des cases (effet appliqué = texte lu par l'élève).
   ['src/shared/glTenirCaseEffetCore.js', 'glTenirCaseEffetCore.js'],
   // « Tenir à deux » : liste unique des chaînes jamais visibles d'un élève (garde-fous § 1).

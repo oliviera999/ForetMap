@@ -127,23 +127,28 @@ test('les plafonds 8/8 sont effectifs sur applyPlayerVitalityDelta', async () =>
   assert.equal(result.healthCapped, true);
 });
 
-test('résolution : profil prologue → voile/marche/chapardeur faux et 8 zones ; override par partie prioritaire', async () => {
+test('résolution : profil court → Marché et lecture en veillée ; override par partie prioritaire ; un profil disparu ne donne aucun écart', async () => {
   const settings = await getGameplaySettings({ forceRefresh: true });
-  const prologue = resolveTenirSettings(settings, { tenir_profil: 'prologue' });
-  assert.equal(prologue.voile, false);
-  assert.equal(prologue.marche, false);
-  assert.equal(prologue.chapardeur, false);
-  assert.deepEqual(prologue.zones_par_plateau, { 1: 8, 2: 8, 3: 8, 4: 8 });
-  assert.equal(prologue.vent, true);
+  const court = resolveTenirSettings(settings, { tenir_profil: 'court' });
+  assert.equal(court.marche_pendant_tour, false);
+  assert.equal(court.lecture_pendant_tour, false);
+  assert.equal(court.voile, true);
+  assert.equal(court.vent, true);
   const override = resolveTenirSettings(settings, {
-    tenir_profil: 'prologue',
-    tenir_overrides_json: JSON.stringify({ voile: true, surface: 'tablette' }),
+    tenir_profil: 'court',
+    tenir_overrides_json: JSON.stringify({ voile: false, surface: 'tablette' }),
   });
-  assert.equal(override.voile, true);
+  assert.equal(override.voile, false);
   assert.equal(override.surface, 'tablette');
-  assert.equal(override.marche, false);
+  assert.equal(override.marche_pendant_tour, false);
   assert.equal(override.max_health_points, 8);
   assert.equal(override.lore_gemme_costs_enabled, false);
+  // Ensemble unifié (M8) : `prologue` n'est plus un profil — une ligne restée en base (avant la
+  // migration 368) se résout sans écart et sans profil.
+  const disparu = resolveTenirSettings(settings, { tenir_profil: 'prologue' });
+  assert.equal(disparu.profil, null);
+  assert.equal(disparu.voile, true);
+  assert.equal(disparu.marche, true);
 });
 
 test('des_mode : serveur par défaut sur tablette, physique ailleurs, surcharge des_mode prioritaire', async () => {

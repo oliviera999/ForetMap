@@ -24,6 +24,7 @@ const {
   TENIR_PROFILS,
   validateOverrides,
 } = require('../../lib/glTenir');
+const { surchargesDeCreation } = require('../../lib/glEscalier');
 
 const { parsePct, validateEventPayload } = require('../../lib/gl/gameEventPayload');
 const { buildDynamicUpdate, hasAnyDynamicField } = require('../../lib/gl/buildDynamicUpdate');
@@ -198,8 +199,11 @@ const COLONNES_COPIEES = Object.freeze([
   'board_path_start_index',
 ]);
 
-/** Surcharges qui décrivent un état passager de la séance, jamais une configuration. */
-const SURCHARGES_PASSAGERES = Object.freeze(['surface_avant_tableau']);
+/**
+ * Surcharges qui décrivent un état passager de la séance, jamais une configuration. L'escalier
+ * d'une partie (M8) raconte ses propres séances : il ne se copie pas, la création le repose.
+ */
+const SURCHARGES_PASSAGERES = Object.freeze(['surface_avant_tableau', 'escalier', 'escalier_pas']);
 
 /**
  * Configuration d'une partie, pour en créer une autre : profil, surface, surcharges « Tenir »
@@ -258,17 +262,11 @@ router.post(
     if (!chapterRow) return res.status(404).json({ error: 'Chapitre introuvable' });
 
     // « Tenir à deux » : une partie née quand le mode est actif porte le profil `complet`
-    // (surface = réglage par défaut) ; le MJ peut passer en `prologue` d'un clic.
+    // (surface = réglage par défaut).
     const gameplay = await getGameplaySettings();
     const tenirProfil = isTenirEnabled(gameplay) ? 'complet' : null;
     const tenirSurface = tenirProfil ? gameplay.tenirSurface || 'tableau' : null;
-    // Lot 2 (étape 2.10) : au chapitre 1, la classe apprend le tour — le Marché est éteint
-    // d'office par une surcharge de la partie, que le prof rallume d'un clic. Les parties
-    // existantes ne changent pas.
-    let tenirOverrides =
-      tenirProfil && Number(chapterRow.plateau_number) === 1
-        ? JSON.stringify({ marche: false })
-        : null;
+    let tenirOverrides = null;
     // Ensemble unifié (M14) — « Copier la configuration » : la nouvelle partie reprend le profil,
     // la surface, les surcharges et les bascules d'une partie existante. Ni les équipes, ni les
     // pions, ni les bourses, ni rien de ce qui s'y est joué.
@@ -281,6 +279,22 @@ router.post(
       copie = await copierConfiguration(copyFromGameId, { tenir: !!tenirProfil });
       if (!copie) return res.status(404).json({ error: 'Partie à copier introuvable' });
       if (copie.tenirOverrides !== undefined) tenirOverrides = copie.tenirOverrides;
+    }
+    // Ensemble unifié (M8) : au plateau 1, la classe apprend en jouant — la partie monte
+    // l'escalier depuis sa première marche (réglage `tenir_escalier`), copie ou non. Il remplace
+    // le Marché éteint d'office du lot 2 et le profil `prologue`. Le prof le coupe d'un clic.
+    if (tenirProfil) {
+      let surcharges = null;
+      try {
+        surcharges = tenirOverrides ? JSON.parse(tenirOverrides) : null;
+      } catch (_) {
+        surcharges = null;
+      }
+      const avecEscalier = surchargesDeCreation(surcharges, {
+        plateau: chapterRow.plateau_number,
+        gameplay,
+      });
+      tenirOverrides = avecEscalier ? JSON.stringify(avecEscalier) : null;
     }
     let insertResult;
     try {

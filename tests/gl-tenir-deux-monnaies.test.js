@@ -196,15 +196,21 @@ test('retrait : entrée/sortie, exclu du pot, 403 Marché, bourses intactes, mot
   assert.equal(after.status, 200);
 });
 
-test('profil : PUT /tenir/profil passe en prologue (voile, Marché, chapardeur coupés), surcharge de surface', async () => {
+test('profil : PUT /tenir/profil coupe le voile et le Marché par surcharge, surcharge de surface ; le profil prologue n’existe plus', async () => {
   const res = await request(app)
     .put(`/api/gl/games/${ctx.game.id}/tenir/profil`)
     .set('Authorization', `Bearer ${ctx.adminToken}`)
-    .send({ profil: 'prologue', overrides: { surface: 'hybride' } });
+    .send({ profil: 'complet', overrides: { surface: 'hybride', voile: false, marche: false } });
   assert.equal(res.status, 200, JSON.stringify(res.body));
   assert.equal(res.body.settings.voile, false);
   assert.equal(res.body.settings.marche, false);
   assert.equal(res.body.surface, 'hybride');
+  // Ensemble unifié (M8) : l'escalier du chapitre 1 remplace le profil `prologue`.
+  const prologue = await request(app)
+    .put(`/api/gl/games/${ctx.game.id}/tenir/profil`)
+    .set('Authorization', `Bearer ${ctx.adminToken}`)
+    .send({ profil: 'prologue' });
+  assert.equal(prologue.status, 400);
   const bad = await request(app)
     .put(`/api/gl/games/${ctx.game.id}/tenir/profil`)
     .set('Authorization', `Bearer ${ctx.adminToken}`)

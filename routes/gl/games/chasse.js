@@ -48,6 +48,8 @@ const CHASSE_ERRORS = {
   PAGE_PAS_TROUVEE: 'Cette page dort encore',
   MEME_PEUPLE: 'Une page se tient par une équipe de l’autre peuple',
   VEILLEE_LIMITE: 'Tu as gagné toutes tes pages de la semaine. Cette page t’attendra.',
+  // Escalier du chapitre 1 (M8) : « tenir » s'ouvre à la séance 2.
+  ESCALIER_FERME: 'Tenir une page s’ouvre à la prochaine séance. Elle t’attendra.',
   TEAM_NOT_FOUND: 'Équipe introuvable dans cette partie',
 };
 

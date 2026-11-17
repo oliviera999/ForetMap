@@ -44,7 +44,7 @@ REGLAGES_ATTENDUS = {
     "vent_cases", "fouilles_par_tour", "fouilles_sous_voile", "fouille_seuils", "zones_par_plateau", "pistes_par_semaine",
     "pages_par_semaine", "voile", "voile_bonus_par_plateau", "palissement_pct", "palissement_max",
     "recul_carnet_complet", "marche", "marche_pendant_tour", "parures", "lumiere", "lumiere_palier",
-    "chapardeur", "peripeties", "olu_erreur_du_jour", "sablier_secondes",
+    "chapardeur", "peripeties", "olu_erreur_du_jour", "escalier", "sablier_secondes",
     "max_power_points", "max_health_points", "lore_feuillet_retrigger", "lore_gemme_costs_enabled",
     "lore_heart_rewards_enabled", "feuillet_zone_traversal_enabled",
 }
@@ -804,13 +804,13 @@ def check_reglages(d, rep):
         if key in defaut and not ok(defaut[key]):
             rep.err(f"{name}: defaut.{key} = {defaut[key]!r} invalide")
     for key in ("enabled", "questions_de_case", "vent", "voile", "marche", "marche_pendant_tour", "parures",
-                "lumiere", "chapardeur", "peripeties", "olu_erreur_du_jour",
+                "lumiere", "chapardeur", "peripeties", "olu_erreur_du_jour", "escalier",
                 "lore_gemme_costs_enabled", "lore_heart_rewards_enabled", "feuillet_zone_traversal_enabled"):
         if key in defaut and not isinstance(defaut[key], bool):
             rep.err(f"{name}: defaut.{key} doit être un booléen")
     profils = data.get("profils")
-    if not isinstance(profils, dict) or set(profils) != {"complet", "prologue", "court"}:
-        rep.err(f"{name}: profils complet, prologue et court attendus")
+    if not isinstance(profils, dict) or set(profils) != {"complet", "court"}:
+        rep.err(f"{name}: profils complet et court attendus (le profil prologue a disparu : escalier du chapitre 1)")
     else:
         for pname, p in profils.items():
             ecarts = p.get("ecarts")
@@ -822,10 +822,8 @@ def check_reglages(d, rep):
                     rep.err(f"{name}: profils.{pname}.ecarts.{k} n'est pas un réglage connu")
         if profils.get("complet", {}).get("ecarts"):
             rep.err(f"{name}: le profil complet ne doit avoir aucun écart")
-        pro = profils.get("prologue", {}).get("ecarts", {})
-        for k in ("voile", "marche", "chapardeur"):
-            if pro.get(k) is not False:
-                rep.err(f"{name}: le profil prologue doit mettre {k} à false")
+    if defaut.get("escalier") is not True:
+        rep.err(f"{name}: defaut.escalier doit être true (escalier du chapitre 1)")
 
 
 def check_passeur(d, rep, use_db):

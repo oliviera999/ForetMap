@@ -156,6 +156,8 @@ export function GLTourScreen({
   }, [absencesServeur]);
   const surface = view?.surface || tenir?.surface || 'tableau';
   const settings = tenir?.settings || {};
+  // Escalier du chapitre 1 (M8) : avant la séance 3, le voile n'est pas encore ouvert.
+  const voileFerme = !!tenir?.escalier && !tenir.escalier.modules.includes('voile');
   // Sabliers : la vue vient du serveur (même état que les tablettes et la projection).
   const sablier = view?.sablier || tenir?.sablier || null;
   const sablierActif = sablier ? sablier.actif !== false : settings.sablier_actif !== false;
@@ -552,12 +554,18 @@ export function GLTourScreen({
               <GLTourSouffle
                 round={round}
                 voileActif={settings.voile !== false}
+                voileFerme={voileFerme}
                 disabled={tourApi.busy}
                 onSouffle={(body) => act(() => tourApi.phase('souffle', body))}
               />
             </div>
           ) : round && round.phase !== 'ouverture' ? (
-            <GLTourSouffle round={round} voileActif={settings.voile !== false} disabled />
+            <GLTourSouffle
+              round={round}
+              voileActif={settings.voile !== false}
+              voileFerme={voileFerme}
+              disabled
+            />
           ) : null}
 
           {round ? (

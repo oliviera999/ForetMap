@@ -148,12 +148,20 @@ export function GLTenirEquipeView({
     tenir.settings?.lecture_pendant_tour === false &&
     !!round?.phase &&
     round.phase !== 'clos';
+  // Escalier du chapitre 1 (M8) : ce qui n'est pas encore ouvert n'est pas montré (jamais
+  // grisé). Les sorts arrivent à la séance 3 ; le Marché, à la séance 4, a son propre accès.
+  const escalier = tenir.escalier || null;
+  const sortsOuvertsParLEscalier = !escalier || escalier.sorts.length > 0;
   const gestes = [
-    [
-      'jeter',
-      sortsOuverts ? 'Fermer les sorts' : 'Jeter un sort',
-      onJeter ? () => setSortsOuverts((v) => !v) : null,
-    ],
+    ...(sortsOuvertsParLEscalier
+      ? [
+          [
+            'jeter',
+            sortsOuverts ? 'Fermer les sorts' : 'Jeter un sort',
+            onJeter ? () => setSortsOuverts((v) => !v) : null,
+          ],
+        ]
+      : []),
     ['lancer', 'Lancer', null],
     [
       'repondre',
