@@ -10,11 +10,31 @@ Dossier technique complet : `docs/GL_TENIR_A_DEUX.md`. Règles : `docs/GL_TENIR_
 ## Une partie « Tenir »
 
 `isTenirGame(settings, game)` = réglage `gameplay.tenir_enabled` **et** `gl_games.tenir_profil`
-(`complet` | `prologue`). Réglages résolus : défauts ← `gl_settings` ← écarts du profil ←
-surcharges de la partie (`resolveTenirSettings`, clés `OVERRIDABLE_KEYS` de `lib/glTenir.js`).
+(`complet` | `court` ; le profil `prologue` a disparu). Réglages résolus : défauts ←
+`gl_settings` ← écarts du profil ← surcharges de la partie ← escalier du chapitre 1
+(`resolveTenirSettings`, clés `OVERRIDABLE_KEYS` de `lib/glTenir.js`).
 Un réglage nouveau se déclare à quatre endroits : `DEFAULT_GAMEPLAY`, `TENIR_SETTING_KEYS` et le
 registre de `lib/glSettings.js`, puis `data/gl/tenir/reglages-defaut.json` (et son jumeau
 `exemple/`), avec un `INSERT IGNORE` du défaut en migration.
+
+## L'escalier du chapitre 1 (ensemble unifié, M8)
+
+Au plateau 1, les règles s'ouvrent séance après séance : 1 avancer, chercher, défi de case,
+défis de la Trame ; 2 tenir, l'erreur du jour ; 3 le voile, la page témoin, trois sorts, la jauge
+de Lumière ; 4 le Marché, trois sorts de plus.
+
+- Cœur pur `src/shared/glTenirEscalierCore.js` (miroir `lib/shared/`) : `escalierPourTour`,
+  `etatEscalier`, `moduleOuvert(resolved, module)`, `sortOuvert(resolved, code)`.
+- Le **pas** vit dans les surcharges de la partie (`escalier`, `escalier_pas`) : posé par
+  `POST /api/gl/games` au plateau 1 (réglage `tenir_escalier`), + 1 à la clôture d'un tour, + 1
+  sur `POST …/tenir/escalier/suite` (`lib/glEscalier.js › avancerTx`), jamais en arrière.
+  `PUT /tenir/profil` ne choisit jamais le pas.
+- `resolveTenirSettings` ferme déjà `voile`, `marche` et `olu_erreur_du_jour` : une règle qui lit
+  ces réglages n'a rien à faire. Pour le reste, appeler `moduleOuvert` (`tenir`, `lumiere`,
+  `page_temoin`) ou `sortOuvert` : refus 409 `ESCALIER_FERME` / `SPELL_ESCALIER`.
+- Une nouveauté de chapitre 1 se range sur une marche du cœur ; l'écran **masque** ce qui n'est
+  pas ouvert (jamais de bouton grisé). Le banc ne monte pas l'escalier par défaut
+  (`escalier: false`) : scénario `escalier` pour l'éprouver.
 
 ## Phases et surfaces
 
@@ -36,7 +56,8 @@ registre de `lib/glSettings.js`, puis `data/gl/tenir/reglages-defaut.json` (et s
 Noyau pur `src/shared/glTenirPermissionsCore.js` (miroir `lib/shared/`) :
 
 - `resolveTenirPermissions({ surface, phase, actorKind, … })` → `jeter` (un sort), `lancer`
-  (les dés), `repondre`, `fouiller`, `lire`, `marche`… ;
+  (les dés), `repondre`, `fouiller`, `lire`, `tenir` (faire tenir une page lue : fermé à la
+  séance 1 de l'escalier, prof compris), `marche`… ;
 - `isSortPermisSurSurface` : au tableau, un élève ne lance pas un sort de la phase `jeu`.
 
 Côté serveur : `assertActionOuverte` (`lib/glTour.js`) pour lancer / répondre / fouiller,
@@ -62,6 +83,11 @@ Les routes prof portent `requireGlPermission('gl.game.manage')`.
   (`lib/glGameEvents.js`). `actorType` : `mj`, `team` (un élève ou son équipe), `system`.
 - Un payload privé porte `private: true` et `publicKeys` : `emitGlGameEvent`
   (`lib/realtime.js`) le réduit pour la salle ; le prof relit le détail par HTTP.
+- **Olu « première fois »** : `insertGameEvent` appelle `avecPremieresFois`
+  (`lib/glTenirOlu.js`) ; pour les types de `PREMIERE_FOIS_EVENT_TYPES`, la première occurrence
+  d'un geste porte `payload.olu: [{ id, teamId? }]` (mémoire `gl_game_olu_premieres`, dans la
+  transaction du geste). Un geste nouveau qui mérite sa ligne : une clé dans `PREMIERE_FOIS_CLES`,
+  un cas dans `clesPremiereFois`, une ligne `premiere_fois` dans `olu-lignes.json`.
 - **Tout type émis a un libellé** dans `lib/glJournalPresentTenir.js` et figure dans
   `TENIR_EVENT_TYPES` (`tests/gl-journal-tenir-exhaustif.test.js` le vérifie). Le libellé
   respecte les garde-fous (skill `gl-tenir-garde-fous`).

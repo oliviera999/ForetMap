@@ -54,6 +54,13 @@ Le reste suit seul, car tout lit `IMPORT_ORDER` :
   la bonne) ; `feedback_incorrect` devient facultatif quand les trois mauvais choix sont couverts.
 - `sorts.json` : les textes du Mentorat et de la Lettre (consigne, critère, amorces, points de
   relecture) vivent dans `effet_auto_json`.
+- `olu-lignes.json` : moment `premiere_fois` (une ligne par `cle`, liste `PREMIERE_FOIS_CLES` de
+  `lib/glTenirOlu.js` ; `seance_escalier` 0 à 6) ; `id` de 48 caractères au plus.
+- `reglages-defaut.json` : profils `complet` et `court` seulement ; `pages_par_semaine` (limite
+  de veillée unique), `escalier`.
+- `trame-ranger.json` (« Le bon rôle », « Le bon pays ») et `trame-adaptations.json` (« Les fils
+  de l'adaptation ») : chargeurs dans `lib/glTrameImport.js` ; une carte est une fiche `SP####`
+  du bon biome ou une carte générique `DEC-…` marquée `generique`.
 - Contrôle « la réponse est-elle sur le site ? » : `node scripts/gl-controle-reponses-sur-site.js`
   (lecture seule, CSV).
 

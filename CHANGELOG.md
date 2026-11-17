@@ -27,6 +27,51 @@ Suite de la PR 1b de l'ensemble unifié (#664).
   chaque côté, 0 échec) : aucune mesure du § 6.12 ne s'écarte de plus de 1,3 erreur type. Un seul
   effet réel, attendu : au plateau 2, la zone `cz-p2-08` activée porte le carnet à 8 pages (comme
   au plateau 1), et le carnet complet y devient plus rare (45 % → 15 % des chapitres simulés).
+### Ajouté — G&L : ensemble unifié, PR 2 — apprendre en jouant (17 novembre 2026)
+
+Prompt `docs/GL_ENSEMBLE_UNIFIE_PROMPT.md` (§ 7, étapes 2.1 à 2.5). Au chapitre 1, la classe
+rencontre les règles une à une au lieu de les entendre d'un bloc.
+
+- **L'escalier du chapitre 1 (M8, étape 2.1)** : au plateau 1, les règles s'ouvrent séance après
+  séance — 1 avancer, chercher, défi de case, défis de la Trame ; 2 tenir, l'erreur du jour
+  d'Olu ; 3 le voile, la page témoin, trois sorts, la jauge de Lumière ; 4 le Marché, trois sorts
+  de plus. Cœur pur `escalierPourTour` (`src/shared/glTenirEscalierCore.js`), rejoué par le
+  serveur (réglages résolus, droit `tenir`, sorts : 409 `ESCALIER_FERME`, `SPELL_ESCALIER`) ;
+  l'écran masque ce qui n'est pas ouvert, jamais de bouton grisé. Le pas vit dans la partie
+  (`escalier`, `escalier_pas`) : + 1 à chaque tour clos, + 1 sur « Ouvrir la suite »
+  (`POST /api/gl/games/:id/tenir/escalier/suite`), jamais en arrière. **Page témoin** : à
+  l'ouverture de la séance 3, la zone endormie la plus proche du départ pâlit d'office. Nouveau
+  réglage `gameplay.tenir_escalier` (`true`). Migration 368.
+- **Olu « première fois » (M8, étape 2.2)** : 23 lignes dites une seule fois par partie (par
+  équipe quand la ligne porte `{equipe}`), à la première occurrence du geste ; le serveur désigne
+  la ligne sur l'évènement (`payload.olu`) et s'en souvient (`gl_game_olu_premieres`). Une ligne
+  ne se dit pas pour ce que la partie n'a pas (rôles au tableau, camp au plateau 4, défis,
+  Lumière ou Marché coupés). La ligne « un seul écran joue à la fois » attend la PR 3.
+  Migration 369.
+- **Deux écrans (M8, M10, étape 2.3)** : « Maintenant, vous pouvez… » en tête de l'écran
+  d'équipe — les gestes possibles à cet instant, chacun avec l'appel du rôle (Gestionnaire,
+  Éclaireuse ou Éclaireur, Opératrice ou Opérateur, Secrétaire, Assistante ou Assistant ;
+  conseillés, jamais bloquants) ; « Ce qui change » au camp — trois lignes pour le chapitre
+  suivant (ton peuple, tes nouveaux sorts, le plateau), `GET /api/gl/games/:id/tenir/ce-qui-change` ;
+  accroche de fin de séance sur la projection (la page du Passeur, l'indice d'une zone qui dort
+  encore).
+- **Une seule limite de veillée (M8, étape 2.4)** : `gameplay.tenir_pages_par_semaine` (4) — un
+  compteur par élève et par semaine ISO, toutes sources (page tenue en veillée, défi de la
+  Trame) ; `tenir_pistes_par_semaine` (1) reste à part. Le carnet et la liste des défis disent
+  « Encore N pages à gagner cette semaine. » Migration 367.
+- **Trois défis de la Trame de plus (M21, étape 2.5)**, ouverts aux deux peuples, sans nouvel
+  écran : « Le bon rôle » et « Le bon pays » (type `ranger`, catalogue `trame-ranger.json`),
+  « Les fils de l'adaptation » (type `adaptation`, catalogue `trame-adaptations.json`). Les
+  solutions ne quittent pas le serveur ; jamais de gemme. « Gardien des fils » compte aussi les
+  fils de l'adaptation ; badge « Bon rangeur » proposé. Migration 366.
+- **Retiré** : le profil `prologue` (une partie qui le portait passe en `complet` avec
+  l'escalier), les réglages `tenir_pages_veillee_par_semaine` et `tenir_defis_pages_par_semaine`,
+  le Marché éteint d'office à la création d'une partie du chapitre 1 (l'escalier l'ouvre à la
+  séance 4), le scénario `prologue` du banc (remplacé par `escalier`), et le dossier d'attente
+  `data/gl/tenir/ensemble-unifie/` (ses derniers fichiers sont intégrés aux catalogues).
+- **Docs** : `docs/GL_TENIR_A_DEUX_REGLES.md`, `docs/API.md`, `docs/GL_DEFIS.md`,
+  `docs/GL_TENIR_A_DEUX.md`, `docs/reference/gl/`, `data/gl/tenir/README.md`, skills
+  `.claude/skills/gl-*`.
 
 ### Modifié — G&L : ensemble unifié, PR 1b — charge du prof, lexique, zones, règles v3 (17 novembre 2026)
 

@@ -50,8 +50,8 @@ montre comptes, écarts et dernier rapport, et permet de resynchroniser (`POST
 | `peripeties.json` | `id` | 32 (8 par plateau) |
 | `missions.json` | `id` | 20 |
 | `titres.json` | chemin `honneurs.<honneur>.<biome>` etc. | 16 + 8 + 20 |
-| `badges.json` | `code` | 15 |
-| `olu-lignes.json` | `id` (`actif: false` : la ligne reste au fichier, Olu ne la dit plus) | 77 |
+| `badges.json` | `code` | 16 |
+| `olu-lignes.json` | `id` (`actif: false` : la ligne reste au fichier, Olu ne la dit plus) | 100 (77 de commentaire, 23 « première fois ») |
 | `parures.json` | `code` | 12 |
 | `sorts.json` | `code` (table `gl_spells`) | 25 (19 actifs) + 5 voyageur |
 | `reglages-defaut.json` | clé de réglage `gameplay.tenir_*` | — |
@@ -60,6 +60,11 @@ montre comptes, écarts et dernier rapport, et permet de resynchroniser (`POST
 | `trame-reseaux.json` | `biome` (tables `gl_trame_reseaux`, `gl_trame_cartes`, `gl_trame_liens`) | 8 réseaux, 12 cartes chacun |
 | `trame-fils.json` | `plateau` (tables `gl_trame_fils_cartes`, `gl_trame_fils_liens`) | 4 plateaux, 9 cartes chacun |
 | `trame-reparer.json` | `code` de mesure, `plateau` (tables `gl_trame_mesures`, `gl_trame_reparer_especes`, `gl_trame_reparer_a_classer`) | 11 mesures, 6 espèces à ranger par plateau |
+| `trame-ranger.json` | `code` du jeu (tables `gl_trame_ranger_familles`, `gl_trame_ranger_jeux`, `gl_trame_ranger_cartes`) | 12 jeux : 8 « Le bon rôle » (un par biome, 8 cartes), 4 « Le bon pays » (un par plateau, 8 à 10 cartes) |
+| `trame-adaptations.json` | `biome` (tables `gl_trame_adaptation_jeux`, `gl_trame_adaptation_cartes`, `gl_trame_adaptation_liens`) | 8 jeux (un par biome), 9 cartes, 6 ou 7 fils |
+
+Le dossier d'attente `ensemble-unifie/` (données des PR de l'ensemble unifié) n'existe plus : ses
+derniers fichiers ont été intégrés aux catalogues par la PR 2 (17 novembre 2026).
 
 ## `chasse-zones.json`
 
@@ -170,13 +175,17 @@ réussie » (équipe × chapitre → sceau + titre).
 (`reserve`) ; `source` nomme le compteur à dériver des événements `gl_game_events` ou des tables
 existantes. `icone` est un mot-clé, pas un fichier. Aucun badge ne donne de ressource. Lexique
 (L2) : `passeur_de_seuil` s'appelle « Grand voyageur », `revelateur` « Voyant des fils » (les codes
-ne changent pas).
+ne changent pas). Ensemble unifié (M21) : `gardien_des_fils` compte aussi les fils de
+l'adaptation (source `defis_trame_fils`), et `bon_rangeur` (« Bon rangeur », source
+`defis_trame_ranger` : jeux de « Le bon rôle » ou « Le bon pays » rangés ; nom à confirmer).
 
 ## `olu-lignes.json`
 
-`{ "format", "lignes": [ { id, moment, expression, texte, variables, correction? } ] }`
+`{ "format", "lignes": [ { id, moment, expression, texte, variables, correction?, cle?, seance_escalier? } ] }`
 
-- `moment` ∈ `ouverture | jet | question | fouille | tenir | voile | sort | seuil | peripetie | bestiaire | oiseau | erreur | bourse_pleine` (`bourse_pleine` : E5, au moins trois membres d'une équipe au plafond, dit une fois par séance à l'écran d'équipe, jamais en projection).
+- `id` : 48 caractères au plus.
+- `moment` ∈ `ouverture | jet | question | fouille | tenir | voile | sort | seuil | peripetie | bestiaire | oiseau | erreur | bourse_pleine | defi_case_recu | defi_case_releve | defi_case_pas_encore | defi_trame_reussi | premiere_fois` (`bourse_pleine` : E5, au moins trois membres d'une équipe au plafond, dit une fois par séance à l'écran d'équipe, jamais en projection).
+- `moment = premiere_fois` (ensemble unifié, M8) : ligne dite **une seule fois par partie** — par équipe quand elle porte `{equipe}` —, à la première occurrence de l'évènement `cle`. `cle` (obligatoire, une ligne par clé, liste `PREMIERE_FOIS_CLES` de `lib/glTenirOlu.js` : `avancer`, `question_pas_encore`, `chercher`, `chaud_froid`, `peripetie`, `defi_case`, `trame`, `role`, `tenir`, `erreur_du_jour`, `voile`, `sous_le_voile`, `page_temoin`, `palissement`, `sorts`, `lumiere`, `marche`, `un_de_pose`, `un_de_joue`, `main`, `camp`, `cordee_offerte`, `lettre`) ; `seance_escalier` (0 à 6) : séance du chapitre 1 où la nouveauté s'ouvre, 0 = hors escalier — dans une partie qui monte l'escalier, la ligne ne se dit pas avant cette séance. `cle` et `seance_escalier` sont refusées sur tout autre moment. Identifiants `olu-pf-<cle>`. Olu dit le geste, jamais de morale.
 - `expression` ∈ `neutre | joie | curieux | surpris | agace | pensif | explique | peur`.
 - `variables` : sous-ensemble de `equipe`, `n`, `biome`, calculé depuis les `{…}` du texte.
 - `moment = oiseau` : ligne dite **après** le passage de l'oiseau (Olu se fige pendant).
@@ -226,7 +235,11 @@ La Plume en est sortie ; « Seconde chance » porte une `condition` : elle n'exi
 ## `reglages-defaut.json`
 
 `defaut` : valeurs du profil `complet`, une clé par réglage `gameplay.tenir_<clé>` ; `profils` :
-`complet` (aucun écart), `prologue` et `court` (`ecarts` appliqués par-dessus `defaut`). Le chargeur n'écrit
+`complet` (aucun écart) et `court` (`ecarts` appliqués par-dessus `defaut`). Le profil `prologue`
+a disparu (ensemble unifié, M8) : l'escalier du chapitre 1 le remplace — réglage `escalier`
+(`true` : une partie créée au plateau 1 ouvre ses règles séance après séance). `pages_par_semaine`
+(4) est la limite de veillée unique ; elle remplace `pages_veillee_par_semaine` et
+`defis_pages_par_semaine`. Le chargeur n'écrit
 une clé que si elle est absente de `gl_settings` (les réglages déjà modifiés depuis le compte MJ ne
 sont jamais écrasés) ; l'application d'un profil sur une partie copie `defaut` + `ecarts` dans
 l'état de la partie.
@@ -306,3 +319,27 @@ d'une carte vers elle-même ; les **cycles sont permis** (la rétroaction du pla
 espèces, `categorie` ∈ `en_danger`, `fragile`, `pas_menace`) et la `lecon` du plateau. La liste à
 ranger est écrite dans le fichier : l'app ne la tire pas au hasard et ne lit pas le statut en
 base. La clé `classement` (statuts par catégorie) est une note de construction, jamais servie.
+
+### `trame-ranger.json`
+
+« Le bon rôle » et « Le bon pays » (ensemble unifié, M21) : ranger des cartes dans des catégories.
+
+| Clé | Rôle |
+| --- | --- |
+| `familles.role` | `nom`, `consigne`, `categories[]` (`code`, `nom`, `aide`) : `producteur`, `consommateur`, `decomposeur` |
+| `familles.pays` | `nom`, `consigne`, `categories_depuis: "biomes"` : les catégories d'un jeu sont des slugs de biomes joués, leur libellé vient du registre des biomes |
+| `jeux[]` | `code` (clé d'upsert), `famille`, `unite` (le biome pour `role`, `p<plateau>` pour `pays`), `plateau`, `biome` (`role`), `categories[]` (`pays` : les pays du plateau, et ceux déjà traversés qui reviennent), `titre`, `bilan` (affiché à la réussite), `cartes[]` |
+| `cartes[]` | `code` (fiche `SP####` du biome du jeu — du pays de la carte pour `pays` —, ou carte générique `DEC-…` avec `generique: true`), `nom`, `categorie` (jamais servie), `pourquoi` (servi quand la carte est bien rangée), `indice` (obligatoire pour `pays`) |
+
+Contrôles : 4 à 12 cartes par jeu ; chaque rôle a au moins une carte ; une carte `DEC-…` est
+générique, et elle seule ; une espèce absente de la base est un avertissement (une erreur en
+strict), une espèce d'un autre biome une erreur.
+
+### `trame-adaptations.json`
+
+« Les fils de l'adaptation » (M21) : le moteur des fils cachés, lu du milieu vers l'espèce
+(`biomes[]` : `biome`, `plateau`, `titre`, `note`, `cartes: [[code, texte]]`, `liens: [[de,
+vers]]`). Chaque fil va d'une contrainte du milieu au problème qu'elle pose, puis à l'espèce qui
+porte la solution. Toute carte tient à un fil ; aucun lien posé dans les deux sens ; la `note`
+est une note d'auteur, jamais servie. `consigne`, `sens` et `moteur` en tête du fichier sont des
+notes de construction (la consigne servie à l'élève vit dans `lib/glTrameDefis.js`).
