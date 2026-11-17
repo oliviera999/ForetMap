@@ -232,7 +232,7 @@ test('demandes au prof : création idempotente, file dans l’ordre, résolution
       gameId: g,
       roundNumber: 1,
       teamId: equipe(2).id,
-      kind: 'presence_a_confirmer',
+      kind: 'jet_en_suspens',
       refId: `1:${equipe(2).id}`,
     }),
   );
@@ -243,7 +243,7 @@ test('demandes au prof : création idempotente, file dans l’ordre, résolution
   const file = await listDemandes(db, g);
   assert.deepEqual(
     file.map((d) => d.kind),
-    ['des_a_valider', 'sort_a_appliquer', 'presence_a_confirmer'],
+    ['des_a_valider', 'sort_a_appliquer', 'jet_en_suspens'],
   );
   assert.deepEqual(file[1].payload, { spellCode: 'SL046' });
   assert.equal(await compterDemandesEnAttente(db, g), 3);

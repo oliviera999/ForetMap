@@ -402,7 +402,7 @@ une autre équipe ni vers une projection ; les payloads privés du journal sont 
 | POST    | `/api/gl/games/:id/tenir/badges`                     | `{ playerId, badgeCode, note? }`                                                       | **Héritée** (préférer `POST /api/gl/rewards/games/:id/award`). `gl.game.manage`. Délègue au moteur commun : `chuchoteur` → `manuel.chuchoteur`, `correcteur_du_renard` → `manuel.renard`, `esprit_equipe` → `manuel.esprit_equipe`, mot par défaut si `note` absent ; sans `note`, un badge du même type déjà remis répond 200 `{ awarded: false }` ; 409 `BADGE_RESERVE` pour Tisserand / Révélateur ; 404 code inconnu. N'écrit plus dans `gl_player_badges`. |
 | POST    | `/api/gl/games/:id/tenir/badges/evaluer`             | `{ playerId? }`                                                                        | **Héritée**. Réévalue le joueur sur le moteur commun (idempotent) et renvoie les badges nouvellement obtenus ; joueur : lui-même.                                                                                                                             |
 | GET/POST| `/api/gl/games/:id/tenir/chimeres`                   | `{ nom, histoire, imageUrl? }`                                                         | Bestiaire : un élève propose (visible de lui et du prof), le prof valide (`PUT …/chimeres/:id { decision: valider\|refuser }`). Mots interdits refusés (400).                                                                                                  |
-| GET/PUT | `/api/gl/games/:id/tenir/plumes[/:id]`               | `{ decision: valider\|refuser }`                                                       | Pages Plume / Lettre : un élève voit les siennes, le prof toutes ; validée → page `vierge` au carnet de la classe (`plume_validee`).                                                                                                                           |
+| GET/PUT | `/api/gl/games/:id/tenir/plumes[/:id]`               | `{ decision: valider\|pas_encore, piste? }`                                            | Lettres (et anciennes pages Plume) : un élève voit les siennes, le prof toutes ; validée → page `vierge` au carnet de la classe, **en marge** (`plume_validee`) ; `pas_encore` + piste → l'élève réécrit sans repayer.                                         |
 | GET     | `/api/gl/admin/classes/:classId/exports/team-spirit.csv` | —                                                                                  | `gl.game.manage`. CSV `;`, BOM UTF-8 : élève × séance (partie, chapitre, tour, date, équipe, peuple, cartes gardées, cartes nommées). Aucune bourse, aucun classement.                                                                                        |
 | GET     | `/api/gl/admin/classes/:classId/exports/badges.csv`  | —                                                                                      | `gl.game.manage`. Depuis `gl_player_rewards` : élève, prénom, nom, clé du badge, libellé, palier (Fil / Nœud / Étoffe, vide pour un badge décerné), date, mot du prof. Une ligne par palier ; aucun classement, aucun total.                                 |
 | GET     | `/api/gl/admin/demo`                                 | —                                                                                      | `gl.game.manage`. Résumé de la **partie de démonstration** (`lib/gl/demoGame.js`) : `{ demo: { classId, className, playersCount, game: { id, name, status, chapterId, chapterTitle, updatedAt } \| null } \| null }`. Joueur / invité → 403. |
@@ -444,8 +444,10 @@ est celle du catalogue, `ressource` du corps ne sert qu'aux parures `choix`) ; 4
 ou `marche_pendant_tour` faux — la lecture reste libre).
 
 **Grimoire du voyageur** : `POST /api/gl/voyageur/spells/flair/cast { x, y }` (verdict seul,
-empreinte partagée), `POST …/plume/cast { titre, texte }` (en relecture), `messager` → 409
-`SPELL_HORS_PERIMETRE` ; un usage par chapitre (409 `SPELL_NOT_CHARGED` sinon).
+empreinte partagée), `messager` → 409 `SPELL_HORS_PERIMETRE` ; un usage par chapitre (409
+`SPELL_NOT_CHARGED` sinon). La Plume est sortie du grimoire (ensemble unifié, M23 : 404
+`UNKNOWN_SPELL`) ; « Seconde chance » n'existe que si `gameplay.tenir_delai_fiche_secondes` > 0
+(sinon 409 `SPELL_SANS_OBJET`). Lettre et Mentorat : voir « Ensemble unifié, PR 1b ».
 
 ### « Tenir à deux » — la chasse (`/api/gl/games/:id/chasse`)
 
@@ -528,14 +530,13 @@ tableau, rien ne change.
 - `POST /api/gl/games/:id/tenir/presences/arrivee` `{ teamId?, playerId }` — « Quelqu'un vient
   d'arriver » : le retardataire redevient présent. 409 `PRESENCE_PAS_ABSENT`. Évènement
   `presence_arrivee`.
-- `POST /api/gl/games/:id/tenir/tour/absences` (prof) confirme en plus la présence de **toutes**
-  les équipes : le prof a fait l'appel.
-- `POST /api/gl/games/:id/spell-casts/drafts` : en `hybride` et sur `tablette`, pendant les
-  phases `ouverture` et `jeu`, **409 `PRESENCE_A_CONFIRMER`** (« Dites d'abord s'il manque
-  quelqu'un. ») tant que la présence de l'équipe lanceuse n'est pas confirmée. Le prof n'est
-  pas arrêté.
-- File du prof : une demande `presence_a_confirmer` par équipe à l'ouverture du tour, fermée à
-  la confirmation et d'office à la sortie de la phase `jeu`.
+- `POST /api/gl/games/:id/tenir/tour/absences` (prof) vaut pour **toutes** les équipes : le prof
+  a fait l'appel.
+- **Présences sans confirmation** (ensemble unifié, M14) : tout le monde est présent par défaut.
+  Le refus **409 `PRESENCE_A_CONFIRMER`** de `POST …/spell-casts/drafts` et la demande
+  `presence_a_confirmer` de la file du prof ont **disparu** ; `presences.equipes[].confirmee`
+  dit seulement si l'équipe a déclaré quelque chose, `presences.requise` que le geste « Il
+  manque quelqu'un ? » est proposé (tablette, tour ouvert).
 
 #### Pot de sort : partage automatique et « pas moi » (lot 2)
 
@@ -628,12 +629,14 @@ Au tableau, rien ne change. En `hybride` et sur `tablette`, les équipes jouent 
 - `GET /api/gl/games/:id/tenir/demandes` — `gl.game.manage`. `{ demandes: [{ id, kind, refId,
   teamId, teamName, roundNumber, createdAt, titre, action, detail, payload }], total }`, la plus
   ancienne en haut. `kind` ∈ `des_a_valider` (`refId` = saisie), `jet_en_suspens`,
-  `sort_a_appliquer` et `nommer` (`refId` = pot), `plume`, `chimere`, `presence_a_confirmer`,
-  `defi_case`. Aucun nom d'élève ; le titre d'une page ou le nom d'une chimère est lu à la
-  source pour le `detail`, jamais recopié dans la demande.
+  `sort_a_appliquer` (« Sort à honorer », bouton « Honorer ») et `nommer` (`refId` = pot),
+  `plume` (« Lettre à relire », `payload.relecture` = points de relecture), `mentorat`
+  (« Mentorat à écouter », `payload.consigne` et `payload.critere`), `chimere`, `defi_case`.
+  Le titre d'une Lettre, le nom d'une chimère ou le pseudo du mentor est lu à la source pour le
+  `detail`, jamais recopié dans la demande.
 - `GET …/tenir/tour` (prof) : `demandesEnAttente` (compteur) et `surfaceAvantTableau`.
 - Sorties automatiques (aucune demande sans sortie) : à la sortie de la phase `jeu`, les lignes
-  `des_a_valider`, `jet_en_suspens`, `presence_a_confirmer` se ferment ; à la **clôture du
+  `des_a_valider`, `jet_en_suspens` se ferment ; à la **clôture du
   tour**, un sort **du tour** que le prof n'a pas appliqué (fenêtres `jeu`, `jeu_avant_fouille`,
   `avant_jet`, `apres_jet`) est **rendu** (statut `rembourse`,
   évènement `spell_rembourse`, `motif: 'cloture_tour'`) et sa ligne se ferme ; à l'ouverture du
@@ -721,6 +724,92 @@ Au tableau, rien ne change. En `hybride` et sur `tablette`, les équipes jouent 
 - **Défis de la Trame (M20)** : la réponse d'une réussite porte `reussite.piste` (zone révélée
   ou `null`) et `reussite.lumiere` (10 en mode équipe, sinon 0) ; évènement `piste`
   (`via: 'defi_trame'`).
+
+#### Ensemble unifié, PR 1b — charge du prof, lexique, zones (17 novembre 2026)
+
+**Mentorat et Lettre (M23, L7).** Les deux sorts se paient une fois et ne se remboursent
+jamais ; leurs textes (amorces, consigne, retours) viennent de `sorts.json`
+(`effet_auto_json`, types `mentorat` et `lettre`).
+
+- `POST …/spell-casts/drafts` et `…/launch` : **Mentorat** (`SL027`, coût 3) refusé **409
+  `SPELL_LIMITE`** avant tout débit si un Mentorat est déjà prévu pour la séance dans cette
+  partie (« Un Mentorat est déjà prévu aujourd'hui. ») ou si l'élève en a un en cours (« Ton
+  Mentorat est déjà payé : retente-le sans rien repayer. ») ; **Lettre** (`SL048`, coût 2)
+  refusée de même si l'élève a une Lettre en cours. Lancé, le sort est soldé tout de suite
+  (`effect_applied_at` posé, évènement `spell_effect` de type `lettre` ou `mentorat`) : il n'est
+  jamais « rendu » par les sorties automatiques. Module Seuil coupé (`modules.voyageur_enabled`) :
+  les deux sorts sont refusés **409 `SPELL_SANS_OBJET`** avant tout débit, puisqu'ils se jouent
+  depuis le Seuil. Le `spell` d'un pot (`draft.spell`) ne porte plus `effetAutoJson` : les champs
+  réservés au prof (`critere_prof`, `relecture_prof`) ne quittent pas le serveur.
+- `GET /api/gl/voyageur/me` → `lettre` (`{ id, statut: a_ecrire|proposee|pas_encore|validee,
+  amorce, titre, texte, piste, presentation, amorces[], retour }`) et `mentorat` (`{ id, gameId,
+  statut: prevu|pas_encore|valide, piste, reporte, consigne, retour }`), ou `null`. Le critère du
+  prof et ses points de relecture n'y figurent jamais. `reporte: true` = Mentorat repassé d'office
+  en « pas encore » sans avoir été écouté : `retour` est alors un texte neutre, pas le retour
+  d'une écoute.
+- `PUT /api/gl/voyageur/lettre/:id` `{ amorce?, titre, texte }` — l'élève écrit ou réécrit sa
+  Lettre (`a_ecrire` ou `pas_encore` → `proposee`), sans rien repayer. 400 `LETTRE_TITRE` /
+  `LETTRE_TEXTE`, 404 `LETTRE_INTROUVABLE`, 409 `LETTRE_EN_RELECTURE`. Si la partie où elle a été
+  payée est close, la Lettre entre dans la file du prof de la partie en cours où l'élève joue.
+- `POST /api/gl/voyageur/mentorat/:id/retenter` — après un « pas encore », l'élève se réinscrit
+  pour la séance en cours de sa partie, sans repayer. 409 `SPELL_LIMITE` si un Mentorat y est
+  déjà prévu (donc jamais le jour du « pas encore »), 409 `MENTORAT_PAS_A_RETENTER`, 409
+  `SPELL_HORS_EXPEDITION`. Réponse `{ success, mentorat: { id, gameId, statut } }`.
+- `PUT …/tenir/plumes/:plumeId` `{ decision: 'valider' | 'pas_encore', piste? }` (prof) : une
+  Lettre « refusée » devient un « pas encore ». Validée, elle paraît dans `marge` de
+  `GET …/chasse` et `GET …/chasse/carnet` (`[{ feuilletCode, titre, auteur }]`), hors de
+  `total` et de `tenues` : elle ne compte pas pour le carnet complet.
+- `GET …/tenir/mentorats` et `PUT …/tenir/mentorats/:mentoratId` `{ decision: 'valider' |
+  'pas_encore', piste? }` (prof, `gl.game.manage`). 409 `MENTORAT_DEJA_JUGE`. Évènement
+  `mentorat_valide` ; un « pas encore » n'écrit aucun évènement public.
+- Sortie automatique : à l'ouverture d'une séance, un Mentorat prévu pour une séance passée
+  repasse en `pas_encore` (sans piste, `reporte: true`) ; au camp, tous. Rien n'est rendu ni
+  repris. À l'ouverture d'une séance aussi, une Lettre en relecture dont la partie est close
+  rejoint la file du prof de la partie qui s'ouvre (demande `plume`).
+- Réglage `gameplay.tenir_delai_fiche_secondes` (entier, 0 à 604 800, défaut **0**) : en mode
+  « Tenir », il prime sur le délai de nouvelle tentative du conditionnement G&L
+  (`effectiveSources.retryCooldownHours = 'product'`) ; au-delà de 0, arrondi à l'heure
+  supérieure.
+
+**Charge du prof (M14).**
+
+- **Retrait** : à la clôture du tour (`POST …/tenir/tour/phase { phase: 'clos' }`), tous les
+  retraits ouverts se lèvent ; évènement `retrait` `{ entree: false, tous: true, count }`, sans
+  identité.
+- `POST /api/gl/games` accepte `copyFromGameId` : la nouvelle partie reprend `tenir_profil`,
+  `tenir_surface`, les surcharges « Tenir » (hors `surface_avant_tableau`, et seulement celles
+  que le registre connaît encore) et les bascules de la partie (`zone_content_retrigger`,
+  `lore_*`, `board_movement_mode`, `board_path_start_index`). Ni équipes, ni pions, ni bourses.
+  403 si la partie source n'est pas accessible, 404 si elle n'existe pas.
+- `POST /api/gl/games/:id/tenir/players/:playerId/mot-de-passe` — `gl.players.manage`. Tire un
+  mot de passe provisoire, à changer à la première connexion, et le rend **une seule fois** :
+  `{ ok, playerId, motDePasse }` (`Cache-Control: no-store`). Il n'entre ni dans un évènement,
+  ni dans le journal d'audit (qui garde le geste, pas la valeur), ni dans un log. 404 si l'élève
+  n'est pas de la classe de la partie ; 403 `GL_PLAYER_REAL_ACCOUNT` pour un vrai compte
+  ForêtMap.
+- Le bilan Team Spirit « 6 par défaut » est un geste d'écran : `PUT …/tenir/tour/team-spirit`
+  ne change pas.
+
+**Lexique (L2).** Seuls les libellés changent, aucune clé : `GET …/tenir/honneurs` →
+`honneurs[].honneurLibelle` (« Avant-garde », « Gardiens du carnet », « Compagnons », « Esprit
+d'équipe », « Révélatrices », « Mains ») ; les messages `SPELL_FENETRE` des fenêtres `seuil` et
+`seuil_veillee` disent « au camp » ; `GET …/tenir/sorts` range ces sorts dans le moment « Au
+camp ou en veillée » ; badges `lecture.tenues` Porte-page, `voyage.chapitres` Grand voyageur,
+`trame.alteree` Voyant des fils.
+
+**Zones (M22, L5).**
+
+- `POST …/chasse/repondre` : sur un « pas encore », la réponse porte `piste` — `{ type:
+  'glossaire' | 'fiche', code, nom, texte }` ou `null` — : le terme de glossaire relié à la zone
+  s'il y en a un, sinon sa première fiche d'espèce. Un lien, jamais la réponse.
+- Catalogue `chasse-zones.json` : champ facultatif `glossaire` (1 à 3 codes `GL####`,
+  `gl_chasse_zones.glossaire_json`) ; un terme absent de la base est un avertissement, jamais un
+  refus. `questions-lecture.json` : champ facultatif `retours` (`{ lettre: texte }`, un retour
+  par mauvais choix, « Pas encore… », `gl_tenir_questions_lecture.retours_json`) ; avec les
+  trois retours, `feedback_incorrect` devient facultatif.
+- `node scripts/gl-controle-reponses-sur-site.js [--sortie fichier.csv] [--portee zone|case]` —
+  lecture seule : pour chaque question de zone et chaque question de case `usage_tenir = 1`,
+  les mots de la bonne réponse sont-ils dans les fiches et termes reliés ?
 
 #### Défi de case (lot 2)
 
@@ -813,7 +902,7 @@ trame altérée (trois scénarios par biome), `p<plateau>` pour les fils cachés
 
 **Réussite.** Pour l'élève — ou, en mode équipe, pour chaque membre présent — dont c'est la
 **première réussite de l'unité** : une ligne `gl_trame_reussites` (un point de regard `defi` dans
-le regard du proche, une unité pour les badges Tisserand, Révélateur, Gardien des fils,
+le regard du proche, une unité pour les badges Tisserand, Voyant des fils, Gardien des fils,
 Réparateur) et, sous le plafond hebdomadaire, **une page de veillée** du chapitre à son nom
 (source `defi` ; jamais un feuillet de zone de chasse, une page de route, la page apportée par
 l'oiseau ni une page au titre interdit ; jamais de ressource). Le défi réussi, les réussites, la
@@ -920,14 +1009,15 @@ célébration privée (jamais en projection), badge décerné = `gl.game.manage`
 | POST    | `/api/gl/rewards/games/:id/award`      | `{ playerId, type, note }`      | `gl.game.manage`. Badge décerné (`type` ∈ `chuchoteur`, `renard`, `esprit_equipe`), mot obligatoire (280 caractères au plus) → 201 `{ reward }` (clé `manuel.<type>.<n>`) ; 400 mot vide ou type inconnu, 404 joueur hors partie. Évènement privé `badge` au journal (seul le nom est public).                                                                      |
 
 Catalogue (clé — titre — paliers) : `chasse.fouilles` Fouilleur 5·20·50 · `chasse.pages` Trouveur
-1·4·10 · `lecture.pages` Lecteur 3·10·25 · `lecture.tenues` Passeur de page 1·4·10 ·
+1·4·10 · `lecture.pages` Lecteur 3·10·25 · `lecture.tenues` Porte-page 1·4·10 ·
 `perseverance.pas_encore` Pas encore 1·5·15 (réussite après un « pas encore » sur la même zone,
 question de lecture ou case — évènement de journal `pas_encore`) · `cooperation.dons` Mains
 tendues 1·3·8 · `cooperation.aide` Épaule 1·3·8 · `cooperation.reparation` Mains de la Trame
 1·3·6 · `nature.especes` Nommeur 3·10·25 · `nature.biomes` Cartographe 1·3·6 ·
-`veillee.semaines` Veilleur 2·4·8 · `voyage.chapitres` Passeur de seuil 1·2·4 ·
+`veillee.semaines` Veilleur 2·4·8 · `voyage.chapitres` Grand voyageur 1·2·4 ·
 `voyage.deux_peuples` Deux peuples (unique) · `manuel.chuchoteur`, `manuel.renard`,
-`manuel.esprit_equipe` (décernés). Tisserand et Révélateur restent réservés, hors catalogue.
+`manuel.esprit_equipe` (décernés). Famille `trame` (défis de la Trame) : Tisserand, Voyant des
+fils (l'ancien « Révélateur »), Gardien des fils, Réparateur.
 Les routes `POST /api/gl/games/:id/tenir/missions` et `…/tenir/tour/olu-corrige` décernent
 d'elles-mêmes Chuchoteur et Correcteur du renard aux membres présents de l'équipe (mot par
 défaut).

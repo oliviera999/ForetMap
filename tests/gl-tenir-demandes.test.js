@@ -41,27 +41,14 @@ before(async () => {
   for (const p of ctx.players) await setPlayerBourses(p.id, 5, 5);
 });
 
-test('la file réunit présences, dés à valider, jets en suspens et sorts du prof ; un bouton par ligne les ferme', async () => {
+test('la file réunit dés à valider, jets en suspens et sorts du prof ; un bouton par ligne les ferme', async () => {
   await ouvrirTourEnJeu(request, app, ctx, { presences: false });
-  assert.deepEqual(await kinds(), Array(4).fill('presence_a_confirmer'));
+  // Ensemble unifié (M14) : tout le monde est présent d'office, aucune ligne de présence.
+  assert.deepEqual(await kinds(), []);
   const eleve = await request(app)
     .get(api('/tenir/demandes'))
     .set(auth(membres(0)[0].token));
   assert.equal(eleve.status, 403, 'la file est celle du prof');
-
-  // Présences : le prof confirme une équipe d'un clic, les autres par l'appel.
-  await request(app)
-    .post(api('/tenir/presences'))
-    .set(auth(ctx.adminToken))
-    .send({ teamId: team(0).id, absents: [] })
-    .expect(200);
-  assert.equal((await kinds()).filter((k) => k === 'presence_a_confirmer').length, 3);
-  await request(app)
-    .post(api('/tenir/tour/absences'))
-    .set(auth(ctx.adminToken))
-    .send({ playerIds: [] })
-    .expect(200);
-  assert.deepEqual(await kinds(), []);
 
   // Dés physiques saisis par une tablette : une ligne « dés à valider ».
   const jet = await request(app)
@@ -101,7 +88,8 @@ test('la file réunit présences, dés à valider, jets en suspens et sorts du p
     .expect(200);
   assert.deepEqual(await kinds(), []);
 
-  // Sort du prof (Pause) : une ligne « sort à appliquer », fermée par « Effet appliqué ».
+  // Sort du prof (Pause) : payé au lancement, une ligne « sort à honorer », fermée par
+  // « Honorer » (M14).
   const d = await request(app)
     .post(api('/spell-casts/drafts'))
     .set(auth(membres(1)[0].token))
@@ -117,6 +105,8 @@ test('la file réunit présences, dés à valider, jets en suspens et sorts du p
     [['sort_a_appliquer', d.body.draft.id, 'Gnomes B']],
   );
   assert.match(f.demandes[0].detail, /^Pause/);
+  assert.equal(f.demandes[0].titre, 'Sort à honorer');
+  assert.equal(f.demandes[0].action, 'Honorer');
   assert.ok(!JSON.stringify(f).includes('joueur-'), 'aucun nom d’élève dans la file');
   await request(app)
     .post(api(`/spell-casts/drafts/${d.body.draft.id}/effect-applied`))

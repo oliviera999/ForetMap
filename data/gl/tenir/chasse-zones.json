@@ -150,6 +150,10 @@
       "especes": [
         "SP0029",
         "SP0034"
+      ],
+      "glossaire": [
+        "GL0162",
+        "GL0032"
       ]
     },
     {
@@ -199,8 +203,7 @@
       "ordre": 4,
       "actif": true,
       "especes": [
-        "SP0109",
-        "SP0037"
+        "SP0277"
       ]
     },
     {
@@ -220,6 +223,9 @@
         "SP0116",
         "SP0115",
         "SP0110"
+      ],
+      "glossaire": [
+        "GL0239"
       ]
     },
     {
@@ -521,8 +527,8 @@
       "ordre": 3,
       "actif": true,
       "especes": [
-        "SP0004",
-        "SP0003"
+        "SP0003",
+        "SP0004"
       ]
     },
     {
@@ -541,6 +547,9 @@
       "especes": [
         "SP0020",
         "SP0014"
+      ],
+      "glossaire": [
+        "GL0070"
       ]
     },
     {
@@ -640,8 +649,8 @@
       "ordre": 6,
       "actif": true,
       "especes": [
-        "SP0180",
-        "SP0166"
+        "SP0166",
+        "SP0180"
       ]
     },
     {
@@ -694,23 +703,64 @@
         "SP0179",
         "SP0186",
         "SP0177"
+      ],
+      "glossaire": [
+        "GL0245"
       ]
     },
     {
       "zone_key": "cz-p2-08",
       "plateau": 2,
-      "feuillet_code": "ep-I-08",
-      "titre_prive": "Nommer fait tenir la page — zone existante zf-p2-07 (haut droit du plateau, forêt méditerranéenne) — à vérifier sur l'image (jamais montré)",
+      "feuillet_code": "ep-I-06",
+      "titre_prive": "La Nature avec une majuscule — zone existante zf-p2-07 (haut droit du plateau 2)",
       "indice": "Là où poussent des plantes qui n'existent nulle part ailleurs au monde : on les dit endémiques",
-      "polygone": null,
-      "polygone_ref": "zf-p2-07",
+      "polygone": [
+        [
+          0.817,
+          0.3441
+        ],
+        [
+          0.8062,
+          0.3636
+        ],
+        [
+          0.7908,
+          0.3636
+        ],
+        [
+          0.78,
+          0.3441
+        ],
+        [
+          0.78,
+          0.3165
+        ],
+        [
+          0.7908,
+          0.297
+        ],
+        [
+          0.8062,
+          0.297
+        ],
+        [
+          0.817,
+          0.3165
+        ]
+      ],
+      "polygone_ref": null,
       "rang_case": null,
-      "question_code": "QCM0451",
+      "question_code": "GQCM9305",
       "theme_secours": "ecosystemes",
       "ordre": 8,
-      "actif": false,
+      "actif": true,
       "especes": [
-        "SP0176"
+        "SP0181",
+        "SP0180"
+      ],
+      "glossaire": [
+        "GL0279",
+        "GL0082"
       ]
     },
     {
@@ -755,7 +805,7 @@
       ],
       "polygone_ref": null,
       "rang_case": null,
-      "question_code": "QCM0213",
+      "question_code": "GQCM9301",
       "theme_secours": "ecosystemes",
       "ordre": 1,
       "actif": true,
@@ -811,8 +861,8 @@
       "ordre": 2,
       "actif": true,
       "especes": [
-        "SP0092",
-        "SP0093"
+        "SP0093",
+        "SP0092"
       ]
     },
     {
@@ -864,6 +914,10 @@
       "especes": [
         "SP0261",
         "SP0082"
+      ],
+      "glossaire": [
+        "GL0170",
+        "GL0257"
       ]
     },
     {
@@ -880,8 +934,11 @@
       "ordre": 4,
       "actif": true,
       "especes": [
-        "SP0258",
-        "SP0255"
+        "SP0082",
+        "SP0258"
+      ],
+      "glossaire": [
+        "GL0280"
       ]
     },
     {
@@ -926,13 +983,13 @@
       ],
       "polygone_ref": null,
       "rang_case": null,
-      "question_code": "QCM0612",
+      "question_code": "GQCM9302",
       "theme_secours": "flore",
       "ordre": 5,
       "actif": true,
       "especes": [
-        "SP0243",
         "SP0246",
+        "SP0243",
         "SP0244"
       ]
     },
@@ -1028,8 +1085,8 @@
       ],
       "polygone_ref": null,
       "rang_case": null,
-      "question_code": "QCM0618",
-      "theme_secours": "flore",
+      "question_code": "GQCM9303",
+      "theme_secours": "ecosystemes",
       "ordre": 7,
       "actif": true,
       "especes": [
@@ -1078,7 +1135,7 @@
       ],
       "polygone_ref": null,
       "rang_case": null,
-      "question_code": "QCM0605",
+      "question_code": "GQCM9304",
       "theme_secours": "faune",
       "ordre": 8,
       "actif": true,
@@ -1100,8 +1157,7 @@
       "ordre": 9,
       "actif": true,
       "especes": [
-        "SP0255",
-        "SP0077"
+        "SP0068"
       ]
     },
     {
@@ -1154,6 +1210,9 @@
         "SP0252",
         "SP0250",
         "SP0249"
+      ],
+      "glossaire": [
+        "GL0265"
       ]
     },
     {
@@ -1323,6 +1382,9 @@
       "especes": [
         "SP0151",
         "SP0137"
+      ],
+      "glossaire": [
+        "GL0038"
       ]
     },
     {
@@ -1422,7 +1484,8 @@
       "ordre": 6,
       "actif": true,
       "especes": [
-        "SP0054"
+        "SP0054",
+        "SP0052"
       ]
     },
     {
@@ -1524,6 +1587,9 @@
       "especes": [
         "SP0058",
         "SP0047"
+      ],
+      "glossaire": [
+        "GL0146"
       ]
     },
     {
@@ -1542,6 +1608,9 @@
       "especes": [
         "SP0067",
         "SP0062"
+      ],
+      "glossaire": [
+        "GL0192"
       ]
     },
     {
@@ -1560,6 +1629,9 @@
       "especes": [
         "SP0049",
         "SP0050"
+      ],
+      "glossaire": [
+        "GL0015"
       ]
     }
   ]

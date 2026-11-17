@@ -106,13 +106,20 @@ fonctionne **à tout moment, même entre deux séances et sans aucune action du 
   moins exercé, puis vers l'autre, puis vers un sortilège prêt.
 - **Le grimoire du voyageur** : des sortilèges **personnels**, hors des chapitres, qui
   s'ouvrent avec le niveau et que l'élève lance seul, quand il veut :
-  - 🔁 **Seconde chance** (niveau 2) lève le délai d'attente posé après une mauvaise
-    réponse sur une fiche : il peut retenter tout de suite ;
-  - 🪶 **Mémoire** (niveau 3) rend lisible un feuillet de son carnet effacé par le Souffle ;
-  - 🔍 **Loupe** (niveau 4) se lance **pendant une question** (contrôle de compréhension
+  - 🔍 **Loupe** (niveau 2) se lance **pendant une question** (contrôle de compréhension
     avant « appris », question d'un repère ou d'une zone) : un bouton _Loupe_ apparaît
     au-dessus des réponses et écarte une mauvaise réponse. Elle ne donne jamais la bonne :
-    elle refuse de servir quand il ne reste que deux réponses.
+    elle refuse de servir quand il ne reste que deux réponses ;
+  - 🪶 **Mémoire** (niveau 3) rend lisible un feuillet de son carnet effacé par le Souffle ;
+  - 🐾 **Flair** (niveau 4) offre une fouille personnelle sur le plateau, en veillée : froid,
+    tiède ou chaud, sans question ;
+  - 🔁 **Seconde chance** n'apparaît que si un délai est réglé après une mauvaise réponse sur
+    une fiche. Depuis le 17 novembre 2026 ce délai est à zéro en mouture « Tenir à deux » :
+    l'élève retente tout de suite, sans sortilège, et Seconde chance reste rangée.
+
+  La **Plume** (écrire une page) est sortie de ce grimoire le 17 novembre 2026 : une page
+  d'élève passe désormais par le sort **Lettre**, lancé en partie (voir
+  [Économie, Marché et sorts](economie-marche-sorts.md)).
 
   Un sortilège lancé se **recharge** quand l'élève a gagné 5 nouveaux points : on
   apprend pour pouvoir le relancer. Pas de minuteur, rien à valider par le MJ. Ces

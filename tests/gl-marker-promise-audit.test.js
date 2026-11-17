@@ -264,7 +264,7 @@ test('auditMarkerPromises({ tenir: true }) agrège les libellés et la perte en 
         label: 'Arrivée',
         event_type: 'story',
         effet_mecanique:
-          'Arrivée au camp. La première équipe reçoit l’honneur des Éclaireurs ; ensuite, ses jets portent la caravane.',
+          'Arrivée au camp. La première équipe reçoit l’honneur de l’Avant-garde ; ensuite, ses jets portent la caravane.',
         event_config_json: JSON.stringify({
           version: 2,
           effects: { neutral: { label: null, deltaPv: 0, deltaGems: 0, deltaMove: 0 } },

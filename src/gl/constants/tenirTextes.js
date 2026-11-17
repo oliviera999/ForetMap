@@ -11,7 +11,7 @@ export const TENIR_OLU_FALLBACK = Object.freeze({
   tenir: [{ texte: 'Une page tenue à deux : elle ne s’effacera plus.', expression: 'joie' }],
   voile: [{ texte: 'Le voile avance. On tient.', expression: 'neutre' }],
   sort: [{ texte: 'Un sort est lancé.', expression: 'surpris' }],
-  seuil: [{ texte: 'Le seuil approche : on compte ce qu’on a tenu.', expression: 'pensif' }],
+  seuil: [{ texte: 'Le camp approche : on compte ce qu’on a tenu.', expression: 'pensif' }],
   peripetie: [{ texte: 'Une péripétie ! On passe.', expression: 'surpris' }],
   bestiaire: [{ texte: 'Une chimère entre au bestiaire.', expression: 'curieux' }],
   oiseau: [{ texte: 'L’oiseau est passé par là.', expression: 'curieux' }],

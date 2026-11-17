@@ -53,7 +53,11 @@ test('comptes attendus par fichier', () => {
     Object.entries(passeur.plateaux).map(([k, v]) => `${k}:${v.pages.length}`),
     ['1:7', '2:7', '3:9', '4:7'],
   );
-  assert.equal(readJson('sorts').voyageur.length, 6);
+  // Ensemble unifié (M23) : la Plume est sortie du grimoire du voyageur.
+  assert.deepEqual(
+    readJson('sorts').voyageur.map((v) => v.code),
+    ['seconde_chance', 'loupe', 'memoire', 'flair', 'messager'],
+  );
 });
 
 test('défis de case : 16 défis, 4 par plateau, complets, sans mot interdit ; lignes d’Olu des trois moments', () => {
@@ -122,7 +126,16 @@ test('zones : 8/8/10/10, ordre sans trou, une question de lecture par zone, code
     assert.equal(q.feuillet_code, z.feuillet_code);
     assert.ok(['A', 'B', 'C', 'D'].includes(q.reponse));
     assert.equal(new Set(Object.values(q.choix).map((c) => c.trim().toLowerCase())).size, 4);
-    assert.match(q.feedback_incorrect, /^Pas encore/);
+    // Un retour commun « Pas encore », ou un retour propre à chacun des trois mauvais choix.
+    const mauvaises = ['A', 'B', 'C', 'D'].filter((l) => l !== q.reponse);
+    const retours = q.retours || {};
+    if (q.feedback_incorrect != null) assert.match(q.feedback_incorrect, /^Pas encore/);
+    else {
+      assert.ok(
+        mauvaises.every((l) => /^Pas encore/.test(String(retours[l] || ''))),
+        `${z.zone_key} : sans retour commun, un retour par mauvais choix`,
+      );
+    }
     assert.ok(z.indice.length <= 120, `${z.zone_key} indice ≤ 120`);
   }
 });

@@ -46,14 +46,14 @@ const demandes = [
   },
   {
     id: 4,
-    kind: 'presence_a_confirmer',
-    refId: 'presence-1-4',
+    kind: 'mentorat',
+    refId: '12',
     teamId: 4,
     teamName: 'Licornes B',
-    titre: 'Présences à confirmer',
-    action: 'Tout le monde est là',
-    detail: '',
-    payload: {},
+    titre: 'Mentorat à écouter',
+    action: 'Réussi',
+    detail: 'joueur-a',
+    payload: { critere: 'C’est clair, c’est juste, et la classe a appris quelque chose.' },
   },
   {
     id: 5,
@@ -74,7 +74,6 @@ function tourApi() {
     validerSaisie: vi.fn().mockResolvedValue({}),
     refuserSaisie: vi.fn().mockResolvedValue({}),
     garderJet: vi.fn().mockResolvedValue({}),
-    presences: vi.fn().mockResolvedValue({}),
   };
 }
 
@@ -96,15 +95,32 @@ describe('GLDemandesPanel — file unique du prof', () => {
       'des_a_valider',
       'jet_en_suspens',
       'nommer',
-      'presence_a_confirmer',
+      'mentorat',
       'chimere',
     ]);
     fireEvent.click(screen.getByRole('button', { name: 'Valider le jet' }));
     await waitFor(() => expect(api.validerSaisie).toHaveBeenCalledWith('41'));
     fireEvent.click(screen.getByRole('button', { name: 'Appliquer la case' }));
     await waitFor(() => expect(api.garderJet).toHaveBeenCalledWith(3));
-    fireEvent.click(screen.getByRole('button', { name: 'Tout le monde est là' }));
-    await waitFor(() => expect(api.presences).toHaveBeenCalledWith([], 4));
+    // Mentorat (M23) : « pas encore » part avec la piste saisie ; rien n'est remboursé.
+    expect(screen.getByTestId('gl-mentorat-critere').textContent).toContain('pour vous seul');
+    fireEvent.change(screen.getByTestId('gl-mentorat-piste'), {
+      target: { value: 'Dis où vit cette espèce.' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Pas encore' }));
+    await waitFor(() =>
+      expect(apiGlMock).toHaveBeenCalledWith('/api/gl/games/7/tenir/mentorats/12', 'PUT', {
+        decision: 'pas_encore',
+        piste: 'Dis où vit cette espèce.',
+      }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Réussi' }));
+    await waitFor(() =>
+      expect(apiGlMock).toHaveBeenCalledWith('/api/gl/games/7/tenir/mentorats/12', 'PUT', {
+        decision: 'valider',
+        piste: null,
+      }),
+    );
     fireEvent.click(screen.getByRole('button', { name: 'Effet appliqué' }));
     await waitFor(() =>
       expect(apiGlMock).toHaveBeenCalledWith(

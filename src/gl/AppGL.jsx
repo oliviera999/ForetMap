@@ -136,6 +136,7 @@ import {
   removeClassLinkTokenFromUrl,
 } from './utils/glTeamSession.js';
 import { GLTenirEquipeView } from './components/tenir/GLTenirEquipeView.jsx';
+import { importTargetNav } from './utils/glJournalImportMeta.js';
 import { useGlChasse } from './hooks/useGlChasse.js';
 import { reportUsage } from '../shared/usage/reportUsage.js';
 import { resolvePlateauMusicBiomeSlug } from './utils/glPlateauMusicProgress.js';
@@ -1155,6 +1156,14 @@ export function AppGL() {
                           }
                           chasse={chasse}
                           modules={modules}
+                          onOuvrirPiste={(piste) =>
+                            handleNavigateFromImport(
+                              importTargetNav(
+                                piste?.type === 'fiche' ? 'species' : 'glossary',
+                                piste?.code,
+                              ),
+                            )
+                          }
                         />
                       ) : null}
                       <GLMapView

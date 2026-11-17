@@ -299,7 +299,7 @@ export function GLMarketComptoirPanel({ place, heartsTradable }) {
     <div className="gl-market-comptoir" data-testid="gl-market-comptoir">
       <h3>Comptoir des parures</h3>
       <p className="gl-hint">
-        Une parure est portée par la mascotte de ton équipe jusqu’au seuil. Aucun effet de jeu.
+        Une parure est portée par la mascotte de ton équipe jusqu’au camp. Aucun effet de jeu.
       </p>
       {place.parures.portees.length ? (
         <p className="gl-market-parures-portees">

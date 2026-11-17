@@ -222,6 +222,8 @@ router.get(
     if (!carnet) return undefined;
     return res.json({
       pages: carnet.pages,
+      // L7 : Lettres validées, en marge (hors du compte des pages).
+      marge: carnet.marge || [],
       total: carnet.total,
       tenues: carnet.tenues,
       trouvees: carnet.trouvees,

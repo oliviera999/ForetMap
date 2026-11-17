@@ -435,8 +435,10 @@ async function importExempleChasse(db, { game = null } = {}) {
 }
 
 /**
- * Présences du tour courant confirmées pour toutes les équipes (lot 2) : posées en base, sans
- * évènement, comme si chaque équipe avait répondu « C'est bon » sans absent.
+ * Présences du tour courant déclarées pour toutes les équipes : posées en base, sans évènement,
+ * comme si chaque équipe avait répondu « C'est bon » sans absent. Ensemble unifié (M14) : plus
+ * rien ne l'exige (tout le monde est présent par défaut) ; la fixture reste pour les suites qui
+ * lisent `presences.equipes[].confirmee`.
  */
 async function confirmerPresences(ctx) {
   const game = await queryOne('SELECT current_round_number AS r FROM gl_games WHERE id = ?', [
@@ -450,12 +452,6 @@ async function confirmerPresences(ctx) {
       [ctx.game.id, Number(game.r) || 0, team.id, `equipe-${team.id}`],
     );
   }
-  // La ligne « présences à confirmer » de la file du prof se ferme avec la confirmation.
-  await execute(
-    `UPDATE gl_game_demandes SET statut = 'traitee', resolved_at = NOW()
-      WHERE game_id = ? AND kind = 'presence_a_confirmer' AND statut = 'en_attente'`,
-    [ctx.game.id],
-  );
 }
 
 /**

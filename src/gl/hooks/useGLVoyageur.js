@@ -3,7 +3,9 @@ import { apiGL } from '../services/apiGL.js';
 
 /**
  * Données du Seuil (`GET /api/gl/voyageur/me`) : niveau à deux regards, expédition en cours,
- * grimoire personnel. `castSpell` / `loadTargets` pilotent les sortilèges du voyageur.
+ * grimoire personnel, Lettre et Mentorat de l'élève. `castSpell` / `loadTargets` pilotent les
+ * sortilèges du voyageur ; `ecrireLettre` / `retenterMentorat` rejouent, sans repayer, les deux
+ * sorts payés pendant la partie.
  */
 export function useGLVoyageur({ enabled = true } = {}) {
   const [data, setData] = useState(null);
@@ -44,7 +46,7 @@ export function useGLVoyageur({ enabled = true } = {}) {
 
   const castSpell = useCallback(
     async (code, target) => {
-      // Plume `{ titre, texte }` et Flair `{ x, y }` envoient un objet ; les autres une cible texte.
+      // Flair `{ x, y }` envoie un objet ; les autres une cible texte.
       const body = target && typeof target === 'object' ? target : { target };
       const result = await apiGL(
         `/api/gl/voyageur/spells/${encodeURIComponent(code)}/cast`,
@@ -57,5 +59,39 @@ export function useGLVoyageur({ enabled = true } = {}) {
     [reload],
   );
 
-  return { data, loading, error, errorStatus, reload, loadTargets, castSpell };
+  /** Lettre (M23) : écrire ou réécrire sa page, sans rien repayer. */
+  const ecrireLettre = useCallback(
+    async (lettreId, { amorce = null, titre, texte }) => {
+      const result = await apiGL(`/api/gl/voyageur/lettre/${lettreId}`, 'PUT', {
+        amorce,
+        titre,
+        texte,
+      });
+      await reload();
+      return result;
+    },
+    [reload],
+  );
+
+  /** Mentorat (M23) : retenter après un « pas encore », sans rien repayer. */
+  const retenterMentorat = useCallback(
+    async (mentoratId) => {
+      const result = await apiGL(`/api/gl/voyageur/mentorat/${mentoratId}/retenter`, 'POST', {});
+      await reload();
+      return result;
+    },
+    [reload],
+  );
+
+  return {
+    data,
+    loading,
+    error,
+    errorStatus,
+    reload,
+    loadTargets,
+    castSpell,
+    ecrireLettre,
+    retenterMentorat,
+  };
 }

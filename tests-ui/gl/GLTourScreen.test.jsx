@@ -1,5 +1,5 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
 import { GLTourScreen } from '../../src/gl/components/mj/GLTourScreen.jsx';
 
 const apiGlMock = vi.fn();
@@ -345,5 +345,56 @@ describe('GLTourScreen', () => {
     await waitFor(() => expect(screen.getByTestId('gl-sablier-phase')).toBeInTheDocument());
     const appels = apiGlMock.mock.calls.filter(([p]) => p === '/api/gl/games/7/tenir/tour/phase');
     expect(appels).toHaveLength(1);
+  });
+
+  test('« Mot de passe oublié » : le mot de passe provisoire s’affiche une fois, puis s’efface seul', async () => {
+    apiGlMock.mockImplementation(async (path) => {
+      if (path.endsWith('/tenir/tour')) return tourView();
+      if (path.includes('/journal/')) return { events: [], teams: [] };
+      if (path.endsWith('/tenir/players/41/mot-de-passe')) {
+        return { ok: true, playerId: 41, motDePasse: 'provisoire-de-test' };
+      }
+      return { ok: true };
+    });
+    render(
+      <GLTourScreen
+        game={{ id: 7 }}
+        teams={teams}
+        roster={[{ playerId: 41, pseudo: 'joueur-a', teamId: 1 }]}
+        tenir={tenir}
+        token="tok"
+        onReloadGame={vi.fn()}
+      />,
+    );
+    fireEvent.click(await screen.findByTestId('gl-tour-mdp-41'));
+    await waitFor(() =>
+      expect(screen.getByTestId('gl-tour-mdp')).toHaveTextContent('provisoire-de-test'),
+    );
+    expect(apiGlMock).toHaveBeenCalledWith(
+      '/api/gl/games/7/tenir/players/41/mot-de-passe',
+      'POST',
+      {},
+    );
+    // Le minuteur d'effacement est posé à l'affichage : on le rejoue avec une horloge simulée.
+    fireEvent.click(screen.getByRole('button', { name: 'Masquer' }));
+    expect(screen.queryByTestId('gl-tour-mdp')).toBeNull();
+    vi.useFakeTimers();
+    try {
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('gl-tour-mdp-41'));
+        await vi.advanceTimersByTimeAsync(10);
+      });
+      expect(screen.getByTestId('gl-tour-mdp')).toHaveTextContent('provisoire-de-test');
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(59_000);
+      });
+      expect(screen.getByTestId('gl-tour-mdp')).toBeInTheDocument();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(2_000);
+      });
+      expect(screen.queryByTestId('gl-tour-mdp')).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

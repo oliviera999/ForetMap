@@ -4,12 +4,12 @@
 // `routes/gl/voyageur.js`, migration 317).
 
 require('./helpers/setup');
-const { test, before } = require('node:test');
+const { test, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const request = require('supertest');
 const { app } = require('../server');
 const { initSchema, execute, queryOne } = require('../database');
-const { invalidateModulesCache } = require('../lib/glSettings');
+const { invalidateModulesCache, invalidateGameplayCache } = require('../lib/glSettings');
 const {
   pointsForLevel,
   levelForPoints,
@@ -45,6 +45,16 @@ async function setVoyageurModule(enabled) {
   invalidateModulesCache();
 }
 
+async function setDelaiFiche(secondes) {
+  await execute(
+    `INSERT INTO gl_settings (\`key\`, value_json, updated_at)
+     VALUES ('gameplay.tenir_delai_fiche_secondes', ?, NOW())
+     ON DUPLICATE KEY UPDATE value_json = VALUES(value_json), updated_at = NOW()`,
+    [String(secondes)],
+  );
+  invalidateGameplayCache();
+}
+
 async function addAcks(pid, type, count, prefix) {
   for (let i = 0; i < count; i += 1) {
     await execute(
@@ -63,6 +73,10 @@ function getMe(token = playerToken) {
 before(async () => {
   await initSchema();
   await setVoyageurModule(true);
+  // Ensemble unifié (M23) : à 0 (défaut), plus aucun délai après une mauvaise réponse et
+  // « Seconde chance » sort du grimoire. Cette suite éprouve le retour en arrière d'un réglage :
+  // un délai d'une heure, et le sort qui le lève.
+  await setDelaiFiche(3600);
   const admin = await createGlAdmin({ email: `mj.voyageur.${stamp}@ecole.local` });
   const glClass = await createGlClass({ adminId: admin.id, name: `Classe voyageur ${stamp}` });
   const player = await createGlPlayer({ classId: glClass.id, pseudo: `voy-a-${stamp}` });
@@ -163,6 +177,10 @@ test('GET /me — module éteint : 503', async () => {
   } finally {
     await setVoyageurModule(true);
   }
+});
+
+after(async () => {
+  await setDelaiFiche(0);
 });
 
 test('GET /me — joueur neuf : niveau 1, grimoire verrouillé, expédition en cours', async () => {

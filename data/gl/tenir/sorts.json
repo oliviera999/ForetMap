@@ -22,8 +22,8 @@
       "jeu": "pendant la phase jeu",
       "jeu_avant_fouille": "pendant la phase jeu, avant une fouille de l'équipe",
       "activite": "pendant l'activité de classe (file du prof)",
-      "seuil": "au seuil (clôture de partie)",
-      "seuil_veillee": "au seuil ou en veillée",
+      "seuil": "au camp (clôture de partie)",
+      "seuil_veillee": "au camp ou en veillée",
       "fin_seance": "à la fin de la séance",
       "trimestre_3": "troisième trimestre"
     },
@@ -525,7 +525,7 @@
       "nom": "Mentorat",
       "famille": "seuil",
       "peuple": "any",
-      "cout": 4,
+      "cout": 3,
       "ressource": "peuple",
       "fenetre": "seuil_veillee",
       "limite": {
@@ -535,8 +535,15 @@
       },
       "cible": "classe",
       "execution": "prof",
-      "effet_court": "enseigner deux minutes à la classe ; vert + à l'oral",
-      "effet_auto_json": null,
+      "effet_court": "expliquer deux minutes à la classe une page ou une espèce ; payé une fois, un « pas encore » se retente sans repayer",
+      "effet_auto_json": {
+        "type": "mentorat",
+        "un_par_seance": true,
+        "consigne": "Mentorat : tu expliques à la classe, en deux minutes, une page du carnet ou une espèce du biome. Prépare trois choses : ce que c'est, où ça vit ou d'où ça vient, et ce qui t'a étonné. Ton professeur choisit le moment.",
+        "critere_prof": "C'est clair, c'est juste, et la classe a appris quelque chose. Sinon : « Pas encore », avec une piste ; l'élève retente une autre semaine sans repayer.",
+        "retour_pas_encore": "Pas encore : il manque un morceau à ton explication. Regarde la piste de ton professeur ; tu repasses une autre semaine, sans rien repayer.",
+        "retour_valide": "Mentorat réussi : la classe en sait plus grâce à toi."
+      },
       "chapitre_ouverture": 3,
       "nouveau": false
     },
@@ -545,7 +552,7 @@
       "nom": "Lettre",
       "famille": "seuil",
       "peuple": "any",
-      "cout": 3,
+      "cout": 2,
       "ressource": "peuple",
       "fenetre": "seuil_veillee",
       "limite": {
@@ -555,8 +562,36 @@
       },
       "cible": "carnet_classe",
       "execution": "prof",
-      "effet_court": "une page vierge écrite par l'élève entre au carnet de la classe après relecture",
-      "effet_auto_json": null,
+      "effet_court": "une page écrite par l'élève entre au carnet de la classe, en marge, après relecture ; un « pas encore » se réécrit sans repayer",
+      "effet_auto_json": {
+        "type": "lettre",
+        "presentation": "Une Lettre, c'est une page à toi, en marge du carnet de Sélène. Ton professeur la relit, puis elle entre au carnet de la classe.",
+        "amorces": [
+          {
+            "code": "vu",
+            "titre": "Ce que j'ai vu",
+            "texte": "Raconte ce que tu as vu dans ce biome, comme si tu l'écrivais le soir au bivouac."
+          },
+          {
+            "code": "surprise",
+            "titre": "Ce qui m'a surpris",
+            "texte": "Choisis une espèce qui t'a surpris. Dis laquelle, et pourquoi."
+          },
+          {
+            "code": "question",
+            "titre": "Ce que je me demande",
+            "texte": "Écris une question que tu te poses encore sur ce biome, et ce que tu en penses pour l'instant."
+          }
+        ],
+        "retour_pas_encore": "Pas encore : ta page a besoin d'un détail de plus. Lis la piste de ton professeur et réécris-la quand tu veux. Tu n'as rien à repayer.",
+        "retour_valide": "Ta page est entrée au carnet de la classe, en marge. Elle y restera.",
+        "relecture_prof": [
+          "Ni le visage de Sélène, ni le nom de l'oiseau, ni le copiste.",
+          "Le Souffle se décrit par ce qu'on voit (ça pâlit, ça se tait), jamais comme quelqu'un.",
+          "Un fait de science douteux : « pas encore », avec la fiche à relire comme piste.",
+          "Une Lettre ne compte pas pour le carnet complet."
+        ]
+      },
       "chapitre_ouverture": 3,
       "nouveau": true
     },
@@ -671,9 +706,10 @@
         "n": 1,
         "portee": "eleve"
       },
-      "effet_court": "lève le délai d'attente posé après une mauvaise réponse : la fiche peut être retentée tout de suite",
+      "effet_court": "lève le délai d'attente posé après une mauvaise réponse ; n'existe que si le réglage tenir_delai_fiche_secondes est supérieur à 0 (à 0, défaut : aucun délai, le sort sort du grimoire)",
       "execution": "auto",
-      "perimetre": "inclus"
+      "perimetre": "inclus",
+      "condition": "tenir_delai_fiche_secondes > 0"
     },
     {
       "code": "loupe",
@@ -715,20 +751,6 @@
       },
       "effet_court": "une fouille personnelle en veillée : verdict seulement (froid, tiède, chaud), empreinte partagée avec la classe",
       "execution": "auto",
-      "perimetre": "inclus"
-    },
-    {
-      "code": "plume",
-      "nom": "Plume",
-      "niveau": 5,
-      "cout": 0,
-      "limite": {
-        "par": "chapitre",
-        "n": 1,
-        "portee": "eleve"
-      },
-      "effet_court": "une page vierge écrite par l'élève, relue par le prof avant d'entrer au carnet",
-      "execution": "prof",
       "perimetre": "inclus"
     },
     {

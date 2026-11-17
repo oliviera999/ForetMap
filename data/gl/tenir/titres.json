@@ -8,7 +8,7 @@
   },
   "honneurs": {
     "eclaireurs": {
-      "libelle": "Éclaireurs",
+      "libelle": "Avant-garde",
       "critere": "Première équipe au camp",
       "tropiques": "Compagnie du Calao Pressé",
       "aride": "Chameliers de l'Horizon Tremblant",
@@ -24,7 +24,7 @@
       "grands_froids": "Gardiens du Caillou Sacré sous la Glace"
     },
     "passeurs": {
-      "libelle": "Passeurs",
+      "libelle": "Compagnons",
       "critere": "Le plus d'aide : Bourrasque, Abri, Relais, Cordée, dons, pages tenues pour l'autre peuple",
       "tropiques": "Porteurs d'Eau de la Caravane",
       "aride": "Ombre Portée du Dromadaire",
@@ -42,9 +42,9 @@
   },
   "sceaux_peuple": {
     "eclaireuses": {
-      "libelle": "Éclaireuses",
+      "libelle": "Révélatrices",
       "peuple": "unicorn",
-      "critere": "Équipe licorne qui a trouvé le plus de pages",
+      "critere": "Équipe licorne qui a trouvé le plus de pages et révélé le plus de zones",
       "tropiques": "Regards de la Canopée",
       "aride": "Yeux de l'Oued Sec",
       "tempere": "Guetteuses de la Clairière",

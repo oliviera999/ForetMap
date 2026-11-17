@@ -17,7 +17,7 @@
     { "id": "mis-14", "texte": "Pendant tout un tour, parler uniquement par questions.", "type": "absurde", "titre_sceau": "Société des Points d'Interrogation" },
     { "id": "mis-15", "texte": "Corriger Olu quand il se trompe (une fois par séance il se trompe exprès).", "type": "cooperative", "titre_sceau": "Correcteurs du Renard" },
     { "id": "mis-16", "texte": "Finir dernier de la caravane à la fin d'un tour, puis premier à la fin d'un autre, dans le même chapitre.", "type": "absurde", "titre_sceau": "Compagnie du Dé Boiteux" },
-    { "id": "mis-17", "texte": "Inventer un cri de ralliement d'équipe de trois mots, et le crier (doucement) au moment de passer le seuil.", "type": "absurde", "titre_sceau": "Confrérie du Cri de Trois Mots" },
+    { "id": "mis-17", "texte": "Inventer un cri de ralliement d'équipe de trois mots, et le crier (doucement) au moment d'arriver au camp.", "type": "absurde", "titre_sceau": "Confrérie du Cri de Trois Mots" },
     { "id": "mis-18", "texte": "Jouer un tour entier sans qu'aucun membre ne touche son téléphone, sa trousse ou son voisin. Oui, c'est une mission.", "type": "absurde", "titre_sceau": "Dompteurs de Trousse" },
     { "id": "mis-19", "texte": "Écrire au Passeur une phrase du journal commençant par « Ce que j'ai vu aujourd'hui… », signée par les cinq.", "type": "cooperative", "titre_sceau": "Scribes de la Phrase à Cinq Mains" },
     { "id": "mis-20", "texte": "Faire reculer le voile (carnet complet ou Lumière) au moins une fois dans le chapitre. Mission de toute la classe : si elle réussit, toutes les équipes la réussissent.", "type": "classe", "titre_sceau": "Gardiens de la Marée Reculée" }

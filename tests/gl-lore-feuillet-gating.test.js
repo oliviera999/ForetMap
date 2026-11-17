@@ -33,6 +33,10 @@ let glToken = '';
 
 before(async () => {
   await initSchema();
+  // Ensemble unifié (M23) : en mode « Tenir », le délai après une mauvaise réponse est imposé par
+  // `tenir_delai_fiche_secondes` (0 par défaut). Cette suite éprouve le verrou du
+  // conditionnement lui-même : elle coupe le mode le temps de ses tests (en mémoire seulement).
+  glSettings.setGameplayCacheForTests({ tenirEnabled: false }, 3_600_000);
 
   await execute(
     `INSERT IGNORE INTO gl_qcm_lore_scopes (slug, nom, order_index) VALUES (?, 'Scope feuillet gating', 999)`,
@@ -106,6 +110,7 @@ before(async () => {
 
 after(async () => {
   glSettings.setGatingCacheForTests(null);
+  glSettings.setGameplayCacheForTests(null);
   await execute('DELETE FROM gl_learning_acknowledgements WHERE target_code IN (?, ?)', [
     feuilletCode,
     feuilletOff,

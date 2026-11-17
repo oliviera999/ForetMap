@@ -26,8 +26,9 @@ Ils priment sur toute autre règle. Source : `docs/GL_TENIR_A_DEUX_REGLES.md` §
 10. Toute écriture de bourse passe par `applyBourseDeltaTx` ; la réserve par `creditReserveTx` /
     `debitReserveTx` (`lib/glBourses.js`, causes du grand livre dans `CAUSES`).
 11. **Aucun état d'attente sans sortie automatique** : ce qui attend un geste (jet en suspens,
-    défi, demande) se résout ou s'annule seul au changement de phase, à la clôture du tour ou
-    au Seuil.
+    défi, demande, Mentorat) se résout ou s'annule seul au changement de phase, à la clôture
+    du tour, à la séance suivante ou au camp (la fin de chapitre ; « le Seuil » ne désigne plus
+    que l'espace personnel de l'élève).
 12. Au tableau (`surface = tableau`), le comportement existant ne change pas sans décision.
 
 ## Où vit la liste des mots interdits

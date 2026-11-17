@@ -26,7 +26,13 @@ const { checkTenirInvariantsFromDb } = require('../../../lib/glTenirInvariants')
  * séance suivante, une proposition d'élève à relire, un sort d'activité (il s'applique après le
  * tour, pendant l'activité de classe, et se rend seul à l'ouverture du tour suivant).
  */
-const REPORTABLES = Object.freeze(['defi_case', 'plume', 'chimere', 'sort_a_appliquer']);
+const REPORTABLES = Object.freeze([
+  'defi_case',
+  'plume',
+  'mentorat',
+  'chimere',
+  'sort_a_appliquer',
+]);
 const SORTS_DU_PROF = Object.freeze(['SL004', 'SL046', 'SL047', 'SL021', SORTS.NOMMER]);
 
 function noter(ctx, code, ok, detail) {

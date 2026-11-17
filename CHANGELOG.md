@@ -9,6 +9,43 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — G&L : ensemble unifié, PR 1b — charge du prof, lexique, zones, règles v3 (17 novembre 2026)
+
+Prompt `docs/GL_ENSEMBLE_UNIFIE_PROMPT.md` (§ 6, fin de l'étape 1.5 et étapes 1.8 à 1.11). Rien
+ici ne change l'équilibre : le banc est relancé pour le vérifier.
+
+- **Mentorat et Lettre (M23, L7)** : Mentorat à 3 (un par séance et par classe, critère lu par le
+  prof seul, « Réussi » ou « Pas encore » avec une piste, nouvelle tentative sans repayer, jamais
+  remboursé, repasse seul en « pas encore » à la séance suivante) ; Lettre à 2 (trois amorces
+  d'Olu, relue par le prof, réécrite sans repayer, rangée au carnet « en marge », hors du carnet
+  complet). La Plume sort du grimoire du voyageur ; Seconde chance n'y reste que si un délai est
+  réglé. Nouveau réglage `gameplay.tenir_delai_fiche_secondes` (**0 par défaut** : une mauvaise
+  réponse au QCM d'une fiche ne fait plus attendre, en mouture « Tenir à deux »). Migration 362.
+  Après relecture des garde-fous : un Mentorat reporté d'office affiche un texte neutre ; une
+  Lettre en relecture suit son auteur vers la partie en cours ; le critère du prof et ses points
+  de relecture ne sont plus servis avec le pot d'un sort ; Seuil coupé, les deux sorts sont
+  refusés avant tout débit.
+- **Charge du prof (M14)** : sorts du Travail « à honorer » (ou « Refuser et rembourser ») ;
+  Retrait levé pour tous à la clôture du tour ; présences sans confirmation (chacun est présent
+  par défaut, l'erreur `PRESENCE_A_CONFIRMER` disparaît) ; bilan Team Spirit « 6 cartes gardées
+  par défaut, touche ce qui a été retiré » ; `copyFromGameId` à la création d'une partie ; mot de
+  passe provisoire d'un élève en un appui (`POST /api/gl/games/:id/tenir/players/:playerId/mot-de-passe`),
+  qui s'efface seul de l'écran au bout d'une minute.
+  Migration 363.
+- **Lexique et sceaux (L2)** : la fin de chapitre s'appelle « le camp » ; honneurs « Avant-garde »
+  et « Compagnons », sceau licorne « Révélatrices », titres et badges « Grand voyageur »,
+  « Porte-page », « Voyant des fils » ; les clés techniques ne changent pas. Migration 364.
+- **Zones (M22, L5)** : 5 questions de zone réécrites (`GQCM9301` à `GQCM9305`, les anciennes
+  sortent du tirage), fiche `SP0277`, termes `GL0279` et `GL0280`, fiche qui porte la réponse en
+  tête de chaque zone, champ `glossaire`, piste « La réponse se trouve dans la fiche … » après un
+  « pas encore », zone `cz-p2-08` activée avec le feuillet `ep-I-06` et sa question de lecture
+  (retours par lettre). Migration 365. Nouveau contrôle en lecture seule
+  `scripts/gl-controle-reponses-sur-site.js` ; rapport `docs/GL_REPONSES_SUR_SITE_2026-11-17.csv`.
+- **Règles v3 et docs** : `docs/GL_TENIR_A_DEUX_REGLES.md` réécrit (monnaie au singulier, 5 rôles,
+  Boussole sortie — ce qui attend les PR 2 à 4 y est marqué), `docs/API.md`,
+  `docs/GL_TENIR_A_DEUX.md`, `docs/GL_DEFIS.md`, `docs/reference/gl/`, `data/gl/tenir/README.md`,
+  skills `.claude/skills/gl-*` ; `scripts/check-tenir-data.py` connaît les nouveaux champs.
+
 ### Corrigé — G&L : relecture scientifique du lot 2 des questions vives et de deux cases Souffle (17 novembre 2026)
 
 Suite de la PR 1a de l'ensemble unifié : les 16 remarques du relecteur scientifique, validées par
@@ -28,7 +65,6 @@ Oliv. Contenu seulement, aucune règle touchée.
   lande, plus le merle ni le sous-bois ; « Un fil lâche » (taïga) passe par l'ours brun et les
   saumons, deux espèces du catalogue de la taïga.
 - **Olu** : olu-34 « {equipe} est sous le voile. » (le voile n'agit plus : « a rejoint »).
-
 ### Modifié — G&L : ensemble unifié, PR 1a — les règles du tour simplifiées (17 novembre 2026)
 
 Prompt `docs/GL_ENSEMBLE_UNIFIE_PROMPT.md` (§ 6, étapes 1.1 à 1.7 et 1.12), décisions d'Oliv des

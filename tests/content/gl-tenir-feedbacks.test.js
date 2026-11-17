@@ -141,10 +141,10 @@ test('base : une question de zone active a un feedback_correct et un retour par 
   assert.deepEqual(failures, []);
 });
 
-test('base : une question de lecture active a un feedback_incorrect', async (t) => {
+test('base : une question de lecture active a un retour commun, ou un retour par mauvais choix', async (t) => {
   await db.initSchema();
   const rows = await db.queryAll(
-    'SELECT zone_key, feedback_correct, feedback_incorrect FROM gl_tenir_questions_lecture WHERE actif = 1',
+    'SELECT zone_key, reponse, feedback_correct, feedback_incorrect, retours_json FROM gl_tenir_questions_lecture WHERE actif = 1',
   );
   if (!rows.length) {
     t.diagnostic('Aucune question de lecture en base (base neuve) : contrôle sauté');
@@ -152,8 +152,25 @@ test('base : une question de lecture active a un feedback_incorrect', async (t) 
   }
   const failures = [];
   for (const row of rows) {
-    if (!String(row.feedback_incorrect || '').trim()) {
-      failures.push(`${row.zone_key} : feedback_incorrect vide`);
+    // Ensemble unifié (M22) : un retour propre à chaque mauvais choix (`retours_json`) dispense
+    // du retour commun.
+    let retours = {};
+    try {
+      retours = JSON.parse(row.retours_json || '{}') || {};
+    } catch (_) {
+      retours = {};
+    }
+    const mauvaises = ['A', 'B', 'C', 'D'].filter((l) => l !== String(row.reponse));
+    const tous = mauvaises.every((l) => String(retours[l] || '').trim());
+    if (!String(row.feedback_incorrect || '').trim() && !tous) {
+      failures.push(`${row.zone_key} : ni retour commun ni retour par mauvais choix`);
+    }
+    for (const [lettre, texte] of Object.entries(retours)) {
+      const mot = findForbiddenString(texte);
+      if (mot) failures.push(`${row.zone_key}.retours.${lettre} : « ${mot} »`);
+      if (!/^Pas encore/.test(String(texte))) {
+        failures.push(`${row.zone_key}.retours.${lettre} : sans « Pas encore »`);
+      }
     }
     for (const col of ['feedback_correct', 'feedback_incorrect']) {
       const mot = findForbiddenString(row[col]);

@@ -1,10 +1,11 @@
 'use strict';
 
 /**
- * « Tenir à deux », lot 2, étape 2.3 — présences confirmées par équipe. En hybride et sur
- * tablette, un pot de sort attend que l'équipe ait dit s'il manque quelqu'un ; un absent ne
- * paie pas et n'entre pas dans les mesures de présence ; un retardataire revient dans le pot
- * suivant. Aucun état d'attente sans sortie : la demande au prof se ferme seule.
+ * « Tenir à deux » — présences par équipe. Ensemble unifié (M14) : **tout le monde est présent
+ * par défaut**. Rien n'est à confirmer, rien n'attend dans la file du prof, et un pot de sort se
+ * crée sans confirmation. En hybride et sur tablette, une équipe dit s'il manque quelqu'un : un
+ * absent ne paie pas et n'entre pas dans les mesures de présence ; un retardataire revient dans
+ * le pot suivant.
  */
 
 require('./helpers/setup');
@@ -18,7 +19,6 @@ const { issueTeamSession } = require('../lib/glGuestToken');
 const { listPresentMembers } = require('../lib/glTenir');
 const { listDemandes } = require('../lib/glDemandes');
 const { presentJournalEvent } = require('../lib/glJournalPresent');
-const { findForbiddenString } = require('../lib/shared/glGardeFousCore');
 
 let ctx;
 const auth = (t) => ({ Authorization: `Bearer ${t}` });
@@ -47,13 +47,14 @@ before(async () => {
   for (const p of ctx.players) await setPlayerBourses(p.id, 6, 6);
 });
 
-test('tour ouvert sur tablette : présence à confirmer pour chaque équipe, pot refusé tant qu’elle ne l’est pas', async () => {
+test('tour ouvert sur tablette : tout le monde est présent d’office — rien à confirmer, aucune demande, le pot se crée', async () => {
   await ouvrirTourEnJeu(request, app, ctx, { presences: false });
   const gnomes = ctx.teams[0];
   const [eleve] = membres(gnomes.id);
 
   const vue = await request(app).get(api('/tenir/tour')).set(auth(eleve.token));
   assert.equal(vue.status, 200, JSON.stringify(vue.body));
+  // Le geste « Il manque quelqu'un ? » reste proposé ; personne n'a rien déclaré.
   assert.equal(vue.body.presences.requise, true);
   assert.equal(vue.body.presences.equipes.length, 4);
   assert.ok(vue.body.presences.equipes.every((e) => e.confirmee === false));
@@ -61,21 +62,25 @@ test('tour ouvert sur tablette : présence à confirmer pour chaque équipe, pot
   for (const e of vue.body.presences.equipes) {
     assert.equal('absents' in e, Number(e.teamId) === Number(gnomes.id));
   }
-  const demandes = (await listDemandes(db, ctx.game.id)).filter(
-    (d) => d.kind === 'presence_a_confirmer',
+  assert.deepEqual(await listDemandes(db, ctx.game.id), [], 'rien n’attend le prof');
+  const tour = await tourCourant();
+  assert.equal(
+    (await listPresentMembers(db, ctx.game.id, gnomes.id, tour)).length,
+    membres(gnomes.id).length,
+    'tous les membres sont présents',
   );
-  assert.equal(demandes.length, 4, 'une demande par équipe dans la file du prof');
-  assert.ok(!JSON.stringify(demandes).includes('joueur-'));
 
-  const refuse = await pot(eleve.token, {
+  // Sans confirmation, le pot se crée et tous les membres y figurent.
+  const cree = await pot(eleve.token, {
     spellCode: 'SL043',
     teamId: gnomes.id,
     ressource: 'coeurs',
   });
-  assert.equal(refuse.status, 409, JSON.stringify(refuse.body));
-  assert.equal(refuse.body.code, 'PRESENCE_A_CONFIRMER');
-  assert.equal(refuse.body.error, 'Dites d’abord s’il manque quelqu’un.');
-  assert.equal(findForbiddenString(refuse.body.error), null);
+  assert.equal(cree.status, 201, JSON.stringify(cree.body));
+  assert.equal(cree.body.draft.presents.length, membres(gnomes.id).length);
+  await request(app)
+    .delete(api(`/spell-casts/drafts/${cree.body.draft.id}`))
+    .set(auth(eleve.token));
 });
 
 test('« Il manque quelqu’un ? » : l’absent sort du pot et des présents ; un membre d’une autre équipe est refusé', async () => {
@@ -105,10 +110,6 @@ test('« Il manque quelqu’un ? » : l’absent sort du pot et des présents ; 
   const mienne = vue.body.presences.equipes.find((e) => Number(e.teamId) === Number(gnomes.id));
   assert.equal(mienne.confirmee, true);
   assert.deepEqual(mienne.absents, [absent.id]);
-  const restantes = (await listDemandes(db, ctx.game.id)).filter(
-    (d) => d.kind === 'presence_a_confirmer',
-  );
-  assert.equal(restantes.length, 3, 'la demande de l’équipe est fermée');
 
   // Le pot se crée, et l'absent n'y figure pas.
   const cree = await pot(eleve.token, {
@@ -183,7 +184,7 @@ test('retardataire : « Quelqu’un vient d’arriver » le remet dans le pot su
     .set(auth(eleve.token));
 });
 
-test('tablette d’équipe : confirme pour SON équipe ; le prof corrige à tout moment ; l’appel du prof confirme tout le monde', async () => {
+test('tablette d’équipe : déclare pour SON équipe ; le prof corrige à tout moment ; l’appel du prof vaut pour tout le monde', async () => {
   const licornes = ctx.teams[2];
   const [a, b] = membres(licornes.id);
   const s = await issueTeamSession(db, { gameId: ctx.game.id, teamId: licornes.id });
@@ -230,26 +231,14 @@ test('tablette d’équipe : confirme pour SON équipe ; le prof corrige à tout
     vue.body.presences.equipes.every((e) => Array.isArray(e.absents)),
     'le prof voit tout',
   );
-  const restantes = (await listDemandes(db, ctx.game.id)).filter(
-    (d) => d.kind === 'presence_a_confirmer',
-  );
-  assert.equal(restantes.length, 0);
 });
 
-test('aucune attente sans sortie : la demande de présence se ferme seule à la sortie du jeu', async () => {
+test('après la phase de jeu, une équipe ne déclare plus d’absent ; rien n’est resté en attente', async () => {
   await phase('souffle', { dort: true });
   await phase('clos');
   await ouvrirTourEnJeu(request, app, ctx, { presences: false });
-  assert.equal(
-    (await listDemandes(db, ctx.game.id)).filter((d) => d.kind === 'presence_a_confirmer').length,
-    4,
-  );
-  // Plus d'élève ne confirme une fois la phase de jeu passée.
+  assert.deepEqual(await listDemandes(db, ctx.game.id), []);
   await phase('souffle', { dort: true });
-  assert.equal(
-    (await listDemandes(db, ctx.game.id)).filter((d) => d.kind === 'presence_a_confirmer').length,
-    0,
-  );
   const tard = await request(app)
     .post(api('/tenir/presences'))
     .set(auth(membres(ctx.teams[0].id)[0].token))
@@ -261,7 +250,7 @@ test('aucune attente sans sortie : la demande de présence se ferme seule à la 
   await phase('clos');
 });
 
-test('au tableau, rien ne change : pas de présence à confirmer, le pot du prof se crée', async () => {
+test('au tableau, rien ne change : le geste n’est pas proposé, le pot du prof se crée', async () => {
   const autre = await createTenirGame({ stamp: Date.now() + 7 });
   await db.execute(
     "UPDATE gl_games SET tenir_surface = 'tableau', tenir_overrides_json = NULL WHERE id = ?",
@@ -271,10 +260,6 @@ test('au tableau, rien ne change : pas de présence à confirmer, le pot du prof
   await ouvrirTourEnJeu(request, app, autre, { presences: false });
   const vue = await request(app).get(api('/tenir/tour', autre)).set(auth(autre.adminToken));
   assert.equal(vue.body.presences.requise, false);
-  assert.equal(
-    (await listDemandes(db, autre.game.id)).filter((d) => d.kind === 'presence_a_confirmer').length,
-    0,
-  );
   const active = vue.body.round.equipeActiveId;
   const cree = await pot(
     autre.adminToken,

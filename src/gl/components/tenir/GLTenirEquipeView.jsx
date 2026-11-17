@@ -60,6 +60,11 @@ export function GLTenirEquipeView({
    * appartient à un compte (« Mes badges », proposition d'une chimère).
    */
   tablette = false,
+  /**
+   * Ouvre la fiche ou le mot du glossaire d'une piste de réponse (M22) ; `null` là où l'écran
+   * n'a pas d'onglets (tablette d'équipe) : le texte de la piste suffit.
+   */
+  onOuvrirPiste = null,
 }) {
   const gameId = gameState?.game?.id;
   const tourApi = useGlTenirTour({
@@ -380,6 +385,22 @@ export function GLTenirEquipeView({
       {verdict ? (
         <p className="gl-tenir-equipe__verdict" role="status" data-verdict={verdict.verdict}>
           {verdict.feedback || VERDICT_TEXTES[verdict.verdict] || ''}
+        </p>
+      ) : null}
+      {/* M22 : la réponse d'une question de zone se lit sur le site — un lien, pas la réponse. */}
+      {verdict?.piste?.texte ? (
+        <p className="gl-tenir-equipe__piste" data-testid="gl-tenir-piste-reponse">
+          {verdict.piste.texte}{' '}
+          {onOuvrirPiste ? (
+            <GLButton
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => onOuvrirPiste(verdict.piste)}
+            >
+              {verdict.piste.type === 'fiche' ? 'Ouvrir la fiche' : 'Ouvrir le glossaire'}
+            </GLButton>
+          ) : null}
         </p>
       ) : null}
       {caseQuestion.question ? (

@@ -21,6 +21,8 @@ const {
   resolveTenirSettings,
   resolveSurface,
   resolveDesMode,
+  TENIR_PROFILS,
+  validateOverrides,
 } = require('../../lib/glTenir');
 
 const { parsePct, validateEventPayload } = require('../../lib/gl/gameEventPayload');
@@ -185,6 +187,54 @@ router.get(
   }),
 );
 
+/** Colonnes de bascule d'une partie reprises par « Copier la configuration » (liste fermée). */
+const COLONNES_COPIEES = Object.freeze([
+  'zone_content_retrigger',
+  'lore_feuillet_retrigger',
+  'lore_effacement_enabled',
+  'lore_gemme_costs_enabled',
+  'lore_heart_rewards_enabled',
+  'board_movement_mode',
+  'board_path_start_index',
+]);
+
+/** Surcharges qui décrivent un état passager de la séance, jamais une configuration. */
+const SURCHARGES_PASSAGERES = Object.freeze(['surface_avant_tableau']);
+
+/**
+ * Configuration d'une partie, pour en créer une autre : profil, surface, surcharges « Tenir »
+ * (validées contre le registre courant) et bascules. `null` si la partie n'existe pas.
+ */
+async function copierConfiguration(gameId, { tenir = false } = {}) {
+  const source = await queryOne(
+    `SELECT tenir_profil, tenir_surface, tenir_overrides_json, ${COLONNES_COPIEES.join(', ')}
+       FROM gl_games WHERE id = ? LIMIT 1`,
+    [gameId],
+  );
+  if (!source) return null;
+  const bascules = {};
+  for (const col of COLONNES_COPIEES) if (source[col] != null) bascules[col] = source[col];
+  const out = { bascules };
+  if (tenir && source.tenir_profil && TENIR_PROFILS.includes(String(source.tenir_profil))) {
+    out.tenirProfil = String(source.tenir_profil);
+    out.tenirSurface = source.tenir_surface ? String(source.tenir_surface) : null;
+    let brut = {};
+    try {
+      brut = source.tenir_overrides_json ? JSON.parse(String(source.tenir_overrides_json)) : {};
+    } catch (_) {
+      brut = {};
+    }
+    for (const cle of SURCHARGES_PASSAGERES) delete brut[cle];
+    // Une surcharge qu'un registre plus récent ne connaît plus est laissée de côté, sans erreur.
+    const propres = {};
+    for (const [cle, valeur] of Object.entries(brut || {})) {
+      if (!validateOverrides({ [cle]: valeur }).error) propres[cle] = valeur;
+    }
+    out.tenirOverrides = Object.keys(propres).length ? JSON.stringify(propres) : null;
+  }
+  return out;
+}
+
 router.post(
   '/games',
   requireGlPermission('gl.game.manage'),
@@ -215,16 +265,37 @@ router.post(
     // Lot 2 (étape 2.10) : au chapitre 1, la classe apprend le tour — le Marché est éteint
     // d'office par une surcharge de la partie, que le prof rallume d'un clic. Les parties
     // existantes ne changent pas.
-    const tenirOverrides =
+    let tenirOverrides =
       tenirProfil && Number(chapterRow.plateau_number) === 1
         ? JSON.stringify({ marche: false })
         : null;
+    // Ensemble unifié (M14) — « Copier la configuration » : la nouvelle partie reprend le profil,
+    // la surface, les surcharges et les bascules d'une partie existante. Ni les équipes, ni les
+    // pions, ni les bourses, ni rien de ce qui s'y est joué.
+    const copyFromGameId = parseId(req.body?.copyFromGameId);
+    let copie = null;
+    if (copyFromGameId) {
+      if (!(await canAccessGlGame(req.glAuth, copyFromGameId))) {
+        return res.status(403).json({ error: 'Accès à la partie à copier refusé' });
+      }
+      copie = await copierConfiguration(copyFromGameId, { tenir: !!tenirProfil });
+      if (!copie) return res.status(404).json({ error: 'Partie à copier introuvable' });
+      if (copie.tenirOverrides !== undefined) tenirOverrides = copie.tenirOverrides;
+    }
     let insertResult;
     try {
       insertResult = await execute(
         `INSERT INTO gl_games (class_id, chapter_id, name, status, created_by, tenir_profil, tenir_surface, tenir_overrides_json, created_at, updated_at)
        VALUES (?, ?, ?, 'draft', ?, ?, ?, ?, NOW(), NOW())`,
-        [classId, chapterId, name, req.glAuth.userId, tenirProfil, tenirSurface, tenirOverrides],
+        [
+          classId,
+          chapterId,
+          name,
+          req.glAuth.userId,
+          copie?.tenirProfil || tenirProfil,
+          copie?.tenirSurface || tenirSurface,
+          tenirOverrides,
+        ],
       );
     } catch (err) {
       // Filet de sécurité en cas de course entre la validation ci-dessus et l'INSERT.
@@ -234,6 +305,13 @@ router.post(
       throw err;
     }
     const newId = insertResult?.insertId;
+    if (copie && Object.keys(copie.bascules).length) {
+      const cols = Object.keys(copie.bascules);
+      await execute(
+        `UPDATE gl_games SET ${cols.map((c) => `${c} = ?`).join(', ')}, updated_at = NOW() WHERE id = ?`,
+        [...cols.map((c) => copie.bascules[c]), newId],
+      );
+    }
     try {
       const { seedTeamsFromTemplate } = require('../../lib/gl/teamTemplates');
       await seedTeamsFromTemplate({ gameId: newId, classId });

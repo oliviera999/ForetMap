@@ -31,14 +31,14 @@ export const SORT_MOMENTS = Object.freeze([
   }),
   Object.freeze({
     key: 'fin_chapitre',
-    label: 'En fin de chapitre ou en veillée',
+    label: 'Au camp ou en veillée',
     fenetres: Object.freeze(['seuil', 'seuil_veillee', 'trimestre_3']),
   }),
 ]);
 
 /**
- * Clé du moment d'une fenêtre ; une fenêtre inconnue ou absente se range dans « En fin de
- * chapitre ou en veillée ».
+ * Clé du moment d'une fenêtre ; une fenêtre inconnue ou absente se range dans « Au camp ou en
+ * veillée » (L2 : la fin de chapitre s'appelle le camp).
  */
 export function momentDeFenetre(fenetre) {
   const f = String(fenetre || '');
