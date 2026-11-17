@@ -36,6 +36,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Import XLSX des QCM** : une question de taxonomie (« À quelle famille appartient… »,
   « nom scientifique ») créée par l'import sort du tirage des parties, comme l'avait fait la
   migration 345 ; une question existante garde le réglage « Posée en partie » du prof.
+
+### Corrigé — G&L : le Relais n'écrase plus un jet déjà commis
+
+- En tablettes parallèles, le Relais choisissait l'équipe la plus en retard sur l'instantané
+  ouvert au début du lancement. Un jet commité entre-temps restait invisible : le pion était
+  reposé sur la case du lanceur et le déplacement était perdu. Les cases sont relues sous
+  verrou avant de choisir qui rejoint le lanceur.
+
 ### Corrigé — G&L : tests « Tenir à deux » verts sur une base neuve
 
 - Sur la base neuve de la CI, six tests de la Cordée offerte et du Relais échouaient : le
