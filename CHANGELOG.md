@@ -9,6 +9,26 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — G&L : relecture scientifique du lot 2 des questions vives et de deux cases Souffle (17 novembre 2026)
+
+Suite de la PR 1a de l'ensemble unifié : les 16 remarques du relecteur scientifique, validées par
+Oliv. Contenu seulement, aucune règle touchée.
+
+- **Questions vives** (`data/gl/tenir/questions-vives.json`, resynchronisé au démarrage par
+  empreinte ; source `ensemble-unifie/questions-vives-lot2.json` alignée) :
+  - exactitude : calao qui s'emmure *avant* de pondre (VQCM0041), goliath « jusqu'à 3 kilos »
+    (0046), guépard qui s'épuise vers 100 km/h (0052), « la plupart des espèces » de la canopée
+    (0049), rose de Jéricho « du Sahara » (0063), plantes de garrigue (0071) ;
+  - finalisme retiré : gorille (0045), liane (0047), vautours (0080), varan (0070) ;
+  - choix farfelus ou trop absolus remplacés : acacia (0058), caméléon (0074), saisons
+    méditerranéennes (0076) ; nuances : repousse des arbres de savane (0054), aigrettes du
+    grand-duc (0079) ;
+  - bonne réponse raccourcie là où elle était la plus longue (0070, 0071).
+- **Cases Souffle** (migration 361) : « Silence soudain » (landes) nomme la fauvette pitchou et la
+  lande, plus le merle ni le sous-bois ; « Un fil lâche » (taïga) passe par l'ours brun et les
+  saumons, deux espèces du catalogue de la taïga.
+- **Olu** : olu-34 « {equipe} est sous le voile. » (le voile n'agit plus : « a rejoint »).
+
 ### Modifié — G&L : ensemble unifié, PR 1a — les règles du tour simplifiées (17 novembre 2026)
 
 Prompt `docs/GL_ENSEMBLE_UNIFIE_PROMPT.md` (§ 6, étapes 1.1 à 1.7 et 1.12), décisions d'Oliv des

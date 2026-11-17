@@ -7,7 +7,7 @@
       "question_code": "VQCM0041",
       "biome_slug": "jungle_afc",
       "categorie_slug": "faune",
-      "question": "La femelle calao pond dans un trou d'arbre. Que fait le couple juste après ?",
+      "question": "La femelle calao va pondre dans un trou d'arbre. Que fait le couple ?",
       "choix": [
         "Il bouche l'entrée avec de la boue, et le mâle nourrit la femelle par une fente",
         "Il laisse les œufs seuls, car la chaleur humide de la forêt suffit à les couver",
@@ -65,7 +65,7 @@
       "categorie_slug": "faune",
       "question": "Un gorille mâle se dresse et se frappe la poitrine. Que veut-il dire ?",
       "choix": [
-        "« Regarde comme je suis grand » : il impressionne pour ne pas se battre",
+        "« Regarde comme je suis grand » : souvent, cela évite la bagarre",
         "« J'ai faim » : il réclame au groupe sa part de fruits et de feuilles",
         "« Il va pleuvoir » : il prévient les petits de se mettre à l'abri",
         "« Suivez-moi » : c'est le signal du départ pour toute la famille"
@@ -79,7 +79,7 @@
       "categorie_slug": "faune",
       "question": "La grenouille goliath est la plus grande grenouille du monde. Combien peut-elle peser ?",
       "choix": [
-        "Plus de 3 kilos, autant qu'un chat",
+        "Jusqu'à 3 kilos, autant qu'un chat",
         "Environ 300 grammes, autant qu'une pomme",
         "Près de 30 kilos, autant qu'un chien",
         "À peine 30 grammes, autant qu'une souris"
@@ -91,15 +91,15 @@
       "question_code": "VQCM0047",
       "biome_slug": "jungle_afc",
       "categorie_slug": "flore",
-      "question": "Pourquoi une liane grimpe-t-elle sur les arbres ?",
+      "question": "Que gagne une liane à grimper sur les arbres ?",
       "choix": [
-        "Pour atteindre la lumière sans fabriquer un gros tronc",
-        "Pour boire la sève de l'arbre sur lequel elle s'enroule",
-        "Pour échapper aux animaux du sol qui mangent ses racines",
-        "Pour étouffer l'arbre et prendre sa place au soleil"
+        "Elle atteint la lumière sans fabriquer de gros tronc",
+        "Elle boit la sève de l'arbre sur lequel elle s'enroule",
+        "Elle échappe aux animaux du sol qui mangent ses racines",
+        "Elle se nourrit de l'écorce de l'arbre"
       ],
       "reponse": "A",
-      "explication": "Sous la canopée, la lumière manque. La liane emprunte le tronc d'un autre comme une échelle et garde son énergie pour pousser en longueur."
+      "explication": "Sous la canopée, la lumière manque. La liane emprunte le tronc d'un autre comme une échelle et met son énergie à pousser en longueur."
     },
     {
       "question_code": "VQCM0048",
@@ -119,7 +119,7 @@
       "question_code": "VQCM0049",
       "biome_slug": "jungle_afc",
       "categorie_slug": "ecosystemes",
-      "question": "Dans une forêt équatoriale, où vivent la plupart des animaux ?",
+      "question": "Dans une forêt équatoriale, où vivent la plupart des espèces d'animaux ?",
       "choix": [
         "Tout en haut, dans la canopée, près de la lumière et des fruits",
         "Au sol, entre les racines des grands arbres, à l'abri de la pluie",
@@ -169,7 +169,7 @@
         "Dix minutes, puis il repart aussitôt pour dix autres"
       ],
       "reponse": "A",
-      "explication": "À plus de 100 km/h, son corps chauffe très vite. S'il n'a pas attrapé sa proie en quelques centaines de mètres, il abandonne."
+      "explication": "Vers 100 km/h, il s'épuise très vite. S'il n'a pas attrapé sa proie en quelques centaines de mètres, il abandonne."
     },
     {
       "question_code": "VQCM0053",
@@ -197,7 +197,7 @@
         "L'herbe ne brûle pas vraiment : seule la poussière s'enflamme"
       ],
       "reponse": "A",
-      "explication": "Les herbes poussent par le bas. Broutées ou brûlées, elles repartent de la base, alors qu'un jeune arbre, lui, doit tout recommencer."
+      "explication": "Les herbes poussent par le bas. Broutées ou brûlées, elles repartent de la base, alors qu'un jeune arbre, lui, met des années à repousser."
     },
     {
       "question_code": "VQCM0055",
@@ -250,10 +250,10 @@
         "Il rend ses feuilles amères en quelques minutes",
         "Il laisse tomber toutes ses feuilles d'un seul coup",
         "Il replie lentement ses branches contre son tronc",
-        "Rien du tout : un arbre ne réagit jamais à rien"
+        "Il fait pousser de nouvelles épines aussitôt"
       ],
       "reponse": "A",
-      "explication": "L'acacia charge ses feuilles en tanins, des substances amères. La girafe ne reste donc jamais longtemps sur le même arbre."
+      "explication": "L'acacia charge ses feuilles en tanins, des substances amères. La girafe reste donc rarement longtemps sur le même arbre."
     },
     {
       "question_code": "VQCM0059",
@@ -315,7 +315,7 @@
       "question_code": "VQCM0063",
       "biome_slug": "sahara",
       "categorie_slug": "flore",
-      "question": "La rose de Jéricho peut rester des années roulée en boule sèche. Que se passe-t-il quand il pleut ?",
+      "question": "La rose de Jéricho du Sahara peut rester des années roulée en boule sèche. Que se passe-t-il quand il pleut ?",
       "choix": [
         "Elle s'ouvre et libère ses graines, qui germent",
         "Elle reverdit et refleurit comme avant la sécheresse",
@@ -415,7 +415,7 @@
       "categorie_slug": "faune",
       "question": "Le varan du désert s'active aux heures chaudes. Pourquoi a-t-il besoin du soleil ?",
       "choix": [
-        "C'est un reptile : il se réchauffe au soleil pour être actif",
+        "C'est un reptile : le soleil réchauffe son corps",
         "Le soleil fait pousser et durcir ses nouvelles écailles",
         "Il ne voit bien ses proies qu'en pleine lumière de midi",
         "Il recharge au soleil une réserve d'eau cachée sous sa peau"
@@ -429,9 +429,9 @@
       "categorie_slug": "flore",
       "question": "Pourquoi le thym, le romarin et la lavande sentent-ils si fort ?",
       "choix": [
-        "Leurs huiles parfumées repoussent ceux qui voudraient les brouter",
+        "Leur huile au goût fort décourage les animaux brouteurs",
         "Leur odeur monte jusqu'aux nuages et aide la pluie à tomber",
-        "Ils ne sentent fort que lorsqu'ils sont malades ou abîmés",
+        "Ils ne sentent fort que lorsqu'ils sont malades",
         "C'est la terre sèche de la garrigue qui sent, pas la plante"
       ],
       "reponse": "A",
@@ -473,7 +473,7 @@
       "choix": [
         "Ils bougent chacun de leur côté, sans se suivre",
         "Ils brillent dans le noir comme deux petites lampes",
-        "Ils restent fermés pendant tout l'hiver, sans s'ouvrir",
+        "Ils voient à travers les murs de feuilles",
         "Ils changent de taille selon l'heure de la journée"
       ],
       "reponse": "A",
@@ -501,11 +501,11 @@
       "choix": [
         "L'été, chaud et presque sans pluie",
         "L'hiver, à cause de la neige épaisse",
-        "Le printemps, à cause du vent",
-        "L'automne, à cause de la nuit"
+        "Le printemps, à cause des gelées tardives",
+        "L'automne, à cause des orages"
       ],
       "reponse": "A",
-      "explication": "C'est le contraire de chez les plantes du Nord : ici, on pousse en automne et au printemps, et on économise l'eau tout l'été."
+      "explication": "C'est le contraire du Nord : ici, les plantes poussent en automne et au printemps, et économisent l'eau tout l'été."
     },
     {
       "question_code": "VQCM0077",
@@ -547,7 +547,7 @@
         "Ses ailes sont couvertes d'une huile qui étouffe les sons"
       ],
       "reponse": "A",
-      "explication": "Ses proies ne l'entendent pas arriver, et lui entend le moindre froissement : ses oreilles sont cachées sous les plumes de sa tête."
+      "explication": "Ses proies ne l'entendent pas arriver, et lui entend le moindre froissement : ses oreilles sont cachées sous les plumes de sa tête. Les deux touffes qui dépassent ne sont que des plumes."
     },
     {
       "question_code": "VQCM0080",
@@ -561,7 +561,7 @@
         "Leurs os creux les rendent plus légers que l'air"
       ],
       "reponse": "A",
-      "explication": "Le soleil chauffe les rochers, l'air chaud s'élève, et les vautours montent avec lui en tournant. Ils économisent ainsi leurs forces pour chercher leur repas."
+      "explication": "Le soleil chauffe les rochers, l'air chaud s'élève, et les vautours montent avec lui en tournant. Ainsi, ils dépensent peu de forces en cherchant leur repas."
     }
   ]
 }

@@ -76,6 +76,7 @@ chasse initialisées, les Héritages de la classe versés.
 | 358 | ensemble unifié (M7) : trois cases Défi par plateau (rangs 11, 20, 29 ; 30 au plateau 4), l'ancienne case Défi de fin de plateau redevient une case question |
 | 359 | ensemble unifié (M9) : réglages `tenir_questions_difficulte_max_par_plateau`, `tenir_questions_spirale` ; `difficulteMax` retirés des cases question |
 | 360 | ensemble unifié (M17) : `tenir_lumiere` true, `tenir_lumiere_palier` 100, retrait de `tenir_cartes_vers_cases`, `gl_game_team_spirit.lumiere_comptee` |
+| 361 | relecture scientifique : descriptions des cases Souffle « Silence soudain » (landes, fauvette pitchou) et « Un fil lâche » (taïga, ours brun et saumons) |
 
 Le chargeur `npm run gl:import:tenir -- --fichier tous|<nom> [--dry-run] [--forcer] [--strict]`
 (`lib/glTenirImport.js`, données `data/gl/tenir/`, README des clés) reste maître des catalogues ;

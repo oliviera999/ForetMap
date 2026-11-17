@@ -107,7 +107,7 @@
       "cle": "sous_le_voile",
       "seance_escalier": 3,
       "expression": "pensif",
-      "texte": "Le voile a rejoint {equipe}. Il lui reste une fouille, et elle avance encore : on en ressort vite.",
+      "texte": "{equipe} est sous le voile. Il lui reste une fouille, et elle avance encore : on en ressort vite.",
       "variables": [
         "equipe"
       ]
@@ -227,7 +227,7 @@
     },
     {
       "id": "olu-34",
-      "texte": "Le voile a rejoint {equipe}. Il lui reste une fouille, et elle avance encore ; les autres savent quoi faire.",
+      "texte": "{equipe} est sous le voile. Il lui reste une fouille, et elle avance encore ; les autres savent quoi faire.",
       "raison": "M2 : une fouille sous le voile, et non plus aucune."
     },
     {
