@@ -1,0 +1,249 @@
+{
+  "format": "olu-lignes v2 — complément M8",
+  "principe": "Lignes dites une seule fois par partie (ou par équipe quand la ligne porte {equipe}), à la première occurrence de l'évènement `cle`. seance_escalier = séance du chapitre 1 où la nouveauté s'ouvre (0 = hors escalier, à la première occurrence). Olu dit le geste, jamais de morale.",
+  "lignes": [
+    {
+      "id": "olu-pf-avancer",
+      "moment": "premiere_fois",
+      "cle": "avancer",
+      "seance_escalier": 1,
+      "expression": "joie",
+      "texte": "Deux dés, et la caravane avance. Une bonne réponse, et elle avance encore d'une case.",
+      "variables": []
+    },
+    {
+      "id": "olu-pf-question_pas_encore",
+      "moment": "premiere_fois",
+      "cle": "question_pas_encore",
+      "seance_escalier": 1,
+      "expression": "neutre",
+      "texte": "Pas encore la bonne réponse ? Rien ne bouge : vous avez essayé, c'est tout.",
+      "variables": []
+    },
+    {
+      "id": "olu-pf-chercher",
+      "moment": "premiere_fois",
+      "cle": "chercher",
+      "seance_escalier": 1,
+      "expression": "curieux",
+      "texte": "Le carnet dort sous le plateau. Deux fouilles par tour : touchez la carte là où l'indice vous mène.",
+      "variables": []
+    },
+    {
+      "id": "olu-pf-chaud_froid",
+      "moment": "premiere_fois",
+      "cle": "chaud_froid",
+      "seance_escalier": 1,
+      "expression": "explique",
+      "texte": "Chaud, tiède, froid : je vous dis si une page dort tout près. Vos empreintes restent pour les autres équipes.",
+      "variables": []
+    },
+    {
+      "id": "olu-pf-peripetie",
+      "moment": "premiere_fois",
+      "cle": "peripetie",
+      "seance_escalier": 1,
+      "expression": "surpris",
+      "texte": "Une péripétie ! Le voyage a ses surprises. Lisez-la, et faites ce qu'elle dit.",
+      "variables": []
+    },
+    {
+      "id": "olu-pf-defi_case",
+      "moment": "premiere_fois",
+      "cle": "defi_case",
+      "seance_escalier": 1,
+      "expression": "curieux",
+      "texte": "Une case Défi, c'est rare. Vous avez une semaine pour le préparer ; relevé, il fait reculer le voile.",
+      "variables": []
+    },
+    {
+      "id": "olu-pf-trame",
+      "moment": "premiere_fois",
+      "cle": "trame",
+      "seance_escalier": 1,
+      "expression": "explique",
+      "texte": "L'activité est finie ? Les défis de la Trame sont ouverts. Une réussite, et une page de plus pour ton carnet.",
+      "variables": []
+    },
+    {
+      "id": "olu-pf-role",
+      "moment": "premiere_fois",
+      "cle": "role",
+      "seance_escalier": 1,
+      "expression": "neutre",
+      "texte": "L'écran appelle un rôle. C'est un conseil : dans l'équipe, vous vous arrangez comme vous voulez.",
+      "variables": []
+    },
+    {
+      "id": "olu-pf-tenir",
+      "moment": "premiere_fois",
+      "cle": "tenir",
+      "seance_escalier": 2,
+      "expression": "explique",
+      "texte": "Une page trouvée attend un lecteur de l'autre peuple. Lisez-la, répondez à sa question : elle tiendra.",
+      "variables": []
+    },
+    {
+      "id": "olu-pf-erreur_du_jour",
+      "moment": "premiere_fois",
+      "cle": "erreur_du_jour",
+      "seance_escalier": 2,
+      "expression": "pensif",
+      "texte": "Aujourd'hui, je vais dire une bêtise, exprès. Qui la repère la corrige, et la jauge de Lumière monte.",
+      "variables": []
+    },
+    {
+      "id": "olu-pf-voile",
+      "moment": "premiere_fois",
+      "cle": "voile",
+      "seance_escalier": 3,
+      "expression": "neutre",
+      "texte": "Voici le dé gris. Le voile avance derrière nous : restez devant, et tout va bien.",
+      "variables": []
+    },
+    {
+      "id": "olu-pf-sous_le_voile",
+      "moment": "premiere_fois",
+      "cle": "sous_le_voile",
+      "seance_escalier": 3,
+      "expression": "pensif",
+      "texte": "Le voile a rejoint {equipe}. Il lui reste une fouille, et elle avance encore : on en ressort vite.",
+      "variables": [
+        "equipe"
+      ]
+    },
+    {
+      "id": "olu-pf-page_temoin",
+      "moment": "premiere_fois",
+      "cle": "page_temoin",
+      "seance_escalier": 3,
+      "expression": "explique",
+      "texte": "Regardez : une zone a pâli sous le voile. Gnomes, c'est pour vous. Fouillez-la, et elle revient.",
+      "variables": []
+    },
+    {
+      "id": "olu-pf-palissement",
+      "moment": "premiere_fois",
+      "cle": "palissement",
+      "seance_escalier": 3,
+      "expression": "explique",
+      "texte": "Une page trouvée, pas encore tenue, pâlit sous le voile. Faites-la lire : tenue, elle ne craint plus rien.",
+      "variables": []
+    },
+    {
+      "id": "olu-pf-sorts",
+      "moment": "premiere_fois",
+      "cle": "sorts",
+      "seance_escalier": 3,
+      "expression": "joie",
+      "texte": "Le grimoire s'ouvre : trois sorts pour commencer. Chacun verse sa part dans le pot, et le sort part.",
+      "variables": []
+    },
+    {
+      "id": "olu-pf-lumiere",
+      "moment": "premiere_fois",
+      "cle": "lumiere",
+      "seance_escalier": 3,
+      "expression": "explique",
+      "texte": "La jauge de Lumière monte avec les cartes que la classe garde. Pleine, elle fait reculer le voile de cinq cases.",
+      "variables": []
+    },
+    {
+      "id": "olu-pf-marche",
+      "moment": "premiere_fois",
+      "cle": "marche",
+      "seance_escalier": 4,
+      "expression": "joie",
+      "texte": "Le Marché ouvre. Ce que tu achètes au comptoir, tu le gardes toute l'année.",
+      "variables": []
+    },
+    {
+      "id": "olu-pf-un_de_pose",
+      "moment": "premiere_fois",
+      "cle": "un_de_pose",
+      "seance_escalier": 0,
+      "expression": "pensif",
+      "texte": "Ici, le chemin se fait lourd. Au prochain tour, un seul dé. Ça ne dure qu'un tour, et rien d'autre ne change.",
+      "variables": []
+    },
+    {
+      "id": "olu-pf-un_de_joue",
+      "moment": "premiere_fois",
+      "cle": "un_de_joue",
+      "seance_escalier": 0,
+      "expression": "neutre",
+      "texte": "Un seul dé ce tour-ci pour {equipe}. Une Cordée lui donnerait le meilleur jet des deux équipes.",
+      "variables": [
+        "equipe"
+      ]
+    },
+    {
+      "id": "olu-pf-main",
+      "moment": "premiere_fois",
+      "cle": "main",
+      "seance_escalier": 0,
+      "expression": "neutre",
+      "texte": "Un seul écran joue à la fois. Tu vois ce que fait ton camarade ; à la prochaine action, ce sera peut-être toi.",
+      "variables": []
+    },
+    {
+      "id": "olu-pf-camp",
+      "moment": "premiere_fois",
+      "cle": "camp",
+      "seance_escalier": 0,
+      "expression": "joie",
+      "texte": "Le camp ! On pose les sacs. Regardez ce qui change au prochain chapitre : votre peuple, vos sorts, le plateau.",
+      "variables": []
+    },
+    {
+      "id": "olu-pf-cordee_offerte",
+      "moment": "premiere_fois",
+      "cle": "cordee_offerte",
+      "seance_escalier": 0,
+      "expression": "explique",
+      "texte": "Les Grands Froids se traversent encordés : chaque équipe a une Cordée offerte. Choisissez bien avec qui.",
+      "variables": []
+    },
+    {
+      "id": "olu-pf-lettre",
+      "moment": "premiere_fois",
+      "cle": "lettre",
+      "seance_escalier": 0,
+      "expression": "curieux",
+      "texte": "Une Lettre, c'est une page à toi, en marge du carnet. Choisis une amorce, ou pars de ton idée.",
+      "variables": []
+    }
+  ],
+  "revisions": [
+    {
+      "id": "olu-21",
+      "texte": "Tiède. Vous chauffez. Il y a du nez dans cette équipe.",
+      "raison": "« L'Éclaireur a du nez » : l'Éclaireuse répond désormais à la question de case, c'est l'Opératrice qui fouille (M10)."
+    },
+    {
+      "id": "olu-29",
+      "texte": "{equipe} a lu la page que l'autre peuple a trouvée : elle est tenue. Une gemme pour chaque lecteur.",
+      "raison": "M19 et M1 : seuls les lecteurs gagnent une gemme ; plus de cœurs."
+    },
+    {
+      "id": "olu-34",
+      "texte": "Le voile a rejoint {equipe}. Il lui reste une fouille, et elle avance encore ; les autres savent quoi faire.",
+      "raison": "M2 : une fouille sous le voile, et non plus aucune."
+    },
+    {
+      "id": "olu-44",
+      "actif": false,
+      "raison": "Nommer sort du grimoire (M6)."
+    },
+    {
+      "id": "olu-48",
+      "texte": "{equipe} est au camp ! Avant-garde du chapitre. Maintenant, elle tire les autres.",
+      "raison": "L2 : l'honneur Éclaireurs devient Avant-garde."
+    },
+    {
+      "id": "olu-49",
+      "texte": "Toute la caravane est au camp. Rangez les dés, sortez les enveloppes.",
+      "raison": "L2 : la fin de chapitre s'appelle le camp ; le Seuil reste l'espace personnel."
+    }
+  ]
+}
