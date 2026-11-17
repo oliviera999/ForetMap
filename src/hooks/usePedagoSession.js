@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../services/api';
 import {
   readStoredPedagoSession,
   writeStoredPedagoSession,
 } from '../components/pedago/SessionsView.jsx';
 import { notifyLearningGatingChanged } from '../shared/utils/learningGatingEvents.js';
+import { markRewardsCelebrated } from '../shared/rewards/useRewardsCelebration.js';
 import {
   consumeSessionLinkFromLocation,
   clearPendingSessionLink,
@@ -202,29 +203,82 @@ export function usePedagoSession({ available, authenticated, onToast, navigation
     if (prevId !== (next?.id || null)) notifyLearningGatingChanged({ kind: 'pedago_session' });
   }, []);
 
-  const postRun = useCallback(
-    (sessionId, kind) => {
-      if (!authenticated || !sessionId) return Promise.resolve(null);
-      return api(
-        `/api/pedago-sessions/${encodeURIComponent(sessionId)}/runs/${kind}`,
-        'POST',
-      ).catch(() => null);
+  // Un seul avertissement « progression non enregistrée » par séance : une étape qui échoue
+  // à s'enregistrer (réseau) ne doit pas noyer l'élève sous les toasts.
+  const progressWarnedRef = useRef(null);
+
+  /** Mémorise l'étape côté serveur (reprise dans un autre onglet, un autre jour). */
+  const postProgress = useCallback(
+    (sessionId, stepIndex) => {
+      if (!authenticated || !sessionId) return;
+      api(`/api/pedago-sessions/${encodeURIComponent(sessionId)}/runs/progress`, 'POST', {
+        step: stepIndex,
+      }).catch(() => {
+        if (progressWarnedRef.current === sessionId) return;
+        progressWarnedRef.current = sessionId;
+        onToast(
+          'Ton avancée n’a pas pu être enregistrée : vérifie ta connexion. Tu peux continuer la séance.',
+        );
+      });
     },
-    [authenticated],
+    [authenticated, onToast],
   );
 
+  /**
+   * Démarre une séance, ou la **reprend** à l'étape mémorisée par le serveur (lot 5).
+   * `restart` : repartir de l'étape 1 sans recompter de démarrage.
+   */
   const startSession = useCallback(
-    async (session) => {
-      if (!session?.steps?.length) return false;
+    async (session, { restart = false } = {}) => {
+      if (!session?.steps?.length) {
+        onToast('Cette séance n’a pas encore d’étape : préviens ton professeur.');
+        return false;
+      }
+      const stepCount = session.steps.length;
+      const local = readStoredPedagoSession();
+      // Même séance déjà ouverte dans cet onglet : on y retourne sans appel serveur.
+      if (!restart && local?.id && local.id === session.id) {
+        const idx = Math.min(Math.max(0, local.stepIndex || 0), stepCount - 1);
+        const next = { ...local, steps: session.steps, stepIndex: idx };
+        persistSession(next);
+        dispatchStep(next.steps[idx]);
+        return true;
+      }
+      let stepIndex = 0;
+      let resumed = false;
       if (authenticated && session.id) {
         try {
-          await api(`/api/pedago-sessions/${encodeURIComponent(session.id)}/runs/start`, 'POST');
+          const res = await api(
+            `/api/pedago-sessions/${encodeURIComponent(session.id)}/runs/start`,
+            'POST',
+            restart ? { restart: true } : undefined,
+          );
+          const serverStep = Number(res?.run?.currentStep);
+          if (res?.resumed && Number.isInteger(serverStep) && serverStep > 0) {
+            stepIndex = Math.min(serverStep, stepCount - 1);
+            resumed = true;
+          }
         } catch (err) {
           if (err?.body?.locked) {
             onToast(err.body.error || 'Cette séance est encore verrouillée.');
             return false;
           }
+          if (err?.body?.code === 'SESSION_EMPTY') {
+            onToast(err.body.error || 'Cette séance n’a pas encore d’étape.');
+            return false;
+          }
+          // Séance en brouillon ouverte par un gestionnaire (404 côté élève) : pas de trace,
+          // c'est attendu. Sinon, on prévient : la séance se suit, mais sans reprise.
+          if (err?.status !== 404) {
+            progressWarnedRef.current = session.id;
+            onToast(
+              'Séance ouverte sans connexion au serveur : ton avancée ne sera pas enregistrée.',
+            );
+          }
         }
+      }
+      if (progressWarnedRef.current && progressWarnedRef.current !== session.id) {
+        progressWarnedRef.current = null;
       }
       const next = {
         id: session.id,
@@ -236,18 +290,57 @@ export function usePedagoSession({ available, authenticated, onToast, navigation
         level: session.level || null,
         notionNiveau: session.config?.notionNiveau || null,
         steps: session.steps,
-        stepIndex: 0,
+        stepIndex,
       };
       persistSession(next);
-      dispatchStep(next.steps[0]);
+      dispatchStep(next.steps[stepIndex]);
+      if (resumed) onToast(`Reprise de « ${session.title} » à l’étape ${stepIndex + 1}.`);
       return true;
     },
     [authenticated, persistSession, dispatchStep, onToast],
   );
 
+  /**
+   * Quitter = mettre en pause : l'étape reste mémorisée côté serveur, la séance se reprend
+   * depuis l'onglet Séances (la confirmation est demandée par le bandeau).
+   */
   const exitSession = useCallback(() => {
     persistSession(null);
   }, [persistSession]);
+
+  const completeSession = useCallback(
+    (prev) => {
+      persistSession(null);
+      setCompletedSession(prev);
+      if (!authenticated || !prev.id) return;
+      api(`/api/pedago-sessions/${encodeURIComponent(prev.id)}/runs/complete`, 'POST')
+        .then((res) => {
+          const rewards = Array.isArray(res?.rewards) ? res.rewards : [];
+          // Une seule fenêtre de fin : les badges gagnés s'affichent dans « Séance terminée » ;
+          // marqués fêtés ici, ils ne rouvrent ni « Nouveau badge ! » par-dessus, ni ailleurs.
+          if (rewards.length) {
+            markRewardsCelebrated(rewards.map((r) => r.key));
+            setCompletedSession((cur) =>
+              cur && cur.id === prev.id ? { ...cur, newRewards: rewards } : cur,
+            );
+          }
+        })
+        .catch((err) => {
+          setCompletedSession((cur) =>
+            cur && cur.id === prev.id
+              ? {
+                  ...cur,
+                  saveError:
+                    err?.body?.error ||
+                    'La fin de séance n’a pas pu être enregistrée (connexion). Tes badges arriveront à la prochaine séance terminée.',
+                }
+              : cur,
+          );
+        })
+        .finally(() => setRunsVersion((v) => v + 1));
+    },
+    [authenticated, persistSession],
+  );
 
   const goStep = useCallback(
     (delta) => {
@@ -256,24 +349,24 @@ export function usePedagoSession({ available, authenticated, onToast, navigation
       const nextIndex = prev.stepIndex + delta;
       if (nextIndex < 0) return;
       if (nextIndex >= prev.steps.length) {
-        persistSession(null);
-        setCompletedSession(prev);
-        postRun(prev.id, 'complete').then((res) => {
-          setRunsVersion((v) => v + 1);
-          if (Array.isArray(res?.rewards) && res.rewards.length) {
-            setCompletedSession((cur) =>
-              cur && cur.id === prev.id ? { ...cur, newRewards: res.rewards } : cur,
-            );
-          }
-        });
+        completeSession(prev);
         return;
       }
       const next = { ...prev, stepIndex: nextIndex };
       persistSession(next);
       dispatchStep(next.steps[nextIndex]);
+      postProgress(prev.id, nextIndex);
     },
-    [activeSession, persistSession, dispatchStep, postRun],
+    [activeSession, persistSession, dispatchStep, postProgress, completeSession],
   );
+
+  /** Fermeture de la fenêtre de fin : les badges montrés sont « vus » (`seen_at`). */
+  const closeCompletedSession = useCallback(() => {
+    setCompletedSession((cur) => {
+      if (cur?.newRewards?.length) api('/api/rewards/me/seen', 'POST').catch(() => {});
+      return null;
+    });
+  }, []);
 
   const currentStep = activeSession?.steps?.[activeSession.stepIndex] || null;
 
@@ -285,11 +378,11 @@ export function usePedagoSession({ available, authenticated, onToast, navigation
       let session = null;
       try {
         session = await api(`/api/pedago-sessions/${encodeURIComponent(key)}`);
-        if (!session?.steps?.length) throw new Error('empty');
       } catch {
         onToast('Cette séance n’est plus disponible.');
         return false;
       }
+      // Séance sans étape : `startSession` le dit à l'élève au lieu de rester muet.
       return startSession(session);
     },
     [startSession, onToast],
@@ -314,6 +407,7 @@ export function usePedagoSession({ available, authenticated, onToast, navigation
       currentStep,
       completedSession,
       setCompletedSession,
+      closeCompletedSession,
       runsVersion,
       imposedLevel,
       imposedNotionNiveau,
@@ -327,6 +421,7 @@ export function usePedagoSession({ available, authenticated, onToast, navigation
       activeSession,
       currentStep,
       completedSession,
+      closeCompletedSession,
       runsVersion,
       imposedLevel,
       imposedNotionNiveau,

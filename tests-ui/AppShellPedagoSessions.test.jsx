@@ -204,15 +204,16 @@ describe('App — séances pédagogiques', () => {
     expect(lastPedago().sessionsProps.isAuthenticated).toBe(true);
 
     expect(await startFromSessionsView()).toBe(true);
-    expect(apiMock).toHaveBeenCalledWith('/api/pedago-sessions/12/runs/start', 'POST');
+    expect(apiMock).toHaveBeenCalledWith('/api/pedago-sessions/12/runs/start', 'POST', undefined);
 
     const b = banner();
     expect(b).toBeTruthy();
     expect(b.getAttribute('aria-label')).toBe('Séance Qui mange qui');
-    expect(b.textContent).toContain('1/2');
+    expect(b.textContent).toContain('Étape 1 sur 2');
     expect(within(b).getByText('Lire la consigne')).toBeTruthy();
     expect(within(b).getByRole('button', { name: 'Précédent' }).disabled).toBe(true);
-    expect(within(b).getByRole('button', { name: 'Lire' })).toBeTruthy();
+    // Déjà sur l'onglet Séances, où la consigne s'affiche : pas de bouton « Lire » (lot 5).
+    expect(within(b).queryByRole('button', { name: 'Lire' })).toBeNull();
 
     // Étape « message » : l'onglet Séances affiche la consigne.
     expect(lastPedago().tab).toBe('sessions');
@@ -244,7 +245,7 @@ describe('App — séances pédagogiques', () => {
     await startFromSessionsView();
 
     fireEvent.click(within(banner()).getByRole('button', { name: 'Suivant' }));
-    await waitFor(() => expect(banner().textContent).toContain('2/2'));
+    await waitFor(() => expect(banner().textContent).toContain('Étape 2 sur 2'));
     expect(within(banner()).getByText('Répondre au quiz')).toBeTruthy();
     expect(within(banner()).getByText('Une seule question.')).toBeTruthy();
     // Étape « quiz » : question imposée (en majuscules), notion et niveau transmis.
@@ -258,9 +259,9 @@ describe('App — séances pédagogiques', () => {
     expect(JSON.parse(window.sessionStorage.getItem(STORAGE_KEY)).stepIndex).toBe(1);
 
     fireEvent.click(within(banner()).getByRole('button', { name: 'Précédent' }));
-    await waitFor(() => expect(banner().textContent).toContain('1/2'));
+    await waitFor(() => expect(banner().textContent).toContain('Étape 1 sur 2'));
     fireEvent.click(within(banner()).getByRole('button', { name: 'Suivant' }));
-    await waitFor(() => expect(banner().textContent).toContain('2/2'));
+    await waitFor(() => expect(banner().textContent).toContain('Étape 2 sur 2'));
 
     const runsVersion = lastPedago().sessionsProps.runsVersion;
     fireEvent.click(within(banner()).getByRole('button', { name: 'Terminer' }));
@@ -297,10 +298,16 @@ describe('App — séances pédagogiques', () => {
     expect(lastPedago().tab).toBe('notebook');
   });
 
-  test('« Quitter » ferme la séance sans la terminer', async () => {
+  test('« Quitter » demande confirmation puis ferme la séance sans la terminer', async () => {
     await renderStudentApp();
     await startFromSessionsView();
     fireEvent.click(within(banner()).getByRole('button', { name: 'Quitter' }));
+    // Lot 5 : confirmation, qui rappelle que la séance se reprend à la même étape.
+    expect(within(banner()).getByText(/Tu pourras la reprendre à l’étape 1/)).toBeTruthy();
+    fireEvent.click(within(banner()).getByRole('button', { name: 'Continuer' }));
+    expect(banner()).toBeTruthy();
+    fireEvent.click(within(banner()).getByRole('button', { name: 'Quitter' }));
+    fireEvent.click(within(banner()).getByRole('button', { name: 'Oui, quitter' }));
     await waitFor(() => expect(banner()).toBeNull());
     expect(screen.queryByTestId('pedago-session-done')).toBeNull();
     expect(window.sessionStorage.getItem(STORAGE_KEY)).toBeNull();
@@ -333,7 +340,11 @@ describe('App — séances pédagogiques', () => {
   test('séance sans étape : rien ne démarre', async () => {
     await renderStudentApp();
     expect(await startFromSessionsView({ ...SEANCE, steps: [] })).toBe(false);
-    expect(apiMock).not.toHaveBeenCalledWith('/api/pedago-sessions/12/runs/start', 'POST');
+    expect(apiMock).not.toHaveBeenCalledWith(
+      '/api/pedago-sessions/12/runs/start',
+      'POST',
+      undefined,
+    );
     expect(banner()).toBeNull();
   });
 
@@ -342,7 +353,7 @@ describe('App — séances pédagogiques', () => {
     await renderStudentApp();
     await waitFor(() => expect(banner()).toBeTruthy());
     expect(apiMock).toHaveBeenCalledWith('/api/pedago-sessions/qui-mange-qui');
-    expect(apiMock).toHaveBeenCalledWith('/api/pedago-sessions/12/runs/start', 'POST');
+    expect(apiMock).toHaveBeenCalledWith('/api/pedago-sessions/12/runs/start', 'POST', undefined);
     expect(window.location.search).not.toContain('seance=');
     expect(window.sessionStorage.getItem(PENDING_LINK_KEY)).toBeNull();
   });
@@ -393,10 +404,14 @@ describe('App — séances pédagogiques', () => {
       }),
     );
     await renderStudentApp();
-    expect(banner().textContent).toContain('2/2');
+    expect(banner().textContent).toContain('Étape 2 sur 2');
     expect(lastPedago().sessionsProps.currentStep).toEqual(SEANCE.steps[1]);
     expect(probes.biodiv.at(-1)).toMatchObject({ sessionLevel: 'lycee' });
-    expect(apiMock).not.toHaveBeenCalledWith('/api/pedago-sessions/12/runs/start', 'POST');
+    expect(apiMock).not.toHaveBeenCalledWith(
+      '/api/pedago-sessions/12/runs/start',
+      'POST',
+      undefined,
+    );
   });
 
   test('la séance en cours est partagée par PedagoSessionContext', async () => {

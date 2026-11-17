@@ -59,7 +59,138 @@ function uniqueSlug(templateKey) {
 }
 
 /**
+ * Libellé et cible du bouton principal d'une carte de séance (fonction pure, testée) :
+ * séance ouverte dans cet onglet → « Continuer » ; passage en cours côté serveur (autre onglet,
+ * autre jour) → « Reprendre · étape n sur N » ; sinon « Démarrer » (ou « Refaire »).
+ */
+export function sessionPrimaryAction(session, myRun, activeSession) {
+  const count = session?.steps?.length || 0;
+  if (activeSession?.id && activeSession.id === session?.id) {
+    return { label: 'Continuer', resume: true, step: activeSession.stepIndex || 0 };
+  }
+  if (myRun?.inProgress && Number.isInteger(myRun.currentStep)) {
+    const step = Math.min(myRun.currentStep, Math.max(0, count - 1));
+    return { label: `Reprendre · étape ${step + 1} sur ${count}`, resume: true, step };
+  }
+  return { label: myRun?.completed ? 'Refaire' : 'Démarrer', resume: false, step: 0 };
+}
+
+/**
+ * Carte d'une séance du catalogue (extraite de `SessionsView`, lot 5).
+ */
+function SessionCard({
+  session,
+  myRun,
+  stats,
+  lockedBy,
+  requiredTitle,
+  canManage,
+  activeSession,
+  onStartSession,
+  panel,
+  setPanel,
+  onConfigure,
+}) {
+  const primary = sessionPrimaryAction(session, myRun, activeSession);
+  const disabled = (!session.isPublished && !canManage) || !!lockedBy;
+  return (
+    <li
+      className={`pedago-sessions__card card${primary.resume ? ' pedago-sessions__card--resume' : ''}`}
+      data-testid="pedago-session-card"
+      data-session-slug={session.slug}
+    >
+      <div className="pedago-sessions__card-main">
+        <h3 className="pedago-sessions__card-title">
+          {session.title}
+          {myRun?.completed ? (
+            <span className="pedago-sessions__done-badge" data-testid="pedago-session-done-badge">
+              Terminée{myRun.completionCount > 1 ? ` ×${myRun.completionCount}` : ''}
+            </span>
+          ) : null}
+        </h3>
+        <p className="section-sub">
+          {LEVEL_LABELS[session.level] || 'Collège'}
+          {' · '}
+          {session.steps?.length || 0} étapes
+          {session.templateKey === 'custom' ? ' · séance libre' : ''}
+          {!session.isPublished ? ' · brouillon' : ''}
+        </p>
+        {session.description ? (
+          <p className="pedago-sessions__desc">{session.description}</p>
+        ) : null}
+        {requiredTitle ? (
+          <p
+            className={`pedago-sessions__prereq${lockedBy ? ' pedago-sessions__prereq--locked' : ''}`}
+            data-testid="pedago-session-prereq"
+          >
+            {lockedBy ? `🔒 Termine d’abord « ${requiredTitle} »` : `Après « ${requiredTitle} »`}
+          </p>
+        ) : null}
+        {canManage ? (
+          <p className="pedago-sessions__stats" data-testid="pedago-session-stats">
+            {`Démarrée par ${stats?.startedUsers || 0} · terminée par ${stats?.completedUsers || 0}`}
+          </p>
+        ) : null}
+      </div>
+      <div className="pedago-sessions__card-actions">
+        <Button
+          type="button"
+          variant="primary"
+          onClick={() => onStartSession?.(session)}
+          disabled={disabled}
+          data-testid="pedago-session-start"
+        >
+          {primary.label}
+        </Button>
+        {primary.resume && primary.step > 0 ? (
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => onStartSession?.(session, { restart: true })}
+            disabled={disabled}
+          >
+            Recommencer
+          </Button>
+        ) : null}
+        {canManage && (
+          <>
+            <Button type="button" variant="ghost" onClick={() => onConfigure(session)}>
+              Configurer
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setPanel({ kind: 'share', sessionId: session.id })}
+            >
+              Partager
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setPanel({ kind: 'runs', sessionId: session.id })}
+            >
+              Suivi
+            </Button>
+          </>
+        )}
+      </div>
+      {canManage && panel?.sessionId === session.id && panel.kind === 'share' && (
+        <SessionSharePanel session={session} onClose={() => setPanel(null)} />
+      )}
+      {canManage && panel?.sessionId === session.id && panel.kind === 'runs' && (
+        <SessionRunsPanel session={session} onClose={() => setPanel(null)} />
+      )}
+    </li>
+  );
+}
+
+/**
  * Catalogue + message d’étape + création / configuration prof (modèles et séances libres).
+ *
+ * Ordre (lot 5, rejeu téléphone du 17/11/2026) : l'étape « message » en cours, puis les
+ * séances **à reprendre**, puis le catalogue, puis la création prof, et « Mes badges » en
+ * dernier — auparavant le panneau des badges passait avant le catalogue et le premier
+ * « Démarrer » était à neuf écrans de défilement.
  */
 export function SessionsView({
   canManage = false,
@@ -68,6 +199,8 @@ export function SessionsView({
   activeSession = null,
   currentStep = null,
   onStartSession,
+  /** Étape « message » : bouton « Étape suivante » dans la carte (en plus du bandeau). */
+  onNextStep = null,
   onOpenConfig = null,
   isAuthenticated = false,
   runsVersion = 0,
@@ -182,6 +315,17 @@ export function SessionsView({
     return map;
   }, [items]);
 
+  // Séances à reprendre (ouverte dans cet onglet, ou passage en cours côté serveur) en tête.
+  const { resumable, others } = useMemo(() => {
+    const first = [];
+    const rest = [];
+    for (const it of items) {
+      if (sessionPrimaryAction(it, myRuns[it.id], activeSession).resume) first.push(it);
+      else rest.push(it);
+    }
+    return { resumable: first, others: rest };
+  }, [items, myRuns, activeSession]);
+
   async function createSession() {
     setCreating(true);
     setError('');
@@ -200,6 +344,8 @@ export function SessionsView({
   }
 
   const showMessage = activeSession && currentStep && currentStep.action?.type === 'message';
+  const isLastStep =
+    !!activeSession && activeSession.stepIndex >= (activeSession.steps?.length || 0) - 1;
 
   if (configTarget) {
     return (
@@ -219,6 +365,29 @@ export function SessionsView({
     );
   }
 
+  const renderCard = (session) => {
+    const lockedBy = sessionLockFor(session, myRuns, canManage);
+    const requiredTitle = session.config?.requiresSessionId
+      ? titleById[session.config.requiresSessionId] || 'une autre séance'
+      : null;
+    return (
+      <SessionCard
+        key={session.id}
+        session={session}
+        myRun={myRuns[session.id]}
+        stats={runStats[session.id]}
+        lockedBy={lockedBy}
+        requiredTitle={requiredTitle}
+        canManage={canManage}
+        activeSession={activeSession}
+        onStartSession={onStartSession}
+        panel={panel}
+        setPanel={setPanel}
+        onConfigure={setConfigTarget}
+      />
+    );
+  };
+
   return (
     <div className="pedago-sessions" data-testid="pedago-sessions">
       <header className="pedago-sessions__header">
@@ -237,13 +406,50 @@ export function SessionsView({
         />
       ) : null}
 
-      {rewardsEnabled && isAuthenticated && rewards.catalogue.length > 0 && (
-        <MyRewardsPanel
-          data={{ ...(rewardsData || {}), ...rewards }}
-          onSeen={() => {
-            api('/api/rewards/me/seen', 'POST').catch(() => {});
-          }}
-        />
+      {showMessage && (
+        <article className="pedago-sessions__message card" data-testid="pedago-session-message">
+          <p className="pedago-sessions__message-progress">
+            {activeSession.title} · étape {activeSession.stepIndex + 1} sur{' '}
+            {activeSession.steps.length}
+          </p>
+          <h2 className="section-title">{currentStep.title}</h2>
+          <p className="pedago-sessions__body">{currentStep.body}</p>
+          {onNextStep ? (
+            <div className="pedago-sessions__card-actions">
+              <Button type="button" variant="primary" onClick={onNextStep}>
+                {isLastStep ? 'Terminer la séance' : 'Étape suivante'}
+              </Button>
+            </div>
+          ) : (
+            <p className="section-sub">Utilise le bandeau pour passer à l’étape suivante.</p>
+          )}
+        </article>
+      )}
+
+      {loading && <p className="section-sub">Chargement…</p>}
+      {error && (
+        <p className="form-error" role="alert">
+          {error}
+        </p>
+      )}
+
+      {!loading && resumable.length > 0 && (
+        <section className="pedago-sessions__section" data-testid="pedago-sessions-resume">
+          <h2 className="pedago-sessions__section-title">À reprendre</h2>
+          <ul className="pedago-sessions__list">{resumable.map(renderCard)}</ul>
+        </section>
+      )}
+
+      {!loading && (
+        <section className="pedago-sessions__section" data-testid="pedago-sessions-catalogue">
+          {resumable.length > 0 ? (
+            <h2 className="pedago-sessions__section-title">Toutes les séances</h2>
+          ) : null}
+          {others.length === 0 && resumable.length === 0 ? (
+            <p className="section-sub">Aucune séance publiée pour le moment.</p>
+          ) : null}
+          <ul className="pedago-sessions__list">{others.map(renderCard)}</ul>
+        </section>
       )}
 
       {canManage && (
@@ -264,115 +470,13 @@ export function SessionsView({
         </div>
       )}
 
-      {showMessage && (
-        <article className="pedago-sessions__message card" data-testid="pedago-session-message">
-          <h2 className="section-title">{currentStep.title}</h2>
-          <p className="pedago-sessions__body">{currentStep.body}</p>
-          <p className="section-sub">Utilise le bandeau pour passer à l’étape suivante.</p>
-        </article>
-      )}
-
-      {loading && <p className="section-sub">Chargement…</p>}
-      {error && (
-        <p className="form-error" role="alert">
-          {error}
-        </p>
-      )}
-
-      {!loading && (
-        <ul className="pedago-sessions__list">
-          {items.map((session) => {
-            const myRun = myRuns[session.id];
-            const stats = runStats[session.id];
-            const lockedBy = sessionLockFor(session, myRuns, canManage);
-            const requiredTitle = session.config?.requiresSessionId
-              ? titleById[session.config.requiresSessionId] || 'une autre séance'
-              : null;
-            return (
-              <li key={session.id} className="pedago-sessions__card card">
-                <div className="pedago-sessions__card-main">
-                  <h2 className="pedago-sessions__card-title">
-                    {session.title}
-                    {myRun?.completed ? (
-                      <span
-                        className="pedago-sessions__done-badge"
-                        data-testid="pedago-session-done-badge"
-                      >
-                        Terminée{myRun.completionCount > 1 ? ` ×${myRun.completionCount}` : ''}
-                      </span>
-                    ) : null}
-                  </h2>
-                  <p className="section-sub">
-                    {LEVEL_LABELS[session.level] || 'Collège'}
-                    {' · '}
-                    {session.steps?.length || 0} étapes
-                    {session.templateKey === 'custom' ? ' · séance libre' : ''}
-                    {!session.isPublished ? ' · brouillon' : ''}
-                  </p>
-                  {session.description ? (
-                    <p className="pedago-sessions__desc">{session.description}</p>
-                  ) : null}
-                  {requiredTitle ? (
-                    <p
-                      className={`pedago-sessions__prereq${lockedBy ? ' pedago-sessions__prereq--locked' : ''}`}
-                      data-testid="pedago-session-prereq"
-                    >
-                      {lockedBy
-                        ? `🔒 Termine d’abord « ${requiredTitle} »`
-                        : `Après « ${requiredTitle} »`}
-                    </p>
-                  ) : null}
-                  {canManage ? (
-                    <p className="pedago-sessions__stats" data-testid="pedago-session-stats">
-                      {`Démarrée par ${stats?.startedUsers || 0} · terminée par ${stats?.completedUsers || 0}`}
-                    </p>
-                  ) : null}
-                </div>
-                <div className="pedago-sessions__card-actions">
-                  <Button
-                    type="button"
-                    variant="primary"
-                    onClick={() => onStartSession?.(session)}
-                    disabled={(!session.isPublished && !canManage) || !!lockedBy}
-                  >
-                    {activeSession?.id === session.id ? 'Reprendre' : 'Démarrer'}
-                  </Button>
-                  {canManage && (
-                    <>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        onClick={() => setConfigTarget(session)}
-                      >
-                        Configurer
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        onClick={() => setPanel({ kind: 'share', sessionId: session.id })}
-                      >
-                        Partager
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        onClick={() => setPanel({ kind: 'runs', sessionId: session.id })}
-                      >
-                        Suivi
-                      </Button>
-                    </>
-                  )}
-                </div>
-                {canManage && panel?.sessionId === session.id && panel.kind === 'share' && (
-                  <SessionSharePanel session={session} onClose={() => setPanel(null)} />
-                )}
-                {canManage && panel?.sessionId === session.id && panel.kind === 'runs' && (
-                  <SessionRunsPanel session={session} onClose={() => setPanel(null)} />
-                )}
-              </li>
-            );
-          })}
-        </ul>
+      {rewardsEnabled && isAuthenticated && rewards.catalogue.length > 0 && (
+        <MyRewardsPanel
+          data={{ ...(rewardsData || {}), ...rewards }}
+          onSeen={() => {
+            api('/api/rewards/me/seen', 'POST').catch(() => {});
+          }}
+        />
       )}
     </div>
   );

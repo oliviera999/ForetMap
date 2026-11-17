@@ -206,7 +206,7 @@ export function buildPrivacyNotice({
       'ton adresse e-mail, si tu la donnes (elle est facultative à l’inscription) ou si ton compte vient de Google ou de Moodle ;',
       'ton pseudo, ta description et ta photo de profil, si tu en choisis ;',
       'ce que tu produis : photos, observations, comptes rendus de tâches, carnet, messages du forum et commentaires ;',
-      'ta progression : tâches prises et faites, quiz, découvertes, badges, statistiques ;',
+      'ta progression : tâches prises et faites, quiz, découvertes, séances guidées (et l’étape où tu t’es arrêté, pour reprendre plus tard), badges, statistiques ;',
       'des journaux de sécurité : date et heure de connexion, adresse IP et type de navigateur lors de certains événements (connexion, mot de passe erroné…).',
     ],
     gl: [

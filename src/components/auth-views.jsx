@@ -10,6 +10,7 @@ import { TotpChallenge, TotpSetupSuggestion } from './auth/TotpChallenge.jsx';
 import { startGoogleAuth } from './auth/startGoogleAuth.js';
 import { IconWarning } from '../shared/icons.jsx';
 import { PrivacyNoticeLink } from '../shared/privacy/PrivacyNoticeLink.jsx';
+import { PendingSessionNotice } from './pedago/PendingSessionNotice.jsx';
 
 function AuthScreen({
   onLogin,
@@ -263,6 +264,7 @@ function AuthScreen({
             {welcomeMessage}
           </p>
         )}
+        <PendingSessionNotice guestVisitOffered={!!(onVisitGuest && allowGuestVisit)} />
 
         {mfaChallenge ? (
           <TotpChallenge

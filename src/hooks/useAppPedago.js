@@ -138,7 +138,9 @@ export function useAppPedago({
     currentStep: pedagoSessionCurrentStep,
     runsVersion: pedagoRunsVersion,
     startSession: startPedagoSession,
+    goStep: goPedagoSessionStep,
   } = pedagoSession;
+  const nextPedagoSessionStep = useCallback(() => goPedagoSessionStep(1), [goPedagoSessionStep]);
 
   const sessionsProps = useMemo(
     () => ({
@@ -148,6 +150,7 @@ export function useAppPedago({
       activeSession: activePedagoSession,
       currentStep: pedagoSessionCurrentStep,
       onStartSession: startPedagoSession,
+      onNextStep: nextPedagoSessionStep,
       isAuthenticated: pedagoAuthenticated,
       runsVersion: pedagoRunsVersion,
       rewardsEnabled: rewardsModuleEnabled,
@@ -159,6 +162,7 @@ export function useAppPedago({
       activePedagoSession,
       pedagoSessionCurrentStep,
       startPedagoSession,
+      nextPedagoSessionStep,
       pedagoAuthenticated,
       pedagoRunsVersion,
       rewardsModuleEnabled,

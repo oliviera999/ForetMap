@@ -39,6 +39,7 @@ const {
 const {
   recordRunStart,
   recordRunComplete,
+  recordRunProgress,
   listRunsForUser,
   listRunsForSession,
   getRunStats,
@@ -57,7 +58,7 @@ const manageSessions = requirePermission('plants.manage');
 
 // Module éteint (`ui.modules.pedago_sessions_enabled`) : fermé aux élèves, ouvert à
 // `plants.manage` (`lib/pedagoModuleGate.js`). Usage élève (fermé) : catalogue GET `/`, détail
-// GET `/:idOrSlug` (lien direct, QR), `me/runs`, `runs/start`, `runs/complete`. Gestion
+// GET `/:idOrSlug` (lien direct, QR), `me/runs`, `runs/start`, `runs/progress`, `runs/complete`. Gestion
 // (ouverte au gestionnaire) : création, modification, `stats`, suivi `/:idOrSlug/runs`,
 // partage — et les routes d'usage, pour préparer ou montrer une séance. Les tâches liées
 // gardent leur lien en base (`tasks.pedago_session_id`).
@@ -200,6 +201,19 @@ async function checkPrerequisite(req, row, userId) {
   };
 }
 
+/** Nombre d'étapes résolues d'une séance (borne de `current_step`). */
+function stepCountOf(row) {
+  return serializeSessionRow(row, { resolve: false })?.steps?.length || 0;
+}
+
+/**
+ * Passage d'une séance par l'utilisateur connecté (lot 5 : reprise côté serveur).
+ *
+ * - `start` : démarre, ou **reprend** le passage en cours (corps `{ restart: true }` pour
+ *   repartir de l'étape 1) ; répond `{ run, resumed }`.
+ * - `progress` : mémorise l'étape atteinte (corps `{ step }`, index à partir de 0).
+ * - `complete` : clôt le passage en cours, attribue les badges.
+ */
 function runHandler(kind) {
   return asyncHandler(async (req, res) => {
     const userId = String(req.auth?.userId || '').trim();
@@ -210,8 +224,35 @@ function runHandler(kind) {
     }
     const gate = await checkPrerequisite(req, row, userId);
     if (!gate.ok) return res.status(403).json(gate.body);
+    const stepCount = stepCountOf(row);
     if (kind === 'start') {
-      const run = await recordRunStart(row.id, userId);
+      if (!stepCount) {
+        return res.status(422).json({
+          error: 'Cette séance n’a pas encore d’étape : préviens ton professeur.',
+          code: 'SESSION_EMPTY',
+        });
+      }
+      const restart = req.body?.restart === true;
+      const { run, resumed } = await recordRunStart(row.id, userId, { restart });
+      // Séance raccourcie depuis l'arrêt : on reprend à sa dernière étape.
+      if (run.currentStep !== null && run.currentStep >= stepCount) {
+        const clamped = await recordRunProgress(row.id, userId, stepCount - 1);
+        return res.json({ run: clamped || run, resumed });
+      }
+      return res.json({ run, resumed });
+    }
+    if (kind === 'progress') {
+      const step = Number(req.body?.step);
+      if (!Number.isInteger(step) || step < 0 || step >= stepCount) {
+        return res.status(400).json({ error: 'Étape invalide', code: 'INVALID_STEP' });
+      }
+      const run = await recordRunProgress(row.id, userId, step);
+      if (!run) {
+        return res.status(409).json({
+          error: 'Séance non démarrée : lance-la avant d’avancer',
+          code: 'SESSION_NOT_STARTED',
+        });
+      }
       return res.json({ run });
     }
     const run = await recordRunComplete(row.id, userId);
@@ -229,6 +270,7 @@ function runHandler(kind) {
 }
 
 router.post('/:idOrSlug/runs/start', requireAuth, runHandler('start'));
+router.post('/:idOrSlug/runs/progress', requireAuth, runHandler('progress'));
 router.post('/:idOrSlug/runs/complete', requireAuth, runHandler('complete'));
 
 router.get(
