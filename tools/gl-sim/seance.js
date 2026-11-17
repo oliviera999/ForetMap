@@ -147,7 +147,25 @@ async function jugerDefisDeCase(ctx, roundNumber) {
  * Sessions d'équipe (lot 2) : le prof affiche le lien de la classe, chaque tablette choisit son
  * équipe par le code. Rouvertes à chaque séance, comme en classe.
  */
-async function ouvrirSessionsEquipe(ctx) {
+/**
+ * Tablettes d'équipe ouvertes par le lien de classe. Sessions protégées (ensemble unifié, M13) :
+ * chaque tablette **demande** à rejoindre son équipe ; le prof accepte la première de chaque
+ * équipe d'un appui (« Tout accepter »), et une seconde tablette (`appareils: 2`) est acceptée
+ * par la première, déjà dans l'équipe.
+ */
+async function ouvrirSessionsEquipe(ctx, { appareils = 1 } = {}) {
+  const demander = async (eq, rang) =>
+    attendu(
+      await ctx.client.appel({
+        token: ctx.mjToken,
+        method: 'post',
+        path: '/api/gl/class-link/session',
+        body: { code: ctx.cache.lienDeClasse.code, teamId: eq.id },
+        geste: 'session-equipe',
+      }),
+      202,
+      `demande de session (${rang}) de l'équipe ${eq.name}`,
+    );
   const lien = attendu(
     await ctx.client.appel({
       token: ctx.mjToken,
@@ -158,19 +176,46 @@ async function ouvrirSessionsEquipe(ctx) {
     200,
     'lien de classe',
   );
+  ctx.cache.lienDeClasse = lien;
   for (const eq of ctx.partie.equipes) {
-    const session = attendu(
-      await ctx.client.appel({
-        token: ctx.mjToken,
-        method: 'post',
-        path: '/api/gl/class-link/session',
-        body: { code: lien.code, teamId: eq.id },
-        geste: 'session-equipe',
-      }),
-      201,
-      `session de l'équipe ${eq.name}`,
+    eq.sessionToken = (await demander(eq, 'première tablette')).token;
+    delete eq.sessionToken2;
+    eq.etatVersion = null;
+  }
+  const tout = attendu(
+    await ctx.client.appel({
+      token: ctx.mjToken,
+      method: 'post',
+      path: api(ctx, '/tenir/sessions/accepter-tout'),
+      body: {},
+      geste: 'sessions-tout-accepter',
+    }),
+    200,
+    '« Tout accepter »',
+  );
+  if (Number(tout.acceptees) !== ctx.partie.equipes.length) {
+    throw new Error(
+      `« Tout accepter » : ${tout.acceptees} session(s) acceptée(s) pour ${ctx.partie.equipes.length} équipe(s)`,
     );
-    eq.sessionToken = session.token;
+  }
+  if (appareils < 2) return;
+  for (const eq of ctx.partie.equipes) {
+    const seconde = await demander(eq, 'seconde tablette');
+    // Un appareil déjà dans l'équipe accepte le nouveau.
+    attendu(
+      await ctx.client.appel({
+        token: eq.sessionToken,
+        method: 'post',
+        path: api(ctx, `/tenir/sessions/${seconde.sessionId}/accepter`),
+        body: {},
+        acteur: 'eleve',
+        membres: eq.membres,
+        geste: 'session-acceptee-par-l-equipe',
+      }),
+      200,
+      `seconde tablette de l'équipe ${eq.name}`,
+    );
+    eq.sessionToken2 = seconde.token;
   }
 }
 
@@ -219,6 +264,7 @@ async function bilanTeamSpirit(ctx, roundNumber) {
  * @param {Function} [opts.avantEquipes] crochet `(ctx, tour) => Promise` en phase jeu, avant les équipes
  * @param {Function} [opts.apresEquipes] crochet `(ctx, tour) => Promise` après la phase jeu
  * @param {boolean} [opts.sessionsEquipe] tablettes d'équipe ouvertes par le lien de classe
+ * @param {number} [opts.appareilsParEquipe] 2 : deux tablettes par équipe (scénario multi-appareils)
  * @returns {Promise<{ roundNumber, ordre, ventTeamId, auCamp, toutesAuCamp, voilePosition, souffle }>}
  */
 async function jouerSeance(ctx, numero, opts = {}) {
@@ -239,7 +285,7 @@ async function jouerSeance(ctx, numero, opts = {}) {
   // lui qui confirme ici la présence de toutes les équipes (sans quoi aucun pot ne se crée).
   // Le scénario `tablette-parallele-absences` laisse les équipes le faire elles-mêmes.
   if (opts.sessionsEquipe) {
-    await ouvrirSessionsEquipe(ctx);
+    await ouvrirSessionsEquipe(ctx, { appareils: Number(opts.appareilsParEquipe) || 1 });
     await confirmerPresencesParEquipe(ctx, absents);
   } else if (absents.length || opts.appelDuProf !== false) {
     await ctx.client.appel({
@@ -335,7 +381,10 @@ async function jouerSeance(ctx, numero, opts = {}) {
     'phase clos',
   );
   // Les tablettes sont rangées : en veillée, chaque élève agit depuis son propre compte.
-  for (const eq of ctx.partie.equipes) delete eq.sessionToken;
+  for (const eq of ctx.partie.equipes) {
+    delete eq.sessionToken;
+    delete eq.sessionToken2;
+  }
   const fin = await lireTour(ctx);
   const auCamp = fin.teams.filter((t) => t.auCamp).length;
   return {

@@ -72,8 +72,85 @@ function corps(acteur, body) {
   return { ...body, teamId: acteur.teamIdBody };
 }
 
+const REFUS_D_ETAT = Object.freeze(['ETAT_PERIME', 'MAIN_AILLEURS']);
+const EN_TETE_VERSION = 'X-GL-Etat-Version';
+
+/** Version d'état que voit la tablette de l'équipe (bloc `tenir.equipe` de sa partie). */
+async function lireVersionDEtat(ctx, equipe) {
+  const res = await ctx.client.appel({
+    token: equipe.sessionToken,
+    method: 'get',
+    path: api(ctx, ''),
+    acteur: 'eleve',
+    membres: equipe.membres,
+    geste: 'lire-version',
+  });
+  const version = res.body?.tenir?.equipe?.version;
+  return Number.isInteger(version) ? version : null;
+}
+
+/**
+ * Plusieurs appareils par équipe (ensemble unifié, M13) : les deux tablettes de l'équipe
+ * envoient **le même geste, au même instant, avec la même version d'état**. Attendu : un seul
+ * passe ; l'autre est refusé proprement (`ETAT_PERIME`, ou `MAIN_AILLEURS` quand la première
+ * tient la main). Deux gestes appliqués seraient un doublon : le compteur `doublons` du rapport
+ * doit rester à zéro. Si les deux écrans étaient périmés (le prof ou une autre équipe a joué
+ * entre-temps), ils rechargent et rejouent une fois, comme le fait l'écran.
+ */
+async function appelADeuxAppareils(ctx, equipe, a, geste, { method, path, body }) {
+  if (!ctx.cache.multi) {
+    ctx.cache.multi = { paires: 0, doublons: 0, perimes: 0, mainAilleurs: 0, reprises: 0 };
+  }
+  const multi = ctx.cache.multi;
+  const envoyer = (token, version) =>
+    ctx.client.appel({
+      token,
+      method,
+      path,
+      body: body === undefined ? undefined : corps(a, body),
+      acteur: a.acteur,
+      membres: a.membres,
+      geste,
+      headers: version == null ? null : { [EN_TETE_VERSION]: String(version) },
+    });
+  const refusDEtat = (r) => r.status === 409 && REFUS_D_ETAT.includes(r.body?.code);
+  let gagnant = null;
+  for (let essai = 0; essai < 2 && !gagnant; essai += 1) {
+    if (equipe.etatVersion == null) equipe.etatVersion = await lireVersionDEtat(ctx, equipe);
+    const version = equipe.etatVersion;
+    const reponses = await Promise.all([
+      envoyer(equipe.sessionToken, version),
+      envoyer(equipe.sessionToken2, version),
+    ]);
+    multi.paires += 1;
+    if (reponses.every((r) => r.status < 400)) {
+      multi.doublons += 1;
+      if (!multi.exemples) multi.exemples = [];
+      if (multi.exemples.length < 5) {
+        multi.exemples.push(
+          `${geste} ${method.toUpperCase()} ${path.replace(/\d+/g, '#')} (version ${version})`,
+        );
+      }
+    }
+    multi.perimes += reponses.filter((r) => r.body?.code === 'ETAT_PERIME').length;
+    multi.mainAilleurs += reponses.filter((r) => r.body?.code === 'MAIN_AILLEURS').length;
+    gagnant = reponses.find((r) => !refusDEtat(r)) || null;
+    if (!gagnant) {
+      multi.reprises += 1;
+      equipe.etatVersion = null;
+      if (essai === 1) return reponses[0];
+    }
+  }
+  const suivante = gagnant.body?.etatVersion?.version;
+  equipe.etatVersion = gagnant.status < 400 && Number.isInteger(suivante) ? suivante : null;
+  return gagnant;
+}
+
 async function appel(ctx, equipe, geste, operateur, { method, path, body }) {
   const a = acteurPour(ctx, equipe, geste, operateur);
+  if (equipe.sessionToken2 && a.token === equipe.sessionToken && method !== 'get') {
+    return appelADeuxAppareils(ctx, equipe, a, geste, { method, path, body });
+  }
   const res = await ctx.client.appel({
     token: a.token,
     method,

@@ -2,8 +2,9 @@
 
 /**
  * `npm run test:sim` — fumée du banc en intégration continue : `hybride-reference`,
- * `tablette-reference` et `tablette-parallele-absences` (quatre tablettes d'équipe en parallèle,
- * dont une **assertion fausse fait échouer** la fumée), 1 exécution, 3 séances, graine fixe, semaine de veillée réduite à
+ * `tablette-reference`, `tablette-parallele-absences` (quatre tablettes d'équipe en parallèle)
+ * et `multi-appareils` (deux tablettes par équipe : 0 doublon, 0 invariant) — une **assertion
+ * fausse fait échouer** la fumée —, 1 exécution, 3 séances, graine fixe, semaine de veillée réduite à
  * 2 jours, sur la base de test (`TEST_DB_NAME` finissant par `_test`, défaut `foretmap_test` ; en local,
  * une base `_sim` est acceptée : `TEST_DB_NAME=foretmap_sim npm run test:sim`).
  * La base est préparée comme par `gl:sim:db` (schéma, instantané de contenu, catalogues).
@@ -17,7 +18,14 @@ const path = require('node:path');
 const os = require('node:os');
 const { preparerEnvironnement } = require('./env');
 
-const SCENARIOS_CI = ['hybride-reference', 'tablette-reference', 'tablette-parallele-absences'];
+const SCENARIOS_CI = [
+  'hybride-reference',
+  'tablette-reference',
+  'tablette-parallele-absences',
+  // Ensemble unifié (M13) : deux tablettes par équipe, chaque geste envoyé au même instant —
+  // un doublon ou une main restée tenue fait échouer la fumée.
+  'multi-appareils',
+];
 const SEED = 20261107;
 
 async function main() {
