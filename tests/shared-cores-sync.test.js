@@ -47,6 +47,7 @@ test('la liste des paires couvre bien les noyaux attendus', () => {
     'glTenirCaseEffetCore.js',
     'glTenirPermissionsCore.js',
     'glTrameCore.js',
+    'idKeyLeadCore.js',
     'moodleSyncEnums.js',
     'n3beurRolesCore.js',
     'pedagoEnums.js',

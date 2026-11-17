@@ -4681,10 +4681,40 @@ sont refusés à l'écriture.
 
 ### Clés d'identification dichotomiques (`/api/id-keys`)
 
-Migration `275`. Lecture des clés **publiées** sans auth ; brouillons et écriture sous
-`id_keys.manage` (admin, prof). Chaque lead a exactement une issue
-(`next_couplet_id` XOR `plant_id`) ; les cycles et les formulations invitant à manipuler
+Migrations `275` et `366`. Lecture des clés **publiées** sans auth ; brouillons et écriture
+sous `id_keys.manage` (admin, prof). Les cycles et les formulations invitant à manipuler
 sont refusés.
+
+**Issue d'une proposition** (`outcome`, règles partagées `src/shared/idKeyLeadCore.js`) —
+une seule par proposition :
+
+| `outcome` | Champs | Règle |
+| --------- | ------ | ----- |
+| `couplet` | `next_couplet_id` | couplet de la même clé ; ni espèce, ni groupe, ni `next_key_id` |
+| `espece` | `plant_id` | une fiche espèce |
+| `groupe` | `result_label`, `group_plant_ids[]` (≥ 1), `clade_id` facultatif | espèces trop proches pour être séparées sans matériel ; pas de `plant_id` |
+| `clade` | `clade_id` | grand groupe (table `clades`) ; ni espèce ni candidats |
+
+Un résultat (`espece`, `groupe`, `clade`) peut porter `next_key_id` : « Pour aller plus loin »
+vers une autre clé (jamais la clé elle-même). `outcome` absent est **déduit** des champs.
+
+**Détail** (`GET /api/id-keys/:idOrSlug`) : la clé porte `tool_required` (tableau parmi
+`loupe`, `boite_loupe`, `jumelles`) et `safety_note` ; chaque lead porte `hint` (aide
+sous la proposition), `outcome`, `next_couplet_id`, `plant_id` / `plant_name` / `plant_emoji`, `clade_id` et `clade`
+(`{ id, name, shared_attribute, description }`), `result_label`, `group_plant_ids` et
+`group_plants` (`[{ id, name, emoji, photo }]`), `next_key_id` et `next_key`
+(`{ id, slug, title, is_published }`). Un renvoi vers une clé **non publiée** est masqué
+(`null`) pour qui n'a pas `id_keys.manage`.
+
+**Écriture des leads** (`PUT …/couplets/:coupletId/leads`) : corps
+`{ leads: [{ id?, statement, hint?, image_url?, outcome?, next_couplet_id?, plant_id?, clade_id?,
+result_label?, group_plant_ids?, next_key_id?, sort_order? }] }`. Une proposition qui porte
+l'`id` d'une proposition existante du couplet **sans aucun champ d'issue** (`outcome`,
+`clade_id`, `result_label`, `group_plant_ids`, `next_key_id`) garde son issue en base : un
+ancien client ne fait plus perdre groupes, grands groupes et renvois. De même, `hint` absent
+garde l'aide existante. `PUT /api/id-keys/:id`
+accepte `tool_required` (tableau ou chaîne « a,b » ; valeur inconnue → 400) et
+`safety_note`.
 
 Module `ui.modules.id_keys_enabled` éteint : **503** `{ error: 'Clés d’identification désactivées' }`
 sur toutes les routes ci-dessous, sauf pour un appelant `id_keys.manage` (voir « Modules

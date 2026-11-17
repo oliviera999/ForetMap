@@ -160,8 +160,21 @@ refusé).
 
 ## Clés d’identification
 
-L’onglet **Clés d’identification** propose des parcours dichotomiques jusqu’à la fiche
-de l’espèce. Deux modes de lecture, interchangeables à tout moment :
+L’onglet **Clés d’identification** propose des parcours dichotomiques. Une clé ne mène pas
+toujours à une espèce : selon la branche, on arrive à
+
+- une **espèce** : bouton vers sa fiche ;
+- un **groupe d’espèces** trop proches pour être séparées sans matériel (par exemple
+  plusieurs goélands) : la clé s’arrête et propose de comparer leurs fiches ;
+- un **grand groupe** (insectes, algues rouges…) : son nom et le point commun de ses
+  membres.
+
+Un résultat peut proposer **Pour aller plus loin** : un bouton qui ouvre une autre clé, plus
+fine (par exemple de « Insectes » vers la clé des insectes). Si la clé demande du
+**matériel** (loupe, boîte-loupe, jumelles) ou porte une **consigne de sécurité**, elles
+s’affichent avant la première question.
+
+Deux modes de lecture, interchangeables à tout moment :
 
 - **Questions** : une fourche à la fois, avec retour en arrière ;
 - **Schéma** : l’arbre entier de la clé (couplets et propositions), avec le couplet
@@ -192,7 +205,11 @@ Dans les deux modes :
 
 Les énoncés décrivent des **caractères observables** — jamais une invitation à
 cueillir, goûter ou manipuler. Les enseignants autorisés créent et publient les clés
-(couplets, propositions, image optionnelle par proposition).
+(couplets, propositions, image optionnelle par proposition). Pour chaque proposition, le
+menu **Mène à** choisit l’issue : couplet suivant, une espèce, un groupe d’espèces (nom du
+groupe et espèces candidates) ou un grand groupe ; un résultat peut renvoyer vers une autre
+clé. La clé elle-même indique le matériel nécessaire et une consigne de sécurité. Une clé
+n’est publiable que si chaque branche aboutit.
 
 ## Suivi d’individus (arbres)
 

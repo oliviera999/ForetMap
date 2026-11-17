@@ -12,7 +12,12 @@
  * couplet. Chaque couplet est placé **une seule fois** (première rencontre en
  * profondeur) ; les autres propositions qui y mènent deviennent un nœud de renvoi
  * « → Couplet N ». Les boucles (brouillons non validés) sont traitées de même.
+ *
+ * Une feuille aboutit à une espèce, à un groupe d’espèces ou à un grand groupe (clade,
+ * migration 366) : les trois sont des nœuds de type `plant` qui portent leur `outcome`.
  */
+
+import { resolveLeadOutcome, isLeadPracticable } from '../shared/idKeyLeadCore.js';
 
 /** Largeur d’une étiquette d’énoncé (px). */
 export const LABEL_W = 180;
@@ -139,6 +144,31 @@ export function wrapEdgeLabel(text, maxChars = LABEL_LINE_CHARS, maxLines = LABE
 }
 
 /**
+ * Nœud feuille d’une proposition terminale (espèce, groupe d’espèces ou grand groupe).
+ * Seule une feuille espèce ouvre une fiche (`plantId`).
+ */
+function leafNode(lead, outcome, leafId) {
+  const base = { id: leafId, type: 'plant', outcome, leadId: Number(lead.id) };
+  if (outcome === 'groupe') {
+    const name = lead.result_label || 'Groupe d’espèces';
+    const first = (lead.group_plants || []).find((p) => p?.emoji);
+    return { ...base, plantId: null, name, label: name, emoji: first?.emoji || '🔎' };
+  }
+  if (outcome === 'clade') {
+    const name = lead.clade?.name || lead.result_label || lead.clade_id || 'Grand groupe';
+    return { ...base, plantId: null, name, label: name, emoji: '🌳' };
+  }
+  const name = lead.plant_name || `Fiche #${lead.plant_id}`;
+  return {
+    ...base,
+    plantId: Number(lead.plant_id),
+    name,
+    label: name,
+    emoji: lead.plant_emoji || '',
+  };
+}
+
+/**
  * Construit l’arbre logique (sans positions) à partir du bundle.
  * @param {object} keyBundle
  * @returns {{ rootId: string|null, nodes: Map<string, object>, children: Map<string, Array<{ childId: string, lead: object }>>, orphanNumbers: number[] }}
@@ -172,7 +202,7 @@ export function buildIdKeyTree(keyBundle) {
     children.set(nodeId, outs);
     for (const lead of couplet.leads || []) {
       const hasNext = lead.next_couplet_id != null && lead.next_couplet_id !== '';
-      const hasPlant = lead.plant_id != null && lead.plant_id !== '';
+      const outcome = resolveLeadOutcome(lead);
       const next = hasNext ? byId.get(Number(lead.next_couplet_id)) : null;
       if (next && !visited.has(Number(next.id))) {
         outs.push({ childId: coupletNodeId(next.id), lead });
@@ -188,17 +218,12 @@ export function buildIdKeyTree(keyBundle) {
           leadId: Number(lead.id),
         });
         outs.push({ childId: refId, lead });
-      } else if (!hasNext && hasPlant) {
+      } else if (
+        !hasNext &&
+        (outcome === 'espece' || outcome === 'groupe' || outcome === 'clade')
+      ) {
         const leafId = plantNodeId(lead.id);
-        nodes.set(leafId, {
-          id: leafId,
-          type: 'plant',
-          plantId: Number(lead.plant_id),
-          name: lead.plant_name || `Fiche #${lead.plant_id}`,
-          emoji: lead.plant_emoji || '',
-          label: lead.plant_name || `Fiche #${lead.plant_id}`,
-          leadId: Number(lead.id),
-        });
+        nodes.set(leafId, leafNode(lead, outcome, leafId));
         outs.push({ childId: leafId, lead });
       } else {
         // Ni suite ni espèce, ou couplet suivant supprimé : visible, mais inerte.
@@ -222,11 +247,12 @@ export function buildIdKeyTree(keyBundle) {
   return { rootId, nodes, children, orphanNumbers };
 }
 
-/** Une proposition est-elle praticable (mène à un couplet existant ou à une espèce) ? */
+/**
+ * Une proposition est-elle praticable (couplet existant, espèce, groupe complet ou grand
+ * groupe) ? Règle partagée avec le serveur (`idKeyLeadCore`).
+ */
 export function isLeadUsable(lead, coupletIds) {
-  const hasNext = lead?.next_couplet_id != null && lead.next_couplet_id !== '';
-  if (hasNext) return coupletIds ? coupletIds.has(Number(lead.next_couplet_id)) : true;
-  return lead?.plant_id != null && lead.plant_id !== '';
+  return isLeadPracticable(lead, coupletIds);
 }
 
 /**

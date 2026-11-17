@@ -255,7 +255,8 @@ de l'administrateur.
 - **Individus** (pôle Suivi) : suivez un arbre ou une plante précise dans le temps (mesures,
   photos, état).
 - **Clés d'identification** : créez des clés à questions successives pour faire identifier une
-  espèce par les élèves.
+  espèce, un groupe d'espèces proches ou un grand groupe par les élèves, avec renvoi possible
+  vers une clé plus fine, le matériel nécessaire et une consigne de sécurité.
 - **Médiathèque** : retrouvez et rangez les photos utilisées dans les fiches.
 
 ---

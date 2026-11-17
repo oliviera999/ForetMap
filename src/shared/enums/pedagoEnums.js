@@ -186,3 +186,26 @@ export const FRESQUE_BOARD_STATUS_ENUM = defineEnum('FRESQUE_BOARD_STATUS_ENUM',
   labels: { in_progress: 'En cours', completed: 'Terminé', archived: 'Archivé' },
   columns: ['fresque_boards.status'],
 });
+
+/**
+ * Issue d'une proposition de clé d'identification (migration 366) : couplet suivant, une
+ * espèce, un groupe d'espèces candidates (`id_key_lead_plants`) ou un grand groupe de la
+ * classification (`clades`). Règles de forme : `lib/idKeys.js`.
+ */
+export const ID_KEY_LEAD_OUTCOME_ENUM = defineEnum('ID_KEY_LEAD_OUTCOME_ENUM', {
+  values: ['couplet', 'espece', 'groupe', 'clade'],
+  labels: {
+    couplet: 'Couplet suivant',
+    espece: 'Une espèce',
+    groupe: 'Un groupe d’espèces',
+    clade: 'Un grand groupe',
+  },
+  columns: ['id_key_leads.outcome'],
+});
+
+/** Matériel d'observation demandé par une clé (SET, migration 366 ; NULL = aucun). */
+export const ID_KEY_TOOL_ENUM = defineEnum('ID_KEY_TOOL_ENUM', {
+  values: ['loupe', 'boite_loupe', 'jumelles'],
+  labels: { loupe: 'Loupe', boite_loupe: 'Boîte-loupe', jumelles: 'Jumelles' },
+  columns: ['id_keys.tool_required'],
+});

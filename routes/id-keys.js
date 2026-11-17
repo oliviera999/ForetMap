@@ -7,6 +7,7 @@
 
 const express = require('express');
 const { queryAll, queryOne, execute, withTransaction } = require('../database');
+const { loadKeyBundle, parseToolSet } = require('../lib/idKeyBundle');
 const {
   requirePermission,
   hasPermission,
@@ -25,6 +26,8 @@ const {
   hasCoupletCycle,
   assertLeadWellFormed,
 } = require('../lib/idKeys');
+const { ID_KEY_TOOL_ENUM } = require('../lib/shared/pedagoEnums');
+const { resolveLeadOutcome } = require('../lib/shared/idKeyLeadCore');
 
 const router = express.Router();
 const manageKeys = requirePermission('id_keys.manage');
@@ -59,64 +62,6 @@ function normalizeNiveau(raw) {
   return NIVEAUX.has(s) ? s : null;
 }
 
-async function loadKeyBundle(keyId, { includeUnpublished = false } = {}) {
-  const key = await queryOne('SELECT * FROM id_keys WHERE id = ?', [keyId]);
-  if (!key) return null;
-  if (!includeUnpublished && !key.is_published) return null;
-  const couplets = await queryAll(
-    `SELECT id, key_id, number FROM id_key_couplets WHERE key_id = ? ORDER BY number ASC`,
-    [keyId],
-  );
-  const coupletIds = couplets.map((c) => Number(c.id));
-  let leads = [];
-  if (coupletIds.length > 0) {
-    const ph = coupletIds.map(() => '?').join(', ');
-    leads = await queryAll(
-      `SELECT l.*, p.name AS plant_name, p.emoji AS plant_emoji
-         FROM id_key_leads l
-         LEFT JOIN plants p ON p.id = l.plant_id
-        WHERE l.couplet_id IN (${ph})
-        ORDER BY l.couplet_id ASC, l.sort_order ASC, l.id ASC`,
-      coupletIds,
-    );
-  }
-  const leadsByCouplet = new Map();
-  for (const lead of leads) {
-    const cid = Number(lead.couplet_id);
-    if (!leadsByCouplet.has(cid)) leadsByCouplet.set(cid, []);
-    leadsByCouplet.get(cid).push({
-      id: Number(lead.id),
-      couplet_id: cid,
-      sort_order: Number(lead.sort_order) || 0,
-      statement: lead.statement,
-      image_url: lead.image_url || null,
-      next_couplet_id: lead.next_couplet_id != null ? Number(lead.next_couplet_id) : null,
-      plant_id: lead.plant_id != null ? Number(lead.plant_id) : null,
-      plant_name: lead.plant_name || null,
-      plant_emoji: lead.plant_emoji || null,
-    });
-  }
-  return {
-    id: Number(key.id),
-    slug: key.slug,
-    title: key.title,
-    description: key.description || null,
-    map_id: key.map_id || null,
-    scope_label: key.scope_label || null,
-    niveau: key.niveau,
-    is_published: Boolean(key.is_published),
-    created_by: key.created_by || null,
-    created_at: key.created_at,
-    updated_at: key.updated_at,
-    couplets: couplets.map((c) => ({
-      id: Number(c.id),
-      key_id: Number(c.key_id),
-      number: Number(c.number),
-      leads: leadsByCouplet.get(Number(c.id)) || [],
-    })),
-  };
-}
-
 function validateKeyGraph(bundle) {
   const coupletIds = new Set(bundle.couplets.map((c) => Number(c.id)));
   for (const couplet of bundle.couplets) {
@@ -124,7 +69,7 @@ function validateKeyGraph(bundle) {
       return `Le couplet ${couplet.number} doit avoir au moins deux propositions`;
     }
     for (const lead of couplet.leads) {
-      const err = assertLeadWellFormed(lead, coupletIds);
+      const err = assertLeadWellFormed(lead, coupletIds, { keyId: bundle.id });
       if (err) return `Couplet ${couplet.number} : ${err}`;
     }
   }
@@ -174,13 +119,13 @@ router.get(
       : await queryOne('SELECT id, is_published FROM id_keys WHERE slug = ?', [raw.toLowerCase()]);
     if (!byId) return res.status(404).json({ error: 'Clé introuvable' });
 
-    if (!byId.is_published) {
-      const auth = await tryResolveAuth(req);
-      if (!hasPermission(auth, 'id_keys.manage')) {
-        return res.status(404).json({ error: 'Clé introuvable' });
-      }
+    const auth = await tryResolveAuth(req);
+    const forManager = hasPermission(auth, 'id_keys.manage');
+    if (!byId.is_published && !forManager) {
+      return res.status(404).json({ error: 'Clé introuvable' });
     }
-    const bundle = await loadKeyBundle(byId.id, { includeUnpublished: true });
+    // Un renvoi « Pour aller plus loin » vers une clé non publiée est masqué aux élèves.
+    const bundle = await loadKeyBundle(byId.id, { includeUnpublished: true, forManager });
     if (!bundle) return res.status(404).json({ error: 'Clé introuvable' });
     return res.json(bundle);
   }),
@@ -214,7 +159,10 @@ router.post(
     );
     // Premier couplet de départ
     await execute(`INSERT INTO id_key_couplets (key_id, number) VALUES (?, 1)`, [result.insertId]);
-    const bundle = await loadKeyBundle(result.insertId, { includeUnpublished: true });
+    const bundle = await loadKeyBundle(result.insertId, {
+      includeUnpublished: true,
+      forManager: true,
+    });
     return res.status(201).json(bundle);
   }),
 );
@@ -252,24 +200,52 @@ router.put(
         ? current.scope_label
         : normalizeOptionalString(req.body?.scope_label ?? req.body?.scopeLabel) || null;
     const niveau = normalizeNiveau(req.body?.niveau) || current.niveau;
+    let toolRequired = current.tool_required ?? null;
+    if (req.body?.tool_required !== undefined || req.body?.toolRequired !== undefined) {
+      const rawTools = req.body?.tool_required ?? req.body?.toolRequired;
+      const list = Array.isArray(rawTools) ? rawTools : String(rawTools || '').split(',');
+      const unknown = list
+        .map((t) => String(t).trim())
+        .filter((t) => t && !ID_KEY_TOOL_ENUM.values.includes(t));
+      if (unknown.length) {
+        return res.status(400).json({ error: `Matériel inconnu : ${unknown.join(', ')}` });
+      }
+      const tools = parseToolSet(list);
+      toolRequired = tools.length ? tools.join(',') : null;
+    }
+    const safetyNote =
+      req.body?.safety_note === undefined && req.body?.safetyNote === undefined
+        ? (current.safety_note ?? null)
+        : normalizeOptionalString(req.body?.safety_note ?? req.body?.safetyNote) || null;
     let isPublished = current.is_published;
     if (req.body?.is_published !== undefined || req.body?.isPublished !== undefined) {
       isPublished = Boolean(req.body?.is_published ?? req.body?.isPublished);
     }
 
     if (isPublished) {
-      const bundle = await loadKeyBundle(id, { includeUnpublished: true });
+      const bundle = await loadKeyBundle(id, { includeUnpublished: true, forManager: true });
       const graphErr = validateKeyGraph(bundle);
       if (graphErr) return res.status(400).json({ error: graphErr });
     }
 
     await execute(
       `UPDATE id_keys
-          SET title = ?, description = ?, map_id = ?, scope_label = ?, niveau = ?, is_published = ?
+          SET title = ?, description = ?, map_id = ?, scope_label = ?, niveau = ?,
+              tool_required = ?, safety_note = ?, is_published = ?
         WHERE id = ?`,
-      [title, description, mapId, scopeLabel, niveau, isPublished ? 1 : 0, id],
+      [
+        title,
+        description,
+        mapId,
+        scopeLabel,
+        niveau,
+        toolRequired,
+        safetyNote,
+        isPublished ? 1 : 0,
+        id,
+      ],
     );
-    const bundle = await loadKeyBundle(id, { includeUnpublished: true });
+    const bundle = await loadKeyBundle(id, { includeUnpublished: true, forManager: true });
     return res.json(bundle);
   }),
 );
@@ -349,9 +325,31 @@ router.delete(
   }),
 );
 
+/** Champs d'issue d'une proposition (migration 366). */
+const OUTCOME_FIELD_ALIASES = [
+  ['outcome'],
+  ['clade_id', 'cladeId'],
+  ['result_label', 'resultLabel'],
+  ['next_key_id', 'nextKeyId'],
+  ['group_plant_ids', 'groupPlantIds', 'group_plants'],
+];
+
+function hasOwn(obj, key) {
+  return Object.prototype.hasOwnProperty.call(obj || {}, key);
+}
+
+/** La proposition reçue précise-t-elle elle-même son issue groupe / clade / clé suivante ? */
+function carriesOutcomeFields(raw) {
+  return OUTCOME_FIELD_ALIASES.some((aliases) => aliases.some((k) => hasOwn(raw, k)));
+}
+
 /**
  * PUT /api/id-keys/:id/couplets/:coupletId/leads — remplace les propositions d'un couplet.
- * Corps : `{ leads: [{ statement, image_url?, next_couplet_id?, plant_id?, sort_order? }] }`
+ * Corps : `{ leads: [{ id?, statement, hint?, image_url?, outcome?, next_couplet_id?, plant_id?,
+ * clade_id?, result_label?, group_plant_ids?, next_key_id?, sort_order? }] }`.
+ * Une proposition qui porte l'`id` d'une proposition existante du couplet sans préciser ses
+ * champs d'issue (outcome, clade_id, result_label, group_plant_ids, next_key_id) les garde :
+ * un ancien client ou l'outil MCP ne fait ainsi plus perdre groupes, clades et renvois.
  */
 router.put(
   '/:id/couplets/:coupletId/leads',
@@ -373,47 +371,79 @@ router.put(
     const allCouplets = await queryAll('SELECT id FROM id_key_couplets WHERE key_id = ?', [keyId]);
     const coupletIds = new Set(allCouplets.map((c) => Number(c.id)));
 
+    // Propositions actuelles du couplet, pour conserver les issues non renvoyées.
+    const before = await loadKeyBundle(keyId, { includeUnpublished: true, forManager: true });
+    const existingLeads = new Map(
+      (before.couplets.find((c) => Number(c.id) === coupletId)?.leads || []).map((l) => [
+        Number(l.id),
+        l,
+      ]),
+    );
+
     const normalized = [];
     for (let i = 0; i < leadsIn.length; i += 1) {
       const raw = leadsIn[i] || {};
       const statement = normalizeOptionalString(raw.statement);
       const manip = findManipulationInvitation(statement);
       if (manip) return res.status(400).json({ error: manip });
-      const next =
-        raw.next_couplet_id != null && raw.next_couplet_id !== ''
-          ? Number(raw.next_couplet_id)
-          : raw.nextCoupletId != null && raw.nextCoupletId !== ''
-            ? Number(raw.nextCoupletId)
-            : null;
-      const plant =
-        raw.plant_id != null && raw.plant_id !== ''
-          ? Number(raw.plant_id)
-          : raw.plantId != null && raw.plantId !== ''
-            ? Number(raw.plantId)
-            : null;
-      const outcome = validateLeadOutcome({ nextCoupletId: next, plantId: plant });
+
+      const previous = raw.id != null ? existingLeads.get(Number(raw.id)) : null;
+      const merged = { ...raw };
+      // Aide sous la proposition : conservée si le client ne l'envoie pas (outil MCP, ancien
+      // client) — elle était effacée à chaque réécriture du couplet avant la migration 366.
+      const hint =
+        raw.hint === undefined ? previous?.hint || null : normalizeOptionalString(raw.hint) || null;
+      if (previous && !carriesOutcomeFields(raw)) {
+        // Issue lisible dans ce que le client envoie (couplet suivant ou espèce) ?
+        const sentOutcome = resolveLeadOutcome({ ...raw, outcome: null });
+        if (sentOutcome == null) {
+          // Ni couplet ni espèce : c'est une feuille groupe / clade, on la garde entière.
+          merged.outcome = previous.outcome;
+          merged.clade_id = previous.clade_id;
+          merged.result_label = previous.result_label;
+          merged.group_plant_ids = previous.group_plant_ids;
+          merged.next_key_id = previous.next_key_id;
+        } else if (sentOutcome === 'espece') {
+          merged.next_key_id = previous.next_key_id;
+        }
+      }
+      const outcome = validateLeadOutcome(merged, { keyId });
       if (!outcome.ok) return res.status(400).json({ error: outcome.error });
-      if (next != null) {
-        if (!coupletIds.has(next)) {
+      const f = outcome.fields;
+
+      if (f.next_couplet_id != null) {
+        if (!coupletIds.has(f.next_couplet_id)) {
           return res
             .status(400)
             .json({ error: 'Le couplet suivant doit appartenir à la même clé' });
         }
-        if (next === coupletId) {
+        if (f.next_couplet_id === coupletId) {
           return res
             .status(400)
             .json({ error: 'Une proposition ne peut pas renvoyer au même couplet' });
         }
       }
-      if (plant != null) {
-        const p = await queryOne('SELECT id FROM plants WHERE id = ?', [plant]);
-        if (!p) return res.status(400).json({ error: `Espèce introuvable : ${plant}` });
+      if (f.plant_id != null) {
+        const p = await queryOne('SELECT id FROM plants WHERE id = ?', [f.plant_id]);
+        if (!p) return res.status(400).json({ error: `Espèce introuvable : ${f.plant_id}` });
+      }
+      for (const gid of f.group_plant_ids) {
+        const p = await queryOne('SELECT id FROM plants WHERE id = ?', [gid]);
+        if (!p) return res.status(400).json({ error: `Espèce introuvable : ${gid}` });
+      }
+      if (f.clade_id) {
+        const c = await queryOne('SELECT id FROM clades WHERE id = ?', [f.clade_id]);
+        if (!c) return res.status(400).json({ error: `Grand groupe introuvable : ${f.clade_id}` });
+      }
+      if (f.next_key_id != null) {
+        const k = await queryOne('SELECT id FROM id_keys WHERE id = ?', [f.next_key_id]);
+        if (!k) return res.status(400).json({ error: `Clé introuvable : ${f.next_key_id}` });
       }
       normalized.push({
         statement,
+        hint,
         image_url: normalizeOptionalString(raw.image_url ?? raw.imageUrl) || null,
-        next_couplet_id: next,
-        plant_id: plant,
+        ...f,
         sort_order: Number.isFinite(Number(raw.sort_order ?? i))
           ? Math.trunc(Number(raw.sort_order ?? i))
           : i,
@@ -421,8 +451,7 @@ router.put(
     }
 
     // Simuler le graphe pour détecter un cycle avant d'écrire
-    const bundle = await loadKeyBundle(keyId, { includeUnpublished: true });
-    const simulated = bundle.couplets.map((c) =>
+    const simulated = before.couplets.map((c) =>
       Number(c.id) === coupletId ? { ...c, leads: normalized } : c,
     );
     if (hasCoupletCycle(simulated)) {
@@ -432,23 +461,36 @@ router.put(
     await withTransaction(async (tx) => {
       await tx.execute('DELETE FROM id_key_leads WHERE couplet_id = ?', [coupletId]);
       for (const lead of normalized) {
-        await tx.execute(
+        const inserted = await tx.execute(
           `INSERT INTO id_key_leads
-             (couplet_id, sort_order, statement, image_url, next_couplet_id, plant_id)
-           VALUES (?, ?, ?, ?, ?, ?)`,
+             (couplet_id, sort_order, statement, hint, image_url, outcome, next_couplet_id,
+              plant_id, clade_id, result_label, next_key_id)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             coupletId,
             lead.sort_order,
             lead.statement,
+            lead.hint,
             lead.image_url,
+            lead.outcome,
             lead.next_couplet_id,
             lead.plant_id,
+            lead.clade_id,
+            lead.result_label,
+            lead.next_key_id,
           ],
         );
+        const leadId = inserted?.insertId;
+        for (let j = 0; j < lead.group_plant_ids.length; j += 1) {
+          await tx.execute(
+            `INSERT INTO id_key_lead_plants (lead_id, plant_id, sort_order) VALUES (?, ?, ?)`,
+            [leadId, lead.group_plant_ids[j], j],
+          );
+        }
       }
     });
 
-    const updated = await loadKeyBundle(keyId, { includeUnpublished: true });
+    const updated = await loadKeyBundle(keyId, { includeUnpublished: true, forManager: true });
     const coupletOut = updated.couplets.find((c) => Number(c.id) === coupletId);
     return res.json(coupletOut);
   }),
