@@ -40,6 +40,7 @@ const {
   listTeamSessionRequests,
 } = require('../../lib/glGuestToken');
 const equipeEtat = require('../../lib/glEquipeEtat');
+const { CODE_SPECTATEUR, MESSAGE_SPECTATEUR } = require('../../lib/shared/glMainCore');
 const { actorOf } = require('../../lib/glActeur');
 
 const router = express.Router();
@@ -174,7 +175,21 @@ async function peutRepondre(req, gameId, teamId) {
     'SELECT team_id FROM gl_team_members WHERE game_id = ? AND player_id = ? LIMIT 1',
     [gameId, actor.playerId],
   );
-  return row?.team_id != null && Number(row.team_id) === teamId ? 'eleve' : null;
+  if (row?.team_id == null || Number(row.team_id) !== teamId) return null;
+  // Un élève absent du tour, ou en retrait, regarde : il ne fait pas entrer un appareil (sans
+  // quoi il jouerait par la tablette qu'il vient d'accepter).
+  const tour = await equipeEtat.lireTour(db, gameId);
+  if (
+    tour?.ouvert &&
+    (await equipeEtat.estSpectateur(db, {
+      gameId,
+      playerId: actor.playerId,
+      roundNumber: tour.roundNumber,
+    }))
+  ) {
+    return 'spectateur';
+  }
+  return 'eleve';
 }
 
 for (const decision of ['accepter', 'refuser']) {
@@ -194,6 +209,9 @@ for (const decision of ['accepter', 'refuser']) {
       }
       const par = await peutRepondre(req, gameId, demande.teamId);
       if (!par) return res.status(403).json({ error: 'Permission insuffisante' });
+      if (par === 'spectateur') {
+        return res.status(403).json({ error: MESSAGE_SPECTATEUR, code: CODE_SPECTATEUR });
+      }
       const n =
         decision === 'accepter'
           ? await acceptTeamSessions(db, { gameId, id: sessionId, par })

@@ -106,6 +106,16 @@ test('noyau : porteur, version, main échue, textes sans mot interdit', () => {
   assert.equal(core.texteMain({ prenom: 'Lina', geste: 'repondre' }), 'Lina répond…');
   assert.equal(core.texteMain({ geste: 'fouiller' }), 'Une autre tablette fouille…');
   assert.equal(core.texteMain({ prenom: 'Lina', geste: 'inconnu' }), 'Lina joue…');
+  // Un compte sans prénom n'est pas « une tablette ».
+  assert.equal(core.texteMain({ geste: 'repondre', tablette: false }), 'Un autre appareil répond…');
+  assert.equal(
+    core.messageMainAilleurs({ geste: 'sort', tablette: false }),
+    'Un autre appareil prépare un sort… Attendez la fin de son geste.',
+  );
+  assert.equal(
+    core.decrireMain({ main, porteur: 'p:13', prenom: null, nowMs: 0 }).texte,
+    'Un autre appareil répond…',
+  );
   const autre = core.decrireMain({ main, porteur: 'p:13', prenom: 'Lina', nowMs: 400 });
   assert.deepEqual(autre, {
     moi: false,
@@ -553,11 +563,23 @@ test('absent spectateur : avec son compte, un élève absent ou en retrait voit 
     const refus = await geste(ctx, absent.token, path, body);
     assert.equal(refus.status, 403, `${path} : ${JSON.stringify(refus.body)}`);
     assert.equal(refus.body.code, 'SPECTATEUR');
-    assert.equal(
-      refus.body.error,
-      'Tu regardes ce tour : tu vois tout, et tu joueras de nouveau au prochain.',
-    );
+    assert.equal(refus.body.error, core.MESSAGE_SPECTATEUR);
+    assert.match(refus.body.error, /^Tu regardes ce tour .* dis-le à ton équipe ou au prof\.$/);
   }
+  // Un spectateur ne fait pas entrer un appareil : il jouerait par la tablette qu'il accepte.
+  const demande = await ouvrirTablette({
+    gameId: ctx.game.id,
+    teamId: team.id,
+    accepter: false,
+  });
+  const parLAbsent = await request(app)
+    .post(api(ctx, `/tenir/sessions/${demande.id}/accepter`))
+    .set(auth(absent.token));
+  assert.deepEqual([parLAbsent.status, parLAbsent.body.code], [403, 'SPECTATEUR']);
+  const parLePresent = await request(app)
+    .post(api(ctx, `/tenir/sessions/${demande.id}/accepter`))
+    .set(auth(present.token));
+  assert.equal(parLePresent.status, 200, JSON.stringify(parLePresent.body));
   const don = await request(app)
     .post('/api/gl/market/dons')
     .set(auth(absent.token))

@@ -343,9 +343,18 @@ router.post(
           dort: req.body?.dort === true,
         });
       });
+      // M13 : un changement de phase rend toutes les mains (aucune attente sans sortie), avant
+      // que les écrans ne relisent. La phase est déjà validée : un échec ici ne la défait pas
+      // (une main échoit seule en 60 s).
+      try {
+        await equipeEtat.rendreToutesLesMains(db, gameId);
+      } catch (err) {
+        require('../../../lib/logger').warn(
+          { err, gameId },
+          'Mains G&L non rendues au changement de phase',
+        );
+      }
       emitAll(gameId, result.events);
-      // M13 : un changement de phase rend toutes les mains (aucune attente sans sortie).
-      await equipeEtat.rendreToutesLesMains(db, gameId);
       return res.json({
         ok: true,
         roundNumber: result.roundNumber,
