@@ -24,6 +24,22 @@ donnée touchée) : la base de production porte la contrainte `chk_idkey_lead_ou
   grand groupe ni nom de groupe ; un grand groupe ne porte pas de nom de groupe (400 au lieu
   d'une erreur SQL).
 
+### Corrigé — G&L : banc, assertion C7 de `regression-7nov` alignée sur la décision L5 (17 novembre 2026)
+
+Le scénario `regression-7nov` du banc rendait `C7` fausse à chaque exécution depuis la PR 1b de
+l'ensemble unifié : l'assertion attendait encore la zone `cz-p2-08` inactive, alors que la
+décision L5 (migration 365) l'active avec le feuillet `ep-I-06`. Le scénario n'est pas dans la
+fumée `npm run test:sim` : rien ne le signalait.
+
+- `tools/gl-sim/scenarios/regression-7nov.js` : `C7` garde son code et vérifie la règle en
+  vigueur — zone active, feuillet `ep-I-06`, question de lecture présente et active. Son libellé
+  dit qu'elle est remplacée par L5. Sur la base `_sim`, graine 14 : `C7` vraie, aucune assertion
+  fausse.
+- Mentions périmées corrigées : `docs/GL_TENIR_A_DEUX.md` (lignes C7 et E6 : 8 zones actives au
+  plateau 2), `docs/GL_UNIFIE_TABLETTE_SCIENCE_DEFIS_PROMPT.md` § 5.3, commentaire de
+  `tools/gl-sim/db.js` ; `docs/GL_SIMULATION.md` et `tools/gl-sim/README.md` précisent ce que
+  vérifie `C7`. Aucun changement de règle ni de contenu.
+
 ### Corrigé — G&L : tests de la PR 1b — scénario e2e des tablettes, garde d'un test de contenu (17 novembre 2026)
 
 Suite de la PR 1b de l'ensemble unifié (#664).

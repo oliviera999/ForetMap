@@ -2,7 +2,7 @@
 
 /**
  * Scénario `regression-7nov` : rejoue les dix correctifs C1-C10 de `docs/GL_TENIR_A_DEUX.md`
- * sur un chapitre 1 en surface tablette. Chaque correctif est une **assertion** du rapport
+ * sur un chapitre 1 en surface tablette (C7 dans sa forme actuelle : la décision L5 l'a remplacée). Chaque correctif est une **assertion** du rapport
  * (`assertions[]`, `ok` vrai / faux / `null` si non vérifiable dans l'exécution) ; les sondes
  * actives (C1, C2, C6, C10) sont jouées par le crochet `apresEquipes` de la séance 1 et 2.
  */
@@ -241,15 +241,25 @@ async function assertions(ctx, mesures) {
     `${peripeties.length} péripéties tirées (cases : ${[...new Set(labels)].slice(0, 6).join(', ')}) ; sur un Défi : ${defi}`,
   );
   push('C6', sondes.C6?.ok ?? null, `retrait : ${sondes.C6?.detail || 'non sondé'}`);
-  // C7 : zone cz-p2-08 inactive et sa question de lecture désactivée.
-  const z = await db.queryOne('SELECT actif FROM gl_chasse_zones WHERE zone_key = ?', ['cz-p2-08']);
+  // C7, remplacée par la décision L5 de l'ensemble unifié (migration 365) : la zone cz-p2-08,
+  // écrite inactive le 7 novembre, est active avec le feuillet ep-I-06, et sa question de
+  // lecture est active. L'assertion garde son code et vérifie la règle en vigueur.
+  const z = await db.queryOne(
+    'SELECT actif, feuillet_code FROM gl_chasse_zones WHERE zone_key = ?',
+    ['cz-p2-08'],
+  );
   const q = await db.queryOne('SELECT actif FROM gl_tenir_questions_lecture WHERE zone_key = ?', [
     'cz-p2-08',
   ]);
   push(
     'C7',
-    z ? Number(z.actif) === 0 && (!q || Number(q.actif) === 0) : null,
-    `cz-p2-08 : actif=${z?.actif ?? 'absente'}, question lecture actif=${q?.actif ?? 'absente'}`,
+    z
+      ? Number(z.actif) === 1 &&
+          z.feuillet_code === 'ep-I-06' &&
+          Boolean(q) &&
+          Number(q.actif) === 1
+      : null,
+    `remplacée par L5 (zone active avec ep-I-06, question de lecture active) — cz-p2-08 : actif=${z?.actif ?? 'absente'}, feuillet=${z?.feuillet_code ?? 'absent'}, question lecture actif=${q?.actif ?? 'absente'}`,
   );
   // C8 : les 7 pages de route du plateau 4, dont l'ordre 4 (feuillet d'un plateau antérieur).
   const passeur = await db.queryAll(

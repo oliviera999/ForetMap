@@ -250,7 +250,8 @@ async function verifierContenu(db) {
   for (const p of [1, 2, 3, 4]) {
     if (!chapitres.some((c) => Number(c.plateau_number) === p))
       erreurs.push(`aucun chapitre de plateau ${p}`);
-    // Le catalogue livre 8/8/10/10 zones dont `cz-p2-08` inactive (C7) : au moins 7 prêtes.
+    // Le catalogue livre 8/8/10/10 zones, toutes actives depuis L5 (`cz-p2-08` avec `ep-I-06`).
+    // Le seuil reste à 7 prêtes : il tolère une zone dont la géométrie attend encore.
     const z = zones.find((r) => Number(r.plateau) === p);
     if (!z || Number(z.pretes) < 7)
       erreurs.push(`plateau ${p} : moins de 7 zones de chasse prêtes`);
