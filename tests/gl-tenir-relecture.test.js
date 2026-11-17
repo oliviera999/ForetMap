@@ -91,10 +91,11 @@ test('voyageur : sans traversée en cours, l’état porte horsExpedition', () =
   );
 });
 
-test('Trame : +1 ressource du peuple même sans bloc `effects` sur la case', () => {
+test('Trame : +1 gemme (M3) même sans bloc `effects` sur la case', () => {
   const marker = { event_type: 'trame' };
   assert.equal(resolveTenirMarkerDeltas(marker, 'unicorn', null).powerDelta, 1);
-  assert.equal(resolveTenirMarkerDeltas(marker, 'gnome', null).healthDelta, 1);
+  assert.equal(resolveTenirMarkerDeltas(marker, 'gnome', null).powerDelta, 1);
+  assert.equal(resolveTenirMarkerDeltas(marker, 'gnome', null).healthDelta, 0);
   assert.equal(resolveTenirMarkerDeltas(marker, 'gnome', null).moveDelta, 0);
 });
 

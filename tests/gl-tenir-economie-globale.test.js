@@ -256,7 +256,7 @@ test('Progression sur une Trame ne crée pas de ressource nette (C1) : −coût 
   assert.equal(await total(), t0 - 1, 'Progression sur une Trame : −1 (coût), rien de créé');
 });
 
-test('cases positives (C4) : une case « +2 cœurs » du plateau donne +1 ressource du peuple à chaque membre', async () => {
+test('cases positives (M3) : une case « +2 cœurs » du plateau ne donne aucune ressource (son mouvement seulement)', async () => {
   const team = ctx.teams[3]; // licorne
   const etape = ctx.markers[8]; // « Étape 2 » (point) : rendue positive le temps du test
   const saved = await queryOne(
@@ -296,16 +296,12 @@ test('cases positives (C4) : une case « +2 cœurs » du plateau donne +1 ressou
       .set(auth(ctx.adminToken))
       .send({ mode: 'libre', cases: 1, motif: 'test C4', teamId: team.id });
     assert.equal(libre.status, 201, JSON.stringify(libre.body));
-    assert.equal(await total(), t0 + membres.length, '+1 par membre, pas +2 cœurs');
+    assert.equal(await total(), t0, 'aucune ressource : seule la Trame donne une gemme');
     for (const id of membres) {
       const b = await queryOne('SELECT health_points, power_points FROM gl_players WHERE id = ?', [
         id,
       ]);
-      assert.deepEqual(
-        { h: Number(b.health_points), p: Number(b.power_points) },
-        { h: 3, p: 4 },
-        'licorne : +1 gemme, pas de cœur',
-      );
+      assert.deepEqual({ h: Number(b.health_points), p: Number(b.power_points) }, { h: 3, p: 3 });
     }
   } finally {
     await execute(
@@ -319,30 +315,12 @@ test('E4 : le surplus au plafond n’est jamais perdu (réserve de la caravane),
   const { listReserves } = require('../lib/glBourses');
   const { checkTenirInvariantsFromDb } = require('../lib/glTenirInvariants');
   const team = ctx.teams[1]; // gnome
-  const etape = ctx.markers[8];
-  const saved = await queryOne(
-    'SELECT event_type, event_config_json FROM gl_chapter_markers WHERE id = ?',
-    [etape.id],
-  );
-  await execute(
-    'UPDATE gl_chapter_markers SET event_type = ?, event_config_json = ? WHERE id = ?',
-    [
-      'behavior',
-      JSON.stringify({
-        version: 2,
-        effects: {
-          neutral: { label: null, deltaPv: 2, deltaGems: 0, deltaMove: 0, passTurn: false },
-        },
-        eventMeta: { tonalite: 'positif', rarete: 'commun' },
-      }),
-      etape.id,
-    ],
-  );
+  // M3 : la case Trame (« Trame 2 », repère 7) donne +1 gemme aux deux peuples.
   const reservesTotal = async () =>
     (await listReserves(db, ctx.game.id)).reduce((acc, r) => acc + r.health + r.power, 0);
   try {
     await execute('UPDATE gl_teams SET position_marker_id = ? WHERE id = ?', [
-      ctx.markers[7].id,
+      ctx.markers[6].id,
       team.id,
     ]);
     const membres = (
@@ -351,9 +329,9 @@ test('E4 : le surplus au plafond n’est jamais perdu (réserve de la caravane),
         team.id,
       ])
     ).map((m) => Number(m.player_id));
-    // Tous au plafond de cœurs : le +1 de la case positive déborde.
+    // Tous au plafond de gemmes : le +1 de la case Trame déborde.
     for (const id of membres)
-      await execute('UPDATE gl_players SET health_points = 8, power_points = 3 WHERE id = ?', [id]);
+      await execute('UPDATE gl_players SET health_points = 3, power_points = 8 WHERE id = ?', [id]);
     const t0 = await total();
     const r0 = await reservesTotal();
     const libre = await request(app)
@@ -365,8 +343,8 @@ test('E4 : le surplus au plafond n’est jamais perdu (réserve de la caravane),
     assert.equal(await reservesTotal(), r0 + membres.length, 'le surplus va à la réserve');
     const reserve = (await listReserves(db, ctx.game.id)).find((r) => r.teamId === Number(team.id));
     assert.deepEqual(
-      { h: reserve.health - 0 >= membres.length, p: reserve.power },
-      { h: true, p: 0 },
+      { p: reserve.power - 0 >= membres.length, h: reserve.health },
+      { p: true, h: 0 },
     );
     const inv = await checkTenirInvariantsFromDb(db, ctx.game.id);
     assert.deepEqual(
@@ -401,9 +379,6 @@ test('E4 : le surplus au plafond n’est jamais perdu (réserve de la caravane),
     assert.equal(await total(), t1, 'réponse fausse : rien');
     assert.equal(await reservesTotal(), r1, 'réponse fausse : rien en réserve non plus');
   } finally {
-    await execute(
-      'UPDATE gl_chapter_markers SET event_type = ?, event_config_json = ? WHERE id = ?',
-      [saved.event_type, saved.event_config_json, etape.id],
-    );
+    // Rien à remettre : la case Trame des fixtures n'a pas été modifiée.
   }
 });

@@ -343,7 +343,8 @@ export function GLTenirEquipeView({
       ) : null}
       {pending === 'lancer' && perms.lancer ? (
         <GLTourDesSaisie
-          count={tenir.settings?.des_count || 2}
+          key={`des-${maVue?.desProchainJet || tenir.settings?.des_count || 2}`}
+          count={maVue?.desProchainJet || tenir.settings?.des_count || 2}
           desMode={tenir.settings?.des_mode_effectif || 'serveur'}
           disabled={tourApi.busy}
           onLancer={async (body) => {
@@ -358,6 +359,11 @@ export function GLTenirEquipeView({
       {pending === 'attente' ? (
         <p className="gl-hint" role="status">
           Jet saisi : en attente du clic du prof.
+        </p>
+      ) : null}
+      {maVue?.unDe ? (
+        <p className="gl-hint gl-tenir-equipe__un-de" role="status" data-testid="gl-tenir-un-de">
+          Au prochain tour : un seul dé.
         </p>
       ) : null}
       {chasse && fouilles ? (

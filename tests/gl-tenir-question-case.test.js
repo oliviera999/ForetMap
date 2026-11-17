@@ -84,8 +84,8 @@ test('bonne réponse de case : +1 case, dé réarmé (relance), aucun score ni r
     [ctx.game.id, team.id],
   );
   assert.ok(!score, 'aucun score en mode tenir');
-  // La case bonus (Trame) s'applique : +1 cœur aux gnomes.
-  for (const m of members) assert.deepEqual(await readPlayerBourses(m.id), { health: 4, power: 3 });
+  // La case bonus (Trame) s'applique : +1 gemme (M3), même pour une équipe gnome.
+  for (const m of members) assert.deepEqual(await readPlayerBourses(m.id), { health: 3, power: 4 });
   const relance = await queryOne(
     "SELECT id FROM gl_game_events WHERE game_id = ? AND team_id = ? AND event_type = 'relance_bonus'",
     [ctx.game.id, team.id],

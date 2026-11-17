@@ -170,11 +170,7 @@ export function GLTenirSettings({ settings, savingKey, onSaveSetting, onToggle }
     'gameplay.tenir_defi_declenchement',
     'arret',
   );
-  const casesPositives = readSelectSetting(
-    settings,
-    'gameplay.tenir_cases_positives',
-    'ressource_peuple',
-  );
+  const casesPositives = readSelectSetting(settings, 'gameplay.tenir_cases_positives', 'neutre');
   return (
     <div className="gl-tenir-settings gl-form" data-testid="gl-tenir-settings">
       <h4>Tenir à deux (mouture v2)</h4>
@@ -240,8 +236,7 @@ export function GLTenirSettings({ settings, savingKey, onSaveSetting, onToggle }
           disabled={savingKey === 'gameplay.tenir_cases_positives'}
           onChange={(event) => onSaveSetting('gameplay.tenir_cases_positives', event.target.value)}
         >
-          <option value="ressource_peuple">+1 ressource du peuple (comme la Trame)</option>
-          <option value="neutre">Aucune ressource</option>
+          <option value="neutre">Leur mouvement, sans ressource</option>
           <option value="brut">Valeur du plateau (ancien comportement)</option>
         </select>
       </label>

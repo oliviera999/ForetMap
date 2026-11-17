@@ -85,7 +85,7 @@
     "titre_prefixe_double": "Très Grands",
     "progression_applique_case": false,
     "relances_max_par_tour": 1,
-    "cases_positives": "ressource_peuple",
+    "cases_positives": "neutre",
     "peripeties_cases_neutres": true,
     "palissement_rang_plancher": 8,
     "surplus_reserve": true,
@@ -142,6 +142,7 @@
     "defis_pages_par_semaine": "pages de veillée gagnées par cette voie, par élève et par semaine ISO",
     "defis_mode_equipe": "le prof, ou une tablette d'équipe hors tour, lance un défi pour une équipe",
     "fouilles_par_tour": "ensemble unifié (M2, 17 novembre 2026) : 2 fouilles par équipe et par tour, pour les deux peuples (ancienne forme { gnome: 1, unicorn: 2 }) ; une zone pâlie ne se fouille que par une équipe gnome (c'est la réparation) ; la fouille de réparation en plus a disparu",
-    "fouilles_sous_voile": "M2 : fouilles par tour d'une équipe sous le voile (1), sauf Abri ou Cordée qui rendent le quota entier"
+    "fouilles_sous_voile": "M2 : fouilles par tour d'une équipe sous le voile (1), sauf Abri ou Cordée qui rendent le quota entier",
+    "cases_positives": "ensemble unifié (M3) : `neutre` (défaut) — une case positive donne son mouvement, sans ressource ; seule la case Trame donne une gemme ; `brut` garde la valeur du plateau (ancien comportement) ; l'option `ressource_peuple` est retirée"
   }
 }

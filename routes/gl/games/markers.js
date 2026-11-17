@@ -361,7 +361,7 @@ router.post(
     if (!allowed) return res.status(403).json({ error: 'Accès partie refusé' });
 
     const game = await queryOne(
-      'SELECT id, chapter_id, status, board_movement_mode, board_path_start_index, tenir_profil FROM gl_games WHERE id = ? LIMIT 1',
+      'SELECT id, chapter_id, status, board_movement_mode, board_path_start_index, tenir_profil, tenir_overrides_json, current_round_number FROM gl_games WHERE id = ? LIMIT 1',
       [gameId],
     );
     if (!game) return res.status(404).json({ error: 'Partie introuvable' });
@@ -450,6 +450,16 @@ router.post(
           reserveTeamId: tenirCtx.tenir && tenirCtx.surplusReserve ? Number(teamId) : null,
         });
         if (vitalityPayload?.sentier) await consumeSentier(tx, gameId, teamId);
+        // Ensemble unifié (M3) : une case Souffle pose « un seul dé au prochain tour ».
+        if (tenirCtx.tenir && vitalityPayload?.unDe && !vitalityPayload?.sentier) {
+          const poses = await require('../../../lib/glTour').poserUnDeTx(tx, {
+            gameId,
+            teamId,
+            roundNumber: Number(game.current_round_number) || 0,
+            marker,
+          });
+          if (poses.length) lastEvent = poses[poses.length - 1];
+        }
 
         if (vitalityPayload?.applied) {
           await recordVitalityChangeEvent(tx, {

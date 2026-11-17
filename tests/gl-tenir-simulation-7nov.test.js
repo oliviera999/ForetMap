@@ -167,7 +167,7 @@ test('assertFenetre apres_jet : dernier jet d’une autre équipe → refus ; sa
   );
 });
 
-test('C4 : une case positive du plateau (+2 cœurs, +1 gemme) devient +1 ressource du peuple ; neutre → rien ; brut → plateau ; une perte hors Souffle ne retire rien', () => {
+test('C4 revu par M3 : une case positive ne donne plus de ressource (son mouvement seulement) ; brut → plateau ; perte neutralisée ; Souffle → un seul dé', () => {
   const positive = (deltaPv, deltaGems) => ({
     branch: 'neutral',
     deltaPv,
@@ -179,26 +179,23 @@ test('C4 : une case positive du plateau (+2 cœurs, +1 gemme) devient +1 ressour
     event_type: 'behavior',
     event_config_json: '{"version":2,"eventMeta":{"tonalite":"positif"}}',
   };
-  const gnome = resolveTenirMarkerDeltas(marker, 'gnome', positive(2, 0));
-  assert.deepEqual(
-    { h: gnome.healthDelta, p: gnome.powerDelta, t: gnome.tonalite },
-    { h: 1, p: 0, t: 'positif' },
-  );
-  const licorne = resolveTenirMarkerDeltas(marker, 'unicorn', positive(2, 0));
-  assert.deepEqual({ h: licorne.healthDelta, p: licorne.powerDelta }, { h: 0, p: 1 });
-  const gemme = resolveTenirMarkerDeltas(marker, 'gnome', positive(0, 1), {
+  for (const teamType of ['gnome', 'unicorn']) {
+    const d = resolveTenirMarkerDeltas(marker, teamType, positive(2, 1));
+    assert.deepEqual(
+      { h: d.healthDelta, p: d.powerDelta, t: d.tonalite },
+      { h: 0, p: 0, t: 'positif' },
+    );
+  }
+  // L'ancienne valeur `ressource_peuple` se lit `neutre`.
+  const ancien = resolveTenirMarkerDeltas(marker, 'gnome', positive(0, 1), {
     casesPositives: 'ressource_peuple',
   });
-  assert.deepEqual({ h: gemme.healthDelta, p: gemme.powerDelta }, { h: 1, p: 0 });
-  const neutre = resolveTenirMarkerDeltas(marker, 'gnome', positive(2, 0), {
-    casesPositives: 'neutre',
-  });
-  assert.deepEqual({ h: neutre.healthDelta, p: neutre.powerDelta }, { h: 0, p: 0 });
+  assert.deepEqual({ h: ancien.healthDelta, p: ancien.powerDelta }, { h: 0, p: 0 });
   const brut = resolveTenirMarkerDeltas(marker, 'gnome', positive(2, 0), {
     casesPositives: 'brut',
   });
   assert.deepEqual({ h: brut.healthDelta, p: brut.powerDelta }, { h: 2, p: 0 });
-  // Déplacement conservé, perte neutre neutralisée, branche explicite inchangée.
+  // Déplacement conservé, perte neutre neutralisée.
   const avecMove = resolveTenirMarkerDeltas(marker, 'gnome', { ...positive(1, 0), deltaMove: 1 });
   assert.equal(avecMove.moveDelta, 1);
   const perte = resolveTenirMarkerDeltas(
@@ -210,7 +207,7 @@ test('C4 : une case positive du plateau (+2 cœurs, +1 gemme) devient +1 ressour
     positive(-1, 0),
   );
   assert.deepEqual({ h: perte.healthDelta, p: perte.powerDelta }, { h: 0, p: 0 });
-  const explicite = resolveTenirMarkerDeltas(
+  const souffle = resolveTenirMarkerDeltas(
     {
       event_type: 'behavior',
       event_config_json: '{"version":2,"eventMeta":{"tonalite":"souffle"}}',
@@ -218,7 +215,11 @@ test('C4 : une case positive du plateau (+2 cœurs, +1 gemme) devient +1 ressour
     'unicorn',
     { branch: 'unicorn', deltaPv: 0, deltaGems: -1, deltaMove: 0, passTurn: false },
   );
-  assert.equal(explicite.powerDelta, -1, 'case Souffle : effet du plateau tel quel');
+  assert.deepEqual(
+    { p: souffle.powerDelta, u: souffle.unDe },
+    { p: 0, u: true },
+    'case Souffle : un seul dé au tour suivant, aucune ressource retirée',
+  );
 });
 
 test('C5 : péripétie sur une case behavior sans effet de tonalité négative ou neutre, jamais sur un Défi ni une case à effet', () => {

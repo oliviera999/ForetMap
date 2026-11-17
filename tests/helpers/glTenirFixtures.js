@@ -28,6 +28,21 @@ const BIOMES = {
   4: ['taiga', 'toundra'],
 };
 
+/** Case Souffle des fixtures (ensemble unifié, M3) : un seul dé au tour suivant. */
+const SOUFFLE_BRANCHE = {
+  label: 'Au prochain tour, un seul dé.',
+  deltaPv: 0,
+  deltaGems: 0,
+  deltaMove: 0,
+  passTurn: false,
+  unDeAuProchainTour: true,
+};
+const SOUFFLE_FIXTURE = JSON.stringify({
+  version: 2,
+  effects: { gnome: SOUFFLE_BRANCHE, unicorn: SOUFFLE_BRANCHE },
+  eventMeta: { tonalite: 'souffle', rarete: null },
+});
+
 async function setGlSetting(key, value) {
   await execute(
     `INSERT INTO gl_settings (\`key\`, value_json, updated_at) VALUES (?, ?, NOW())
@@ -139,14 +154,7 @@ async function ensureChapter(plateau) {
       },
       eventMeta: { tonalite: 'trame', rarete: 'commun' },
     });
-    const souffle = JSON.stringify({
-      version: 2,
-      effects: {
-        gnome: { label: 'Recule de 1', deltaPv: 0, deltaGems: 0, deltaMove: -1, passTurn: false },
-        unicorn: { label: '−1 gemme', deltaPv: 0, deltaGems: -1, deltaMove: 0, passTurn: false },
-      },
-      eventMeta: { tonalite: 'souffle', rarete: null },
-    });
+    const souffle = SOUFFLE_FIXTURE;
     const quiz = JSON.stringify({
       version: 2,
       question: {
@@ -205,6 +213,11 @@ async function ensureChapter(plateau) {
       }),
       chapter.id,
     ],
+  );
+  // Ensemble unifié (M3) : une case Souffle → au tour suivant, un seul dé (les deux peuples).
+  await execute(
+    `UPDATE gl_chapter_markers SET event_config_json = ? WHERE chapter_id = ? AND label LIKE 'Souffle%'`,
+    [SOUFFLE_FIXTURE, chapter.id],
   );
   const markers = await queryAll(
     'SELECT id, event_type, label, order_index FROM gl_chapter_markers WHERE chapter_id = ? ORDER BY order_index ASC, id ASC',

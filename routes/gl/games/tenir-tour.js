@@ -46,8 +46,6 @@ const ERROR_MESSAGES = {
   TENIR_PHASE: 'Ce geste n’est possible qu’en phase « jeu »',
   TENIR_EQUIPE_INACTIVE: 'Ce n’est pas le tour de cette équipe',
   TENIR_PERMISSION: 'Ce geste est réservé au prof sur cette surface',
-  TOUR_PASSE:
-    'L’équipe passe son tour : pas de jet cette fois (une case Souffle du tour précédent)',
   DICE_ALREADY_ROLLED: 'Dés déjà lancés pour ce tour',
   TOUTES_AU_CAMP: 'Toutes les équipes sont au camp',
   TEAM_NOT_FOUND: 'Équipe introuvable dans cette partie',
@@ -140,15 +138,6 @@ async function resolveGesteContext(req, res, gameId, { geste, teamIdFromBody = n
 // ---------------------------------------------------------------------
 // Lecture du tour
 // ---------------------------------------------------------------------
-
-/** L'équipe passe-t-elle ce tour (effet `tour_passe` posé par une case Souffle) ? */
-async function tourPasseDuTour(gameId, team, roundNumber) {
-  const row = await db.queryOne(
-    `SELECT id FROM gl_game_tenir_effets WHERE game_id = ? AND round_number = ? AND kind = 'tour_passe' AND team_id = ? LIMIT 1`,
-    [gameId, roundNumber, team.id],
-  );
-  return !!row;
-}
 
 /** Fouilles du tour d'une équipe (console du prof) : tolère l'absence du module de chasse. */
 async function fouillesDuTour(gameId, team, roundNumber, resolved) {
@@ -251,8 +240,18 @@ router.get(
           ...(staff && roundNumber > 0
             ? { fouilles: await fouillesDuTour(gameId, t, roundNumber, resolved) }
             : {}),
-          // Tour passé (case Souffle du tour précédent) : visible de tous, sans jet possible.
-          tourPasse: roundNumber > 0 ? await tourPasseDuTour(gameId, t, roundNumber) : false,
+          // M3 : « Au prochain tour : un seul dé » (case Souffle), visible de tous ; `desProchainJet`
+          // dit combien de dés l'équipe lance (ou saisit) à son prochain lancer.
+          unDe: Number(t.un_de_prochain_tour) === 1,
+          desProchainJet:
+            roundNumber > 0
+              ? await tour.desPourJet(db, {
+                  gameId,
+                  teamId: t.id,
+                  roundNumber,
+                  desCount: resolved.des_count,
+                })
+              : Number(resolved.des_count) || 2,
         })),
       ),
       campIndex: markers.length ? markers.length - 1 : 0,
@@ -749,7 +748,16 @@ router.post(
       return res.status(409).json({ error: ERROR_MESSAGES.GAME_NOT_LIVE });
     if (!ctx.roundNumber) return res.status(409).json({ error: ERROR_MESSAGES.AUCUN_TOUR });
     const resolved = { ...ctx.resolved, surface: ctx.surface };
-    const desCount = Number(resolved.des_count) || 2;
+    // M3 : un seul dé au premier lancer qui suit une case Souffle (ou à la Relance de ce dé).
+    const desCount =
+      wantedMode === 'libre'
+        ? Number(resolved.des_count) || 2
+        : await tour.desPourJet(db, {
+            gameId,
+            teamId: ctx.teamId,
+            roundNumber: ctx.roundNumber,
+            desCount: resolved.des_count,
+          });
     const configuredMode = resolveDesMode(resolved);
     // Un élève ne transforme pas un tirage `serveur` en faces choisies : des dés « physiques »
     // hors du mode de la surface ne passent que par la file de validation du prof (tablette,

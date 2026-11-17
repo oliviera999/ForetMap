@@ -122,6 +122,7 @@ export function GLProjectionView({ gameId, token, refreshKey = 0 }) {
             <strong>{t.name}</strong> — case {numeroCase(t.pathIndex) ?? '—'}
             {t.auCamp ? ' · au camp' : ''}
             {voile >= 0 && t.pathIndex != null && t.pathIndex <= voile ? ' · sous le voile' : ''}
+            {t.unDe ? ' · au prochain tour : un seul dé' : ''}
           </li>
         ))}
       </ol>
