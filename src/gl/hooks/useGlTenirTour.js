@@ -77,7 +77,6 @@ export function useGlTenirTour({ gameId, enabled = true, onChanged = null }) {
     validerSaisie: (saisieId) => post(`/des/${saisieId}/valider`),
     refuserSaisie: (saisieId) => post(`/des/${saisieId}/refuser`),
     teamSpirit: (bilans) => put('/tour/team-spirit', { bilans }),
-    lumiereChoix: (palier, choix, libelle) => post('/lumiere/choix', { palier, choix, libelle }),
     oluCorrige: (teamId) => post('/tour/olu-corrige', { teamId }),
     retrait: (playerId, entree, motif) => post('/retrait', { playerId, entree, motif }),
     peripetiePasser: (id, teamId) => post('/peripetie/passer', { id, teamId }),

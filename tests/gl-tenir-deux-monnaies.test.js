@@ -64,7 +64,7 @@ test('le MJ voit toutes les bourses', async () => {
   assert.equal(Object.keys(res.body.vitality.byPlayerId).length, ctx.players.length);
 });
 
-test('Trame : +1 de SA ressource à chaque membre (cœur gnome, gemme licorne), rien d’autre', async () => {
+test('Trame (M3) : +1 gemme à chaque membre, pour les deux peuples, rien d’autre', async () => {
   const trame = ctx.markers.find((m) => m.label === 'Trame 1');
   for (const team of [ctx.teams[0], ctx.teams[2]]) {
     const members = byTeam(team.id);
@@ -78,13 +78,12 @@ test('Trame : +1 de SA ressource à chaque membre (cœur gnome, gemme licorne), 
     assert.equal(res.body.vitality.applied, true);
     for (const m of members) {
       const b = await readPlayerBourses(m.id);
-      if (team.type === 'gnome') assert.deepEqual(b, { health: 4, power: 3 });
-      else assert.deepEqual(b, { health: 3, power: 4 });
+      assert.deepEqual(b, { health: 3, power: 4 }, team.type);
     }
   }
 });
 
-test('Souffle : l’effet du plateau s’applique tel quel (−1 gemme aux licornes)', async () => {
+test('Souffle (M3) : aucune ressource retirée — au prochain tour, un seul dé', async () => {
   const souffle = ctx.markers.find((m) => m.label === 'Souffle 1');
   const team = ctx.teams[3];
   for (const m of byTeam(team.id)) await setPlayerBourses(m.id, 3, 3);
@@ -95,7 +94,8 @@ test('Souffle : l’effet du plateau s’applique tel quel (−1 gemme aux licor
     .send({ teamId: team.id });
   assert.equal(res.status, 200, JSON.stringify(res.body));
   for (const m of byTeam(team.id))
-    assert.deepEqual(await readPlayerBourses(m.id), { health: 3, power: 2 });
+    assert.deepEqual(await readPlayerBourses(m.id), { health: 3, power: 3 });
+  assert.equal(res.body.unDe, true);
 });
 
 test('geste du prof sur une bourse : motif obligatoire, delta borné à ±3, plafond 8, journalisé', async () => {
@@ -229,7 +229,8 @@ test('aucune écriture de vitalité hors des chemins autorisés dans cette suite
   const reasons = events
     .filter((e) => e.event_type === 'vitality_change')
     .map((e) => JSON.parse(e.payload_json).reason);
-  // 3 cases (2 Trame + 1 Souffle) + 1 geste MJ motivé : rien d'autre n'a touché une bourse.
-  assert.equal(reasons.length, 4, JSON.stringify(reasons));
+  // 2 cases Trame + 1 geste MJ motivé (la case Souffle ne touche plus aucune bourse, M3) :
+  // rien d'autre n'a touché une bourse.
+  assert.equal(reasons.length, 3, JSON.stringify(reasons));
   assert.ok(reasons.includes('geste exceptionnel de test'));
 });

@@ -158,7 +158,7 @@
       "id": "olu-21",
       "moment": "fouille",
       "expression": "curieux",
-      "texte": "Tiède. Vous chauffez. L'Éclaireur a du nez.",
+      "texte": "Tiède. Vous chauffez. Il y a du nez dans cette équipe.",
       "variables": []
     },
     {
@@ -216,7 +216,7 @@
       "id": "olu-29",
       "moment": "tenir",
       "expression": "joie",
-      "texte": "{equipe} a ouvert la page que l'autre peuple a trouvée : elle est tenue. Une gemme ou un cœur pour chacun, des deux côtés.",
+      "texte": "{equipe} a lu la page que l'autre peuple a trouvée : elle est tenue. Une gemme pour chaque lecteur.",
       "variables": [
         "equipe"
       ]
@@ -257,7 +257,7 @@
       "id": "olu-34",
       "moment": "voile",
       "expression": "pensif",
-      "texte": "Le voile a rattrapé {equipe}. On ne fouille plus de là, mais on avance encore ; les autres savent quoi faire.",
+      "texte": "Le voile a rejoint {equipe}. Il lui reste une fouille, et elle avance encore ; les autres savent quoi faire.",
       "variables": [
         "equipe"
       ]
@@ -334,7 +334,8 @@
       "moment": "sort",
       "expression": "explique",
       "texte": "Nommer. Trois vivants à voix haute, et une page pâlie se répare. Nommer, c'est tenir.",
-      "variables": []
+      "variables": [],
+      "actif": false
     },
     {
       "id": "olu-45",
@@ -365,7 +366,7 @@
       "id": "olu-48",
       "moment": "seuil",
       "expression": "joie",
-      "texte": "{equipe} est au camp ! Éclaireurs du chapitre. Maintenant, ils tirent les autres.",
+      "texte": "{equipe} est au camp ! Avant-garde du chapitre. Maintenant, elle tire les autres.",
       "variables": [
         "equipe"
       ]
@@ -374,7 +375,7 @@
       "id": "olu-49",
       "moment": "seuil",
       "expression": "joie",
-      "texte": "Toute la caravane est au camp. Le seuil s'ouvre. Rangez les dés, sortez les enveloppes.",
+      "texte": "Toute la caravane est au camp. Rangez les dés, sortez les enveloppes.",
       "variables": []
     },
     {

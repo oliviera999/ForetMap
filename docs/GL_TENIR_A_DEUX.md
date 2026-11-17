@@ -71,6 +71,11 @@ chasse initialisées, les Héritages de la classe versés.
 | 353 | défi de case : catalogue `gl_tenir_defis_cases`, défis reçus `gl_game_defis_case`, réglages `tenir_defis_case`, `tenir_defi_declenchement`, `tenir_defi_recul`, marquage gardé des huit cases (`event_config_json.tenir.defi`), textes des huit cases, `gl_tenir_olu_lignes.moment` élargi à 32 caractères |
 | 354 | catalogues de la Trame : `gl_trame_reseaux`, `gl_trame_cartes`, `gl_trame_liens`, `gl_trame_fils_cartes`, `gl_trame_fils_liens`, `gl_trame_mesures`, `gl_trame_reparer_especes`, `gl_trame_reparer_a_classer` |
 | 355 | défis de la Trame en partie : `gl_trame_defis` (un défi par porteur, type et unité ; `revision` de la sauvegarde stricte), `gl_trame_reussites` (une ligne par élève et par unité réussie, page de veillée reçue, semaine ISO), réglages `tenir_defis`, `tenir_defis_par_peuple`, `tenir_defis_pages_par_semaine`, `tenir_defis_mode_equipe` |
+| 356 | ensemble unifié (M2) : `gl_game_chasse_pages.revelee_par_team_id` / `revelee_round`, `tenir_fouilles_par_tour` entier (2), `tenir_fouilles_sous_voile` (1), retrait de `tenir_fouille_sous_voile` et `tenir_fouilles_reparation_gnome` |
+| 357 | ensemble unifié (M3) : `gl_teams.un_de_prochain_tour` / `un_de_round` / `un_de_joue_round`, les 13 cases Souffle réécrites (un seul dé au tour suivant), branches gnomes des cases Trame à « +1 gemme », `tenir_cases_positives` `ressource_peuple` → `neutre` |
+| 358 | ensemble unifié (M7) : trois cases Défi par plateau (rangs 11, 20, 29 ; 30 au plateau 4), l'ancienne case Défi de fin de plateau redevient une case question |
+| 359 | ensemble unifié (M9) : réglages `tenir_questions_difficulte_max_par_plateau`, `tenir_questions_spirale` ; `difficulteMax` retirés des cases question |
+| 360 | ensemble unifié (M17) : `tenir_lumiere` true, `tenir_lumiere_palier` 100, retrait de `tenir_cartes_vers_cases`, `gl_game_team_spirit.lumiere_comptee` |
 
 Le chargeur `npm run gl:import:tenir -- --fichier tous|<nom> [--dry-run] [--forcer] [--strict]`
 (`lib/glTenirImport.js`, données `data/gl/tenir/`, README des clés) reste maître des catalogues ;

@@ -558,7 +558,7 @@ test('gl_content_snapshot : vérité des cases, zones sans polygone, questions s
   assert.ok(snap.data.cases.count >= 12);
   const trame = snap.data.cases.items.find((c) => c.label === 'Trame 1');
   assert.equal(trame.tonalite, 'trame');
-  assert.match(trame.verite.gnome, /\+1 cœur/);
+  assert.match(trame.verite.gnome, /\+1 gemme/); // M3 : la Trame donne une gemme aux deux peuples
   assert.match(trame.verite.unicorn, /\+1 gemme/);
   assert.ok(!('effet_mecanique' in trame), 'champ d’auteur jamais servi');
   assert.ok(snap.data.zones.length >= 1);

@@ -306,9 +306,32 @@ en retrait ne voit pas la place.
 phase jeu, au seuil…) et une limite (par tour et par équipe, par partie, par chapitre et par élève,
 par trimestre). Hors fenêtre, l'écran dit pourquoi. Le **pot** est pré-rempli à parts égales entre
 les membres présents (le reste au plus riche) et reste modifiable. Les sorts automatiques
-s'appliquent aussitôt ; ceux du prof (Question, Conseil, Pause, Nommer, Lettre…) entrent dans votre
-file : vous cochez « effet appliqué » quand c'est fait. Aucun sort ne crée de ressource, sauf
-« Nommer » qui rend un cœur à chaque Gnome de l'équipe qui répare une page.
+s'appliquent aussitôt ; ceux du prof (Question, Conseil, Pause, Lettre…) entrent dans votre
+file : vous cochez « effet appliqué » quand c'est fait. Aucun sort ne crée de ressource (« Nommer »,
+qui en rendait, est sorti du grimoire le 17 novembre 2026).
+
+## Ensemble unifié : gains et grimoire (17 novembre 2026)
+
+- **Gains en gemmes** : une page tenue rapporte **une gemme à chaque lecteur présent** (l'équipe qui
+  fait tenir) ; rien de plus à l'équipe qui l'a trouvée. En veillée, le gain va à l'équipe du
+  lecteur. Une case Trame donne une gemme à chaque membre ; le carnet complet, une gemme à tous.
+  Les cases positives ne donnent plus de ressource, et aucune case Souffle n'en retire (au tour
+  suivant, un seul dé). Jusqu'à la monnaie unique (gemmes seulement, prochaine livraison), les
+  sorts gnomes se paient encore en cœurs.
+- **Grimoire à 19 sorts** : Nommer, Héritage, Boussole, Tablette, Musique et le sort « Lumière »
+  sortent. Chapitre 1 : Progression, Relance, Farce, Lanterne, Bourrasque, Sentier, Relais,
+  Question ; chapitre 2 : Grand Regard, Abri, Cordée, Conseil, Pause, Rôle ; chapitre 3 : Esquive,
+  Mentorat, Lettre, Choix ; troisième trimestre : Consécration.
+- **L'écran des sorts** range les sorts en cinq moments (avant de lancer, après le jet, pendant le
+  tour, pendant l'activité, en fin de chapitre ou en veillée) et ne montre que ceux qu'on peut
+  lancer **et payer** à cet instant.
+- **La Cordée** se lance pendant le jeu, à n'importe quel moment : elle agit **au prochain tour**
+  des deux équipes (le meilleur des deux jets vaut pour les deux, le voile ne les touche pas ce
+  tour-là). Si l'une des deux ne jette pas à ce tour, ou si le chapitre se clôt avant, l'équipe
+  lanceuse est remboursée. **Au plateau 4, la première Cordée de chaque équipe est offerte** :
+  rien à payer.
+- **Lumière** : voir [Chapitres et progression](chapitres-et-progression.md) ; elle ne donne
+  jamais de ressource.
 
 ## Ajustements du 7 novembre 2026
 
@@ -319,6 +342,7 @@ file : vous cochez « effet appliqué » quand c'est fait. Aucun sort ne crée d
   seulement (réglage « Relances de case par équipe et par tour », 0 = sans limite).
 - Les cases positives à ressource du plateau donnent **+1 de la ressource du peuple**, comme la
   Trame ; une case neutre ne retire jamais de ressource (réglage « Cases positives à ressource »).
+  _Remplacé le 17 novembre 2026 : une case positive donne son mouvement, sans ressource._
 - Les **parures** sans image restent achetables : la mascotte porte une pastille texte.
 - Un élève en **retrait** lit et tient une page ; le Marché et le pot lui restent fermés.
 
@@ -356,17 +380,16 @@ qui suit ne s'applique : les règles ci-dessus restent celles de l'équipe activ
 **La Cordée est offerte.** L'équipe qui la lance la **paie seule** : 4 dans la ressource de son
 peuple (4 cœurs pour des Gnomes, 4 gemmes pour des Licornes). L'équipe partenaire, de l'autre
 peuple, ne paie rien et n'a rien à accepter : son écran affiche « L'équipe … vous encorde. ». Le
-reste ne change pas : la Cordée se lance avant les jets des deux équipes, le meilleur des deux
-jets vaut pour les deux, et le voile ne les touche pas ce tour.
+reste ne change pas : le meilleur des deux jets vaut pour les deux, et le voile ne les touche pas.
+_Depuis le 17 novembre 2026, la Cordée se lance pendant le jeu et agit au tour suivant (voir plus
+haut)._
 
-- Si l'une des deux équipes **a déjà jeté** quand le sort part, il est refusé et rien n'est
-  débité.
 - Si l'une des deux **ne jette pas** de tout le tour, la cordée ne s'est pas faite : au passage au
   souffle, l'équipe lanceuse est **remboursée en entier** et la protection contre le voile tombe.
   Le journal le dit : « Sort rendu ».
 
 **Refuser un sort du prof rembourse.** Un sort que vous appliquez vous-même (Question, Conseil,
-Pause, Nommer, Lettre…) est payé au lancement, puis attend dans votre file. S'il tombe mal, le
+Pause, Lettre…) est payé au lancement, puis attend dans votre file. S'il tombe mal, le
 bouton **« Refuser et rembourser »** rend à l'équipe exactement ce qu'elle a payé — bourses et
 réserve de la caravane — et vous pouvez lui laisser un mot, qu'elle lit dans le journal. Le sort
 rendu ne compte pas dans sa limite : l'équipe peut le relancer plus tard dans la séance.

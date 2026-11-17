@@ -119,12 +119,19 @@ function normalizeEffectBranch(input) {
     deltaGems: normalizeEffectDelta(src.deltaGems ?? src.delta_gemmes ?? src.dgem),
     deltaMove: normalizeEffectDelta(src.deltaMove ?? src.delta_mouvement ?? src.dmvt),
     passTurn: src.passTurn === true || src.pass_turn === true,
+    // Ensemble unifié (M3, 17 novembre 2026) : case Souffle → au tour suivant, un seul dé.
+    unDeAuProchainTour: src.unDeAuProchainTour === true,
   };
 }
 function hasEffectBranchData(branch) {
   return Boolean(
     branch &&
-    (branch.label || branch.deltaPv || branch.deltaGems || branch.deltaMove || branch.passTurn),
+    (branch.label ||
+      branch.deltaPv ||
+      branch.deltaGems ||
+      branch.deltaMove ||
+      branch.passTurn ||
+      branch.unDeAuProchainTour),
   );
 }
 function normalizeMarkerEffects(input) {

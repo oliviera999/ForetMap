@@ -3,11 +3,13 @@
 /**
  * « Tenir à deux », lot 2, étape 2.10 — règles tranchées par l'audit : Marché éteint d'office
  * au chapitre 1, profil `court` (Marché et lecture en veillée), Boussole sortie du grimoire,
- * Farce refusée sur une équipe sous le voile, fouille sous le voile (réglage).
+ * Farce refusée sur une équipe sous le voile. La fouille sous le voile (ancien réglage
+ * `fouille_sous_voile`) est remplacée par `fouilles_sous_voile` (ensemble unifié, M2) :
+ * `tests/gl-ensemble-unifie-fouilles.test.js`.
  */
 
 require('./helpers/setup');
-const { test, before, after } = require('node:test');
+const { test, before } = require('node:test');
 const assert = require('node:assert/strict');
 const request = require('supertest');
 const { app } = require('../server');
@@ -17,7 +19,6 @@ const {
   setPlayerBourses,
   ouvrirTourEnJeu,
   importExempleChasse,
-  setGlSetting,
 } = require('./helpers/glTenirFixtures');
 const {
   TENIR_PROFILS,
@@ -26,7 +27,6 @@ const {
   resolveTenirPermissions,
 } = require('../lib/glTenir');
 const { getGameplaySettings, GL_SETTINGS_REGISTRY } = require('../lib/glSettings');
-const { fouillesRestantes } = require('../lib/glChasse');
 const { findForbiddenString } = require('../lib/shared/glGardeFousCore');
 
 let ctx;
@@ -42,21 +42,13 @@ before(async () => {
   for (const p of ctx.players) await setPlayerBourses(p.id, 5, 5);
 });
 
-after(async () => {
-  await setGlSetting('gameplay.tenir_fouille_sous_voile', 'aucune');
-});
-
 test('réglages nouveaux : défauts qui gardent le comportement d’avant, profil court déclaré', async () => {
   const settings = await getGameplaySettings();
   const resolved = resolveTenirSettings(settings, { tenir_profil: 'complet' });
   assert.equal(resolved.lecture_pendant_tour, true);
-  assert.equal(resolved.fouille_sous_voile, 'aucune');
   if (GL_SETTINGS_REGISTRY) {
     assert.ok(GL_SETTINGS_REGISTRY['gameplay.tenir_lecture_pendant_tour']);
-    assert.deepEqual(GL_SETTINGS_REGISTRY['gameplay.tenir_fouille_sous_voile'].values.sort(), [
-      'aucune',
-      'page_palie',
-    ]);
+    assert.equal(GL_SETTINGS_REGISTRY['gameplay.tenir_fouille_sous_voile'], undefined);
   }
   assert.deepEqual(TENIR_PROFILS, ['complet', 'prologue', 'court']);
   assert.deepEqual(PROFIL_ECARTS.court, {
@@ -69,7 +61,7 @@ test('réglages nouveaux : défauts qui gardent le comportement d’avant, profi
   // Fichier de réglages : mêmes défauts, même profil.
   const fichier = require('../data/gl/tenir/reglages-defaut.json');
   assert.equal(fichier.defaut.lecture_pendant_tour, true);
-  assert.equal(fichier.defaut.fouille_sous_voile, 'aucune');
+  assert.equal(fichier.defaut.fouille_sous_voile, undefined);
   assert.deepEqual(fichier.profils.court.ecarts, PROFIL_ECARTS.court);
 });
 
@@ -239,62 +231,4 @@ test('Farce : refusée si l’équipe visée est sous le voile, sans débit', as
   // Une équipe hors du voile, elle, danse.
   const ok = await farce(team(0).id);
   assert.equal(ok.status, 200, JSON.stringify(ok.body));
-});
-
-test('fouille sous le voile : aucune par défaut ; `page_palie` laisse à une équipe gnome une fouille par tour, sur une page pâlie', async () => {
-  const settings = await getGameplaySettings();
-  const game = await db.queryOne('SELECT * FROM gl_games WHERE id = ?', [ctx.game.id]);
-  const gnomesB = await db.queryOne(
-    'SELECT id, type, position_marker_id FROM gl_teams WHERE id = ?',
-    [team(1).id],
-  );
-  const licornesA = await db.queryOne(
-    'SELECT id, type, position_marker_id FROM gl_teams WHERE id = ?',
-    [team(2).id],
-  );
-  const quota = (resolved, equipe) =>
-    fouillesRestantes(db, {
-      gameId: ctx.game.id,
-      roundNumber: Number(game.current_round_number) || 1,
-      team: equipe,
-      resolved,
-      sousVoile: true,
-    });
-  const zone = await db.queryOne(
-    `SELECT z.id FROM gl_chasse_zones z
-       INNER JOIN gl_game_chasse_pages p ON p.zone_id = z.id AND p.game_id = ? ORDER BY z.id DESC LIMIT 1`,
-    [ctx.game.id],
-  );
-  await db.execute(
-    "UPDATE gl_game_chasse_pages SET etat = 'palie' WHERE game_id = ? AND zone_id = ?",
-    [ctx.game.id, zone.id],
-  );
-
-  const defaut = resolveTenirSettings(settings, game);
-  assert.equal(defaut.fouille_sous_voile, 'aucune');
-  const sans = await quota(defaut, gnomesB);
-  assert.deepEqual([sans.quota, sans.reparation.quota], [0, 0], 'comportement d’avant');
-
-  await setGlSetting('gameplay.tenir_fouille_sous_voile', 'page_palie');
-  const avec = resolveTenirSettings(await getGameplaySettings(), game);
-  assert.equal(avec.fouille_sous_voile, 'page_palie');
-  const gnome = await quota(avec, gnomesB);
-  assert.deepEqual(
-    [gnome.quota, gnome.reparation.quota],
-    [0, 1],
-    'une fouille, sur une page pâlie',
-  );
-  const licorne = await quota(avec, licornesA);
-  assert.deepEqual(
-    [licorne.quota, licorne.reparation.quota],
-    [0, 0],
-    'les Licornes ne réparent pas',
-  );
-  // Sans page pâlie, rien à fouiller.
-  await db.execute(
-    "UPDATE gl_game_chasse_pages SET etat = 'endormie' WHERE game_id = ? AND etat = 'palie'",
-    [ctx.game.id],
-  );
-  const rien = await quota(avec, gnomesB);
-  assert.equal(rien.reparation.quota, 0);
 });

@@ -55,7 +55,7 @@ test('GET /chasse : carnet de la classe (indices, états endormis), aucun polygo
   assert.equal(page.points, undefined, 'polygone jamais servi à un élève');
   assert.equal(page.contour, null);
   assert.equal(page.feuilletCode, null, 'le feuillet reste caché tant que la page dort');
-  assert.equal(res.body.fouilles.quota, 1, 'un gnome a une fouille par tour');
+  assert.equal(res.body.fouilles.quota, 2, 'deux fouilles par tour pour les deux peuples (M2)');
   const mj = await request(app).get(api('/chasse')).set(auth(ctx.adminToken));
   assert.ok(Array.isArray(mj.body.pages[0].points), 'le prof reçoit la géométrie');
 });
@@ -100,11 +100,13 @@ test('fouiller à côté : verdict chaud / tiède / froid, empreinte publique, o
   assert.equal(carnet.body.kraa.etat, 'tiede');
 });
 
-test('fouiller dans une zone : question fixe, mauvaise réponse → page révélée, « pas encore », rien retiré', async () => {
-  const before = await readPlayerBourses(gnomeA().id);
+test('fouiller dans une zone : question fixe, mauvaise réponse licorne → page révélée, « pas encore », rien retiré', async () => {
+  // M2 : seule une fouille licorne « pas encore » révèle la zone (Licornes B : 1 fouille restante).
+  const licorneB = ctx.players.find((p) => Number(p.teamId) === Number(ctx.teams[3].id));
+  const before = await readPlayerBourses(licorneB.id);
   const res = await request(app)
     .post(api('/chasse/fouiller'))
-    .set(auth(gnomeA().token))
+    .set(auth(licorneB.token))
     .send({ x: 0.35, y: 0.3 });
   assert.equal(res.status, 201, JSON.stringify(res.body));
   assert.equal(res.body.verdict, 'zone');
@@ -121,7 +123,7 @@ test('fouiller dans une zone : question fixe, mauvaise réponse → page révél
       WHERE question_code = 'TEX-P1-01'`,
     Array(4).fill("Non, c'est tout l'inverse : la forêt respire."),
   );
-  const answer = await request(app).post(api('/chasse/repondre')).set(auth(gnomeA().token)).send({
+  const answer = await request(app).post(api('/chasse/repondre')).set(auth(licorneB.token)).send({
     presentationToken: res.body.question.presentationToken,
     questionCode: res.body.question.questionCode,
     choiceId: wrong.id,
@@ -132,15 +134,15 @@ test('fouiller dans une zone : question fixe, mauvaise réponse → page révél
   assert.match(answer.body.feedback, /^Pas encore/);
   assert.equal(answer.body.feedback, "Pas encore. C'est tout l'inverse : la forêt respire.");
   assert.doesNotMatch(answer.body.feedback, /faux|raté|perdu/i);
-  assert.deepEqual(await readPlayerBourses(gnomeA().id), before, 'aucune ressource retirée');
+  assert.deepEqual(await readPlayerBourses(licorneB.id), before, 'aucune ressource retirée');
   const carnet = await request(app).get(api('/chasse')).set(auth(licorneA().token));
   const page = carnet.body.pages.find((p) => p.zoneKey === 'cz-p1-01');
   assert.equal(page.etat, 'revelee');
   assert.ok(page.contour, 'contour visible de tous');
-  // Le gnome n'a plus de fouille ce tour : la question de secours viendra au tour suivant.
+  // Licornes B n'ont plus de fouille ce tour : la question de secours viendra au tour suivant.
   const epuise = await request(app)
     .post(api('/chasse/fouiller'))
-    .set(auth(gnomeA().token))
+    .set(auth(licorneB.token))
     .send({ x: 0.35, y: 0.3 });
   assert.equal(epuise.status, 409);
 });

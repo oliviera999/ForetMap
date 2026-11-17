@@ -307,11 +307,11 @@ test('présentation : les choix d’une question vive sont mélangés (la bonne 
   assert.ok(places.size > 1, 'la bonne réponse n’est pas toujours en premier');
 });
 
-test('fichier questions-vives.json : 40 questions, 5 par biome joué, aucun mot interdit', () => {
+test('fichier questions-vives.json : 80 questions, 15 par biome des plateaux 1 et 2, 5 ailleurs, aucun mot interdit', () => {
   const json = JSON.parse(
     fs.readFileSync(path.join(ROOT, 'data', 'gl', 'tenir', 'questions-vives.json'), 'utf8'),
   );
-  assert.equal(json.questions.length, 40);
+  assert.equal(json.questions.length, 80);
   const parBiome = {};
   for (const q of json.questions) {
     parBiome[q.biome_slug] = (parBiome[q.biome_slug] || 0) + 1;
@@ -320,5 +320,14 @@ test('fichier questions-vives.json : 40 questions, 5 par biome joué, aucun mot 
       assert.equal(findForbiddenString(text), null, `${q.question_code} : ${text}`);
     }
   }
-  assert.deepEqual(Object.values(parBiome), Array(8).fill(5));
+  assert.deepEqual(parBiome, {
+    jungle_afc: 15,
+    savane: 15,
+    sahara: 15,
+    foret_mediterraneenne: 15,
+    foret_caducifoliee: 5,
+    landes: 5,
+    taiga: 5,
+    toundra: 5,
+  });
 });

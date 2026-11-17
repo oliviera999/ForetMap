@@ -46,12 +46,12 @@ montre comptes, écarts et dernier rapport, et permet de resynchroniser (`POST
 | `chasse-zones.json` | `zone_key` | 36 (8 / 8 / 10 / 10) |
 | `questions-lecture.json` | `zone_key` | 36 |
 | `qcm-feedbacks-zones.json` | `question_code` + lettre (colonnes `feedback_b…e` de `gl_qcm_questions`) | 9 questions, 36 retours |
-| `questions-vives.json` | `question_code` (`VQCM0001…`, table `gl_qcm_questions`) | 40 (5 par biome joué) |
+| `questions-vives.json` | `question_code` (`VQCM0001…`, table `gl_qcm_questions`) | 80 (15 par biome des plateaux 1 et 2, 5 ailleurs) |
 | `peripeties.json` | `id` | 32 (8 par plateau) |
 | `missions.json` | `id` | 20 |
 | `titres.json` | chemin `honneurs.<honneur>.<biome>` etc. | 16 + 8 + 20 |
 | `badges.json` | `code` | 15 |
-| `olu-lignes.json` | `id` | 77 |
+| `olu-lignes.json` | `id` (`actif: false` : la ligne reste au fichier, Olu ne la dit plus) | 77 |
 | `parures.json` | `code` | 12 |
 | `sorts.json` | `code` (table `gl_spells`) | 25 + 6 voyageur |
 | `reglages-defaut.json` | clé de réglage `gameplay.tenir_*` | — |
@@ -119,7 +119,10 @@ polygones ne sont jamais envoyés aux élèves.
 - Questions de **case** écrites pour des 6e : elles partent d'une curiosité (un record, une
   astuce, une idée reçue), jamais d'un nom à réciter. Une question de taxonomie est refusée.
 - `question_code` : `VQCM` + 4 chiffres ; `biome_slug` : un des 8 biomes joués ; `categorie_slug` :
-  une catégorie de `gl_qcm_categories` ; 5 questions par biome.
+  une catégorie de `gl_qcm_categories` ; 15 questions par biome des plateaux 1 et 2 (lot 2 de
+  l'ensemble unifié, `VQCM0041` à `VQCM0080`), 5 pour les autres.
+- Tirage d'une case en mode tenir (M9) : une question vive du biome de la case pas encore posée
+  dans la partie passe en premier ; ensuite, sous le plafond de difficulté du plateau.
 - `choix` : 4 ou 5 textes non vides et distincts ; **le premier est le bon** (`reponse` = `"A"`).
   La présentation mélange les choix.
 - `explication` : une seule par question, sans amorce « Non ». Elle devient `feedback_correct`
@@ -193,7 +196,10 @@ Mentorat, SL033 Héritage ; SL036 à SL050 pour les nouveaux, SL022/029/034/035 
 `vocabulaire`. Le chargeur upserte `gl_spells` (statut `officiel`, `approval_mode` dérivé de
 `execution`), réécrit `gl_chapter_spells` depuis `ouverture_par_chapitre` et passe en `propose` les
 sorts de `gl_spells` absents du fichier. Le coût de Consécration (8 « offertes ») est porté par
-`ressource: choix`. `voyageur` : grimoire individuel gratuit, un usage par chapitre, débloqué par le
+`ressource: choix`. Ensemble unifié (M6, 17 novembre 2026) : **19 sorts** au grimoire ; un sort
+`actif: false` (Nommer, Héritage, Boussole, Tablette, Musique, Lumière) reste au fichier, passe en
+`propose` et n'est ouvert à aucun chapitre ; la Cordée (fenêtre `jeu`, `effet_auto_json.prochain_tour`)
+agit au tour suivant et `offerte_plateau_4` la rend gratuite une fois par équipe au plateau 4. `voyageur` : grimoire individuel gratuit, un usage par chapitre, débloqué par le
 niveau du Seuil (niveaux 1-6 ; Messager hors périmètre).
 
 ## `reglages-defaut.json`

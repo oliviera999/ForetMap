@@ -46,18 +46,12 @@ const ERROR_MESSAGES = {
   TENIR_PHASE: 'Ce geste n’est possible qu’en phase « jeu »',
   TENIR_EQUIPE_INACTIVE: 'Ce n’est pas le tour de cette équipe',
   TENIR_PERMISSION: 'Ce geste est réservé au prof sur cette surface',
-  TOUR_PASSE:
-    'L’équipe passe son tour : pas de jet cette fois (une case Souffle du tour précédent)',
   DICE_ALREADY_ROLLED: 'Dés déjà lancés pour ce tour',
   TOUTES_AU_CAMP: 'Toutes les équipes sont au camp',
   TEAM_NOT_FOUND: 'Équipe introuvable dans cette partie',
   SAISIE_NOT_FOUND: 'Saisie introuvable',
   SAISIE_NOT_PENDING: 'Cette saisie n’est plus en attente',
   CARTES_INVALIDES: 'Cartes gardées : entier de 0 à 6',
-  LUMIERE_DISABLED: 'La Lumière est désactivée pour cette partie',
-  PALIER_NON_ATTEINT: 'Palier non atteint',
-  PALIER_DEJA_CHOISI: 'Ce palier a déjà son choix',
-  CHOIX_INVALIDE: 'Choix invalide (voile, sort)',
   SABLIER_INVALIDE:
     'Réglage de sablier invalide (durée de 10 secondes à 60 minutes, action pause, reprise ou zero)',
   PAS_D_ERREUR: 'Aucune erreur du jour sur ce tour',
@@ -140,15 +134,6 @@ async function resolveGesteContext(req, res, gameId, { geste, teamIdFromBody = n
 // ---------------------------------------------------------------------
 // Lecture du tour
 // ---------------------------------------------------------------------
-
-/** L'équipe passe-t-elle ce tour (effet `tour_passe` posé par une case Souffle) ? */
-async function tourPasseDuTour(gameId, team, roundNumber) {
-  const row = await db.queryOne(
-    `SELECT id FROM gl_game_tenir_effets WHERE game_id = ? AND round_number = ? AND kind = 'tour_passe' AND team_id = ? LIMIT 1`,
-    [gameId, roundNumber, team.id],
-  );
-  return !!row;
-}
 
 /** Fouilles du tour d'une équipe (console du prof) : tolère l'absence du module de chasse. */
 async function fouillesDuTour(gameId, team, roundNumber, resolved) {
@@ -251,12 +236,22 @@ router.get(
           ...(staff && roundNumber > 0
             ? { fouilles: await fouillesDuTour(gameId, t, roundNumber, resolved) }
             : {}),
-          // Tour passé (case Souffle du tour précédent) : visible de tous, sans jet possible.
-          tourPasse: roundNumber > 0 ? await tourPasseDuTour(gameId, t, roundNumber) : false,
+          // M3 : « Au prochain tour : un seul dé » (case Souffle), visible de tous ; `desProchainJet`
+          // dit combien de dés l'équipe lance (ou saisit) à son prochain lancer.
+          unDe: Number(t.un_de_prochain_tour) === 1,
+          desProchainJet:
+            roundNumber > 0
+              ? await tour.desPourJet(db, {
+                  gameId,
+                  teamId: t.id,
+                  roundNumber,
+                  desCount: resolved.des_count,
+                })
+              : Number(resolved.des_count) || 2,
         })),
       ),
       campIndex: markers.length ? markers.length - 1 : 0,
-      lumiere: await tour.loadLumiere(db, gameId),
+      lumiere: await tour.loadLumiere(db, gameId, resolved),
       // File unique du prof (lot 2) : le compteur reste visible depuis tout l'écran du tour.
       ...(staff
         ? {
@@ -749,7 +744,16 @@ router.post(
       return res.status(409).json({ error: ERROR_MESSAGES.GAME_NOT_LIVE });
     if (!ctx.roundNumber) return res.status(409).json({ error: ERROR_MESSAGES.AUCUN_TOUR });
     const resolved = { ...ctx.resolved, surface: ctx.surface };
-    const desCount = Number(resolved.des_count) || 2;
+    // M3 : un seul dé au premier lancer qui suit une case Souffle (ou à la Relance de ce dé).
+    const desCount =
+      wantedMode === 'libre'
+        ? Number(resolved.des_count) || 2
+        : await tour.desPourJet(db, {
+            gameId,
+            teamId: ctx.teamId,
+            roundNumber: ctx.roundNumber,
+            desCount: resolved.des_count,
+          });
     const configuredMode = resolveDesMode(resolved);
     // Un élève ne transforme pas un tirage `serveur` en faces choisies : des dés « physiques »
     // hors du mode de la surface ne passent que par la file de validation du prof (tablette,
@@ -790,7 +794,9 @@ router.post(
       } else if (mode === 'physique') {
         const faces = parseFaces(req.body?.faces, desCount);
         if (!faces)
-          return res.status(400).json({ error: `Faces attendues : ${desCount} valeurs de 1 à 6` });
+          return res.status(400).json({
+            error: `Faces attendues : ${desCount} ${desCount > 1 ? 'valeurs' : 'valeur'} de 1 à 6`,
+          });
         const attente = ctx.actorKind === 'player' && validationProf;
         if (attente) {
           await withTransaction(async (tx) => {
@@ -980,6 +986,8 @@ router.get(
   requireGlPermission('gl.game.manage'),
   asyncHandler(async (req, res) => {
     const gameId = parseId(req.params.id);
+    const ctx = await requireTenirGame(req, res, gameId);
+    if (!ctx) return undefined;
     const rows = await queryAll(
       'SELECT round_number, team_id, cartes_gardees, cartes_json, note, saisi_at FROM gl_game_team_spirit WHERE game_id = ? ORDER BY round_number ASC, team_id ASC',
       [gameId],
@@ -993,35 +1001,8 @@ router.get(
         note: r.note || null,
         saisiAt: r.saisi_at,
       })),
-      lumiere: await tour.loadLumiere(db, gameId),
+      lumiere: await tour.loadLumiere(db, gameId, ctx.resolved),
     });
-  }),
-);
-
-router.post(
-  '/games/:id/tenir/lumiere/choix',
-  requireGlPermission('gl.game.manage'),
-  asyncHandler(async (req, res) => {
-    const gameId = parseId(req.params.id);
-    const ctx = await requireTenirGame(req, res, gameId);
-    if (!ctx) return undefined;
-    try {
-      let result;
-      await withTransaction(async (tx) => {
-        result = await tour.lumiereChoixTx(tx, {
-          gameId,
-          palier: req.body?.palier,
-          choix: String(req.body?.choix || ''),
-          libelle: normalizeOptionalString(req.body?.libelle),
-          actorId: req.glAuth.userId,
-          settings: ctx.settings,
-        });
-      });
-      emitAll(gameId, result.events);
-      return res.json({ ok: true, total: result.total, paliers: result.paliers });
-    } catch (err) {
-      return sendTourError(res, err);
-    }
   }),
 );
 

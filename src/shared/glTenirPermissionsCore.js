@@ -123,7 +123,6 @@ export const FENETRES_SORT_PHASE_JEU = Object.freeze([
   'apres_jet',
   'jeu',
   'jeu_avant_fouille',
-  'avant_jets_pacte',
 ]);
 
 /**

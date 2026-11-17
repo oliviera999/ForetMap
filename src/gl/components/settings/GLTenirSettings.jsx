@@ -4,7 +4,7 @@ import { readGameplayFlag, readSelectSetting } from '../../utils/glSettingsForm.
 /**
  * Bloc « Tenir à deux » (mouture v2, spec docs/GL_TENIR_A_DEUX_REGLES.md § 15).
  * Composant feuille prop-driven : chaque changement passe par `onSaveSetting(key, value)` /
- * `onToggle(key, next)` du parent (`GLSettingsView`). Les clés JSON (fouilles, zones, bonus du
+ * `onToggle(key, next)` du parent (`GLSettingsView`). Les clés JSON (zones, seuils, bonus du
  * voile) sont éditées champ par champ ; le serveur valide la forme (clés attendues, bornes).
  */
 
@@ -27,8 +27,10 @@ const TENIR_FLAGS = [
   ],
   ['gameplay.tenir_defis_mode_equipe', 'Défis de la Trame en équipe (prof, tablette hors tour)'],
   ['gameplay.tenir_parures', 'Parures au comptoir'],
-  ['gameplay.tenir_lumiere', 'Lumière (option : cartes Team Spirit → paliers)'],
-  ['gameplay.tenir_cartes_vers_cases', 'Cartes Team Spirit → cases à l’ouverture suivante'],
+  [
+    'gameplay.tenir_lumiere',
+    'Lumière (cartes Team Spirit et erreur d’Olu corrigée → recul du voile au palier)',
+  ],
   ['gameplay.tenir_chapardeur', 'Chapardeur (une fois par chapitre)'],
   ['gameplay.tenir_peripeties', 'Péripéties sur les cases événement sans texte'],
   [
@@ -52,6 +54,19 @@ const TENIR_NUMBERS = [
   ['gameplay.tenir_des_count', 'Dés du geste Lancer', 1, 5],
   ['gameplay.tenir_vent_cases', 'Cases du vent', 1, 12],
   [
+    'gameplay.tenir_questions_spirale',
+    'Questions de case d’un biome déjà traversé, dès le plateau 2 (%)',
+    0,
+    100,
+  ],
+  ['gameplay.tenir_fouilles_par_tour', 'Fouilles par équipe et par tour', 0, 10],
+  [
+    'gameplay.tenir_fouilles_sous_voile',
+    'Fouilles par tour sous le voile (sauf Abri ou Cordée)',
+    0,
+    10,
+  ],
+  [
     'gameplay.tenir_relances_max_par_tour',
     'Relances de case par équipe et par tour (0 = sans limite)',
     0,
@@ -69,7 +84,7 @@ const TENIR_NUMBERS = [
   ['gameplay.tenir_palissement_max', 'Pâlissement maximum (%)', 0, 100],
   ['gameplay.tenir_recul_carnet_complet', 'Recul du voile au carnet complet', 0, 20],
   ['gameplay.tenir_recul_lumiere', 'Recul du voile à la Lumière', 0, 20],
-  ['gameplay.tenir_lumiere_palier', 'Palier de la Lumière (cartes)', 1, 999],
+  ['gameplay.tenir_lumiere_palier', 'Palier de la Lumière (points)', 1, 999],
   ['gameplay.tenir_sablier_secondes', 'Sablier au tableau (secondes)', 10, 3600],
   [
     'gameplay.tenir_sablier_phase_secondes',
@@ -158,21 +173,12 @@ export function GLTenirSettings({ settings, savingKey, onSaveSetting, onToggle }
   const surface = readSelectSetting(settings, 'gameplay.tenir_surface', 'tableau');
   const desMode = readSelectSetting(settings, 'gameplay.tenir_des_mode', 'physique');
   const validation = readSelectSetting(settings, 'gameplay.tenir_des_physiques_validation', 'prof');
-  const fouilleSousVoile = readSelectSetting(
-    settings,
-    'gameplay.tenir_fouille_sous_voile',
-    'aucune',
-  );
   const defiDeclenchement = readSelectSetting(
     settings,
     'gameplay.tenir_defi_declenchement',
     'arret',
   );
-  const casesPositives = readSelectSetting(
-    settings,
-    'gameplay.tenir_cases_positives',
-    'ressource_peuple',
-  );
+  const casesPositives = readSelectSetting(settings, 'gameplay.tenir_cases_positives', 'neutre');
   return (
     <div className="gl-tenir-settings gl-form" data-testid="gl-tenir-settings">
       <h4>Tenir à deux (mouture v2)</h4>
@@ -238,8 +244,7 @@ export function GLTenirSettings({ settings, savingKey, onSaveSetting, onToggle }
           disabled={savingKey === 'gameplay.tenir_cases_positives'}
           onChange={(event) => onSaveSetting('gameplay.tenir_cases_positives', event.target.value)}
         >
-          <option value="ressource_peuple">+1 ressource du peuple (comme la Trame)</option>
-          <option value="neutre">Aucune ressource</option>
+          <option value="neutre">Leur mouvement, sans ressource</option>
           <option value="brut">Valeur du plateau (ancien comportement)</option>
         </select>
       </label>
@@ -254,19 +259,6 @@ export function GLTenirSettings({ settings, savingKey, onSaveSetting, onToggle }
         >
           <option value="arret">En s’arrêtant sur la case</option>
           <option value="passage">En franchissant la case (une fois par équipe et par case)</option>
-        </select>
-      </label>
-      <label>
-        Fouille d’une équipe sous le voile
-        <select
-          value={fouilleSousVoile}
-          disabled={savingKey === 'gameplay.tenir_fouille_sous_voile'}
-          onChange={(event) =>
-            onSaveSetting('gameplay.tenir_fouille_sous_voile', event.target.value)
-          }
-        >
-          <option value="aucune">Aucune (sauf Abri ou Cordée)</option>
-          <option value="page_palie">Une par tour, sur une page pâlie (équipe gnome)</option>
         </select>
       </label>
       <div className="gl-tenir-settings__numbers">
@@ -284,11 +276,13 @@ export function GLTenirSettings({ settings, savingKey, onSaveSetting, onToggle }
         ))}
       </div>
       <JsonMapRow
-        settingsKey="gameplay.tenir_fouilles_par_tour"
-        label="Fouilles par tour"
+        settingsKey="gameplay.tenir_questions_difficulte_max_par_plateau"
+        label="Questions de case : difficulté maximale par plateau (1 à 5)"
         keys={[
-          ['gnome', 'Gnomes'],
-          ['unicorn', 'Licornes'],
+          ['1', 'Plateau 1'],
+          ['2', 'Plateau 2'],
+          ['3', 'Plateau 3'],
+          ['4', 'Plateau 4'],
         ]}
         settings={settings}
         savingKey={savingKey}

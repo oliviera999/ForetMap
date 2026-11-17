@@ -253,7 +253,10 @@ test('« Tout au tableau » : les jets en suspens s’appliquent, les tablettes 
   );
 });
 
-test('clôture du tour : un « Nommer » que le prof n’a pas appliqué est rendu, sa ligne se ferme', async () => {
+test('clôture du tour : un « Nommer » que le prof n’a pas appliqué est rendu, sa ligne se ferme', async (t) => {
+  // Nommer est sorti du grimoire (ensemble unifié, M6) : remis le temps du test pour éprouver
+  // la file du prof.
+  t.after(await require('./helpers/glTenirFixtures').activerSortRetire(ctx.chapter.id, 'SL041'));
   await require('./helpers/glTenirFixtures').importExempleChasse(db, { game: ctx.game });
   const zone = await db.queryOne(
     `SELECT z.id, z.zone_key FROM gl_chasse_zones z

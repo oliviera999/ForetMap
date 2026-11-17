@@ -59,7 +59,7 @@ test(`au moins ${MIN_PAR_BIOME} questions de niveau admis par biome joué`, asyn
   assert.deepEqual(manques, []);
 });
 
-test('les 40 questions vives sont en base, actives, posées en partie, 5 par biome', async (t) => {
+test('les 80 questions vives sont en base, actives, posées en partie : 15 par biome des plateaux 1 et 2, 5 ailleurs (M9)', async (t) => {
   if (!(await corpusPresent(t))) return;
   const rows = await db.queryAll(
     `SELECT biome_slug, COUNT(*) AS n FROM gl_qcm_questions
@@ -74,10 +74,41 @@ test('les 40 questions vives sont en base, actives, posées en partie, 5 par bio
   }
   assert.equal(
     rows.reduce((sum, r) => sum + Number(r.n), 0),
-    40,
+    80,
   );
+  const attendu = { jungle_afc: 15, savane: 15, sahara: 15, foret_mediterraneenne: 15 };
   for (const biome of BIOMES_JOUES) {
     const row = rows.find((r) => String(r.biome_slug) === biome);
-    assert.equal(Number(row?.n) || 0, 5, biome);
+    assert.equal(Number(row?.n) || 0, attendu[biome] || 5, biome);
   }
+});
+
+test('longueur des choix (avertissement, non bloquant) : la bonne réponse n’est pas strictement la plus longue dans plus de 40 % d’un lot de questions vives', (t) => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const json = JSON.parse(
+    fs.readFileSync(
+      path.join(__dirname, '..', '..', 'data', 'gl', 'tenir', 'questions-vives.json'),
+      'utf8',
+    ),
+  );
+  const lots = { 'lot 1 (VQCM0001-0040)': [], 'lot 2 (VQCM0041-0080)': [] };
+  for (const q of json.questions) {
+    const n = Number(String(q.question_code).slice(4));
+    lots[n <= 40 ? 'lot 1 (VQCM0001-0040)' : 'lot 2 (VQCM0041-0080)'].push(q);
+  }
+  for (const [lot, questions] of Object.entries(lots)) {
+    if (!questions.length) continue;
+    const plusLongue = questions.filter((q) => {
+      const [bonne, ...autres] = q.choix.map((c) => String(c).length);
+      return autres.every((l) => bonne > l);
+    }).length;
+    const part = plusLongue / questions.length;
+    if (part > 0.4) {
+      t.diagnostic(
+        `Avertissement : ${lot} — bonne réponse strictement la plus longue dans ${plusLongue}/${questions.length} cas (> 40 %) ; à relire.`,
+      );
+    }
+  }
+  assert.ok(true);
 });

@@ -116,12 +116,18 @@ export function GLProjectionView({ gameId, token, refreshKey = 0 }) {
           />
         </section>
       ) : null}
+      {tour?.lumiere?.active ? (
+        <p className="gl-projection__lumiere" data-testid="gl-projection-lumiere">
+          Lumière de la classe : {tour.lumiere.total} / {tour.lumiere.palier}
+        </p>
+      ) : null}
       <ol className="gl-projection__teams">
         {(tour?.teams || []).map((t) => (
           <li key={t.id} className={`gl-projection__team gl-projection__team--${t.type}`}>
             <strong>{t.name}</strong> — case {numeroCase(t.pathIndex) ?? '—'}
             {t.auCamp ? ' · au camp' : ''}
             {voile >= 0 && t.pathIndex != null && t.pathIndex <= voile ? ' · sous le voile' : ''}
+            {t.unDe ? ' · au prochain tour : un seul dé' : ''}
           </li>
         ))}
       </ol>
@@ -136,7 +142,8 @@ export function GLProjectionView({ gameId, token, refreshKey = 0 }) {
                 <strong>{p.titre || p.indice}</strong>
                 <div className="gl-hint">
                   {pageEtatLabel(p.etat)}
-                  {p.trouveePar ? ` · ${p.trouveePar.name}` : ''}
+                  {p.reveleePar ? ` · révélée par ${p.reveleePar.name}` : ''}
+                  {p.trouveePar ? ` · trouvée par ${p.trouveePar.name}` : ''}
                   {p.tenuePar ? ` · tenue par ${p.tenuePar.name}` : ''}
                 </div>
               </li>

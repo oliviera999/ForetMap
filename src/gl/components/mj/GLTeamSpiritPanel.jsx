@@ -60,10 +60,10 @@ export function GLTeamSpiritPanel({ teams = [], disabled = false, lumiere = null
           />
         </div>
       ))}
-      {lumiere ? (
-        <p className="gl-hint">
-          Lumière : {lumiere.total} carte{lumiere.total > 1 ? 's' : ''} gardée
-          {lumiere.total > 1 ? 's' : ''} sur le chapitre.
+      {lumiere && lumiere.active !== false ? (
+        <p className="gl-hint" data-testid="gl-lumiere-jauge">
+          Lumière : {lumiere.total}
+          {lumiere.palier ? ` / ${lumiere.palier}` : ''}. Au palier, le voile recule tout seul.
         </p>
       ) : null}
       <GLButton type="submit" disabled={disabled || !teams.length}>

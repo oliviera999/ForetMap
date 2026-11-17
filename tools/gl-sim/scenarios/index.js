@@ -12,6 +12,7 @@ const equilibrage = require('./equilibrage');
 const badges = require('./badges');
 const regression = require('./regression-7nov');
 const tabletteParallele = require('./tablette-parallele');
+const ensembleUnifie = require('./ensemble-unifie');
 
 const SCENARIOS = Object.freeze([
   ...base.SCENARIOS,
@@ -19,6 +20,7 @@ const SCENARIOS = Object.freeze([
   badges,
   regression,
   tabletteParallele,
+  ensembleUnifie,
 ]);
 
 function trouverScenario(id) {

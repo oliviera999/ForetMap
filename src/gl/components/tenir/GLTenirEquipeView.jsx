@@ -23,7 +23,7 @@ const VERDICT_TEXTES = {
   chaud: 'Chaud : la page est tout près.',
   zone: 'Une page dort ici : réponds à sa question.',
   deja_trouvee: 'Cette page est déjà trouvée.',
-  palie: 'Cette page a pâli : seuls les Gnomes peuvent la réparer.',
+  palie: 'Cette zone a pâli : les Gnomes savent la réparer.',
   page_trouvee: 'Page trouvée ! Elle entre au carnet de la classe.',
   pas_encore: 'Pas encore : la page dort encore ici.',
 };
@@ -343,7 +343,8 @@ export function GLTenirEquipeView({
       ) : null}
       {pending === 'lancer' && perms.lancer ? (
         <GLTourDesSaisie
-          count={tenir.settings?.des_count || 2}
+          key={`des-${maVue?.desProchainJet || tenir.settings?.des_count || 2}`}
+          count={maVue?.desProchainJet || tenir.settings?.des_count || 2}
           desMode={tenir.settings?.des_mode_effectif || 'serveur'}
           disabled={tourApi.busy}
           onLancer={async (body) => {
@@ -360,12 +361,17 @@ export function GLTenirEquipeView({
           Jet saisi : en attente du clic du prof.
         </p>
       ) : null}
+      {maVue?.unDe ? (
+        <p className="gl-hint gl-tenir-equipe__un-de" role="status" data-testid="gl-tenir-un-de">
+          {/* Le tour où le seul dé est dû, l'écran le dit au présent. */}
+          {maVue.desProchainJet === 1
+            ? 'Ce tour-ci : un seul dé.'
+            : 'Au prochain tour : un seul dé.'}
+        </p>
+      ) : null}
       {chasse && fouilles ? (
         <p className="gl-hint" data-testid="gl-tenir-fouilles">
           Fouilles ce tour : {fouilles.restantes}/{fouilles.quota}
-          {fouilles.reparation?.quota
-            ? ` + ${fouilles.reparation.restantes}/${fouilles.reparation.quota} réparation (page pâlie)`
-            : ''}
           {fouilles.sousVoile ? ' · sous le voile' : ''}
           {fouilleMode ? ' · touche le plateau pour fouiller' : ''}
           {fouilleMode ? ` · ${ROLES_EN_CONSEIL.fouiller}` : ''}

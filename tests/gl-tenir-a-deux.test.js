@@ -77,9 +77,9 @@ test('ouvrir une page qui dort : 409 ; même peuple : lecture sans question ni g
   assert.equal(state.status, 'read');
 });
 
-test('autre peuple : question de lecture ; « pas encore » ne change rien ; bonne réponse → tenue, +1 ressource aux deux équipes', async () => {
-  // Plafond : un membre de Gnomes A à 8 cœurs ne gagne rien de plus.
-  await setPlayerBourses(ctx.players[4].id, 8, 3);
+test('autre peuple : question de lecture ; « pas encore » ne change rien ; bonne réponse → tenue, +1 gemme aux lecteurs (M19)', async () => {
+  // Plafond : un lecteur (Licornes A) à 8 gemmes ne gagne rien de plus.
+  await setPlayerBourses(ctx.players[6].id, 3, 8);
   const ouvert = await request(app)
     .post(api('/chasse/pages/cz-p1-01/ouvrir'))
     .set(auth(licorneA().token));
@@ -127,13 +127,13 @@ test('autre peuple : question de lecture ; « pas encore » ne change rien ; bon
   const apres = {
     licorne: await readPlayerBourses(licorneA().id),
     gnome: await readPlayerBourses(gnomeA().id),
-    plafond: await readPlayerBourses(ctx.players[4].id),
+    plafond: await readPlayerBourses(ctx.players[6].id),
     autre: await readPlayerBourses(gnomeB().id),
   };
-  assert.equal(apres.licorne.power, avant.licorne.power + 1, 'licorne tenante : +1 gemme');
+  assert.equal(apres.licorne.power, avant.licorne.power + 1, 'lecteur : +1 gemme');
   assert.equal(apres.licorne.health, avant.licorne.health);
-  assert.equal(apres.gnome.health, avant.gnome.health + 1, 'gnome découvreur : +1 cœur');
-  assert.equal(apres.plafond.health, 8, 'plafond respecté');
+  assert.deepEqual(apres.gnome, avant.gnome, 'l’équipe qui a trouvé ne gagne plus rien');
+  assert.equal(apres.plafond.power, 8, 'plafond respecté');
   assert.equal(apres.autre.health, 3, 'les autres équipes ne gagnent rien');
 
   const evt = await queryOne(

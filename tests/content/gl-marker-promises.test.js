@@ -124,3 +124,37 @@ test('le texte calculé servi à l’élève est exact et sans chaîne interdite
   }
   assert.deepEqual(failures, []);
 });
+
+test('ensemble unifié (M3) : chaque case Souffle → un seul dé au tour suivant, les deux peuples ; la Trame donne une gemme', async (t) => {
+  const markers = await loadPlateauMarkers();
+  if (!markers.length) {
+    t.diagnostic('Aucun repère de plateau 1-4 en base (base neuve) : contrôle sauté');
+    return;
+  }
+  const failures = [];
+  let souffles = 0;
+  for (const m of markers) {
+    const effets = ['gnome', 'unicorn'].map((p) => resolveTenirCaseEffet(m, p));
+    if (effets[0].tonalite === 'souffle') {
+      souffles += 1;
+      for (const e of effets) {
+        if (!e.unDe || e.passTurn || e.moveDelta || e.healthDelta || e.powerDelta) {
+          failures.push(`${describe(m)} : Souffle sans « un seul dé » pur`);
+        }
+      }
+    }
+    if (effets[0].tonalite === 'trame') {
+      for (const e of effets) {
+        if (e.powerDelta !== 1 || e.healthDelta !== 0)
+          failures.push(`${describe(m)} : Trame ≠ +1 gemme`);
+      }
+      const cfg = JSON.parse(m.event_config_json || '{}');
+      for (const b of Object.values(cfg.effects || {})) {
+        if (/c(?:œ|oe)ur/i.test(String(b?.label || '')))
+          failures.push(`${describe(m)} : une branche Trame promet un cœur`);
+      }
+    }
+  }
+  assert.deepEqual(failures, []);
+  assert.ok(souffles >= 13, `13 cases Souffle attendues sur les 4 plateaux (${souffles})`);
+});

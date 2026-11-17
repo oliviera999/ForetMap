@@ -14,12 +14,17 @@
     "des_count": 2,
     "des_physiques_validation": "prof",
     "questions_de_case": true,
+    "questions_difficulte_max_par_plateau": {
+      "1": 2,
+      "2": 3,
+      "3": 3,
+      "4": 3
+    },
+    "questions_spirale": 20,
     "vent": true,
     "vent_cases": 3,
-    "fouilles_par_tour": {
-      "gnome": 1,
-      "unicorn": 2
-    },
+    "fouilles_par_tour": 2,
+    "fouilles_sous_voile": 1,
     "fouille_seuils": {
       "chaud": 0.06,
       "tiede": 0.15
@@ -45,7 +50,6 @@
     "marche": true,
     "marche_pendant_tour": true,
     "lecture_pendant_tour": true,
-    "fouille_sous_voile": "aucune",
     "defis_case": true,
     "defi_declenchement": "arret",
     "defi_recul": 2,
@@ -54,9 +58,8 @@
     "defis_pages_par_semaine": 2,
     "defis_mode_equipe": true,
     "parures": true,
-    "lumiere": false,
-    "lumiere_palier": 25,
-    "cartes_vers_cases": false,
+    "lumiere": true,
+    "lumiere_palier": 100,
     "chapardeur": true,
     "peripeties": true,
     "olu_erreur_du_jour": true,
@@ -121,6 +124,12 @@
     "des_mode": "défaut serveur sur tablette, physique ailleurs (clé des_mode_par_surface) ; la valeur plate `des_mode` est celle de la surface par défaut (tableau)",
     "max_health_points": "passe de 3 (réglage existant) à 8 pour « Tenir à deux »",
     "lore_*": "réglages existants de la mouture précédente, mis à 0 / false : lecture gratuite partout, aucune gemme par feuillet, aucun cœur par feuillet",
-    "max_power_points": "réglage existant, inchangé à 8"
+    "max_power_points": "réglage existant, inchangé à 8",
+    "fouilles_par_tour": "ensemble unifié (M2, 17 novembre 2026) : 2 fouilles par équipe et par tour, pour les deux peuples (ancienne forme { gnome: 1, unicorn: 2 }) ; une zone pâlie ne se fouille que par une équipe gnome (c'est la réparation) ; la fouille de réparation en plus a disparu",
+    "fouilles_sous_voile": "M2 : fouilles par tour d'une équipe sous le voile (1), sauf Abri ou Cordée qui rendent le quota entier",
+    "cases_positives": "ensemble unifié (M3) : `neutre` (défaut) — une case positive donne son mouvement, sans ressource ; seule la case Trame donne une gemme ; `brut` garde la valeur du plateau (ancien comportement) ; l'option `ressource_peuple` est retirée",
+    "questions_difficulte_max_par_plateau": "ensemble unifié (M9) : plafond de difficulté des questions de case par plateau ; les `difficulteMax` portés par les cases question sont ignorés en mode tenir (et retirés des données par la migration 359)",
+    "questions_spirale": "M9 : part (en pour cent) des questions de case tirées dans un biome d'un plateau déjà traversé, à partir du plateau 2 ; 20 = une question sur cinq",
+    "lumiere": "ensemble unifié (M17) : la Lumière, version simple — une jauge commune qui ne descend jamais ; chaque carte Team Spirit gardée ajoute 1, l'erreur d'Olu corrigée 1, un défi de la Trame réussi en mode équipe 10 ; au palier (100), le voile recule de recul_lumiere (5) d'office et la jauge repart à 0 ; plus de choix à enregistrer, plus de sort Lumière ; cartes_vers_cases retiré"
   }
 }

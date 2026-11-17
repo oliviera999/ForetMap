@@ -206,6 +206,11 @@ export function GLSpellCastRosterSection({
           sortilège.
         </p>
       ) : null}
+      {draft?.offerte ? (
+        <p className="gl-hint" data-testid="gl-spell-cast-offerte">
+          Cordée offerte : rien à payer cette fois.
+        </p>
+      ) : null}
       <ProgressBar label="Gemmes" current={totals.gems} required={required.gems} emoji="💎" />
       <ProgressBar label="Cœurs" current={totals.hearts} required={required.hearts} emoji="❤️" />
       {rosterEmpty ? (

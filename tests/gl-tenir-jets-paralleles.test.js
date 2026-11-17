@@ -253,7 +253,9 @@ test('Bourrasque sur une équipe en suspens : son jet s’applique, puis +3 case
   assert.deepEqual(inv.violations || [], []);
 });
 
-test('« Nommer » sans objet : la page est réparée entre-temps, la ligne se retire seule et le sort est rendu', async () => {
+test('« Nommer » sans objet : la page est réparée entre-temps, la ligne se retire seule et le sort est rendu', async (t) => {
+  // Nommer est sorti du grimoire (ensemble unifié, M6) : remis le temps du test.
+  t.after(await require('./helpers/glTenirFixtures').activerSortRetire(ctx.chapter.id, 'SL041'));
   await tourSuivant();
   const zone = await db.queryOne(
     `SELECT z.id, z.zone_key FROM gl_chasse_zones z

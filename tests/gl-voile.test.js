@@ -112,21 +112,27 @@ test('phase souffle : position = min(position + dé + bonus, camp − 1) ; équi
   assert.equal(carnet.body.pages.find((p) => p.zoneKey === 'cz-p1-01').etat, 'palie');
 });
 
-test('sous le voile : fouilles à 0 (409) ; une équipe hors du voile fouille ; une zone pâlie est réservée aux gnomes', async () => {
+test('sous le voile : une seule fouille par tour (M2) ; une équipe hors du voile fouille ; une zone pâlie est réservée aux gnomes', async () => {
   await request(app)
     .post(api('/tenir/tour/phase'))
     .set(auth(ctx.adminToken))
     .send({ phase: 'clos' })
     .expect(200);
   await ouvrirTourEnJeu(request, app, ctx);
-  const sous = await request(app)
+  const une = await request(app)
     .post(api('/chasse/fouiller'))
     .set(auth(ctx.players[2].token))
     .send({ x: 0.9, y: 0.9 });
+  assert.equal(une.status, 201, JSON.stringify(une.body));
+  assert.equal(une.body.fouilles.quota, 1, 'sous le voile : 1 fouille, jamais 0');
+  const sous = await request(app)
+    .post(api('/chasse/fouiller'))
+    .set(auth(ctx.players[2].token))
+    .send({ x: 0.9, y: 0.85 });
   assert.equal(sous.status, 409, JSON.stringify(sous.body));
   assert.equal(sous.body.code, 'FOUILLES_EPUISEES');
   assert.equal(sous.body.sousVoile, true);
-  assert.equal(sous.body.fouilles.quota, 0);
+  assert.equal(sous.body.fouilles.quota, 1);
   const carnet = await request(app).get(api('/chasse')).set(auth(ctx.players[2].token));
   assert.equal(carnet.body.fouilles.sousVoile, true);
 

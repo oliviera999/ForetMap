@@ -151,8 +151,8 @@ test('clôture : une case restée en suspens (Relance) s’applique avant la car
   for (const m of members) {
     assert.deepEqual(
       await readPlayerBourses(m.id),
-      { health: 5, power: 4 },
-      'la Trame (+1 cœur) est créditée avant le déplacement au camp',
+      { health: 4, power: 5 },
+      'la Trame (+1 gemme, M3) est créditée avant le déplacement au camp',
     );
   }
   const camp = ctx.markers[ctx.markers.length - 1];

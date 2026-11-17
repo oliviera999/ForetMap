@@ -56,24 +56,32 @@ test('chaque clé tenir_* est déclarée (registre, camelKeyFor, liste blanche, 
   assert.ok(ALLOWED_GAMEPLAY_SETTINGS.has('gameplay.feuillet_zone_traversal_enabled'));
   const settings = await getGameplaySettings({ forceRefresh: true });
   assert.equal(typeof settings.tenirEnabled, 'boolean');
-  assert.deepEqual(settings.tenirFouillesParTour, { gnome: 1, unicorn: 2 });
+  assert.equal(settings.tenirFouillesParTour, 2);
+  assert.equal(settings.tenirFouillesSousVoile, 1);
 });
 
 test('PUT /api/gl/admin/settings/:key lit et écrit une clé json, refuse un json mal formé', async () => {
   const ok = await request(app)
-    .put('/api/gl/admin/settings/gameplay.tenir_fouilles_par_tour')
+    .put('/api/gl/admin/settings/gameplay.tenir_fouille_seuils')
     .set('Authorization', `Bearer ${adminToken}`)
-    .send({ value: { gnome: 2, unicorn: 3 } });
+    .send({ value: { chaud: 0.05, tiede: 0.2 } });
   assert.equal(ok.status, 200, JSON.stringify(ok.body));
   const settings = await getGameplaySettings({ forceRefresh: true });
-  assert.deepEqual(settings.tenirFouillesParTour, { gnome: 2, unicorn: 3 });
+  assert.deepEqual(settings.tenirFouilleSeuils, { chaud: 0.05, tiede: 0.2 });
 
   const bad = await request(app)
+    .put('/api/gl/admin/settings/gameplay.tenir_fouille_seuils')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ value: { chaud: 0.05 } });
+  assert.equal(bad.status, 400);
+  assert.match(bad.body.error, /tenir_fouille_seuils/);
+
+  // M2 : les fouilles par tour sont un entier ; l'ancienne forme objet est refusée.
+  const objet = await request(app)
     .put('/api/gl/admin/settings/gameplay.tenir_fouilles_par_tour')
     .set('Authorization', `Bearer ${adminToken}`)
-    .send({ value: { gnome: 2 } });
-  assert.equal(bad.status, 400);
-  assert.match(bad.body.error, /tenir_fouilles_par_tour/);
+    .send({ value: { gnome: 1, unicorn: 2 } });
+  assert.equal(objet.status, 400);
 
   const badEnum = await request(app)
     .put('/api/gl/admin/settings/gameplay.tenir_surface')
@@ -87,7 +95,7 @@ test('PUT /api/gl/admin/settings/:key lit et écrit une clé json, refuse un jso
     .send({ value: { 1: ['09-01'], 2: ['01-05', '03-31'], 3: ['04-01', '07-10'] } });
   assert.equal(badTrim.status, 400);
 
-  await setGlSetting('gameplay.tenir_fouilles_par_tour', { gnome: 1, unicorn: 2 });
+  await setGlSetting('gameplay.tenir_fouille_seuils', { chaud: 0.06, tiede: 0.15 });
   const exposed = await request(app)
     .get('/api/gl/gameplay-settings')
     .set('Authorization', `Bearer ${adminToken}`);

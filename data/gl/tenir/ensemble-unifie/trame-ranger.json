@@ -1,0 +1,832 @@
+{
+  "format": "gl.tenir.trame-ranger/1",
+  "principe": "Ranger des cartes dans des catégories. Aucune carte n'est « fausse » : mal rangée, elle reçoit « Pas encore. » ; bien rangée, son pourquoi. Deux familles : role (une unité par biome) et pays (une unité par plateau, les pays déjà traversés reviennent).",
+  "familles": {
+    "role": {
+      "nom": "Le bon rôle",
+      "consigne": "Range chaque être vivant selon son rôle dans la Trame.",
+      "peuple": "any",
+      "categories": [
+        {
+          "code": "producteur",
+          "nom": "Producteur",
+          "aide": "fabrique sa matière avec la lumière"
+        },
+        {
+          "code": "consommateur",
+          "nom": "Consommateur",
+          "aide": "mange d'autres êtres vivants, vivants ou morts"
+        },
+        {
+          "code": "decomposeur",
+          "nom": "Décomposeur",
+          "aide": "transforme la matière morte et la rend au sol"
+        }
+      ]
+    },
+    "pays": {
+      "nom": "Le bon pays",
+      "consigne": "Lis l'indice de chaque carte, puis range-la dans le pays où elle vit.",
+      "peuple": "any",
+      "categories_depuis": "biomes",
+      "note": "categories = slugs de biomes ; le libellé vient du registre des biomes"
+    }
+  },
+  "jeux": [
+    {
+      "code": "role-jungle_afc",
+      "famille": "role",
+      "unite": "jungle_afc",
+      "plateau": 1,
+      "biome": "jungle_afc",
+      "titre": "Le bon rôle · Forêt équatoriale",
+      "cartes": [
+        {
+          "code": "SP0039",
+          "nom": "Moabi",
+          "categorie": "producteur",
+          "pourquoi": "Un arbre fabrique sa matière avec la lumière, l'eau et l'air."
+        },
+        {
+          "code": "SP0045",
+          "nom": "Marantacée",
+          "categorie": "producteur",
+          "pourquoi": "Même à l'ombre du sous-bois, ses grandes feuilles captent la lumière."
+        },
+        {
+          "code": "SP0043",
+          "nom": "Liane à eau",
+          "categorie": "producteur",
+          "pourquoi": "Elle grimpe sur les arbres pour atteindre la lumière, mais elle fabrique elle-même sa matière."
+        },
+        {
+          "code": "SP0027",
+          "nom": "Éléphant de forêt",
+          "categorie": "consommateur",
+          "pourquoi": "Il mange des fruits, des feuilles et des écorces."
+        },
+        {
+          "code": "SP0031",
+          "nom": "Léopard",
+          "categorie": "consommateur",
+          "pourquoi": "Il mange d'autres animaux."
+        },
+        {
+          "code": "SP0029",
+          "nom": "Pangolin géant",
+          "categorie": "consommateur",
+          "pourquoi": "Il mange des fourmis et des termites : il se nourrit d'êtres vivants."
+        },
+        {
+          "code": "DEC-CHAMPIGNONS",
+          "nom": "Champignons de la litière",
+          "categorie": "decomposeur",
+          "pourquoi": "Ils transforment les feuilles mortes en éléments que les racines peuvent reprendre.",
+          "generique": true
+        },
+        {
+          "code": "DEC-TERMITES",
+          "nom": "Termites du bois mort",
+          "categorie": "decomposeur",
+          "pourquoi": "Ils mangent le bois mort et le rendent au sol.",
+          "generique": true
+        }
+      ],
+      "bilan": "Sans décomposeurs, les feuilles mortes s'entasseraient et le sol s'appauvrirait : les arbres n'auraient plus de quoi pousser."
+    },
+    {
+      "code": "role-savane",
+      "famille": "role",
+      "unite": "savane",
+      "plateau": 1,
+      "biome": "savane",
+      "titre": "Le bon rôle · Savane",
+      "cartes": [
+        {
+          "code": "SP0115",
+          "nom": "Andropogon (herbe à éléphant)",
+          "categorie": "producteur",
+          "pourquoi": "Une herbe fabrique sa matière avec la lumière : c'est le départ de presque toutes les chaînes de la savane."
+        },
+        {
+          "code": "SP0110",
+          "nom": "Acacia parasol",
+          "categorie": "producteur",
+          "pourquoi": "Un arbre est un producteur, même quand il est couvert d'épines."
+        },
+        {
+          "code": "SP0111",
+          "nom": "Baobab africain",
+          "categorie": "producteur",
+          "pourquoi": "Il fabrique sa matière avec la lumière, et stocke l'eau dans son tronc."
+        },
+        {
+          "code": "SP0098",
+          "nom": "Zèbre des plaines",
+          "categorie": "consommateur",
+          "pourquoi": "Il broute l'herbe : il mange un producteur."
+        },
+        {
+          "code": "SP0095",
+          "nom": "Lion d'Afrique",
+          "categorie": "consommateur",
+          "pourquoi": "Il mange d'autres animaux."
+        },
+        {
+          "code": "SP0107",
+          "nom": "Vautour africain",
+          "categorie": "consommateur",
+          "pourquoi": "Il mange des animaux déjà morts : c'est un charognard, donc un consommateur. Il ne rend pas la matière au sol."
+        },
+        {
+          "code": "SP0109",
+          "nom": "Termite (Macrotermes)",
+          "categorie": "decomposeur",
+          "pourquoi": "Il transforme l'herbe sèche et le bois mort : la matière retourne au sol."
+        },
+        {
+          "code": "DEC-BOUSIER",
+          "nom": "Bousier",
+          "categorie": "decomposeur",
+          "pourquoi": "Ce scarabée enterre et mange les bouses : il les rend au sol, où les plantes les reprennent.",
+          "generique": true
+        }
+      ],
+      "bilan": "Un charognard mange de la viande : c'est un consommateur. Un décomposeur, lui, rend la matière morte au sol."
+    },
+    {
+      "code": "role-sahara",
+      "famille": "role",
+      "unite": "sahara",
+      "plateau": 2,
+      "biome": "sahara",
+      "titre": "Le bon rôle · Sahara",
+      "cartes": [
+        {
+          "code": "SP0020",
+          "nom": "Drinn",
+          "categorie": "producteur",
+          "pourquoi": "Cette herbe pousse sur les dunes et fabrique sa matière avec la lumière."
+        },
+        {
+          "code": "SP0014",
+          "nom": "Acacia gommier",
+          "categorie": "producteur",
+          "pourquoi": "Un arbre du désert reste un producteur : il lui faut de la lumière, de l'air et l'eau de ses racines profondes."
+        },
+        {
+          "code": "SP0017",
+          "nom": "Coloquinte",
+          "categorie": "producteur",
+          "pourquoi": "Cette plante rampante fabrique ses fruits gorgés d'eau avec la lumière."
+        },
+        {
+          "code": "SP0005",
+          "nom": "Gazelle dorcas",
+          "categorie": "consommateur",
+          "pourquoi": "Elle broute les plantes du désert."
+        },
+        {
+          "code": "SP0001",
+          "nom": "Fennec",
+          "categorie": "consommateur",
+          "pourquoi": "Il mange des insectes, des lézards, des rongeurs et quelques fruits."
+        },
+        {
+          "code": "SP0010",
+          "nom": "Fourmi argentée du Sahara",
+          "categorie": "consommateur",
+          "pourquoi": "Elle ramasse les insectes morts de chaleur : c'est un charognard, donc un consommateur."
+        },
+        {
+          "code": "DEC-BACTERIES",
+          "nom": "Bactéries du sol",
+          "categorie": "decomposeur",
+          "pourquoi": "Invisibles, elles transforment la matière morte dès qu'un peu d'humidité revient.",
+          "generique": true
+        },
+        {
+          "code": "DEC-TENEBRION",
+          "nom": "Scarabée ténébrion",
+          "categorie": "decomposeur",
+          "pourquoi": "Il grignote les débris de plantes mortes que le vent rassemble au pied des dunes.",
+          "generique": true
+        }
+      ],
+      "bilan": "Même dans le désert, la matière circule : les plantes produisent, les animaux consomment, les décomposeurs rendent au sol."
+    },
+    {
+      "code": "role-foret_mediterraneenne",
+      "famille": "role",
+      "unite": "foret_mediterraneenne",
+      "plateau": 2,
+      "biome": "foret_mediterraneenne",
+      "titre": "Le bon rôle · Forêt méditerranéenne",
+      "cartes": [
+        {
+          "code": "SP0175",
+          "nom": "Chêne vert",
+          "categorie": "producteur",
+          "pourquoi": "Il garde ses feuilles toute l'année et fabrique sa matière avec la lumière."
+        },
+        {
+          "code": "SP0183",
+          "nom": "Thym commun",
+          "categorie": "producteur",
+          "pourquoi": "Une petite plante parfumée est un producteur, comme un grand arbre."
+        },
+        {
+          "code": "SP0185",
+          "nom": "Arbousier",
+          "categorie": "producteur",
+          "pourquoi": "Il fabrique lui-même ses fruits rouges, que beaucoup d'animaux mangent."
+        },
+        {
+          "code": "SP0172",
+          "nom": "Cigale plébéienne",
+          "categorie": "consommateur",
+          "pourquoi": "Elle boit la sève des arbres : elle se nourrit d'un être vivant."
+        },
+        {
+          "code": "SP0162",
+          "nom": "Caméléon commun",
+          "categorie": "consommateur",
+          "pourquoi": "Il attrape des insectes avec sa langue."
+        },
+        {
+          "code": "SP0170",
+          "nom": "Gypaète barbu",
+          "categorie": "consommateur",
+          "pourquoi": "Il mange les os des animaux morts : c'est un charognard, donc un consommateur."
+        },
+        {
+          "code": "DEC-CHAMPIGNONS",
+          "nom": "Champignons du bois mort",
+          "categorie": "decomposeur",
+          "pourquoi": "Ils transforment peu à peu les branches tombées en terre.",
+          "generique": true
+        },
+        {
+          "code": "DEC-CLOPORTES",
+          "nom": "Cloportes",
+          "categorie": "decomposeur",
+          "pourquoi": "Ils grignotent les feuilles mortes de la litière et les réduisent en miettes.",
+          "generique": true
+        }
+      ],
+      "bilan": "La cigale ne chasse personne, mais elle boit la sève d'un arbre : manger un être vivant, c'est être consommateur."
+    },
+    {
+      "code": "role-foret_caducifoliee",
+      "famille": "role",
+      "unite": "foret_caducifoliee",
+      "plateau": 3,
+      "biome": "foret_caducifoliee",
+      "titre": "Le bon rôle · Forêt tempérée",
+      "cartes": [
+        {
+          "code": "SP0082",
+          "nom": "Chêne pédonculé",
+          "categorie": "producteur",
+          "pourquoi": "Il fabrique sa matière avec la lumière, du printemps à l'automne."
+        },
+        {
+          "code": "SP0092",
+          "nom": "Jacinthe des bois",
+          "categorie": "producteur",
+          "pourquoi": "Elle profite de la lumière du printemps, avant que les arbres aient leurs feuilles."
+        },
+        {
+          "code": "SP0091",
+          "nom": "Lierre grimpant",
+          "categorie": "producteur",
+          "pourquoi": "Il s'accroche aux troncs sans s'en nourrir : il fabrique sa propre matière avec la lumière."
+        },
+        {
+          "code": "SP0071",
+          "nom": "Écureuil roux",
+          "categorie": "consommateur",
+          "pourquoi": "Il mange des noisettes, des glands et des graines."
+        },
+        {
+          "code": "SP0078",
+          "nom": "Chouette hulotte",
+          "categorie": "consommateur",
+          "pourquoi": "Elle chasse des rongeurs et de petits oiseaux."
+        },
+        {
+          "code": "SP0074",
+          "nom": "Hérisson commun",
+          "categorie": "consommateur",
+          "pourquoi": "Il mange des limaces, des vers et des insectes."
+        },
+        {
+          "code": "SP0262",
+          "nom": "Lombric commun",
+          "categorie": "decomposeur",
+          "pourquoi": "Il avale les feuilles mortes avec la terre et les rend au sol."
+        },
+        {
+          "code": "SP0081",
+          "nom": "Lucane cerf-volant",
+          "categorie": "decomposeur",
+          "pourquoi": "Sa larve mange du bois mort pendant plusieurs années."
+        }
+      ],
+      "bilan": "Le lierre n'est pas un parasite : il se sert de l'arbre comme d'une échelle, pas comme d'un repas."
+    },
+    {
+      "code": "role-landes",
+      "famille": "role",
+      "unite": "landes",
+      "plateau": 3,
+      "biome": "landes",
+      "titre": "Le bon rôle · Landes et tourbières",
+      "cartes": [
+        {
+          "code": "SP0243",
+          "nom": "Callune (bruyère commune)",
+          "categorie": "producteur",
+          "pourquoi": "Elle fabrique sa matière avec la lumière, sur un sol très pauvre."
+        },
+        {
+          "code": "SP0252",
+          "nom": "Sphaigne",
+          "categorie": "producteur",
+          "pourquoi": "Une mousse est une plante : elle fabrique sa matière avec la lumière."
+        },
+        {
+          "code": "SP0251",
+          "nom": "Drosera à feuilles rondes",
+          "categorie": "producteur",
+          "pourquoi": "Elle attrape des insectes, mais elle reste une plante verte : elle fabrique sa matière avec la lumière. Les insectes lui apportent surtout l'azote qui manque au sol."
+        },
+        {
+          "code": "SP0238",
+          "nom": "Grouse rouge (lagopède d'Écosse)",
+          "categorie": "consommateur",
+          "pourquoi": "Elle mange les bourgeons et les fleurs de bruyère."
+        },
+        {
+          "code": "SP0232",
+          "nom": "Vipère péliade",
+          "categorie": "consommateur",
+          "pourquoi": "Elle chasse des rongeurs et des lézards."
+        },
+        {
+          "code": "SP0269",
+          "nom": "Libellule déprimée",
+          "categorie": "consommateur",
+          "pourquoi": "Elle attrape des moustiques et d'autres insectes en vol."
+        },
+        {
+          "code": "DEC-BACTERIES",
+          "nom": "Bactéries de la tourbe",
+          "categorie": "decomposeur",
+          "pourquoi": "Elles travaillent au ralenti, faute d'oxygène : c'est pour cela que la tourbe s'accumule.",
+          "generique": true
+        },
+        {
+          "code": "DEC-CHAMPIGNONS",
+          "nom": "Champignons de la lande",
+          "categorie": "decomposeur",
+          "pourquoi": "Ils transforment les brindilles et les feuilles mortes de bruyère.",
+          "generique": true
+        }
+      ],
+      "bilan": "Une plante carnivore reste un producteur : c'est la lumière qui la nourrit, les insectes complètent."
+    },
+    {
+      "code": "role-taiga",
+      "famille": "role",
+      "unite": "taiga",
+      "plateau": 4,
+      "biome": "taiga",
+      "titre": "Le bon rôle · Taïga",
+      "cartes": [
+        {
+          "code": "SP0151",
+          "nom": "Épicéa commun",
+          "categorie": "producteur",
+          "pourquoi": "Ses aiguilles fabriquent de la matière dès que la lumière revient."
+        },
+        {
+          "code": "SP0160",
+          "nom": "Myrtille",
+          "categorie": "producteur",
+          "pourquoi": "Ce petit arbuste fabrique lui-même ses baies."
+        },
+        {
+          "code": "SP0159",
+          "nom": "Lichen des rennes",
+          "categorie": "producteur",
+          "pourquoi": "Un lichen associe un champignon et une algue : grâce à l'algue, il fabrique sa matière avec la lumière."
+        },
+        {
+          "code": "SP0137",
+          "nom": "Élan / orignal",
+          "categorie": "consommateur",
+          "pourquoi": "Il broute les feuilles et les plantes des marais."
+        },
+        {
+          "code": "SP0140",
+          "nom": "Lynx boréal",
+          "categorie": "consommateur",
+          "pourquoi": "Il chasse des lièvres et des chevreuils."
+        },
+        {
+          "code": "SP0144",
+          "nom": "Glouton (carcajou)",
+          "categorie": "consommateur",
+          "pourquoi": "Il chasse et mange aussi des animaux morts : dans les deux cas, c'est un consommateur."
+        },
+        {
+          "code": "DEC-CHAMPIGNONS",
+          "nom": "Champignons du bois mort",
+          "categorie": "decomposeur",
+          "pourquoi": "Ils transforment lentement les troncs tombés.",
+          "generique": true
+        },
+        {
+          "code": "DEC-LITIERE",
+          "nom": "Petites bêtes de la litière",
+          "categorie": "decomposeur",
+          "pourquoi": "Elles grignotent les aiguilles tombées et les rendent au sol.",
+          "generique": true
+        }
+      ],
+      "bilan": "Dans le froid, les décomposeurs travaillent lentement : les aiguilles mortes s'accumulent en tapis épais."
+    },
+    {
+      "code": "role-toundra",
+      "famille": "role",
+      "unite": "toundra",
+      "plateau": 4,
+      "biome": "toundra",
+      "titre": "Le bon rôle · Toundra",
+      "cartes": [
+        {
+          "code": "SP0059",
+          "nom": "Saule arctique",
+          "categorie": "producteur",
+          "pourquoi": "C'est un arbre de quelques centimètres : il fabrique sa matière avec la lumière de l'été."
+        },
+        {
+          "code": "SP0067",
+          "nom": "Mousse polaire",
+          "categorie": "producteur",
+          "pourquoi": "Une mousse est une plante : elle fabrique sa matière avec la lumière."
+        },
+        {
+          "code": "SP0058",
+          "nom": "Lichen des rennes",
+          "categorie": "producteur",
+          "pourquoi": "Grâce à son algue, le lichen fabrique sa matière avec la lumière."
+        },
+        {
+          "code": "SP0052",
+          "nom": "Lemming d'Arctique",
+          "categorie": "consommateur",
+          "pourquoi": "Il mange des mousses, des herbes et des racines."
+        },
+        {
+          "code": "SP0054",
+          "nom": "Harfang des neiges",
+          "categorie": "consommateur",
+          "pourquoi": "Il chasse surtout des lemmings."
+        },
+        {
+          "code": "SP0050",
+          "nom": "Renard polaire",
+          "categorie": "consommateur",
+          "pourquoi": "Il chasse et mange aussi les restes laissés par d'autres : c'est un consommateur."
+        },
+        {
+          "code": "DEC-BACTERIES",
+          "nom": "Bactéries du sol",
+          "categorie": "decomposeur",
+          "pourquoi": "Le froid les ralentit : la matière morte se décompose très lentement.",
+          "generique": true
+        },
+        {
+          "code": "DEC-CHAMPIGNONS",
+          "nom": "Champignons du sol",
+          "categorie": "decomposeur",
+          "pourquoi": "Ils transforment les feuilles et les brindilles mortes pendant le court été.",
+          "generique": true
+        }
+      ],
+      "bilan": "Dans la toundra, la décomposition est si lente que le sol garde la matière morte pendant des siècles."
+    },
+    {
+      "code": "pays-p1",
+      "famille": "pays",
+      "unite": "p1",
+      "plateau": 1,
+      "titre": "Le bon pays",
+      "categories": [
+        "jungle_afc",
+        "savane"
+      ],
+      "cartes": [
+        {
+          "code": "SP0026",
+          "nom": "Okapi",
+          "indice": "Pelage sombre, rayé seulement aux pattes ; vit seul et discret.",
+          "categorie": "jungle_afc",
+          "pourquoi": "Dans l'ombre du sous-bois, un pelage sombre rayé de clair se confond avec les taches de lumière."
+        },
+        {
+          "code": "SP0033",
+          "nom": "Calao à casque jaune",
+          "indice": "Cueille de gros fruits tout en haut des arbres.",
+          "categorie": "jungle_afc",
+          "pourquoi": "Les gros fruits poussent dans la canopée de la forêt équatoriale."
+        },
+        {
+          "code": "SP0023",
+          "nom": "Gorille des plaines",
+          "indice": "Mange des feuilles et des tiges toute l'année, sans jamais migrer.",
+          "categorie": "jungle_afc",
+          "pourquoi": "En forêt équatoriale, il y a des feuilles vertes en toute saison."
+        },
+        {
+          "code": "SP0046",
+          "nom": "Fromager (kapokier)",
+          "indice": "Arbre géant aux contreforts, qui dépasse le toit de feuilles.",
+          "categorie": "jungle_afc",
+          "pourquoi": "Il faut monter très haut pour capter la lumière au-dessus de la canopée."
+        },
+        {
+          "code": "SP0098",
+          "nom": "Zèbre des plaines",
+          "indice": "Vit en grands troupeaux et broute l'herbe.",
+          "categorie": "savane",
+          "pourquoi": "L'herbe à perte de vue, c'est la savane."
+        },
+        {
+          "code": "SP0097",
+          "nom": "Girafe",
+          "indice": "Broute la cime d'arbres épineux, loin les uns des autres.",
+          "categorie": "savane",
+          "pourquoi": "Des arbres dispersés au milieu des herbes : c'est la savane."
+        },
+        {
+          "code": "SP0106",
+          "nom": "Suricate",
+          "indice": "Une sentinelle guette debout pendant que le clan fouille le sol.",
+          "categorie": "savane",
+          "pourquoi": "Guetter de loin ne sert qu'en terrain découvert."
+        },
+        {
+          "code": "SP0111",
+          "nom": "Baobab africain",
+          "indice": "Stocke l'eau dans son tronc pour tenir des mois sans pluie.",
+          "categorie": "savane",
+          "pourquoi": "La savane a une longue saison sèche ; la forêt équatoriale, non."
+        }
+      ],
+      "bilan": "Deux pays chauds, mais l'un a de l'eau toute l'année et l'autre une longue saison sèche : les êtres vivants n'y ont pas les mêmes solutions."
+    },
+    {
+      "code": "pays-p2",
+      "famille": "pays",
+      "unite": "p2",
+      "plateau": 2,
+      "titre": "Le bon pays",
+      "categories": [
+        "jungle_afc",
+        "savane",
+        "sahara",
+        "foret_mediterraneenne"
+      ],
+      "cartes": [
+        {
+          "code": "SP0001",
+          "nom": "Fennec",
+          "indice": "Très grandes oreilles ; sort la nuit ; ne boit presque jamais.",
+          "categorie": "sahara",
+          "pourquoi": "Évacuer la chaleur et se passer d'eau : c'est le désert."
+        },
+        {
+          "code": "SP0002",
+          "nom": "Dromadaire",
+          "indice": "Bosse de graisse, narines qui se ferment, pieds larges.",
+          "categorie": "sahara",
+          "pourquoi": "Des pieds larges pour le sable, des narines closes pour le vent de sable."
+        },
+        {
+          "code": "SP0019",
+          "nom": "Rose de Jéricho",
+          "indice": "Se referme en boule sèche et attend la pluie pendant des années.",
+          "categorie": "sahara",
+          "pourquoi": "Là où il ne pleut presque jamais, il faut savoir attendre."
+        },
+        {
+          "code": "SP0176",
+          "nom": "Chêne-liège",
+          "indice": "Écorce très épaisse, qui protège le tronc du feu.",
+          "categorie": "foret_mediterraneenne",
+          "pourquoi": "Autour de la Méditerranée, l'été sec amène souvent le feu."
+        },
+        {
+          "code": "SP0172",
+          "nom": "Cigale plébéienne",
+          "indice": "Chante au plus chaud de l'été, dans les pins et les oliviers.",
+          "categorie": "foret_mediterraneenne",
+          "pourquoi": "L'été chaud et sec est la saison des cigales."
+        },
+        {
+          "code": "SP0181",
+          "nom": "Arganier",
+          "indice": "Petites feuilles dures, racines profondes ; ne pousse qu'au sud-ouest du Maroc.",
+          "categorie": "foret_mediterraneenne",
+          "pourquoi": "Des feuilles dures qui perdent peu d'eau : la marque des étés secs."
+        },
+        {
+          "code": "SP0027",
+          "nom": "Éléphant de forêt",
+          "indice": "Avale de gros fruits et sème leurs graines sous les grands arbres.",
+          "categorie": "jungle_afc",
+          "pourquoi": "Les gros fruits et les grands arbres, c'est la forêt équatoriale."
+        },
+        {
+          "code": "SP0099",
+          "nom": "Gnou bleu",
+          "indice": "Migre en immenses troupeaux en suivant l'herbe nouvelle.",
+          "categorie": "savane",
+          "pourquoi": "Suivre la pluie et l'herbe : la vie des grands herbivores de la savane."
+        }
+      ],
+      "bilan": "Manquer d'eau toute l'année ou seulement l'été, ce n'est pas la même contrainte : le désert et la Méditerranée ne demandent pas les mêmes solutions."
+    },
+    {
+      "code": "pays-p3",
+      "famille": "pays",
+      "unite": "p3",
+      "plateau": 3,
+      "titre": "Le bon pays",
+      "categories": [
+        "savane",
+        "sahara",
+        "foret_mediterraneenne",
+        "foret_caducifoliee",
+        "landes"
+      ],
+      "cartes": [
+        {
+          "code": "SP0082",
+          "nom": "Chêne pédonculé",
+          "indice": "Perd toutes ses feuilles en automne.",
+          "categorie": "foret_caducifoliee",
+          "pourquoi": "Perdre ses feuilles permet de passer l'hiver froid."
+        },
+        {
+          "code": "SP0074",
+          "nom": "Hérisson commun",
+          "indice": "Hiberne quand les insectes se font rares.",
+          "categorie": "foret_caducifoliee",
+          "pourquoi": "Dormir tout l'hiver répond à une saison froide sans nourriture."
+        },
+        {
+          "code": "SP0093",
+          "nom": "Anémone des bois",
+          "indice": "Fleurit avant que les arbres aient leurs feuilles.",
+          "categorie": "foret_caducifoliee",
+          "pourquoi": "Au printemps, la lumière n'atteint le sol que quelques semaines."
+        },
+        {
+          "code": "SP0251",
+          "nom": "Drosera à feuilles rondes",
+          "indice": "Attrape des insectes avec ses poils collants.",
+          "categorie": "landes",
+          "pourquoi": "Un sol très pauvre en azote : la lande humide."
+        },
+        {
+          "code": "SP0252",
+          "nom": "Sphaigne",
+          "indice": "Mousse qui boit vingt fois son poids d'eau.",
+          "categorie": "landes",
+          "pourquoi": "C'est elle qui bâtit les tourbières."
+        },
+        {
+          "code": "SP0235",
+          "nom": "Engoulevent d'Europe",
+          "indice": "Niche à même le sol, plumage de feuille morte.",
+          "categorie": "landes",
+          "pourquoi": "Dans la lande, il n'y a presque pas d'arbres où nicher."
+        },
+        {
+          "code": "SP0003",
+          "nom": "Addax",
+          "indice": "Sabots très larges, pelage très clair, se passe de boire.",
+          "categorie": "sahara",
+          "pourquoi": "Marcher sur le sable, renvoyer le soleil, trouver l'eau dans les plantes : le désert."
+        },
+        {
+          "code": "SP0179",
+          "nom": "Pin d'Alep",
+          "indice": "Ses cônes s'ouvrent à la chaleur d'un incendie.",
+          "categorie": "foret_mediterraneenne",
+          "pourquoi": "Un arbre prêt pour le feu vit là où l'été est sec."
+        },
+        {
+          "code": "SP0109",
+          "nom": "Termite (Macrotermes)",
+          "indice": "Bâtit des tours de terre de plusieurs mètres, aérées par des cheminées.",
+          "categorie": "savane",
+          "pourquoi": "Les grandes termitières se dressent dans la savane."
+        }
+      ],
+      "bilan": "Près de chez nous, la contrainte change encore : ce n'est plus la soif, c'est l'hiver, ou un sol trop pauvre."
+    },
+    {
+      "code": "pays-p4",
+      "famille": "pays",
+      "unite": "p4",
+      "plateau": 4,
+      "titre": "Le bon pays",
+      "categories": [
+        "jungle_afc",
+        "sahara",
+        "foret_caducifoliee",
+        "landes",
+        "taiga",
+        "toundra"
+      ],
+      "cartes": [
+        {
+          "code": "SP0151",
+          "nom": "Épicéa commun",
+          "indice": "Forme pointue, aiguilles gardées tout l'hiver.",
+          "categorie": "taiga",
+          "pourquoi": "La neige glisse sur un arbre pointu au lieu de casser ses branches."
+        },
+        {
+          "code": "SP0137",
+          "nom": "Élan / orignal",
+          "indice": "Pattes immenses pour la neige profonde et les marais.",
+          "categorie": "taiga",
+          "pourquoi": "La forêt du Nord est faite de neige l'hiver et de marais l'été."
+        },
+        {
+          "code": "SP0149",
+          "nom": "Grand tétras",
+          "indice": "Passe l'hiver à manger des aiguilles de pin.",
+          "categorie": "taiga",
+          "pourquoi": "Il faut une forêt de conifères pour se nourrir d'aiguilles."
+        },
+        {
+          "code": "SP0048",
+          "nom": "Bœuf musqué",
+          "indice": "Double fourrure ; le troupeau se serre en cercle.",
+          "categorie": "toundra",
+          "pourquoi": "Rien n'abrite du vent dans la toundra : on se protège les uns les autres."
+        },
+        {
+          "code": "SP0059",
+          "nom": "Saule arctique",
+          "indice": "Un arbre de quelques centimètres, qui rampe au sol.",
+          "categorie": "toundra",
+          "pourquoi": "Plaqué au sol, il échappe au vent glacé."
+        },
+        {
+          "code": "SP0054",
+          "nom": "Harfang des neiges",
+          "indice": "Plumage blanc ; niche au sol, faute d'arbres.",
+          "categorie": "toundra",
+          "pourquoi": "Pas un arbre à l'horizon : c'est la toundra."
+        },
+        {
+          "code": "SP0024",
+          "nom": "Chimpanzé commun",
+          "indice": "Fait son nid chaque soir dans les grands arbres.",
+          "categorie": "jungle_afc",
+          "pourquoi": "Des arbres immenses et des fruits toute l'année : la forêt équatoriale."
+        },
+        {
+          "code": "SP0007",
+          "nom": "Vipère à cornes",
+          "indice": "Avance de côté sur le sable brûlant.",
+          "categorie": "sahara",
+          "pourquoi": "Ne poser que deux points du corps à la fois évite de se brûler."
+        },
+        {
+          "code": "SP0079",
+          "nom": "Geai des chênes",
+          "indice": "Cache des glands à l'automne pour passer l'hiver.",
+          "categorie": "foret_caducifoliee",
+          "pourquoi": "Les glands sont les fruits des chênes de la forêt tempérée."
+        },
+        {
+          "code": "SP0246",
+          "nom": "Ajonc d'Europe",
+          "indice": "Arbuste épineux qui fleurit en jaune presque toute l'année.",
+          "categorie": "landes",
+          "pourquoi": "Avec la bruyère, il couvre les landes du bord de l'océan."
+        }
+      ],
+      "bilan": "Du chaud au froid, les mêmes questions reviennent : trouver de l'eau, garder sa chaleur, se nourrir. Chaque pays a ses réponses."
+    }
+  ]
+}

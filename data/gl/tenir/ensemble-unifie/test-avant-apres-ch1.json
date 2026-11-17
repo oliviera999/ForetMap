@@ -1,0 +1,136 @@
+{
+  "format": "gl.w5.test/1",
+  "chapitre": 1,
+  "questions": [
+    {
+      "id": "GL-T1-Q01",
+      "notion": "chaîne alimentaire",
+      "question": "Dans la savane, on écrit : herbe → zèbre → lion. Que veut dire la flèche ?",
+      "choix": [
+        "« est mangé par »",
+        "« mange »",
+        "« vit à côté de »",
+        "« est plus petit que »"
+      ],
+      "reponse": "« est mangé par »",
+      "explication": "La flèche se lit « est mangé par » : l'herbe est mangée par le zèbre, le zèbre est mangé par le lion. Elle suit le chemin de la nourriture."
+    },
+    {
+      "id": "GL-T1-Q02",
+      "notion": "producteur",
+      "question": "Par quoi commence toujours une chaîne alimentaire ?",
+      "choix": [
+        "Par une plante",
+        "Par le plus gros animal",
+        "Par un animal qui mange de la viande",
+        "Par un animal mort"
+      ],
+      "reponse": "Par une plante",
+      "explication": "Une plante fabrique elle-même sa matière : c'est un producteur. Tous les animaux dépendent d'elle, directement ou non."
+    },
+    {
+      "id": "GL-T1-Q03",
+      "notion": "producteur",
+      "question": "De quoi un arbre a-t-il besoin pour fabriquer sa matière ?",
+      "choix": [
+        "De lumière, d'eau et d'air",
+        "De terre, qu'il mange par ses racines",
+        "De petits animaux, qu'il attrape",
+        "De feuilles mortes, qu'il avale"
+      ],
+      "reponse": "De lumière, d'eau et d'air",
+      "explication": "Grâce à la lumière, l'arbre fabrique sa matière à partir de l'eau et d'un gaz de l'air. Le sol lui donne l'eau et des éléments minéraux, mais l'arbre ne « mange » pas la terre."
+    },
+    {
+      "id": "GL-T1-Q04",
+      "notion": "décomposeur",
+      "question": "Dans la forêt, que deviennent les feuilles mortes tombées au sol ?",
+      "choix": [
+        "Des champignons, des bactéries et de petites bêtes les transforment : elles retournent au sol",
+        "Elles restent là pour toujours et s'entassent",
+        "Le vent les emporte toutes hors de la forêt",
+        "Elles redeviennent vertes au printemps"
+      ],
+      "reponse": "Des champignons, des bactéries et de petites bêtes les transforment : elles retournent au sol",
+      "explication": "Les décomposeurs transforment la matière morte en éléments que les racines des plantes reprennent. Sans eux, le sol s'appauvrirait."
+    },
+    {
+      "id": "GL-T1-Q05",
+      "notion": "rôles dans la chaîne",
+      "question": "Le vautour mange des animaux déjà morts. Quel est son rôle dans la chaîne alimentaire ?",
+      "choix": [
+        "C'est un consommateur : il mange d'autres êtres vivants, même morts",
+        "C'est un producteur : il fabrique sa nourriture",
+        "C'est un décomposeur : il transforme la matière en éléments du sol",
+        "Il n'a aucun rôle"
+      ],
+      "reponse": "C'est un consommateur : il mange d'autres êtres vivants, même morts",
+      "explication": "Un charognard mange de la viande : c'est un consommateur. Les décomposeurs, eux, transforment ce qui reste en éléments du sol."
+    },
+    {
+      "id": "GL-T1-Q06",
+      "notion": "adaptation",
+      "question": "Le baobab stocke de l'eau dans son tronc. On dit que c'est une adaptation. Qu'est-ce qu'une adaptation ?",
+      "choix": [
+        "Un caractère qui aide une espèce à vivre dans son milieu",
+        "Une chose qu'un animal apprend à l'école de la savane",
+        "Un changement que l'on décide quand on en a envie",
+        "Une maladie des arbres"
+      ],
+      "reponse": "Un caractère qui aide une espèce à vivre dans son milieu",
+      "explication": "Le tronc-réservoir du baobab l'aide à tenir pendant la longue saison sèche de la savane. Chaque milieu a ses contraintes, et les espèces qui y vivent ont des caractères qui y répondent."
+    },
+    {
+      "id": "GL-T1-Q07",
+      "notion": "milieux de vie",
+      "question": "Quelle est la grande différence entre la savane et la forêt équatoriale ?",
+      "choix": [
+        "La savane a une longue saison sans pluie ; dans la forêt, il pleut toute l'année",
+        "Dans la savane, il fait froid ; dans la forêt, il fait chaud",
+        "La savane n'a aucun arbre ; la forêt n'a aucune herbe",
+        "Il n'y a pas d'animaux dans la forêt"
+      ],
+      "reponse": "La savane a une longue saison sans pluie ; dans la forêt, il pleut toute l'année",
+      "explication": "Les deux milieux sont chauds. Mais la savane connaît une longue saison sèche : on y trouve surtout des herbes, et des arbres dispersés."
+    },
+    {
+      "id": "GL-T1-Q08",
+      "notion": "dispersion des graines",
+      "question": "Un éléphant de forêt mange un fruit, puis dépose la graine plus loin dans ses crottes. Qu'y gagne l'arbre ?",
+      "choix": [
+        "Ses graines germent loin de lui, là où il y a de la place",
+        "Rien : la graine est détruite",
+        "L'éléphant l'arrose en passant",
+        "L'arbre peut se déplacer avec l'éléphant"
+      ],
+      "reponse": "Ses graines germent loin de lui, là où il y a de la place",
+      "explication": "C'est la dispersion des graines. Une graine qui tombe au pied de son arbre manque de lumière et de place ; transportée plus loin, elle a plus de chances de pousser."
+    },
+    {
+      "id": "GL-T1-Q09",
+      "notion": "réseau alimentaire",
+      "question": "Dans un coin de savane, il y a beaucoup moins de lions qu'avant. Que risque-t-il de se passer ensuite ?",
+      "choix": [
+        "Les zèbres et les gnous deviennent plus nombreux, et l'herbe est davantage broutée",
+        "Rien ne change : les espèces ne dépendent pas les unes des autres",
+        "L'herbe pousse plus haut, car plus personne ne la mange",
+        "Les zèbres disparaissent aussi, tout de suite"
+      ],
+      "reponse": "Les zèbres et les gnous deviennent plus nombreux, et l'herbe est davantage broutée",
+      "explication": "Dans un réseau alimentaire, tout se tient : moins de prédateurs, c'est d'abord plus d'herbivores, donc une herbe plus broutée. Un changement à un endroit se propage aux autres."
+    },
+    {
+      "id": "GL-T1-Q10",
+      "notion": "lumière en forêt",
+      "question": "Il est midi. Au sol de la forêt équatoriale, il fait sombre. Pourquoi ?",
+      "choix": [
+        "Les feuilles des grands arbres arrêtent presque toute la lumière",
+        "Le soleil ne passe jamais au-dessus de cette forêt",
+        "Il y a toujours du brouillard au sol",
+        "Le sol de la forêt est noir"
+      ],
+      "reponse": "Les feuilles des grands arbres arrêtent presque toute la lumière",
+      "explication": "Les cimes des grands arbres forment un toit de feuilles, la canopée. Au sol, les plantes ont souvent de très grandes feuilles pour capter le peu de lumière qui reste."
+    }
+  ]
+}

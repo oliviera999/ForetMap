@@ -1,0 +1,582 @@
+{
+  "format": "gl.tenir.adaptations/1",
+  "sens": "du milieu vers l'espèce : le milieu impose une contrainte, la contrainte pose un problème à résoudre, une espèce porte la solution",
+  "consigne": "Relie chaque contrainte du milieu au problème qu'elle pose, puis à l'espèce qui a la solution.",
+  "moteur": "celui des fils cachés (cartes de texte, flèches orientées, raccourci classé « il manque une étape »)",
+  "peuple": "any",
+  "biomes": [
+    {
+      "biome": "jungle_afc",
+      "plateau": 1,
+      "titre": "Les fils de l'adaptation · Forêt équatoriale",
+      "cartes": [
+        [
+          "A",
+          "Sous les grands arbres, il fait très sombre"
+        ],
+        [
+          "B",
+          "Il faut capter le peu de lumière qui passe"
+        ],
+        [
+          "C",
+          "Les plantes du sous-bois ont de très grandes feuilles"
+        ],
+        [
+          "D",
+          "Les fruits poussent tout en haut, dans la canopée"
+        ],
+        [
+          "E",
+          "Il faut atteindre la nourriture à 40 mètres du sol"
+        ],
+        [
+          "F",
+          "Le calao vole de cime en cime et cueille les fruits de son long bec"
+        ],
+        [
+          "G",
+          "Fourmis et termites vivent au fond de leurs galeries"
+        ],
+        [
+          "H",
+          "Il faut les attraper sans pouvoir entrer"
+        ],
+        [
+          "I",
+          "Le pangolin a une langue très longue et collante"
+        ]
+      ],
+      "liens": [
+        [
+          "A",
+          "B"
+        ],
+        [
+          "B",
+          "C"
+        ],
+        [
+          "D",
+          "E"
+        ],
+        [
+          "E",
+          "F"
+        ],
+        [
+          "G",
+          "H"
+        ],
+        [
+          "H",
+          "I"
+        ]
+      ]
+    },
+    {
+      "biome": "savane",
+      "plateau": 1,
+      "titre": "Les fils de l'adaptation · Savane",
+      "cartes": [
+        [
+          "A",
+          "Les arbres sont rares et leurs feuilles sont tout en haut"
+        ],
+        [
+          "B",
+          "Il faut brouter là où les autres n'arrivent pas"
+        ],
+        [
+          "C",
+          "La girafe a un cou et des pattes très longs"
+        ],
+        [
+          "D",
+          "Pendant des mois, il ne pleut pas"
+        ],
+        [
+          "E",
+          "Il faut garder de l'eau en réserve"
+        ],
+        [
+          "F",
+          "Le baobab stocke l'eau dans son tronc"
+        ],
+        [
+          "G",
+          "Le terrain est découvert : rien pour se cacher"
+        ],
+        [
+          "H",
+          "Il faut repérer le danger avant qu'il arrive"
+        ],
+        [
+          "I",
+          "Les suricates postent une sentinelle, debout sur une butte"
+        ]
+      ],
+      "liens": [
+        [
+          "A",
+          "B"
+        ],
+        [
+          "B",
+          "C"
+        ],
+        [
+          "D",
+          "E"
+        ],
+        [
+          "E",
+          "F"
+        ],
+        [
+          "G",
+          "H"
+        ],
+        [
+          "H",
+          "I"
+        ]
+      ]
+    },
+    {
+      "biome": "sahara",
+      "plateau": 2,
+      "titre": "Les fils de l'adaptation · Sahara",
+      "cartes": [
+        [
+          "A",
+          "À midi, il fait 45 °C"
+        ],
+        [
+          "B",
+          "Il faut évacuer la chaleur du corps"
+        ],
+        [
+          "C",
+          "Le fennec a de très grandes oreilles"
+        ],
+        [
+          "D",
+          "Il ne pleut presque jamais"
+        ],
+        [
+          "E",
+          "Il faut aller chercher l'eau très profond"
+        ],
+        [
+          "F",
+          "L'acacia a des racines de plusieurs dizaines de mètres"
+        ],
+        [
+          "G",
+          "Le sable est mou et brûlant"
+        ],
+        [
+          "H",
+          "Il faut marcher sans s'enfoncer"
+        ],
+        [
+          "I",
+          "L'addax et le dromadaire ont des pieds très larges"
+        ]
+      ],
+      "liens": [
+        [
+          "A",
+          "B"
+        ],
+        [
+          "B",
+          "C"
+        ],
+        [
+          "D",
+          "E"
+        ],
+        [
+          "E",
+          "F"
+        ],
+        [
+          "G",
+          "H"
+        ],
+        [
+          "H",
+          "I"
+        ]
+      ]
+    },
+    {
+      "biome": "foret_mediterraneenne",
+      "plateau": 2,
+      "titre": "Les fils de l'adaptation · Forêt méditerranéenne",
+      "cartes": [
+        [
+          "A",
+          "L'été est chaud et presque sans pluie"
+        ],
+        [
+          "B",
+          "Il faut perdre le moins d'eau possible"
+        ],
+        [
+          "C",
+          "Le chêne vert a de petites feuilles dures et cirées"
+        ],
+        [
+          "I",
+          "Le ciste a des feuilles couvertes de poils blancs"
+        ],
+        [
+          "D",
+          "Le feu passe souvent dans la garrigue"
+        ],
+        [
+          "E",
+          "Il faut protéger le tronc des flammes"
+        ],
+        [
+          "F",
+          "Le chêne-liège a une écorce très épaisse"
+        ],
+        [
+          "G",
+          "Il faut ressemer vite après l'incendie"
+        ],
+        [
+          "H",
+          "Le pin d'Alep garde des cônes qui s'ouvrent à la chaleur"
+        ]
+      ],
+      "liens": [
+        [
+          "A",
+          "B"
+        ],
+        [
+          "B",
+          "C"
+        ],
+        [
+          "B",
+          "I"
+        ],
+        [
+          "D",
+          "E"
+        ],
+        [
+          "E",
+          "F"
+        ],
+        [
+          "D",
+          "G"
+        ],
+        [
+          "G",
+          "H"
+        ]
+      ],
+      "note": "Deux espèces répondent au même problème (B → C et B → I), et un même milieu pose deux problèmes (D → E et D → G)."
+    },
+    {
+      "biome": "foret_caducifoliee",
+      "plateau": 3,
+      "titre": "Les fils de l'adaptation · Forêt tempérée",
+      "cartes": [
+        [
+          "A",
+          "En hiver, il gèle et les jours sont courts"
+        ],
+        [
+          "B",
+          "Des feuilles tendres gèleraient"
+        ],
+        [
+          "C",
+          "Le chêne perd ses feuilles en automne"
+        ],
+        [
+          "D",
+          "La nourriture devient rare"
+        ],
+        [
+          "E",
+          "Le hérisson hiberne : son cœur bat au ralenti"
+        ],
+        [
+          "I",
+          "L'écureuil cache des provisions à l'automne"
+        ],
+        [
+          "F",
+          "Au printemps, les arbres font vite de l'ombre"
+        ],
+        [
+          "G",
+          "Il faut fleurir avant que la lumière manque"
+        ],
+        [
+          "H",
+          "L'anémone des bois fleurit dès le mois de mars"
+        ]
+      ],
+      "liens": [
+        [
+          "A",
+          "B"
+        ],
+        [
+          "B",
+          "C"
+        ],
+        [
+          "A",
+          "D"
+        ],
+        [
+          "D",
+          "E"
+        ],
+        [
+          "D",
+          "I"
+        ],
+        [
+          "F",
+          "G"
+        ],
+        [
+          "G",
+          "H"
+        ]
+      ],
+      "note": "L'hiver pose deux problèmes (A → B et A → D) ; deux espèces répondent chacune à sa façon au manque de nourriture (D → E et D → I)."
+    },
+    {
+      "biome": "landes",
+      "plateau": 3,
+      "titre": "Les fils de l'adaptation · Landes et tourbières",
+      "cartes": [
+        [
+          "A",
+          "Le sol est très pauvre : presque pas d'azote"
+        ],
+        [
+          "B",
+          "Il faut trouver l'azote ailleurs que dans le sol"
+        ],
+        [
+          "C",
+          "La drosera attrape des insectes avec ses poils collants"
+        ],
+        [
+          "D",
+          "L'ajonc abrite dans ses racines des bactéries qui captent l'azote de l'air"
+        ],
+        [
+          "E",
+          "Le vent souffle fort et rien n'abrite"
+        ],
+        [
+          "F",
+          "Il faut rester bas et perdre peu d'eau"
+        ],
+        [
+          "G",
+          "La bruyère reste basse, avec de toutes petites feuilles"
+        ],
+        [
+          "H",
+          "Il n'y a presque pas d'arbres où faire son nid"
+        ],
+        [
+          "I",
+          "L'engoulevent niche au sol, couleur de feuille morte"
+        ]
+      ],
+      "liens": [
+        [
+          "A",
+          "B"
+        ],
+        [
+          "B",
+          "C"
+        ],
+        [
+          "B",
+          "D"
+        ],
+        [
+          "E",
+          "F"
+        ],
+        [
+          "F",
+          "G"
+        ],
+        [
+          "H",
+          "I"
+        ]
+      ],
+      "note": "H → I est un fil direct, sans carte entre les deux."
+    },
+    {
+      "biome": "taiga",
+      "plateau": 4,
+      "titre": "Les fils de l'adaptation · Taïga",
+      "cartes": [
+        [
+          "A",
+          "L'hiver dure six mois, sous une neige épaisse"
+        ],
+        [
+          "B",
+          "Il faut que la neige ne casse pas les branches"
+        ],
+        [
+          "C",
+          "L'épicéa a une forme pointue : la neige glisse"
+        ],
+        [
+          "D",
+          "Il faut marcher sur la neige sans s'enfoncer"
+        ],
+        [
+          "E",
+          "Le lièvre variable a de larges pattes, comme des raquettes"
+        ],
+        [
+          "F",
+          "Il faut passer inaperçu sur le blanc"
+        ],
+        [
+          "G",
+          "Le pelage du lièvre variable blanchit en hiver"
+        ],
+        [
+          "H",
+          "L'été est court : quelques semaines pour pousser"
+        ],
+        [
+          "I",
+          "Les conifères gardent leurs aiguilles, prêtes dès le premier soleil"
+        ]
+      ],
+      "liens": [
+        [
+          "A",
+          "B"
+        ],
+        [
+          "B",
+          "C"
+        ],
+        [
+          "A",
+          "D"
+        ],
+        [
+          "D",
+          "E"
+        ],
+        [
+          "A",
+          "F"
+        ],
+        [
+          "F",
+          "G"
+        ],
+        [
+          "H",
+          "I"
+        ]
+      ],
+      "note": "La neige pose trois problèmes à trois endroits du corps ou de l'arbre ; H → I est un fil direct."
+    },
+    {
+      "biome": "toundra",
+      "plateau": 4,
+      "titre": "Les fils de l'adaptation · Toundra",
+      "cartes": [
+        [
+          "A",
+          "Il fait jusqu'à −40 °C et le vent ne s'arrête pas"
+        ],
+        [
+          "B",
+          "Il faut garder la chaleur du corps"
+        ],
+        [
+          "C",
+          "Le bœuf musqué porte une double fourrure"
+        ],
+        [
+          "D",
+          "Le renard polaire a de petites oreilles et un museau court"
+        ],
+        [
+          "E",
+          "Il faut rester à l'abri du vent"
+        ],
+        [
+          "F",
+          "Le saule arctique rampe au sol : il mesure quelques centimètres"
+        ],
+        [
+          "G",
+          "L'été ne dure que quelques semaines"
+        ],
+        [
+          "H",
+          "Il faut réchauffer vite ses graines"
+        ],
+        [
+          "I",
+          "Le pavot arctique tourne sa fleur vers le soleil, comme une parabole"
+        ]
+      ],
+      "liens": [
+        [
+          "A",
+          "B"
+        ],
+        [
+          "B",
+          "C"
+        ],
+        [
+          "B",
+          "D"
+        ],
+        [
+          "A",
+          "E"
+        ],
+        [
+          "E",
+          "F"
+        ],
+        [
+          "G",
+          "H"
+        ],
+        [
+          "H",
+          "I"
+        ]
+      ],
+      "note": "Le renard polaire (petites oreilles) répond au fennec du plateau 2 (grandes oreilles) : même organe, contrainte inverse."
+    }
+  ]
+}

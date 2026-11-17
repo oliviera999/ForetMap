@@ -32,7 +32,8 @@ describe('GLTenirSettings', () => {
         'gameplay.tenir_enabled': true,
         'gameplay.tenir_voile': false,
         'gameplay.tenir_surface': '"tablette"',
-        'gameplay.tenir_fouilles_par_tour': '{"gnome":1,"unicorn":2}',
+        'gameplay.tenir_fouilles_par_tour': 2,
+        'gameplay.tenir_voile_bonus_par_plateau': '{"1":3,"2":4,"3":5,"4":6}',
       },
     });
     const checkboxes = screen.getAllByRole('checkbox');
@@ -40,7 +41,7 @@ describe('GLTenirSettings', () => {
     const voile = screen.getByLabelText('Le voile');
     expect(voile.checked).toBe(false);
     expect(screen.getAllByRole('combobox')[0].value).toBe('tablette');
-    expect(screen.getByLabelText('Licornes').value).toBe('2');
+    expect(screen.getByLabelText('Fouilles par équipe et par tour').value).toBe('2');
   });
 
   test('appelle onToggle sur un interrupteur et onSaveSetting sur la surface', () => {
@@ -66,14 +67,14 @@ describe('GLTenirSettings', () => {
     const onSaveSetting = vi.fn();
     renderSettings({
       onSaveSetting,
-      settings: { 'gameplay.tenir_fouilles_par_tour': { gnome: 1, unicorn: 2 } },
+      settings: { 'gameplay.tenir_fouille_seuils': { chaud: 0.06, tiede: 0.15 } },
     });
-    const gnomes = screen.getByLabelText('Gnomes');
-    fireEvent.change(gnomes, { target: { value: '2' } });
-    fireEvent.blur(gnomes);
-    expect(onSaveSetting).toHaveBeenCalledWith('gameplay.tenir_fouilles_par_tour', {
-      gnome: 2,
-      unicorn: 2,
+    const chaud = screen.getByLabelText('Chaud (≤)');
+    fireEvent.change(chaud, { target: { value: '0.05' } });
+    fireEvent.blur(chaud);
+    expect(onSaveSetting).toHaveBeenCalledWith('gameplay.tenir_fouille_seuils', {
+      chaud: 0.05,
+      tiede: 0.15,
     });
   });
 

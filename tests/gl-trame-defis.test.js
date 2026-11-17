@@ -229,12 +229,24 @@ test('Retisser : classement de ses flèches, sauvegarde stricte, fin de niveau �
   assert.equal(fin.status, 200, JSON.stringify(fin.body));
   assert.equal(fin.body.defi.statut, 'reussi');
   assert.equal(fin.body.defi.complet, true);
-  assert.deepEqual(fin.body.reussite, {
+  const { piste, lumiere, ...reussite } = fin.body.reussite;
+  assert.deepEqual(reussite, {
     premiere: true,
     page: true,
     pagesEpuisees: false,
     message: null,
   });
+  // M20 : la réussite ouvre aussi une piste (une page endormie se révèle) ; en individuel, la
+  // Lumière ne bouge pas.
+  assert.equal(lumiere, 0);
+  if (piste) {
+    const zone = await db.queryOne(
+      `SELECT p.etat FROM gl_game_chasse_pages p INNER JOIN gl_chasse_zones z ON z.id = p.zone_id
+        WHERE p.game_id = ? AND z.zone_key = ?`,
+      [ctx.game.id, piste],
+    );
+    assert.equal(zone.etat, 'revelee');
+  }
 
   // Récompense : une page de veillée à son nom, hors zones de chasse ; aucune ressource.
   const ligne = await db.queryOne(
@@ -304,6 +316,8 @@ test('plafond : deux pages par semaine par cette voie ; la troisième unité com
     page: false,
     pagesEpuisees: false,
     message: null,
+    piste: null,
+    lumiere: 0,
   });
   const pages = await db.queryOne(
     'SELECT COUNT(*) AS n FROM gl_trame_reussites WHERE player_id = ? AND page_feuillet_code IS NOT NULL',
@@ -555,6 +569,12 @@ test('mode équipe : tablette hors tour ou prof ; chaque membre présent est com
     'une ligne par membre présent',
   );
   assert.equal(await sommeDesBourses(), bourses, 'aucune ressource');
+  // M20 : en mode équipe (la séance de Trame), la réussite ajoute 10 à la Lumière.
+  assert.equal(fin.body.reussite.lumiere, 10);
+  const lumiere = await db.queryOne('SELECT total FROM gl_game_lumiere WHERE game_id = ?', [
+    ctx.game.id,
+  ]);
+  assert.ok(Number(lumiere?.total) >= 10, JSON.stringify(lumiere));
 
   // Le prof lance pour une équipe (teamId obligatoire) et joue le défi d'équipe.
   assert.equal((await ouvrir(ctx.adminToken, { type: 'fils', unite: 'p1' })).status, 400);

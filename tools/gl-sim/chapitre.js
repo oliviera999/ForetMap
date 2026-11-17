@@ -37,7 +37,28 @@ function compteursVides() {
     actionsVeillee: 0,
     equipesAbsentes: 0,
     invariantsVerifies: 0,
+    // Ensemble unifié (M2) : couples équipe × séance où l'équipe pouvait (ou non) fouiller.
+    couplesFouille: 0,
+    couplesSansFouille: 0,
   };
+}
+
+/** Rang de chaque équipe sur le chemin, lu juste avant la clôture (la caravane les porte ensuite). */
+async function rangsAvantSeuil(db, partie) {
+  const markers = await db.queryAll(
+    'SELECT id FROM gl_chapter_markers WHERE chapter_id = (SELECT chapter_id FROM gl_games WHERE id = ?) ORDER BY order_index ASC, id ASC',
+    [partie.gameId],
+  );
+  const rang = new Map(markers.map((m, i) => [Number(m.id), i]));
+  const teams = await db.queryAll(
+    'SELECT id, type, position_marker_id FROM gl_teams WHERE game_id = ?',
+    [partie.gameId],
+  );
+  return teams.map((t) => ({
+    teamId: Number(t.id),
+    type: String(t.type),
+    rang: rang.has(Number(t.position_marker_id)) ? rang.get(Number(t.position_marker_id)) : 0,
+  }));
 }
 
 /**
@@ -133,6 +154,8 @@ async function jouerChapitre({
   for (const eq of partie.equipes) eq.presents = [];
 
   const seances = [];
+  // Ensemble unifié (§ 6.12) : écart de position Licornes − Gnomes, relevé en fin de séance.
+  const rangsParSeance = [];
   let finParCamp = false;
   for (let s = 1; s <= seancesMax; s += 1) {
     const prof = scenario.prof || {};
@@ -147,6 +170,7 @@ async function jouerChapitre({
       sessionsEquipe: scenario.sessionsEquipe === true,
     });
     seances.push(resume);
+    rangsParSeance.push(await rangsAvantSeuil(ctx.db, partie));
     if (crochets.apresSeance) await crochets.apresSeance(ctx, resume, s);
     if (resume.toutesAuCamp) {
       finParCamp = true;
@@ -155,6 +179,7 @@ async function jouerChapitre({
     if (s < seancesMax) await jouerVeillee(ctx, { jours: joursVeillee });
   }
   client.setContexte({ phase: 'seuil', equipe: null });
+  const rangs = await rangsAvantSeuil(ctx.db, partie);
   const end = await client.appel({
     token: mjToken,
     method: 'post',
@@ -169,7 +194,12 @@ async function jouerChapitre({
     );
   await ctx.verifierInvariants('clôture');
   if (crochets.finChapitre) await crochets.finChapitre(ctx);
-  const mesures = await mesurerChapitre(ctx, { seances: seances.length, finParCamp });
+  const mesures = await mesurerChapitre(ctx, {
+    seances: seances.length,
+    finParCamp,
+    rangs,
+    rangsParSeance,
+  });
   return { ctx, partie, seances, mesures };
 }
 

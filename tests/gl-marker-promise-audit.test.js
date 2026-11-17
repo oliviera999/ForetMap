@@ -207,10 +207,14 @@ test('auditTenirBranchPromises : un libellé « passe ton tour » sans passTurn,
       eventMeta: { tonalite: 'souffle' },
     }),
   };
+  // M3 : une case Souffle ne fait plus ni reculer ni passer le tour (un seul dé au tour suivant).
   const issues = auditTenirBranchPromises(souffle);
   assert.deepStrictEqual(
     issues.map((i) => [i.code, i.branch, i.resource]),
-    [['TENIR_BRANCHE_NON_TENUE', 'unicorn', 'passe le tour']],
+    [
+      ['TENIR_BRANCHE_NON_TENUE', 'gnome', 'déplacement'],
+      ['TENIR_BRANCHE_NON_TENUE', 'unicorn', 'passe le tour'],
+    ],
   );
   const trame = {
     id: 124,
@@ -225,10 +229,11 @@ test('auditTenirBranchPromises : un libellé « passe ton tour » sans passTurn,
     }),
   };
   const trameIssues = auditTenirBranchPromises(trame);
-  // Le moteur donne +1 : la branche gnome (« +2 ») ment, la branche licorne (« +1 ») est juste.
+  // M3 : le moteur donne +1 gemme aux deux peuples — la branche gnome (« +2 cœurs ») ment, la
+  // branche licorne (« +1 gemme ») est juste.
   assert.deepStrictEqual(
     trameIssues.map((i) => [i.branch, i.promised, i.machine]),
-    [['gnome', 2, 1]],
+    [['gnome', 2, 0]],
   );
   // Une perte en cas d'échec dans un libellé est une erreur même si la branche l'applique.
   const defi = {

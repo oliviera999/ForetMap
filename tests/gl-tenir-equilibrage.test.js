@@ -4,8 +4,8 @@
  * « Tenir à deux » — équilibrage du 7 novembre 2026 (migration 338), un test par réglage,
  * activé et désactivé :
  * - E1 `tenir_voile_bonus_par_plateau` {1:3, 2:4, 3:5, 4:6}, migration conditionnelle ;
- * - E2 `tenir_fouilles_reparation_gnome` : fouille de réparation d'une équipe gnome, page pâlie
- *   seulement (`FOUILLE_REPARATION_SEULEMENT`), comptée dans le quota affiché ;
+ * - E2 `tenir_fouilles_reparation_gnome` : retiré par l'ensemble unifié (M2, 17 novembre 2026),
+ *   cf. `tests/gl-ensemble-unifie-fouilles.test.js` ;
  * - E3 `tenir_palissement_rang_plancher` : une zone de rang < plancher ne pâlit pas avant que le
  *   voile atteigne le plancher ;
  * - E4 `tenir_surplus_reserve` : surplus au plafond → réserve de la caravane, visible de l'équipe
@@ -50,15 +50,6 @@ async function zoneId(zoneKey) {
   return Number(row.id);
 }
 
-async function setPageEtat(ctx, zoneKey, etat) {
-  const id = await zoneId(zoneKey);
-  await execute(
-    `INSERT INTO gl_game_chasse_pages (game_id, zone_id, etat, updated_at) VALUES (?, ?, ?, NOW())
-     ON DUPLICATE KEY UPDATE etat = VALUES(etat), trouvee_par_team_id = NULL, tenue_par_team_id = NULL, updated_at = NOW()`,
-    [ctx.game.id, id, etat],
-  );
-}
-
 async function pageEtat(ctx, zoneKey) {
   const id = await zoneId(zoneKey);
   const row = await queryOne(
@@ -98,7 +89,6 @@ before(async () => {
 });
 
 after(async () => {
-  await setGlSetting('gameplay.tenir_fouilles_reparation_gnome', 1);
   await setGlSetting('gameplay.tenir_palissement_rang_plancher', 8);
   await setGlSetting('gameplay.tenir_surplus_reserve', true);
   await setGlSetting('gameplay.tenir_olu_bourse_pleine', true);
@@ -114,7 +104,7 @@ test('E1 : le dé gris vaut 1d6 + {3,4,5,6} par défaut (code, fichier de régla
     ),
   );
   assert.deepEqual(fichier.defaut.voile_bonus_par_plateau, { 1: 3, 2: 4, 3: 5, 4: 6 });
-  assert.equal(fichier.defaut.fouilles_reparation_gnome, 1);
+  assert.equal(fichier.defaut.fouilles_reparation_gnome, undefined);
   assert.equal(fichier.defaut.palissement_rang_plancher, 8);
   assert.equal(fichier.defaut.surplus_reserve, true);
   assert.equal(fichier.defaut.olu_bourse_pleine, true);
@@ -174,116 +164,6 @@ test('E1 : le dé gris vaut 1d6 + {3,4,5,6} par défaut (code, fichier de régla
   );
 });
 
-// ---------------------------------------------------------------- E2
-test('E2 : une équipe gnome a une fouille de réparation, seulement sur une page pâlie ; comptée dans le quota ; 0 pour les licornes et quand le réglage vaut 0', async () => {
-  const ctx = await nouvellePartie('e2');
-  const gnome = membres(ctx, 0)[0];
-  const licorne = membres(ctx, 2)[0];
-  // Sans page pâlie : pas de fouille de réparation.
-  let carnet = await request(app).get(api(ctx, '/chasse')).set(auth(gnome.token)).expect(200);
-  assert.deepEqual(
-    { q: carnet.body.fouilles.quota, r: carnet.body.fouilles.reparation.quota },
-    { q: 1, r: 0 },
-  );
-  await setPageEtat(ctx, 'cz-p1-02', 'palie');
-  carnet = await request(app).get(api(ctx, '/chasse')).set(auth(gnome.token)).expect(200);
-  assert.deepEqual(
-    {
-      q: carnet.body.fouilles.quota,
-      r: carnet.body.fouilles.reparation.quota,
-      rr: carnet.body.fouilles.reparation.restantes,
-    },
-    { q: 1, r: 1, rr: 1 },
-    '« 1 + 1 réparation »',
-  );
-  const carnetLicorne = await request(app)
-    .get(api(ctx, '/chasse'))
-    .set(auth(licorne.token))
-    .expect(200);
-  assert.deepEqual(
-    { q: carnetLicorne.body.fouilles.quota, r: carnetLicorne.body.fouilles.reparation.quota },
-    { q: 2, r: 0 },
-    'une équipe licorne ne répare pas',
-  );
-  // La console du tour (prof) voit le quota par équipe.
-  const tour = await request(app)
-    .get(api(ctx, '/tenir/tour'))
-    .set(auth(ctx.adminToken))
-    .expect(200);
-  const carteGnome = tour.body.teams.find((t) => Number(t.id) === Number(ctx.teams[0].id));
-  assert.equal(carteGnome.fouilles.reparation.quota, 1);
-
-  // 1. Fouille générale à côté : consomme la fouille de base.
-  const f1 = await request(app)
-    .post(api(ctx, '/chasse/fouiller'))
-    .set(auth(gnome.token))
-    .send({ x: 0.9, y: 0.9 });
-  assert.equal(f1.status, 201, JSON.stringify(f1.body));
-  assert.deepEqual(
-    {
-      r: f1.body.fouilles.restantes,
-      rep: f1.body.fouilles.reparation.restantes,
-      flag: f1.body.reparation,
-    },
-    { r: 0, rep: 1, flag: false },
-  );
-  // 2. Une seconde fouille à côté : la fouille bonus ne vise qu'une page pâlie.
-  const f2 = await request(app)
-    .post(api(ctx, '/chasse/fouiller'))
-    .set(auth(gnome.token))
-    .send({ x: 0.9, y: 0.85 });
-  assert.equal(f2.status, 409);
-  assert.equal(f2.body.code, 'FOUILLE_REPARATION_SEULEMENT');
-  // 3. Sur la page pâlie : la fouille de réparation est consommée, une question est posée.
-  const f3 = await request(app)
-    .post(api(ctx, '/chasse/fouiller'))
-    .set(auth(gnome.token))
-    .send({ x: 0.55, y: 0.3 });
-  assert.equal(f3.status, 201, JSON.stringify(f3.body));
-  assert.equal(f3.body.verdict, 'zone');
-  assert.equal(f3.body.reparation, true);
-  assert.ok(f3.body.question?.presentationToken);
-  assert.equal(f3.body.fouilles.reparation.restantes, 0);
-  const empreintes = await queryOne(
-    'SELECT COUNT(*) AS n, SUM(reparation) AS r FROM gl_game_chasse_empreintes WHERE game_id = ? AND team_id = ?',
-    [ctx.game.id, ctx.teams[0].id],
-  );
-  assert.deepEqual({ n: Number(empreintes.n), r: Number(empreintes.r) }, { n: 2, r: 1 });
-  // 4. Plus rien.
-  const f4 = await request(app)
-    .post(api(ctx, '/chasse/fouiller'))
-    .set(auth(gnome.token))
-    .send({ x: 0.55, y: 0.31 });
-  assert.equal(f4.status, 409);
-  assert.equal(f4.body.code, 'FOUILLES_EPUISEES');
-  // Invariant « fouilles du tour ≤ quota » tenu.
-  const inv = await checkTenirInvariantsFromDb(db, ctx.game.id);
-  assert.deepEqual(inv.violations, []);
-  const f = inv.snapshot.fouilles.find((x) => Number(x.teamId) === Number(ctx.teams[0].id));
-  assert.deepEqual(
-    { n: f.n, rep: f.nReparation, q: f.quotaMax, qr: f.quotaReparation },
-    { n: 2, rep: 1, q: 1, qr: 1 },
-  );
-  // Réponse juste sur la page pâlie : réparée, +1 cœur par Gnome (règle § 5).
-  const right = await bonneReponse(f3.body.question);
-  const avant = await readPlayerBourses(gnome.id);
-  const rep = await request(app).post(api(ctx, '/chasse/repondre')).set(auth(gnome.token)).send({
-    presentationToken: f3.body.question.presentationToken,
-    questionCode: f3.body.question.questionCode,
-    choiceId: right.id,
-  });
-  assert.equal(rep.status, 200, JSON.stringify(rep.body));
-  assert.equal(rep.body.etat, 'reparee');
-  assert.equal((await readPlayerBourses(gnome.id)).health, avant.health + 1);
-
-  // Désactivé : plus de fouille de réparation, même avec une page pâlie.
-  await setGlSetting('gameplay.tenir_fouilles_reparation_gnome', 0);
-  await setPageEtat(ctx, 'cz-p1-01', 'palie');
-  carnet = await request(app).get(api(ctx, '/chasse')).set(auth(gnome.token)).expect(200);
-  assert.equal(carnet.body.fouilles.reparation.quota, 0);
-  await setGlSetting('gameplay.tenir_fouilles_reparation_gnome', 1);
-});
-
 // ---------------------------------------------------------------- E3
 test('E3 : plancher de pâlissement — une zone proche du départ ne pâlit pas avant que le voile atteigne le plancher ; 0 = comportement d’avant', async () => {
   const ctx = await nouvellePartie('e3');
@@ -332,8 +212,9 @@ test('E4 : le surplus au plafond va à la réserve de la caravane ; visible de l
   const initial = {};
   for (const p of ctx.players) initial[p.id] = await readPlayerBourses(p.id);
 
-  // Page trouvée par les Gnomes, tenue par les Licornes : +1 à chaque membre des deux équipes,
-  // tous au plafond de leur ressource → tout part en réserve (3 cœurs, 2 gemmes).
+  // Page trouvée par les Gnomes, tenue par les Licornes : +1 gemme à chaque lecteur (M19), tous
+  // au plafond → tout part en réserve des Licornes (2 gemmes) ; l'équipe qui a trouvé ne gagne
+  // rien.
   const f = await request(app)
     .post(api(ctx, '/chasse/fouiller'))
     .set(auth(gnomes[0].token))
@@ -374,7 +255,7 @@ test('E4 : le surplus au plafond va à la réserve de la caravane ; visible de l
   }
   assert.deepEqual(await loadReserve(db, ctx.game.id, ctx.teams[0].id), {
     teamId: Number(ctx.teams[0].id),
-    health: 3,
+    health: 0,
     power: 0,
   });
   assert.deepEqual(await loadReserve(db, ctx.game.id, ctx.teams[2].id), {
@@ -386,7 +267,21 @@ test('E4 : le surplus au plafond va à la réserve de la caravane ; visible de l
     "SELECT team_id, delta_health, delta_power FROM gl_resource_ledger WHERE game_id = ? AND kind = 'reserve' AND cause = 'reserve_entree' ORDER BY id",
     [ctx.game.id],
   );
-  assert.equal(entrees.length, 5, 'une ligne de réserve par surplus');
+  assert.equal(entrees.length, 2, 'une ligne de réserve par surplus');
+  // Un surplus de cœurs des Gnomes au plafond (gain d'une autre source) part aussi en réserve.
+  await withTransaction(async (tx) => {
+    for (const p of gnomes) {
+      await applyPlayerVitalityDelta(tx, {
+        playerId: p.id,
+        healthDelta: 1,
+        powerDelta: 0,
+        caps: { maxHealth: 8, maxPower: 8 },
+        cause: 'trame',
+        gameId: ctx.game.id,
+        reserveTeamId: Number(ctx.teams[0].id),
+      });
+    }
+  });
   const inv1 = await checkTenirInvariantsFromDb(db, ctx.game.id);
   assert.deepEqual(inv1.violations, []);
   assert.equal(inv1.snapshot.reserves.length, 4);
@@ -507,9 +402,7 @@ test('E4 désactivé : le surplus est perdu comme avant ; invariants purs de la 
       },
     ],
     reserves: [{ teamId: 10, health: 1, power: 0 }],
-    fouilles: [
-      { roundNumber: 1, teamId: 10, n: 2, nReparation: 1, quotaMax: 1, quotaReparation: 1 },
-    ],
+    fouilles: [{ roundNumber: 1, teamId: 10, n: 2, quotaMax: 2 }],
     relances: [],
     relancesMax: 1,
   };
@@ -530,9 +423,7 @@ test('E4 désactivé : le surplus est perdu comme avant ; invariants purs de la 
   assert.ok(
     codes({
       ...snap,
-      fouilles: [
-        { roundNumber: 1, teamId: 10, n: 3, nReparation: 1, quotaMax: 1, quotaReparation: 1 },
-      ],
+      fouilles: [{ roundNumber: 1, teamId: 10, n: 3, quotaMax: 2 }],
     }).includes('FOUILLES_QUOTA'),
   );
   assert.ok(

@@ -20,6 +20,7 @@ const {
   createTenirGame,
   importExempleChasse,
   ouvrirTourEnJeu,
+  activerSortRetire,
   readPlayerBourses,
   setPlayerBourses,
 } = require('./helpers/glTenirFixtures');
@@ -289,7 +290,7 @@ test('Grand Regard : 1/tour/partie, +1 fouille à chaque équipe ; Bourrasque : 
   const carnet = await request(app)
     .get(api('/chasse'))
     .set(auth(p(0).token));
-  assert.equal(carnet.body.fouilles.quota, 2, 'gnome : 1 + 1 (Grand Regard)');
+  assert.equal(carnet.body.fouilles.quota, 3, 'gnome : 2 + 1 (Grand Regard)');
   const second = await draft(p(3).token, { spellCode: 'SL040', teamId: lB().id });
   assert.equal(second.status, 409);
   assert.equal(second.body.code, 'SPELL_LIMITE');
@@ -342,10 +343,11 @@ test('Sentier : avant le jet seulement ; la prochaine case Souffle n’a pas d�
 });
 
 // Lot 2 : la Cordée est OFFERTE — l'équipe lanceuse paie seule (4, dans la ressource de son
-// peuple), la partenaire de l'autre peuple ne paie rien.
-test('Cordée offerte : la lanceuse paie seule, avant les jets des deux équipes ; le meilleur des deux jets', async () => {
-  await place(gA().id, 0);
-  await place(lA().id, 0);
+// peuple), la partenaire de l'autre peuple ne paie rien. Ensemble unifié (M6) : lancée pendant
+// le jeu, elle agit au PROCHAIN tour des deux équipes.
+test('Cordée offerte : la lanceuse paie seule, pendant le jeu ; au prochain tour, le meilleur des deux jets', async () => {
+  for (const t of [gA(), lA(), gB(), lB()]) await place(t.id, 0);
+  // La lanceuse a déjà jeté ce tour : la fenêtre « jeu » l'accepte quand même.
   await execute('UPDATE gl_teams SET last_dice_round_number = 0 WHERE id IN (?, ?)', [
     gA().id,
     lA().id,
@@ -361,6 +363,7 @@ test('Cordée offerte : la lanceuse paie seule, avant les jets des deux équipes
   });
   assert.equal(d.status, 201, JSON.stringify(d.body));
   assert.deepEqual(d.body.draft.required, { gems: 0, hearts: 4 });
+  assert.equal(d.body.draft.offerte, false, 'plateau 3 : rien d’offert');
   const parts = d.body.draft.suggestedContributions;
   assert.equal(
     parts.reduce((s, c) => s + c.hearts, 0),
@@ -377,7 +380,28 @@ test('Cordée offerte : la lanceuse paie seule, avant les jets des deux équipes
   );
   const l = await launch(p(0).token, d.body.draft.id);
   assert.equal(l.status, 200, JSON.stringify(l.body));
+  const round = Number(
+    (await queryOne('SELECT current_round_number AS r FROM gl_games WHERE id = ?', [ctx.game.id]))
+      .r,
+  );
+  const effet = await queryOne(
+    "SELECT round_number FROM gl_game_tenir_effets WHERE game_id = ? AND kind = 'cordee' ORDER BY id DESC LIMIT 1",
+    [ctx.game.id],
+  );
+  assert.equal(Number(effet.round_number), round + 1, 'effet au prochain tour');
 
+  // Tour suivant (les quatre équipes à égalité : pas de vent).
+  await request(app)
+    .post(api('/tenir/tour/phase'))
+    .set(auth(ctx.adminToken))
+    .send({ phase: 'souffle', dort: true })
+    .expect(200);
+  await request(app)
+    .post(api('/tenir/tour/phase'))
+    .set(auth(ctx.adminToken))
+    .send({ phase: 'clos' })
+    .expect(200);
+  await ouvrirTourEnJeu(request, app, ctx);
   const j1 = await request(app)
     .post(api('/tenir/lancer'))
     .set(auth(p(0).token))
@@ -410,7 +434,9 @@ test('Relais : l’équipe la plus en retard rejoint la case du lanceur (1/tour/
   assert.equal(await teamIndex(gB().id), await teamIndex(gA().id));
 });
 
-test('Farce : 1/séance/équipe, la mascotte d’une autre équipe danse ; Nommer (prof) : en file puis effet appliqué avec zoneKey', async () => {
+test('Farce : 1/séance/équipe, la mascotte d’une autre équipe danse ; Nommer (prof) : en file puis effet appliqué avec zoneKey', async (t) => {
+  // Nommer est sorti du grimoire (ensemble unifié, M6) : remis le temps du test.
+  t.after(await activerSortRetire(ctx.chapter.id, 'SL041'));
   await setPlayerBourses(p(3).id, 3, 3);
   const f = await cast(p(3).token, {
     spellCode: 'SL036',
@@ -476,7 +502,9 @@ test('Farce : 1/séance/équipe, la mascotte d’une autre équipe danse ; Nomme
   );
 });
 
-test('Héritage : au seuil seulement, 1/chapitre/élève, versé à l’ouverture de la partie suivante', async () => {
+test('Héritage : au seuil seulement, 1/chapitre/élève, versé à l’ouverture de la partie suivante', async (t) => {
+  // Héritage est sorti du grimoire (ensemble unifié, M6) : remis le temps du test.
+  t.after(await activerSortRetire(ctx.chapter.id, 'SL033'));
   await setPlayerBourses(p(2).id, 3, 5);
   const inGame = await draft(p(2).token, {
     spellCode: 'SL033',
@@ -545,7 +573,8 @@ test('Esquive : 1/trimestre/élève (prof) ; sort proposé → 409 ; Lumière �
   assert.equal(propose.body.code, 'SPELL_NOT_OFFICIEL');
   await execute("UPDATE gl_spells SET statut = 'officiel' WHERE spell_code = 'SL047'");
 
+  // Le sort « Lumière » est sorti du grimoire (ensemble unifié, M17) : plus lançable.
   const lumiere = await draft(ctx.adminToken, { spellCode: 'SL050', teamId: lA().id });
-  assert.equal(lumiere.status, 409);
-  assert.equal(lumiere.body.code, 'SPELL_CLASSE');
+  assert.equal(lumiere.status, 400, JSON.stringify(lumiere.body));
+  assert.match(lumiere.body.error, /pas disponible pour ce chapitre/);
 });

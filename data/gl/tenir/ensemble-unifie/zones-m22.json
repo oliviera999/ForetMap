@@ -1,0 +1,447 @@
+{
+  "format": "gl.tenir.zones-m22/1",
+  "principe": "M22 : chaque question de zone trouve sa réponse sur le site. `especes` : la première fiche est celle qui donne la réponse (les autres servent aux pistes de veillée). `glossaire` : termes qui donnent la réponse quand elle n'est pas dans une fiche. `question_code` : seulement si la question change.",
+  "zones": {
+    "cz-p1-01": {
+      "especes": [
+        "SP0033"
+      ]
+    },
+    "cz-p1-02": {
+      "especes": [
+        "SP0026"
+      ]
+    },
+    "cz-p1-03": {
+      "especes": [
+        "SP0029",
+        "SP0034"
+      ],
+      "glossaire": [
+        "GL0162",
+        "GL0032"
+      ],
+      "note": "réponse dans le glossaire (microclimat, canopée)"
+    },
+    "cz-p1-04": {
+      "especes": [
+        "SP0277"
+      ],
+      "note": "lien corrigé : la fiche Fourmi magnan est à créer (faits ajoutés) ; termite et iroko retirés"
+    },
+    "cz-p1-05": {
+      "especes": [
+        "SP0116",
+        "SP0115",
+        "SP0110"
+      ],
+      "glossaire": [
+        "GL0239"
+      ],
+      "note": "réponse dans le glossaire (savane)"
+    },
+    "cz-p1-06": {
+      "especes": [
+        "SP0111",
+        "SP0110",
+        "SP0097"
+      ]
+    },
+    "cz-p1-07": {
+      "especes": [
+        "SP0106"
+      ]
+    },
+    "cz-p1-08": {
+      "especes": [
+        "SP0096"
+      ],
+      "note": "réponse en partie dans la fiche (points d'eau, mémoire de la matriarche) ; l'indice dit le reste"
+    },
+    "cz-p2-01": {
+      "especes": [
+        "SP0001"
+      ]
+    },
+    "cz-p2-02": {
+      "especes": [
+        "SP0019"
+      ]
+    },
+    "cz-p2-03": {
+      "especes": [
+        "SP0003",
+        "SP0004"
+      ]
+    },
+    "cz-p2-04": {
+      "especes": [
+        "SP0020",
+        "SP0014"
+      ],
+      "glossaire": [
+        "GL0070"
+      ],
+      "note": "réponse dans le glossaire (désertification)"
+    },
+    "cz-p2-05": {
+      "especes": [
+        "SP0181"
+      ]
+    },
+    "cz-p2-06": {
+      "especes": [
+        "SP0166",
+        "SP0180"
+      ]
+    },
+    "cz-p2-07": {
+      "especes": [
+        "SP0179",
+        "SP0186",
+        "SP0177"
+      ],
+      "glossaire": [
+        "GL0245"
+      ]
+    },
+    "cz-p2-08": {
+      "especes": [
+        "SP0181",
+        "SP0180"
+      ],
+      "glossaire": [
+        "GL0279",
+        "GL0082"
+      ],
+      "question_code": "GQCM9305",
+      "note": "zone activée (L5) ; question reformulée sans le mot anglais ; terme de glossaire à créer ; arganier et cèdre de l'Atlas comme exemples d'endémiques, à la place du chêne-liège"
+    },
+    "cz-p3-01": {
+      "especes": [
+        "SP0079",
+        "SP0082"
+      ],
+      "question_code": "GQCM9301",
+      "note": "question de nom réécrite"
+    },
+    "cz-p3-02": {
+      "especes": [
+        "SP0093",
+        "SP0092"
+      ]
+    },
+    "cz-p3-03": {
+      "especes": [
+        "SP0261",
+        "SP0082"
+      ],
+      "glossaire": [
+        "GL0170",
+        "GL0257"
+      ],
+      "note": "réponse dans le glossaire (mycorhize, symbiose)"
+    },
+    "cz-p3-04": {
+      "especes": [
+        "SP0082",
+        "SP0258"
+      ],
+      "glossaire": [
+        "GL0280"
+      ],
+      "note": "terme de glossaire à créer (défrichement)"
+    },
+    "cz-p3-05": {
+      "especes": [
+        "SP0246",
+        "SP0243",
+        "SP0244"
+      ],
+      "question_code": "GQCM9302",
+      "note": "question de nom réécrite"
+    },
+    "cz-p3-06": {
+      "especes": [
+        "SP0251"
+      ]
+    },
+    "cz-p3-07": {
+      "especes": [
+        "SP0252"
+      ],
+      "question_code": "GQCM9303",
+      "note": "question de nom réécrite"
+    },
+    "cz-p3-08": {
+      "especes": [
+        "SP0235"
+      ],
+      "question_code": "GQCM9304",
+      "note": "question de nom réécrite"
+    },
+    "cz-p3-09": {
+      "especes": [
+        "SP0068"
+      ],
+      "note": "lien corrigé : cerf élaphe (le brame), à la place du merle et du pic"
+    },
+    "cz-p3-10": {
+      "especes": [
+        "SP0252",
+        "SP0250",
+        "SP0249"
+      ],
+      "glossaire": [
+        "GL0265"
+      ],
+      "note": "réponse dans le glossaire (tourbière)"
+    },
+    "cz-p4-01": {
+      "especes": [
+        "SP0145",
+        "SP0140"
+      ]
+    },
+    "cz-p4-02": {
+      "especes": [
+        "SP0142"
+      ]
+    },
+    "cz-p4-03": {
+      "especes": [
+        "SP0150"
+      ]
+    },
+    "cz-p4-04": {
+      "especes": [
+        "SP0151",
+        "SP0137"
+      ],
+      "glossaire": [
+        "GL0038"
+      ],
+      "note": "phrase ajoutée au terme « chaîne alimentaire »"
+    },
+    "cz-p4-05": {
+      "especes": [
+        "SP0061"
+      ]
+    },
+    "cz-p4-06": {
+      "especes": [
+        "SP0054",
+        "SP0052"
+      ]
+    },
+    "cz-p4-07": {
+      "especes": [
+        "SP0048"
+      ]
+    },
+    "cz-p4-08": {
+      "especes": [
+        "SP0058",
+        "SP0047"
+      ],
+      "glossaire": [
+        "GL0146"
+      ],
+      "note": "réponse dans le glossaire (lichen)"
+    },
+    "cz-p4-09": {
+      "especes": [
+        "SP0067",
+        "SP0062"
+      ],
+      "glossaire": [
+        "GL0192"
+      ],
+      "note": "phrase ajoutée au terme « pergélisol »"
+    },
+    "cz-p4-10": {
+      "especes": [
+        "SP0049",
+        "SP0050"
+      ],
+      "glossaire": [
+        "GL0015"
+      ]
+    }
+  },
+  "questions_reecrites": [
+    {
+      "question_code": "GQCM9301",
+      "remplace": "QCM0213",
+      "biome_slug": "foret_caducifoliee",
+      "categorie_slug": "ecosystemes",
+      "niveau": "6ème",
+      "difficulte": 2,
+      "usage_tenir": 1,
+      "question": "À l'automne, le geai des chênes cache des milliers de glands dans le sol, et il en oublie beaucoup. Que deviennent les glands oubliés ?",
+      "choix_a": "Ils germent : de jeunes chênes poussent loin de l'arbre d'origine",
+      "reponse_correcte": "A",
+      "feedback_correct": "Oui : le geai plante des chênes sans le vouloir. C'est grâce à lui que la forêt de chênes gagne du terrain.",
+      "choix_b": "Ils pourrissent tous : un gland enterré ne peut pas pousser",
+      "feedback_b": "Pas encore : un gland enterré est au contraire bien placé pour germer, à l'abri et au frais.",
+      "choix_c": "Ils sont tous retrouvés par les écureuils avant l'hiver",
+      "feedback_c": "Pas encore : les écureuils en trouvent quelques-uns, mais il en reste beaucoup dans le sol.",
+      "choix_d": "Ils se changent en champignons au printemps",
+      "feedback_d": "Pas encore : un gland est la graine du chêne, il ne peut donner qu'un chêne.",
+      "choix_e": "Ils attendent que le geai revienne, même dix ans plus tard",
+      "feedback_e": "Pas encore : un gland ne se conserve pas si longtemps. Au printemps, il germe."
+    },
+    {
+      "question_code": "GQCM9302",
+      "remplace": "QCM0612",
+      "biome_slug": "landes",
+      "categorie_slug": "flore",
+      "niveau": "6ème",
+      "difficulte": 2,
+      "usage_tenir": 1,
+      "question": "L'ajonc fleurit presque toute l'année, même en plein hiver. Qui en profite ?",
+      "choix_a": "Les abeilles et les bourdons qui sortent les jours doux : presque rien d'autre n'est en fleur",
+      "reponse_correcte": "A",
+      "feedback_correct": "Oui : en hiver, l'ajonc est l'une des seules fleurs de la lande. Les insectes y trouvent à manger, et l'ajonc y gagne d'être pollinisé.",
+      "choix_b": "Les moutons, qui raffolent de ses fleurs piquantes",
+      "feedback_b": "Pas encore : avec ses épines, l'ajonc est justement bien protégé contre ceux qui broutent.",
+      "choix_c": "Personne : ses fleurs d'hiver sont en plastique naturel",
+      "feedback_c": "Pas encore : ce sont de vraies fleurs, qui sentent même la noix de coco.",
+      "choix_d": "Les hirondelles, qui en font leur nid",
+      "feedback_d": "Pas encore : les hirondelles passent l'hiver en Afrique, et elles bâtissent leur nid avec de la boue.",
+      "choix_e": "Les poissons des mares, qui mangent ses pétales",
+      "feedback_e": "Pas encore : l'ajonc pousse sur la lande sèche, et ce sont les insectes qui visitent ses fleurs."
+    },
+    {
+      "question_code": "GQCM9303",
+      "remplace": "QCM0618",
+      "biome_slug": "landes",
+      "categorie_slug": "ecosystemes",
+      "niveau": "6ème",
+      "difficulte": 2,
+      "usage_tenir": 1,
+      "question": "Une sphaigne peut absorber jusqu'à vingt fois son poids d'eau. Qu'est-ce que cela change pour la lande ?",
+      "choix_a": "Le sol reste gorgé d'eau toute l'année : c'est ainsi que naît une tourbière",
+      "reponse_correcte": "A",
+      "feedback_correct": "Oui : les sphaignes retiennent l'eau comme des éponges. Dans ce sol détrempé, la matière morte ne se décompose presque pas et s'empile en tourbe.",
+      "choix_b": "La lande s'assèche, car la mousse boit toute l'eau des plantes",
+      "feedback_b": "Pas encore : la sphaigne ne vide pas le sol, elle le garde mouillé.",
+      "choix_c": "L'eau devient salée, comme celle de la mer",
+      "feedback_c": "Pas encore : l'eau d'une tourbière est douce, et plutôt acide.",
+      "choix_d": "Les arbres poussent beaucoup plus vite",
+      "feedback_d": "Pas encore : dans un sol toujours détrempé, très peu d'arbres arrivent à pousser.",
+      "choix_e": "La mousse éclate dès qu'il pleut trop",
+      "feedback_e": "Pas encore : elle gonfle sans dommage, puis rend l'eau peu à peu."
+    },
+    {
+      "question_code": "GQCM9304",
+      "remplace": "QCM0605",
+      "biome_slug": "landes",
+      "categorie_slug": "faune",
+      "niveau": "6ème",
+      "difficulte": 2,
+      "usage_tenir": 1,
+      "question": "L'engoulevent pond à même le sol de la lande, sans construire de nid. Comment passe-t-il la journée sans être repéré ?",
+      "choix_a": "Il reste immobile : son plumage couleur de feuille morte le rend presque invisible",
+      "reponse_correcte": "A",
+      "feedback_correct": "Oui : c'est le camouflage. L'engoulevent ne bouge qu'au crépuscule, quand il part chasser les insectes en vol.",
+      "choix_b": "Il s'enterre dans le sable jusqu'au soir",
+      "feedback_b": "Pas encore : il reste posé à la surface, et c'est sa couleur qui le cache.",
+      "choix_c": "Il crie très fort pour faire fuir les renards",
+      "feedback_c": "Pas encore : le jour, il se tait. Son chant ronronnant s'entend à la nuit tombée.",
+      "choix_d": "Il change de couleur comme un caméléon",
+      "feedback_d": "Pas encore : son plumage ne change pas, il ressemble déjà au sol de la lande.",
+      "choix_e": "Il se cache dans un terrier de lapin",
+      "feedback_e": "Pas encore : il reste dehors, à découvert, sans bouger."
+    },
+    {
+      "question_code": "GQCM9305",
+      "remplace": "QCM0451",
+      "biome_slug": "foret_mediterraneenne",
+      "categorie_slug": "ecosystemes",
+      "niveau": "6ème",
+      "difficulte": 2,
+      "usage_tenir": 1,
+      "question": "Les scientifiques disent que le tour de la Méditerranée est un « point chaud » de biodiversité. Qu'est-ce que cela veut dire ?",
+      "choix_a": "On y trouve énormément d'espèces, dont beaucoup ne vivent nulle part ailleurs",
+      "reponse_correcte": "A",
+      "feedback_correct": "Oui : plus de la moitié des plantes du tour de la Méditerranée sont endémiques, c'est-à-dire qu'elles ne poussent que là. L'arganier du sud-ouest du Maroc en est un exemple.",
+      "choix_b": "Qu'il y fait plus chaud que partout ailleurs sur Terre",
+      "feedback_b": "Pas encore : « chaud » ne parle pas de la température, mais de la richesse en espèces.",
+      "choix_c": "Qu'il y a très peu d'espèces, toutes en danger",
+      "feedback_c": "Pas encore : c'est l'inverse, les espèces y sont très nombreuses.",
+      "choix_d": "Qu'on y trouve surtout des volcans",
+      "feedback_d": "Pas encore : un point chaud de biodiversité se repère à ses êtres vivants, pas à ses volcans.",
+      "choix_e": "Que seules les plantes y poussent, sans animaux",
+      "feedback_e": "Pas encore : plantes et animaux y sont nombreux, et beaucoup sont uniques au monde."
+    }
+  ],
+  "faits": {
+    "especes_a_creer": [
+      {
+        "species_code": "SP0277",
+        "biome_slug": "jungle_afc",
+        "type": "faune",
+        "nom_commun": "Fourmi magnan",
+        "nom_scientifique": "Dorylus",
+        "groupe": "Insectes",
+        "famille": "Formicidés",
+        "statut_iucn": "NE — Non évaluée",
+        "endemique": "Non",
+        "role_ecologique": "Prédateur en colonne (insectes, vers, petits animaux du sol)",
+        "adaptations_cles": "Colonies de plusieurs millions, pas de nid fixe, soldats aux grandes mandibules, ouvrières aveugles guidées par l'odeur",
+        "regime_alimentaire": "Carnivore (insectes, araignées, vers, petits animaux)",
+        "description_courte": "Fourmi d'Afrique qui chasse en colonnes de plusieurs millions d'individus. La colonie n'a pas de nid fixe : elle se déplace en vidant le sol de ses petites bêtes.",
+        "anecdote": "Les ouvrières sont aveugles : elles suivent l'odeur laissée par celles qui les précèdent. Quand la colonne traverse un village, elle repart en ayant débarrassé les maisons de leurs insectes.",
+        "observation_terrain": "Colonne sombre de plusieurs mètres de large au sol de la forêt, bordée de soldats immobiles.",
+        "wikipedia_title": "Dorylus",
+        "statut": "actif"
+      }
+    ],
+    "glossaire_a_creer": [
+      {
+        "glossary_code": "GL0279",
+        "terme": "point chaud de biodiversité",
+        "variantes": "points chauds de biodiversité, hotspot",
+        "categorie": "ecosystemes",
+        "niveau": "base",
+        "definition_courte": "Région du monde très riche en espèces, dont beaucoup ne vivent nulle part ailleurs.",
+        "definition_complete": "Les scientifiques ont repéré 36 points chauds de biodiversité sur la planète. Le tour de la Méditerranée en est un : on y compte environ 25 000 espèces de plantes, dont plus de la moitié sont endémiques. Ces régions sont aussi celles où les milieux naturels ont beaucoup reculé : les protéger compte double.",
+        "exemple": "L'arganier du sud-ouest du Maroc, le cèdre de l'Atlas.",
+        "all_biomes": 0,
+        "statut": "actif"
+      },
+      {
+        "glossary_code": "GL0280",
+        "terme": "défrichement",
+        "variantes": "défricher, défrichements",
+        "categorie": "ecosystemes",
+        "niveau": "base",
+        "definition_courte": "Action de couper une forêt pour en faire des champs, des prés ou des villes.",
+        "definition_complete": "Après la dernière glaciation, la forêt de feuillus couvrait presque toute l'Europe. Depuis plusieurs milliers d'années, les humains l'ont défrichée pour cultiver, élever des animaux et bâtir. Aujourd'hui, elle regagne du terrain dans plusieurs pays d'Europe, dont la France.",
+        "exemple": "Les champs et les villages d'Europe occupent d'anciennes forêts de chênes et de hêtres.",
+        "all_biomes": 0,
+        "statut": "actif"
+      }
+    ],
+    "glossaire_a_completer": [
+      {
+        "glossary_code": "GL0038",
+        "terme": "chaîne alimentaire",
+        "ajouter_a_definition_complete": "Là où le climat est rude, comme dans la taïga ou la toundra, les espèces sont moins nombreuses : les chaînes sont plus courtes, et chaque maillon compte davantage."
+      },
+      {
+        "glossary_code": "GL0192",
+        "terme": "pergélisol",
+        "ajouter_a_definition_complete": "Sous la toundra, il est partout ; dans la taïga, on ne le trouve que par endroits, surtout au nord."
+      }
+    ],
+    "questions_a_sortir_du_tirage": [
+      "QCM0213",
+      "QCM0612",
+      "QCM0618",
+      "QCM0605",
+      "QCM0451"
+    ]
+  }
+}

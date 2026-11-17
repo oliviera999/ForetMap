@@ -93,7 +93,12 @@ export function useGlTenirOlu({ gameId, events = [], teams = [], enabled = true,
       if (teamId == null || !Number.isFinite(cible) || cible !== Number(teamId)) return;
     }
     const candidates = data.lignes.filter((l) => l.moment === moment);
-    const chosen = pick(candidates, last.id) || pick(TENIR_OLU_FALLBACK[moment] || [], 0);
+    // Une ligne désignée par l'évènement (`payload.oluId`, ex. recul de Lumière) passe d'abord.
+    const designee = last.payload?.oluId
+      ? candidates.find((l) => l.id === last.payload.oluId) || null
+      : null;
+    const chosen =
+      designee || pick(candidates, last.id) || pick(TENIR_OLU_FALLBACK[moment] || [], 0);
     if (!chosen) return;
     const payload = last.payload || {};
     const vars = {

@@ -70,15 +70,15 @@ test('fenêtres : avant / après le jet, phase jeu, seuil hors phase jeu, messag
   assert.doesNotThrow(() => assertFenetre({ spell: { fenetre: 'seuil' }, round: round('clos') }));
   assert.throws(() => assertFenetre({ spell: { fenetre: 'seuil' }, round: round('jeu') }));
   assert.doesNotThrow(() => assertFenetre({ spell: { fenetre: 'activite' }, round: null }));
-  assert.throws(
-    () =>
-      assertFenetre({
-        spell: { fenetre: 'avant_jets_pacte' },
-        round: round('jeu'),
-        teamRolled: false,
-        partnerRolled: true,
-      }),
-    (err) => err.code === 'SPELL_FENETRE',
+  // Ensemble unifié (M6) : la Cordée se lance pendant le jeu, même après les jets des deux
+  // équipes (son effet vient au tour suivant) ; la fenêtre « avant les jets du pacte » a disparu.
+  assert.doesNotThrow(() =>
+    assertFenetre({
+      spell: { fenetre: 'jeu' },
+      round: round('jeu'),
+      teamRolled: true,
+      partnerRolled: true,
+    }),
   );
   assert.match(fenetreMessage('inconnue'), /pas lançable/);
 });

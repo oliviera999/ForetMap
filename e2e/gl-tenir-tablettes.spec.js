@@ -175,8 +175,9 @@ test.describe('GL — tablettes d’équipe par le lien de classe', () => {
 
     // Le pot d'un sort sur la tablette : part automatique des présents, « pas moi » par ligne.
     const potier = tablettes[1].page;
+    // Sentier (gnome, 2 cœurs, chapitre 1 : ensemble unifié M6 — Abri s’ouvre au chapitre 2).
     await potier.getByRole('button', { name: 'Jeter un sort' }).click();
-    await potier.getByTestId('gl-sorts-moments').locator('[data-sort="SL043"]').click();
+    await potier.getByTestId('gl-sorts-moments').locator('[data-sort="SL042"]').click();
     const lignes = potier.locator('[data-testid^="gl-pot-ligne-"]');
     await expect(lignes).toHaveCount(2, { timeout: 15_000 });
     await expect(lignes.first()).toContainText('❤️ 1');

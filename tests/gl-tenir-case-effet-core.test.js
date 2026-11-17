@@ -81,38 +81,57 @@ const defi = {
   event_config_json: null,
 };
 
-test('Trame : +1 ressource du peuple quels que soient les deltas écrits ; le texte le dit', () => {
-  const gnome = resolveTenirCaseEffet(trameP4, 'gnome');
-  assert.deepEqual(
-    { h: gnome.healthDelta, p: gnome.powerDelta, t: gnome.tonalite, a: gnome.applique },
-    { h: 1, p: 0, t: 'trame', a: true },
-  );
-  const licorne = resolveTenirCaseEffet(trameP4, 'unicorn');
-  assert.deepEqual({ h: licorne.healthDelta, p: licorne.powerDelta }, { h: 0, p: 1 });
-  assert.equal(formatTenirCaseEffet(gnome), 'Case Trame : +1 cœur pour chaque membre de l’équipe.');
-  assert.equal(
-    formatTenirCaseEffet(licorne),
-    'Case Trame : +1 gemme pour chaque membre de l’équipe.',
-  );
-  // Sans bloc `effects`, une case Trame donne quand même +1.
+test('Trame (M3) : +1 gemme pour les deux peuples, quels que soient les deltas écrits ; le texte le dit', () => {
+  for (const teamType of ['gnome', 'unicorn']) {
+    const effet = resolveTenirCaseEffet(trameP4, teamType);
+    assert.deepEqual(
+      { h: effet.healthDelta, p: effet.powerDelta, t: effet.tonalite, a: effet.applique },
+      { h: 0, p: 1, t: 'trame', a: true },
+      teamType,
+    );
+    assert.equal(
+      formatTenirCaseEffet(effet),
+      'Case Trame : +1 gemme pour chaque membre de l’équipe.',
+    );
+  }
+  // Sans bloc `effects`, une case Trame donne quand même +1 gemme.
   const nue = resolveTenirCaseEffet(
     { event_type: 'trame', event_config_json: cfg(null, { tonalite: 'trame' }) },
     'gnome',
   );
-  assert.equal(nue.healthDelta, 1);
+  assert.deepEqual({ h: nue.healthDelta, p: nue.powerDelta }, { h: 0, p: 1 });
 });
 
-test('Souffle : effet du plateau tel quel par peuple, tour passé compris ; Sentier neutralise', () => {
-  const gnome = resolveTenirCaseEffet(souffle, 'gnome');
-  assert.deepEqual({ m: gnome.moveDelta, pt: gnome.passTurn }, { m: -1, pt: false });
-  assert.equal(formatTenirCaseEffet(gnome), 'Case Souffle : l’équipe recule de 1 case.');
-  const licorne = resolveTenirCaseEffet(souffle, 'unicorn');
-  assert.deepEqual({ m: licorne.moveDelta, pt: licorne.passTurn }, { m: 0, pt: true });
-  assert.equal(formatTenirCaseEffet(licorne), 'Case Souffle : l’équipe passe son tour.');
+test('Souffle (M3) : au prochain tour, un seul dé, pour les deux peuples ; ni recul ni tour passé ; Sentier l’empêche', () => {
+  for (const teamType of ['gnome', 'unicorn']) {
+    const effet = resolveTenirCaseEffet(souffle, teamType);
+    assert.deepEqual(
+      {
+        m: effet.moveDelta,
+        pt: effet.passTurn,
+        h: effet.healthDelta,
+        p: effet.powerDelta,
+        u: effet.unDe,
+        a: effet.applique,
+      },
+      { m: 0, pt: false, h: 0, p: 0, u: true, a: true },
+      teamType,
+    );
+    assert.equal(
+      formatTenirCaseEffet(effet),
+      'Case Souffle : au prochain tour, l’équipe ne lance qu’un dé.',
+    );
+  }
+  // Une case Souffle sans bloc `effects` agit aussi.
+  const nue = resolveTenirCaseEffet(
+    { event_type: 'souffle', event_config_json: cfg(null, { tonalite: 'souffle' }) },
+    'unicorn',
+  );
+  assert.equal(nue.unDe, true);
   const sentier = resolveTenirCaseEffet(souffle, 'unicorn', { sentierActif: true });
   assert.deepEqual(
-    { s: sentier.sentier, pt: sentier.passTurn, m: sentier.moveDelta, a: sentier.applique },
-    { s: true, pt: false, m: 0, a: true },
+    { s: sentier.sentier, u: sentier.unDe, pt: sentier.passTurn, m: sentier.moveDelta },
+    { s: true, u: false, pt: false, m: 0 },
   );
   assert.equal(
     formatTenirCaseEffet(sentier),
@@ -120,15 +139,28 @@ test('Souffle : effet du plateau tel quel par peuple, tour passé compris ; Sent
   );
 });
 
-test('C4 : case positive → +1 ressource du peuple ; neutre → rien ; brut → plateau ; perte neutre neutralisée', () => {
-  const gnome = resolveTenirCaseEffet(positive, 'gnome');
-  assert.deepEqual({ h: gnome.healthDelta, t: gnome.tonalite }, { h: 1, t: 'positif' });
-  assert.equal(formatTenirCaseEffet(gnome), '+1 cœur pour chaque membre de l’équipe.');
-  const licorne = resolveTenirCaseEffet(positive, 'unicorn');
-  assert.equal(formatTenirCaseEffet(licorne), '+1 gemme pour chaque membre de l’équipe.');
-  const neutre = resolveTenirCaseEffet(positive, 'gnome', { casesPositives: 'neutre' });
-  assert.deepEqual({ h: neutre.healthDelta, n: neutre.neutralise }, { h: 0, n: 'gain' });
-  assert.equal(formatTenirCaseEffet(neutre), 'Une case favorable : on repart, sans gain.');
+test('cases positives (M3) : leur mouvement, sans ressource ; brut → plateau ; pertes et reculs neutralisés', () => {
+  const avance = {
+    ...positive,
+    event_config_json: cfg(
+      { neutral: { label: null, deltaPv: 2, deltaMove: 2 } },
+      { tonalite: 'positif' },
+    ),
+  };
+  for (const teamType of ['gnome', 'unicorn']) {
+    const effet = resolveTenirCaseEffet(positive, teamType);
+    assert.deepEqual(
+      { h: effet.healthDelta, p: effet.powerDelta, n: effet.neutralise, t: effet.tonalite },
+      { h: 0, p: 0, n: 'gain', t: 'positif' },
+    );
+    assert.equal(formatTenirCaseEffet(effet), 'Une case favorable : on repart, sans gain.');
+    const mouvement = resolveTenirCaseEffet(avance, teamType);
+    assert.deepEqual({ h: mouvement.healthDelta, m: mouvement.moveDelta }, { h: 0, m: 2 });
+    assert.equal(formatTenirCaseEffet(mouvement), 'L’équipe avance de 2 cases.');
+  }
+  // Ancienne valeur du réglage : lue `neutre`.
+  const ancien = resolveTenirCaseEffet(positive, 'gnome', { casesPositives: 'ressource_peuple' });
+  assert.equal(ancien.healthDelta, 0);
   const brut = resolveTenirCaseEffet(positive, 'gnome', { casesPositives: 'brut' });
   assert.equal(brut.healthDelta, 2);
   const perte = resolveTenirCaseEffet(perteNeutre, 'gnome');
@@ -139,6 +171,20 @@ test('C4 : case positive → +1 ressource du peuple ; neutre → rien ; brut →
   assert.equal(
     formatTenirCaseEffet(perte),
     'Le biome éprouve la caravane : rien n’est retiré, on s’abrite puis on repart.',
+  );
+  const recul = resolveTenirCaseEffet(
+    {
+      event_type: 'behavior',
+      event_config_json: cfg(
+        { neutral: { label: null, deltaMove: -3, passTurn: true } },
+        { tonalite: 'negatif' },
+      ),
+    },
+    'unicorn',
+  );
+  assert.deepEqual(
+    { m: recul.moveDelta, pt: recul.passTurn, n: recul.neutralise },
+    { m: 0, pt: false, n: 'perte' },
   );
 });
 
@@ -166,7 +212,7 @@ test('sans effet : texte vide ; péripétie annoncée ; jamais de chaîne interd
 test('formatMarkerEffectSummary : calculé en mode tenir, texte d’auteur hors tenir', () => {
   assert.equal(
     formatMarkerEffectSummary(positive, 'gnome', { tenir: true }),
-    '+1 cœur pour chaque membre de l’équipe.',
+    'Une case favorable : on repart, sans gain.',
   );
   assert.equal(formatMarkerEffectSummary(positive, 'gnome'), '+2 cœurs');
   assert.equal(
@@ -176,12 +222,17 @@ test('formatMarkerEffectSummary : calculé en mode tenir, texte d’auteur hors 
 });
 
 test('buildMarkerArrivalPayload : en mode tenir, effetMecanique est nul et les deltas sont ceux appliqués', () => {
-  const tenir = buildMarkerArrivalPayload(positive, { type: 'unicorn' }, { tenir: true });
+  const tenir = buildMarkerArrivalPayload(trameP4, { type: 'gnome' }, { tenir: true });
   assert.equal(tenir.effetMecanique, null);
-  assert.equal(tenir.effectSummary, '+1 gemme pour chaque membre de l’équipe.');
+  assert.equal(tenir.effectSummary, 'Case Trame : +1 gemme pour chaque membre de l’équipe.');
   assert.deepEqual(
     { pv: tenir.resolvedEffect.deltaPv, g: tenir.resolvedEffect.deltaGems, h: tenir.hasEffects },
     { pv: 0, g: 1, h: true },
+  );
+  const souffleTenir = buildMarkerArrivalPayload(souffle, { type: 'unicorn' }, { tenir: true });
+  assert.deepEqual(
+    { u: souffleTenir.unDe, pt: souffleTenir.passTurn, h: souffleTenir.hasEffects },
+    { u: true, pt: false, h: true },
   );
   const classique = buildMarkerArrivalPayload(positive, { type: 'unicorn' });
   assert.equal(classique.effetMecanique, '+2 cœurs');
@@ -200,12 +251,104 @@ test('resolveTenirMarkerDeltas (moteur) et le noyau donnent les mêmes deltas', 
       const moteur = resolveTenirMarkerDeltas(marker, teamType, resolved);
       const noyau = resolveTenirCaseEffet(marker, teamType);
       assert.deepEqual(
-        { h: moteur.healthDelta, p: moteur.powerDelta, m: moteur.moveDelta, t: moteur.tonalite },
-        { h: noyau.healthDelta, p: noyau.powerDelta, m: noyau.moveDelta, t: noyau.tonalite },
+        {
+          h: moteur.healthDelta,
+          p: moteur.powerDelta,
+          m: moteur.moveDelta,
+          t: moteur.tonalite,
+          u: moteur.unDe,
+        },
+        {
+          h: noyau.healthDelta,
+          p: noyau.powerDelta,
+          m: noyau.moveDelta,
+          t: noyau.tonalite,
+          u: noyau.unDe,
+        },
         `${marker.label} / ${teamType}`,
       );
     }
   }
   assert.equal(markerTonaliteCore(souffle), 'souffle');
   assert.equal(markerTonaliteCore({ event_type: 'trame' }), 'trame');
+});
+
+test('toutes les branches du noyau : peuples, branches de repli, brut, textes', () => {
+  const {
+    peopleKeyOf,
+    resourceOfPeopleCore,
+    resolveMarkerBranchCore,
+    normalizeCasesPositives,
+  } = require('../lib/shared/glTenirCaseEffetCore');
+  assert.equal(peopleKeyOf('Licorne'), 'unicorn');
+  assert.equal(peopleKeyOf(null), null);
+  assert.equal(resourceOfPeopleCore('unicorn'), 'power');
+  assert.equal(resourceOfPeopleCore(undefined), 'health');
+  assert.equal(normalizeCasesPositives(undefined), 'neutre');
+  assert.equal(normalizeCasesPositives('brut'), 'brut');
+  const marqueeVide = { event_type: 'behavior', event_config_json: null };
+  // Branches de repli : sans effets, peuple seul, première clé.
+  assert.equal(resolveMarkerBranchCore({ event_config_json: null }, 'gnome'), null);
+  const gnomeSeul = { event_config_json: cfg({ gnome: { label: 'g', deltaMove: 1 } }) };
+  assert.equal(resolveMarkerBranchCore(gnomeSeul, 'gnome').branch, 'gnome');
+  assert.equal(resolveMarkerBranchCore(gnomeSeul, 'unicorn').branch, 'gnome');
+  assert.equal(resolveMarkerBranchCore(gnomeSeul, null).branch, 'gnome');
+  const mixte = {
+    event_type: 'trame',
+    event_config_json: cfg({
+      neutral: { label: 'n', deltaMove: 1 },
+      gnome: { label: 'g', deltaMove: 2 },
+    }),
+  };
+  assert.equal(resolveMarkerBranchCore(mixte, 'unicorn').branch, 'neutral');
+  assert.equal(resolveMarkerBranchCore(mixte, null).branch, 'neutral');
+  // Un delta illisible (branche passée telle quelle) compte pour 0.
+  const illisible = resolveTenirCaseEffet(marqueeVide, 'gnome', {
+    resolved: { branch: 'neutral', deltaPv: 'abc', deltaMove: 2 },
+  });
+  assert.deepEqual({ h: illisible.healthDelta, m: illisible.moveDelta }, { h: 0, m: 2 });
+  // Tonalité lue sur le type de case.
+  assert.equal(markerTonaliteCore({ eventType: 'Souffle' }), 'souffle');
+  assert.equal(
+    markerTonaliteCore({ event_config_json: cfg(null, { tonalite: 'positif' }) }),
+    'positif',
+  );
+  // Une case non Souffle qui porte la clé « un seul dé » la tient aussi.
+  const marquee = {
+    event_type: 'behavior',
+    event_config_json: cfg({ neutral: { label: 'x', unDeAuProchainTour: true, deltaPv: 1 } }),
+  };
+  const m1 = resolveTenirCaseEffet(marquee, 'gnome');
+  assert.deepEqual(
+    { u: m1.unDe, n: m1.neutralise, h: m1.healthDelta },
+    { u: true, n: 'gain', h: 0 },
+  );
+  const marqueeSeule = {
+    event_type: 'behavior',
+    event_config_json: cfg({ neutral: { label: 'x', unDeAuProchainTour: true } }),
+  };
+  assert.equal(
+    formatTenirCaseEffet(resolveTenirCaseEffet(marqueeSeule, 'unicorn')),
+    'Au prochain tour, l’équipe ne lance qu’un dé.',
+  );
+  // Brut : valeurs du plateau (recul et tour passé compris), mises en mots.
+  const brut = resolveTenirCaseEffet(
+    {
+      event_type: 'behavior',
+      event_config_json: cfg({
+        neutral: { label: null, deltaPv: -2, deltaMove: -1, passTurn: true },
+      }),
+    },
+    'gnome',
+    { casesPositives: 'brut' },
+  );
+  assert.equal(
+    formatTenirCaseEffet(brut),
+    '−2 cœurs pour chaque membre de l’équipe, l’équipe recule de 1 case, l’équipe passe son tour.',
+  );
+  assert.equal(
+    formatTenirCaseEffet({ healthDelta: 1, moveDelta: 3 }, { peripetie: true }),
+    '+1 cœur pour chaque membre de l’équipe, l’équipe avance de 3 cases. Une péripétie à relever ensemble.',
+  );
+  assert.equal(formatTenirCaseEffet(null), '');
 });

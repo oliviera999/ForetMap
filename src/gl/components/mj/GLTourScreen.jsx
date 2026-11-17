@@ -54,9 +54,8 @@ function TeamCard({
           case {numeroCase(team.pathIndex) ?? '—'}
           {team.auCamp ? ' · au camp' : ''}
           {team.hasRolledDiceThisRound ? ' · dés lancés' : ''}
-          {fouilles
-            ? ` · fouilles ${fouilles.restantes}/${fouilles.quota}${fouilles.reparation?.quota ? ` + ${fouilles.reparation.restantes}/${fouilles.reparation.quota} réparation` : ''}`
-            : ''}
+          {team.unDe ? ' · un seul dé au prochain tour' : ''}
+          {fouilles ? ` · fouilles ${fouilles.restantes}/${fouilles.quota}` : ''}
           {reserve && (reserve.health || reserve.power)
             ? ` · réserve ❤️ ${reserve.health} 💎 ${reserve.power}`
             : ''}
@@ -106,7 +105,8 @@ function TeamCard({
       {round?.phase === 'jeu' ? (
         <>
           <GLTourDesSaisie
-            count={tenir?.settings?.des_count || 2}
+            key={`des-${team.desProchainJet || tenir?.settings?.des_count || 2}`}
+            count={team.desProchainJet || tenir?.settings?.des_count || 2}
             desMode={tenir?.settings?.des_mode_effectif || 'physique'}
             allowLibre
             disabled={busy || (surface === 'tableau' && !isActive)}

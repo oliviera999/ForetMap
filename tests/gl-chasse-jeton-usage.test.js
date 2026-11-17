@@ -34,15 +34,16 @@ before(async () => {
 });
 
 test('chasse : rejouer le même jeton, même avec la bonne réponse, ne trouve pas la page', async () => {
+  // M2 : seule une fouille licorne « pas encore » révèle la zone.
   const fouille = await request(app)
     .post(api('/chasse/fouiller'))
-    .set(auth(gnomeA().token))
+    .set(auth(licorneA().token))
     .send({ x: 0.35, y: 0.3 });
   assert.equal(fouille.status, 201, JSON.stringify(fouille.body));
   const question = fouille.body.question;
   assert.ok(question?.presentationToken);
   const wrong = question.choices.find((c) => c.text !== 'La forêt respire');
-  const first = await request(app).post(api('/chasse/repondre')).set(auth(gnomeA().token)).send({
+  const first = await request(app).post(api('/chasse/repondre')).set(auth(licorneA().token)).send({
     presentationToken: question.presentationToken,
     questionCode: question.questionCode,
     choiceId: wrong.id,
@@ -53,16 +54,19 @@ test('chasse : rejouer le même jeton, même avec la bonne réponse, ne trouve p
 
   for (const choice of question.choices) {
     if (choice.id === wrong.id) continue;
-    const replay = await request(app).post(api('/chasse/repondre')).set(auth(gnomeA().token)).send({
-      presentationToken: question.presentationToken,
-      questionCode: question.questionCode,
-      choiceId: choice.id,
-    });
+    const replay = await request(app)
+      .post(api('/chasse/repondre'))
+      .set(auth(licorneA().token))
+      .send({
+        presentationToken: question.presentationToken,
+        questionCode: question.questionCode,
+        choiceId: choice.id,
+      });
     assert.equal(replay.status, 409, JSON.stringify(replay.body));
     assert.equal(replay.body.code, 'JETON_DEJA_UTILISE');
   }
 
-  const carnet = await request(app).get(api('/chasse')).set(auth(gnomeA().token));
+  const carnet = await request(app).get(api('/chasse')).set(auth(licorneA().token));
   const page = carnet.body.pages.find((p) => p.zoneKey === 'cz-p1-01');
   assert.equal(page.etat, 'revelee');
   assert.equal(page.feuilletCode, null);
