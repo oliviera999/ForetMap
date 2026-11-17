@@ -257,7 +257,7 @@
       "id": "olu-34",
       "moment": "voile",
       "expression": "pensif",
-      "texte": "Le voile a rejoint {equipe}. Il lui reste une fouille, et elle avance encore ; les autres savent quoi faire.",
+      "texte": "{equipe} est sous le voile. Il lui reste une fouille, et elle avance encore ; les autres savent quoi faire.",
       "variables": [
         "equipe"
       ]

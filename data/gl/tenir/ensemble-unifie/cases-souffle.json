@@ -71,7 +71,7 @@
       "rang": 36,
       "marker_id": 201,
       "titre": "Silence soudain",
-      "description": "Le merle s'arrête au milieu de sa chanson. Tout le sous-bois se tait d'un coup.",
+      "description": "La fauvette pitchou s'arrête au milieu de sa chanson. Toute la lande se tait d'un coup.",
       "effet_libelle": "On attend que le chant revienne → au prochain tour, un seul dé."
     },
     {
@@ -79,7 +79,7 @@
       "rang": 5,
       "marker_id": 116,
       "titre": "Un fil lâche",
-      "description": "Le lac gèle trop tôt : les oiseaux pêcheurs ne trouvent plus de poissons et partent, les renards maigrissent. Ce fil-là, les Gnomes savent le renouer.",
+      "description": "La rivière gèle trop tôt : l'ours brun ne peut plus pêcher les saumons et maigrit. Ce fil-là, les Gnomes savent le renouer.",
       "effet_libelle": "On remonte le fil → au prochain tour, un seul dé."
     },
     {
