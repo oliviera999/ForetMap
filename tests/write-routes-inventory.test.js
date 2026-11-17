@@ -249,6 +249,7 @@ const WRITE_ROUTES = Object.freeze({
   'POST /api/pedago-sessions': 'permission:plants.manage',
   'PUT /api/pedago-sessions/:idOrSlug': 'permission:plants.manage',
   'POST /api/pedago-sessions/:idOrSlug/runs/complete': 'auth',
+  'POST /api/pedago-sessions/:idOrSlug/runs/progress': 'auth',
   'POST /api/pedago-sessions/:idOrSlug/runs/start': 'auth',
   'POST /api/plan/access':
     'publique : entrée par code du plan public (bcrypt, limiteur authLimiter)',
