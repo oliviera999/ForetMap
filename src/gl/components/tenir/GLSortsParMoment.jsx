@@ -12,9 +12,9 @@ function cout(sort) {
 }
 
 /**
- * Sorts de l'équipe rangés par moment du tour (« Tenir à deux », lot 2) : « Avant de lancer »,
- * « Après le jet », « Pendant le tour », « Plus tard ». Le serveur dit lesquels sont ouverts ; un
- * sort hors fenêtre reste visible, grisé, avec le message de sa fenêtre.
+ * Sorts de l'équipe rangés par moment (ensemble unifié, M6 : cinq moments — « Avant de lancer »,
+ * « Après le jet », « Pendant le tour », « Pendant l'activité », « En fin de chapitre ou en
+ * veillée »). Le serveur ne sert que les sorts lançables et payables à cet instant.
  *
  * `refreshKey` : change à chaque évènement du tour (jet, phase…) pour relire les fenêtres.
  */
@@ -50,7 +50,7 @@ export function GLSortsParMoment({
   return (
     <section className="gl-sorts-moments gl-gameplay-block" data-testid="gl-sorts-moments">
       <p className="gl-hint gl-role-conseil">{ROLES_EN_CONSEIL.jeter}</p>
-      {moments.length === 0 ? <p className="gl-hint">Aucun sort ouvert à ce chapitre.</p> : null}
+      {moments.length === 0 ? <p className="gl-hint">Aucun sort lançable maintenant.</p> : null}
       {moments.map((moment) => (
         <div key={moment.key} className="gl-sorts-moments__moment" data-moment={moment.key}>
           <h4>{moment.label}</h4>
@@ -67,7 +67,7 @@ export function GLSortsParMoment({
                 >
                   {sort.emoji ? `${sort.emoji} ` : ''}
                   {sort.nom}
-                  {cout(sort)}
+                  {sort.offerte ? ' · offerte' : cout(sort)}
                 </GLButton>
                 {sort.ouvert ? (
                   sort.effetCourt ? (

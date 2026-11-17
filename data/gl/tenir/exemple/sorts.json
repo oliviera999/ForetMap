@@ -21,7 +21,6 @@
       "apres_jet": "phase jeu, après le jet et avant l'application de la case",
       "jeu": "pendant la phase jeu",
       "jeu_avant_fouille": "pendant la phase jeu, avant une fouille de l'équipe",
-      "avant_jets_pacte": "phase jeu, avant les jets des deux équipes concernées",
       "activite": "pendant l'activité de classe (file du prof)",
       "seuil": "au seuil (clôture de partie)",
       "seuil_veillee": "au seuil ou en veillée",
@@ -356,7 +355,7 @@
       "peuple": "pacte",
       "cout": 4,
       "ressource": "peuple",
-      "fenetre": "avant_jets_pacte",
+      "fenetre": "jeu",
       "limite": {
         "par": "tour",
         "n": 1,
@@ -370,7 +369,9 @@
         "paye": "lanceuse",
         "deplacement": "meilleur_des_deux_jets",
         "immunite_voile": true,
-        "compte_aide": true
+        "compte_aide": true,
+        "prochain_tour": true,
+        "offerte_plateau_4": true
       },
       "chapitre_ouverture": 3,
       "nouveau": true

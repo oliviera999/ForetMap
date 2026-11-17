@@ -42,7 +42,8 @@ async function phase(nom, extra = {}, c = ctx) {
 
 before(async () => {
   await db.initSchema();
-  ctx = await createTenirGame({ stamp: Date.now() });
+  // Abri (SL043) s'ouvre au chapitre 2 (ensemble unifié, M6).
+  ctx = await createTenirGame({ stamp: Date.now(), plateau: 2 });
   for (const p of ctx.players) await setPlayerBourses(p.id, 6, 6);
 });
 

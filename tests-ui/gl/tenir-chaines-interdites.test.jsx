@@ -171,7 +171,7 @@ describe('chaînes interdites côté élève (spec § 2)', () => {
             peuple: 'pacte',
             ressource: 'pacte',
             cible: 'deux_equipes',
-            fenetre: 'avant_jets_pacte',
+            fenetre: 'jeu',
             limite: { par: 'tour', n: 1, portee: 'partie' },
           }}
           teams={gameState.teams}

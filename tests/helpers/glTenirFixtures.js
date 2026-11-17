@@ -479,7 +479,38 @@ async function ouvrirTourEnJeu(request, app, ctx, { phase = 'jeu', presences = t
   return ouvert.body;
 }
 
+/**
+ * Ensemble unifié (M6) : un sort sorti du grimoire (Nommer, Héritage…) reste en base, `propose`
+ * et rattaché à aucun chapitre. Pour éprouver son moteur, un test le remet officiel et rattaché
+ * au chapitre ; la fonction renvoyée remet tout tel quel.
+ */
+async function activerSortRetire(chapterId, code) {
+  const avant = await queryOne('SELECT statut FROM gl_spells WHERE spell_code = ? LIMIT 1', [code]);
+  const rattache = await queryOne(
+    'SELECT 1 AS ok FROM gl_chapter_spells WHERE chapter_id = ? AND spell_code = ? LIMIT 1',
+    [chapterId, code],
+  );
+  await execute("UPDATE gl_spells SET statut = 'officiel' WHERE spell_code = ?", [code]);
+  await execute(
+    'INSERT IGNORE INTO gl_chapter_spells (chapter_id, spell_code, order_index) VALUES (?, ?, 995)',
+    [chapterId, code],
+  );
+  return async () => {
+    await execute('UPDATE gl_spells SET statut = ? WHERE spell_code = ?', [
+      avant?.statut || 'propose',
+      code,
+    ]);
+    if (!rattache) {
+      await execute('DELETE FROM gl_chapter_spells WHERE chapter_id = ? AND spell_code = ?', [
+        chapterId,
+        code,
+      ]);
+    }
+  };
+}
+
 module.exports = {
+  activerSortRetire,
   confirmerPresences,
   attachTenirSpells,
   importExempleChasse,

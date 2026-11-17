@@ -26,12 +26,12 @@ CATEGORIES = {"biome", "ecosystemes", "faune", "flore", "geologie", "perturbatio
 ZONES_PAR_PLATEAU = {1: 8, 2: 8, 3: 10, 4: 10}
 FEUILLETS_INTERDITS = {"ep-I-02", "ep-I-13", "ep-III-06", "ep-I-16", "ep-I-17", "ep-III-01", "ep-I-03", "ep-I-04"}
 MOMENTS = {"ouverture", "jet", "question", "fouille", "tenir", "voile", "sort", "seuil", "peripetie", "bestiaire", "oiseau", "erreur", "bourse_pleine",
-           "defi_case_recu", "defi_case_releve", "defi_case_pas_encore"}
+           "defi_case_recu", "defi_case_releve", "defi_case_pas_encore", "defi_trame_reussi"}
 EXPRESSIONS = {"neutre", "joie", "curieux", "surpris", "agace", "pensif", "explique", "peur"}
 BIOMES_TITRES = {"tropiques", "aride", "tempere", "grands_froids"}
 PEUPLES = {"any", "gnome", "unicorn", "pacte", "classe"}
 RESSOURCES = {"gemmes", "coeurs", "peuple", "choix", "pacte", "cartes"}
-FENETRES = {"avant_jet", "apres_jet", "jeu", "jeu_avant_fouille", "avant_jets_pacte", "activite", "seuil", "seuil_veillee", "fin_seance", "trimestre_3"}
+FENETRES = {"avant_jet", "apres_jet", "jeu", "jeu_avant_fouille", "activite", "seuil", "seuil_veillee", "fin_seance", "trimestre_3"}
 LIMITE_PAR = {"tour", "seance", "chapitre", "trimestre", "annee"}
 LIMITE_PORTEE = {"equipe", "partie", "eleve"}
 SPELL_NAMES_ATTENDUS = {
@@ -51,6 +51,7 @@ REGLAGES_ATTENDUS = {
 BADGES_ATTENDUS = {
     "premiere_page", "lecteur", "fouilleur", "trouveur", "mains_tendues", "veilleur", "nommeur", "cartographe",
     "tisserand", "revelateur", "chuchoteur", "correcteur_du_renard", "passeur_de_seuil",
+    "gardien_des_fils", "reparateur",
 }
 
 
@@ -705,8 +706,11 @@ def check_sorts(d, rep, use_db):
                     rep.err(f"{name}: {c} listé deux fois dans ouverture_par_chapitre")
                 listed[c] = ch
         for c in codes:
-            if c not in listed:
+            # Un sort sorti du grimoire (`actif: false`, ensemble unifié M6) n'est ouvert nulle part.
+            if c not in listed and codes[c].get("actif") is not False:
                 rep.err(f"{name}: {c} absent de ouverture_par_chapitre")
+            if c in listed and codes[c].get("actif") is False:
+                rep.err(f"{name}: {c} sorti du grimoire mais ouvert au chapitre {listed[c]}")
     voy = data.get("voyageur")
     if not isinstance(voy, list) or len(voy) != 6:
         rep.err(f"{name}: voyageur doit lister 6 sorts")

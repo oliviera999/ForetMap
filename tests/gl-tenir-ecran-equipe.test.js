@@ -50,16 +50,23 @@ before(async () => {
   for (const p of ctx.players) await setPlayerBourses(p.id, 5, 5);
 });
 
-test('noyau partagé : chaque fenêtre a son moment, dans l’ordre de l’écran ; rôles sans mot interdit', () => {
+test('noyau partagé (M6) : cinq moments, chaque fenêtre a le sien, dans l’ordre de l’écran ; rôles sans mot interdit', () => {
   assert.deepEqual(
     SORT_MOMENTS.map((m) => m.label),
-    ['Avant de lancer', 'Après le jet', 'Pendant le tour', 'Plus tard'],
+    [
+      'Avant de lancer',
+      'Après le jet',
+      'Pendant le tour',
+      'Pendant l’activité',
+      'En fin de chapitre ou en veillée',
+    ],
   );
-  assert.equal(momentDeFenetre('avant_jets_pacte'), 'avant');
+  assert.equal(momentDeFenetre('avant_jet'), 'avant');
   assert.equal(momentDeFenetre('apres_jet'), 'apres');
   assert.equal(momentDeFenetre('jeu_avant_fouille'), 'pendant');
-  for (const f of ['activite', 'fin_seance', 'seuil', 'seuil_veillee', 'trimestre_3', '', null]) {
-    assert.equal(momentDeFenetre(f), 'plus_tard', String(f));
+  for (const f of ['activite', 'fin_seance']) assert.equal(momentDeFenetre(f), 'activite', f);
+  for (const f of ['seuil', 'seuil_veillee', 'trimestre_3', '', null, 'avant_jets_pacte']) {
+    assert.equal(momentDeFenetre(f), 'fin_chapitre', String(f));
   }
   const ranges = rangerSortsParMoment([
     { code: 'b', fenetre: 'jeu' },
@@ -78,39 +85,43 @@ test('noyau partagé : chaque fenêtre a son moment, dans l’ordre de l’écra
   }
 });
 
-test('sorts par moment : ceux du peuple de l’équipe, ouverts ou fermés avec leur message', async () => {
+test('sorts par moment (M6) : ceux du peuple de l’équipe, seulement lançables et payables', async () => {
   await ouvrirTourEnJeu(request, app, ctx);
   const gnome = membres(0)[0];
   const data = await sortsDe(gnome.token);
   assert.equal(data.teamId, Number(team(0).id));
   assert.deepEqual(
     data.moments.map((m) => m.key),
-    ['avant', 'apres', 'pendant', 'plus_tard'],
+    ['avant', 'pendant', 'activite'],
+    'avant le jet : rien « après le jet », rien de fin de chapitre pendant le tour',
+  );
+  assert.ok(
+    data.moments.every((m) => m.sorts.every((x) => x.ouvert && x.payable)),
+    'aucun sort grisé',
   );
   // Sorts de Licornes absents ; sorts de Gnomes et communs présents.
   assert.equal(trouver(data, 'SL039'), undefined, 'Bourrasque est un sort de Licornes');
-  const sentier = trouver(data, 'SL042');
-  assert.deepEqual([sentier.moment, sentier.ouvert], ['avant', true]);
-  const abri = trouver(data, 'SL043');
-  assert.deepEqual([abri.moment, abri.ouvert], ['pendant', true]);
-  // Avant le jet : Progression (après le jet) est fermée, avec le message de sa fenêtre.
-  const progression = trouver(data, 'SL002');
-  assert.deepEqual([progression.moment, progression.ouvert], ['apres', false]);
-  assert.match(progression.message, /juste après le jet de l’équipe/);
-  assert.equal(findForbiddenString(progression.message), null);
-  const pause = trouver(data, 'SL046');
-  assert.equal(pause.moment, 'plus_tard');
+  assert.equal(trouver(data, 'SL042').moment, 'avant');
+  assert.equal(trouver(data, 'SL043').moment, 'pendant');
+  // Avant le jet : Progression (après le jet) n'est pas montrée.
+  assert.equal(trouver(data, 'SL002'), undefined);
+  assert.equal(trouver(data, 'SL046').moment, 'activite');
 
-  // Après le jet de l'équipe : Sentier (avant le jet) se ferme, Progression s'ouvre.
+  // Après le jet de l'équipe : Sentier (avant le jet) disparaît, Progression paraît.
   await request(app)
     .post(api('/tenir/lancer'))
     .set(auth(ctx.adminToken))
     .send({ mode: 'physique', teamId: team(0).id, faces: [1, 2] })
     .expect(201);
   const apres = await sortsDe(gnome.token);
-  assert.equal(trouver(apres, 'SL042').ouvert, false);
-  assert.match(trouver(apres, 'SL042').message, /avant le jet/);
-  assert.equal(trouver(apres, 'SL002').ouvert, true);
+  assert.equal(trouver(apres, 'SL042'), undefined);
+  assert.equal(trouver(apres, 'SL002').moment, 'apres');
+
+  // Bourses vides : plus rien de payable, la liste se vide.
+  for (const m of membres(0)) await setPlayerBourses(m.id, 0, 0);
+  const vide = await sortsDe(gnome.token);
+  assert.deepEqual(vide.moments, []);
+  for (const m of membres(0)) await setPlayerBourses(m.id, 5, 5);
 
   // Tablette de l'équipe : la même liste ; le prof la lit avec `teamId`.
   const s = await issueTeamSession(db, { gameId: ctx.game.id, teamId: team(2).id });

@@ -165,8 +165,19 @@ test('grimoire v2 : chaque sort du § 10 présent avec fenêtre, limite et ouver
     assert.ok(['auto', 'prof'].includes(s.execution));
     if (s.execution === 'auto') assert.ok(s.effet_auto_json, `${code} effet auto`);
   }
+  // Ensemble unifié (M6) : 19 sorts au grimoire ; les sorts retirés restent au fichier, `actif:
+  // false`, et ne sont ouverts à aucun chapitre.
+  const retires = ['SL033', 'SL038', 'SL041', 'SL006', 'SL007', 'SL050'];
   const ouverts = Object.values(sorts.ouverture_par_chapitre).flat();
-  for (const code of expected) assert.ok(ouverts.includes(code), `${code} ouvert à un chapitre`);
+  for (const code of expected) {
+    if (retires.includes(code)) {
+      assert.equal(byCode.get(code).actif, false, `${code} sorti du grimoire`);
+      assert.ok(!ouverts.includes(code), `${code} ouvert nulle part`);
+    } else {
+      assert.ok(ouverts.includes(code), `${code} ouvert à un chapitre`);
+    }
+  }
+  assert.equal(ouverts.length, 19, 'grimoire à 19 sorts');
 });
 
 test('aucune chaîne interdite dans un champ visible des élèves', () => {

@@ -21,7 +21,6 @@
       "apres_jet": "phase jeu, après le jet et avant l'application de la case",
       "jeu": "pendant la phase jeu",
       "jeu_avant_fouille": "pendant la phase jeu, avant une fouille de l'équipe",
-      "avant_jets_pacte": "phase jeu, avant les jets des deux équipes concernées",
       "activite": "pendant l'activité de classe (file du prof)",
       "seuil": "au seuil (clôture de partie)",
       "seuil_veillee": "au seuil ou en veillée",
@@ -122,6 +121,7 @@
     },
     {
       "code": "SL033",
+      "actif": false,
       "nom": "Héritage",
       "famille": "commun",
       "peuple": "any",
@@ -249,6 +249,7 @@
     },
     {
       "code": "SL041",
+      "actif": false,
       "nom": "Nommer",
       "famille": "gnomes",
       "peuple": "gnome",
@@ -295,7 +296,7 @@
       "effet_auto_json": {
         "type": "ignorer_prochaine_case_souffle"
       },
-      "chapitre_ouverture": 2,
+      "chapitre_ouverture": 1,
       "nouveau": true
     },
     {
@@ -321,7 +322,7 @@
         "duree": "tour",
         "compte_aide": true
       },
-      "chapitre_ouverture": 1,
+      "chapitre_ouverture": 2,
       "nouveau": true
     },
     {
@@ -346,7 +347,7 @@
         "appliquer_case": false,
         "compte_aide": true
       },
-      "chapitre_ouverture": 2,
+      "chapitre_ouverture": 1,
       "nouveau": true
     },
     {
@@ -356,7 +357,7 @@
       "peuple": "pacte",
       "cout": 4,
       "ressource": "peuple",
-      "fenetre": "avant_jets_pacte",
+      "fenetre": "jeu",
       "limite": {
         "par": "tour",
         "n": 1,
@@ -364,15 +365,17 @@
       },
       "cible": "deux_equipes",
       "execution": "auto",
-      "effet_court": "Vous offrez la Cordée à une équipe de l'autre peuple : le meilleur de vos deux jets vaut pour les deux. Le voile ne vous touche pas ce tour.",
+      "effet_court": "Vous offrez la Cordée à une équipe de l'autre peuple : au prochain tour, le meilleur de vos deux jets vaut pour les deux, et le voile ne vous touche pas. Au plateau 4, la première Cordée de chaque équipe est offerte.",
       "effet_auto_json": {
         "type": "cordee",
         "paye": "lanceuse",
         "deplacement": "meilleur_des_deux_jets",
         "immunite_voile": true,
-        "compte_aide": true
+        "compte_aide": true,
+        "prochain_tour": true,
+        "offerte_plateau_4": true
       },
-      "chapitre_ouverture": 3,
+      "chapitre_ouverture": 2,
       "nouveau": true
     },
     {
@@ -417,6 +420,7 @@
     },
     {
       "code": "SL006",
+      "actif": false,
       "nom": "Tablette",
       "famille": "travail",
       "peuple": "any",
@@ -437,6 +441,7 @@
     },
     {
       "code": "SL007",
+      "actif": false,
       "nom": "Musique",
       "famille": "travail",
       "peuple": "any",
@@ -572,7 +577,7 @@
       "execution": "prof",
       "effet_court": "choisir son équipe au prochain chapitre (épingle de composition)",
       "effet_auto_json": null,
-      "chapitre_ouverture": 4,
+      "chapitre_ouverture": 3,
       "nouveau": true
     },
     {
@@ -597,6 +602,7 @@
     },
     {
       "code": "SL050",
+      "actif": false,
       "nom": "Lumière",
       "famille": "classe",
       "peuple": "classe",
@@ -631,32 +637,25 @@
       "SL036",
       "SL037",
       "SL039",
-      "SL041",
-      "SL043",
-      "SL004",
-      "SL006",
-      "SL050"
-    ],
-    "2": [
-      "SL038",
-      "SL040",
       "SL042",
       "SL044",
+      "SL004"
+    ],
+    "2": [
+      "SL040",
+      "SL043",
+      "SL045",
       "SL021",
-      "SL007",
       "SL046",
       "SL047"
     ],
     "3": [
-      "SL045",
-      "SL033",
       "SL010",
       "SL027",
-      "SL048"
-    ],
-    "4": [
+      "SL048",
       "SL049"
     ],
+    "4": [],
     "retour": [
       "SL018"
     ]

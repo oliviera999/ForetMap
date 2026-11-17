@@ -5,7 +5,6 @@ export const FENETRE_LABELS = Object.freeze({
   apres_jet: 'après le jet',
   jeu: 'phase jeu',
   jeu_avant_fouille: 'phase jeu, avant une fouille',
-  avant_jets_pacte: 'avant les jets des deux équipes',
   activite: 'pendant l’activité (file du prof)',
   seuil: 'au seuil',
   seuil_veillee: 'au seuil ou en veillée',

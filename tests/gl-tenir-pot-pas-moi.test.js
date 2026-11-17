@@ -17,6 +17,7 @@ const {
   setPlayerBourses,
   readPlayerBourses,
   ouvrirTourEnJeu,
+  activerSortRetire,
 } = require('./helpers/glTenirFixtures');
 const { issueTeamSession } = require('../lib/glGuestToken');
 const { checkTenirInvariantsFromDb } = require('../lib/glTenirInvariants');
@@ -49,7 +50,8 @@ let i;
 
 before(async () => {
   await db.initSchema();
-  ctx = await createTenirGame({ stamp: Date.now() });
+  // Abri (SL043) s'ouvre au chapitre 2 (ensemble unifié, M6).
+  ctx = await createTenirGame({ stamp: Date.now(), plateau: 2 });
   gnomes = ctx.teams[0];
   [a, e, i] = membres(gnomes.id);
   assert.ok(a && e && i, 'trois membres dans l’équipe');
@@ -191,20 +193,14 @@ test('tablette de l’équipe : pot automatique, « pas moi » au nom d’un pr�
 });
 
 test('sort à limite par élève : refusé depuis la tablette de l’équipe', async () => {
-  // Héritage (SL033) engage UN élève ; rattaché au chapitre pour ce test.
-  await db.execute(
-    'INSERT IGNORE INTO gl_chapter_spells (chapter_id, spell_code, order_index) VALUES (?, ?, 990)',
-    [ctx.chapter.id, 'SL033'],
-  );
+  // Héritage (SL033, sorti du grimoire par M6) engage UN élève ; remis pour ce test.
+  const remettre = await activerSortRetire(ctx.chapter.id, 'SL033');
   const s = await issueTeamSession(db, { gameId: ctx.game.id, teamId: gnomes.id });
   const res = await pot(s.token, { spellCode: 'SL033' });
   assert.equal(res.status, 403, JSON.stringify(res.body));
   assert.equal(res.body.code, 'SPELL_COMPTE_ELEVE');
   assert.equal(res.body.error, 'Ce sort se lance depuis ton propre compte.');
-  await db.execute('DELETE FROM gl_chapter_spells WHERE chapter_id = ? AND spell_code = ?', [
-    ctx.chapter.id,
-    'SL033',
-  ]);
+  await remettre();
 });
 
 test('compte élève : la saisie de part reste possible, pour l’équipe lanceuse seulement ; le pot ne se lit pas d’une autre équipe', async () => {

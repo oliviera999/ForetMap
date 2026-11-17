@@ -20,6 +20,7 @@ const {
   setPlayerBourses,
   readPlayerBourses,
   ouvrirTourEnJeu,
+  activerSortRetire,
 } = require('./helpers/glTenirFixtures');
 const { rembourserCastTx, rembourserCordeesIncompletesTx } = require('../lib/glSpellCast');
 
@@ -90,8 +91,9 @@ test('Héritage : un compte élève ne désigne pas un camarade comme élève en
   // Le statut du sort vit dans le catalogue partagé de la base de test : une autre suite peut
   // l'avoir laissé « proposé » (409 SPELL_NOT_OFFICIEL, contrôlé avant). Il est fixé ici, puis
   // remis tel quel.
-  const avant = await db.queryOne("SELECT statut FROM gl_spells WHERE spell_code = 'SL033'");
-  await db.execute("UPDATE gl_spells SET statut = 'officiel' WHERE spell_code = 'SL033'");
+  // Héritage est sorti du grimoire (ensemble unifié, M6) : remis officiel et rattaché au
+  // chapitre le temps du test, puis remis tel quel.
+  const remettre = await activerSortRetire(ctx.chapter.id, 'SL033');
   try {
     const camarade = membres(2).find((m) => m.id !== p(2).id);
     const r = await draft(p(2).token, {
@@ -104,10 +106,7 @@ test('Héritage : un compte élève ne désigne pas un camarade comme élève en
     assert.equal(r.status, 403, JSON.stringify(r.body));
     assert.equal(r.body.code, 'SPELL_COMPTE_ELEVE');
   } finally {
-    await db.execute('UPDATE gl_spells SET statut = ? WHERE spell_code = ?', [
-      avant.statut,
-      'SL033',
-    ]);
+    await remettre();
   }
 });
 
