@@ -212,8 +212,9 @@ test('E4 : le surplus au plafond va à la réserve de la caravane ; visible de l
   const initial = {};
   for (const p of ctx.players) initial[p.id] = await readPlayerBourses(p.id);
 
-  // Page trouvée par les Gnomes, tenue par les Licornes : +1 à chaque membre des deux équipes,
-  // tous au plafond de leur ressource → tout part en réserve (3 cœurs, 2 gemmes).
+  // Page trouvée par les Gnomes, tenue par les Licornes : +1 gemme à chaque lecteur (M19), tous
+  // au plafond → tout part en réserve des Licornes (2 gemmes) ; l'équipe qui a trouvé ne gagne
+  // rien.
   const f = await request(app)
     .post(api(ctx, '/chasse/fouiller'))
     .set(auth(gnomes[0].token))
@@ -254,7 +255,7 @@ test('E4 : le surplus au plafond va à la réserve de la caravane ; visible de l
   }
   assert.deepEqual(await loadReserve(db, ctx.game.id, ctx.teams[0].id), {
     teamId: Number(ctx.teams[0].id),
-    health: 3,
+    health: 0,
     power: 0,
   });
   assert.deepEqual(await loadReserve(db, ctx.game.id, ctx.teams[2].id), {
@@ -266,7 +267,21 @@ test('E4 : le surplus au plafond va à la réserve de la caravane ; visible de l
     "SELECT team_id, delta_health, delta_power FROM gl_resource_ledger WHERE game_id = ? AND kind = 'reserve' AND cause = 'reserve_entree' ORDER BY id",
     [ctx.game.id],
   );
-  assert.equal(entrees.length, 5, 'une ligne de réserve par surplus');
+  assert.equal(entrees.length, 2, 'une ligne de réserve par surplus');
+  // Un surplus de cœurs des Gnomes au plafond (gain d'une autre source) part aussi en réserve.
+  await withTransaction(async (tx) => {
+    for (const p of gnomes) {
+      await applyPlayerVitalityDelta(tx, {
+        playerId: p.id,
+        healthDelta: 1,
+        powerDelta: 0,
+        caps: { maxHealth: 8, maxPower: 8 },
+        cause: 'trame',
+        gameId: ctx.game.id,
+        reserveTeamId: Number(ctx.teams[0].id),
+      });
+    }
+  });
   const inv1 = await checkTenirInvariantsFromDb(db, ctx.game.id);
   assert.deepEqual(inv1.violations, []);
   assert.equal(inv1.snapshot.reserves.length, 4);

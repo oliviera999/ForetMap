@@ -537,8 +537,10 @@ def check_olu(d, rep):
     n_err = 0
     for l in items:
         lid = str(l.get("id", "?"))
-        allowed = ["id", "moment", "expression", "texte", "variables", "correction", "plateaux"]
+        allowed = ["id", "moment", "expression", "texte", "variables", "correction", "plateaux", "actif"]
         extra = [k for k in l if k not in allowed]
+        if "actif" in l and not isinstance(l["actif"], bool):
+            rep.err(f"{name} {lid}: actif doit être un booléen")
         missing = [k for k in allowed[:5] if k not in l]
         if extra or missing:
             rep.err(f"{name} {lid}: clés manquantes {missing} / inattendues {extra}")

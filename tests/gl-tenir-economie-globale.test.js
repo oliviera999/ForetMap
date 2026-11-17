@@ -91,14 +91,14 @@ test('fouilles, pages trouvées, lectures, jets et arrivées neutres ne créent 
   assert.equal(await total(), t0, 'jet et arrivée sur une étape : rien');
 });
 
-test('page tenue : +1 par membre des deux équipes ; sort : −coût ; souffle : chapardeur −1 ; rien d’autre', async () => {
+test('page tenue (M19) : +1 gemme par lecteur présent ; sort : −coût ; souffle : chapardeur −1 ; rien d’autre', async () => {
   const t0 = await total();
   const licorne = ctx.players[2];
   const membres = Number(
     (
       await queryOne(
-        'SELECT COUNT(*) AS c FROM gl_team_members WHERE game_id = ? AND team_id IN (?, ?)',
-        [ctx.game.id, ctx.teams[0].id, ctx.teams[2].id],
+        'SELECT COUNT(*) AS c FROM gl_team_members WHERE game_id = ? AND team_id = ?',
+        [ctx.game.id, ctx.teams[2].id],
       )
     ).c,
   );
@@ -117,7 +117,11 @@ test('page tenue : +1 par membre des deux équipes ; sort : −coût ; souffle :
     });
   assert.equal(tenue.status, 200, JSON.stringify(tenue.body));
   const t1 = await total();
-  assert.equal(t1, t0 + membres, 'page tenue : +1 à chaque membre des deux équipes (sous plafond)');
+  assert.equal(
+    t1,
+    t0 + membres,
+    'page tenue : +1 à chaque lecteur, rien à l’équipe qui l’a trouvée',
+  );
 
   const d = await request(app)
     .post(api('/spell-casts/drafts'))
