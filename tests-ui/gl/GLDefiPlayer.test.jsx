@@ -326,7 +326,10 @@ describe('GLDefisView — entrée « Défis »', () => {
     expect(apiGlMock).toHaveBeenCalledWith('/api/gl/games/7/defis');
     expect(screen.getByTestId('gl-defi-ouvrir-retisser-savane:7').disabled).toBe(false);
     expect(screen.getByTestId('gl-defi-ouvrir-retisser-savane:9').disabled).toBe(true);
-    expect(screen.getByTestId('gl-defis-pages').textContent).toMatch(/1 sur\s+2/);
+    // M8 : une seule limite de veillée — l'écran dit ce qu'il reste à gagner, pas un score.
+    expect(screen.getByTestId('gl-defis-pages').textContent).toBe(
+      'Encore 1 page à gagner cette semaine.',
+    );
     expect(screen.getByTestId('gl-defis-a-reparer').textContent).toContain('Gorille');
     expect(screen.getByTestId('gl-defis').textContent).not.toMatch(/classement|rang|score/i);
     apiGlMock.mockResolvedValue({ defi: retisser({ unite: 'savane:7', niveau: 7 }) });

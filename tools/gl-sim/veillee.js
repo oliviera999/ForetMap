@@ -3,7 +3,7 @@
 /**
  * La semaine entre deux séances : l'horloge avance jour par jour (`X-GL-Sim-Clock`) et chaque
  * élève, avec la probabilité `veillee` de sa persona, fait une action de veillée un soir :
- * lecture / tenue d'une page (limite `pages_veillee_par_semaine`), étude d'une espèce du biome
+ * lecture / tenue d'une page (limite `pages_par_semaine`, commune aux défis de la Trame), étude d'une espèce du biome
  * (piste : la zone liée se révèle), ou Marché (don, annonce). Le tour est clos : l'API sert
  * `via: 'veillee'`. Les gestes sont ceux d'un élève connecté (crible du client).
  */

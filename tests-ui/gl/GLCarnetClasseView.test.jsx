@@ -69,6 +69,30 @@ describe('GLCarnetClasseView', () => {
     expect(container.querySelector('polygon')).toBeNull();
   });
 
+  test('M8 : la semaine de veillée de l’élève — « encore N pages », puis la semaine pleine ; rien pour le prof', () => {
+    const avec = (pages) => {
+      const base = chasseWith();
+      return { ...base, carnet: { ...base.carnet, veillee: pages ? { pages } : null } };
+    };
+    const { rerender, container } = render(
+      <GLCarnetClasseView chasse={avec({ utilisees: 1, plafond: 4, restantes: 3 })} />,
+    );
+    expect(screen.getByTestId('gl-carnet-veillee-pages').textContent).toBe(
+      'En veillée : Encore 3 pages à gagner cette semaine.',
+    );
+    rerender(<GLCarnetClasseView chasse={avec({ utilisees: 3, plafond: 4, restantes: 1 })} />);
+    expect(screen.getByTestId('gl-carnet-veillee-pages').textContent).toContain(
+      'Encore 1 page à gagner',
+    );
+    rerender(<GLCarnetClasseView chasse={avec({ utilisees: 4, plafond: 4, restantes: 0 })} />);
+    expect(screen.getByTestId('gl-carnet-veillee-pages').textContent).toContain(
+      'Tu as gagné toutes tes pages de la semaine',
+    );
+    expect(container.textContent).not.toMatch(FORBIDDEN);
+    rerender(<GLCarnetClasseView chasse={avec(null)} />);
+    expect(screen.queryByTestId('gl-carnet-veillee-pages')).toBeNull();
+  });
+
   test('page ouverte avec question de lecture : « Tenir » envoie le choix ; le retour « Pas encore » est affiché tel quel', () => {
     const chasse = chasseWith({
       page: {

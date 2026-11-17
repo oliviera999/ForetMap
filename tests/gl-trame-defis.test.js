@@ -13,7 +13,7 @@
 require('./helpers/setup');
 const fs = require('node:fs');
 const path = require('node:path');
-const { test, before } = require('node:test');
+const { test, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const request = require('supertest');
 const { app } = require('../server');
@@ -23,6 +23,7 @@ const {
   importExempleChasse,
   ouvrirTourEnJeu,
   readPlayerBourses,
+  setGlSetting,
 } = require('./helpers/glTenirFixtures');
 const { runImports } = require('../scripts/gl-import-tenir');
 const { issueTeamSession } = require('../lib/glGuestToken');
@@ -133,6 +134,12 @@ before(async () => {
   }
   [gnome, autreGnome] = membres(0);
   [licorne] = membres(2);
+  // La suite compte les pages une à une : limite de veillée à 2 (défaut : 4), rendue à la fin.
+  await setGlSetting('gameplay.tenir_pages_par_semaine', 2);
+});
+
+after(async () => {
+  await setGlSetting('gameplay.tenir_pages_par_semaine', 4);
 });
 
 test('liste : les défis de son peuple, sur les deux biomes du plateau, niveaux ouverts l’un après l’autre', async () => {
@@ -307,7 +314,7 @@ test('Retisser : classement de ses flèches, sauvegarde stricte, fin de niveau �
   assert.deepEqual(liste.body.pages, { utilisees: 1, plafond: 2 });
 });
 
-test('plafond : deux pages par semaine par cette voie ; la troisième unité compte, sans page', async () => {
+test('plafond : la limite de veillée atteinte, la troisième unité compte, sans page', async () => {
   const deux = await reussir(gnome.token, 'retisser', 'jungle_afc:7', {
     fleches: solution('jungle_afc', 7),
   });
@@ -949,4 +956,44 @@ test('Le bon pays : un indice par carte, les pays du registre des biomes ; Les f
     settings: await getGameplaySettings(),
   });
   assert.deepEqual(inv.violations || [], []);
+});
+
+test('une seule limite de veillée : une page tenue en veillée et une page gagnée par un défi partagent le compteur', async () => {
+  const { isoWeekOf } = require('../lib/glTenir');
+  const chasse = require('../lib/glChasse');
+  const [, eleve] = membres(2);
+  const semaine = isoWeekOf();
+  const resolved = { pages_par_semaine: 2 };
+  assert.deepEqual(await chasse.pagesDeLaSemaine(db, { playerId: eleve.id, resolved }), {
+    utilisees: 0,
+    plafond: 2,
+    restantes: 2,
+  });
+  // Deux pages tenues en veillée cette semaine (une lecture sans gain ne compte pas).
+  const zone = await db.queryOne('SELECT id FROM gl_chasse_zones ORDER BY id ASC LIMIT 1');
+  for (const gain of [1, 1, 0]) {
+    await db.execute(
+      `INSERT INTO gl_game_chasse_ouvertures (game_id, zone_id, team_id, player_id, via, reussie, gain, semaine_iso, created_at)
+       VALUES (?, ?, ?, ?, 'veillee', ?, ?, ?, NOW())`,
+      [ctx.game.id, zone.id, team(2).id, eleve.id, gain, gain, semaine],
+    );
+  }
+  assert.equal(await chasse.countPagesSemaine(db, eleve.id, semaine), 2);
+  assert.deepEqual((await lister(eleve.token)).body.pages, { utilisees: 2, plafond: 2 });
+  // Sa semaine est pleine : le défi réussi compte (regard, badge), sans page de plus.
+  const fils = core.buildAdaptation(lire('trame-adaptations').biomes[1]);
+  const fin = await reussir(eleve.token, 'adaptation', 'adaptation:savane', {
+    fleches: fils.liens.map((l) => ({ de: l.de, vers: l.vers })),
+  });
+  assert.equal(fin.reussite.premiere, true);
+  assert.equal(fin.reussite.page, false);
+  assert.equal(await chasse.countPagesSemaine(db, eleve.id, semaine), 2);
+  // Une limite remontée par le prof pour cette partie rouvre le compteur.
+  assert.equal(
+    (await chasse.pagesDeLaSemaine(db, { playerId: eleve.id, resolved: { pages_par_semaine: 5 } }))
+      .restantes,
+    3,
+  );
+  assert.equal(require('../lib/glTenir').resolvePagesParSemaine({}), 4, 'défaut');
+  assert.equal(require('../lib/glTenir').resolvePagesParSemaine({ pages_par_semaine: 0 }), 0);
 });

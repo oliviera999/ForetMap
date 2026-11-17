@@ -47,7 +47,7 @@ const CHASSE_ERRORS = {
   ZONE_INTROUVABLE: 'Page introuvable',
   PAGE_PAS_TROUVEE: 'Cette page dort encore',
   MEME_PEUPLE: 'Une page se tient par une équipe de l’autre peuple',
-  VEILLEE_LIMITE: 'Limite de pages tenues en veillée atteinte cette semaine',
+  VEILLEE_LIMITE: 'Tu as gagné toutes tes pages de la semaine. Cette page t’attendra.',
   TEAM_NOT_FOUND: 'Équipe introuvable dans cette partie',
 };
 
@@ -197,7 +197,19 @@ async function loadCarnet(req, res, gameId) {
       };
     }
   }
-  return { ...carnet, viewerTeamId, fouilles };
+  // M8 : où en est l'élève de sa semaine de veillée (« encore N pages cette semaine »). Privé :
+  // servi à lui seul, jamais à une tablette d'équipe, au prof ni à la projection.
+  let veillee = null;
+  if (viewer.kind === 'player' && viewer.playerId != null) {
+    const { resolveTenirSettings } = require('../../../lib/glTenir');
+    veillee = {
+      pages: await chasse.pagesDeLaSemaine(db, {
+        playerId: viewer.playerId,
+        resolved: resolveTenirSettings(ctx.settings, ctx.game),
+      }),
+    };
+  }
+  return { ...carnet, viewerTeamId, fouilles, veillee };
 }
 
 router.get(

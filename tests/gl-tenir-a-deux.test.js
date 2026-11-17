@@ -234,8 +234,20 @@ test('veillée (tour clos) : la lecture reste ouverte, la limite hebdomadaire de
   assert.equal(lecture.body.via, 'veillee');
   assert.equal(lecture.body.peutTenir, false, 'page déjà tenue : lecture seule');
 
+  // Avant la limite : l'écran sait dire « encore N pages cette semaine » (M8, compteur unique).
+  const semaine = await request(app).get(api('/chasse')).set(auth(licorneB().token));
+  assert.equal(semaine.body.veillee.pages.plafond, 4);
+  assert.equal(
+    semaine.body.veillee.pages.restantes,
+    4 - semaine.body.veillee.pages.utilisees,
+    JSON.stringify(semaine.body.veillee),
+  );
+  // Le prof et la projection n'ont pas de semaine de veillée.
+  const carnetProf = await request(app).get(api('/chasse')).set(auth(ctx.adminToken));
+  assert.equal(carnetProf.body.veillee, null);
+
   // Limite à 0 (réglage global) : une page encore à tenir en veillée est refusée pour cet élève.
-  await setGlSetting('gameplay.tenir_pages_veillee_par_semaine', 0);
+  await setGlSetting('gameplay.tenir_pages_par_semaine', 0);
   await execute(
     "UPDATE gl_game_chasse_pages SET etat = 'trouvee', tenue_par_team_id = NULL, tenue_at = NULL WHERE game_id = ? AND zone_id = ?",
     [ctx.game.id, await zoneId('cz-p1-01')],
@@ -251,5 +263,5 @@ test('veillée (tour clos) : la lecture reste ouverte, la limite hebdomadaire de
     .set(auth(ctx.adminToken))
     .send({ teamId: licorneB().teamId });
   assert.equal(mj.status, 200, JSON.stringify(mj.body));
-  await setGlSetting('gameplay.tenir_pages_veillee_par_semaine', 2);
+  await setGlSetting('gameplay.tenir_pages_par_semaine', 4);
 });

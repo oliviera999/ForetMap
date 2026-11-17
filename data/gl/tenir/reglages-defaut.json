@@ -36,7 +36,7 @@
       "4": 10
     },
     "pistes_par_semaine": 1,
-    "pages_veillee_par_semaine": 2,
+    "pages_par_semaine": 4,
     "voile": true,
     "voile_bonus_par_plateau": {
       "1": 3,
@@ -55,7 +55,6 @@
     "defi_recul": 2,
     "defis": true,
     "defis_par_peuple": true,
-    "defis_pages_par_semaine": 2,
     "defis_mode_equipe": true,
     "parures": true,
     "lumiere": true,
@@ -146,7 +145,7 @@
     "defi_recul": "cases de recul du voile pour un défi relevé (0 à 10)",
     "defis": "lot 3 : défis de la Trame (Retisser, Réparer, La trame altérée, Les fils cachés), dès le chapitre 1, sur les deux biomes du plateau ; jamais de ressource",
     "defis_par_peuple": "Gnomes : Retisser et Réparer ; Licornes : La trame altérée et Les fils cachés ; à false, les quatre pour tous",
-    "defis_pages_par_semaine": "pages de veillée gagnées par cette voie, par élève et par semaine ISO",
+    "pages_par_semaine": "ensemble unifié (M8) : une seule limite de veillée — pages gagnées par élève et par semaine ISO, toutes sources (page tenue en veillée, défi de la Trame) ; remplace pages_veillee_par_semaine et defis_pages_par_semaine (2 + 2) ; pistes_par_semaine (1) reste à part",
     "defis_mode_equipe": "le prof, ou une tablette d'équipe hors tour, lance un défi pour une équipe",
     "fouilles_par_tour": "ensemble unifié (M2, 17 novembre 2026) : 2 fouilles par équipe et par tour, pour les deux peuples (ancienne forme { gnome: 1, unicorn: 2 }) ; une zone pâlie ne se fouille que par une équipe gnome (c'est la réparation) ; la fouille de réparation en plus a disparu",
     "fouilles_sous_voile": "M2 : fouilles par tour d'une équipe sous le voile (1), sauf Abri ou Cordée qui rendent le quota entier",

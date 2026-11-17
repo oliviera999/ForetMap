@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { apiGL } from '../../services/apiGL.js';
 import { GLButton } from '../ui/GLButton.jsx';
 import { GLDefiPlayer } from './GLDefiPlayer.jsx';
+import { encorePagesDeVeillee } from '../../constants/tenirTextes.js';
 
 const STATUTS = Object.freeze({
   reussi: { picto: '✓', label: 'réussi' },
@@ -99,8 +100,7 @@ export function GLDefisView({ gameId, teamId = null }) {
       ) : null}
       {liste.pages.utilisees != null ? (
         <p className="gl-hint" data-testid="gl-defis-pages">
-          Pages de veillée gagnées cette semaine par un défi : {liste.pages.utilisees} sur{' '}
-          {liste.pages.plafond}.
+          {encorePagesDeVeillee(liste.pages)}
         </p>
       ) : null}
       {liste.types.map((t) => (

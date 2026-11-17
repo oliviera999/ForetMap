@@ -36,7 +36,7 @@
       "4": 10
     },
     "pistes_par_semaine": 1,
-    "pages_veillee_par_semaine": 2,
+    "pages_par_semaine": 4,
     "voile": true,
     "voile_bonus_par_plateau": {
       "1": 4,
@@ -55,7 +55,6 @@
     "defi_recul": 2,
     "defis": true,
     "defis_par_peuple": true,
-    "defis_pages_par_semaine": 2,
     "defis_mode_equipe": true,
     "parures": true,
     "lumiere": true,

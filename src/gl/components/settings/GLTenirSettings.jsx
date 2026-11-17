@@ -73,10 +73,9 @@ const TENIR_NUMBERS = [
     12,
   ],
   ['gameplay.tenir_pistes_par_semaine', 'Pistes de veillée par semaine', 0, 20],
-  ['gameplay.tenir_pages_veillee_par_semaine', 'Ouvertures gagnantes en veillée / semaine', 0, 20],
   [
-    'gameplay.tenir_defis_pages_par_semaine',
-    'Pages gagnées par un défi de la Trame / semaine',
+    'gameplay.tenir_pages_par_semaine',
+    'Pages gagnées en veillée par élève et par semaine (page tenue, défi de la Trame)',
     0,
     20,
   ],

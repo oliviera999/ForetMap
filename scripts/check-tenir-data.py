@@ -42,7 +42,7 @@ SPELL_NAMES_ATTENDUS = {
 REGLAGES_ATTENDUS = {
     "enabled", "surface", "des_mode", "des_count", "des_physiques_validation", "questions_de_case", "vent",
     "vent_cases", "fouilles_par_tour", "fouilles_sous_voile", "fouille_seuils", "zones_par_plateau", "pistes_par_semaine",
-    "pages_veillee_par_semaine", "voile", "voile_bonus_par_plateau", "palissement_pct", "palissement_max",
+    "pages_par_semaine", "voile", "voile_bonus_par_plateau", "palissement_pct", "palissement_max",
     "recul_carnet_complet", "marche", "marche_pendant_tour", "parures", "lumiere", "lumiere_palier",
     "chapardeur", "peripeties", "olu_erreur_du_jour", "sablier_secondes",
     "max_power_points", "max_health_points", "lore_feuillet_retrigger", "lore_gemme_costs_enabled",
