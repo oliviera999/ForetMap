@@ -9,6 +9,40 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — G&L : ensemble unifié, PR 1a — les règles du tour simplifiées (17 novembre 2026)
+
+Prompt `docs/GL_ENSEMBLE_UNIFIE_PROMPT.md` (§ 6, étapes 1.1 à 1.7 et 1.12), décisions d'Oliv des
+16 et 17 novembre. Données livrées dans `data/gl/tenir/ensemble-unifie/` (dossier d'attente).
+
+- **Fouilles (M2)** : 2 par équipe et par tour pour les deux peuples, 1 sous le voile ; la
+  fouille de réparation en plus disparaît ; une zone pâlie ne se fouille que par une équipe
+  gnome (refus licorne sans perte) ; seule une fouille licorne « pas encore » révèle la zone,
+  créditée au carnet, à la projection, au badge Trouveur et au sceau licorne. Migration 356.
+- **Case Souffle (M3)** : au tour suivant, l'équipe ne lance qu'un dé — même effet pour les deux
+  peuples et les quatre plateaux ; plus de recul ni de tour passé en mode « Tenir » ; la Trame
+  donne une gemme aux deux peuples, les cases positives leur mouvement sans ressource. Les 13
+  cases Souffle sont réécrites (migration 357).
+- **Trois cases Défi par plateau (M7)** : rangs 11, 20 et 29 (30 au plateau 4) ; l'ancienne case
+  Défi de fin de plateau redevient une case question (migration 358).
+- **Questions de case (M9)** : questions vives d'abord, plafond de difficulté par plateau,
+  spirale à partir du plateau 2 ; 40 questions vives de plus (`VQCM0041` à `VQCM0080`) ;
+  migration 359.
+- **Grimoire à 19 sorts (M6, M16)** : Nommer, Héritage, Boussole, Tablette, Musique et Lumière
+  sortent ; nouvelles ouvertures par chapitre ; Cordée lancée pendant le jeu, effet au prochain
+  tour, rendue si elle ne se fait pas ; au plateau 4, la première Cordée de chaque équipe est
+  offerte ; écran des sorts en cinq moments, limité à ce qui est lançable et payable.
+- **Page tenue (M19)** : +1 gemme à chaque lecteur présent, rien à l'équipe qui l'a trouvée ;
+  lignes d'Olu révisées.
+- **Lumière (M17, M20)** : jauge qui ne descend jamais, recul du voile d'office à 100, plus de
+  choix ni de sort « Lumière », plus de cartes → cases (migration 360) ; un défi de la Trame
+  réussi ouvre une piste et, en équipe, ajoute 10 à la Lumière.
+- **Banc** : scénario `ensemble-unifie` et mesures de l'ensemble (fouilles possibles, part des
+  Licornes, ressources créées, tours à un dé, défis de case, reculs de Lumière, écart de
+  position) ; le crible des mots interdits ignore les champs `*Token`.
+- Retirés : réglages `tenir_fouilles_reparation_gnome`, `tenir_fouille_sous_voile`,
+  `tenir_cartes_vers_cases`, option `ressource_peuple` de `tenir_cases_positives`, fenêtre de sort
+  `avant_jets_pacte`, route `POST /api/gl/games/:id/tenir/lumiere/choix`.
+
 ### Corrigé — G&L : une Cordée déjà jouée n'est plus rendue au souffle
 
 - Au passage en phase Souffle, la décision « les deux équipes ont-elles jeté ? » relisait le dé

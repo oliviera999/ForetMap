@@ -296,14 +296,40 @@ plus en retard joue d'abord. La première au camp ne gagne rien de plus : à cha
 avance l'équipe la plus en retard.
 
 **Le voile** avance en fin de séance (dé gris + bonus du plateau). Une équipe recouverte ne fouille
-plus et ses pages trouvées non lues pâlissent ; elle avance, répond, lit et échange normalement.
-Le voile ne retire jamais rien. Il recule quand le carnet de la classe est complet (et, si vous
-l'activez, par la Lumière des cartes Team Spirit).
+plus qu'**une fois** par séance et ses pages trouvées non lues pâlissent ; elle avance, répond, lit
+et échange normalement. Le voile ne retire jamais rien. Il recule quand le carnet de la classe est
+complet, quand un défi de case est relevé, et à chaque palier de la **Lumière**.
 
 **Le carnet de la classe** liste les pages cachées du plateau : dort encore, révélée, trouvée,
 tenue, pâlie, réparée. Une page est **tenue à deux** quand une équipe de l'autre peuple l'ouvre et
-répond juste à sa question de lecture : chacun des membres des deux équipes gagne une unité de sa
-ressource. Les Gnomes réparent les pages pâlies.
+répond juste à sa question de lecture : chaque lecteur présent gagne **une gemme** (l'équipe qui
+l'a trouvée ne gagne rien de plus). Les Gnomes réparent les pages pâlies.
+
+## Ensemble unifié : les règles du tour simplifiées (17 novembre 2026)
+
+- **Fouilles** : deux par équipe et par séance, pour les Gnomes comme pour les Licornes ; une seule
+  sous le voile (Abri ou Cordée rendent les deux). Une page **pâlie** ne se fouille que par une
+  équipe gnome, avec une fouille ordinaire : c'est la réparation. Une Licorne qui touche une page
+  pâlie lit « Cette zone a pâli : les Gnomes savent la réparer. », sans perdre sa fouille.
+- **Révéler** : seule une fouille **licorne** qui répond « pas encore » sur une page la révèle à
+  toute la classe (contour visible). Une fouille gnome « pas encore » ne révèle rien. Le carnet et la
+  projection disent « révélée par …, trouvée par …, tenue par … ».
+- **Case Souffle** : au tour suivant, l'équipe ne lance **qu'un dé** — le même effet pour les deux
+  peuples, sur les quatre plateaux. Ni recul, ni tour passé, ni ressource retirée. L'écran d'équipe,
+  la console et la projection affichent « Au prochain tour : un seul dé ». Sentier l'empêche ; la
+  relance gagnée par une bonne réponse se joue à deux dés.
+- **Cases** : une case Trame donne une gemme à chaque membre (aux deux peuples) ; une case positive
+  donne son mouvement, sans ressource ; plus aucune case ne fait reculer.
+- **Trois cases Défi** par plateau, aux cases 12, 21 et 30 (31 au plateau 4) ; l'ancienne case
+  Défi de la fin du plateau redevient une case question.
+- **Questions de case** : d'abord les questions « vives » pas encore posées dans la partie, puis
+  les autres, sous un plafond de difficulté (2 au plateau 1, 3 ensuite) ; dès le plateau 2, une
+  question sur cinq vient d'un biome déjà traversé. Réglages : « Questions de case : difficulté
+  maximale par plateau » et « Questions de case d'un biome déjà traversé ».
+- **Lumière** : une jauge commune qui ne descend jamais. Chaque carte Team Spirit gardée ajoute 1,
+  l'erreur d'Olu corrigée ajoute 1, un défi de la Trame réussi en équipe ajoute 10. À 100, le voile
+  recule de 5 tout seul et la jauge repart à zéro : plus rien à choisir. Les cartes ne font plus
+  avancer les pions.
 
 **À la clôture** : quatre honneurs (Éclaireurs, Gardiens, Passeurs, Esprit d'équipe), un par
 équipe au plus, deux sceaux de peuple (Éclaireuses, Mains), un titre par honneur et par biome qui

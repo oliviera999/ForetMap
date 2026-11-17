@@ -51,7 +51,7 @@ montre comptes, écarts et dernier rapport, et permet de resynchroniser (`POST
 | `missions.json` | `id` | 20 |
 | `titres.json` | chemin `honneurs.<honneur>.<biome>` etc. | 16 + 8 + 20 |
 | `badges.json` | `code` | 15 |
-| `olu-lignes.json` | `id` | 77 |
+| `olu-lignes.json` | `id` (`actif: false` : la ligne reste au fichier, Olu ne la dit plus) | 77 |
 | `parures.json` | `code` | 12 |
 | `sorts.json` | `code` (table `gl_spells`) | 25 + 6 voyageur |
 | `reglages-defaut.json` | clé de réglage `gameplay.tenir_*` | — |
@@ -196,7 +196,10 @@ Mentorat, SL033 Héritage ; SL036 à SL050 pour les nouveaux, SL022/029/034/035 
 `vocabulaire`. Le chargeur upserte `gl_spells` (statut `officiel`, `approval_mode` dérivé de
 `execution`), réécrit `gl_chapter_spells` depuis `ouverture_par_chapitre` et passe en `propose` les
 sorts de `gl_spells` absents du fichier. Le coût de Consécration (8 « offertes ») est porté par
-`ressource: choix`. `voyageur` : grimoire individuel gratuit, un usage par chapitre, débloqué par le
+`ressource: choix`. Ensemble unifié (M6, 17 novembre 2026) : **19 sorts** au grimoire ; un sort
+`actif: false` (Nommer, Héritage, Boussole, Tablette, Musique, Lumière) reste au fichier, passe en
+`propose` et n'est ouvert à aucun chapitre ; la Cordée (fenêtre `jeu`, `effet_auto_json.prochain_tour`)
+agit au tour suivant et `offerte_plateau_4` la rend gratuite une fois par équipe au plateau 4. `voyageur` : grimoire individuel gratuit, un usage par chapitre, débloqué par le
 niveau du Seuil (niveaux 1-6 ; Messager hors périmètre).
 
 ## `reglages-defaut.json`

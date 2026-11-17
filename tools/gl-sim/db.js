@@ -256,7 +256,8 @@ async function verifierContenu(db) {
       erreurs.push(`plateau ${p} : moins de 7 zones de chasse prêtes`);
   }
   if (Number(lecture?.n) < 30) erreurs.push('questions de lecture insuffisantes');
-  if (Number(sorts?.n) < 20) erreurs.push('sorts v2 insuffisants');
+  // Ensemble unifié (M6) : le grimoire compte 19 sorts officiels.
+  if (Number(sorts?.n) < 19) erreurs.push('sorts v2 insuffisants');
   return {
     ok: erreurs.length === 0,
     erreurs,

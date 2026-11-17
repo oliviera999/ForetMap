@@ -166,6 +166,9 @@ function controlerCorpsEleve(body, { membres = [] } = {}) {
   const bourses = [];
   parcourir(body, {
     chaine(s, cle, chemin) {
+      // Un jeton (`presentationToken`, `token`…) est du base64 : « Faux », « Krâ »… peuvent y
+      // apparaître par hasard. Faux positif connu : les champs `*Token` ne sont pas criblés.
+      if (/token$/i.test(String(cle || ''))) return;
       const mot = findForbiddenString(s);
       if (!mot) return;
       const hit = { chemin, mot, extrait: s.slice(0, 80) };

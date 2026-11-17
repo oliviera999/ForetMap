@@ -21,6 +21,88 @@ function parseJson(raw, fallback = null) {
   }
 }
 
+/** Causes du grand livre qui CRÉENT une ressource (tout le reste la déplace ou la détruit). */
+const CAUSES_CREATION = new Set([
+  'page_tenue',
+  'trame',
+  'case_positive',
+  'case_souffle',
+  'case_plateau',
+  'carnet_complet',
+  'reparation',
+  'feuillet',
+  'heritage',
+]);
+
+/**
+ * Mesures de l'ensemble unifié (PR 1a, § 6.12 du prompt) : elles se lisent aussi sur les règles
+ * d'avant (même banc, même graine), pour comparer.
+ */
+function mesurerEnsembleUnifie({
+  evts,
+  pages,
+  typeDe,
+  equipes,
+  ledger,
+  joueurs,
+  compteurs,
+  rangs,
+  rangsParSeance = [],
+}) {
+  // Gestes de chasse utiles : pages trouvées ou réparées, révélations « converties » (zone
+  // révélée par une fouille ou la Lanterne puis trouvée), au crédit de l'équipe qui les a faits.
+  const finale = new Map(pages.map((p) => [p.zoneKey, p.etat]));
+  const revelePar = new Map();
+  for (const e of evts.filter((x) => x.type === 'page_revelee')) {
+    const via = String(e.payload.via || '');
+    if ((via === 'fouille' || via === 'lanterne') && e.teamId != null) {
+      const z = String(e.payload.zoneKey || '');
+      if (z && !revelePar.has(z)) revelePar.set(z, e.teamId);
+    }
+  }
+  const utiles = [];
+  for (const e of evts.filter((x) => x.type === 'page_trouvee' || x.type === 'page_reparee')) {
+    utiles.push(e.teamId);
+  }
+  for (const [z, teamId] of revelePar) {
+    if (['trouvee', 'reparee', 'tenue'].includes(finale.get(z))) utiles.push(teamId);
+  }
+  const licornes = utiles.filter((t) => typeDe.get(t) === 'unicorn').length;
+  let creees = 0;
+  for (const r of ledger) {
+    const cause = String(r.cause);
+    if (!CAUSES_CREATION.has(cause) && cause !== 'reserve_entree') continue;
+    // Une entrée en réserve (`kind = 'reserve'`) est le surplus d'un gain au plafond : créée aussi.
+    creees += Math.max(0, Number(r.delta_health) || 0) + Math.max(0, Number(r.delta_power) || 0);
+  }
+  const moy = (xs) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
+  const ecartDe = (liste) => {
+    const l = moy(liste.filter((r) => r.type === 'unicorn').map((r) => r.rang));
+    const g = moy(liste.filter((r) => r.type === 'gnome').map((r) => r.rang));
+    return l != null && g != null ? l - g : null;
+  };
+  const ecarts = rangsParSeance.map(ecartDe).filter((x) => x != null);
+  const ecartAvantSeuil = ecartDe(rangs);
+  return {
+    sansFouillePct: compteurs.couplesFouille
+      ? pourcent(compteurs.couplesSansFouille, compteurs.couplesFouille)
+      : null,
+    couplesFouille: compteurs.couplesFouille,
+    gestesChasseUtiles: utiles.length,
+    partLicornesChasseUtilePct: utiles.length ? pourcent(licornes, utiles.length) : null,
+    ressourcesCreeesParEleve: joueurs.length ? arrondi(creees / joueurs.length, 2) : null,
+    toursUnDeParEquipe: equipes.length
+      ? arrondi(evts.filter((e) => e.type === 'un_de_joue').length / equipes.length, 2)
+      : null,
+    defisCaseRecus: evts.filter((e) => e.type === 'defi_case_recu').length,
+    reculsLumiere: evts.filter((e) => e.type === 'lumiere_palier').length,
+    // Moyenne, sur les séances, de (rang moyen des Licornes − rang moyen des Gnomes) en fin de
+    // séance ; et la valeur juste avant la clôture.
+    ecartLicornesGnomes: ecarts.length ? arrondi(moy(ecarts), 2) : null,
+    ecartLicornesGnomesAvantSeuil: ecartAvantSeuil != null ? arrondi(ecartAvantSeuil, 2) : null,
+  };
+}
+
 async function etatsPages(db, gameId) {
   const rows = await db.queryAll(
     `SELECT z.zone_key, z.rang_case, p.etat, p.trouvee_par_team_id, p.tenue_par_team_id, p.reparee_at, p.palissement_json
@@ -127,6 +209,9 @@ async function mesurerChapitre(ctx, deroule) {
     'defi_case_recu',
     'defi_case_releve',
     'defi_case_pas_encore',
+    'page_revelee',
+    'un_de_joue',
+    'lumiere_palier',
   ]);
   const sousVoile = new Set();
   const paliesUneFois = new Set();
@@ -204,6 +289,17 @@ async function mesurerChapitre(ctx, deroule) {
     /* table absente : on garde le payload */
   }
   const badges = await mesurerBadges(ctx);
+  const ensembleUnifie = mesurerEnsembleUnifie({
+    evts,
+    pages,
+    typeDe,
+    equipes,
+    ledger,
+    joueurs,
+    compteurs: ctx.compteurs,
+    rangs: deroule.rangs || [],
+    rangsParSeance: deroule.rangsParSeance || [],
+  });
 
   return {
     gameId,
@@ -253,6 +349,7 @@ async function mesurerChapitre(ctx, deroule) {
       ),
     },
     ledgerParCause: parCause,
+    ensembleUnifie,
     peripeties: evts.filter((e) => e.type === 'peripetie').length,
     chapardeur: evts.some((e) => e.type === 'chapardeur'),
     sortsLances: evts.filter((e) => e.type === 'spell_cast').length,

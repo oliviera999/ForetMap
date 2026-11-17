@@ -794,7 +794,9 @@ router.post(
       } else if (mode === 'physique') {
         const faces = parseFaces(req.body?.faces, desCount);
         if (!faces)
-          return res.status(400).json({ error: `Faces attendues : ${desCount} valeurs de 1 à 6` });
+          return res.status(400).json({
+            error: `Faces attendues : ${desCount} ${desCount > 1 ? 'valeurs' : 'valeur'} de 1 à 6`,
+          });
         const attente = ctx.actorKind === 'player' && validationProf;
         if (attente) {
           await withTransaction(async (tx) => {

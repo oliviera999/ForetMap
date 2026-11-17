@@ -393,9 +393,8 @@ une autre équipe ni vers une projection ; les payloads privés du journal sont 
 | POST    | `/api/gl/games/:id/tenir/lancer`                     | `{ mode: serveur\|physique\|libre, faces?, cases?, motif?, teamId? }`                 | Geste Lancer (permissions rejouées par surface). 201 jet appliqué (bénéficiaire = l'équipe la plus en retard si le lanceur est au camp) ; 202 `{ enAttente, saisieId }` pour une saisie physique à valider ; `libre` (prof, motif ≥ 3 caractères, **privé** au journal). Un élève ne force pas `physique` hors du mode de sa surface sauf vers la file du prof (403 `TENIR_DES_MODE`). **Relance (9 novembre 2026)** : si l'équipe peut encore lancer Relance (module des sorts, sort ouvert au chapitre, limite non atteinte, bourses + réserve suffisantes ; hors `libre`, Cordée et jet qui atteint le camp), la mascotte avance mais la case **n'est pas appliquée** : `arrival = { enSuspens: true, relanceSpellCode, markerId, label, question, effectSummary?, camp }`, événement `arrivee_suspendue`, entrée dans `tenir.round.arriveesEnSuspens`. Un jet applique d'abord les arrivées restées en suspens dans la partie (événement `arrivee_gardee`, `motif: 'auto'`). |
 | POST    | `/api/gl/games/:id/tenir/arrivee/garder`             | `{ teamId? }`                                                                          | Élève de l'équipe ou prof (`teamId` obligatoire). L'équipe garde son jet : la case restée en suspens s'applique (événement `arrivee_gardee`, `motif: 'garde'`, puis effets de case). 200 `{ ok, arrival }` ; 409 `AUCUNE_ARRIVEE_EN_SUSPENS`. Application d'office aussi au changement de phase, à l'équipe suivante, à la clôture du chapitre, au lancer d'un autre sort automatique et à la présentation de la case (`present-question` / `present-arrival`). |
 | POST    | `/api/gl/games/:id/tenir/des/:id/valider\|refuser`   | —                                                                                      | `gl.game.manage`.                                                                                                                                                                                                                                              |
-| PUT/GET | `/api/gl/games/:id/tenir/tour/team-spirit`           | `{ bilans: [{ teamId, cartesGardees (0–6), cartes? }] }`                                | `gl.game.manage`. Bilan par séance ; Lumière (palier) et cartes → cases selon réglages.                                                                                                                                                                       |
-| POST    | `/api/gl/games/:id/tenir/lumiere/choix`              | `{ palier, choix: voile\|sort, libelle? }`                                             | `gl.game.manage`, si `tenir_lumiere`.                                                                                                                                                                                                                          |
-| POST    | `/api/gl/games/:id/tenir/tour/olu-corrige`           | `{ teamId }`                                                                           | `gl.game.manage`. Événement `olu_corrige` (correction), +1 Lumière si activée ; une fois par tour. Sans correction, Olu la dit au passage en `clos`.                                                                                                          |
+| PUT/GET | `/api/gl/games/:id/tenir/tour/team-spirit`           | `{ bilans: [{ teamId, cartesGardees (0–6), cartes? }] }`                                | `gl.game.manage`. Bilan par séance ; Lumière (M17) : chaque carte gardée ajoute 1 à la jauge, comptée une fois par séance et par équipe (`lumiere_comptee`), la jauge ne descend jamais ; au palier, recul du voile d'office (plus de choix ni de cartes → cases).                                                                                                                                                                       |
+| POST    | `/api/gl/games/:id/tenir/tour/olu-corrige`           | `{ teamId }`                                                                           | `gl.game.manage`. Événement `olu_corrige` (correction), +1 Lumière (palier atteint → recul d'office) ; une fois par tour. Sans correction, Olu la dit au passage en `clos`.                                                                                                          |
 | POST    | `/api/gl/games/:id/tenir/peripetie/passer`           | `{ id, teamId? }`                                                                      | Auth GL, partie tenir. « On passe » : un joueur passe pour sa propre équipe (`teamId` ignoré), le prof pour `teamId` de la partie (404 sinon).                                                                                                                                                                                                                                         |
 | POST    | `/api/gl/games/:id/projection-token`                 | `{ revoke? }`                                                                          | `gl.game.manage`. 201 `{ token, url, expiresAt }` (JWT `gl_guest` 12 h, hachage révocable) ; révoqué à la clôture.                                                                                                                                             |
 | GET     | `/api/gl/games/:id/tenir/honneurs`                   | —                                                                                      | Auth GL ou projection. Honneurs, sceaux et missions attribués ; `apercu` (prof) tel qu'ils seraient attribués maintenant. Jamais un classement d'élèves.                                                                                                      |
@@ -457,9 +456,9 @@ servis à un élève ni à une projection ; une mauvaise réponse ne retire rien
 
 | Méthode | Route                                           | Corps / paramètres                                   | Accès et effet                                                                                                                                                                                                                                                                                                                                                                                                        |
 | ------- | ----------------------------------------------- | ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| GET     | `/api/gl/games/:id/chasse`                      | —                                                    | Auth GL **ou projection**. Carnet de la classe : `pages[]` (`zoneKey`, `ordre`, `indice`, `etat` `endormie\|revelee\|trouvee\|tenue\|palie\|reparee`, `titre` et `feuilletCode` une fois trouvée, `trouveePar`, `tenuePar`, `palissementPct` pour l'équipe du lecteur, `contour` = centre public dès que la page n'est plus endormie ; `points` + `rangCase` pour le prof seul), `empreintes[]` (x, y, verdict, équipe, tour), `voilePosition`, `kraa` (position et état de l'oiseau témoin), `carnetCompletAt`, `viewerTeamId`, `fouilles` (`quota`, `utilisees`, `restantes`, `sousVoile`, et `reparation { quota, utilisees, restantes }` : fouille de réparation d'une équipe gnome, page pâlie seulement, réglage `tenir_fouilles_reparation_gnome` — E2) pour un joueur. |
+| GET     | `/api/gl/games/:id/chasse`                      | —                                                    | Auth GL **ou projection**. Carnet de la classe : `pages[]` (`zoneKey`, `ordre`, `indice`, `etat` `endormie\|revelee\|trouvee\|tenue\|palie\|reparee`, `titre` et `feuilletCode` une fois trouvée, `trouveePar`, `tenuePar`, `palissementPct` pour l'équipe du lecteur, `contour` = centre public dès que la page n'est plus endormie ; `points` + `rangCase` pour le prof seul), `empreintes[]` (x, y, verdict, équipe, tour), `voilePosition`, `kraa` (position et état de l'oiseau témoin), `carnetCompletAt`, `viewerTeamId`, `fouilles` (`quota`, `utilisees`, `restantes`, `sousVoile` — ensemble unifié M2 : `tenir_fouilles_par_tour` (2) pour les deux peuples, `tenir_fouilles_sous_voile` (1) sous le voile sauf Abri ou Cordée, + Grand Regard ; plus de fouille de réparation) pour un joueur ; chaque page porte aussi `reveleePar` (équipe qui l'a révélée : fouille licorne « pas encore » ou Lanterne). |
 | GET     | `/api/gl/games/:id/chasse/carnet`               | —                                                    | Idem, pages seules (`pages`, `total`, `tenues`, `trouvees`, `carnetCompletAt`).                                                                                                                                                                                                                                                                                                                                       |
-| POST    | `/api/gl/games/:id/chasse/fouiller`             | `{ x, y, teamId? }` (0–1, origine haut-gauche)       | Joueur (son équipe) ou MJ (`teamId`). Geste `fouiller` rejoué côté serveur (phase `jeu`, surface). 201 `{ verdict, zoneKey?, question?, kraa, fouilles }` : `zone` + question (fixe puis thème de secours), `froid\|tiede\|chaud` à côté (empreinte publique), `deja_trouvee` / `palie` (réservée aux Gnomes) sans consommer de fouille. **E2** : une fouille d'une équipe gnome sur une page pâlie consomme d'abord sa fouille de réparation (`reparation: true` dans la réponse) ; 409 `FOUILLE_REPARATION_SEULEMENT` s'il ne reste que la fouille de réparation et que le point n'est pas une page pâlie. 409 `FOUILLES_EPUISEES` (`fouilles`, `sousVoile`).                           |
+| POST    | `/api/gl/games/:id/chasse/fouiller`             | `{ x, y, teamId? }` (0–1, origine haut-gauche)       | Joueur (son équipe) ou MJ (`teamId`). Geste `fouiller` rejoué côté serveur (phase `jeu`, surface). 201 `{ verdict, zoneKey?, question?, kraa, fouilles }` : `zone` + question (fixe puis thème de secours), `froid\|tiede\|chaud` à côté (empreinte publique), `deja_trouvee` / `palie` (réservée aux Gnomes : `message` « Cette zone a pâli : les Gnomes savent la réparer. ») sans consommer de fouille. Une équipe gnome répare une zone pâlie avec une fouille ordinaire (M2). 409 `FOUILLES_EPUISEES` (`fouilles`, `sousVoile`). `POST …/chasse/repondre` : une mauvaise réponse ne révèle la zone que pour une équipe licorne (`revelee_par_team_id`, `revelee_round`) ; une équipe gnome « pas encore » ne révèle rien.                           |
 | POST    | `/api/gl/games/:id/chasse/repondre`             | `{ presentationToken, questionCode, choiceId, teamId? }` | Réponse à la question de chasse du jeton (`zoneKey`). Juste → `trouvee` (ou `reparee` : +1 cœur par Gnome de l'équipe), feuillet découvert, carnet personnel des présents, `page_trouvee` ; sinon → `revelee`, `feedback` « Pas encore… ». 400 jeton invalide, 403 `JETON_AUTRE_EQUIPE`. **Un essai par présentation** : rejouer le même `presentationToken` (autre `choiceId` compris) → 409 `JETON_DEJA_UTILISE`, sans trouver la page ni créditer. |
 | POST    | `/api/gl/games/:id/chasse/pages/:zoneKey/ouvrir` | `{ teamId? }`                                        | Lecture d'une page trouvée (409 `PAGE_PAS_TROUVEE`) : `feuillet`, `palissementPct`, `peutTenir`, `question` de lecture si l'équipe est de l'autre peuple que la découvreuse et la page n'est pas tenue, `via` `tour\|veillee`. En veillée, 409 `VEILLEE_LIMITE` au-delà de `tenir_pages_veillee_par_semaine`. Permissions rejouées : 403 `TENIR_LIRE_SURFACE` (élève en `tableau`), `TENIR_RETRAIT`, 409 partie non en cours. |
 | POST    | `/api/gl/games/:id/chasse/pages/:zoneKey/tenir`  | `{ presentationToken, questionCode, choiceId, teamId? }` | Réponse à la question de lecture (jeton `lecture`). Juste → `tenue`, +1 ressource du peuple à chaque membre des deux équipes (plafond), `page_tenue` (bourses privées), carnet complet le cas échéant (+1 à tous, voile −`recul_carnet_complet`, `carnet_complet`) ; sinon « Pas encore » et nouvelle présentation. 409 `MEME_PEUPLE` ; 400 `JETON_AUTRE_PAGE` si le jeton porte une autre page (vérifié avant toute écriture). **Un essai par présentation** : rejouer le jeton déjà consommé → 409 `JETON_DEJA_UTILISE` (la nouvelle carte jointe au « Pas encore » reste jouable). |
@@ -636,7 +635,7 @@ Au tableau, rien ne change. En `hybride` et sur `tablette`, les équipes jouent 
 - Sorties automatiques (aucune demande sans sortie) : à la sortie de la phase `jeu`, les lignes
   `des_a_valider`, `jet_en_suspens`, `presence_a_confirmer` se ferment ; à la **clôture du
   tour**, un sort **du tour** que le prof n'a pas appliqué (fenêtres `jeu`, `jeu_avant_fouille`,
-  `avant_jet`, `apres_jet`, `avant_jets_pacte` — ex. Nommer) est **rendu** (statut `rembourse`,
+  `avant_jet`, `apres_jet`) est **rendu** (statut `rembourse`,
   évènement `spell_rembourse`, `motif: 'cloture_tour'`) et sa ligne se ferme ; à l'ouverture du
   tour suivant, un sort d'activité resté sans effet (Question, Pause, Musique… : il s'applique
   après le tour) est rendu de même (`motif: 'seance_suivante'`) ; au Seuil, tout se ferme
@@ -651,12 +650,14 @@ Au tableau, rien ne change. En `hybride` et sur `tablette`, les équipes jouent 
 
 - `GET /api/gl/games/:id/tenir/sorts` (`?teamId=` pour le prof ; élève : son équipe ; tablette :
   la sienne) → `{ teamId, moments: [{ key, label, sorts: [{ code, nom, emoji, cout, ressource,
-  fenetre, execution, effetCourt, ouvert, message }] }] }`. Moments, dans l'ordre : `avant`
-  « Avant de lancer » (`avant_jet`, `avant_jets_pacte`), `apres` « Après le jet » (`apres_jet`),
-  `pendant` « Pendant le tour » (`jeu`, `jeu_avant_fouille`), `plus_tard` « Plus tard » (le
-  reste). Ne sont servis que les sorts officiels ouverts au chapitre et compatibles avec le
-  peuple de l'équipe ; un sort hors fenêtre, à sa limite ou réservé au prof sur cette surface
-  est servi `ouvert: false` avec le `message` à afficher (mêmes contrôles qu'au lancement).
+  fenetre, execution, effetCourt, ouvert, payable, offerte, message }] }] }`. Ensemble unifié
+  (M6) : cinq moments, dans l'ordre : `avant` « Avant de lancer » (`avant_jet`), `apres` « Après
+  le jet » (`apres_jet`), `pendant` « Pendant le tour » (`jeu`, `jeu_avant_fouille`), `activite`
+  « Pendant l'activité » (`activite`, `fin_seance`), `fin_chapitre` « En fin de chapitre ou en
+  veillée » (`seuil`, `seuil_veillee`, `trimestre_3`). Ne sont servis que les sorts officiels
+  ouverts au chapitre, compatibles avec le peuple de l'équipe, **lançables maintenant** (mêmes
+  contrôles qu'au lancement) **et payables** (bourses des membres + réserve de l'équipe) ; un
+  moment vide est omis. `offerte: true` (et `cout: 0`) pour la Cordée offerte du plateau 4.
 - `GET …/tenir/tour` → chaque équipe porte `casesAVenir` : les six cases suivantes (`index`,
   `label`, `eventType`, `tonalite`), arrêtées au camp. L'information que donnait la Boussole est
   donc affichée gratuitement avant le jet.
@@ -674,15 +675,52 @@ Au tableau, rien ne change. En `hybride` et sur `tablette`, les équipes jouent 
   ouvert, `permissions.lire` vaut `false` et `POST …/chasse/pages/:zoneKey/ouvrir` ou
   `…/tenir` répondent **409 `LECTURE_EN_VEILLEE`**, « À lire en veillée. » ; hors tour, tout
   reste ouvert. Le prof garde la main.
-- Réglages : `gameplay.tenir_lecture_pendant_tour` (booléen, défaut `true`),
-  `gameplay.tenir_fouille_sous_voile` (`aucune` par défaut, ou `page_palie` : une équipe gnome
-  sous le voile garde une fouille par tour, sur une page pâlie seulement — servie dans
-  `fouilles.reparation`).
+- Réglages : `gameplay.tenir_lecture_pendant_tour` (booléen, défaut `true`). L'ancien
+  `gameplay.tenir_fouille_sous_voile` est remplacé par `gameplay.tenir_fouilles_sous_voile`
+  (entier, 1 — ensemble unifié, M2).
 - **Boussole** (`SL038`) : `actif: false` dans le catalogue — statut `propose`, rattachée à aucun
   chapitre, absente de `GET …/tenir/sorts`. Son information est servie gratuitement
   (`casesAVenir`).
 - **Farce** (`SL036`) : **409 `SPELL_CIBLE_SOUS_VOILE`**, « Cette équipe résiste déjà au voile :
   choisissez-en une autre. », si l'équipe visée est sous le voile ; rien n'est débité.
+
+#### Ensemble unifié, PR 1a — règles du tour simplifiées (17 novembre 2026)
+
+- **Fouilles (M2)** : `gameplay.tenir_fouilles_par_tour` est un **entier** (2, pour les deux
+  peuples ; une ancienne valeur objet retombe au défaut, et la migration 356 la remplace),
+  `gameplay.tenir_fouilles_sous_voile` (1). Retirés : `tenir_fouilles_reparation_gnome`,
+  `tenir_fouille_sous_voile`, l'erreur `FOUILLE_REPARATION_SEULEMENT`, l'objet
+  `fouilles.reparation`.
+- **Case Souffle (M3)** : `GET …/tenir/tour` → chaque équipe porte `unDe` (« Au prochain tour :
+  un seul dé », visible de tous) et `desProchainJet` (1 ou `des_count`) ; `POST …/tenir/lancer`
+  tire un dé (serveur) ou attend **une** face (physique, sinon 400) au premier lancer d'un tour
+  qui suit une case Souffle ; la relance d'une question juste se joue à deux dés, une Relance
+  (sort) relance le seul dé. Le payload `dice_roll` porte `unDe: true` ; évènements
+  `un_de_pose`, `un_de_joue`. Plus d'erreur `TOUR_PASSE`, plus d'effet `tour_passe`. L'arrivée
+  (`arrival`) porte `unDe`. `gameplay.tenir_cases_positives` : `neutre` (défaut) ou `brut` ;
+  `ressource_peuple` est retiré. Case Trame : +1 gemme aux deux peuples.
+- **Questions de case (M9)** : `POST /api/gl/games/:id/markers/:markerId/present-question` en
+  partie « Tenir » (case au hasard, hors lore) : question vive pas encore posée dans la partie,
+  puis difficulté ≤ `tenir_questions_difficulte_max_par_plateau` (`{1: 2, 2: 3, 3: 3, 4: 3}`),
+  pas encore posée à l'équipe ; dès le plateau 2, `tenir_questions_spirale` % (20) des tirages
+  viennent d'un biome déjà traversé. Les `difficulteMin` / `difficulteMax` de la case sont
+  ignorés ; ses catégories restent un filtre.
+- **Grimoire (M6, M16)** : 19 sorts (`actif: false` pour Nommer, Héritage, Boussole, Tablette,
+  Musique, Lumière) ; la fenêtre `avant_jets_pacte` disparaît ; Cordée en fenêtre `jeu`, effet
+  au **prochain** tour (`gl_game_tenir_effets.round_number = tour + 1`), rendue au souffle de ce
+  tour si elle ne s'est pas faite, ou au Seuil. Au plateau 4, la première Cordée de chaque
+  équipe est offerte : `GET …/spell-casts/drafts/:id` → `required { gems: 0, hearts: 0 }`,
+  `offerte: true`, `ready` sans aucune part.
+- **Page tenue (M19)** : +1 gemme à chaque membre présent de l'équipe qui fait tenir ; rien à
+  l'équipe qui l'a trouvée ; carnet complet : +1 gemme à tous.
+- **Lumière (M17)** : `gameplay.tenir_lumiere` (true), `tenir_lumiere_palier` (100),
+  `tenir_recul_lumiere` (5). Retirés : `POST …/tenir/lumiere/choix`, `tenir_cartes_vers_cases`
+  (réglage et surcharge de partie). `GET …/tenir/tour` → `lumiere { total, paliers, active,
+  palier }` ; évènement `lumiere_palier { palier, recul, source }` suivi de `voile_recul`
+  (`reason: 'lumiere'`, `oluId: 'olu-38'`).
+- **Défis de la Trame (M20)** : la réponse d'une réussite porte `reussite.piste` (zone révélée
+  ou `null`) et `reussite.lumiere` (10 en mode équipe, sinon 0) ; évènement `piste`
+  (`via: 'defi_trame'`).
 
 #### Défi de case (lot 2)
 

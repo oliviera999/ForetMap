@@ -209,11 +209,21 @@ async function lancerDes(ctx, equipe, operateur) {
   let body;
   if (surface === 'tablette') body = {};
   else body = { mode: 'physique', faces: ctx.rng.des(Number(ctx.resolved.des_count) || 2) };
-  const res = await appel(ctx, equipe, 'lancer', operateur, {
+  let res = await appel(ctx, equipe, 'lancer', operateur, {
     method: 'post',
     path: api(ctx, '/tenir/lancer'),
     body,
   });
+  // Ensemble unifié (M3) : après une case Souffle, le serveur attend UNE face (l'écran lit
+  // `desProchainJet`) ; le banc saisit alors le nombre de faces demandé.
+  const attendues = /Faces attendues : (\d+)/.exec(String(res.body?.error || ''));
+  if (res.status === 400 && attendues && body.faces) {
+    res = await appel(ctx, equipe, 'lancer', operateur, {
+      method: 'post',
+      path: api(ctx, '/tenir/lancer'),
+      body: { mode: 'physique', faces: ctx.rng.des(Number(attendues[1])) },
+    });
+  }
   if (res.status === 202 && res.body?.saisieId) {
     // Saisie physique d'un élève (tablette) : le prof valide.
     const v = await ctx.client.appel({
@@ -351,6 +361,14 @@ async function repondreChasse(ctx, equipe, operateur, question) {
 async function fouiller(ctx, equipe, operateur) {
   let carnet = await lireCarnet(ctx, equipe, operateur);
   if (!carnet) return;
+  // Ensemble unifié (M2) : l'équipe pouvait-elle fouiller cette séance ? (réparation comprise
+  // pour les règles d'avant, `fouilles.reparation`).
+  if (carnet.fouilles) {
+    ctx.compteurs.couplesFouille += 1;
+    const possibles =
+      (Number(carnet.fouilles.quota) || 0) + (Number(carnet.fouilles.reparation?.quota) || 0);
+    if (possibles <= 0) ctx.compteurs.couplesSansFouille += 1;
+  }
   const quota = carnet.fouilles ? carnet.fouilles.restantes : MAX_FOUILLES_PAR_EQUIPE;
   if (quota <= 0) return;
   // Lanterne (licorne) avant la première fouille.

@@ -252,6 +252,12 @@ test('crible élève : mot interdit du moteur, mot de corpus en avertissement, b
   const moteur = controlerCorpsEleve({ error: 'Réponse faux, perdu' }, { membres: [] });
   assert.equal(moteur.moteur.length, 1);
   assert.equal(moteur.moteur[0].mot, 'faux');
+  // Ensemble unifié (1.12) : un jeton base64 n'est pas criblé (faux positif connu).
+  const jeton = controlerCorpsEleve(
+    { question: { presentationToken: 'eyJhbGciOiJIUzI1NiJ9.FauxKraa.sig' }, token: 'Krâ123' },
+    { membres: [] },
+  );
+  assert.deepEqual(jeton, { moteur: [], corpus: [], bourses: [] });
   const corpus = controlerCorpsEleve(
     {
       feuillet: { texte: 'Le corbeau est arrivé.' },
