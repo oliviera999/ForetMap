@@ -68,6 +68,11 @@ before(async () => {
   // Plateau 3 : la Cordée y est ouverte.
   ctx = await createTenirGame({ stamp: Date.now(), plateau: 3 });
   for (const p of ctx.players) await setPlayerBourses(p.id, 5, 5);
+  // Pas de chapardeur : il prendrait une unité au souffle et brouillerait les soldes attendus.
+  await request(app).get(api('/tenir')).set(auth(ctx.adminToken)).expect(200);
+  await db.execute('UPDATE gl_game_tenir_state SET chapardeur_round = 99 WHERE game_id = ?', [
+    ctx.game.id,
+  ]);
   await ouvrirTourEnJeu(request, app, ctx);
 });
 
