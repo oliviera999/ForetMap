@@ -54,8 +54,20 @@ Le code sépare trois décisions :
    `/api/maps`) passent aussi par `lib/surfaceAccess.js` : fermer une surface ferme donc la
    charge composite **et** les « fenêtres » de lecture détaillée.
 
-Hors production et e2e, l'en-tête `X-Foretmap-Product` peut surcharger le produit pour tester
-un host de plan sans DNS dédié. En production, cette surcharge est ignorée.
+Deux résolveurs coexistent volontairement :
+
+- **Routage d'entrée** (`/`, entrées HTML, favicon, `/sw.js`, `/manifest.json`) : le produit est
+  déduit du host par `lib/productResolver.js`. L'en-tête `X-Foretmap-Product` reste accepté ici
+  comme outil de test local/e2e, car ces réponses choisissent une coque, une icône ou une PWA,
+  pas les données lues.
+- **Surface de données** (routes génériques de lieux : `/api/zones`, `/api/map/markers`,
+  `/api/map-categories`, `/api/maps`) : la décision passe par `lib/surfaceAccess.js`. En
+  production, cette couche ignore `X-Foretmap-Product` sauf harnais e2e explicite
+  (`E2E_DISABLE_RATE_LIMIT=1`) ; le host réel redevient donc la source de vérité.
+
+Conséquence pratique : utiliser l'en-tête pour simuler `plan`, `staff` ou `enov` en test est
+normal, mais ne jamais en faire une preuve d'accès en production. Pour une recette prod, tester
+le vrai sous-domaine.
 
 ## Données exposées
 
@@ -122,6 +134,13 @@ catégorie reste visible s'il n'est pas masqué par `hidden_surfaces`.
   le host, et les réponses portent `X-Robots-Tag: noindex, nofollow, noarchive`.
 - Chaque produit a son service worker et son manifest (`sw-plan.js`, `sw-staff.js`,
   `sw-enov.js`, manifests associés), générés au build depuis le registre produit.
+- `/sw.js`, `/manifest.json` et `/offline.html` sont servis selon le produit résolu. En
+  développement, seul ForetMap a un service worker écrit à la main ; les plans n'ont leur
+  service worker complet qu'après `npm run build`.
+- Si une entrée produit manque dans `dist/`, le fallback SPA peut retomber sur l'entrée ForetMap.
+  Les scripts de préparation de déploiement refusent les cas connus (`gl.html`, `plan.html`,
+  `enov.html`) ; après une copie manuelle, vérifier aussi `staff.html` quand le plan des
+  personnels est publié.
 
 ## Plan e-nov et impression
 
@@ -159,6 +178,9 @@ Avant de coder :
 | Lieu e-nov non mis en avant                   | catégorie présente dans `highlight_category_ids`, surface `enov`, catégorie-label non masquée par erreur |
 | Plan des personnels trop riche ou trop pauvre | rôle effectif/attribué, `allowed_role_slugs`, `code_role_slug`, absence de cache serveur                 |
 | Page e-nov imprimée incomplète                | `GET /api/enov/content`, types d'espace, descriptions e-nov, `?map_id=` demandé                          |
+| Mauvaise application sur un sous-domaine      | host pointé vers la même app Node, entrée `dist/<produit>.html` présente, garde d'entrée HTML croisée    |
+| PWA/icone d'un autre produit                  | `lib/products.js` (`swFile`, `manifestFile`, `assetsDir`), build PWA généré, cache navigateur vidé       |
+| Test local concluant, prod différente         | ne pas se fier à `X-Foretmap-Product` pour les routes de données ; refaire le test sur le vrai host      |
 
 ## Vérifications utiles
 

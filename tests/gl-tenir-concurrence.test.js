@@ -21,7 +21,7 @@ const {
   readPlayerBourses,
   ouvrirTourEnJeu,
 } = require('./helpers/glTenirFixtures');
-const { rembourserCastTx } = require('../lib/glSpellCast');
+const { rembourserCastTx, rembourserCordeesIncompletesTx } = require('../lib/glSpellCast');
 
 let ctx;
 const auth = (t) => ({ Authorization: `Bearer ${t}` });
@@ -195,6 +195,59 @@ test('remboursement en masse : un sort dont l’effet est appliqué n’est pas 
   assert.equal(rendu, null);
   assert.equal(await statut(d.body.draft.id), 'cast');
   assert.deepEqual(await sommeEquipe(0), avant);
+  await tourSuivant();
+});
+
+test('Cordée : un jet commité après l’instantané du souffle n’est pas remboursé', async () => {
+  const avant = await sommeEquipe(2);
+  const d = await draft(p(2).token, {
+    spellCode: 'SL045',
+    teamId: team(2).id,
+    partnerTeamId: team(0).id,
+  });
+  assert.equal(d.status, 201, JSON.stringify(d.body));
+  const id = d.body.draft.id;
+  const l = await launch(p(2).token, id);
+  assert.equal(l.status, 200, JSON.stringify(l.body));
+  const round = Number(
+    (
+      await db.queryOne('SELECT current_round_number AS n FROM gl_games WHERE id = ?', [
+        ctx.game.id,
+      ])
+    ).n,
+  );
+  // Même course que le passage en souffle : l'instantané naît à la première lecture, puis un
+  // jet des deux équipes est commité (tablettes en parallèle) avant la décision de remboursement.
+  let ouvert;
+  const instantanePris = new Promise((resolve) => {
+    ouvert = resolve;
+  });
+  let jete;
+  const jetCommite = new Promise((resolve) => {
+    jete = resolve;
+  });
+  const phaseTx = db.withTransaction(async (tx) => {
+    await tx.queryOne('SELECT id FROM gl_games WHERE id = ?', [ctx.game.id]);
+    ouvert();
+    await jetCommite;
+    return rembourserCordeesIncompletesTx(tx, { gameId: ctx.game.id, roundNumber: round });
+  });
+  try {
+    await instantanePris;
+    await db.execute('UPDATE gl_teams SET last_dice_round_number = ? WHERE id IN (?, ?)', [
+      round,
+      team(0).id,
+      team(2).id,
+    ]);
+    jete();
+    const events = await phaseTx;
+    assert.deepEqual(events, [], 'les deux équipes ont jeté : la cordée n’est pas rendue');
+    assert.equal(await statut(id), 'cast');
+    const apres = await sommeEquipe(2);
+    assert.equal(avant.gems - apres.gems, 4, 'le coût de la cordée reste débité');
+  } finally {
+    jete();
+  }
   await tourSuivant();
 });
 

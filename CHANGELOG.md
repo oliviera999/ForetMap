@@ -9,6 +9,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — G&L : une Cordée déjà jouée n'est plus rendue au souffle
+
+- Au passage en phase Souffle, la décision « les deux équipes ont-elles jeté ? » relisait le dé
+  sans verrou. La transaction du tour avait déjà pris son instantané (lecture reproductible),
+  souvent avant la confirmation des arrivées en suspens. Un jet commité entre-temps restait
+  invisible : la Cordée était remboursée alors que les deux équipes avaient déjà avancé du
+  meilleur jet. Le dé est maintenant relu sous verrou des équipes, avant les lignes de cordée.
+
 ### Corrigé — G&L : courses entre requêtes simultanées et import des QCM (audit du 15 novembre)
 
 - **Sorts, grand livre des bourses** : les parts d'un pot sont relues sous le verrou du
