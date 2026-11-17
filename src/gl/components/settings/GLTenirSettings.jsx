@@ -89,6 +89,12 @@ const TENIR_NUMBERS = [
     0,
     604800,
   ],
+  [
+    'gameplay.tenir_delai_debat_secondes',
+    'Délai de débat avant de répondre à une question de case (secondes, 0 = aucun)',
+    0,
+    60,
+  ],
   ['gameplay.tenir_palissement_pct', 'Pâlissement par tour (%)', 0, 100],
   ['gameplay.tenir_palissement_max', 'Pâlissement maximum (%)', 0, 100],
   ['gameplay.tenir_recul_carnet_complet', 'Recul du voile au carnet complet', 0, 20],

@@ -1437,6 +1437,12 @@ export function AppGL() {
               onClose={() => {
                 setSpellCastOpen(false);
                 setSpellCastInitialCode(null);
+                // Plusieurs appareils par équipe (M13) : fermer l'assistant rend la main.
+                if (gameState?.tenir?.enabled && gameState?.game?.id && !isAdmin) {
+                  apiGL(`/api/gl/games/${gameState.game.id}/tenir/main/rendre`, 'POST', {}).catch(
+                    () => {},
+                  );
+                }
               }}
               spellCode={spellCastInitialCode}
               teams={gameState?.teams || []}

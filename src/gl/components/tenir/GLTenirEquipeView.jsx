@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useGlTenirTour } from '../../hooks/useGlTenirTour.js';
 import { useGlTenirOlu } from '../../hooks/useGlTenirOlu.js';
 import { useGlQuestionDeCase } from '../../hooks/useGlQuestionDeCase.js';
@@ -15,6 +15,9 @@ import { GLPresencePanel } from './GLPresencePanel.jsx';
 import { GLSortsParMoment } from './GLSortsParMoment.jsx';
 import { GLDefisCasePanel } from './GLDefisCasePanel.jsx';
 import { GLCeQuiChange } from './GLCeQuiChange.jsx';
+import { GLEquipeAppareils } from './GLEquipeAppareils.jsx';
+import { GL_EQUIPE_ETAT_EVENT } from '../../services/glEquipeEtatEvents.js';
+import { MESSAGE_ETAT_PERIME } from '../../../shared/glMainCore.js';
 import { ROLES_EN_CONSEIL, maintenantVousPouvez } from '../../../shared/glSortMomentsCore.js';
 import { numeroCase } from '../../../shared/glCaseNumeroCore.js';
 
@@ -28,6 +31,9 @@ const VERDICT_TEXTES = {
   page_trouvee: 'Page trouvée ! Elle entre au carnet de la classe.',
   pas_encore: 'Pas encore : la page dort encore ici.',
 };
+
+/** Durée d'affichage de « L'équipe a déjà joué ce geste. Voici où vous en êtes. » (ms). */
+const AVIS_ETAT_PERIME_MS = 12000;
 
 const PHASE_LABELS = {
   ouverture: 'ouverture',
@@ -117,6 +123,61 @@ export function GLTenirEquipeView({
     },
     [tourApi, teamId],
   );
+  // Plusieurs appareils par équipe (M13). Un geste refusé parce que l'écran était périmé, ou
+  // parce qu'un autre appareil tient la main : on recharge — « Voici où vous en êtes. »
+  // Le message reste à l'écran quelques secondes : le rechargement efface les erreurs des gestes.
+  const rafraichirTour = tourApi.refresh;
+  const rafraichirCarnet = chasse?.refresh || null;
+  const [etatPerime, setEtatPerime] = useState('');
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const recharger = (evt) => {
+      if (evt?.detail?.code === 'ETAT_PERIME') {
+        setEtatPerime(evt.detail.message || MESSAGE_ETAT_PERIME);
+      }
+      rafraichirTour();
+      rafraichirCarnet?.();
+      onReloadGame?.();
+    };
+    window.addEventListener(GL_EQUIPE_ETAT_EVENT, recharger);
+    return () => window.removeEventListener(GL_EQUIPE_ETAT_EVENT, recharger);
+  }, [rafraichirTour, rafraichirCarnet, onReloadGame]);
+  useEffect(() => {
+    if (!etatPerime) return undefined;
+    const timer = setTimeout(() => setEtatPerime(''), AVIS_ETAT_PERIME_MS);
+    return () => clearTimeout(timer);
+  }, [etatPerime]);
+  // Un autre appareil de l'équipe vient de jouer (la version d'état a avancé) : le tour et le
+  // carnet de cet écran se relisent aussi — jet déjà fait, fouilles restantes, cases à venir.
+  const versionEquipe = tenir?.equipe?.version ?? null;
+  const [versionLue, setVersionLue] = useState(versionEquipe);
+  useEffect(() => {
+    if (versionEquipe == null || versionEquipe === versionLue) return;
+    setVersionLue(versionEquipe);
+    rafraichirTour();
+    rafraichirCarnet?.();
+  }, [versionEquipe, versionLue, rafraichirTour, rafraichirCarnet]);
+  // La main d'un autre appareil échoit seule (60 s au plus) : l'écran se relit à l'échéance.
+  // À l'échéance, le grisé se lève de lui-même, que la relecture aboutisse ou non (réseau
+  // hésitant) : aucun écran ne reste éteint sur une main que le serveur tient pour échue.
+  const mainServie = tenir?.equipe?.main && !tenir.equipe.main.moi ? tenir.equipe.main : null;
+  const cleMain = mainServie
+    ? `${tenir.equipe.version}:${mainServie.geste}:${mainServie.prenom || ''}:${mainServie.resteSecondes}`
+    : null;
+  const [mainEchue, setMainEchue] = useState(null);
+  const mainAilleurs = mainServie && cleMain !== mainEchue ? mainServie : null;
+  const resteMain = mainAilleurs ? Number(mainAilleurs.resteSecondes) || 0 : null;
+  useEffect(() => {
+    if (resteMain == null) return undefined;
+    const timer = setTimeout(
+      () => {
+        setMainEchue(cleMain);
+        onReloadGame?.();
+      },
+      (resteMain + 1) * 1000,
+    );
+    return () => clearTimeout(timer);
+  }, [resteMain, cleMain, onReloadGame]);
   const round = tourApi.tour?.round || tenir?.round || null;
   const team = useMemo(
     () => (gameState?.teams || []).find((t) => Number(t.id) === Number(teamId)) || null,
@@ -235,7 +296,7 @@ export function GLTenirEquipeView({
           {round
             ? `Tour ${round.number} — ${PHASE_LABELS[round.phase] || round.phase}`
             : 'Aucun tour ouvert : attends le prof.'}
-          {tenir.enRetrait ? ' · en retrait jusqu’à nouvel ordre' : ''}
+          {tenir.enRetrait ? ' · en retrait jusqu’à la fin du tour' : ''}
         </p>
         <GLButton
           type="button"
@@ -264,7 +325,8 @@ export function GLTenirEquipeView({
       ) : null}
       {/* Au camp : trois lignes pour le chapitre suivant (ton peuple, tes sorts, le plateau). */}
       {gameState?.game?.status === 'ended' ? <GLCeQuiChange gameId={gameId} /> : null}
-      {maintenant.length ? (
+      {/* Quand un autre appareil tient la main, l'écran dit qui joue : rien d'autre à proposer. */}
+      {maintenant.length && !mainAilleurs ? (
         <section
           className="gl-tenir-maintenant"
           aria-labelledby="gl-tenir-maintenant-titre"
@@ -280,6 +342,21 @@ export function GLTenirEquipeView({
           </ul>
         </section>
       ) : null}
+      {etatPerime ? (
+        <p className="gl-tenir-main" role="status" data-testid="gl-tenir-etat-perime">
+          {etatPerime}
+        </p>
+      ) : null}
+      <GLEquipeAppareils
+        gameId={gameId}
+        equipe={
+          tenir.equipe && mainServie && !mainAilleurs
+            ? { ...tenir.equipe, main: null }
+            : tenir.equipe || null
+        }
+        spectateur={tenir.spectateur === true}
+        onChanged={onReloadGame}
+      />
       <GLPresencePanel
         presence={presence}
         mates={mates}
@@ -315,7 +392,10 @@ export function GLTenirEquipeView({
             key={key}
             type="button"
             disabled={
-              !perms[key] || tourApi.busy || (key === 'repondre' && !onRepondre && !questionDue)
+              !perms[key] ||
+              tourApi.busy ||
+              !!mainAilleurs ||
+              (key === 'repondre' && !onRepondre && !questionDue)
             }
             aria-disabled={!perms[key]}
             data-geste={key}
@@ -452,6 +532,8 @@ export function GLTenirEquipeView({
         <GLTenirQuestionCard
           question={caseQuestion.question}
           title="La question de la case"
+          submitLabel="Valider"
+          delaiSecondes={Number(tenir.settings?.delai_debat_secondes) || 0}
           disabled={caseQuestion.busy}
           onAnswer={(choiceId) => caseQuestion.repondre(choiceId)}
           onClose={caseQuestion.fermer}

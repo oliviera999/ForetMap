@@ -23,6 +23,11 @@ function heure(value) {
  * Console du prof (« Tenir à deux », lot 2) : « QR de la classe » — feuille A4 imprimable une
  * fois pour l'année (QR, code à huit caractères, nom de la classe) — et, par équipe, les
  * tablettes connectées aujourd'hui avec « Déconnecter ».
+ *
+ * Sessions d'équipe protégées (ensemble unifié, M13) : une tablette qui touche la mascotte de
+ * son équipe **demande** à entrer. La première tablette de chaque équipe est acceptée ici —
+ * « Tout accepter » en début de séance, ou une par une ; les suivantes peuvent l'être par un
+ * appareil déjà dans l'équipe. Sans réponse, une demande expire seule au bout de deux minutes.
  */
 export function GLClassLinkPanel({ game, teams = [], refreshKey = 0 }) {
   const { confirm } = useAppDialogs();
@@ -32,6 +37,7 @@ export function GLClassLinkPanel({ game, teams = [], refreshKey = 0 }) {
   const [qr, setQr] = useState('');
   const [open, setOpen] = useState(false);
   const [sessions, setSessions] = useState([]);
+  const [demandes, setDemandes] = useState([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
@@ -40,6 +46,7 @@ export function GLClassLinkPanel({ game, teams = [], refreshKey = 0 }) {
     try {
       const data = await apiGL(`/api/gl/games/${gameId}/tenir/sessions`);
       setSessions(Array.isArray(data?.sessions) ? data.sessions : []);
+      setDemandes(Array.isArray(data?.demandes) ? data.demandes : []);
     } catch (_) {
       // La liste est un confort : une lecture en échec ne gêne pas le tour.
     }
@@ -48,6 +55,17 @@ export function GLClassLinkPanel({ game, teams = [], refreshKey = 0 }) {
   useEffect(() => {
     loadSessions();
   }, [loadSessions, refreshKey]);
+
+  // Une demande d'appareil expire seule au bout de deux minutes : la liste se relit à
+  // l'échéance de la plus proche.
+  const prochaineEcheance = demandes.length
+    ? Math.min(...demandes.map((d) => Number(d.resteSecondes) || 0))
+    : null;
+  useEffect(() => {
+    if (prochaineEcheance == null) return undefined;
+    const timer = setTimeout(loadSessions, (prochaineEcheance + 1) * 1000);
+    return () => clearTimeout(timer);
+  }, [prochaineEcheance, demandes, loadSessions]);
 
   const show = useCallback(
     async (path, method = 'GET') => {
@@ -98,7 +116,26 @@ export function GLClassLinkPanel({ game, teams = [], refreshKey = 0 }) {
     [gameId, loadSessions],
   );
 
+  /** Réponse à une ou à toutes les demandes d'appareil : `accepter`, `refuser`, `accepter-tout`. */
+  const repondre = useCallback(
+    async (chemin) => {
+      setBusy(true);
+      setError('');
+      try {
+        await apiGL(`/api/gl/games/${gameId}/tenir/sessions/${chemin}`, 'POST', {});
+      } catch (err) {
+        setError(err.message || 'Réponse impossible');
+      } finally {
+        setBusy(false);
+        await loadSessions();
+      }
+    },
+    [gameId, loadSessions],
+  );
+
   if (!classId) return null;
+  const nomDEquipe = (teamId) =>
+    teams.find((t) => Number(t.id) === Number(teamId))?.name || 'Équipe';
   const parEquipe = teams.map((t) => ({
     team: t,
     sessions: sessions.filter((s) => Number(s.teamId) === Number(t.id)),
@@ -124,6 +161,50 @@ export function GLClassLinkPanel({ game, teams = [], refreshKey = 0 }) {
         </span>
       </div>
       {error ? <p className="gl-error-banner">{error}</p> : null}
+      {demandes.length ? (
+        <div data-testid="gl-class-link-demandes">
+          <p role="status">
+            <strong>
+              {demandes.length > 1
+                ? `${demandes.length} tablettes demandent à entrer.`
+                : 'Une tablette demande à entrer.'}
+            </strong>{' '}
+            <GLButton
+              type="button"
+              disabled={busy}
+              onClick={() => repondre('accepter-tout')}
+              data-testid="gl-class-link-accepter-tout"
+            >
+              Tout accepter
+            </GLButton>
+          </p>
+          <ul className="gl-class-link-panel__demandes">
+            {demandes.map((d) => (
+              <li key={d.id}>
+                <strong>{nomDEquipe(d.teamId)}</strong>{' '}
+                <GLButton
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  disabled={busy}
+                  onClick={() => repondre(`${d.id}/accepter`)}
+                >
+                  Accepter
+                </GLButton>{' '}
+                <GLButton
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  disabled={busy}
+                  onClick={() => repondre(`${d.id}/refuser`)}
+                >
+                  Refuser
+                </GLButton>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
       {connectees.length ? (
         <ul className="gl-class-link-panel__sessions">
           {parEquipe.map(({ team, sessions: list }) =>

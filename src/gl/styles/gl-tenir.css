@@ -802,30 +802,45 @@
   margin: 0 0 var(--gl-space-1);
 }
 
-/* Marché depuis la tablette d'équipe : « Qui agit ? » (lot 2) */
-.gl-marche-tablette__qui {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--gl-space-2);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.gl-marche-tablette__eleve {
-  min-width: 8rem;
-  min-height: 3.5rem;
+/* Plusieurs appareils par équipe (ensemble unifié, M13) : la main, les demandes d'appareil */
+.gl-tenir-main,
+.gl-tenir-spectateur,
+.gl-tenir-appareils {
+  margin: var(--gl-space-2) 0;
   padding: var(--gl-space-2) var(--gl-space-3);
   border: 2px solid var(--gl-border);
   border-radius: var(--gl-radius-lg);
   background: var(--gl-surface);
-  color: inherit;
-  font: inherit;
-  font-weight: 600;
-  cursor: pointer;
 }
-.gl-marche-tablette__eleve:focus-visible {
-  outline: 3px solid var(--line-warning);
-  outline-offset: 2px;
+.gl-tenir-main {
+  border-color: var(--line-warning);
+  font-weight: 600;
+}
+.gl-tenir-appareils ul {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gl-space-2);
+  margin: var(--gl-space-2) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.gl-tenir-appareils .gl-btn,
+.gl-class-link-panel__demandes .gl-btn {
+  min-height: 44px;
+}
+.gl-class-link-panel__demandes {
+  margin: var(--gl-space-2) 0;
+  padding: 0;
+  list-style: none;
+}
+.gl-class-link__attente {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gl-space-2);
+  align-items: flex-start;
+}
+.gl-tenir-question__debat {
+  margin: var(--gl-space-1) 0;
 }
 
 /* Défis de la Trame (lot 3) : plateau de cartes, flèches, réparer */

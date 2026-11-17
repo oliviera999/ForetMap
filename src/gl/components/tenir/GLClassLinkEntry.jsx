@@ -1,15 +1,25 @@
 import { useCallback, useEffect, useState } from 'react';
-import { apiGL } from '../../services/apiGL.js';
+import { apiGL, apiGLAvecJeton } from '../../services/apiGL.js';
 import { GLButton } from '../ui/GLButton.jsx';
 import { GLMascotAvatar } from '../GLMascotAvatar.jsx';
 import { buildTeamSession, normalizeClassCode } from '../../utils/glTeamSession.js';
 
 const PEUPLES = { gnome: 'Gnomes', unicorn: 'Licornes' };
+/** Relecture de la demande pendant l'attente (ms) : comptée par appareil, jamais par adresse. */
+const RELECTURE_DEMANDE_MS = 3000;
+const FINS_DE_DEMANDE = {
+  refusee: 'Cette tablette n’a pas été acceptée. Demandez à votre équipe ou au prof.',
+  expiree: 'Personne n’a répondu à temps : touchez de nouveau la mascotte de votre équipe.',
+};
 
 /**
  * « J'ai le code de la classe » (« Tenir à deux », lot 2) : la tablette scanne le QR de la
  * classe (`initialToken`, lu dans l'adresse) ou saisit le code à huit caractères, puis **touche
  * la mascotte de son équipe**. Aucun nom d'élève, aucun mot de passe.
+ *
+ * Sessions d'équipe protégées (ensemble unifié, M13) : toucher la mascotte **demande** à
+ * rejoindre l'équipe. Un appareil déjà dans l'équipe, ou le prof, accepte ; sans réponse, la
+ * demande expire seule au bout de deux minutes et l'écran revient au choix de l'équipe.
  *
  * `onSession({ token, auth })` reçoit la session d'équipe ; `onCancel` revient à la connexion.
  */
@@ -19,6 +29,8 @@ export function GLClassLinkEntry({ initialToken = null, notice = '', onSession, 
   const [by, setBy] = useState(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  /** Demande en attente : `{ session, teamName }` (le jeton n'est gardé qu'ici, en mémoire). */
+  const [attente, setAttente] = useState(null);
 
   const open = useCallback(async (credential) => {
     setBusy(true);
@@ -48,7 +60,14 @@ export function GLClassLinkEntry({ initialToken = null, notice = '', onSession, 
         const data = await apiGL('/api/gl/class-link/session', 'POST', { ...by, teamId });
         const session = buildTeamSession(data);
         if (!session) throw new Error('Session d’équipe indisponible');
-        onSession?.(session);
+        if (data.enAttente) {
+          setAttente({
+            session,
+            teamName: data.teamName || '',
+            // Échéance locale : la demande expire seule, même si la relecture n'aboutit pas.
+            expireMs: (Number(data.demandeExpireDansSecondes) || 120) * 1000,
+          });
+        } else onSession?.(session);
       } catch (err) {
         setError(err.message || 'Session d’équipe indisponible');
       } finally {
@@ -57,6 +76,44 @@ export function GLClassLinkEntry({ initialToken = null, notice = '', onSession, 
     },
     [by, onSession],
   );
+
+  // Tant que la demande attend, l'écran relit où elle en est ; chaque issue a sa sortie.
+  useEffect(() => {
+    if (!attente) return undefined;
+    let actif = true;
+    const relire = async () => {
+      try {
+        const etat = await apiGLAvecJeton('/api/gl/class-link/demande', attente.session.token);
+        if (!actif) return;
+        if (etat?.statut === 'acceptee') {
+          setAttente(null);
+          onSession?.(attente.session);
+        } else if (FINS_DE_DEMANDE[etat?.statut]) {
+          setAttente(null);
+          setError(FINS_DE_DEMANDE[etat.statut]);
+        }
+      } catch (_) {
+        // Réseau hésitant : la relecture suivante réessaie ; la demande expire seule.
+      }
+    };
+    relire();
+    const timer = setInterval(relire, RELECTURE_DEMANDE_MS);
+    // Sans réponse du serveur à l'échéance (réseau hésitant), l'écran revient de lui-même au
+    // choix de l'équipe : aucune tablette ne reste « en attente » sans sortie.
+    const echeance = setTimeout(
+      () => {
+        if (!actif) return;
+        setAttente(null);
+        setError(FINS_DE_DEMANDE.expiree);
+      },
+      (attente.expireMs || 120000) + 2 * RELECTURE_DEMANDE_MS,
+    );
+    return () => {
+      actif = false;
+      clearInterval(timer);
+      clearTimeout(echeance);
+    };
+  }, [attente, onSession]);
 
   const canon = normalizeClassCode(code);
   return (
@@ -95,6 +152,16 @@ export function GLClassLinkEntry({ initialToken = null, notice = '', onSession, 
             Avec l’appareil photo de la tablette, scannez plutôt le QR de la classe.
           </p>
         </form>
+      ) : attente ? (
+        <div className="gl-class-link__attente" data-testid="gl-class-link-attente">
+          <p role="status">
+            <strong>{attente.teamName || 'Votre équipe'} : en attente.</strong> Un appareil de
+            l’équipe, ou le prof, accepte cette tablette. Rien d’autre à faire.
+          </p>
+          <GLButton type="button" variant="ghost" onClick={() => setAttente(null)}>
+            Changer d’équipe
+          </GLButton>
+        </div>
       ) : (
         <div className="gl-class-link__teams">
           <p>

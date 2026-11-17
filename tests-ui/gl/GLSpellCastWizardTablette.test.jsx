@@ -73,7 +73,8 @@ describe('GLSpellCastWizard — tablette d’équipe', () => {
     await waitFor(() => expect(startDraft).toHaveBeenCalledWith({ spellCode: 'SL099', teamId: 5 }));
     await waitFor(() => screen.getByTestId('gl-pot-ligne-1'));
     expect(screen.queryByText(/Quelle équipe lance/)).toBeNull();
-    expect(screen.getAllByRole('button', { name: 'pas moi' })).toHaveLength(2);
+    // M13 : aucun « pas moi » sur la tablette (une bourse ne bouge que depuis son compte).
+    expect(screen.queryByRole('button', { name: 'pas moi' })).toBeNull();
 
     // En jeu parallèle, l'état de partie se recharge sans cesse (tableau `teams` neuf, mêmes
     // équipes) : l'assistant ne revient pas à sa première étape au milieu du pot.

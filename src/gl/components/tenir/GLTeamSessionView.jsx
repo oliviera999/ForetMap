@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiGL } from '../../services/apiGL.js';
+import { GL_EQUIPE_ETAT_EVENT } from '../../services/glEquipeEtatEvents.js';
 import { acquireGlSocket, subscribeGlGame } from '../../realtime/glSocketClient.js';
 import { toGameViewModel } from '../../utils/glAppShellHelpers.js';
 import { resolveBoardMovementConfig } from '../../utils/glBoardPath.js';
@@ -12,7 +13,6 @@ import { GLMapView } from '../GLMapView.jsx';
 import { GLTenirEquipeView } from './GLTenirEquipeView.jsx';
 import { GLCarnetClasseView } from './GLCarnetClasseView.jsx';
 import { GLDefisCasePanel } from './GLDefisCasePanel.jsx';
-import { GLMarcheTablette } from './GLMarcheTablette.jsx';
 import { GLDefisEntree } from '../defis/GLDefisEntree.jsx';
 
 const NOOP = () => {};
@@ -25,6 +25,10 @@ const RELOAD_JITTER_MS = 500;
  * classe. Même écran d'équipe (`GLTenirEquipeView`) et même plateau que l'élève connecté avec
  * son compte ; la tablette n'affiche aucune bourse hors tour et ne garde rien après fermeture
  * de l'onglet. Le serveur rejoue chaque geste : ici, on ne fait que griser.
+ *
+ * Ensemble unifié (M13) : la tablette ne fait que les **gestes d'équipe** — le Marché et le
+ * Seuil passent par le compte de chacun (« Qui agit ? » a disparu). Plusieurs appareils peuvent
+ * servir la même équipe : la main et la version d'état règlent qui joue.
  *
  * `onEnded(message)` : la session ne vaut plus (déconnectée par le prof, lien régénéré, partie
  * close) → retour au code de la classe. `onQuit` : « Changer d'équipe ».
@@ -73,13 +77,23 @@ export function GLTeamSessionView({ auth, token, onQuit, onEnded }) {
       );
     };
     socket.on('gl:game:event', onEvent);
+    // M13 : la main de l'équipe a changé, ou un appareil demande à la rejoindre.
+    socket.on('gl:game:equipe', onEvent);
     return () => {
       if (timer) clearTimeout(timer);
       socket.off('gl:game:event', onEvent);
+      socket.off('gl:game:equipe', onEvent);
       unsubscribe();
       release();
     };
   }, [token, gameId, reloadGame]);
+
+  // Hors tour, l'écran d'équipe n'est pas monté : l'état périmé se recharge d'ici.
+  useEffect(() => {
+    const recharger = () => reloadGame();
+    window.addEventListener(GL_EQUIPE_ETAT_EVENT, recharger);
+    return () => window.removeEventListener(GL_EQUIPE_ETAT_EVENT, recharger);
+  }, [reloadGame]);
 
   const tenir = gameState?.tenir || null;
   const live = String(gameState?.game?.status || '') === 'live';
@@ -90,9 +104,6 @@ export function GLTeamSessionView({ auth, token, onQuit, onEnded }) {
     enabled: !!tenir?.enabled && live,
     onChanged: reloadGame,
   });
-  // Marché : un geste y touche la bourse d'un élève → la tablette demande « Qui agit ? ».
-  const [marcheOuvert, setMarcheOuvert] = useState(false);
-  const marchePermis = tourOuvert && tenir?.permissions?.marche === true;
   // Jeter un sort : même assistant que l'élève connecté ; le pot s'y partage tout seul.
   const [sort, setSort] = useState({ open: false, code: null });
   const spellCast = useGLSpellCast({
@@ -145,25 +156,10 @@ export function GLTeamSessionView({ auth, token, onQuit, onEnded }) {
                 tablette
               />
             ) : null}
-            {marchePermis && !marcheOuvert ? (
-              <GLButton
-                type="button"
-                variant="secondary"
-                onClick={() => setMarcheOuvert(true)}
-                data-testid="gl-team-session-marche"
-              >
-                Marché
-              </GLButton>
-            ) : null}
-            {marchePermis && marcheOuvert ? (
-              <GLMarcheTablette
-                token={token}
-                classId={gameState.game?.class_id ?? gameState.game?.classId ?? null}
-                roster={(gameState.roster || []).filter((p) => Number(p.teamId) === Number(teamId))}
-                presents={tenir.tablette?.presents || []}
-                onChanged={reloadGame}
-                onClose={() => setMarcheOuvert(false)}
-              />
+            {tourOuvert ? (
+              <p className="gl-hint" data-testid="gl-team-session-comptes">
+                Le Marché et le Seuil s’ouvrent depuis le compte de chacun.
+              </p>
             ) : null}
             {tourOuvert ? null : (
               <section className="gl-tenir-equipe" data-testid="gl-team-session-attente">
@@ -210,7 +206,11 @@ export function GLTeamSessionView({ auth, token, onQuit, onEnded }) {
         ) : null}
         <GLSpellCastWizard
           open={sort.open && tourOuvert}
-          onClose={() => setSort({ open: false, code: null })}
+          onClose={() => {
+            setSort({ open: false, code: null });
+            // Fermer l'assistant rend la main à l'équipe (elle expirerait seule sinon).
+            apiGL(`/api/gl/games/${gameId}/tenir/main/rendre`, 'POST', {}).catch(() => {});
+          }}
           spellCode={sort.code}
           teams={gameState?.teams || []}
           gameId={gameId}

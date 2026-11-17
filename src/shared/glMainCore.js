@@ -34,7 +34,7 @@ const VERBES = Object.freeze({
 
 export const MESSAGE_ETAT_PERIME = 'L’équipe a déjà joué ce geste. Voici où vous en êtes.';
 export const MESSAGE_SPECTATEUR =
-  'Tu regardes ce tour : tu vois tout, et tu joueras de nouveau au prochain.';
+  'Tu regardes ce tour : tu vois tout, et tu joueras de nouveau au prochain. Si tu viens d’arriver, dis-le à ton équipe ou au prof.';
 
 /** Porteur d'un acteur (`lib/glActeur.js`) : `null` pour le prof, la projection, un invité. */
 export function porteurDe(actor, cleSession = null) {
@@ -81,15 +81,19 @@ export function peutAgir(main, porteur) {
   return porteur != null && String(main.holder) === String(porteur);
 }
 
-/** « Lina répond… » : prénom seul ; une tablette d'équipe n'a pas de nom. */
-export function texteMain({ prenom = null, geste = null } = {}) {
-  const qui = String(prenom || '').trim() || 'Une autre tablette';
+/**
+ * « Lina répond… » : prénom seul ; une tablette d'équipe n'a pas de nom (« Une autre
+ * tablette… »), un compte sans prénom non plus (« Un autre appareil… »).
+ */
+export function texteMain({ prenom = null, geste = null, tablette = true } = {}) {
+  const qui =
+    String(prenom || '').trim() || (tablette ? 'Une autre tablette' : 'Un autre appareil');
   return `${qui} ${VERBES[geste] || 'joue'}…`;
 }
 
 /** Refus `MAIN_AILLEURS` : qui joue, et quoi faire. */
-export function messageMainAilleurs({ prenom = null, geste = null } = {}) {
-  return `${texteMain({ prenom, geste })} Attendez la fin de son geste.`;
+export function messageMainAilleurs({ prenom = null, geste = null, tablette = true } = {}) {
+  return `${texteMain({ prenom, geste, tablette })} Attendez la fin de son geste.`;
 }
 
 /**
@@ -107,7 +111,7 @@ export function decrireMain({ main, porteur = null, prenom = null, nowMs }) {
     geste: main.geste,
     tablette,
     prenom: moi ? null : nom,
-    texte: moi ? '' : texteMain({ prenom: nom, geste: main.geste }),
+    texte: moi ? '' : texteMain({ prenom: nom, geste: main.geste, tablette }),
     resteSecondes: Math.max(0, Math.ceil((Number(main.expireMs) - Number(nowMs)) / 1000)),
   };
 }

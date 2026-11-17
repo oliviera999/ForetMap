@@ -107,6 +107,12 @@ describe('GLTeamSessionView — tablette d’équipe', () => {
     // Aucune route réservée à un compte n'est appelée.
     const chemins = apiGlMock.mock.calls.map((c) => c[0]);
     expect(chemins.some((p) => /rewards|auth\/me|market/.test(p))).toBe(false);
+    // M13 : plus de Marché sur la tablette d'équipe — il passe par le compte de chacun.
+    expect(screen.queryByTestId('gl-team-session-marche')).toBeNull();
+    expect(screen.queryByText('Marché')).toBeNull();
+    expect(screen.getByTestId('gl-team-session-comptes').textContent).toBe(
+      'Le Marché et le Seuil s’ouvrent depuis le compte de chacun.',
+    );
   });
 
   test('session terminée : la tablette revient au code de la classe avec le message du serveur', async () => {

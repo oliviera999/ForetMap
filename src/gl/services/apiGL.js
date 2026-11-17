@@ -1,5 +1,6 @@
 import { dispatchGlSessionChanged } from './glSessionEvents.js';
 import { GL_VOYAGEUR_GAIN_EVENT } from './glVoyageurEvents.js';
+import { GL_EQUIPE_ETAT_EVENT, CODES_EQUIPE_ETAT } from './glEquipeEtatEvents.js';
 import { withAppBase } from '../../shared/appBase.js';
 import {
   buildApiHttpErrorMessage,
@@ -75,24 +76,64 @@ export function clearGlSession() {
 }
 
 /**
- * « Qui agit ? » (tablette d'équipe, lot 2) : l'élève au nom de qui la tablette agit au Marché.
- * Gardé en mémoire seulement (jamais stocké) ; le serveur revérifie à chaque requête.
+ * Plusieurs appareils par équipe (ensemble unifié, M13) — **version d'état**. Chaque équipe en
+ * partie porte un compteur qui avance à chaque geste. L'app retient la dernière version lue
+ * (bloc `tenir.equipe` de l'état de la partie, ou `etatVersion` rendu par un geste) et la renvoie
+ * avec le geste suivant (`X-GL-Etat-Version`). Périmée, le serveur refuse sans perte (409
+ * `ETAT_PERIME`) et l'écran se recharge. Gardée en mémoire seulement, par partie.
  */
-let actingPlayerId = null;
+const etatVersions = new Map();
+const EN_TETE_VERSION = 'X-GL-Etat-Version';
+const CHEMIN_DE_PARTIE = /^\/api\/gl\/games\/(\d+)\//;
 
-export function setGlActingPlayer(playerId) {
-  actingPlayerId = Number(playerId) > 0 ? Number(playerId) : null;
+function noterEtatEquipe(etat) {
+  const gameId = Number(etat?.gameId);
+  const version = Number(etat?.version);
+  if (!(gameId > 0) || !Number.isInteger(version) || version < 0) return;
+  etatVersions.set(gameId, version);
 }
 
-export function getGlActingPlayer() {
-  return actingPlayerId;
+/** Dernière version d'état connue pour une partie, ou `null`. */
+export function getGlEtatVersion(gameId) {
+  const version = etatVersions.get(Number(gameId));
+  return version == null ? null : version;
 }
 
-function onBehalfHeaders(path) {
-  if (!actingPlayerId || !String(path).startsWith('/api/gl/market') || !readTeamSession()) {
-    return undefined;
+/** Oublie les versions retenues (déconnexion, tests). */
+export function resetGlEtatVersions() {
+  etatVersions.clear();
+}
+
+function etatHeaders(path, method) {
+  if (String(method || 'GET').toUpperCase() === 'GET') return undefined;
+  const match = CHEMIN_DE_PARTIE.exec(String(path));
+  const version = match ? getGlEtatVersion(match[1]) : null;
+  return version == null ? undefined : { [EN_TETE_VERSION]: String(version) };
+}
+
+/**
+ * Prévient les écrans qu'un geste a été refusé pour cause d'état périmé ou de main ailleurs.
+ * Sur `ETAT_PERIME`, la version que le serveur rend est retenue : l'écran recharge, et le geste
+ * suivant part de l'état courant. `silencieux` : la réponse à une question déjà à l'écran sera
+ * renvoyée une fois (`utils/glReponseSansPerte.js`) — l'élève n'en voit rien.
+ */
+function announceEquipeEtat(errBody, { silencieux = false } = {}) {
+  if (errBody?.code === 'ETAT_PERIME') noterEtatEquipe(errBody.etatVersion);
+  if (silencieux && errBody?.code === 'ETAT_PERIME') return;
+  if (!CODES_EQUIPE_ETAT.includes(errBody?.code) || typeof window === 'undefined') return;
+  try {
+    window.dispatchEvent(
+      new CustomEvent(GL_EQUIPE_ETAT_EVENT, {
+        detail: {
+          code: errBody.code,
+          message: errBody.error || '',
+          gameId: Number(errBody.etatVersion?.gameId) || null,
+        },
+      }),
+    );
+  } catch (_) {
+    // noop
   }
-  return { 'X-GL-On-Behalf-Of': String(actingPlayerId) };
 }
 
 function glDevUnavailableMessage() {
@@ -115,21 +156,34 @@ function announceVoyageurGain(payload) {
   }
 }
 
-export async function apiGL(path, method = 'GET', body = null) {
-  const payload = await apiGLRaw(path, method, body);
+export async function apiGL(path, method = 'GET', body = null, options = {}) {
+  const payload = await apiGLRaw(path, method, body, getGlToken, options);
   // « +1 » immédiat (audit expérience joueur, S1) : un seul point d'écoute pour tous les
   // gestes qui font grandir le voyageur (acquis, première bonne réponse…).
   announceVoyageurGain(payload);
+  // Version d'état de l'équipe : lue dans l'état de la partie, ou rendue par un geste.
+  if (payload && typeof payload === 'object') {
+    noterEtatEquipe(payload.etatVersion);
+    noterEtatEquipe(payload.tenir?.equipe);
+  }
   return payload;
 }
 
-async function apiGLRaw(path, method, body) {
+/**
+ * Lecture avec un jeton donné, sans toucher à la session de l'onglet : une tablette qui attend
+ * d'être acceptée dans son équipe lit l'état de sa demande avec le jeton de cette demande.
+ */
+export async function apiGLAvecJeton(path, jeton) {
+  return apiGLRaw(path, 'GET', null, () => jeton);
+}
+
+async function apiGLRaw(path, method, body, getToken = getGlToken, options = {}) {
   return fetchJsonWithRetry(
     path,
-    { method, body, headers: onBehalfHeaders(path) },
+    { method, body, headers: etatHeaders(path, method) },
     {
       resolveUrl: withAppBase,
-      getToken: getGlToken,
+      getToken,
       onUnauthorized: ({ errBody, token }) => {
         if (!token) return;
         const errText = String(errBody.error || '').toLowerCase();
@@ -184,6 +238,8 @@ async function apiGLRaw(path, method, body) {
         const err = new Error(message);
         err.status = res.status;
         err.body = errBody;
+        err.code = errBody.code || null;
+        announceEquipeEtat(errBody, { silencieux: options.perimeSilencieux === true });
         return err;
       },
     },

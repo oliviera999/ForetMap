@@ -67,7 +67,7 @@ function monter(props = {}) {
 }
 
 describe('pot de sort « Tenir à deux » — partage automatique et « pas moi »', () => {
-  test('tablette : les présents seulement, leur part, « pas moi » par ligne, aucune saisie', () => {
+  test('tablette : les présents seulement, leur part, aucune saisie, aucun « pas moi » (bourses au propriétaire)', () => {
     const { onExclure } = monter();
     expect(screen.getByTestId('gl-pot-ligne-1')).toBeTruthy();
     expect(screen.getByTestId('gl-pot-ligne-2')).toBeTruthy();
@@ -76,14 +76,18 @@ describe('pot de sort « Tenir à deux » — partage automatique et « pas moi 
     expect(screen.queryByText('joueur-c')).toBeNull();
     expect(document.querySelectorAll('input').length).toBe(0);
     expect(screen.getByTestId('gl-pot-ligne-1').textContent).toMatch(/❤️ 1/);
-    const boutons = screen.getAllByRole('button', { name: 'pas moi' });
-    expect(boutons.length).toBe(2);
-    fireEvent.click(boutons[1]);
-    expect(onExclure).toHaveBeenCalledWith(2, true);
+    // M13 : la tablette de l'équipe ne retire personne du pot ; l'écran dit où le faire.
+    expect(screen.queryByRole('button', { name: 'pas moi' })).toBeNull();
+    expect(screen.getByTestId('gl-pot-comptes').textContent).toMatch(
+      /« Pas moi » se dit depuis son propre compte, ou au prof\./,
+    );
+    expect(onExclure).not.toHaveBeenCalled();
   });
 
-  test('ligne exclue : grisée, « remettre »', () => {
+  test('ligne exclue : grisée, « remettre » depuis son propre compte', () => {
     const { onExclure } = monter({
+      tablette: false,
+      playerId: 2,
       draft: { exclus: [2] },
       localContribs: [
         { playerId: 1, gems: 0, hearts: 2 },

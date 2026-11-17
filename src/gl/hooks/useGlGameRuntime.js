@@ -266,9 +266,21 @@ export function useGlGameRuntime({
       }, jitteredRefreshDelay(0));
     };
     socket.on('gl:game:event', onEvent);
+    // Plusieurs appareils par équipe (M13) : la main a changé, ou une tablette demande à
+    // rejoindre une équipe — signal sans donnée, l'état se relit.
+    const onEquipe = (evt) => {
+      if (Number(evt?.gameId) !== Number(activeGameId)) return;
+      if (reloadTimer) clearTimeout(reloadTimer);
+      reloadTimer = setTimeout(() => {
+        reloadTimer = null;
+        reloadGame();
+      }, jitteredRefreshDelay(0));
+    };
+    socket.on('gl:game:equipe', onEquipe);
     return () => {
       if (reloadTimer) clearTimeout(reloadTimer);
       socket.off('gl:game:event', onEvent);
+      socket.off('gl:game:equipe', onEquipe);
       unsubGame();
       release();
     };

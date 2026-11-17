@@ -3,8 +3,10 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { GLClassLinkEntry } from '../../src/gl/components/tenir/GLClassLinkEntry.jsx';
 
 const apiGlMock = vi.fn();
+const demandeMock = vi.fn();
 vi.mock('../../src/gl/services/apiGL.js', () => ({
   apiGL: (...args) => apiGlMock(...args),
+  apiGLAvecJeton: (...args) => demandeMock(...args),
 }));
 
 const ouverture = {
@@ -22,15 +24,22 @@ describe('GLClassLinkEntry — « J’ai le code de la classe »', () => {
   // renvoyée par `beforeEach` comme une fonction de nettoyage.
   beforeEach(() => {
     apiGlMock.mockReset();
+    demandeMock.mockReset();
   });
 
-  test('code saisi → équipes de la classe → mascotte touchée → session d’équipe', async () => {
+  test('code saisi → équipes de la classe → mascotte touchée → demande → acceptée → session d’équipe', async () => {
     apiGlMock.mockResolvedValueOnce(ouverture).mockResolvedValueOnce({
       token: 'jeton',
+      enAttente: true,
+      demandeExpireDansSecondes: 120,
       gameId: 7,
       teamId: 12,
       teamName: 'Licornes A',
       className: 'Sixième B',
+    });
+    // La tablette attend : un appareil de l'équipe, ou le prof, l'accepte.
+    demandeMock.mockResolvedValueOnce({ statut: 'en_attente' }).mockResolvedValue({
+      statut: 'acceptee',
     });
     const onSession = vi.fn();
     render(<GLClassLinkEntry onSession={onSession} />);
@@ -49,7 +58,11 @@ describe('GLClassLinkEntry — « J’ai le code de la classe »', () => {
     expect(screen.getByText('Sixième B')).toBeTruthy();
     // Une cible par équipe, large : la tablette se touche, elle ne se saisit pas.
     fireEvent.click(screen.getByTestId('gl-class-link-team-12'));
-    await waitFor(() => expect(onSession).toHaveBeenCalledTimes(1));
+    const attente = await screen.findByTestId('gl-class-link-attente');
+    expect(attente.textContent).toMatch(/Licornes A : en attente/);
+    expect(onSession).not.toHaveBeenCalled();
+    await waitFor(() => expect(onSession).toHaveBeenCalledTimes(1), { timeout: 5000 });
+    expect(demandeMock).toHaveBeenCalledWith('/api/gl/class-link/demande', 'jeton');
     expect(apiGlMock).toHaveBeenLastCalledWith('/api/gl/class-link/session', 'POST', {
       code: 'ABCDEFGH',
       teamId: 12,
@@ -58,6 +71,27 @@ describe('GLClassLinkEntry — « J’ai le code de la classe »', () => {
     expect(session.token).toBe('jeton');
     expect(session.auth.userType).toBe('gl_guest');
     expect(session.auth.teamSession).toEqual({ gameId: 7, teamId: 12 });
+  });
+
+  test.each([
+    ['refusee', /n’a pas été acceptée/],
+    ['expiree', /Personne n’a répondu à temps/],
+  ])('demande %s : retour au choix de l’équipe, avec quoi faire', async (statut, message) => {
+    apiGlMock.mockResolvedValueOnce(ouverture).mockResolvedValueOnce({
+      token: 'jeton',
+      enAttente: true,
+      gameId: 7,
+      teamId: 11,
+      teamName: 'Gnomes A',
+    });
+    demandeMock.mockResolvedValue({ statut });
+    const onSession = vi.fn();
+    render(<GLClassLinkEntry initialToken="jeton-du-qr" onSession={onSession} />);
+    fireEvent.click(await screen.findByTestId('gl-class-link-team-11'));
+    await waitFor(() => screen.getByText(message));
+    expect(screen.queryByTestId('gl-class-link-attente')).toBeNull();
+    expect(screen.getByTestId('gl-class-link-team-11')).toBeTruthy();
+    expect(onSession).not.toHaveBeenCalled();
   });
 
   test('QR scanné : le jeton de l’adresse ouvre directement le choix de l’équipe', async () => {
