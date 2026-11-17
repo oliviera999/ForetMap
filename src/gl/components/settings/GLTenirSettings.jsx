@@ -4,7 +4,7 @@ import { readGameplayFlag, readSelectSetting } from '../../utils/glSettingsForm.
 /**
  * Bloc « Tenir à deux » (mouture v2, spec docs/GL_TENIR_A_DEUX_REGLES.md § 15).
  * Composant feuille prop-driven : chaque changement passe par `onSaveSetting(key, value)` /
- * `onToggle(key, next)` du parent (`GLSettingsView`). Les clés JSON (fouilles, zones, bonus du
+ * `onToggle(key, next)` du parent (`GLSettingsView`). Les clés JSON (zones, seuils, bonus du
  * voile) sont éditées champ par champ ; le serveur valide la forme (clés attendues, bornes).
  */
 
@@ -51,6 +51,13 @@ const TENIR_FLAGS = [
 const TENIR_NUMBERS = [
   ['gameplay.tenir_des_count', 'Dés du geste Lancer', 1, 5],
   ['gameplay.tenir_vent_cases', 'Cases du vent', 1, 12],
+  ['gameplay.tenir_fouilles_par_tour', 'Fouilles par équipe et par tour', 0, 10],
+  [
+    'gameplay.tenir_fouilles_sous_voile',
+    'Fouilles par tour sous le voile (sauf Abri ou Cordée)',
+    0,
+    10,
+  ],
   [
     'gameplay.tenir_relances_max_par_tour',
     'Relances de case par équipe et par tour (0 = sans limite)',
@@ -158,11 +165,6 @@ export function GLTenirSettings({ settings, savingKey, onSaveSetting, onToggle }
   const surface = readSelectSetting(settings, 'gameplay.tenir_surface', 'tableau');
   const desMode = readSelectSetting(settings, 'gameplay.tenir_des_mode', 'physique');
   const validation = readSelectSetting(settings, 'gameplay.tenir_des_physiques_validation', 'prof');
-  const fouilleSousVoile = readSelectSetting(
-    settings,
-    'gameplay.tenir_fouille_sous_voile',
-    'aucune',
-  );
   const defiDeclenchement = readSelectSetting(
     settings,
     'gameplay.tenir_defi_declenchement',
@@ -256,19 +258,6 @@ export function GLTenirSettings({ settings, savingKey, onSaveSetting, onToggle }
           <option value="passage">En franchissant la case (une fois par équipe et par case)</option>
         </select>
       </label>
-      <label>
-        Fouille d’une équipe sous le voile
-        <select
-          value={fouilleSousVoile}
-          disabled={savingKey === 'gameplay.tenir_fouille_sous_voile'}
-          onChange={(event) =>
-            onSaveSetting('gameplay.tenir_fouille_sous_voile', event.target.value)
-          }
-        >
-          <option value="aucune">Aucune (sauf Abri ou Cordée)</option>
-          <option value="page_palie">Une par tour, sur une page pâlie (équipe gnome)</option>
-        </select>
-      </label>
       <div className="gl-tenir-settings__numbers">
         {TENIR_NUMBERS.map(([key, label, min, max]) => (
           <NumberRow
@@ -283,17 +272,6 @@ export function GLTenirSettings({ settings, savingKey, onSaveSetting, onToggle }
           />
         ))}
       </div>
-      <JsonMapRow
-        settingsKey="gameplay.tenir_fouilles_par_tour"
-        label="Fouilles par tour"
-        keys={[
-          ['gnome', 'Gnomes'],
-          ['unicorn', 'Licornes'],
-        ]}
-        settings={settings}
-        savingKey={savingKey}
-        onSaveSetting={onSaveSetting}
-      />
       <JsonMapRow
         settingsKey="gameplay.tenir_zones_par_plateau"
         label="Zones de chasse par plateau"

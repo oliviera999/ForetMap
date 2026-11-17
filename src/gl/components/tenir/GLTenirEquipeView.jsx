@@ -23,7 +23,7 @@ const VERDICT_TEXTES = {
   chaud: 'Chaud : la page est tout près.',
   zone: 'Une page dort ici : réponds à sa question.',
   deja_trouvee: 'Cette page est déjà trouvée.',
-  palie: 'Cette page a pâli : seuls les Gnomes peuvent la réparer.',
+  palie: 'Cette zone a pâli : les Gnomes savent la réparer.',
   page_trouvee: 'Page trouvée ! Elle entre au carnet de la classe.',
   pas_encore: 'Pas encore : la page dort encore ici.',
 };
@@ -363,9 +363,6 @@ export function GLTenirEquipeView({
       {chasse && fouilles ? (
         <p className="gl-hint" data-testid="gl-tenir-fouilles">
           Fouilles ce tour : {fouilles.restantes}/{fouilles.quota}
-          {fouilles.reparation?.quota
-            ? ` + ${fouilles.reparation.restantes}/${fouilles.reparation.quota} réparation (page pâlie)`
-            : ''}
           {fouilles.sousVoile ? ' · sous le voile' : ''}
           {fouilleMode ? ' · touche le plateau pour fouiller' : ''}
           {fouilleMode ? ` · ${ROLES_EN_CONSEIL.fouiller}` : ''}

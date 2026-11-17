@@ -54,9 +54,7 @@ function TeamCard({
           case {numeroCase(team.pathIndex) ?? '—'}
           {team.auCamp ? ' · au camp' : ''}
           {team.hasRolledDiceThisRound ? ' · dés lancés' : ''}
-          {fouilles
-            ? ` · fouilles ${fouilles.restantes}/${fouilles.quota}${fouilles.reparation?.quota ? ` + ${fouilles.reparation.restantes}/${fouilles.reparation.quota} réparation` : ''}`
-            : ''}
+          {fouilles ? ` · fouilles ${fouilles.restantes}/${fouilles.quota}` : ''}
           {reserve && (reserve.health || reserve.power)
             ? ` · réserve ❤️ ${reserve.health} 💎 ${reserve.power}`
             : ''}

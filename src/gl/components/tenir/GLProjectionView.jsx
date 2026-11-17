@@ -136,7 +136,8 @@ export function GLProjectionView({ gameId, token, refreshKey = 0 }) {
                 <strong>{p.titre || p.indice}</strong>
                 <div className="gl-hint">
                   {pageEtatLabel(p.etat)}
-                  {p.trouveePar ? ` · ${p.trouveePar.name}` : ''}
+                  {p.reveleePar ? ` · révélée par ${p.reveleePar.name}` : ''}
+                  {p.trouveePar ? ` · trouvée par ${p.trouveePar.name}` : ''}
                   {p.tenuePar ? ` · tenue par ${p.tenuePar.name}` : ''}
                 </div>
               </li>

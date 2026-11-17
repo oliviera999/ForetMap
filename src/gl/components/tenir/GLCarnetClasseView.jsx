@@ -44,6 +44,7 @@ export function GLCarnetClasseView({ chasse, teamId = null, readOnly = false }) 
                 {p.titre ? <span className="gl-hint"> — {p.indice}</span> : null}
                 <div className="gl-hint">
                   {ETAT_LABELS[p.etat] || p.etat}
+                  {p.reveleePar ? ` · révélée par ${p.reveleePar.name}` : ''}
                   {p.trouveePar ? ` · trouvée par ${p.trouveePar.name}` : ''}
                   {p.tenuePar ? ` · tenue par ${p.tenuePar.name}` : ''}
                   {p.palissementPct > 0 ? ` · pâlie à ${p.palissementPct} %` : ''}

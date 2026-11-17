@@ -41,7 +41,7 @@ SPELL_NAMES_ATTENDUS = {
 }
 REGLAGES_ATTENDUS = {
     "enabled", "surface", "des_mode", "des_count", "des_physiques_validation", "questions_de_case", "vent",
-    "vent_cases", "fouilles_par_tour", "fouille_seuils", "zones_par_plateau", "pistes_par_semaine",
+    "vent_cases", "fouilles_par_tour", "fouilles_sous_voile", "fouille_seuils", "zones_par_plateau", "pistes_par_semaine",
     "pages_veillee_par_semaine", "voile", "voile_bonus_par_plateau", "palissement_pct", "palissement_max",
     "recul_carnet_complet", "marche", "marche_pendant_tour", "parures", "lumiere", "lumiere_palier",
     "cartes_vers_cases", "chapardeur", "peripeties", "olu_erreur_du_jour", "sablier_secondes",
@@ -753,7 +753,8 @@ def check_reglages(d, rep):
         ("des_mode", lambda v: v in ("serveur", "physique")),
         ("des_count", lambda v: isinstance(v, int) and 1 <= v <= 3),
         ("des_physiques_validation", lambda v: v in ("prof", "auto")),
-        ("fouilles_par_tour", lambda v: isinstance(v, dict) and set(v) == {"gnome", "unicorn"}),
+        ("fouilles_par_tour", lambda v: isinstance(v, int) and not isinstance(v, bool) and 0 <= v <= 10),
+        ("fouilles_sous_voile", lambda v: isinstance(v, int) and not isinstance(v, bool) and 0 <= v <= 10),
         ("fouille_seuils", lambda v: isinstance(v, dict) and set(v) == {"chaud", "tiede"} and v["chaud"] < v["tiede"]),
         ("zones_par_plateau", lambda v: isinstance(v, dict) and set(v) == {"1", "2", "3", "4"}),
         ("voile_bonus_par_plateau", lambda v: isinstance(v, dict) and set(v) == {"1", "2", "3", "4"}),

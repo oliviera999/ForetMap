@@ -289,7 +289,7 @@ test('Grand Regard : 1/tour/partie, +1 fouille à chaque équipe ; Bourrasque : 
   const carnet = await request(app)
     .get(api('/chasse'))
     .set(auth(p(0).token));
-  assert.equal(carnet.body.fouilles.quota, 2, 'gnome : 1 + 1 (Grand Regard)');
+  assert.equal(carnet.body.fouilles.quota, 3, 'gnome : 2 + 1 (Grand Regard)');
   const second = await draft(p(3).token, { spellCode: 'SL040', teamId: lB().id });
   assert.equal(second.status, 409);
   assert.equal(second.body.code, 'SPELL_LIMITE');
