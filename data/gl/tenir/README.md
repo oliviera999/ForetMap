@@ -46,7 +46,7 @@ montre comptes, écarts et dernier rapport, et permet de resynchroniser (`POST
 | `chasse-zones.json` | `zone_key` | 36 (8 / 8 / 10 / 10) |
 | `questions-lecture.json` | `zone_key` | 36 |
 | `qcm-feedbacks-zones.json` | `question_code` + lettre (colonnes `feedback_b…e` de `gl_qcm_questions`) | 9 questions, 36 retours |
-| `questions-vives.json` | `question_code` (`VQCM0001…`, table `gl_qcm_questions`) | 40 (5 par biome joué) |
+| `questions-vives.json` | `question_code` (`VQCM0001…`, table `gl_qcm_questions`) | 80 (15 par biome des plateaux 1 et 2, 5 ailleurs) |
 | `peripeties.json` | `id` | 32 (8 par plateau) |
 | `missions.json` | `id` | 20 |
 | `titres.json` | chemin `honneurs.<honneur>.<biome>` etc. | 16 + 8 + 20 |
@@ -119,7 +119,10 @@ polygones ne sont jamais envoyés aux élèves.
 - Questions de **case** écrites pour des 6e : elles partent d'une curiosité (un record, une
   astuce, une idée reçue), jamais d'un nom à réciter. Une question de taxonomie est refusée.
 - `question_code` : `VQCM` + 4 chiffres ; `biome_slug` : un des 8 biomes joués ; `categorie_slug` :
-  une catégorie de `gl_qcm_categories` ; 5 questions par biome.
+  une catégorie de `gl_qcm_categories` ; 15 questions par biome des plateaux 1 et 2 (lot 2 de
+  l'ensemble unifié, `VQCM0041` à `VQCM0080`), 5 pour les autres.
+- Tirage d'une case en mode tenir (M9) : une question vive du biome de la case pas encore posée
+  dans la partie passe en premier ; ensuite, sous le plafond de difficulté du plateau.
 - `choix` : 4 ou 5 textes non vides et distincts ; **le premier est le bon** (`reponse` = `"A"`).
   La présentation mélange les choix.
 - `explication` : une seule par question, sans amorce « Non ». Elle devient `feedback_correct`

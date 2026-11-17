@@ -51,6 +51,12 @@ const TENIR_FLAGS = [
 const TENIR_NUMBERS = [
   ['gameplay.tenir_des_count', 'Dés du geste Lancer', 1, 5],
   ['gameplay.tenir_vent_cases', 'Cases du vent', 1, 12],
+  [
+    'gameplay.tenir_questions_spirale',
+    'Questions de case d’un biome déjà traversé, dès le plateau 2 (%)',
+    0,
+    100,
+  ],
   ['gameplay.tenir_fouilles_par_tour', 'Fouilles par équipe et par tour', 0, 10],
   [
     'gameplay.tenir_fouilles_sous_voile',
@@ -267,6 +273,19 @@ export function GLTenirSettings({ settings, savingKey, onSaveSetting, onToggle }
           />
         ))}
       </div>
+      <JsonMapRow
+        settingsKey="gameplay.tenir_questions_difficulte_max_par_plateau"
+        label="Questions de case : difficulté maximale par plateau (1 à 5)"
+        keys={[
+          ['1', 'Plateau 1'],
+          ['2', 'Plateau 2'],
+          ['3', 'Plateau 3'],
+          ['4', 'Plateau 4'],
+        ]}
+        settings={settings}
+        savingKey={savingKey}
+        onSaveSetting={onSaveSetting}
+      />
       <JsonMapRow
         settingsKey="gameplay.tenir_zones_par_plateau"
         label="Zones de chasse par plateau"

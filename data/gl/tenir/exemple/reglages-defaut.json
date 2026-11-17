@@ -14,6 +14,13 @@
     "des_count": 2,
     "des_physiques_validation": "prof",
     "questions_de_case": true,
+    "questions_difficulte_max_par_plateau": {
+      "1": 2,
+      "2": 3,
+      "3": 3,
+      "4": 3
+    },
+    "questions_spirale": 20,
     "vent": true,
     "vent_cases": 3,
     "fouilles_par_tour": 2,
@@ -121,6 +128,8 @@
     "max_power_points": "réglage existant, inchangé à 8",
     "fouilles_par_tour": "ensemble unifié (M2, 17 novembre 2026) : 2 fouilles par équipe et par tour, pour les deux peuples (ancienne forme { gnome: 1, unicorn: 2 }) ; une zone pâlie ne se fouille que par une équipe gnome (c'est la réparation) ; la fouille de réparation en plus a disparu",
     "fouilles_sous_voile": "M2 : fouilles par tour d'une équipe sous le voile (1), sauf Abri ou Cordée qui rendent le quota entier",
-    "cases_positives": "ensemble unifié (M3) : `neutre` (défaut) — une case positive donne son mouvement, sans ressource ; seule la case Trame donne une gemme ; `brut` garde la valeur du plateau (ancien comportement) ; l'option `ressource_peuple` est retirée"
+    "cases_positives": "ensemble unifié (M3) : `neutre` (défaut) — une case positive donne son mouvement, sans ressource ; seule la case Trame donne une gemme ; `brut` garde la valeur du plateau (ancien comportement) ; l'option `ressource_peuple` est retirée",
+    "questions_difficulte_max_par_plateau": "ensemble unifié (M9) : plafond de difficulté des questions de case par plateau ; les `difficulteMax` portés par les cases question sont ignorés en mode tenir (et retirés des données par la migration 359)",
+    "questions_spirale": "M9 : part (en pour cent) des questions de case tirées dans un biome d'un plateau déjà traversé, à partir du plateau 2 ; 20 = une question sur cinq"
   }
 }
