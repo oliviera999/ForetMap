@@ -40,6 +40,19 @@ async function corpusPresent(t) {
   return false;
 }
 
+/**
+ * Catalogue réel des zones chargé (36 zones actives) : c'est ce qui distingue le corpus réel
+ * d'une base de CI. Sur celle-ci, la suite backend importe des questions du corpus APRÈS les
+ * migrations (le seuil de `corpusPresent` est donc franchi), mais la migration 365 a tourné sur
+ * une base vide et n'a rien eu à retirer du tirage.
+ */
+async function cataloguePresent(t) {
+  const row = await db.queryOne('SELECT COUNT(*) AS n FROM gl_chasse_zones WHERE actif = 1');
+  if (Number(row?.n) >= 30) return true;
+  t.diagnostic(`Catalogue des zones absent (${Number(row?.n) || 0} zones) : contrôle sauté`);
+  return false;
+}
+
 test('les 5 questions de zone réécrites : 5 choix, retours « Pas encore », aucune chaîne interdite', async (t) => {
   if (!(await corpusPresent(t))) return;
   const rows = await db.queryAll(
@@ -79,6 +92,7 @@ test('les 5 questions de zone réécrites : 5 choix, retours « Pas encore », a
 
 test('les 5 questions remplacées sont sorties du tirage des parties', async (t) => {
   if (!(await corpusPresent(t))) return;
+  if (!(await cataloguePresent(t))) return;
   const rows = await db.queryAll(
     `SELECT question_code, usage_tenir FROM gl_qcm_questions
       WHERE question_code IN (${SORTIES.map(() => '?').join(', ')})`,
@@ -121,10 +135,7 @@ test('chaque zone active : question présentable, première fiche existante dans
   const zones = await db.queryAll(
     'SELECT zone_key, plateau, question_code, especes_json, glossaire_json FROM gl_chasse_zones WHERE actif = 1 ORDER BY zone_key ASC',
   );
-  if (zones.length < 30) {
-    t.diagnostic(`Catalogue des zones absent (${zones.length} zones) : contrôle sauté`);
-    return;
-  }
+  if (!(await cataloguePresent(t))) return;
   assert.equal(zones.length, 36, '36 zones actives (8, 8, 10, 10)');
   const manques = [];
   for (const z of zones) {
@@ -155,6 +166,9 @@ test('chaque zone active : question présentable, première fiche existante dans
 
 test('L5 : cz-p2-08 est active avec le feuillet ep-I-06, sa question et sa question de lecture', async (t) => {
   if (!(await corpusPresent(t))) return;
+  // Une base de test garde des zones de fixtures (dont une `cz-p2-08` d'exemple) : le contrôle
+  // ne vaut que sur le catalogue réel.
+  if (!(await cataloguePresent(t))) return;
   const zone = await db.queryOne(
     "SELECT z.actif, z.feuillet_code, z.question_code, z.geometrie_prete, f.plateau_number, f.statut FROM gl_chasse_zones z LEFT JOIN gl_lore_feuillets f ON f.feuillet_code = z.feuillet_code WHERE z.zone_key = 'cz-p2-08'",
   );
