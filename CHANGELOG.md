@@ -9,6 +9,20 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — G&L : scénario e2e des tablettes après les présences par défaut (17 novembre 2026)
+
+Suite de la PR 1b de l'ensemble unifié (#664).
+
+- `e2e/gl-tenir-tablettes.spec.js` attendait encore l'écran de confirmation des présences, retiré
+  par la décision M14 : le scénario vérifie désormais que chacun est présent d'office, qu'une
+  équipe peut ouvrir « Il manque quelqu'un ? » puis le refermer, et qu'aucune demande de présence
+  n'attend dans la file du prof. Captures `docs/captures/tenir-v2/` régénérées (tablettes, console).
+  Ce scénario ne tourne que dans l'e2e G&L nocturne, informatif : la CI de la PR ne le voyait pas.
+- **Banc, à lire avec la PR 1b** (scénario `ensemble-unifie`, graines 14 et 15, 80 chapitres de
+  chaque côté, 0 échec) : aucune mesure du § 6.12 ne s'écarte de plus de 1,3 erreur type. Un seul
+  effet réel, attendu : au plateau 2, la zone `cz-p2-08` activée porte le carnet à 8 pages (comme
+  au plateau 1), et le carnet complet y devient plus rare (45 % → 15 % des chapitres simulés).
+
 ### Modifié — G&L : ensemble unifié, PR 1b — charge du prof, lexique, zones, règles v3 (17 novembre 2026)
 
 Prompt `docs/GL_ENSEMBLE_UNIFIE_PROMPT.md` (§ 6, fin de l'étape 1.5 et étapes 1.8 à 1.11). Rien
