@@ -1,7 +1,8 @@
-# Prompt Claude Code · Gnomes & Licornes · l'ensemble unifié en 4 PR
+# Prompt Claude Code · Gnomes & Licornes · l'ensemble unifié en 4 PR (la première en deux temps : 1a, 1b)
 
 > À coller tel quel dans Claude Code, dépôt `oliviera999/ForetMap`. Modèle conseillé : le plus capable disponible,
-> effort élevé ; une session par PR (quatre sessions), dans l'ordre. **Ne fusionne rien toi-même** : tu ouvres les
+> effort élevé ; **une session par PR, cinq sessions, dans l'ordre : 1a, 1b, 2, 3, 4**. Chaque session part de `main`
+> à jour, après fusion de la PR précédente. **Ne fusionne rien toi-même** : tu ouvres les
 > PR, Oliv fusionne.
 
 Relevé le 17 novembre 2026 : `main` à **v1.242.2**, commit `9468652` (16/11). Prod `gl.olution.info` en v1.242.2,
@@ -107,12 +108,12 @@ constat faux ») et applique l'intention de la décision.
 
 | Fichier | Contenu | Va où | PR |
 | --- | --- | --- | --- |
-| `cases-souffle.json` | 13 cases Souffle : `marker_id`, plateau, rang, titre, description, libellé d'effet (5 titres changent) | migration sur `gl_chapter_markers` | 1 |
-| `zone-cz-p2-08.json` | zone activée, feuillet `ep-I-06`, question de lecture et ses 4 retours | `chasse-zones.json`, `questions-lecture.json` | 1 |
-| `zones-m22.json` | pour les 36 zones : `especes` (la première fiche donne la réponse), `glossaire` (termes qui la donnent), `question_code` s'il change ; 5 questions de zone réécrites (5 choix, retours « Pas encore ») ; 1 fiche d'espèce à créer (fourmi magnan), 2 termes de glossaire à créer, 2 à compléter ; 5 questions à sortir du tirage | `chasse-zones.json`, `gl_qcm_questions`, `gl_species`, `gl_glossary_terms` (migration idempotente) | 1 |
-| `questions-vives-lot2.json` | 40 questions vives `VQCM0041` à `VQCM0080` (10 par biome des plateaux 1 et 2), même format que le lot 1 | à **fusionner** dans `questions-vives.json` (80 questions) | 1 |
-| `lettre-mentorat.json` | amorces de la Lettre, consigne et critère du Mentorat, retours | textes de l'écran et de la file du prof | 1 |
-| `olu-premiere-fois.json` | 23 lignes d'Olu « première fois » (moment `premiere_fois`, clé d'évènement, séance de l'escalier) et 6 révisions de lignes existantes | `olu-lignes.json` | révisions : 1 · lignes : 2 |
+| `cases-souffle.json` | 13 cases Souffle : `marker_id`, plateau, rang, titre, description, libellé d'effet (5 titres changent) | migration sur `gl_chapter_markers` | 1a |
+| `zone-cz-p2-08.json` | zone activée, feuillet `ep-I-06`, question de lecture et ses 4 retours | `chasse-zones.json`, `questions-lecture.json` | 1b |
+| `zones-m22.json` | pour les 36 zones : `especes` (la première fiche donne la réponse), `glossaire` (termes qui la donnent), `question_code` s'il change ; 5 questions de zone réécrites (5 choix, retours « Pas encore ») ; 1 fiche d'espèce à créer (fourmi magnan), 2 termes de glossaire à créer, 2 à compléter ; 5 questions à sortir du tirage | `chasse-zones.json`, `gl_qcm_questions`, `gl_species`, `gl_glossary_terms` (migration idempotente) | 1b |
+| `questions-vives-lot2.json` | 40 questions vives `VQCM0041` à `VQCM0080` (10 par biome des plateaux 1 et 2), même format que le lot 1 | à **fusionner** dans `questions-vives.json` (80 questions) | 1a |
+| `lettre-mentorat.json` | amorces de la Lettre, consigne et critère du Mentorat, retours | textes de l'écran et de la file du prof | 1b |
+| `olu-premiere-fois.json` | 23 lignes d'Olu « première fois » (moment `premiere_fois`, clé d'évènement, séance de l'escalier) et 6 révisions de lignes existantes | `olu-lignes.json` | révisions : 1a · lignes : 2 |
 | `trame-ranger.json` | « Le bon rôle » (8 jeux, un par biome, 8 cartes) et « Le bon pays » (4 jeux, un par plateau, 8 à 10 cartes avec indice) | nouveau catalogue | 2 |
 | `trame-adaptations.json` | « Les fils de l'adaptation » (8 jeux, un par biome, 9 cartes, 6 ou 7 fils) | nouveau catalogue | 2 |
 | `test-avant-apres-ch1.json`, `.xml` | le test avant / après du chapitre 1, **déjà créé sur olution** : pour mémoire, rien à coder | — | — |
@@ -126,7 +127,21 @@ soudain » (plateau 3) est voulu : le nom de visage est sur son plateau.
 
 ---
 
-## 6. PR 1 · Simplifier  (`feat(gl): ensemble unifié — règles simplifiées`)
+## 6. PR 1 · Simplifier, en deux PR
+
+La PR 1 se livre **en deux PR**, pour que chacune reste relisible et que le banc mesure le moteur seul.
+
+| PR | Titre | Étapes | Ce qu'elle change |
+| --- | --- | --- | --- |
+| **1a · Le moteur** | `feat(gl): ensemble unifié — règles du tour simplifiées` | 1.1, 1.2, 1.3, 1.4, la partie « grimoire » de 1.5, 1.6, 1.7, puis le banc 1.12 | tout ce qui touche l'équilibre du jeu |
+| **1b · Le prof, les mots, le contenu** | `feat(gl): ensemble unifié — charge du prof, lexique, zones, règles v3` | la partie « Mentorat, Lettre, voyageur » de 1.5, 1.8, 1.9, 1.10, 1.11 | rien qui change l'équilibre |
+
+- **1.5 se coupe en deux.** En 1a : `sorts.json` (sorts retirés, ouvertures par chapitre), la Cordée (fenêtre `jeu`,
+  effet au prochain tour) et la Cordée offerte du plateau 4. En 1b : Mentorat, Lettre, retrait de la Plume, délai des
+  fiches et grimoire du voyageur.
+- **Docs.** La PR 1a met à jour `docs/API.md`, les docs de référence et le CHANGELOG pour ce qu'elle change ; la
+  réécriture complète des règles en v3 (1.11) est faite en 1b, une fois tout le reste en place.
+- **Banc.** Il tourne à la fin de la 1a (1.12). La 1b ne le relance que pour vérifier qu'elle ne bouge aucun chiffre.
 
 Un commit par étape, tests verts à chaque commit.
 
@@ -384,8 +399,10 @@ texte visible d'un élève, mets un texte provisoire neutre et liste-le dans « 
 
 ## 13. Après chaque fusion, à faire par Oliv
 
-- PR 1 : resynchroniser les catalogues (carte « Catalogues Tenir à deux »), relire les 13 cases Souffle et les 5
-  questions de zone à l'écran, lire le rapport « réponses sur le site ».
+- PR 1a : resynchroniser les catalogues (carte « Catalogues Tenir à deux »), relire les 13 cases Souffle à l'écran,
+  lire le rapport du banc.
+- PR 1b : resynchroniser les catalogues, relire les 5 questions de zone à l'écran, lire le rapport « réponses sur le
+  site » et les règles v3.
 - PR 2 : jouer une partie de test de 4 tours depuis le compte prof pour voir l'escalier ; relire les lignes d'Olu.
 - PR 3 : essai à trois appareils sur une équipe de test.
 - PR 4 : vérifier une bourse d'élève de test, le comptoir et la garde-robe.
