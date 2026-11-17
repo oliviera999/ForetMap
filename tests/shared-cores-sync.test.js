@@ -45,6 +45,7 @@ test('la liste des paires couvre bien les noyaux attendus', () => {
     'glSablierCore.js',
     'glSortMomentsCore.js',
     'glTenirCaseEffetCore.js',
+    'glTenirEscalierCore.js',
     'glTenirPermissionsCore.js',
     'glTrameCore.js',
     'idKeyLeadCore.js',

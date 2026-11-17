@@ -970,7 +970,16 @@ router.put(
         gameId,
         result.events.map((e) =>
           e.eventType === 'team_spirit'
-            ? { ...e, payload: { roundNumber, bilans: result.bilans, redacted: true } }
+            ? {
+                ...e,
+                payload: {
+                  roundNumber,
+                  bilans: result.bilans,
+                  redacted: true,
+                  // La ligne d'Olu « première fois » se dit à toute la classe.
+                  ...(e.payload?.olu ? { olu: e.payload.olu } : {}),
+                },
+              }
             : e,
         ),
       );
@@ -1001,7 +1010,8 @@ router.get(
         note: r.note || null,
         saisiAt: r.saisi_at,
       })),
-      lumiere: await tour.loadLumiere(db, gameId, ctx.resolved),
+      // Réglages résolus de la partie : la jauge dit si elle est montrée (`active`).
+      lumiere: await tour.loadLumiere(db, gameId, resolveTenirSettings(ctx.settings, ctx.game)),
     });
   }),
 );

@@ -379,8 +379,10 @@ une autre équipe ni vers une projection ; les payloads privés du journal sont 
 
 | Méthode | Route                                                | Corps / paramètres                                                                     | Accès et effet                                                                                                                                                                                                                                                  |
 | ------- | ---------------------------------------------------- | -------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| GET     | `/api/gl/games/:id/tenir`                            | —                                                                                      | Auth GL ou projection. `{ enabled, profil, surface, settings (résolus, `des_mode_effectif`), state (voile, première arrivée, oiseau ; nid et tour du chapardeur pour le prof), round, permissions, retraits (motif pour le prof seul), enRetrait, plume, reserves }`. **E4** : `reserves[]` (`teamId`, `health`, `power`) = réserve de la caravane (surplus au plafond) — toutes les équipes pour le prof, la sienne pour un élève, aucune en projection. **E5** : pour un élève dont au moins 3 coéquipiers sont au plafond de leur ressource du peuple, la lecture journalise une fois par séance et par équipe l'événement privé `olu_bourse_pleine` (moment Olu `bourse_pleine`, écran d'équipe seulement ; réglage `tenir_olu_bourse_pleine`). |
-| PUT     | `/api/gl/games/:id/tenir/profil`                     | `{ profil: complet\|prologue\|null, overrides? }`                                       | `gl.game.manage`. `profil: null` explicite remet la partie aux règles classiques (`tenir_profil` NULL). Surcharges limitées aux clés `OVERRIDABLE_KEYS` (surface, des_mode, vent, voile, marche, chapardeur, péripéties, zones par plateau, lumière, cartes→cases). |
+| GET     | `/api/gl/games/:id/tenir`                            | —                                                                                      | Auth GL ou projection. `{ enabled, profil, surface, settings (résolus, `des_mode_effectif`), state (voile, première arrivée, oiseau ; nid et tour du chapardeur pour le prof), round, permissions (dont `tenir`), escalier (`null` hors escalier du chapitre 1), retraits (motif pour le prof seul), enRetrait, plume, reserves }`. **E4** : `reserves[]` (`teamId`, `health`, `power`) = réserve de la caravane (surplus au plafond) — toutes les équipes pour le prof, la sienne pour un élève, aucune en projection. **E5** : pour un élève dont au moins 3 coéquipiers sont au plafond de leur ressource du peuple, la lecture journalise une fois par séance et par équipe l'événement privé `olu_bourse_pleine` (moment Olu `bourse_pleine`, écran d'équipe seulement ; réglage `tenir_olu_bourse_pleine`). |
+| PUT     | `/api/gl/games/:id/tenir/profil`                     | `{ profil: complet\|court\|null, overrides? }`                                          | `gl.game.manage`. `profil: null` explicite remet la partie aux règles classiques (`tenir_profil` NULL). Le profil `prologue` n'existe plus (400). Surcharges limitées aux clés `OVERRIDABLE_KEYS` (surface, des_mode, vent, voile, marche, chapardeur, péripéties, zones par plateau, lumière, défis, `pages_par_semaine`, `escalier`). `escalier: true \| false` remet ou coupe l'escalier du chapitre 1 ; `escalier_pas` appartient au serveur : une valeur envoyée est ignorée (le pas atteint est gardé, ou repart de tours clos + 1). |
+| POST    | `/api/gl/games/:id/tenir/escalier/suite`             | —                                                                                      | `gl.game.manage`. « Ouvrir la suite » : l'escalier du chapitre 1 monte d'une marche tout de suite. `{ ok, escalier: { pas, dernier, monte, modules, sorts, prochaine }, ouvert: { modules, sorts } }`. Évènement `escalier_pas` (`motif: 'prof'`) ; la page témoin se pose si la séance 3 s'ouvre pendant un tour. 409 `ESCALIER_INACTIF` (la partie ne monte pas l'escalier), 409 `ESCALIER_MONTE` (tout est déjà ouvert).                                              |
+| GET     | `/api/gl/games/:id/tenir/ce-qui-change`              | —                                                                                      | Auth GL ou projection. « Ce qui change » au camp : `{ gameId, auCamp, ceQuiChange: null \| { plateau, lignes: [{ cle: peuple\|sorts\|plateau, titre, texte }] } }`. Un élève ou une tablette d'équipe reçoit les lignes de son équipe (« Ton peuple », « Tes nouveaux sorts » : ceux que le chapitre suivant ouvre, et ceux de son nouveau peuple quand il en change) ; le prof et la projection, celles de la classe. `null` au dernier plateau. Calculé depuis les sorts rattachés aux chapitres et les réglages résolus.                                 |
 | GET     | `/api/gl/games/:id/tenir/olu`                        | —                                                                                      | Lignes d'Olu actives (sans la correction des erreurs) + `moments` (type d'événement → moment).                                                                                                                                                                  |
 | POST    | `/api/gl/games/:id/tenir/retrait`                    | `{ playerId, entree, motif? }`                                                         | `gl.game.manage`. Conduite hors économie : l'élève ne verse pas au pot et ne voit pas le Marché ; motif vu du prof seul.                                                                                                                                      |
 | GET     | `/api/gl/games/:id/tenir/tour`                       | —                                                                                      | Auth GL ou projection. Vue du tour : phase, ordre inverse du plateau, équipe active, vent, souffle, passeur, erreur d'Olu, opérateurs (prof), absences, effets, fenêtres de fouille, dés en attente, équipes (`pathIndex`, `auCamp` ; pour le prof, `fouilles` du tour avec `reparation` E2), Lumière.               |
@@ -462,8 +464,8 @@ servis à un élève ni à une projection ; une mauvaise réponse ne retire rien
 | GET     | `/api/gl/games/:id/chasse/carnet`               | —                                                    | Idem, pages seules (`pages`, `total`, `tenues`, `trouvees`, `carnetCompletAt`).                                                                                                                                                                                                                                                                                                                                       |
 | POST    | `/api/gl/games/:id/chasse/fouiller`             | `{ x, y, teamId? }` (0–1, origine haut-gauche)       | Joueur (son équipe) ou MJ (`teamId`). Geste `fouiller` rejoué côté serveur (phase `jeu`, surface). 201 `{ verdict, zoneKey?, question?, kraa, fouilles }` : `zone` + question (fixe puis thème de secours), `froid\|tiede\|chaud` à côté (empreinte publique), `deja_trouvee` / `palie` (réservée aux Gnomes : `message` « Cette zone a pâli : les Gnomes savent la réparer. ») sans consommer de fouille. Une équipe gnome répare une zone pâlie avec une fouille ordinaire (M2). 409 `FOUILLES_EPUISEES` (`fouilles`, `sousVoile`). `POST …/chasse/repondre` : une mauvaise réponse ne révèle la zone que pour une équipe licorne (`revelee_par_team_id`, `revelee_round`) ; une équipe gnome « pas encore » ne révèle rien.                           |
 | POST    | `/api/gl/games/:id/chasse/repondre`             | `{ presentationToken, questionCode, choiceId, teamId? }` | Réponse à la question de chasse du jeton (`zoneKey`). Juste → `trouvee` (ou `reparee` : +1 cœur par Gnome de l'équipe), feuillet découvert, carnet personnel des présents, `page_trouvee` ; sinon → `revelee`, `feedback` « Pas encore… ». 400 jeton invalide, 403 `JETON_AUTRE_EQUIPE`. **Un essai par présentation** : rejouer le même `presentationToken` (autre `choiceId` compris) → 409 `JETON_DEJA_UTILISE`, sans trouver la page ni créditer. |
-| POST    | `/api/gl/games/:id/chasse/pages/:zoneKey/ouvrir` | `{ teamId? }`                                        | Lecture d'une page trouvée (409 `PAGE_PAS_TROUVEE`) : `feuillet`, `palissementPct`, `peutTenir`, `question` de lecture si l'équipe est de l'autre peuple que la découvreuse et la page n'est pas tenue, `via` `tour\|veillee`. En veillée, 409 `VEILLEE_LIMITE` au-delà de `tenir_pages_veillee_par_semaine`. Permissions rejouées : 403 `TENIR_LIRE_SURFACE` (élève en `tableau`), `TENIR_RETRAIT`, 409 partie non en cours. |
-| POST    | `/api/gl/games/:id/chasse/pages/:zoneKey/tenir`  | `{ presentationToken, questionCode, choiceId, teamId? }` | Réponse à la question de lecture (jeton `lecture`). Juste → `tenue`, +1 ressource du peuple à chaque membre des deux équipes (plafond), `page_tenue` (bourses privées), carnet complet le cas échéant (+1 à tous, voile −`recul_carnet_complet`, `carnet_complet`) ; sinon « Pas encore » et nouvelle présentation. 409 `MEME_PEUPLE` ; 400 `JETON_AUTRE_PAGE` si le jeton porte une autre page (vérifié avant toute écriture). **Un essai par présentation** : rejouer le jeton déjà consommé → 409 `JETON_DEJA_UTILISE` (la nouvelle carte jointe au « Pas encore » reste jouable). |
+| POST    | `/api/gl/games/:id/chasse/pages/:zoneKey/ouvrir` | `{ teamId? }`                                        | Lecture d'une page trouvée (409 `PAGE_PAS_TROUVEE`) : `feuillet`, `palissementPct`, `peutTenir`, `question` de lecture si l'équipe est de l'autre peuple que la découvreuse et la page n'est pas tenue, `via` `tour\|veillee`. En veillée, 409 `VEILLEE_LIMITE` au-delà de `tenir_pages_par_semaine` (4, compteur unique : pages tenues en veillée + pages gagnées par un défi de la Trame). Escalier du chapitre 1, séance 1 : la page se lit, `peutTenir: false`. Permissions rejouées : 403 `TENIR_LIRE_SURFACE` (élève en `tableau`), `TENIR_RETRAIT`, 409 partie non en cours. |
+| POST    | `/api/gl/games/:id/chasse/pages/:zoneKey/tenir`  | `{ presentationToken, questionCode, choiceId, teamId? }` | Réponse à la question de lecture (jeton `lecture`). Juste → `tenue`, +1 ressource du peuple à chaque membre des deux équipes (plafond), `page_tenue` (bourses privées), carnet complet le cas échéant (+1 à tous, voile −`recul_carnet_complet`, `carnet_complet`) ; sinon « Pas encore » et nouvelle présentation. 409 `MEME_PEUPLE` ; 409 `ESCALIER_FERME` tant que l'escalier du chapitre 1 n'a pas ouvert « tenir » (séance 2), pour le prof comme pour l'équipe, sans consommer le jeton ; 400 `JETON_AUTRE_PAGE` si le jeton porte une autre page (vérifié avant toute écriture). **Un essai par présentation** : rejouer le jeton déjà consommé → 409 `JETON_DEJA_UTILISE` (la nouvelle carte jointe au « Pas encore » reste jouable). |
 
 Accroche : `POST /api/gl/learning/species/:code` renvoie `piste: { zoneKey, limite, deja }`
 quand l'espèce étudiée est liée au feuillet d'une page endormie (zone → `revelee`, limite
@@ -670,11 +672,10 @@ Au tableau, rien ne change. En `hybride` et sur `tablette`, les équipes jouent 
 
 #### Règles tranchées par l'audit (lot 2)
 
-- **Marché au chapitre 1** : `POST /api/gl/games` sur un chapitre de plateau 1 crée la partie
-  « Tenir » avec la surcharge `{ marche: false }` (modifiable par `PUT …/tenir/profil`). Les
-  parties existantes ne changent pas.
-- **Profil `court`** (`PUT …/tenir/profil { profil: 'court' }`, à côté de `complet` et
-  `prologue`) : `marche_pendant_tour: false` et `lecture_pendant_tour: false`. Pendant un tour
+- **Marché au chapitre 1** : remplacé par l'escalier du chapitre 1 (voir « Ensemble unifié,
+  PR 2 ») — `POST /api/gl/games` ne pose plus la surcharge `{ marche: false }` ; le Marché
+  s'ouvre à la séance 4.
+- **Profil `court`** (`PUT …/tenir/profil { profil: 'court' }`, à côté de `complet`) : `marche_pendant_tour: false` et `lecture_pendant_tour: false`. Pendant un tour
   ouvert, `permissions.lire` vaut `false` et `POST …/chasse/pages/:zoneKey/ouvrir` ou
   `…/tenir` répondent **409 `LECTURE_EN_VEILLEE`**, « À lire en veillée. » ; hors tour, tout
   reste ouvert. Le prof garde la main.
@@ -811,6 +812,73 @@ camp ou en veillée » ; badges `lecture.tenues` Porte-page, `voyage.chapitres` 
   lecture seule : pour chaque question de zone et chaque question de case `usage_tenir = 1`,
   les mots de la bonne réponse sont-ils dans les fiches et termes reliés ?
 
+#### Ensemble unifié, PR 2 — apprendre en jouant (17 novembre 2026)
+
+Prompt `docs/GL_ENSEMBLE_UNIFIE_PROMPT.md` § 7. Migrations 367 à 370.
+
+**L'escalier du chapitre 1 (M8).** Au plateau 1, les règles s'ouvrent séance après séance
+(cœur pur `src/shared/glTenirEscalierCore.js`, miroir `lib/shared/` ; côté partie
+`lib/glEscalier.js`) : 1 avancer, chercher, défi de case, défis de la Trame ; 2 tenir, l'erreur
+du jour ; 3 le voile, la page témoin, trois sorts (`SL002` et les deux du peuple), la jauge de
+Lumière ; 4 le Marché, trois sorts (`SL005`, `SL036`, `SL004`).
+
+- Le **pas** vit dans les surcharges de la partie (`escalier: true`, `escalier_pas: 1..4`).
+  `POST /api/gl/games` le pose à 1 sur un chapitre de plateau 1 quand `gameplay.tenir_escalier`
+  est levé (copie de configuration comprise : la séance d'une autre partie ne se copie pas) ;
+  il monte de 1 à chaque tour clos (`POST …/tenir/tour/phase { phase: 'clos' }`) et sur
+  `POST …/tenir/escalier/suite` ; il ne recule jamais.
+- `GET …/tenir` et le bloc `tenir` de l'état de partie portent `escalier: null | { pas, dernier,
+  monte, modules: [...], sorts: [codes], prochaine: null | { seance, modules, sorts } }` et, dans
+  `settings`, `escalier` (booléen effectif de la partie), `escalier_pas`, `escalier_modules`.
+  Tant qu'une marche n'est pas montée, les réglages résolus servent `voile: false`,
+  `marche: false`, `olu_erreur_du_jour: false`.
+- `permissions.tenir` (nouveau) : faire tenir une page lue ; `false` à la séance 1, pour le prof
+  comme pour l'équipe. `permissions.marche` suit le Marché de l'escalier.
+- Refus : `POST …/chasse/pages/:zoneKey/tenir` → 409 `ESCALIER_FERME` ;
+  `POST …/spell-casts/drafts` → 409 `SPELL_ESCALIER` (« Ce sort s'ouvre plus tard dans le
+  chapitre. ») ; `GET …/tenir/sorts` ne liste pas un sort d'une marche pas montée ; Marché → 403
+  `MARCHE_FERME` jusqu'à la séance 4.
+- `POST …/tenir/tour/phase { phase: 'souffle' }` voile pas encore ouvert : `souffle: { faces: [],
+  bonus: 0, total: 0, dort: true, ferme: true }`, aucun évènement `voile_avance` ni `voile_dort`.
+- Jauge de Lumière : les cartes comptent dès la séance 1 ; `lumiere.active` vaut `false` et aucun
+  palier ne tombe avant la séance 3 — d'ici là, la jauge s'arrête un point sous le palier
+  (`lumiere_palier` − 1), sans palier en attente.
+- **Page témoin** : à l'ouverture du tour de la séance 3 (ou sur « Ouvrir la suite » pendant un
+  tour), la zone `endormie` la plus proche du départ passe `palie`, une seule fois par partie.
+- Évènements : `escalier_pas` `{ pas, modules, sorts, motif: 'tour_clos' | 'prof', roundNumber }`,
+  `page_temoin` `{ zoneKey, roundNumber }`.
+- Le profil `prologue` est supprimé (migration 369 : `complet` + escalier à la séance atteinte).
+
+**Olu « première fois » (M8).** `olu-lignes.json` porte 23 lignes de moment `premiere_fois`
+(`cle`, `seance_escalier`). Le serveur les désigne sur l'évènement qui les déclenche :
+`payload.olu: [{ id, teamId? }]` (clé gardée publique sur un payload privé), une seule fois par
+partie — par équipe quand la ligne porte `{equipe}` —, mémoire `gl_game_olu_premieres` ; dans
+l'escalier, jamais avant la séance de la ligne. Une ligne ne se dit pas pour ce que la partie n'a
+pas : rôles en surface `tableau`, camp au plateau 4, défis, Lumière ou Marché coupés.
+`GET …/tenir/olu` sert ces lignes avec les autres. Types porteurs : `tour_ouvert`, `tour_phase`, `tour_clos`, `escalier_pas`, `pas_encore`,
+`fouille`, `peripetie`, `defi_case_recu`, `page_trouvee`, `olu_erreur`, `voile_avance`,
+`page_temoin`, `team_spirit`, `un_de_pose`, `un_de_joue`, `seuil_clos`, `spell_effect`.
+
+**Les deux écrans (M8, M10).** « Maintenant, vous pouvez… » est calculé par l'écran depuis les
+droits servis (`maintenantVousPouvez`, `src/shared/glSortMomentsCore.js`) : aucun rôle n'est lu
+par le serveur. « Ce qui change » : `GET …/tenir/ce-qui-change` (tableau ci-dessus).
+
+**Une seule limite de veillée (M8).** `gameplay.tenir_pages_par_semaine` (4, surchargeable par
+partie : `pages_par_semaine`) remplace `tenir_pages_veillee_par_semaine` et
+`tenir_defis_pages_par_semaine` : un compteur par élève et par semaine ISO, toutes sources.
+`GET …/chasse` porte, pour un élève connecté seulement, `veillee: { pages: { utilisees, plafond,
+restantes } }` (`null` pour le prof, une tablette d'équipe, la projection).
+`tenir_pistes_par_semaine` (1) reste à part.
+
+**Trois défis de la Trame (M21).** Types `ranger` et `adaptation` : voir « Défis de la Trame ».
+Catalogues nouveaux de `GET/POST /api/gl/admin/tenir/catalogues[/sync]` : `trame-ranger`
+(tables `gl_trame_ranger_familles`, `gl_trame_ranger_jeux`, `gl_trame_ranger_cartes`) et
+`trame-adaptations` (`gl_trame_adaptation_jeux`, `…_cartes`, `…_liens`).
+
+**Réglages.** Nouveaux : `gameplay.tenir_pages_par_semaine` (entier 0 à 20, défaut 4),
+`gameplay.tenir_escalier` (booléen, défaut `true`). Retirés : `tenir_pages_veillee_par_semaine`,
+`tenir_defis_pages_par_semaine` (migration 368 : la somme des deux valeurs est reprise).
+
 #### Défi de case (lot 2)
 
 Les huit cases « Défi d'équipe » (repères marqués `event_config_json.tenir.defi = true`)
@@ -843,24 +911,33 @@ bloque : le tour continue. Aucune ressource n'est jamais créée ni retirée.
 
 #### Défis de la Trame (lot 3)
 
-Quatre défis sur un même plateau de cartes, hors du temps de jeu : **Retisser** et **Réparer la
-trame** (Gnomes), **La trame altérée** et **Les fils cachés** (Licornes). Réglages, surchargeables
-par partie : `defis` (true), `defis_par_peuple` (true ; à `false`, les quatre pour tous),
-`defis_pages_par_semaine` (2), `defis_mode_equipe` (true). **Aucune ressource n'est jamais créée.**
-Catalogues : `trame-reseaux`, `trame-fils`, `trame-reparer` (`data/gl/tenir/`). Cœur pur :
+Six défis sur un même plateau de cartes, hors du temps de jeu : **Retisser** et **Réparer la
+trame** (Gnomes), **La trame altérée** et **Les fils cachés** (Licornes), et, pour les deux
+peuples (ensemble unifié, M21), **Le bon rôle**, **Le bon pays** (type `ranger`) et **Les fils de
+l'adaptation** (type `adaptation`). Réglages, surchargeables par partie : `defis` (true),
+`defis_par_peuple` (true ; à `false`, les quatre premiers pour tous — les trois défis communs ne
+sont jamais filtrés), `pages_par_semaine` (4, limite de veillée commune), `defis_mode_equipe`
+(true). **Aucune ressource n'est jamais créée.**
+Catalogues : `trame-reseaux`, `trame-fils`, `trame-reparer`, `trame-ranger`, `trame-adaptations`
+(`data/gl/tenir/`). Cœur pur :
 `src/gl/defis/trameCore.js` (miroir `lib/shared/glTrameCore.js`). Détail : `docs/GL_DEFIS.md`.
 
 **Qui joue.** Un élève avec son compte (mode `individuel`, à tout moment) ; le prof, ou une
 tablette d'équipe **hors tour ouvert**, pour une équipe (mode `equipe`). **Unités** : `<biome>:<niveau>`
 pour Retisser (niveaux 5, 7, 9, 12, ouverts l'un après l'autre), `<biome>:<code retiré>` pour la
-trame altérée (trois scénarios par biome), `p<plateau>` pour les fils cachés et Réparer.
+trame altérée (trois scénarios par biome), `p<plateau>` pour les fils cachés et Réparer,
+`role:<biome>` (Le bon rôle) et `pays:p<plateau>` (Le bon pays) pour `ranger`,
+`adaptation:<biome>` pour `adaptation`.
 
 - `GET /api/gl/games/:id/defis` (`?teamId=` pour le prof) — compte G&L ou session d'équipe.
   `{ actifs, parPeuple, modeEquipe, peuple, plateau, mode, teamId, tourOuvert, types: [{ type,
-  libelle }], defis: [{ type, libelle, unite, biome?, biomeNom?, niveau?, retiree?, retireeNom?,
-  plateau?, disponible, statut, defiId }], pages: { utilisees, plafond }, aReparer: [{ code,
-  nom }] }`. Les défis sont ceux du peuple de l'équipe, sur les deux biomes du plateau de la
-  partie. Aucune solution.
+  famille?, libelle }], defis: [{ type, libelle, unite, famille?, titre?, biome?, biomeNom?,
+  niveau?, retiree?, retireeNom?, plateau?, disponible, statut, defiId }], pages: { utilisees,
+  plafond }, aReparer: [{ code, nom }] }`. Les défis sont ceux du peuple de l'équipe, puis les
+  trois défis communs, sur les deux biomes du plateau de la partie. `ranger` compte deux
+  rubriques dans `types` (`famille` `role` puis `pays`). `pages` = le compteur hebdomadaire
+  unique de l'élève (pages tenues en veillée comprises), `plafond` = `pages_par_semaine`. Aucune
+  solution.
 - `POST /api/gl/games/:id/defis` `{ type, unite, mode?, teamId? }` — crée ou reprend le défi du
   porteur. `{ defi }` (201). Le mode découle de l'acteur ; `teamId` obligatoire pour le prof.
   400 type inconnu, 403 `DEFI_AUTRE_PEUPLE`, 403 `DEFI_EQUIPE_RESERVE` (mode équipe depuis un
@@ -868,9 +945,10 @@ trame altérée (trois scénarios par biome), `p<plateau>` pour les fils cachés
   (tablette pendant un tour), 409 `DEFIS_FERMES` / `DEFIS_EQUIPE_FERMES`.
 - `GET /api/gl/games/:id/defis/:defiId` — le porteur du défi (le prof lit tout). `{ defi }` :
   l'état et le modèle **sans les solutions**. Commun : `id`, `type`, `libelle`, `unite`, `mode`,
-  `teamId`, `statut` (`en_cours`, `reussi`), `revision`, `indices`, `titre`, `niveau` (la `note`
-  d'auteur d'un réseau n'est jamais servie).
-  - Retisser et fils cachés : `cartes: [{ code, nom, role, generique, precision, photoUrl,
+  `teamId`, `statut` (`en_cours`, `reussi`), `revision`, `indices`, `titre`, `niveau`, `consigne`
+  (celle du catalogue pour `ranger` et `adaptation`, `null` sinon ; la `note` d'auteur d'un
+  réseau ou d'un jeu n'est jamais servie).
+  - Retisser, fils cachés et fils de l'adaptation : `cartes: [{ code, nom, role, generique, precision, photoUrl,
     photoCredit }]`, `fleches: [{ de, vers, classement, message }]` (le classement de **ses**
     flèches : `trouvee`, `inversee`, `a_discuter`, `doublon`, `boucle`), `trouvees` (sans total),
     `positions`, `complet`, `critere`. Jamais les liens acceptés.
@@ -882,14 +960,22 @@ trame altérée (trois scénarios par biome), `p<plateau>` pour les fils cachés
     `rangementComplet`, puis, une fois les six espèces rangées : `lecon`, `especes: [{ code, nom,
     menace, signalee }]`, `mesures: [{ code, texte }]`, `mesuresVerifiees`, `requises` ; `choix`,
     `leconLue`, `pourquoi`, `complet`. Jamais les catégories ni les mesures acceptées.
+  - Ranger (Le bon rôle, Le bon pays) : `famille` (`role` | `pays`), `cartes: [{ code, nom,
+    indice, generique }]` (un `indice` par carte pour Le bon pays), `categories: [{ code, nom,
+    aide }]` (les trois rôles, ou les pays — libellés du registre des biomes), `rangement`,
+    `rangementVerifie: [{ code, juste, message }]` pour les cartes déjà posées (bien rangée : son
+    « pourquoi » ; ailleurs : « Pas encore. »), `complet`, `bilan` (`null` jusqu'à la réussite).
+    Jamais la catégorie attendue, jamais le « pourquoi » d'une carte mal rangée.
   403 `DEFI_AUTRE_PORTEUR`, 404 `DEFI_INTROUVABLE`.
 - `PUT /api/gl/games/:id/defis/:defiId` `{ revision, etat }` — **sauvegarde stricte** : la
   révision attendue est obligatoire (400), et **409 `edit_conflict`** `{ revision }` si une autre
   sauvegarde est passée. `etat` selon le type : `{ fleches: [{ de, vers }], positions }`,
   `{ predictions: { code: augmente | diminue | disparait | rien }, verifie }`, `{ rangement,
-  leconLue, mesures: { code: [codes] }, pourquoi }`. Bornes rejouées : 60 flèches entre cartes
+  leconLue, mesures: { code: [codes] }, pourquoi }`, `{ rangement: { code: categorie } }`
+  (ranger ; seules les cartes et les catégories du jeu sont gardées). Bornes rejouées : 60 flèches entre cartes
   connues, textes de 280 caractères, coordonnées de 0 à 100. `{ defi, reussite }` ; à la fin,
-  `reussite: { premiere, page, pagesEpuisees, message }`. Le prof ne joue que les défis d'équipe.
+  `reussite: { premiere, page, pagesEpuisees, message, piste, lumiere }`. Le prof ne joue que
+  les défis d'équipe.
   Réglages, peuple et état de la partie sont relus à chaque écriture : 409 `DEFIS_FERMES` /
   `DEFIS_EQUIPE_FERMES`, 403 `DEFI_AUTRE_PEUPLE` (valable aussi pour `…/indice`).
 - `POST /api/gl/games/:id/defis/:defiId/indice` — l'indice suivant, gratuit et illimité :
@@ -902,8 +988,9 @@ trame altérée (trois scénarios par biome), `p<plateau>` pour les fils cachés
 
 **Réussite.** Pour l'élève — ou, en mode équipe, pour chaque membre présent — dont c'est la
 **première réussite de l'unité** : une ligne `gl_trame_reussites` (un point de regard `defi` dans
-le regard du proche, une unité pour les badges Tisserand, Voyant des fils, Gardien des fils,
-Réparateur) et, sous le plafond hebdomadaire, **une page de veillée** du chapitre à son nom
+le regard du proche, une unité pour les badges Tisserand, Voyant des fils, Gardien des fils —
+qui compte aussi les fils de l'adaptation —, Réparateur et Bon rangeur) et, sous le plafond
+hebdomadaire commun (`pages_par_semaine`), **une page de veillée** du chapitre à son nom
 (source `defi` ; jamais un feuillet de zone de chasse, une page de route, la page apportée par
 l'oiseau ni une page au titre interdit ; jamais de ressource). Le défi réussi, les réussites, la
 page décidée et l'évènement sont écrits en une transaction ; une page dont l'écriture au carnet

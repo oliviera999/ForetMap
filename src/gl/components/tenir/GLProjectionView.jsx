@@ -5,6 +5,7 @@ import { GLGameBoard } from '../GLGameBoard.jsx';
 import { numeroCase } from '../../../shared/glCaseNumeroCore.js';
 import { GLSablier } from './GLSablier.jsx';
 import { GLDefisCasePanel } from './GLDefisCasePanel.jsx';
+import { GLCeQuiChange } from './GLCeQuiChange.jsx';
 import { resolveBoardMovementConfig } from '../../utils/glBoardPath.js';
 
 /** États d'une page du carnet → libellé affiché (jamais l'état brut). */
@@ -69,6 +70,14 @@ export function GLProjectionView({ gameId, token, refreshKey = 0 }) {
   );
   const markers = state?.markers || [];
   const teams = state?.teams || [];
+  // Fin de séance : le tour est clos, la partie continue. L'indice est celui de la première
+  // page qui dort encore (jamais un titre, jamais une zone : un indice déjà public).
+  const indiceEndormi =
+    (carnet?.pages || []).find((p) => p.etat === 'endormie' && p.indice)?.indice || null;
+  const accroche =
+    round?.phase === 'clos' &&
+    state?.game?.status !== 'ended' &&
+    (!!round.passeur || !!indiceEndormi);
   const boardMovement = useMemo(() => resolveBoardMovementConfig(state?.game || {}), [state?.game]);
   return (
     <div className="gl-projection" data-testid="gl-projection">
@@ -90,6 +99,26 @@ export function GLProjectionView({ gameId, token, refreshKey = 0 }) {
         ) : null}
       </header>
       {error ? <p className="gl-error-banner">{error}</p> : null}
+      {/* Au camp : ce qui change au chapitre suivant, pour toute la classe. */}
+      {state?.game?.status === 'ended' ? <GLCeQuiChange gameId={gameId} /> : null}
+      {/* Accroche de fin de séance (M8) : la page du Passeur de la séance, et l'indice d'une
+          zone encore endormie — de quoi donner envie de revenir. */}
+      {accroche ? (
+        <section className="gl-projection__accroche" data-testid="gl-projection-accroche">
+          <h2>À la prochaine séance</h2>
+          {round.passeur ? (
+            <blockquote className="gl-tour-passeur">
+              {round.passeur.titre ? <strong>{round.passeur.titre}</strong> : null}
+              <p>{round.passeur.texte}</p>
+            </blockquote>
+          ) : null}
+          {indiceEndormi ? (
+            <p data-testid="gl-projection-accroche-indice">
+              Une page dort encore : « {indiceEndormi} »
+            </p>
+          ) : null}
+        </section>
+      ) : null}
       {state?.game && markers.length ? (
         <section className="gl-projection__board" data-testid="gl-projection-board">
           <GLGameBoard
@@ -155,7 +184,7 @@ export function GLProjectionView({ gameId, token, refreshKey = 0 }) {
       {round?.phase === 'clos' ? (
         <GLDefisCasePanel gameId={gameId} refreshKey={refreshKey} teams={teams} avecEquipe />
       ) : null}
-      {round?.passeur ? (
+      {round?.passeur && !accroche ? (
         <blockquote className="gl-tour-passeur">
           {round.passeur.titre ? <strong>{round.passeur.titre}</strong> : null}
           <p>{round.passeur.texte}</p>

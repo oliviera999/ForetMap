@@ -114,7 +114,7 @@
     {
       "code": "gardien_des_fils",
       "nom": "Gardien des fils",
-      "critere": "« Les fils cachés » retrouvés sur deux plateaux.",
+      "critere": "Deux jeux de fils démêlés : « Les fils cachés » d'un plateau, ou « Les fils de l'adaptation » d'un biome.",
       "regle": {
         "type": "compteur",
         "seuil": 2,
@@ -132,6 +132,17 @@
         "source": "defis_trame_reparer"
       },
       "icone": "feuille"
+    },
+    {
+      "code": "bon_rangeur",
+      "nom": "Bon rangeur",
+      "critere": "Trois jeux de « Le bon rôle » ou « Le bon pays » rangés, seul ou avec son équipe.",
+      "regle": {
+        "type": "compteur",
+        "seuil": 3,
+        "source": "defis_trame_ranger"
+      },
+      "icone": "boussole"
     },
     {
       "code": "chuchoteur",

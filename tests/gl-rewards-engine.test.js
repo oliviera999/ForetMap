@@ -76,10 +76,12 @@ after(async () => {
   invalidateModulesCache();
 });
 
-test('catalogue : 20 entrées, paliers de la Trame, plus aucun badge réservé, aucun mot interdit', () => {
-  assert.equal(GL_REWARD_CATALOGUE.length, 20);
+test('catalogue : 21 entrées, paliers de la Trame, plus aucun badge réservé, aucun mot interdit', () => {
+  assert.equal(GL_REWARD_CATALOGUE.length, 21);
   // Lot 3 : Tisserand et Voyant des fils (ancien « Révélateur », L2) ne sont plus réservés ; avec Gardien des fils et
-  // Réparateur, ce sont les quatre badges des défis de la Trame.
+  // Réparateur, ce sont les quatre badges des défis de la Trame. Ensemble unifié (M21) : « Bon
+  // rangeur » (Le bon rôle, Le bon pays) s'y ajoute ; Gardien des fils compte aussi les fils de
+  // l'adaptation.
   assert.deepEqual(RESERVED_REWARDS, []);
   assert.deepEqual(
     GL_REWARD_CATALOGUE.filter((e) => e.family === 'trame').map((e) => [e.title, e.tiers[0]]),
@@ -88,6 +90,7 @@ test('catalogue : 20 entrées, paliers de la Trame, plus aucun badge réservé, 
       ['Voyant des fils', 3],
       ['Gardien des fils', 2],
       ['Réparateur', 2],
+      ['Bon rangeur', 2],
     ],
   );
   assert.deepEqual(
@@ -317,7 +320,7 @@ test('GET /api/gl/rewards/me : joueur seul, catalogue + paliers Fil/Nœud/Étoff
     res.body.tiers.map((t) => t.label),
     ['Fil', 'Nœud', 'Étoffe'],
   );
-  assert.equal(res.body.catalogue.length, 20);
+  assert.equal(res.body.catalogue.length, 21);
   assert.ok(res.body.rewards.some((r) => r.key === 'cooperation.dons.2' && r.seen === false));
   assert.ok(res.body.families.some((f) => f.key === 'manuel'));
   assertNoRankingKeys(res.body);

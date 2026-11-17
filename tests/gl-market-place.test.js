@@ -193,10 +193,19 @@ test('retrait → 403 MARCHE_RETRAIT sur toute route du Marché', async () => {
   await execute('UPDATE gl_game_retraits SET sortie_at = NOW() WHERE player_id = ?', [c.id]);
 });
 
-test('profil prologue : Marché fermé (403 MARCHE_FERME)', async () => {
-  await execute("UPDATE gl_games SET tenir_profil = 'prologue' WHERE id = ?", [ctx.game.id]);
-  const res = await request(app).get('/api/gl/market/annonces').set(auth(a));
-  assert.equal(res.status, 403);
-  assert.equal(res.body.code, 'MARCHE_FERME');
-  await execute("UPDATE gl_games SET tenir_profil = 'complet' WHERE id = ?", [ctx.game.id]);
+test('escalier du chapitre 1 : Marché fermé jusqu’à la séance 4 (403 MARCHE_FERME), puis ouvert', async () => {
+  const escalier = (pas) =>
+    execute('UPDATE gl_games SET tenir_overrides_json = ? WHERE id = ?', [
+      pas ? JSON.stringify({ escalier: true, escalier_pas: pas }) : null,
+      ctx.game.id,
+    ]);
+  for (const pas of [1, 2, 3]) {
+    await escalier(pas);
+    const res = await request(app).get('/api/gl/market/annonces').set(auth(a));
+    assert.equal(res.status, 403, `séance ${pas}`);
+    assert.equal(res.body.code, 'MARCHE_FERME');
+  }
+  await escalier(4);
+  assert.equal((await request(app).get('/api/gl/market/annonces').set(auth(a))).status, 200);
+  await escalier(null);
 });

@@ -32,8 +32,10 @@ const EXPECTED = {
   'questions-lecture': ['questions', 36],
   peripeties: ['peripeties', 32],
   missions: ['missions', 20],
-  badges: ['badges', 15],
-  'olu-lignes': ['lignes', 77],
+  // 15 badges + « Bon rangeur » (ensemble unifié, M21).
+  badges: ['badges', 16],
+  // 77 lignes de commentaire + 23 « première fois » (ensemble unifié, M8).
+  'olu-lignes': ['lignes', 100],
   parures: ['parures', 12],
   sorts: ['sorts', 25],
 };

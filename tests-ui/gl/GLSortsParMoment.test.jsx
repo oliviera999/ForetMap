@@ -51,7 +51,8 @@ describe('GLSortsParMoment — sorts rangés par moment du tour', () => {
     await waitFor(() => screen.getByText('Avant de lancer'));
     expect(apiGlMock).toHaveBeenCalledWith('/api/gl/games/7/tenir/sorts');
     expect(screen.getByText('Après le jet')).toBeTruthy();
-    expect(screen.getByText('C’est le moment du Gestionnaire.')).toBeTruthy();
+    // M10 : jeter un sort est le geste de l'Assistante ou de l'Assistant.
+    expect(screen.getByText('C’est le moment de l’Assistante ou de l’Assistant.')).toBeTruthy();
 
     const ouvert = screen.getByRole('button', { name: /Sentier · 2 ❤️/ });
     expect(ouvert.disabled).toBe(false);

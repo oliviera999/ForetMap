@@ -1,5 +1,6 @@
 import { GLButton } from '../ui/GLButton.jsx';
 import { GLTenirQuestionCard } from './GLTenirQuestionCard.jsx';
+import { encorePagesDeVeillee } from '../../constants/tenirTextes.js';
 
 const ETAT_LABELS = {
   endormie: 'dort encore',
@@ -28,6 +29,12 @@ export function GLCarnetClasseView({ chasse, teamId = null, readOnly = false }) 
           {carnet.tenues}/{carnet.total} pages tenues · {carnet.trouvees} trouvées
           {carnet.carnetCompletAt ? ' · carnet complet' : ''}
         </p>
+        {/* M8 : la semaine de veillée de l'élève (servie à lui seul, jamais au prof ni projetée). */}
+        {carnet.veillee?.pages ? (
+          <p className="gl-hint" data-testid="gl-carnet-veillee-pages">
+            En veillée : {encorePagesDeVeillee(carnet.veillee.pages)}
+          </p>
+        ) : null}
       </header>
       {carnet.aReparer?.length ? (
         <p className="gl-carnet-classe__a-reparer" data-testid="gl-carnet-a-reparer">

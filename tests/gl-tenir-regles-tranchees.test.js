@@ -50,7 +50,8 @@ test('réglages nouveaux : défauts qui gardent le comportement d’avant, profi
     assert.ok(GL_SETTINGS_REGISTRY['gameplay.tenir_lecture_pendant_tour']);
     assert.equal(GL_SETTINGS_REGISTRY['gameplay.tenir_fouille_sous_voile'], undefined);
   }
-  assert.deepEqual(TENIR_PROFILS, ['complet', 'prologue', 'court']);
+  // Ensemble unifié (M8) : le profil `prologue` a disparu, l'escalier du chapitre 1 le remplace.
+  assert.deepEqual(TENIR_PROFILS, ['complet', 'court']);
   assert.deepEqual(PROFIL_ECARTS.court, {
     marche_pendant_tour: false,
     lecture_pendant_tour: false,
@@ -65,7 +66,7 @@ test('réglages nouveaux : défauts qui gardent le comportement d’avant, profi
   assert.deepEqual(fichier.profils.court.ecarts, PROFIL_ECARTS.court);
 });
 
-test('Marché au chapitre 1 : éteint d’office à la création d’une partie du plateau 1, modifiable ; pas ailleurs', async () => {
+test('chapitre 1 : une partie créée au plateau 1 monte l’escalier (Marché fermé jusqu’à la séance 4), que le prof peut couper ; pas ailleurs', async () => {
   const chapitre = async (plateau) =>
     db.queryOne('SELECT id FROM gl_chapters WHERE slug = ? LIMIT 1', [
       `tenir-ex-plateau-${plateau}`,
@@ -77,15 +78,17 @@ test('Marché au chapitre 1 : éteint d’office à la création d’une partie 
       .send({ classId: ctx.cls.id, chapterId: (await chapitre(plateau)).id, name });
   const p1 = await creer(1, `Partie plateau 1 ${Date.now()}`);
   assert.equal(p1.status, 201, JSON.stringify(p1.body));
-  assert.equal(p1.body.tenir.settings.marche, false, 'Marché éteint au chapitre 1');
-  assert.deepEqual(p1.body.tenir.settings.overrides, { marche: false });
-  // Le prof le rallume d'un clic (surcharge de la partie).
+  assert.equal(p1.body.tenir.settings.marche, false, 'Marché pas encore ouvert au chapitre 1');
+  assert.deepEqual(p1.body.tenir.settings.overrides, { escalier: true, escalier_pas: 1 });
+  assert.equal(p1.body.tenir.escalier.pas, 1);
+  // Le prof coupe l'escalier d'un clic (surcharge de la partie) : tout s'ouvre.
   const rallume = await request(app)
     .put(`/api/gl/games/${p1.body.game.id}/tenir/profil`)
     .set(auth(ctx.adminToken))
-    .send({ overrides: { marche: true } });
+    .send({ overrides: { escalier: false } });
   assert.equal(rallume.status, 200, JSON.stringify(rallume.body));
   assert.equal(rallume.body.settings.marche, true);
+  assert.equal(rallume.body.settings.escalier, false);
 
   const p2 = await creer(2, `Partie plateau 2 ${Date.now()}`);
   assert.equal(p2.status, 201, JSON.stringify(p2.body));

@@ -8,6 +8,8 @@ const TYPES = Object.freeze([
   ['reparer', 'Réparer'],
   ['alteree', 'Trame altérée'],
   ['fils', 'Fils cachés'],
+  ['ranger', 'Rôle et pays'],
+  ['adaptation', 'Fils de l’adaptation'],
 ]);
 
 /**
@@ -109,21 +111,24 @@ export function GLDefisConsolePanel({ game, teams = [] }) {
                   <tr key={e.playerId}>
                     <th scope="row">{e.nom}</th>
                     <td>{e.equipe}</td>
-                    {TYPES.map(([type]) => (
-                      <td key={type}>
-                        {e.defis[type].reussies.length ? (
-                          <>
-                            {e.defis[type].reussies.length} réussi
-                            {e.defis[type].reussies.length > 1 ? 's' : ''}
-                          </>
-                        ) : (
-                          <span aria-label="aucun réussi">—</span>
-                        )}
-                        {e.defis[type].indices ? (
-                          <span className="gl-hint"> · {e.defis[type].indices} indice(s)</span>
-                        ) : null}
-                      </td>
-                    ))}
+                    {TYPES.map(([type]) => {
+                      // Un type que le serveur ne connaît pas encore (déploiement en cours) : vide.
+                      const reussies = e.defis?.[type]?.reussies?.length || 0;
+                      const indices = e.defis?.[type]?.indices || 0;
+                      return (
+                        <td key={type}>
+                          {reussies ? (
+                            <>
+                              {reussies} réussi
+                              {reussies > 1 ? 's' : ''}
+                            </>
+                          ) : (
+                            <span aria-label="aucun réussi">—</span>
+                          )}
+                          {indices ? <span className="gl-hint"> · {indices} indice(s)</span> : null}
+                        </td>
+                      );
+                    })}
                     <td>{e.pages}</td>
                   </tr>
                 ))}

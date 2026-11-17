@@ -363,6 +363,19 @@ de ressource (« Nommer », qui en rendait, est sorti du grimoire le 17 novembre
 - **Le lexique** : la fin de chapitre s'appelle **le camp** (les sorts se lancent « au camp ou en
   veillée ») ; **le Seuil** reste l'espace personnel de l'élève.
 
+## Ensemble unifié : au chapitre 1, sorts et Marché arrivent en cours de route (17 novembre 2026)
+
+Dans une partie du plateau 1 qui monte l'**escalier** (voir
+[Chapitres et progression](chapitres-et-progression.md)) :
+
+- **Les sorts s'ouvrent à la séance 3** : Progression, et les deux sorts du peuple (Lanterne et
+  Bourrasque pour les Licornes, Sentier et Relais pour les Gnomes). **Relance, Farce et Question
+  arrivent à la séance 4.** Avant, le bouton « Jeter un sort » n'apparaît pas sur l'écran
+  d'équipe ; un sort pas encore ouvert ne se prépare pas, même par le MJ.
+- **Le Marché s'ouvre à la séance 4.** D'ici là, l'onglet affiche « Le Marché est fermé pour
+  cette partie. » L'ancienne case « Marché fermé au chapitre 1 » n'existe plus.
+- Le MJ peut avancer d'une marche (« Ouvrir la suite ») ou couper l'escalier : tout s'ouvre.
+
 ## Ajustements du 7 novembre 2026
 
 - **Progression** et **Relance** se lancent juste après le jet de l'équipe, avant qu'une autre

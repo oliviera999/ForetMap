@@ -109,7 +109,8 @@ router.use(requireGlPlayer);
 
 /**
  * « Tenir à deux » (spec § 8-9) : un élève en retrait ne voit pas le Marché (403
- * `MARCHE_RETRAIT`) ; une partie en profil `prologue` (`marche: false`) le ferme aussi.
+ * `MARCHE_RETRAIT`) ; une partie dont le Marché est coupé (`marche: false`), ou pas encore
+ * ouvert par l'escalier du chapitre 1 (séance 4), le ferme aussi.
  */
 router.use(
   asyncHandler(async (req, res, next) => {

@@ -299,7 +299,7 @@ test('scénarios : les identifiants attendus existent et sont décrits', () => {
     'chasse-futee',
     'voile-max',
     'voile-dort',
-    'prologue',
+    'escalier',
     'plateau-2',
     'plateau-3',
     'plateau-4',
@@ -316,7 +316,8 @@ test('scénarios : les identifiants attendus existent et sont décrits', () => {
   }
   assert.deepEqual(trouverScenario('annee-complete').plateaux, [1, 2, 3, 4]);
   assert.equal(trouverScenario('concurrence').parallele, true);
-  assert.equal(trouverScenario('prologue').profil, 'prologue');
+  assert.equal(trouverScenario('escalier').escalier, true);
+  assert.equal(trouverScenario('hybride-reference').escalier, false);
   assert.equal(trouverScenario('voile-dort').prof.voileDort(2), true);
   assert.equal(trouverScenario('voile-dort').prof.voileDort(3), false);
 });

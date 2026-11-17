@@ -22,19 +22,30 @@ préparer pour la séance suivante** ; le tour continue. Le critère n'est servi
 juge « Relevé » ou « Pas encore ». Un défi sans décision au camp s'annule sans effet : aucun
 état d'attente sans sortie. Réglages `defis_case`, `defi_declenchement`, `defi_recul`.
 
-## 2. Défis de la Trame : quatre défis, un plateau de cartes
+## 2. Défis de la Trame : six défis, un plateau de cartes
 
-| Défi                 | Peuple   | Unité (`unite`)                      | Geste                                                                                |
-| -------------------- | -------- | ------------------------------------ | ------------------------------------------------------------------------------------ |
-| **Retisser**         | Gnomes   | `<biome>:<niveau>` (5, 7, 9, 12)     | Relier les cartes d'un réseau : « est mangé par »                                    |
-| **Réparer la trame** | Gnomes   | `p<plateau>`                         | Ranger six espèces, lire la leçon, choisir ce qui protégerait deux espèces menacées  |
-| **La trame altérée** | Licornes | `<biome>:<code de la carte retirée>` | Une carte est retirée du réseau donné tissé : dire ce que devient chaque autre carte |
-| **Les fils cachés**  | Licornes | `p<plateau>`                         | Relier des cartes de texte, de la cause vers l'effet                                 |
+| Défi                         | Peuple   | Unité (`unite`)                      | Geste                                                                                          |
+| ---------------------------- | -------- | ------------------------------------ | ---------------------------------------------------------------------------------------------- |
+| **Retisser**                 | Gnomes   | `<biome>:<niveau>` (5, 7, 9, 12)     | Relier les cartes d'un réseau : « est mangé par »                                              |
+| **Réparer la trame**         | Gnomes   | `p<plateau>`                         | Ranger six espèces, lire la leçon, choisir ce qui protégerait deux espèces menacées            |
+| **La trame altérée**         | Licornes | `<biome>:<code de la carte retirée>` | Une carte est retirée du réseau donné tissé : dire ce que devient chaque autre carte           |
+| **Les fils cachés**          | Licornes | `p<plateau>`                         | Relier des cartes de texte, de la cause vers l'effet                                           |
+| **Le bon rôle**              | Les deux | `role:<biome>`                       | Ranger huit êtres vivants : producteur, consommateur ou décomposeur                            |
+| **Le bon pays**              | Les deux | `pays:p<plateau>`                    | Lire l'indice de chaque carte, puis la ranger dans le pays où elle vit                         |
+| **Les fils de l'adaptation** | Les deux | `adaptation:<biome>`                 | Relier chaque contrainte du milieu au problème qu'elle pose, puis à l'espèce qui a la solution |
 
 Les défis proposés sont ceux du peuple de l'équipe (`defis_par_peuple`), sur les **deux biomes
 du plateau de la partie**. Une partie du plateau 1 propose donc aux Gnomes huit niveaux de
 Retisser (quatre par biome) et un Réparer ; aux Licornes six trames altérées (trois cartes à
 retirer par biome) et un jeu de fils cachés.
+
+**Trois défis de plus, ouverts aux deux peuples** (ensemble unifié, M21 — `defis_par_peuple` ne
+les filtre jamais), sans nouvel écran : « Le bon rôle » et « Le bon pays » (type `ranger`, deux
+familles `role` et `pays`) et « Les fils de l'adaptation » (type `adaptation`). Une partie du
+plateau 1 y ajoute, pour chaque équipe, deux jeux de rôle (un par biome), un jeu de pays (celui
+du plateau, où les pays déjà traversés reviennent aux plateaux suivants) et deux jeux
+d'adaptation. Aucun niveau à ouvrir : tous sont disponibles d'emblée. Mêmes récompenses que les
+autres défis, jamais de gemme ; les solutions ne quittent pas le serveur.
 
 **Qui joue, et quand.** Un élève avec son compte joue en mode `individuel`, à tout moment
 (entrée « Défis de la Trame » du Seuil). Le mode `equipe` (`defis_mode_equipe`) est ouvert au
@@ -43,16 +54,16 @@ ouvert**. Un défi ne prend jamais de temps de jeu.
 
 ### Fichiers
 
-| Élément             | Emplacement                                                                                                                                                                                                                                                                                       |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Catalogues          | `data/gl/tenir/trame-reseaux.json`, `trame-fils.json`, `trame-reparer.json` (+ `exemple/`)                                                                                                                                                                                                        |
-| Chargeurs           | `lib/glTrameImport.js` (enregistrés dans `lib/glTenirImport.js`)                                                                                                                                                                                                                                  |
-| Tables de catalogue | `gl_trame_reseaux`, `gl_trame_cartes`, `gl_trame_liens`, `gl_trame_fils_*`, `gl_trame_mesures`, `gl_trame_reparer_*` (migration `354`)                                                                                                                                                            |
-| Cœur pur            | `src/gl/defis/trameCore.js`, miroir CJS `lib/shared/glTrameCore.js` (`npm run sync:shared-cores`)                                                                                                                                                                                                 |
-| Moteur de partie    | `lib/glTrameDefis.js`, routes `routes/gl/games/defis.js`                                                                                                                                                                                                                                          |
-| Tables de partie    | `gl_trame_defis`, `gl_trame_reussites` (migration `355`)                                                                                                                                                                                                                                          |
-| Écrans              | `src/gl/components/defis/` (`GLTrameBoard`, `GLDefiPlayer`, `GLDefisView`, `GLDefisEntree`, `GLDefisConsolePanel`), hook `src/gl/hooks/useGlTrameDefi.js`                                                                                                                                         |
-| Tests               | `tests/gl-trame-core.test.js` (100 % des branches), `tests/gl-trame-import.test.js`, `tests/gl-trame-defis.test.js`, `tests/content/gl-trame-catalogues.test.js`, `tests-ui/gl/GLTrameBoard.test.jsx`, `GLDefiPlayer`, `GLDefisEntree`, `GLDefisConsolePanel`, `e2e/gl-tenir-defis-trame.spec.js` |
+| Élément             | Emplacement                                                                                                                                                                                                                                                                                                                    |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Catalogues          | `data/gl/tenir/trame-reseaux.json`, `trame-fils.json`, `trame-reparer.json`, `trame-ranger.json`, `trame-adaptations.json` (+ `exemple/`)                                                                                                                                                                                      |
+| Chargeurs           | `lib/glTrameImport.js` (enregistrés dans `lib/glTenirImport.js`)                                                                                                                                                                                                                                                               |
+| Tables de catalogue | `gl_trame_reseaux`, `gl_trame_cartes`, `gl_trame_liens`, `gl_trame_fils_*`, `gl_trame_mesures`, `gl_trame_reparer_*` (migration `354`) ; `gl_trame_ranger_familles`, `gl_trame_ranger_jeux`, `gl_trame_ranger_cartes`, `gl_trame_adaptation_jeux`, `gl_trame_adaptation_cartes`, `gl_trame_adaptation_liens` (migration `367`) |
+| Cœur pur            | `src/gl/defis/trameCore.js`, miroir CJS `lib/shared/glTrameCore.js` (`npm run sync:shared-cores`)                                                                                                                                                                                                                              |
+| Moteur de partie    | `lib/glTrameDefis.js`, routes `routes/gl/games/defis.js`                                                                                                                                                                                                                                                                       |
+| Tables de partie    | `gl_trame_defis`, `gl_trame_reussites` (migration `355` ; types `ranger` et `adaptation` : migration `367`)                                                                                                                                                                                                                    |
+| Écrans              | `src/gl/components/defis/` (`GLTrameBoard`, `GLDefiPlayer`, `GLDefisView`, `GLDefisEntree`, `GLDefisConsolePanel`), hook `src/gl/hooks/useGlTrameDefi.js`                                                                                                                                                                      |
+| Tests               | `tests/gl-trame-core.test.js` (100 % des branches), `tests/gl-trame-import.test.js`, `tests/gl-trame-defis.test.js`, `tests/content/gl-trame-catalogues.test.js`, `tests-ui/gl/GLTrameBoard.test.jsx`, `GLDefiPlayer`, `GLDefisEntree`, `GLDefisConsolePanel`, `e2e/gl-tenir-defis-trame.spec.js`                              |
 
 ## 3. Le cœur pur
 
@@ -108,6 +119,17 @@ toujours la teinte. Le compteur dit les liens trouvés, **sans total**.
 - **La trame altérée** (`verifierPredictions`) : une prédiction juste pour chaque carte.
 - **Réparer** (`isReparerComplet`) : les six espèces rangées dans la bonne catégorie, la leçon
   lue, et une mesure acceptée choisie pour deux espèces menacées (`especesRequises`).
+- **Ranger** — Le bon rôle, Le bon pays (`buildRanger`, `verifierRanger`, `isRangerComplet`) : le
+  moteur de Réparer sans leçon ni mesures. Chaque carte posée est relue tout de suite : bien
+  rangée, elle reçoit son « pourquoi » ; ailleurs, « Pas encore. », **sans la réponse** ; une
+  carte pas encore posée ne reçoit rien. Fini quand toutes les cartes sont dans leur catégorie :
+  le `bilan` du jeu s'affiche. « Le bon pays » montre l'`indice` de chaque carte ; ses catégories
+  sont des biomes, nommés par le registre des biomes.
+- **Les fils de l'adaptation** (`buildAdaptation`, puis `classifyLink` et `isFilsComplet`) : le
+  moteur des fils cachés, lu **du milieu vers l'espèce** — une contrainte du milieu, le problème
+  qu'elle pose, l'espèce qui porte la solution. Une flèche à l'envers : « Regarde le sens : la
+  flèche part du milieu, passe par le problème, et arrive à l'espèce. » ; un raccourci du milieu
+  à l'espèce : « C'est vrai, mais il manque une étape entre les deux. »
 
 ### La cascade (`cascade`)
 
@@ -140,8 +162,10 @@ relire par un enseignant après chaque modification d'un réseau.
 
 Gratuits, illimités, en échelle ; ils ne réduisent aucune récompense. Retisser et fils cachés :
 relire la consigne ; par où commencer ; une carte encore isolée ; puis un lien accepté non
-trouvé, montré **en pointillés** et à tracer soi-même (l'écran ne le pose pas). La trame altérée
-et Réparer ont une échelle courte du même esprit (`lib/glTrameDefis.js › demanderIndice`).
+trouvé, montré **en pointillés** et à tracer soi-même (l'écran ne le pose pas). Les fils de
+l'adaptation suivent la même échelle, avec les mots du milieu et de l'espèce. La trame altérée,
+Réparer et Ranger ont une échelle courte du même esprit (`lib/glTrameDefis.js › demanderIndice`) :
+pour Ranger, comment chercher, jamais la colonne d'une carte.
 
 ## 4. En partie : sauvegarde stricte
 
@@ -168,8 +192,10 @@ ouvert (409 `DEFIS_FERMES`), une partie terminée n'en donne plus ; la lecture r
 **première réussite de l'unité dans la partie** (`gl_trame_reussites`) :
 
 1. **Une page de veillée** du chapitre à son nom, écrite par `commitFeuilletDiscovery` avec la
-   source `defi` et l'option `sansRessource`. Plafond : `defis_pages_par_semaine` (2) par
-   semaine ISO et par élève, compteur propre à cette voie. Pages épuisées : « Le carnet de ce
+   source `defi` et l'option `sansRessource`. Plafond : `pages_par_semaine` (4) par semaine ISO
+   et par élève — **un seul compteur de veillée** (ensemble unifié, M8), partagé avec les pages
+   tenues en veillée (`lib/glChasse.js › countPagesSemaine`). L'écran dit « Encore N pages à
+   gagner cette semaine. » ; la limite atteinte, la réussite compte toujours, sans page de plus. Pages épuisées : « Le carnet de ce
    chapitre n'a plus de page en attente. » Une page est **tirable** (`pagesTirables`) si elle est
    du chapitre et n'est : ni une page de zone de chasse (elle se cherche sur le plateau), ni une
    page de route (`carnet_route` : le Passeur les lit, ou sa liste les a écartées), ni la page
@@ -179,12 +205,13 @@ ouvert (409 `DEFIS_FERMES`), une partie terminée n'en donne plus ; la lecture r
 2. **Un point de regard** du proche (source `defi`, `lib/glVoyageur.js`).
 3. **Un badge** du moteur commun, famille « Défis de la Trame » (`lib/glRewardsCatalog.js`) :
 
-   | Badge            | Mesure                  | Fil · Nœud · Étoffe |
-   | ---------------- | ----------------------- | ------------------- |
-   | Tisserand        | niveaux de Retisser     | 3 · 8 · 16          |
-   | Voyant des fils  | trames altérées         | 3 · 6 · 12          |
-   | Gardien des fils | plateaux de fils cachés | 2 · 3 · 4           |
-   | Réparateur       | plateaux réparés        | 2 · 3 · 4           |
+   | Badge            | Mesure                                                                           | Fil · Nœud · Étoffe |
+   | ---------------- | -------------------------------------------------------------------------------- | ------------------- |
+   | Tisserand        | niveaux de Retisser                                                              | 3 · 8 · 16          |
+   | Voyant des fils  | trames altérées                                                                  | 3 · 6 · 12          |
+   | Gardien des fils | jeux de fils démêlés : fils cachés d'un plateau, fils de l'adaptation d'un biome | 2 · 4 · 8           |
+   | Réparateur       | plateaux réparés                                                                 | 2 · 3 · 4           |
+   | Bon rangeur      | jeux rangés : Le bon rôle, Le bon pays (nom proposé, à confirmer)                | 2 · 5 · 9           |
 
 4. L'évènement `defi_trame_reussi` au journal (type, biome ; jamais un nom d'élève) et une ligne
    d'Olu.
@@ -233,13 +260,19 @@ par type, sans aucun nom.
 Pour un nouveau **jeu de fils** ou un plateau de **Réparer**, même démarche sur `trame-fils.json`
 et `trame-reparer.json`.
 
+Pour un jeu de **rôle**, de **pays** ou d'**adaptation** : `trame-ranger.json` (une carte = une
+fiche d'espèce `SP####` du bon biome, ou une carte générique `DEC-…` marquée `generique` ; chaque
+carte porte sa `categorie` et son `pourquoi`, et un `indice` pour « Le bon pays ») et
+`trame-adaptations.json` (neuf cartes de texte, des fils du milieu vers l'espèce, aucune carte
+sans fil). Faire relire le contenu par `gl-relecteur-science`.
+
 ## 8. Réglages
 
-| Clé (`gameplay.tenir_…`)  | Défaut | Rôle                                                             |
-| ------------------------- | ------ | ---------------------------------------------------------------- |
-| `defis`                   | `true` | Ouvre les défis de la Trame                                      |
-| `defis_par_peuple`        | `true` | À `false`, les quatre défis sont proposés à tous                 |
-| `defis_pages_par_semaine` | `2`    | Pages de veillée gagnées par défi, par semaine ISO et par élève  |
-| `defis_mode_equipe`       | `true` | Le prof ou une tablette d'équipe hors tour lance pour une équipe |
+| Clé (`gameplay.tenir_…`) | Défaut | Rôle                                                                                                                |
+| ------------------------ | ------ | ------------------------------------------------------------------------------------------------------------------- |
+| `defis`                  | `true` | Ouvre les défis de la Trame                                                                                         |
+| `defis_par_peuple`       | `true` | À `false`, les quatre défis de peuple sont proposés à tous (les trois défis communs le sont toujours)               |
+| `pages_par_semaine`      | `4`    | Limite de veillée unique : pages gagnées par élève et par semaine ISO, toutes sources (page tenue en veillée, défi) |
+| `defis_mode_equipe`      | `true` | Le prof ou une tablette d'équipe hors tour lance pour une équipe                                                    |
 
 Tous sont surchargeables par partie (`PUT /api/gl/games/:id/tenir/profil`).

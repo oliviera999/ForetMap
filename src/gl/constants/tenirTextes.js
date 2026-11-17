@@ -28,3 +28,19 @@ export const TENIR_VERDICT_TEXTES = Object.freeze({
   page_trouvee: 'Page trouvée ! Elle entre au carnet de la classe.',
   pas_encore: 'Pas encore : la page dort encore ici.',
 });
+
+/**
+ * Une seule limite de veillée (ensemble unifié, M8) : pages tenues en veillée et pages gagnées
+ * par un défi de la Trame partagent le même compteur hebdomadaire. Une réussite compte toujours
+ * (regard, badge), même la semaine pleine.
+ * @param {{ utilisees?: number, plafond?: number, restantes?: number }} pages
+ */
+export function encorePagesDeVeillee(pages) {
+  const n =
+    pages?.restantes != null
+      ? Math.max(0, Number(pages.restantes) || 0)
+      : Math.max(0, (Number(pages?.plafond) || 0) - (Number(pages?.utilisees) || 0));
+  if (n === 0)
+    return 'Tu as gagné toutes tes pages de la semaine. Tes réussites comptent toujours.';
+  return `Encore ${n} page${n > 1 ? 's' : ''} à gagner cette semaine.`;
+}

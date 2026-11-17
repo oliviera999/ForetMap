@@ -9,7 +9,6 @@ const express = require('express');
 const db = require('../../../database');
 const { queryAll, queryOne, execute, withTransaction } = db;
 const {
-  requireGlAuth,
   requireGlAuthOrProjection,
   requireGlPermission,
 } = require('../../../middleware/requireGlAuth');
@@ -26,7 +25,9 @@ const {
   validateOverrides,
   resolveTenirSettings,
   isPlayerEnRetrait,
+  parseOverrides,
 } = require('../../../lib/glTenir');
+const escalier = require('../../../lib/glEscalier');
 const { viewerFromAuth, buildTenirBlock } = require('../../../lib/glTenirView');
 const { getPlayerGameMembership } = require('../../../lib/gl/gamesRuntime');
 const { buildGeneratedPassword } = require('../../../lib/gl/adminRouteHelpers');
@@ -121,11 +122,19 @@ router.put(
     else if (rawProfil === undefined) profil = game.tenir_profil || 'complet';
     else profil = String(rawProfil).trim().toLowerCase();
     if (profil !== null && !TENIR_PROFILS.includes(profil)) {
-      return res.status(400).json({ error: 'Profil invalide (complet, prologue, court, ou null)' });
+      return res.status(400).json({ error: 'Profil invalide (complet, court, ou null)' });
     }
     const checked = validateOverrides(req.body?.overrides);
     if (checked.error) return res.status(400).json({ error: checked.error });
-    const overrides = req.body?.overrides === undefined ? null : checked.value;
+    // L'escalier du chapitre 1 (M8) se coupe ou se remet ici ; son pas ne se choisit pas (il
+    // avance à la clôture d'un tour ou par « Ouvrir la suite », et ne recule jamais).
+    const overrides =
+      req.body?.overrides === undefined
+        ? null
+        : escalier.surchargesDuProf(checked.value, {
+            actuelles: parseOverrides(game.tenir_overrides_json),
+            toursClos: await escalier.toursClos(db, gameId),
+          });
     const nextGame = {
       ...game,
       tenir_profil: profil,
@@ -149,6 +158,114 @@ router.put(
   }),
 );
 
+/**
+ * POST /tenir/escalier/suite — MJ (ensemble unifié, M8). « Ouvrir la suite » : l'escalier du
+ * chapitre 1 monte d'une marche tout de suite, sans attendre la clôture du tour. Jamais de
+ * retour en arrière. 409 `ESCALIER_INACTIF` si la partie ne monte pas l'escalier,
+ * `ESCALIER_MONTE` s'il est déjà en haut.
+ */
+router.post(
+  '/games/:id/tenir/escalier/suite',
+  requireGlPermission('gl.game.manage'),
+  asyncHandler(async (req, res) => {
+    const gameId = parseId(req.params.id);
+    if (!gameId) return res.status(400).json({ error: 'Identifiant de partie invalide' });
+    const ctx = await requireTenirGame(req, res, gameId);
+    if (!ctx) return undefined;
+    const avant = escalier.vueEscalier(resolveTenirSettings(ctx.settings, ctx.game));
+    if (!avant) {
+      return res
+        .status(409)
+        .json({ error: 'Cette partie ne monte pas l’escalier.', code: 'ESCALIER_INACTIF' });
+    }
+    if (avant.monte) {
+      return res.status(409).json({ error: 'Tout est déjà ouvert.', code: 'ESCALIER_MONTE' });
+    }
+    const events = [];
+    let marche = null;
+    await withTransaction(async (tx) => {
+      marche = await escalier.avancerTx(tx, {
+        gameId,
+        motif: 'prof',
+        actorId: String(req.glAuth.userId),
+        roundNumber: Number(ctx.game.current_round_number) || null,
+      });
+      if (!marche) return;
+      events.push(...marche.events);
+      // La page témoin arrive avec la séance 3 : si un tour est ouvert, elle se pose tout de
+      // suite ; sinon l'ouverture du prochain tour s'en charge.
+      const game = await tx.queryOne(GAME_SELECT, [gameId]);
+      const round = await tx.queryOne(
+        'SELECT phase FROM gl_game_rounds WHERE game_id = ? AND round_number = ? LIMIT 1',
+        [gameId, Number(game.current_round_number) || 0],
+      );
+      if (round?.phase && round.phase !== 'clos') {
+        const temoin = await escalier.poserPageTemoinTx(tx, {
+          gameId,
+          roundNumber: Number(game.current_round_number) || 0,
+          resolved: resolveTenirSettings(ctx.settings, game),
+        });
+        if (temoin) events.push(temoin.event);
+      }
+    });
+    // Deux appuis en même temps : le second trouve l'escalier déjà monté d'un pas.
+    if (!marche) {
+      return res.status(409).json({ error: 'Tout est déjà ouvert.', code: 'ESCALIER_MONTE' });
+    }
+    for (const evt of events) emitGlGameEvent(gameId, evt);
+    const game = await loadGame(gameId);
+    return res.json({
+      ok: true,
+      escalier: escalier.vueEscalier(resolveTenirSettings(ctx.settings, game)),
+      ouvert: { modules: marche.modules, sorts: marche.sorts },
+    });
+  }),
+);
+
+/**
+ * GET /tenir/ce-qui-change — « Ce qui change » (ensemble unifié, M8) : au camp, trois lignes pour
+ * le chapitre suivant (ton peuple, tes nouveaux sorts, le plateau), calculées depuis les sorts
+ * rattachés aux chapitres et les réglages résolus. Un élève ou une tablette d'équipe reçoit les
+ * lignes de son équipe ; le prof et la projection, celles de la classe. `ceQuiChange: null` au
+ * dernier plateau. Lecture seule, aucune donnée d'élève.
+ */
+router.get(
+  '/games/:id/tenir/ce-qui-change',
+  requireGlAuthOrProjection,
+  asyncHandler(async (req, res) => {
+    const gameId = parseId(req.params.id);
+    if (!gameId) return res.status(400).json({ error: 'Identifiant de partie invalide' });
+    if (!(await canAccessGlGame(req.glAuth, gameId))) {
+      return res.status(403).json({ error: 'Accès partie refusé' });
+    }
+    const ctx = await requireTenirGame(req, res, gameId);
+    if (!ctx) return undefined;
+    const viewer = viewerFromAuth(req.glAuth);
+    let teamId = null;
+    if (viewer.kind === 'player') {
+      const membership = await getPlayerGameMembership(gameId, viewer.playerId);
+      teamId = membership?.team_id != null ? Number(membership.team_id) : null;
+    } else if (viewer.kind === 'team') {
+      teamId = viewer.teamId ?? null;
+    }
+    const team = teamId
+      ? await queryOne('SELECT type FROM gl_teams WHERE id = ? AND game_id = ? LIMIT 1', [
+          teamId,
+          gameId,
+        ])
+      : null;
+    const { ceQuiChange } = require('../../../lib/glCeQuiChange');
+    return res.json({
+      gameId,
+      auCamp: String(ctx.game.status) === 'ended',
+      ceQuiChange: await ceQuiChange(
+        { queryAll, queryOne },
+        { game: ctx.game, settings: ctx.settings, teamType: team?.type || null },
+      ),
+    });
+  }),
+);
+
 /** GET /tenir/olu — lignes d'Olu actives (cache 5 min). */
 let oluCache = { at: 0, lignes: null };
 const OLU_CACHE_MS = 5 * 60 * 1000;
@@ -158,7 +275,7 @@ async function loadOluLignes() {
   let rows = [];
   try {
     rows = await queryAll(
-      'SELECT id, moment, expression, texte, variables_json, correction FROM gl_tenir_olu_lignes WHERE actif = 1 ORDER BY id ASC',
+      'SELECT id, moment, expression, texte, variables_json FROM gl_tenir_olu_lignes WHERE actif = 1 ORDER BY id ASC',
     );
   } catch (_) {
     rows = [];

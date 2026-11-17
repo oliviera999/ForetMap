@@ -289,6 +289,118 @@
       "expression": "explique",
       "texte": "La Trame se resserre. Chaque lien retrouvé compte.",
       "variables": []
+    },
+    {
+      "id": "olu-pf-avancer",
+      "moment": "premiere_fois",
+      "cle": "avancer",
+      "seance_escalier": 1,
+      "expression": "joie",
+      "texte": "Deux dés, et la caravane avance. Une bonne réponse, et elle avance encore d'une case.",
+      "variables": []
+    },
+    {
+      "id": "olu-pf-chercher",
+      "moment": "premiere_fois",
+      "cle": "chercher",
+      "seance_escalier": 1,
+      "expression": "curieux",
+      "texte": "Le carnet dort sous le plateau. Deux fouilles par tour : touchez la carte là où l'indice vous mène.",
+      "variables": []
+    },
+    {
+      "id": "olu-pf-chaud_froid",
+      "moment": "premiere_fois",
+      "cle": "chaud_froid",
+      "seance_escalier": 1,
+      "expression": "explique",
+      "texte": "Chaud, tiède, froid : je vous dis si une page dort tout près. Vos empreintes restent pour les autres équipes.",
+      "variables": []
+    },
+    {
+      "id": "olu-pf-trame",
+      "moment": "premiere_fois",
+      "cle": "trame",
+      "seance_escalier": 1,
+      "expression": "explique",
+      "texte": "L'activité est finie ? Les défis de la Trame sont ouverts. Une réussite, et une page de plus pour ton carnet.",
+      "variables": []
+    },
+    {
+      "id": "olu-pf-role",
+      "moment": "premiere_fois",
+      "cle": "role",
+      "seance_escalier": 1,
+      "expression": "neutre",
+      "texte": "L'écran appelle un rôle. C'est un conseil : dans l'équipe, vous vous arrangez comme vous voulez.",
+      "variables": []
+    },
+    {
+      "id": "olu-pf-tenir",
+      "moment": "premiere_fois",
+      "cle": "tenir",
+      "seance_escalier": 2,
+      "expression": "explique",
+      "texte": "Une page trouvée attend un lecteur de l'autre peuple. Lisez-la, répondez à sa question : elle tiendra.",
+      "variables": []
+    },
+    {
+      "id": "olu-pf-sous_le_voile",
+      "moment": "premiere_fois",
+      "cle": "sous_le_voile",
+      "seance_escalier": 3,
+      "expression": "pensif",
+      "texte": "{equipe} est sous le voile. Il lui reste une fouille, et elle avance encore : on en ressort vite.",
+      "variables": [
+        "equipe"
+      ]
+    },
+    {
+      "id": "olu-pf-page_temoin",
+      "moment": "premiere_fois",
+      "cle": "page_temoin",
+      "seance_escalier": 3,
+      "expression": "explique",
+      "texte": "Regardez : une zone a pâli sous le voile. Gnomes, c'est pour vous. Fouillez-la, et elle revient.",
+      "variables": []
+    },
+    {
+      "id": "olu-pf-sorts",
+      "moment": "premiere_fois",
+      "cle": "sorts",
+      "seance_escalier": 3,
+      "expression": "joie",
+      "texte": "Le grimoire s'ouvre : trois sorts pour commencer. Chacun verse sa part dans le pot, et le sort part.",
+      "variables": []
+    },
+    {
+      "id": "olu-pf-lumiere",
+      "moment": "premiere_fois",
+      "cle": "lumiere",
+      "seance_escalier": 3,
+      "expression": "explique",
+      "texte": "La jauge de Lumière monte avec les cartes que la classe garde. Pleine, elle fait reculer le voile de cinq cases.",
+      "variables": []
+    },
+    {
+      "id": "olu-pf-marche",
+      "moment": "premiere_fois",
+      "cle": "marche",
+      "seance_escalier": 4,
+      "expression": "joie",
+      "texte": "Le Marché ouvre. Ce que tu achètes au comptoir, tu le gardes toute l'année.",
+      "variables": []
+    },
+    {
+      "id": "olu-pf-un_de_joue",
+      "moment": "premiere_fois",
+      "cle": "un_de_joue",
+      "seance_escalier": 0,
+      "expression": "neutre",
+      "texte": "Un seul dé ce tour-ci pour {equipe}. Une Cordée lui donnerait le meilleur jet des deux équipes.",
+      "variables": [
+        "equipe"
+      ]
     }
   ]
 }

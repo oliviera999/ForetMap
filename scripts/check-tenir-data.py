@@ -26,7 +26,12 @@ CATEGORIES = {"biome", "ecosystemes", "faune", "flore", "geologie", "perturbatio
 ZONES_PAR_PLATEAU = {1: 8, 2: 8, 3: 10, 4: 10}
 FEUILLETS_INTERDITS = {"ep-I-02", "ep-I-13", "ep-III-06", "ep-I-16", "ep-I-17", "ep-III-01", "ep-I-03", "ep-I-04"}
 MOMENTS = {"ouverture", "jet", "question", "fouille", "tenir", "voile", "sort", "seuil", "peripetie", "bestiaire", "oiseau", "erreur", "bourse_pleine",
-           "defi_case_recu", "defi_case_releve", "defi_case_pas_encore", "defi_trame_reussi"}
+           "defi_case_recu", "defi_case_releve", "defi_case_pas_encore", "defi_trame_reussi", "premiere_fois"}
+PREMIERE_FOIS_CLES = {
+    "avancer", "question_pas_encore", "chercher", "chaud_froid", "peripetie", "defi_case", "trame", "role",
+    "tenir", "erreur_du_jour", "voile", "sous_le_voile", "page_temoin", "palissement", "sorts", "lumiere",
+    "marche", "un_de_pose", "un_de_joue", "main", "camp", "cordee_offerte", "lettre",
+}
 EXPRESSIONS = {"neutre", "joie", "curieux", "surpris", "agace", "pensif", "explique", "peur"}
 BIOMES_TITRES = {"tropiques", "aride", "tempere", "grands_froids"}
 PEUPLES = {"any", "gnome", "unicorn", "pacte", "classe"}
@@ -42,16 +47,16 @@ SPELL_NAMES_ATTENDUS = {
 REGLAGES_ATTENDUS = {
     "enabled", "surface", "des_mode", "des_count", "des_physiques_validation", "questions_de_case", "vent",
     "vent_cases", "fouilles_par_tour", "fouilles_sous_voile", "fouille_seuils", "zones_par_plateau", "pistes_par_semaine",
-    "pages_veillee_par_semaine", "voile", "voile_bonus_par_plateau", "palissement_pct", "palissement_max",
+    "pages_par_semaine", "voile", "voile_bonus_par_plateau", "palissement_pct", "palissement_max",
     "recul_carnet_complet", "marche", "marche_pendant_tour", "parures", "lumiere", "lumiere_palier",
-    "chapardeur", "peripeties", "olu_erreur_du_jour", "sablier_secondes",
+    "chapardeur", "peripeties", "olu_erreur_du_jour", "escalier", "sablier_secondes",
     "max_power_points", "max_health_points", "lore_feuillet_retrigger", "lore_gemme_costs_enabled",
     "lore_heart_rewards_enabled", "feuillet_zone_traversal_enabled",
 }
 BADGES_ATTENDUS = {
     "premiere_page", "lecteur", "fouilleur", "trouveur", "mains_tendues", "veilleur", "nommeur", "cartographe",
     "tisserand", "revelateur", "chuchoteur", "correcteur_du_renard", "passeur_de_seuil",
-    "gardien_des_fils", "reparateur",
+    "gardien_des_fils", "reparateur", "bon_rangeur",
 }
 
 
@@ -559,11 +564,13 @@ def check_olu(d, rep):
         rep.err(f"{name}: `lignes` doit être une liste")
         return
     seen = set()
+    cles = set()
     moments = set()
     n_err = 0
     for l in items:
         lid = str(l.get("id", "?"))
-        allowed = ["id", "moment", "expression", "texte", "variables", "correction", "plateaux", "actif"]
+        allowed = ["id", "moment", "expression", "texte", "variables", "correction", "plateaux", "actif",
+                   "cle", "seance_escalier"]
         extra = [k for k in l if k not in allowed]
         if "actif" in l and not isinstance(l["actif"], bool):
             rep.err(f"{name} {lid}: actif doit être un booléen")
@@ -573,6 +580,17 @@ def check_olu(d, rep):
         if lid in seen:
             rep.err(f"{name} {lid}: id en double")
         seen.add(lid)
+        if l.get("moment") == "premiere_fois":
+            if l.get("cle") not in PREMIERE_FOIS_CLES:
+                rep.err(f"{name} {lid}: cle {l.get('cle')!r} inconnue")
+            if l.get("cle") in cles:
+                rep.err(f"{name} {lid}: cle {l.get('cle')!r} en double")
+            cles.add(l.get("cle"))
+            se = l.get("seance_escalier")
+            if not isinstance(se, int) or isinstance(se, bool) or not 0 <= se <= 6:
+                rep.err(f"{name} {lid}: seance_escalier entier de 0 à 6")
+        elif "cle" in l or "seance_escalier" in l:
+            rep.err(f"{name} {lid}: cle et seance_escalier réservées au moment premiere_fois")
         if l.get("moment") not in MOMENTS:
             rep.err(f"{name} {lid}: moment {l.get('moment')!r} invalide")
         moments.add(l.get("moment"))
@@ -606,6 +624,8 @@ def check_olu(d, rep):
         rep.warn(f"{name}: aucune ligne pour le moment {m}")
     if n_err < 5:
         rep.err(f"{name}: {n_err} erreurs volontaires, au moins 5 attendues")
+    if cles != PREMIERE_FOIS_CLES:
+        rep.err(f"{name}: lignes « première fois » manquantes {sorted(PREMIERE_FOIS_CLES - cles)}")
 
 
 def check_parures(d, rep):
@@ -804,13 +824,13 @@ def check_reglages(d, rep):
         if key in defaut and not ok(defaut[key]):
             rep.err(f"{name}: defaut.{key} = {defaut[key]!r} invalide")
     for key in ("enabled", "questions_de_case", "vent", "voile", "marche", "marche_pendant_tour", "parures",
-                "lumiere", "chapardeur", "peripeties", "olu_erreur_du_jour",
+                "lumiere", "chapardeur", "peripeties", "olu_erreur_du_jour", "escalier",
                 "lore_gemme_costs_enabled", "lore_heart_rewards_enabled", "feuillet_zone_traversal_enabled"):
         if key in defaut and not isinstance(defaut[key], bool):
             rep.err(f"{name}: defaut.{key} doit être un booléen")
     profils = data.get("profils")
-    if not isinstance(profils, dict) or set(profils) != {"complet", "prologue", "court"}:
-        rep.err(f"{name}: profils complet, prologue et court attendus")
+    if not isinstance(profils, dict) or set(profils) != {"complet", "court"}:
+        rep.err(f"{name}: profils complet et court attendus (le profil prologue a disparu : escalier du chapitre 1)")
     else:
         for pname, p in profils.items():
             ecarts = p.get("ecarts")
@@ -822,10 +842,8 @@ def check_reglages(d, rep):
                     rep.err(f"{name}: profils.{pname}.ecarts.{k} n'est pas un réglage connu")
         if profils.get("complet", {}).get("ecarts"):
             rep.err(f"{name}: le profil complet ne doit avoir aucun écart")
-        pro = profils.get("prologue", {}).get("ecarts", {})
-        for k in ("voile", "marche", "chapardeur"):
-            if pro.get(k) is not False:
-                rep.err(f"{name}: le profil prologue doit mettre {k} à false")
+    if defaut.get("escalier") is not True:
+        rep.err(f"{name}: defaut.escalier doit être true (escalier du chapitre 1)")
 
 
 def check_passeur(d, rep, use_db):

@@ -14,6 +14,10 @@ function scenario(def) {
     seances: 6,
     reglages: {},
     profil: 'complet',
+    // Ensemble unifié (M8) : `true` = la partie monte l'escalier du chapitre 1 (plateau 1), comme
+    // une vraie partie neuve ; `false` (défaut du banc) = tout est ouvert dès la séance 1, pour
+    // que les mesures d'équilibrage restent comparables d'un plateau à l'autre.
+    escalier: false,
     composition: 'explicite',
     parallele: false,
     personas: {},
@@ -111,9 +115,11 @@ const SCENARIOS = [
     prof: { voileDort: (seance) => seance % 2 === 0 },
   }),
   scenario({
-    id: 'prologue',
-    description: 'Profil prologue : sans voile, sans Marché, sans chapardeur, 8 zones.',
-    profil: 'prologue',
+    id: 'escalier',
+    description:
+      'Escalier du chapitre 1 : séance 1 avancer et chercher, 2 tenir, 3 le voile et les sorts, 4 le Marché.',
+    surface: 'tablette',
+    escalier: true,
   }),
   scenario({
     id: 'plateau-2',

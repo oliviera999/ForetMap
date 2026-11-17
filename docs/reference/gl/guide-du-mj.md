@@ -242,19 +242,20 @@ change pas.
 
 ## Incidents courants
 
-| Symptôme                                    | Cause probable                                                                                               | Geste                                                                                                  |
-| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------ |
-| « Le Marché a disparu »                     | Vitalité désactivée (le Marché l'exige)                                                                      | Réglages → activer la vitalité (bouton proposé sous l'avertissement)                                   |
-| Un élève ne peut pas marquer « appris »     | Conditionnement par QCM actif : question à réussir, ou délai de nouvelle tentative en cours après une erreur | Vérifier Contenus → Conditionnement QCM et le délai dans Réglages plateforme                           |
-| Un popover de zone ne s'ouvre plus          | Réglage de répétition « une fois par partie » : l'équipe l'a déjà vu                                         | Changer le réglage de répétition (globalement ou pour la partie)                                       |
-| Mot de passe oublié                         | —                                                                                                            | Gestion des joueurs → réinitialiser le mot de passe (ou forcer le changement à la prochaine connexion) |
-| Vérifier ce que voit un élève               | —                                                                                                            | Prendre la main sur son compte (bandeau affiché, action tracée) ou basculer en « vue joueur »          |
-| Les sorts ne se lancent pas                 | Module Sortilèges désactivé, ou lancement réservé au MJ par le profil de séance                              | Réglages → modules / gameplay                                                                          |
-| OLU n'apparaît pas sur les feuillets        | Le narrateur a été éteint côté ForetMap (le réglage est commun)                                              | ForetMap → Paramètres → Narrateur OLU → rallumer l'interrupteur                                        |
-| Une visite guidée ne se relance pas         | L'onglet affiché n'en a pas (les écrans d'administration), ou le module d'aide est éteint                    | Ouvrir le « ? » : le bouton « ▶ Visite guidée » n'apparaît que si un parcours existe                   |
-| Un texte de visite réécrit ne s'affiche pas | La réécriture est enregistrée mais la page n'a pas rechargé le parcours                                      | Rouvrir l'onglet ; en cas de doute, vérifier le champ dans Contenus → Visites guidées                  |
-| Un élève veut revoir l'accueil d'OLU        | Il n'est joué qu'une fois par navigateur                                                                     | Effacer les données du site dans le navigateur, ou passer par un autre profil                          |
-| Un élève ne peut pas payer pour un camarade | C'est le réglage par défaut (chacun sa part, sa propre équipe) — le MJ, lui, répartit toujours librement     | Réglages → gameplay → « Mode de contribution » / « Équipes pouvant lancer »                            |
+| Symptôme                                        | Cause probable                                                                                               | Geste                                                                                                  |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------ |
+| « Le Marché a disparu »                         | Vitalité désactivée (le Marché l'exige)                                                                      | Réglages → activer la vitalité (bouton proposé sous l'avertissement)                                   |
+| Un élève ne peut pas marquer « appris »         | Conditionnement par QCM actif : question à réussir, ou délai de nouvelle tentative en cours après une erreur | Vérifier Contenus → Conditionnement QCM et le délai dans Réglages plateforme                           |
+| Un popover de zone ne s'ouvre plus              | Réglage de répétition « une fois par partie » : l'équipe l'a déjà vu                                         | Changer le réglage de répétition (globalement ou pour la partie)                                       |
+| Mot de passe oublié                             | —                                                                                                            | Gestion des joueurs → réinitialiser le mot de passe (ou forcer le changement à la prochaine connexion) |
+| Vérifier ce que voit un élève                   | —                                                                                                            | Prendre la main sur son compte (bandeau affiché, action tracée) ou basculer en « vue joueur »          |
+| Les sorts ne se lancent pas                     | Module Sortilèges désactivé, ou lancement réservé au MJ par le profil de séance                              | Réglages → modules / gameplay                                                                          |
+| Au chapitre 1, un bouton manque (sorts, Marché) | L'escalier ne l'a pas encore ouvert : sorts à la séance 3, Marché à la séance 4                              | Console → Profil → « Ouvrir la suite », ou décocher l'escalier                                         |
+| OLU n'apparaît pas sur les feuillets            | Le narrateur a été éteint côté ForetMap (le réglage est commun)                                              | ForetMap → Paramètres → Narrateur OLU → rallumer l'interrupteur                                        |
+| Une visite guidée ne se relance pas             | L'onglet affiché n'en a pas (les écrans d'administration), ou le module d'aide est éteint                    | Ouvrir le « ? » : le bouton « ▶ Visite guidée » n'apparaît que si un parcours existe                   |
+| Un texte de visite réécrit ne s'affiche pas     | La réécriture est enregistrée mais la page n'a pas rechargé le parcours                                      | Rouvrir l'onglet ; en cas de doute, vérifier le champ dans Contenus → Visites guidées                  |
+| Un élève veut revoir l'accueil d'OLU            | Il n'est joué qu'une fois par navigateur                                                                     | Effacer les données du site dans le navigateur, ou passer par un autre profil                          |
+| Un élève ne peut pas payer pour un camarade     | C'est le réglage par défaut (chacun sa part, sa propre équipe) — le MJ, lui, répartit toujours librement     | Réglages → gameplay → « Mode de contribution » / « Équipes pouvant lancer »                            |
 
 ## Lire et amender cette documentation depuis le jeu
 
@@ -293,8 +294,9 @@ Trois repères utiles :
 ## La séance « Tenir à deux »
 
 > Une partie créée avec la mouture active joue en profil **Complet** ; le panneau « Tenir à deux »
-> de la console permet de passer en **Prologue** ou de **revenir aux règles classiques** (profil
-> « aucun ») tant que la partie n'est pas close.
+> de la console permet de passer en profil **Court** ou de **revenir aux règles classiques**
+> (profil « aucun ») tant que la partie n'est pas close. Le profil « Prologue » n'existe plus :
+> au chapitre 1, **l'escalier** le remplace (voir « Apprendre en jouant », plus bas).
 
 Quand une partie joue la mouture « Tenir à deux », le tour se joue **par phases** depuis l'écran
 « Jouer le tour » de la console, projeté au tableau : **ouverture** (ordre des équipes : la plus
@@ -415,12 +417,16 @@ parallèle. Au tableau, rien ne change.
   « Relevé » (le voile recule de deux cases) ou « Pas encore » (rien n'est retiré). Un défi ne
   donne jamais de ressource. Trois réglages : défis actifs ou non, déclenchement à l'arrêt ou au
   passage, nombre de cases de recul.
-- **Les défis de la Trame, pour qui a fini.** Quatre défis sur un plateau de cartes, **hors du
+- **Les défis de la Trame, pour qui a fini.** Six défis sur un plateau de cartes, **hors du
   temps de jeu** : une équipe qui a fini l'activité du jour, ou un élève seul en veillée. Les
   Gnomes **retissent** un réseau (qui est mangé par qui, de 5 à 12 cartes) et **réparent la
   trame** (ranger six espèces, puis choisir ce qui protégerait deux espèces menacées) ; les
   Licornes prévoient ce que devient un milieu quand **une carte est retirée** et retrouvent
-  **les fils cachés** (de la cause vers l'effet). L'élève ouvre « Défis de la Trame » depuis
+  **les fils cachés** (de la cause vers l'effet). Trois défis sont ouverts aux deux peuples :
+  **« Le bon rôle »** (ranger des êtres vivants en producteur, consommateur ou décomposeur),
+  **« Le bon pays »** (lire un indice et ranger chaque espèce dans le pays où elle vit) et
+  **« Les fils de l'adaptation »** (relier une contrainte du milieu au problème qu'elle pose,
+  puis à l'espèce qui a la solution). L'élève ouvre « Défis de la Trame » depuis
   son Seuil ; la tablette d'une équipe y accède quand aucun tour n'est ouvert ; vous pouvez
   lancer un défi pour une équipe depuis l'onglet **« Défis »** de votre console.
   - Une flèche se pose en touchant la carte de départ, puis la carte d'arrivée. L'app répond
@@ -428,18 +434,20 @@ parallèle. Au tableau, rien ne change.
     c'est une invitation à en parler avec vous. Une prédiction à côté reçoit « Pas encore. »,
     sans la réponse. Les indices sont gratuits et sans limite.
   - **Un défi ne donne aucune ressource.** La première réussite de chaque défi apporte à
-    l'élève une page de veillée à son nom (deux par semaine au plus par cette voie), un point de
-    regard et l'avancée d'un badge (Tisserand, Voyant des fils, Gardien des fils, Réparateur).
+    l'élève une page de veillée à son nom (quatre par semaine au plus, pages tenues en veillée
+    comprises), un point de regard et l'avancée d'un badge (Tisserand, Voyant des fils, Gardien
+    des fils, Réparateur, Bon rangeur).
   - L'onglet « Défis » montre le **suivi** : par élève, ce qui est réussi et les indices
     demandés, dans l'ordre alphabétique, sans classement, avec un export. Les phrases « Dis
     pourquoi » écrites dans Réparer s'y lisent d'un coup d'œil.
-  - Quatre réglages : défis ouverts ou non, défis réservés par peuple ou ouverts à tous, nombre
-    de pages par semaine, mode équipe.
+  - Trois réglages : défis ouverts ou non, défis réservés par peuple ou ouverts à tous (les
+    trois défis communs le sont toujours), mode équipe. Le nombre de pages par semaine est
+    désormais une limite commune à toute la veillée.
 - **Le Marché depuis la tablette.** Le bouton « Marché » de la tablette demande d'abord « Qui
   agit ? » : l'élève qui vient avec sa bourse touche son prénom. Chaque geste est noté dans
   votre journal de partie.
-- **Trois règles tranchées.** Le Marché est fermé au chapitre 1 (case pré-cochée à la création
-  de la partie, que vous pouvez décocher). Le profil
+- **Trois règles tranchées.** Au chapitre 1, le Marché s'ouvre à la séance 4 (c'est l'escalier
+  qui l'ouvre : voir « Apprendre en jouant »). Le profil
   **« Court »** réserve la lecture des pages à la veillée, pour une séance plus brève. La Farce
   ne vise plus une équipe déjà sous le voile. Détail dans
   [Économie, Marché et sorts](economie-marche-sorts.md).
@@ -476,6 +484,52 @@ parallèle. Au tableau, rien ne change.
   « au mot … du glossaire »), avec un bouton pour l'ouvrir. La piste ne donne jamais la réponse.
   Cinq questions de zone ont été réécrites, et la zone du Sahara qui attendait son feuillet est
   ouverte.
+
+### Ensemble unifié : apprendre en jouant (17 novembre 2026)
+
+Au chapitre 1, on n'explique plus les règles : la classe les rencontre, une à une.
+
+- **L'escalier du chapitre 1.** Une partie créée au plateau 1 ouvre ses règles séance après
+  séance. Rien à régler : chaque tour clos monte une marche.
+
+  | Séance | Ce qui s'ouvre                                                                            |
+  | ------ | ----------------------------------------------------------------------------------------- |
+  | 1      | avancer, répondre à la question de case, fouiller, le défi de case, les défis de la Trame |
+  | 2      | tenir une page (elle attend un lecteur de l'autre peuple), l'erreur du jour d'Olu         |
+  | 3      | le voile et son dé gris, la page témoin, trois sorts, la jauge de Lumière                 |
+  | 4      | le Marché, trois sorts de plus                                                            |
+
+  Aux séances 5 et 6, rien de nouveau. Ce qui n'est pas encore ouvert **n'apparaît pas** à
+  l'écran des élèves : aucun bouton grisé. À la séance 1, une page trouvée se lit déjà ; elle se
+  tiendra à la suivante. Les cartes Team Spirit gardées comptent dès la première séance, mais la
+  jauge de Lumière ne se montre qu'à la troisième.
+
+- **« Ouvrir la suite ».** Votre classe va vite ? Dans le panneau « Profil » de la console, la
+  ligne « Escalier du chapitre 1 » dit la séance atteinte et ce qui s'ouvrira ensuite ; le bouton
+  **« Ouvrir la suite »** monte une marche tout de suite. On ne redescend jamais. La case à cocher
+  de la même ligne coupe l'escalier (tout s'ouvre) ou le remet.
+- **La page témoin.** À l'ouverture de la séance 3, une zone qui dormait encore, près du départ,
+  pâlit toute seule : les Gnomes découvrent la réparation sans que rien ne soit en jeu. Une
+  seule fois par partie.
+- **Olu dit le geste, une seule fois.** La première fois qu'un geste arrive dans la partie (le
+  premier lancer, la première fouille, le premier dé gris, le premier sort…), Olu le dit en une
+  phrase, puis n'y revient plus. Vous n'avez rien à lancer.
+- **« Maintenant, vous pouvez… ».** En tête de l'écran d'équipe, la liste des gestes possibles à
+  cet instant, chacun avec le rôle qu'il appelle : **Gestionnaire** (lancer les dés),
+  **Éclaireuse ou Éclaireur** (la question de la case), **Opératrice ou Opérateur** (les
+  fouilles), **Secrétaire** (lire et faire tenir une page), **Assistante ou Assistant** (les
+  sorts ; dans une équipe de quatre, aussi la question). Les rôles sont un **conseil** : n'importe
+  quel membre peut toucher le bouton, l'application ne vérifie rien.
+- **« Ce qui change », au camp.** À la fin du chapitre, trois lignes annoncent le suivant : le
+  peuple de l'élève (chacun change de peuple entre les chapitres 1 et 2, puis 3 et 4), ses
+  nouveaux sorts, et ce que le plateau apporte. Elles s'affichent sur l'écran d'équipe, au Seuil
+  de chaque élève et sur la projection.
+- **L'accroche de fin de séance.** Tour clos, la projection affiche « À la prochaine séance » :
+  la page du Passeur du jour et l'indice d'une page qui dort encore.
+- **Une seule limite de veillée.** Un élève gagne au plus **quatre pages par semaine** à la
+  maison, toutes voies confondues (page tenue en veillée, défi de la Trame réussi), et ouvre une
+  piste par semaine. Son écran lui dit « Encore N pages à gagner cette semaine. » Passé la
+  limite, il peut toujours lire, et ses réussites comptent toujours pour ses badges.
 
 ## Pour aller plus loin
 

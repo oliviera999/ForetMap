@@ -339,6 +339,27 @@ suit les élèves (affiché sous la mascotte au chapitre suivant) ; les **badges
 Passeur de seuil ; Chuchoteur et Correcteur du renard à votre main) ne donnent aucune ressource et
 ne font aucun classement. Les **missions** (papier) se saisissent « réussie » → sceau et titre.
 
+## Ensemble unifié : le chapitre 1 s'apprend en jouant (17 novembre 2026)
+
+Au plateau 1, les règles ne s'expliquent plus d'un bloc : elles **s'ouvrent séance après
+séance**. C'est l'**escalier du chapitre 1**, qui remplace l'ancien profil « Prologue ».
+
+1. **Séance 1** : avancer (les dés, les cases, la question de case, les péripéties), chercher
+   (deux fouilles, chaud, tiède, froid), le défi de case, et les défis de la Trame hors du tour.
+2. **Séance 2** : tenir une page (la page trouvée attend un lecteur de l'autre peuple) et
+   l'erreur du jour d'Olu.
+3. **Séance 3** : le voile et son premier dé gris, la **page témoin** (une zone proche du
+   départ pâlit toute seule, pour que les Gnomes essaient la réparation), trois sorts, la jauge
+   de Lumière.
+4. **Séance 4** : le Marché et trois sorts de plus. Ensuite, plus rien de nouveau.
+
+Chaque tour clos monte une marche ; le MJ peut en monter une de plus d'un bouton (« Ouvrir la
+suite »), jamais redescendre. Aux plateaux 2, 3 et 4, tout est ouvert dès la première séance.
+
+**Au camp**, l'écran annonce « Ce qui change au prochain chapitre » en trois lignes : le peuple
+de l'élève, ses nouveaux sorts, et ce que le plateau apporte (davantage de pages à retrouver, un
+voile qui avance un peu plus vite, une Cordée offerte au dernier plateau).
+
 ## Pour aller plus loin
 
 - Le plateau, ses zones et ses repères : [carte-du-royaume.md](carte-du-royaume.md)

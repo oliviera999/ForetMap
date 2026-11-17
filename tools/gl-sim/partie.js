@@ -131,6 +131,7 @@ async function creerPartie({
   plateau,
   surface = 'hybride',
   profil = 'complet',
+  escalier = false,
   composition = 'explicite',
   rng,
   nom = 'Partie sim',
@@ -161,7 +162,8 @@ async function creerPartie({
       token: mjToken,
       method: 'put',
       path: `/api/gl/games/${gameId}/tenir/profil`,
-      body: { profil, overrides: { surface } },
+      // L'escalier du chapitre 1 se demande : sans lui, la partie du banc ouvre tout d'emblée.
+      body: { profil, overrides: { surface, ...(escalier ? { escalier: true } : {}) } },
       geste: 'profil-surface',
     }),
     200,

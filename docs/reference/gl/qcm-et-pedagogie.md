@@ -237,7 +237,7 @@ la page (puis, si elle a déjà été tentée, à une question du même thème) 
 trouvée ; sinon, elle est révélée (son contour apparaît pour tous) et c'est tout. Pour **tenir** une
 page, l'autre peuple répond à sa question de lecture : on peut réessayer sans limite, mais
 chaque carte ne vaut qu'un essai — à chaque « Pas encore », une nouvelle est proposée, au tour
-ou en veillée (deux pages tenues en veillée par élève et par semaine). En veillée, étudier la fiche d'une espèce liée à une page endormie ouvre une **piste**
+ou en veillée (quatre pages gagnées par élève et par semaine, pages tenues et défis de la Trame confondus). En veillée, étudier la fiche d'une espèce liée à une page endormie ouvre une **piste**
 (la page se révèle, une piste par élève et par semaine).
 
 ### Ce que l'élève lit après une erreur
@@ -280,8 +280,9 @@ groupe creuse le sable, un suricate reste debout sur une butte. Pourquoi ? ».
 
 ## « Tenir à deux » : les défis de la Trame
 
-Les défis de la Trame font travailler deux idées du programme : **un réseau trophique** (qui
-est mangé par qui) et **l'effet d'un changement** sur un milieu.
+Les défis de la Trame font travailler trois idées du programme : **un réseau trophique** (qui
+est mangé par qui), **l'effet d'un changement** sur un milieu, et **le lien entre un être vivant
+et son milieu** (son rôle, son pays, ses adaptations).
 
 - **Le sens des flèches.** Une flèche va toujours de celui qui est mangé vers celui qui mange :
   de l'herbe vers le zèbre, du zèbre vers le lion. C'est l'erreur la plus fréquente en 6e ;
@@ -297,6 +298,17 @@ est mangé par qui) et **l'effet d'un changement** sur un milieu.
   affichée à la fin et non notée, ouvre cette discussion.
 - **Réparer la trame.** Les six espèces à ranger et la leçon du plateau sont écrites dans le
   catalogue. La liste des espèces menacées se révise régulièrement : relisez-la une fois l'an.
+- **Le bon rôle.** Huit êtres vivants d'un biome à ranger : producteur, consommateur,
+  décomposeur. Une carte bien rangée reçoit son explication ; une autre, « Pas encore. », sans
+  la réponse. Un charognard reste un consommateur : c'est l'occasion de le dire.
+- **Le bon pays.** Chaque carte porte un indice sur la façon de vivre de l'espèce ; l'élève la
+  range dans le pays où elle vit. À partir du plateau 2, des pays déjà traversés reviennent :
+  on révise en comparant.
+- **Les fils de l'adaptation.** Trois cartes par fil : une contrainte du milieu, le problème
+  qu'elle pose, l'espèce qui porte la solution. La flèche va du milieu vers l'espèce ; l'élève
+  qui relie directement le milieu à l'espèce lit « C'est vrai, mais il manque une étape entre
+  les deux. » Attention au raccourci « pour » : un animal n'a pas un organe « pour » quelque
+  chose, cet organe **lui sert à**.
 
 Les réseaux, les jeux de fils et les mesures se modifient dans les catalogues « Tenir à deux »
 (Contenus → Catalogues). Après toute modification d'un réseau, relisez les cascades.

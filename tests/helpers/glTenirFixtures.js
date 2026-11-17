@@ -307,7 +307,9 @@ async function ensureTenirCorpus() {
 }
 
 /**
- * Partie « tenir » prête à jouer : 4 équipes, 10 joueurs (ou `playerCount`), `live`.
+ * Partie « tenir » prête à jouer : 4 équipes, 10 joueurs (ou `playerCount`), `live`. Posée en
+ * base sans passer par `POST /api/gl/games` : elle ne monte pas l'escalier du chapitre 1, sauf
+ * `overrides: { escalier: true, escalier_pas: 1 }`.
  * @returns {{ admin, adminToken, cls, game, teams, players: [{ id, pseudo, teamId, token }], markers, chapter }}
  */
 async function createTenirGame({
@@ -317,6 +319,7 @@ async function createTenirGame({
   status = 'live',
   stamp = Date.now(),
   settings = {},
+  overrides = null,
 } = {}) {
   await enableTenirSettings(settings);
   const { chapters } = await ensureTenirCorpus();
@@ -346,8 +349,8 @@ async function createTenirGame({
   const start = markers[0];
   await execute(
     `UPDATE gl_games SET tenir_profil = ?, tenir_surface = 'tablette', board_movement_mode = 'numbered_path',
-            status = ?, updated_at = NOW() WHERE id = ?`,
-    [profil, status, seed.game.id],
+            status = ?, tenir_overrides_json = ?, updated_at = NOW() WHERE id = ?`,
+    [profil, status, overrides ? JSON.stringify(overrides) : null, seed.game.id],
   );
   await execute(
     'UPDATE gl_teams SET position_marker_id = ?, position_x_pct = NULL, position_y_pct = NULL WHERE game_id = ?',

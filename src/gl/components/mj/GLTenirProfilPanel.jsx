@@ -8,10 +8,30 @@ const SURFACES = [
   ['tablette', 'Tablette'],
 ];
 
+/** Ce qu'une marche de l'escalier ouvre, dit au prof (jamais montré à un élève). */
+const MODULES_ESCALIER = Object.freeze({
+  avancer: 'avancer',
+  chercher: 'chercher',
+  defi_case: 'le défi de case',
+  trame: 'les défis de la Trame',
+  tenir: 'tenir une page',
+  erreur_du_jour: 'l’erreur du jour d’Olu',
+  voile: 'le voile',
+  page_temoin: 'la page témoin',
+  sorts: 'trois sorts',
+  lumiere: 'la jauge de Lumière',
+  marche: 'le Marché, trois sorts de plus',
+});
+
+/** Réglage de la partie → module de l'escalier qui le tient fermé tant qu'il n'est pas ouvert. */
+const MODULE_DU_REGLAGE = Object.freeze({ voile: 'voile', marche: 'marche' });
+
 /**
- * Bouton « Profil » de la console MJ (spec § 15) : profil `complet` / `prologue` d'un clic,
- * surface de la partie, et surcharges par partie (vent, voile, Marché, chapardeur, péripéties).
- * Tout passe par `PUT /api/gl/games/:id/tenir/profil` ; le serveur renvoie les réglages résolus.
+ * Bouton « Profil » de la console MJ (spec § 15) : profil `complet` / `court` d'un clic,
+ * surface de la partie, surcharges par partie (vent, voile, Marché, chapardeur, péripéties), et
+ * l'escalier du chapitre 1 (ensemble unifié, M8) : où la classe en est, « Ouvrir la suite », ou
+ * le couper. Tout passe par `PUT /api/gl/games/:id/tenir/profil` et
+ * `POST /tenir/escalier/suite` ; le serveur renvoie les réglages résolus.
  */
 export function GLTenirProfilPanel({ gameId, tenir, onChanged, showFailure }) {
   const [profil, setProfil] = useState(tenir?.profil || 'complet');
@@ -38,19 +58,42 @@ export function GLTenirProfilPanel({ gameId, tenir, onChanged, showFailure }) {
     }
   }
 
+  const escalier = tenir?.escalier || null;
+
+  async function ouvrirLaSuite() {
+    setBusy(true);
+    try {
+      await apiGL(`/api/gl/games/${gameId}/tenir/escalier/suite`, 'POST', {});
+      await onChanged?.();
+    } catch (err) {
+      showFailure?.(err.message || 'La suite ne s’est pas ouverte');
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const flagRow = (key, label) => {
     const resolved = tenir?.settings?.[key];
+    // Un réglage que l'escalier n'a pas encore ouvert ne se coche pas ici : il s'ouvrira seul.
+    const moduleFerme =
+      escalier && MODULE_DU_REGLAGE[key] && !escalier.modules.includes(MODULE_DU_REGLAGE[key])
+        ? MODULE_DU_REGLAGE[key]
+        : null;
     return (
       <label key={key} className="gl-gameplay-toggle-row">
         <input
           type="checkbox"
           checked={resolved !== false}
-          disabled={busy}
+          disabled={busy || !!moduleFerme}
           onChange={(event) => save({ overrides: { ...overrides, [key]: event.target.checked } })}
         />
         <span>
           {label}
-          {key in overrides ? <small className="gl-hint"> (surcharge de la partie)</small> : null}
+          {moduleFerme ? (
+            <small className="gl-hint"> (pas encore ouvert par l’escalier)</small>
+          ) : key in overrides ? (
+            <small className="gl-hint"> (surcharge de la partie)</small>
+          ) : null}
         </span>
       </label>
     );
@@ -71,7 +114,6 @@ export function GLTenirProfilPanel({ gameId, tenir, onChanged, showFailure }) {
             }}
           >
             <option value="complet">Complet</option>
-            <option value="prologue">Prologue (pas de voile, de Marché ni de chapardeur)</option>
             <option value="court">Court (Marché et lecture en veillée)</option>
           </select>
         </label>
@@ -92,6 +134,45 @@ export function GLTenirProfilPanel({ gameId, tenir, onChanged, showFailure }) {
             ))}
           </select>
         </label>
+      </div>
+      <div className="gl-tenir-escalier" data-testid="gl-tenir-escalier">
+        <label className="gl-gameplay-toggle-row">
+          <input
+            type="checkbox"
+            checked={!!escalier}
+            disabled={busy}
+            onChange={(event) =>
+              save({ overrides: { ...overrides, escalier: event.target.checked } })
+            }
+            data-testid="gl-tenir-escalier-actif"
+          />
+          <span>
+            Escalier du chapitre 1 : les règles s’ouvrent séance après séance
+            {escalier ? (
+              <small className="gl-hint" data-testid="gl-tenir-escalier-pas">
+                {' '}
+                (séance {escalier.pas} sur {escalier.dernier}
+                {escalier.monte ? ' : tout est ouvert' : ''})
+              </small>
+            ) : null}
+          </span>
+        </label>
+        {escalier?.prochaine ? (
+          <p className="gl-hint">
+            À la séance {escalier.prochaine.seance} s’ouvriront :{' '}
+            {escalier.prochaine.modules.map((m) => MODULES_ESCALIER[m] || m).join(', ')}.{' '}
+            <GLButton
+              type="button"
+              variant="secondary"
+              size="sm"
+              disabled={busy}
+              onClick={ouvrirLaSuite}
+              data-testid="gl-tenir-escalier-suite"
+            >
+              Ouvrir la suite
+            </GLButton>
+          </p>
+        ) : null}
       </div>
       {flagRow('vent', 'Vent de la caravane')}
       {flagRow('voile', 'Le voile')}

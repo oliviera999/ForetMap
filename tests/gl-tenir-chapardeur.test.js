@@ -126,8 +126,11 @@ test('une seule fois par chapitre ; le nid revient au membre le moins riche de l
   assert.equal(Number(count.c), 1, 'jamais deux fois dans la partie');
 });
 
-test('profil prologue : pas de chapardeur', async () => {
-  const autre = await createTenirGame({ stamp: Date.now() + 1, profil: 'prologue' });
+test('chapardeur coupé pour la partie : il ne passe pas', async () => {
+  const autre = await createTenirGame({
+    stamp: Date.now() + 1,
+    overrides: { chapardeur: false },
+  });
   const a = (p) => `/api/gl/games/${autre.game.id}${p}`;
   await request(app).get(a('/tenir')).set(auth(autre.adminToken)).expect(200);
   await execute('UPDATE gl_game_tenir_state SET chapardeur_round = 1 WHERE game_id = ?', [

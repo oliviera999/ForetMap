@@ -1,3 +1,5 @@
+import { moduleOuvert } from './glTenirEscalierCore.js';
+
 /**
  * Permissions par surface de la mouture « Tenir à deux » (docs/GL_TENIR_A_DEUX_REGLES.md § 3).
  *
@@ -16,6 +18,11 @@
  *
  * Le prof peut toujours tout faire. Une projection ne peut rien faire.
  *
+ * L'escalier du chapitre 1 (ensemble unifié, M8 — `glTenirEscalierCore`) est rejoué ici : tant
+ * qu'une marche n'est pas montée, ce qu'elle ouvre n'est permis à personne, pas même au prof qui
+ * porte les gestes d'une équipe — `tenir` (séance 2), `marche` (séance 4). Les réglages résolus
+ * portent déjà le Marché fermé ; `tenir` est le droit de faire tenir une page lue.
+ *
  * Sorts : `isSortPermisSurSurface` (au tableau, un élève ne crée ni ne lance un sort dont la
  * fenêtre exige la phase `jeu` ; seuil, veillée, activité et fin de séance restent ouverts).
  */
@@ -28,6 +35,7 @@ export const TENIR_GESTES = Object.freeze([
   'repondre',
   'fouiller',
   'lire',
+  'tenir',
   'marche',
   'souffle',
   'retrait',
@@ -63,7 +71,7 @@ const ALL_FALSE = Object.freeze(Object.fromEntries(TENIR_GESTES.map((g) => [g, f
  * @param {boolean} [input.fouilleFenetreOuverte] hybride : fenêtre de fouille ouverte par le prof
  * @param {boolean} [input.enRetrait] l'élève est en retrait (jamais de Marché)
  * @param {object} [input.settings] réglages résolus (`marche`, `marche_pendant_tour`,
- *   `lecture_pendant_tour`)
+ *   `lecture_pendant_tour`, et l'escalier : `escalier`, `escalier_pas`)
  * @returns {Record<string, boolean>}
  */
 export function resolveTenirPermissions(input = {}) {
@@ -71,8 +79,10 @@ export function resolveTenirPermissions(input = {}) {
   if (actorKind === 'projection') return { ...ALL_FALSE };
   const settings = input.settings || {};
   const marcheActif = settings.marche !== false;
+  // Escalier du chapitre 1 : « tenir » s'ouvre à la séance 2 (toujours ouvert hors escalier).
+  const tenirOuvert = moduleOuvert(settings, 'tenir');
   if (actorKind === 'mj') {
-    return { ...ALL_TRUE, marche: marcheActif };
+    return { ...ALL_TRUE, marche: marcheActif, tenir: tenirOuvert };
   }
   const surface = normalizeTenirSurface(input.surface);
   const phase = normalizeTenirPhase(input.phase);
@@ -99,6 +109,7 @@ export function resolveTenirPermissions(input = {}) {
     out.jeter = enJeu;
     out.fouiller = enJeu && input.fouilleFenetreOuverte === true;
     out.lire = lecture;
+    out.tenir = lecture && tenirOuvert;
     out.marche =
       marcheActif && !enRetrait && (!phase || phase === 'clos' || (enJeu && marchePendantTour));
     return out;
@@ -109,6 +120,7 @@ export function resolveTenirPermissions(input = {}) {
   out.repondre = enJeu;
   out.fouiller = enJeu;
   out.lire = lecture;
+  out.tenir = lecture && tenirOuvert;
   out.marche =
     marcheActif && !enRetrait && (!phase || phase === 'clos' || (enJeu && marchePendantTour));
   return out;

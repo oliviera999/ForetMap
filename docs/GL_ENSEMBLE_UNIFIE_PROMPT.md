@@ -5,6 +5,10 @@
 > à jour, après fusion de la PR précédente. **Ne fusionne rien toi-même** : tu ouvres les
 > PR, Oliv fusionne.
 
+**État au 17 novembre 2026.** PR 1a, 1b et 2 livrées. Le dossier d'attente
+`data/gl/tenir/ensemble-unifie/` est supprimé : les PR 3 et 4 n'ont aucune donnée à intégrer.
+Prochain numéro de migration libre : `370`.
+
 Relevé le 17 novembre 2026 : `main` à **v1.242.2**, commit `9468652` (16/11). Prod `gl.olution.info` en v1.242.2,
 catalogues « Tenir » synchronisés, aucun écart dépôt / base. **Aucune séance n'a encore été jouée en classe** ; la
 première est prévue en décembre ou après : les quatre PR passent avant, et le chapitre 1 se jouera directement avec
