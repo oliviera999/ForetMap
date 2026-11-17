@@ -346,7 +346,8 @@ de ressource (« Nommer », qui en rendait, est sorti du grimoire le 17 novembre
   seul) : touchez **« Réussi »**, ou **« Pas encore »** avec une piste. Après un « pas encore »,
   l'élève **retente une autre séance sans repayer**, depuis son Seuil. Si vous n'avez pas eu le
   temps de l'écouter, le Mentorat repasse seul en « pas encore » à la séance suivante : rien ne
-  reste bloqué, rien n'est repris.
+  reste bloqué, rien n'est repris, et l'élève lit simplement que son Mentorat n'a pas pu passer
+  cette fois.
 - **La Lettre** coûte **2**. Une fois le sort lancé, l'élève écrit sa page depuis son Seuil
   (« Ma Lettre »), à partir d'une des trois amorces d'Olu : « Ce que j'ai vu », « Ce qui m'a
   surpris », « Ce que je me demande ». Vous la relisez (« Lettres à relire ») : **« Valider »**, ou

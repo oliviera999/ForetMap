@@ -737,18 +737,24 @@ jamais ; leurs textes (amorces, consigne, retours) viennent de `sorts.json`
   Mentorat est déjà payé : retente-le sans rien repayer. ») ; **Lettre** (`SL048`, coût 2)
   refusée de même si l'élève a une Lettre en cours. Lancé, le sort est soldé tout de suite
   (`effect_applied_at` posé, évènement `spell_effect` de type `lettre` ou `mentorat`) : il n'est
-  jamais « rendu » par les sorties automatiques.
+  jamais « rendu » par les sorties automatiques. Module Seuil coupé (`modules.voyageur_enabled`) :
+  les deux sorts sont refusés **409 `SPELL_SANS_OBJET`** avant tout débit, puisqu'ils se jouent
+  depuis le Seuil. Le `spell` d'un pot (`draft.spell`) ne porte plus `effetAutoJson` : les champs
+  réservés au prof (`critere_prof`, `relecture_prof`) ne quittent pas le serveur.
 - `GET /api/gl/voyageur/me` → `lettre` (`{ id, statut: a_ecrire|proposee|pas_encore|validee,
   amorce, titre, texte, piste, presentation, amorces[], retour }`) et `mentorat` (`{ id, gameId,
-  statut: prevu|pas_encore|valide, piste, consigne, retour }`), ou `null`. Le critère du prof et
-  ses points de relecture n'y figurent jamais.
+  statut: prevu|pas_encore|valide, piste, reporte, consigne, retour }`), ou `null`. Le critère du
+  prof et ses points de relecture n'y figurent jamais. `reporte: true` = Mentorat repassé d'office
+  en « pas encore » sans avoir été écouté : `retour` est alors un texte neutre, pas le retour
+  d'une écoute.
 - `PUT /api/gl/voyageur/lettre/:id` `{ amorce?, titre, texte }` — l'élève écrit ou réécrit sa
   Lettre (`a_ecrire` ou `pas_encore` → `proposee`), sans rien repayer. 400 `LETTRE_TITRE` /
-  `LETTRE_TEXTE`, 404 `LETTRE_INTROUVABLE`, 409 `LETTRE_EN_RELECTURE`.
+  `LETTRE_TEXTE`, 404 `LETTRE_INTROUVABLE`, 409 `LETTRE_EN_RELECTURE`. Si la partie où elle a été
+  payée est close, la Lettre entre dans la file du prof de la partie en cours où l'élève joue.
 - `POST /api/gl/voyageur/mentorat/:id/retenter` — après un « pas encore », l'élève se réinscrit
   pour la séance en cours de sa partie, sans repayer. 409 `SPELL_LIMITE` si un Mentorat y est
   déjà prévu (donc jamais le jour du « pas encore »), 409 `MENTORAT_PAS_A_RETENTER`, 409
-  `SPELL_HORS_EXPEDITION`.
+  `SPELL_HORS_EXPEDITION`. Réponse `{ success, mentorat: { id, gameId, statut } }`.
 - `PUT …/tenir/plumes/:plumeId` `{ decision: 'valider' | 'pas_encore', piste? }` (prof) : une
   Lettre « refusée » devient un « pas encore ». Validée, elle paraît dans `marge` de
   `GET …/chasse` et `GET …/chasse/carnet` (`[{ feuilletCode, titre, auteur }]`), hors de
@@ -757,7 +763,9 @@ jamais ; leurs textes (amorces, consigne, retours) viennent de `sorts.json`
   'pas_encore', piste? }` (prof, `gl.game.manage`). 409 `MENTORAT_DEJA_JUGE`. Évènement
   `mentorat_valide` ; un « pas encore » n'écrit aucun évènement public.
 - Sortie automatique : à l'ouverture d'une séance, un Mentorat prévu pour une séance passée
-  repasse en `pas_encore` (sans piste) ; au camp, tous. Rien n'est rendu ni repris.
+  repasse en `pas_encore` (sans piste, `reporte: true`) ; au camp, tous. Rien n'est rendu ni
+  repris. À l'ouverture d'une séance aussi, une Lettre en relecture dont la partie est close
+  rejoint la file du prof de la partie qui s'ouvre (demande `plume`).
 - Réglage `gameplay.tenir_delai_fiche_secondes` (entier, 0 à 604 800, défaut **0**) : en mode
   « Tenir », il prime sur le délai de nouvelle tentative du conditionnement G&L
   (`effectiveSources.retryCooldownHours = 'product'`) ; au-delà de 0, arrondi à l'heure

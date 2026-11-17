@@ -460,7 +460,8 @@ parallèle. Au tableau, rien ne change.
   partie que vous avez déjà menée. Ni les équipes, ni les bourses, ni le journal ne sont copiés.
 - **Mot de passe oublié, en un appui.** Sur l'écran « Jouer le tour », le bouton « Mot de passe
   oublié » en face d'un élève tire un **mot de passe provisoire**, affiché **une seule fois** :
-  dictez-le à l'élève, qui devra le changer à sa prochaine connexion. Il n'est écrit nulle part
+  dictez-le à l'élève, qui devra le changer à sa prochaine connexion. Il s'efface seul au bout
+  d'une minute (pensez-y si votre écran est recopié au tableau) et n'est écrit nulle part
   ailleurs (ni journal, ni historique). Pour un élève qui se connecte avec son **compte ForetMap**,
   le bouton répond que le mot de passe se change depuis ForetMap ou par « mot de passe oublié ».
 - **Mentorat et Lettre.** Deux nouvelles lignes dans « Demandes » : « Mentorat à écouter »

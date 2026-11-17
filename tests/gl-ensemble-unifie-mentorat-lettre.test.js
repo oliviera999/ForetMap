@@ -64,12 +64,16 @@ const file = async () =>
   (await request(app).get(api('/tenir/demandes')).set(auth(ctx.adminToken))).body.demandes || [];
 const moi = (p) => request(app).get('/api/gl/voyageur/me').set(auth(p.token));
 
+/** Corps du dernier pot créé par `lancer` (ce que reçoit l'écran de l'élève). */
+let dernierPot = null;
+
 /** Lance un sort du Seuil depuis le compte de l'élève ; renvoie la réponse du lancement. */
 async function lancer(code, i, joueur) {
   const d = await request(app)
     .post(api('/spell-casts/drafts'))
     .set(auth(joueur.token))
     .send({ spellCode: code, teamId: team(i).id });
+  dernierPot = d.body;
   if (d.status !== 201) return d;
   return request(app)
     .post(api(`/spell-casts/drafts/${d.body.draft.id}/launch`))
@@ -128,6 +132,8 @@ test('catalogue : Mentorat coûte 3, Lettre coûte 2 ; trois amorces ; aucun tex
     lm.MENTORAT_DEJA_PREVU,
     lm.MENTORAT_DEJA_PAYE,
     lm.LETTRE_DEJA_PAYEE,
+    lm.MENTORAT_REPORTE,
+    lm.SEUIL_FERME,
   ];
   for (const texte of visibles) assert.equal(findForbiddenString(texte), null, texte);
 });
@@ -138,6 +144,12 @@ test('Lettre : payée une fois (2), écrite, « pas encore » réécrit sans rep
   const l = await lancer('SL048', 2, eleve);
   assert.equal(l.status, 200, JSON.stringify(l.body));
   assert.equal(await sommeTotale(2), avant - 2, 'la Lettre coûte 2');
+  // Ni le pot ni le lancement ne servent à l'élève les champs réservés au prof.
+  for (const corps of [dernierPot, l.body]) {
+    const brut = JSON.stringify(corps);
+    assert.equal(brut.includes('relecture_prof'), false, 'points de relecture servis à l’élève');
+    assert.equal(brut.includes('effetAutoJson'), false, 'effet_auto_json servi à l’élève');
+  }
 
   // Le sort est soldé au lancement : rien « en attente d'effet », donc rien à rendre plus tard.
   const draft = await db.queryOne(
@@ -309,6 +321,9 @@ test('Mentorat : 3, jamais remboursé ; un seul par séance et par classe, le se
   const l = await lancer('SL027', 0, mentor);
   assert.equal(l.status, 200, JSON.stringify(l.body));
   assert.equal(await sommeTotale(0), avantA - 3, 'le Mentorat coûte 3');
+  for (const corps of [dernierPot, l.body]) {
+    assert.equal(JSON.stringify(corps).includes('critere_prof'), false, 'critère servi à l’élève');
+  }
 
   const ligne = (await file()).find((d) => d.kind === 'mentorat');
   assert.ok(ligne, 'le Mentorat est dans la file du prof');
@@ -347,6 +362,7 @@ test('Mentorat : 3, jamais remboursé ; un seul par séance et par classe, le se
   me = await moi(mentor);
   assert.equal(me.body.mentorat.piste, 'Dis où vit cette espèce.');
   assert.match(me.body.mentorat.retour, /^Pas encore/);
+  assert.equal(me.body.mentorat.reporte, false, 'jugé par le prof, pas reporté');
 
   // Le même jour : pas de seconde tentative (un seul Mentorat par séance et par classe).
   const memeJour = await request(app)
@@ -377,7 +393,12 @@ test('Mentorat : 3, jamais remboursé ; un seul par séance et par classe, le se
     .set(auth(mentor.token));
   assert.equal(retente.status, 200, JSON.stringify(retente.body));
   assert.equal(retente.body.mentorat.statut, 'prevu');
-  assert.equal(retente.body.mentorat.tentatives, 2);
+  // Le compteur de tentatives reste au prof : l'élève ne le reçoit pas.
+  assert.equal(retente.body.mentorat.tentatives, undefined);
+  const compteur = await db.queryOne('SELECT tentatives FROM gl_game_mentorats WHERE id = ?', [
+    mentoratId,
+  ]);
+  assert.equal(Number(compteur.tentatives), 2);
   assert.equal(await sommeTotale(0), avantRetente, 'retenter ne coûte rien');
   const relance = (await file()).find(
     (d) => d.kind === 'mentorat' && Number(d.refId) === mentoratId,
@@ -430,6 +451,11 @@ test('garde-fou 11 : un Mentorat que le prof n’a pas écouté repasse en « pa
     [ctx.game.id, String(id)],
   );
   assert.equal(demande.statut, 'annulee', 'la ligne de la file se ferme seule');
+  // L'élève n'a pas parlé : il ne lit pas le retour d'une écoute, mais un texte neutre.
+  const vue = (await moi(mentor)).body.mentorat;
+  assert.equal(vue.reporte, true);
+  assert.equal(vue.retour, lm.MENTORAT_REPORTE);
+  assert.equal(vue.piste, null);
   // Il retente dès cette séance, sans repayer.
   const retente = await request(app)
     .post(`/api/gl/voyageur/mentorat/${id}/retenter`)
@@ -494,4 +520,87 @@ test('grimoire du voyageur : Plume sortie ; « Seconde chance » seulement si un
     me.body.grimoire.map((s) => s.code),
     ['seconde_chance', 'loupe', 'memoire', 'flair', 'messager'],
   );
+});
+
+test('garde-fou 11 : une Lettre en relecture suit son auteur quand sa partie d’origine est close', async () => {
+  const eleve = membres(1)[1];
+  const l = await lancer('SL048', 1, eleve);
+  assert.equal(l.status, 200, JSON.stringify(l.body));
+  const lettreId = (await moi(eleve)).body.lettre.id;
+  // Une autre partie, close : celle où la Lettre aurait été payée au chapitre précédent.
+  const ancienne = await createTenirGame({ stamp: Date.now() + 7, plateau: 3 });
+  await db.execute("UPDATE gl_games SET status = 'ended' WHERE id = ?", [ancienne.game.id]);
+  await db.execute('UPDATE gl_voyageur_plumes SET game_id = ? WHERE id = ?', [
+    ancienne.game.id,
+    lettreId,
+  ]);
+
+  // Écrite après la clôture : elle entre dans la file du prof de la partie où l'élève joue.
+  const ecrite = await request(app)
+    .put(`/api/gl/voyageur/lettre/${lettreId}`)
+    .set(auth(eleve.token))
+    .send({
+      amorce: 'question',
+      titre: 'Les traces du matin',
+      texte: 'Je me demande quel animal a traversé la lande avant nous ce matin.',
+    });
+  assert.equal(ecrite.status, 200, JSON.stringify(ecrite.body));
+  let row = await db.queryOne('SELECT game_id, statut FROM gl_voyageur_plumes WHERE id = ?', [
+    lettreId,
+  ]);
+  assert.equal(Number(row.game_id), Number(ctx.game.id));
+  assert.ok(
+    (await file()).find((d) => d.kind === 'plume' && Number(d.refId) === lettreId),
+    'la Lettre attend dans la file de la partie en cours',
+  );
+
+  // Restée en relecture dans une partie close : l'ouverture de la séance suivante la ramène.
+  await db.execute('UPDATE gl_voyageur_plumes SET game_id = ? WHERE id = ?', [
+    ancienne.game.id,
+    lettreId,
+  ]);
+  await db.execute(
+    "DELETE FROM gl_game_demandes WHERE game_id = ? AND kind = 'plume' AND ref_id = ?",
+    [ctx.game.id, String(lettreId)],
+  );
+  await phase({ phase: 'jeu' }).expect(200);
+  await phase({ phase: 'souffle', dort: true }).expect(200);
+  await phase({ phase: 'clos' }).expect(200);
+  await ouvrirTourEnJeu(request, app, ctx, { phase: 'ouverture' });
+  row = await db.queryOne('SELECT game_id, statut FROM gl_voyageur_plumes WHERE id = ?', [
+    lettreId,
+  ]);
+  assert.equal(Number(row.game_id), Number(ctx.game.id), 'rattachée à la séance qui s’ouvre');
+  assert.equal(row.statut, 'proposee');
+  const ligne = (await file()).find((d) => d.kind === 'plume' && Number(d.refId) === lettreId);
+  assert.ok(ligne, 'de nouveau dans la file du prof');
+  // Le prof la relit depuis cette partie.
+  const valide = await request(app)
+    .put(api(`/tenir/plumes/${lettreId}`))
+    .set(auth(ctx.adminToken))
+    .send({ decision: 'valider' });
+  assert.equal(valide.status, 200, JSON.stringify(valide.body));
+});
+
+test('Seuil coupé : Lettre et Mentorat sont refusés avant tout débit', async () => {
+  const eleve = membres(3)[0];
+  const avant = await sommeTotale(3);
+  await db.execute(
+    "UPDATE gl_settings SET value_json = 'false' WHERE `key` = 'modules.voyageur_enabled'",
+  );
+  invalidateModulesCache();
+  try {
+    for (const code of ['SL048', 'SL027']) {
+      const refus = await lancer(code, 3, eleve);
+      assert.equal(refus.status, 409, JSON.stringify(refus.body));
+      assert.equal(refus.body.code, 'SPELL_SANS_OBJET');
+      assert.equal(refus.body.error, lm.SEUIL_FERME);
+    }
+    assert.equal(await sommeTotale(3), avant, 'aucun débit');
+  } finally {
+    await db.execute(
+      "UPDATE gl_settings SET value_json = 'true' WHERE `key` = 'modules.voyageur_enabled'",
+    );
+    invalidateModulesCache();
+  }
 });

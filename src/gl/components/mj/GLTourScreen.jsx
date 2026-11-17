@@ -14,6 +14,9 @@ import { GLClassLinkPanel } from './GLClassLinkPanel.jsx';
 import { GLDemandesPanel } from './GLDemandesPanel.jsx';
 import { numeroCase } from '../../../shared/glCaseNumeroCore.js';
 
+/** Durée d'affichage d'un mot de passe provisoire avant qu'il ne s'efface seul. */
+const MOT_DE_PASSE_VISIBLE_MS = 60_000;
+
 const PHASE_LABELS = {
   ouverture: 'Ouverture',
   jeu: 'Jeu',
@@ -135,6 +138,12 @@ export function GLTourScreen({
   const [absences, setAbsences] = useState(() => new Set());
   // M14 : mot de passe provisoire d'un élève, montré une fois ici — jamais gardé ni journalisé.
   const [motDePasse, setMotDePasse] = useState(null);
+  // L'écran du prof est souvent recopié au tableau : le mot de passe s'efface seul.
+  useEffect(() => {
+    if (!motDePasse) return undefined;
+    const minuteur = setTimeout(() => setMotDePasse(null), MOT_DE_PASSE_VISIBLE_MS);
+    return () => clearTimeout(minuteur);
+  }, [motDePasse]);
   const [projectionUrl, setProjectionUrl] = useState('');
   const view = tourApi.tour;
   const round = view?.round || null;

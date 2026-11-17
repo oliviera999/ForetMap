@@ -153,7 +153,11 @@ router.post(
           mentoratId: req.validatedParams.id,
         }),
       );
-      return res.json({ success: true, mentorat });
+      // Même forme réduite que la vue du Seuil : ni compteur de tentatives, ni équipe.
+      return res.json({
+        success: true,
+        mentorat: { id: mentorat.id, gameId: mentorat.gameId, statut: mentorat.statut },
+      });
     } catch (err) {
       return sendVoyageurError(err, res);
     }
