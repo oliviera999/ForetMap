@@ -27,8 +27,10 @@ const TENIR_FLAGS = [
   ],
   ['gameplay.tenir_defis_mode_equipe', 'Défis de la Trame en équipe (prof, tablette hors tour)'],
   ['gameplay.tenir_parures', 'Parures au comptoir'],
-  ['gameplay.tenir_lumiere', 'Lumière (option : cartes Team Spirit → paliers)'],
-  ['gameplay.tenir_cartes_vers_cases', 'Cartes Team Spirit → cases à l’ouverture suivante'],
+  [
+    'gameplay.tenir_lumiere',
+    'Lumière (cartes Team Spirit et erreur d’Olu corrigée → recul du voile au palier)',
+  ],
   ['gameplay.tenir_chapardeur', 'Chapardeur (une fois par chapitre)'],
   ['gameplay.tenir_peripeties', 'Péripéties sur les cases événement sans texte'],
   [
@@ -82,7 +84,7 @@ const TENIR_NUMBERS = [
   ['gameplay.tenir_palissement_max', 'Pâlissement maximum (%)', 0, 100],
   ['gameplay.tenir_recul_carnet_complet', 'Recul du voile au carnet complet', 0, 20],
   ['gameplay.tenir_recul_lumiere', 'Recul du voile à la Lumière', 0, 20],
-  ['gameplay.tenir_lumiere_palier', 'Palier de la Lumière (cartes)', 1, 999],
+  ['gameplay.tenir_lumiere_palier', 'Palier de la Lumière (points)', 1, 999],
   ['gameplay.tenir_sablier_secondes', 'Sablier au tableau (secondes)', 10, 3600],
   [
     'gameplay.tenir_sablier_phase_secondes',

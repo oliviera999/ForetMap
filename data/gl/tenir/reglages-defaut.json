@@ -58,9 +58,8 @@
     "defis_pages_par_semaine": 2,
     "defis_mode_equipe": true,
     "parures": true,
-    "lumiere": false,
-    "lumiere_palier": 25,
-    "cartes_vers_cases": false,
+    "lumiere": true,
+    "lumiere_palier": 100,
     "chapardeur": true,
     "peripeties": true,
     "olu_erreur_du_jour": true,
@@ -152,6 +151,7 @@
     "fouilles_sous_voile": "M2 : fouilles par tour d'une équipe sous le voile (1), sauf Abri ou Cordée qui rendent le quota entier",
     "cases_positives": "ensemble unifié (M3) : `neutre` (défaut) — une case positive donne son mouvement, sans ressource ; seule la case Trame donne une gemme ; `brut` garde la valeur du plateau (ancien comportement) ; l'option `ressource_peuple` est retirée",
     "questions_difficulte_max_par_plateau": "ensemble unifié (M9) : plafond de difficulté des questions de case par plateau ; les `difficulteMax` portés par les cases question sont ignorés en mode tenir (et retirés des données par la migration 359)",
-    "questions_spirale": "M9 : part (en pour cent) des questions de case tirées dans un biome d'un plateau déjà traversé, à partir du plateau 2 ; 20 = une question sur cinq"
+    "questions_spirale": "M9 : part (en pour cent) des questions de case tirées dans un biome d'un plateau déjà traversé, à partir du plateau 2 ; 20 = une question sur cinq",
+    "lumiere": "ensemble unifié (M17) : la Lumière, version simple — une jauge commune qui ne descend jamais ; chaque carte Team Spirit gardée ajoute 1, l'erreur d'Olu corrigée 1, un défi de la Trame réussi en mode équipe 10 ; au palier (100), le voile recule de recul_lumiere (5) d'office et la jauge repart à 0 ; plus de choix à enregistrer, plus de sort Lumière ; cartes_vers_cases retiré"
   }
 }

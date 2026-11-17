@@ -44,7 +44,7 @@ REGLAGES_ATTENDUS = {
     "vent_cases", "fouilles_par_tour", "fouilles_sous_voile", "fouille_seuils", "zones_par_plateau", "pistes_par_semaine",
     "pages_veillee_par_semaine", "voile", "voile_bonus_par_plateau", "palissement_pct", "palissement_max",
     "recul_carnet_complet", "marche", "marche_pendant_tour", "parures", "lumiere", "lumiere_palier",
-    "cartes_vers_cases", "chapardeur", "peripeties", "olu_erreur_du_jour", "sablier_secondes",
+    "chapardeur", "peripeties", "olu_erreur_du_jour", "sablier_secondes",
     "max_power_points", "max_health_points", "lore_feuillet_retrigger", "lore_gemme_costs_enabled",
     "lore_heart_rewards_enabled", "feuillet_zone_traversal_enabled",
 }
@@ -774,7 +774,7 @@ def check_reglages(d, rep):
         if key in defaut and not ok(defaut[key]):
             rep.err(f"{name}: defaut.{key} = {defaut[key]!r} invalide")
     for key in ("enabled", "questions_de_case", "vent", "voile", "marche", "marche_pendant_tour", "parures",
-                "lumiere", "cartes_vers_cases", "chapardeur", "peripeties", "olu_erreur_du_jour",
+                "lumiere", "chapardeur", "peripeties", "olu_erreur_du_jour",
                 "lore_gemme_costs_enabled", "lore_heart_rewards_enabled", "feuillet_zone_traversal_enabled"):
         if key in defaut and not isinstance(defaut[key], bool):
             rep.err(f"{name}: defaut.{key} doit être un booléen")

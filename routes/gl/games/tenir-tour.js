@@ -52,10 +52,6 @@ const ERROR_MESSAGES = {
   SAISIE_NOT_FOUND: 'Saisie introuvable',
   SAISIE_NOT_PENDING: 'Cette saisie n’est plus en attente',
   CARTES_INVALIDES: 'Cartes gardées : entier de 0 à 6',
-  LUMIERE_DISABLED: 'La Lumière est désactivée pour cette partie',
-  PALIER_NON_ATTEINT: 'Palier non atteint',
-  PALIER_DEJA_CHOISI: 'Ce palier a déjà son choix',
-  CHOIX_INVALIDE: 'Choix invalide (voile, sort)',
   SABLIER_INVALIDE:
     'Réglage de sablier invalide (durée de 10 secondes à 60 minutes, action pause, reprise ou zero)',
   PAS_D_ERREUR: 'Aucune erreur du jour sur ce tour',
@@ -255,7 +251,7 @@ router.get(
         })),
       ),
       campIndex: markers.length ? markers.length - 1 : 0,
-      lumiere: await tour.loadLumiere(db, gameId),
+      lumiere: await tour.loadLumiere(db, gameId, resolved),
       // File unique du prof (lot 2) : le compteur reste visible depuis tout l'écran du tour.
       ...(staff
         ? {
@@ -988,6 +984,8 @@ router.get(
   requireGlPermission('gl.game.manage'),
   asyncHandler(async (req, res) => {
     const gameId = parseId(req.params.id);
+    const ctx = await requireTenirGame(req, res, gameId);
+    if (!ctx) return undefined;
     const rows = await queryAll(
       'SELECT round_number, team_id, cartes_gardees, cartes_json, note, saisi_at FROM gl_game_team_spirit WHERE game_id = ? ORDER BY round_number ASC, team_id ASC',
       [gameId],
@@ -1001,35 +999,8 @@ router.get(
         note: r.note || null,
         saisiAt: r.saisi_at,
       })),
-      lumiere: await tour.loadLumiere(db, gameId),
+      lumiere: await tour.loadLumiere(db, gameId, ctx.resolved),
     });
-  }),
-);
-
-router.post(
-  '/games/:id/tenir/lumiere/choix',
-  requireGlPermission('gl.game.manage'),
-  asyncHandler(async (req, res) => {
-    const gameId = parseId(req.params.id);
-    const ctx = await requireTenirGame(req, res, gameId);
-    if (!ctx) return undefined;
-    try {
-      let result;
-      await withTransaction(async (tx) => {
-        result = await tour.lumiereChoixTx(tx, {
-          gameId,
-          palier: req.body?.palier,
-          choix: String(req.body?.choix || ''),
-          libelle: normalizeOptionalString(req.body?.libelle),
-          actorId: req.glAuth.userId,
-          settings: ctx.settings,
-        });
-      });
-      emitAll(gameId, result.events);
-      return res.json({ ok: true, total: result.total, paliers: result.paliers });
-    } catch (err) {
-      return sendTourError(res, err);
-    }
   }),
 );
 

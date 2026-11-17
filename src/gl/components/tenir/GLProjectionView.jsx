@@ -116,6 +116,11 @@ export function GLProjectionView({ gameId, token, refreshKey = 0 }) {
           />
         </section>
       ) : null}
+      {tour?.lumiere?.active ? (
+        <p className="gl-projection__lumiere" data-testid="gl-projection-lumiere">
+          Lumière de la classe : {tour.lumiere.total} / {tour.lumiere.palier}
+        </p>
+      ) : null}
       <ol className="gl-projection__teams">
         {(tour?.teams || []).map((t) => (
           <li key={t.id} className={`gl-projection__team gl-projection__team--${t.type}`}>

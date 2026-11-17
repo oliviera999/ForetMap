@@ -124,3 +124,45 @@ test('lignes d’Olu : révisions de l’ensemble unifié ; une ligne `actif: fa
   assert.equal(Number(tenue.actif), 1);
   assert.match(tenue.texte, /lecteur/);
 });
+
+test('M20 : une réussite de défi ouvre une piste (page endormie révélée), une seule par semaine et par élève', async () => {
+  const { pisteDefiTx } = require('../lib/glChasse');
+  const { resolveTenirSettings } = require('../lib/glTenir');
+  const { getGameplaySettings } = require('../lib/glSettings');
+  const ctx = await createTenirGame({ stamp: `${stamp}-piste`, plateau: 1 });
+  await importExempleChasse(db, { game: ctx.game });
+  await request(app).get(api(ctx, '/tenir')).set(auth(ctx.adminToken)).expect(200);
+  const game = await queryOne('SELECT * FROM gl_games WHERE id = ?', [ctx.game.id]);
+  const resolved = resolveTenirSettings(await getGameplaySettings(), game);
+  const [a, b] = membres(ctx, 0);
+  const premiere = await db.withTransaction((tx) =>
+    pisteDefiTx(tx, { gameId: ctx.game.id, playerIds: [a.id], resolved, actorType: 'system' }),
+  );
+  assert.equal(premiere.limite, false);
+  assert.equal(premiere.playerId, a.id);
+  const zone = await queryOne(
+    `SELECT p.etat FROM gl_game_chasse_pages p INNER JOIN gl_chasse_zones z ON z.id = p.zone_id
+      WHERE p.game_id = ? AND z.zone_key = ?`,
+    [ctx.game.id, premiere.zoneKey],
+  );
+  assert.equal(zone.etat, 'revelee');
+  assert.equal(
+    JSON.parse(premiere.event.payload_json || '{}').via ?? premiere.event.payload?.via,
+    'defi_trame',
+  );
+  // Même élève, même semaine : limite ; un camarade qui a encore sa piste la prend.
+  const limite = await db.withTransaction((tx) =>
+    pisteDefiTx(tx, { gameId: ctx.game.id, playerIds: [a.id], resolved, actorType: 'system' }),
+  );
+  assert.equal(limite.limite, true);
+  const camarade = await db.withTransaction((tx) =>
+    pisteDefiTx(tx, {
+      gameId: ctx.game.id,
+      playerIds: [a.id, b.id],
+      resolved,
+      actorType: 'system',
+    }),
+  );
+  assert.equal(camarade.playerId, b.id);
+  assert.notEqual(camarade.zoneKey, premiere.zoneKey, 'la page suivante se révèle');
+});
