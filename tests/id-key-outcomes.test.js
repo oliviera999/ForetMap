@@ -67,6 +67,13 @@ test('cœur pur : déduction et validation des issues', () => {
   assert.equal(validateLeadOutcome({ plant_id: 2, next_key_id: 9 }, { keyId: 9 }).ok, false);
   assert.equal(validateLeadOutcome({ plant_id: 2, next_key_id: 9 }, { keyId: 4 }).ok, true);
   assert.equal(validateLeadOutcome({ next_couplet_id: 2, next_key_id: 9 }).ok, false);
+  // Contrainte CHECK de la prod (chk_idkey_lead_outcome).
+  assert.equal(validateLeadOutcome({ plant_id: 2, clade_id: 'x' }).ok, false);
+  assert.equal(validateLeadOutcome({ plant_id: 2, result_label: 'x' }).ok, false);
+  assert.equal(
+    validateLeadOutcome({ outcome: 'clade', clade_id: 'x', result_label: 'y' }).ok,
+    false,
+  );
 
   const coupletIds = new Set([10]);
   assert.equal(isLeadPracticable({ outcome: 'clade', clade_id: 'x' }, coupletIds), true);

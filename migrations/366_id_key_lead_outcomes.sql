@@ -5,7 +5,8 @@
 -- `clade_id`, `result_label`, `next_key_id`, `hint`, la table `id_key_lead_plants`, et
 -- `id_keys.tool_required` / `safety_note`. Cette migration les formalise à l'identique pour
 -- qu'une base neuve ressemble à la prod. Idempotente : en prod, chaque instruction tombe
--- sur une erreur « déjà présent » ignorée par le chargeur (1060, 1061, 1022, 1826).
+-- sur une erreur « déjà présent » ignorée par le chargeur (1060, 1061, 1022, 1826) ou sur
+-- une simple note (IF NOT EXISTS).
 --
 -- Issues d'une proposition (`outcome`) :
 --   couplet → couplet suivant (`next_couplet_id`) ;
@@ -46,11 +47,19 @@ ALTER TABLE id_key_leads
 ALTER TABLE id_key_leads ADD KEY idx_leads_clade (clade_id);
 ALTER TABLE id_key_leads ADD KEY idx_leads_next_key (next_key_id);
 
+-- Clés étrangères : `FOREIGN KEY IF NOT EXISTS` (MariaDB) plutôt qu'un ajout simple. En prod,
+-- `clade_id` figure dans la contrainte CHECK `chk_idkey_lead_outcome` : MariaDB refuse alors
+-- tout ALTER qui ajoute une clé étrangère sur cette colonne (errno 1901), même si elle existe
+-- déjà sous ce nom — le premier déploiement de cette migration a échoué ainsi le 17/11/2026
+-- (retour arrière automatique). Avec IF NOT EXISTS, une clé existante est sautée (note 1061).
+-- `fk_lead_clade` est sans action ON DELETE, comme en prod : une colonne d'une contrainte
+-- CHECK ne peut pas porter d'action référentielle (SET NULL, CASCADE).
 ALTER TABLE id_key_leads
-  ADD CONSTRAINT fk_lead_clade FOREIGN KEY (clade_id) REFERENCES clades (id) ON DELETE SET NULL;
+  ADD CONSTRAINT fk_lead_clade FOREIGN KEY IF NOT EXISTS (clade_id) REFERENCES clades (id);
 
 ALTER TABLE id_key_leads
-  ADD CONSTRAINT fk_lead_next_key FOREIGN KEY (next_key_id) REFERENCES id_keys (id) ON DELETE SET NULL;
+  ADD CONSTRAINT fk_lead_next_key FOREIGN KEY IF NOT EXISTS (next_key_id)
+    REFERENCES id_keys (id) ON DELETE SET NULL;
 
 CREATE TABLE IF NOT EXISTS id_key_lead_plants (
   lead_id INT UNSIGNED NOT NULL,
@@ -72,3 +81,13 @@ UPDATE id_key_leads
  WHERE outcome = 'couplet'
    AND next_couplet_id IS NULL
    AND plant_id IS NOT NULL;
+
+-- Contrainte de forme, identique à celle de la prod : un clade exige `clade_id` ; `clade_id`
+-- n'existe que sur un groupe ou un clade ; `result_label` est renseigné si et seulement si
+-- l'issue est un groupe. Les règles applicatives (`src/shared/idKeyLeadCore.js`) la respectent.
+ALTER TABLE id_key_leads
+  ADD CONSTRAINT IF NOT EXISTS chk_idkey_lead_outcome CHECK (
+    (outcome <> 'clade' OR clade_id IS NOT NULL)
+    AND (outcome IN ('clade', 'groupe') OR clade_id IS NULL)
+    AND (outcome = 'groupe') = (result_label IS NOT NULL)
+  );

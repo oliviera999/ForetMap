@@ -9,6 +9,21 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — Migration 366 : premier déploiement refusé par la contrainte CHECK de la prod (17 novembre 2026)
+
+Le déploiement de la v1.245.0 a échoué à la migration 366 (retour arrière automatique, aucune
+donnée touchée) : la base de production porte la contrainte `chk_idkey_lead_outcome`, qui cite
+`clade_id`, et MariaDB refuse alors tout ajout de clé étrangère sur cette colonne
+(errno 1901), même déjà présente.
+
+- Migration 366 : clés étrangères ajoutées par `FOREIGN KEY IF NOT EXISTS` ; `fk_lead_clade`
+  sans action ON DELETE, comme en prod ; la contrainte `chk_idkey_lead_outcome` est désormais
+  créée sur une base neuve (`ADD CONSTRAINT IF NOT EXISTS`). Rejouée sur la structure exacte de
+  la prod : chaque instruction est sautée (erreur ignorée ou simple note).
+- Règles partagées `idKeyLeadCore` alignées sur la contrainte : une feuille espèce ne porte ni
+  grand groupe ni nom de groupe ; un grand groupe ne porte pas de nom de groupe (400 au lieu
+  d'une erreur SQL).
+
 ### Corrigé — G&L : tests de la PR 1b — scénario e2e des tablettes, garde d'un test de contenu (17 novembre 2026)
 
 Suite de la PR 1b de l'ensemble unifié (#664).
