@@ -78,14 +78,14 @@ after(async () => {
 
 test('catalogue : 20 entrées, paliers de la Trame, plus aucun badge réservé, aucun mot interdit', () => {
   assert.equal(GL_REWARD_CATALOGUE.length, 20);
-  // Lot 3 : Tisserand et Révélateur ne sont plus réservés ; avec Gardien des fils et
+  // Lot 3 : Tisserand et Voyant des fils (ancien « Révélateur », L2) ne sont plus réservés ; avec Gardien des fils et
   // Réparateur, ce sont les quatre badges des défis de la Trame.
   assert.deepEqual(RESERVED_REWARDS, []);
   assert.deepEqual(
     GL_REWARD_CATALOGUE.filter((e) => e.family === 'trame').map((e) => [e.title, e.tiers[0]]),
     [
       ['Tisserand', 3],
-      ['Révélateur', 3],
+      ['Voyant des fils', 3],
       ['Gardien des fils', 2],
       ['Réparateur', 2],
     ],

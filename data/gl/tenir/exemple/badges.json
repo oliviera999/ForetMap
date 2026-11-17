@@ -102,7 +102,7 @@
     },
     {
       "code": "revelateur",
-      "nom": "Révélateur",
+      "nom": "Voyant des fils",
       "critere": "Trois scénarios de « La trame altérée » réussis, seul ou avec son équipe.",
       "regle": {
         "type": "compteur",
@@ -157,7 +157,7 @@
     },
     {
       "code": "passeur_de_seuil",
-      "nom": "Passeur de seuil",
+      "nom": "Grand voyageur",
       "critere": "Quatre chapitres traversés (quatre parties closes avec l'élève inscrit).",
       "regle": {
         "type": "compteur",

@@ -58,7 +58,7 @@ test('noyau partagé (M6) : cinq moments, chaque fenêtre a le sien, dans l’or
       'Après le jet',
       'Pendant le tour',
       'Pendant l’activité',
-      'En fin de chapitre ou en veillée',
+      'Au camp ou en veillée',
     ],
   );
   assert.equal(momentDeFenetre('avant_jet'), 'avant');

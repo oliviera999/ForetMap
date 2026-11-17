@@ -22,8 +22,8 @@
       "jeu": "pendant la phase jeu",
       "jeu_avant_fouille": "pendant la phase jeu, avant une fouille de l'équipe",
       "activite": "pendant l'activité de classe (file du prof)",
-      "seuil": "au seuil (clôture de partie)",
-      "seuil_veillee": "au seuil ou en veillée",
+      "seuil": "au camp (clôture de partie)",
+      "seuil_veillee": "au camp ou en veillée",
       "fin_seance": "à la fin de la séance",
       "trimestre_3": "troisième trimestre"
     },

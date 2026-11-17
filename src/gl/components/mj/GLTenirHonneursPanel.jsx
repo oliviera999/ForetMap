@@ -96,7 +96,7 @@ export function GLTenirHonneursPanel({ game, teams = [], onReloadGame, showFailu
         <ul className="gl-tenir-honneurs__liste">
           {honneurs.map((h) => (
             <li key={h.id}>
-              <strong>{h.libelle}</strong> — {h.teamName} ({h.honneur})
+              <strong>{h.libelle}</strong> — {h.teamName} ({h.honneurLibelle || h.honneur})
             </li>
           ))}
         </ul>

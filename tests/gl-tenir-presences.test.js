@@ -19,7 +19,6 @@ const { issueTeamSession } = require('../lib/glGuestToken');
 const { listPresentMembers } = require('../lib/glTenir');
 const { listDemandes } = require('../lib/glDemandes');
 const { presentJournalEvent } = require('../lib/glJournalPresent');
-const { findForbiddenString } = require('../lib/shared/glGardeFousCore');
 
 let ctx;
 const auth = (t) => ({ Authorization: `Bearer ${t}` });

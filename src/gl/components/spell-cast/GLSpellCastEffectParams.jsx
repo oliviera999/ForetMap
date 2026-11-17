@@ -6,8 +6,9 @@ export const FENETRE_LABELS = Object.freeze({
   jeu: 'phase jeu',
   jeu_avant_fouille: 'phase jeu, avant une fouille',
   activite: 'pendant l’activité (file du prof)',
-  seuil: 'au seuil',
-  seuil_veillee: 'au seuil ou en veillée',
+  // L2 : la fin de chapitre s'appelle le camp (les clés de fenêtre gardent leur nom).
+  seuil: 'au camp',
+  seuil_veillee: 'au camp ou en veillée',
   fin_seance: 'fin de séance',
   trimestre_3: 'troisième trimestre',
 });

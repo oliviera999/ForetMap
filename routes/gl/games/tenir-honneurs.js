@@ -25,7 +25,11 @@ const asyncHandler = require('../../../lib/asyncHandler');
 const { emitGlGameEvent } = require('../../../lib/realtime');
 const { insertGameEvent } = require('../../../lib/glGameEvents');
 const { getPlayerGameMembership } = require('../../../lib/gl/gamesRuntime');
-const { enregistrerMissionTx, computeHonneurs } = require('../../../lib/glHonneurs');
+const {
+  enregistrerMissionTx,
+  computeHonneurs,
+  libelleHonneur,
+} = require('../../../lib/glHonneurs');
 const { glRewards } = require('../../../lib/glRewards');
 const { awardGlManualToTeam } = require('../../../lib/glRewardsHooks');
 const { RewardAwardError } = require('../../../lib/rewards/core/engine');
@@ -89,7 +93,12 @@ router.get(
     // Aperçu (prof) : honneurs tels qu'ils seraient attribués maintenant — jamais un classement d'élèves.
     const apercu = isMj(req) ? await computeHonneurs(db, gameId) : null;
     return res.json({
-      honneurs: rows.map((r) => ({ ...r, doubleHonneur: Number(r.doubleHonneur) === 1 })),
+      honneurs: rows.map((r) => ({
+        ...r,
+        // L2 : nom affiché de l'honneur (« Avant-garde », « Compagnons », « Révélatrices »…).
+        honneurLibelle: libelleHonneur(r.honneur),
+        doubleHonneur: Number(r.doubleHonneur) === 1,
+      })),
       ...(apercu ? { apercu: { honneurs: apercu.honneurs, sceaux: apercu.sceaux } } : {}),
     });
   }),

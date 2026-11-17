@@ -38,7 +38,7 @@ export const GL_REWARDS_OLU_POOLS = Object.freeze({
     'La veillée te connaît. Moi, à cette heure-là, je dors.',
   ]),
   voyage: Object.freeze([
-    'Un chapitre traversé jusqu’au bout. Le seuil suivant t’attend déjà.',
+    'Un chapitre traversé jusqu’au bout. Le camp suivant t’attend déjà.',
     'Gnome un jour, licorne l’autre : tu connais les deux regards. Peu peuvent en dire autant.',
   ]),
 });
