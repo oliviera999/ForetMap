@@ -83,9 +83,9 @@ def load(d, name, rep):
     return data
 
 
-def require_keys(rep, name, obj, keys, ident):
+def require_keys(rep, name, obj, keys, ident, optional=()):
     missing = [k for k in keys if k not in obj]
-    extra = [k for k in obj if k not in keys]
+    extra = [k for k in obj if k not in keys and k not in optional]
     if missing:
         rep.err(f"{name} {ident}: clés manquantes {missing}")
     if extra:
@@ -154,10 +154,16 @@ def check_zones(d, rep, use_db, catalogue):
             rep.err(f"{name}: zone non objet")
             continue
         zk = str(z.get("zone_key", "?"))
-        require_keys(rep, name, z, keys, zk)
+        require_keys(rep, name, z, keys, zk, optional=("glossaire",))
         if zk in by_key:
             rep.err(f"{name} {zk}: zone_key en double")
         by_key[zk] = z
+        # Ensemble unifié (M22) : 1 à 3 termes de glossaire où se lit la réponse, facultatif.
+        if "glossaire" in z:
+            gl = z["glossaire"]
+            if (not isinstance(gl, list) or not 1 <= len(gl) <= 3 or len(set(gl)) != len(gl)
+                    or any(not isinstance(c, str) or not re.fullmatch(r"GL\d{4}", c) for c in gl)):
+                rep.err(f"{name} {zk}: glossaire doit lister 1 à 3 codes GL#### distincts")
         pl = z.get("plateau")
         if pl not in ZONES_PAR_PLATEAU:
             rep.err(f"{name} {zk}: plateau {pl!r} invalide")
@@ -333,7 +339,25 @@ def check_questions(d, rep, zones):
     seen = set()
     for q in qs:
         zk = str(q.get("zone_key", "?"))
-        require_keys(rep, name, q, keys, zk)
+        retours = q.get("retours")
+        mauvaises = sorted(l for l in ("A", "B", "C", "D") if l != q.get("reponse"))
+        # Ensemble unifié (L5) : un retour par mauvaise lettre dispense du retour commun.
+        couvert = isinstance(retours, dict) and sorted(retours) == mauvaises
+        requis = [k for k in keys if not (k == "feedback_incorrect" and couvert)]
+        require_keys(rep, name, q, requis, zk, optional=("retours", "feedback_incorrect"))
+        if "retours" in q:
+            if not isinstance(retours, dict) or not retours:
+                rep.err(f"{name} {zk}: retours doit être un objet lettre → texte")
+            else:
+                for lettre, texte in retours.items():
+                    if lettre not in mauvaises:
+                        rep.err(f"{name} {zk}: retours.{lettre} hors des mauvaises réponses")
+                    elif not isinstance(texte, str) or not texte.startswith("Pas encore"):
+                        rep.err(f"{name} {zk}: retours.{lettre} doit commencer par « Pas encore »")
+                    elif len(texte) > 400:
+                        rep.err(f"{name} {zk}: retours.{lettre} trop long ({len(texte)} > 400)")
+                    else:
+                        check_forbidden(rep, name, f"{zk} retours.{lettre}", texte)
         if zk in seen:
             rep.err(f"{name} {zk}: zone_key en double")
         seen.add(zk)
@@ -355,6 +379,8 @@ def check_questions(d, rep, zones):
                 rep.err(f"{name} {zk}: reponse {q.get('reponse')!r} hors choix")
         for k in ("question", "feedback_correct", "feedback_incorrect"):
             v = q.get(k)
+            if k == "feedback_incorrect" and couvert and v is None:
+                continue
             if not isinstance(v, str) or not v.strip():
                 rep.err(f"{name} {zk}: {k} vide")
             elif len(v) > 400:
@@ -677,7 +703,8 @@ def check_sorts(d, rep, use_db):
         if s.get("execution") == "auto" and not isinstance(s.get("effet_auto_json"), dict):
             rep.err(f"{name} {code}: un sort auto doit avoir un effet_auto_json")
         if (s.get("execution") == "prof" and isinstance(s.get("effet_auto_json"), dict)
-                and s.get("peuple") != "classe" and s["effet_auto_json"].get("validation") != "prof"):
+                and s.get("peuple") != "classe" and s["effet_auto_json"].get("validation") != "prof"
+                and s["effet_auto_json"].get("type") not in ("mentorat", "lettre")):
             rep.warn(f"{name} {code}: sort prof avec effet_auto_json sans validation prof")
         co = s.get("chapitre_ouverture")
         if co not in (1, 2, 3, 4, "retour"):
@@ -714,15 +741,18 @@ def check_sorts(d, rep, use_db):
             if c in listed and codes[c].get("actif") is False:
                 rep.err(f"{name}: {c} sorti du grimoire mais ouvert au chapitre {listed[c]}")
     voy = data.get("voyageur")
-    if not isinstance(voy, list) or len(voy) != 6:
-        rep.err(f"{name}: voyageur doit lister 6 sorts")
+    # Ensemble unifié (M23) : la Plume (niveau 5) est sortie, il reste 5 sortilèges.
+    if not isinstance(voy, list) or len(voy) != 5:
+        rep.err(f"{name}: voyageur doit lister 5 sorts")
     else:
         niveaux = sorted(v.get("niveau") for v in voy)
-        if niveaux != [1, 2, 3, 4, 5, 6]:
-            rep.err(f"{name}: niveaux du voyageur {niveaux} ≠ 1..6")
+        if niveaux != [1, 2, 3, 4, 6]:
+            rep.err(f"{name}: niveaux du voyageur {niveaux} ≠ 1, 2, 3, 4, 6")
         vcodes = [v.get("code") for v in voy]
-        if len(set(vcodes)) != 6:
+        if len(set(vcodes)) != 5:
             rep.err(f"{name}: codes du voyageur en double")
+        if "plume" in vcodes:
+            rep.err(f"{name}: la Plume est sortie du grimoire du voyageur")
         for v in voy:
             for k in ("code", "nom", "niveau", "cout", "limite", "effet_court", "execution", "perimetre"):
                 if k not in v:
