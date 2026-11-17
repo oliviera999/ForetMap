@@ -11,12 +11,21 @@ const STATUTS = Object.freeze({
 function libelleUnite(d) {
   if (d.type === 'retisser') return `${d.biomeNom} · ${d.niveau} cartes`;
   if (d.type === 'alteree') return `${d.biomeNom} · sans « ${d.retireeNom} »`;
+  // Ranger, fils de l'adaptation : le titre du catalogue porte le pays (« … · Savane »).
+  if (d.type === 'ranger' || d.type === 'adaptation') {
+    const pays = String(d.titre || '')
+      .split(' · ')
+      .slice(1)
+      .join(' · ');
+    if (pays) return pays;
+  }
   return `Plateau ${d.plateau}`;
 }
 
 /**
  * Entrée « Défis » (« Tenir à deux », lot 3) : les défis de la Trame ouverts à l'élève ou à
- * l'équipe — ceux de son peuple, sur les deux biomes du plateau —, puis le défi choisi.
+ * l'équipe — ceux de son peuple et ceux des deux peuples (ensemble unifié, M21), sur les deux
+ * biomes du plateau —, puis le défi choisi.
  * Aucun classement, aucun total à atteindre : seulement ce qui est réussi, en cours, à ouvrir.
  *
  * @param {object} p
@@ -95,11 +104,16 @@ export function GLDefisView({ gameId, teamId = null }) {
         </p>
       ) : null}
       {liste.types.map((t) => (
-        <section key={t.type} className="gl-defis__famille" data-type={t.type}>
+        <section
+          key={`${t.type}:${t.famille || ''}`}
+          className="gl-defis__famille"
+          data-type={t.type}
+          data-famille={t.famille || undefined}
+        >
           <h5>{t.libelle}</h5>
           <ul className="gl-defis__liste">
             {liste.defis
-              .filter((d) => d.type === t.type)
+              .filter((d) => d.type === t.type && (!t.famille || d.famille === t.famille))
               .map((d) => {
                 const statut = STATUTS[d.statut] || null;
                 return (

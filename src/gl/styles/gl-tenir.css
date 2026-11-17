@@ -1086,6 +1086,20 @@
   display: grid;
   gap: var(--gl-space-1);
 }
+/* Ranger (« Le bon rôle », « Le bon pays ») : autant de colonnes que de catégories (2 à 6). */
+.gl-trame-ranger__colonnes {
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+}
+.gl-trame-ranger__carte {
+  display: grid;
+  gap: var(--gl-space-1);
+  padding: var(--gl-space-2);
+  border: 1px solid var(--gl-border);
+  border-radius: var(--gl-radius-lg);
+}
+.gl-trame-ranger__indice {
+  font-style: italic;
+}
 .gl-trame-reparer__choix label {
   min-height: 44px;
   display: flex;

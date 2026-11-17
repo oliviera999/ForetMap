@@ -543,5 +543,178 @@ test('modèle : forme du fichier ou forme normalisée, niveau borné, précision
   assert.equal(core.buildReseau(brut).niveau, 5, 'niveau par défaut');
   assert.equal(core.buildReseau(brut, 0).cartes.length, 1, 'au moins une carte');
   assert.deepEqual(core.buildReseau(null).cartes, []);
-  assert.deepEqual(core.TRAME_TYPES, ['retisser', 'reparer', 'alteree', 'fils']);
+  assert.deepEqual(core.TRAME_TYPES, [
+    'retisser',
+    'reparer',
+    'alteree',
+    'fils',
+    'ranger',
+    'adaptation',
+  ]);
+});
+
+// ---------------------------------------------------------------------
+// Ensemble unifié (M21) : ranger (« Le bon rôle », « Le bon pays »), fils de l'adaptation
+// ---------------------------------------------------------------------
+
+const RANGER = lire('trame-ranger');
+const jeu = (code) => RANGER.jeux.find((j) => j.code === code);
+const PAYS = (codes) => codes.map((code) => ({ code, nom: `Pays ${code}` }));
+
+test('ranger : bien rangée → son pourquoi ; ailleurs → « Pas encore. », jamais la réponse ; pas posée → rien', () => {
+  const role = core.buildRanger(jeu('role-savane'), RANGER.familles.role.categories);
+  assert.equal(role.type, 'ranger');
+  assert.equal(role.famille, 'role');
+  assert.equal(role.biome, 'savane');
+  assert.equal(role.cartes.length, 8);
+  assert.deepEqual(
+    role.categories.map((c) => c.code),
+    ['producteur', 'consommateur', 'decomposeur'],
+  );
+  assert.ok(role.categories[0].aide, 'l’aide de la catégorie suit');
+  const [a, b] = role.cartes;
+  const autre = role.categories.find((c) => c.code !== b.categorie).code;
+  const essai = core.verifierRanger(role, { [a.code]: a.categorie, [b.code]: autre });
+  assert.equal(essai.complet, false);
+  assert.deepEqual(essai.cartes[0], {
+    code: a.code,
+    rangee: true,
+    juste: true,
+    message: a.pourquoi,
+  });
+  assert.deepEqual(essai.cartes[1], {
+    code: b.code,
+    rangee: true,
+    juste: false,
+    message: 'Pas encore.',
+  });
+  assert.deepEqual(essai.cartes[2], {
+    code: role.cartes[2].code,
+    rangee: false,
+    juste: false,
+    message: null,
+  });
+  // Rien de ce qui est servi pour une carte mal rangée ne porte sa catégorie ni son pourquoi.
+  assert.ok(!JSON.stringify(essai.cartes[1]).includes(b.categorie));
+  const tout = Object.fromEntries(role.cartes.map((c) => [c.code, c.categorie]));
+  assert.equal(core.verifierRanger(role, tout).complet, true);
+  assert.equal(core.isRangerComplet(role, { rangement: tout }), true);
+  assert.equal(core.isRangerComplet(role, { rangement: { ...tout, [a.code]: autre } }), false);
+  assert.equal(core.isRangerComplet(role, null), false);
+  // Aucun message ne gronde.
+  for (const c of core.verifierRanger(role, tout).cartes) {
+    assert.equal(findForbiddenString(c.message), null, c.code);
+  }
+});
+
+test('ranger : « Le bon pays » porte un indice par carte ; modèle tolérant aux formes incomplètes', () => {
+  const brut = jeu('pays-p2');
+  const pays = core.buildRanger(brut, PAYS(brut.categories));
+  assert.equal(pays.famille, 'pays');
+  assert.equal(pays.plateau, 2);
+  assert.equal(pays.biome, null);
+  assert.ok(
+    pays.cartes.every((c) => c.indice),
+    'un indice par carte',
+  );
+  assert.ok(pays.bilan);
+  // Une carte dont la catégorie n'est pas proposée sort du modèle ; une carte sans « pourquoi »
+  // reçoit le message de repli ; `generique` accepte 1 ; une catégorie sans nom prend son code.
+  const m = core.buildRanger(
+    {
+      cartes: [
+        { code: 'A', nom: 'Herbe', categorie: 'x', generique: 1 },
+        { code: 'B', nom: 'Zèbre', categorie: 'ailleurs', pourquoi: 'jamais vu' },
+        { code: '', nom: 'sans code', categorie: 'x' },
+      ],
+    },
+    [{ code: 'x' }, { code: '' }, null],
+  );
+  assert.deepEqual(m.categories, [{ code: 'x', nom: 'x', aide: null }]);
+  assert.deepEqual(
+    m.cartes.map((c) => c.code),
+    ['A'],
+  );
+  assert.equal(m.cartes[0].generique, true);
+  assert.equal(m.famille, null);
+  assert.equal(m.titre, null);
+  assert.equal(core.verifierRanger(m, { A: 'x' }).cartes[0].message, 'C’est la bonne colonne.');
+  // Sans carte, rien n'est « complet ».
+  assert.equal(core.verifierRanger(core.buildRanger(null), {}).complet, false);
+  assert.equal(core.verifierRanger(null, {}).complet, false);
+  assert.deepEqual(core.buildRanger({ cartes: 'x' }, 'y').cartes, []);
+});
+
+test('ranger : bornes d’un état — seules les cartes du jeu, seules ses catégories', () => {
+  const role = core.buildRanger(jeu('role-savane'), RANGER.familles.role.categories);
+  const codes = role.cartes.map((c) => c.code);
+  const categories = role.categories.map((c) => c.code);
+  const [a, b] = codes;
+  assert.deepEqual(
+    core.normaliserEtat(
+      'ranger',
+      { indices: 2, rangement: { [a]: 'producteur', [b]: 'ailleurs', HORS: 'producteur' } },
+      codes,
+      { categories },
+    ),
+    { indices: 2, rangement: { [a]: 'producteur' } },
+  );
+  assert.deepEqual(core.normaliserEtat('ranger', { rangement: { [a]: 'producteur' } }, codes), {
+    indices: 0,
+    rangement: {},
+  });
+  assert.deepEqual(core.normaliserEtat('ranger', null, codes, null), { indices: 0, rangement: {} });
+});
+
+test('fils de l’adaptation : le moteur des fils cachés, du milieu vers l’espèce', () => {
+  const biomes = lire('trame-adaptations').biomes;
+  assert.equal(biomes.length, 8);
+  for (const b of biomes) {
+    const m = core.buildAdaptation(b);
+    assert.equal(m.type, 'adaptation');
+    assert.equal(m.biome, b.biome);
+    assert.equal(m.cartes.length, 9);
+    assert.equal(core.isFilsComplet(m, m.liens), true, b.biome);
+    assert.equal(core.isFilsComplet(m, m.liens.slice(1)), false, b.biome);
+  }
+  const m = core.buildAdaptation(biomes[0]);
+  const [premier] = m.liens;
+  assert.equal(core.classifyLink(m, premier.de, premier.vers).classement, 'trouvee');
+  const inverse = core.classifyLink(m, premier.vers, premier.de);
+  assert.equal(inverse.classement, 'inversee');
+  assert.match(inverse.message, /part du milieu, passe par le problème, et arrive à l’espèce/);
+  // Un raccourci (du milieu à l'espèce sans le problème) : vrai, mais il manque une étape.
+  const suite = m.liens.find((l) => l.de === premier.vers);
+  assert.deepEqual(core.classifyLink(m, premier.de, suite.vers), {
+    classement: 'a_discuter',
+    message: 'C’est vrai, mais il manque une étape entre les deux.',
+  });
+  // Indices : la même échelle, avec les mots du milieu et de l'espèce.
+  assert.match(core.nextHint(m, {}).message, /part du milieu/);
+  assert.match(core.nextHint(m, { indices: 1 }).message, /décrit le milieu/);
+  const piste = core.nextHint(m, { indices: 2 });
+  assert.equal(piste.genre, 'piste');
+  assert.match(piste.message, /quel problème pose-t-elle, ou à quel problème répond-elle/);
+  const revelation = core.nextHint(m, { indices: 3 });
+  assert.equal(revelation.genre, 'revelation');
+  assert.match(revelation.message, /^Un fil à tracer : « .+ » mène à « .+ »\.$/);
+  assert.match(core.nextHint(m, { indices: 9, fleches: m.liens }).message, /Tous les fils prévus/);
+  for (let i = 0; i < 5; i += 1) {
+    assert.equal(findForbiddenString(core.nextHint(m, { indices: i }).message), null);
+  }
+  assert.equal(core.buildAdaptation(null).biome, null);
+  // Bornes : les flèches d'un état d'adaptation se bornent comme celles des fils cachés.
+  assert.deepEqual(
+    core.normaliserEtat(
+      'adaptation',
+      {
+        fleches: [
+          { de: 'A', vers: 'B' },
+          { de: 'A', vers: 'Z' },
+        ],
+      },
+      ['A', 'B'],
+    ),
+    { indices: 0, fleches: [{ de: 'A', vers: 'B' }], positions: {} },
+  );
 });

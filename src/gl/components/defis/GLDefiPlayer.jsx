@@ -26,7 +26,10 @@ const CATEGORIES = Object.freeze({
   pas_menace: 'Pas menacée',
 });
 
-/** Retisser et Les fils cachés : poser et retirer des flèches. */
+/** Libellé d'une flèche posée, lu par un lecteur d'écran : « A provoque B ». */
+const FLECHE_LABELS = Object.freeze({ fils: 'provoque', adaptation: 'mène à' });
+
+/** Retisser, Les fils cachés et Les fils de l'adaptation : poser et retirer des flèches. */
 function Tisser({ defi, vue, enregistrer, indice }) {
   const fleches = vue.fleches || [];
   const brutes = fleches.map((f) => ({ de: f.de, vers: f.vers }));
@@ -35,7 +38,7 @@ function Tisser({ defi, vue, enregistrer, indice }) {
     <GLTrameBoard
       cartes={defi.cartes}
       fleches={fleches}
-      flecheLabel={defi.type === 'fils' ? 'provoque' : 'sert de nourriture à'}
+      flecheLabel={FLECHE_LABELS[defi.type] || 'sert de nourriture à'}
       suggestion={indice?.lien || null}
       disabled={defi.statut === 'reussi'}
       onAjouter={(de, vers) =>
@@ -278,6 +281,96 @@ function Reparer({ defi, vue, enregistrer }) {
 }
 
 /**
+ * Ranger (« Le bon rôle », « Le bon pays », ensemble unifié M21) : des cartes, des catégories —
+ * le plateau de Réparer, sans leçon ni mesures. Une carte bien rangée reçoit son « pourquoi » ;
+ * une autre « Pas encore. », jamais la réponse. Le bilan arrive à la réussite.
+ */
+function Ranger({ defi, vue, enregistrer }) {
+  const rangement = vue.rangement || {};
+  const fini = defi.statut === 'reussi';
+  const categories = defi.categories || [];
+  // Le retour du serveur ne vaut que pour la colonne qu'il a vue (un geste en cours l'efface).
+  const verifie = new Map(
+    (defi.rangementVerifie || [])
+      .filter((c) => defi.rangement?.[c.code] === rangement[c.code])
+      .map((c) => [c.code, c]),
+  );
+  const ranger = (code, categorie) =>
+    enregistrer({ rangement: { ...rangement, [code]: categorie } });
+  return (
+    <div className="gl-trame-reparer gl-trame-ranger">
+      <div className="gl-trame-reparer__colonnes gl-trame-ranger__colonnes">
+        {categories.map((cat) => (
+          <section key={cat.code} className="gl-trame-reparer__colonne" aria-label={cat.nom}>
+            <h5>{cat.nom}</h5>
+            {cat.aide ? <p className="gl-hint">{cat.aide}</p> : null}
+            <ul>
+              {defi.cartes
+                .filter((c) => rangement[c.code] === cat.code)
+                .map((c) => (
+                  <li key={c.code} data-testid={`gl-trame-range-${c.code}`}>
+                    {verifie.get(c.code) ? (
+                      <span aria-hidden="true">{verifie.get(c.code).juste ? '✓ ' : '… '}</span>
+                    ) : null}
+                    {c.nom}
+                  </li>
+                ))}
+            </ul>
+          </section>
+        ))}
+      </div>
+      <ul className="gl-trame-reparer__especes">
+        {defi.cartes.map((c) => {
+          const v = verifie.get(c.code);
+          return (
+            <li key={c.code} className="gl-trame-ranger__carte">
+              <strong>{c.nom}</strong>
+              {c.indice ? (
+                <span className="gl-trame-ranger__indice" data-testid={`gl-trame-indice-${c.code}`}>
+                  {' '}
+                  {c.indice}
+                </span>
+              ) : null}
+              <span className="gl-inline-actions" role="group" aria-label={`Ranger ${c.nom}`}>
+                {categories.map((cat) => (
+                  <GLButton
+                    key={cat.code}
+                    type="button"
+                    size="sm"
+                    variant={rangement[c.code] === cat.code ? 'primary' : 'ghost'}
+                    aria-pressed={rangement[c.code] === cat.code}
+                    disabled={fini}
+                    onClick={() => ranger(c.code, cat.code)}
+                    data-testid={`gl-trame-ranger-${c.code}-${cat.code}`}
+                  >
+                    {cat.nom}
+                  </GLButton>
+                ))}
+              </span>
+              {v ? (
+                <p
+                  className={`gl-trame-prediction__retour${v.juste ? ' is-juste' : ''}`}
+                  role="status"
+                  data-testid={`gl-trame-retour-${c.code}`}
+                >
+                  <span aria-hidden="true">{v.juste ? '✓ ' : '… '}</span>
+                  {v.message}
+                </p>
+              ) : null}
+            </li>
+          );
+        })}
+      </ul>
+      {defi.bilan ? (
+        <p className="gl-trame-plus-loin" data-testid="gl-trame-bilan">
+          {defi.bilan}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+/**
  * Un défi de la Trame à l'écran (« Tenir à deux », lot 3) : consigne, plateau du défi, indices
  * gratuits, et la réussite quand elle vient. L'état affiché suit le geste tout de suite ; le
  * classement et les vérifications reviennent du serveur.
@@ -333,18 +426,27 @@ export function GLDefiPlayer({ gameId, cible, onRetour = null, onReussi = null }
       : {}),
     ...(etat?.mesures ? { choix: etat.mesures } : {}),
   };
-  const Jeu = defi.type === 'alteree' ? Alteree : defi.type === 'reparer' ? Reparer : Tisser;
+  const Jeu =
+    defi.type === 'alteree'
+      ? Alteree
+      : defi.type === 'reparer'
+        ? Reparer
+        : defi.type === 'ranger'
+          ? Ranger
+          : Tisser;
+  // Ranger et les fils de l'adaptation portent un titre complet (« Le bon rôle · Savane »).
+  const titreSeul = defi.type === 'ranger' || defi.type === 'adaptation';
   return (
     <section className="gl-defi gl-gameplay-block" data-testid="gl-defi" data-type={defi.type}>
       <header className="gl-defi__tete">
         <div>
           <h4>
-            {defi.libelle}
-            {defi.titre && defi.titre !== defi.libelle ? ` — ${defi.titre}` : ''}
+            {titreSeul && defi.titre ? defi.titre : defi.libelle}
+            {!titreSeul && defi.titre && defi.titre !== defi.libelle ? ` — ${defi.titre}` : ''}
             {defi.niveau ? ` · ${defi.niveau} cartes` : ''}
           </h4>
-          <p>{CONSIGNES[defi.type]}</p>
-          {defi.critere && defi.type === 'retisser' ? (
+          <p>{defi.consigne || CONSIGNES[defi.type]}</p>
+          {defi.critere && (defi.type === 'retisser' || defi.type === 'adaptation') ? (
             <p className="gl-hint">Pour finir : {defi.critere}</p>
           ) : null}
         </div>

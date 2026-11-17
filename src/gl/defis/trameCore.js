@@ -9,13 +9,17 @@
  * Sens des flèches : **de la ressource vers celui qui la mange** (« est mangé par »). Toute carte
  * peut pointer vers une carte de rôle `decomposeur`. Les charognards sont des consommateurs.
  *
- * Quatre défis sur un même plateau de cartes :
+ * Six défis sur un même plateau de cartes :
  * - **Retisser** (`classifyLink`, `isRetisserComplet`) : relier les cartes d'un réseau ;
  * - **La trame altérée** (`cascade`, `verifierPredictions`) : prévoir ce que devient chaque carte
  *   quand on en retire une ;
  * - **Les fils cachés** (`buildFils`, `classifyLink`, `isFilsComplet`) : causes → effets ;
  * - **Réparer** (`verifierRangement`, `verifierMesures`, `isReparerComplet`) : ranger six espèces,
- *   puis choisir une mesure.
+ *   puis choisir une mesure ;
+ * - **Ranger** (`buildRanger`, `verifierRanger`, `isRangerComplet` — « Le bon rôle », « Le bon
+ *   pays », ensemble unifié M21) : le moteur de Réparer sans leçon ni mesures ;
+ * - **Les fils de l'adaptation** (`buildAdaptation`) : le moteur des fils cachés, du milieu vers
+ *   l'espèce.
  *
  * Garde-fous : aucun message ne dit « non » ni « faux » ; un lien non prévu est « à discuter »,
  * jamais refusé ; une erreur de sens s'explique.
@@ -23,7 +27,18 @@
 
 export const TRAME_NIVEAUX = Object.freeze([5, 7, 9, 12]);
 export const TRAME_NIVEAU_ALTEREE = 9;
-export const TRAME_TYPES = Object.freeze(['retisser', 'reparer', 'alteree', 'fils']);
+export const TRAME_TYPES = Object.freeze([
+  'retisser',
+  'reparer',
+  'alteree',
+  'fils',
+  'ranger',
+  'adaptation',
+]);
+/** Types joués sur le plateau de flèches entre cartes de texte (moteur des fils cachés). */
+export const TRAME_TYPES_DE_FILS = Object.freeze(['fils', 'adaptation']);
+/** Familles du défi `ranger` : une unité par biome (`role`), une par plateau (`pays`). */
+export const TRAME_FAMILLES_RANGER = Object.freeze(['role', 'pays']);
 export const TRAME_CLASSEMENTS_DE_FLECHE = Object.freeze([
   'boucle',
   'doublon',
@@ -45,10 +60,14 @@ export const TRAME_MESSAGES = Object.freeze({
   trouvee: 'Lien trouvé.',
   inversee: 'Regarde le sens : la flèche va de celui qui est mangé vers celui qui mange.',
   inverseeFils: 'Regarde le sens : la flèche va de la cause vers son effet.',
+  inverseeAdaptation:
+    'Regarde le sens : la flèche part du milieu, passe par le problème, et arrive à l’espèce.',
   a_discuter: 'À discuter avec ton équipe ou avec ton professeur.',
   retisserComplet:
     'Chaque animal a trouvé quelque chose à manger, chaque plante a une suite, et une flèche au moins va vers les décomposeurs.',
   filsComplet: 'Tous les fils sont retrouvés, chacun dans le bon sens.',
+  adaptationComplet:
+    'Chaque contrainte du milieu mène à son problème, et chaque problème à l’espèce qui le résout.',
   matiereMorte:
     'Sans ces décomposeurs, la matière morte s’accumule : elle n’est plus transformée en éléments utiles aux plantes.',
   etapeManquante: 'C’est vrai, mais il manque une étape entre les deux.',
@@ -120,6 +139,22 @@ export function buildFils(chapitre) {
   };
 }
 
+/**
+ * Modèle des « fils de l'adaptation » d'un biome (ensemble unifié, M21) : le moteur des fils
+ * cachés, lu du milieu vers l'espèce — une contrainte du milieu, le problème qu'elle pose,
+ * l'espèce qui porte la solution.
+ */
+export function buildAdaptation(jeu) {
+  return {
+    ...buildFils(jeu),
+    type: 'adaptation',
+    biome: texte(jeu?.biome) || null,
+  };
+}
+
+/** Le modèle se joue-t-il avec le moteur des fils cachés (flèches entre cartes de texte) ? */
+const estDeFils = (model) => TRAME_TYPES_DE_FILS.includes(model?.type);
+
 function index(model) {
   return {
     cartes: new Map(model.cartes.map((c) => [c.code, c])),
@@ -155,11 +190,16 @@ export function classifyLink(model, de, vers, existantes = []) {
   }
   // Fils cachés : une cause qui mène à l'effet par une ou plusieurs étapes n'est pas à l'envers,
   // même si le fil direct existe dans l'autre sens (la boucle du plateau 4) — il manque une étape.
-  const raccourci = model.type === 'fils' && meneA(model, a, b);
+  const raccourci = estDeFils(model) && meneA(model, a, b);
   if (idx.acceptes.has(cleDe(b, a)) && !raccourci) {
     return {
       classement: 'inversee',
-      message: model.type === 'fils' ? TRAME_MESSAGES.inverseeFils : TRAME_MESSAGES.inversee,
+      message:
+        model.type === 'adaptation'
+          ? TRAME_MESSAGES.inverseeAdaptation
+          : model.type === 'fils'
+            ? TRAME_MESSAGES.inverseeFils
+            : TRAME_MESSAGES.inversee,
     };
   }
   return {
@@ -454,8 +494,102 @@ export function isReparerComplet(model, etat) {
 }
 
 // ---------------------------------------------------------------------
+// Ranger : « Le bon rôle », « Le bon pays » (ensemble unifié, M21)
+// ---------------------------------------------------------------------
+
+/**
+ * Modèle d'un jeu de rangement : des cartes, des catégories. Le moteur de Réparer sans leçon ni
+ * mesures. « Le bon pays » porte un `indice` par carte.
+ * @param {{ code, famille, unite, plateau, biome, titre, bilan, cartes: Array }} jeu
+ * @param {Array<{ code, nom, aide? }>} categories catégories proposées, dans l'ordre d'affichage
+ * @returns {{ type: 'ranger', famille, plateau, biome, titre, bilan, categories, cartes }}
+ */
+export function buildRanger(jeu, categories = []) {
+  const cats = (Array.isArray(categories) ? categories : [])
+    .map((c) => ({
+      code: texte(c?.code),
+      nom: texte(c?.nom) || texte(c?.code),
+      aide: texte(c?.aide) || null,
+    }))
+    .filter((c) => c.code);
+  const admises = new Set(cats.map((c) => c.code));
+  return {
+    type: 'ranger',
+    famille: texte(jeu?.famille) || null,
+    plateau: Number(jeu?.plateau) || null,
+    biome: texte(jeu?.biome) || null,
+    titre: texte(jeu?.titre) || null,
+    bilan: texte(jeu?.bilan) || null,
+    categories: cats,
+    cartes: (Array.isArray(jeu?.cartes) ? jeu.cartes : [])
+      .map((c) => ({
+        code: texte(c?.code),
+        nom: texte(c?.nom),
+        indice: texte(c?.indice) || null,
+        categorie: texte(c?.categorie),
+        pourquoi: texte(c?.pourquoi) || null,
+        generique: c?.generique === true || c?.generique === 1,
+      }))
+      .filter((c) => c.code && admises.has(c.categorie)),
+  };
+}
+
+/**
+ * Rangement d'un élève (`{ code: categorie }`) : essais illimités. Une carte bien rangée reçoit
+ * son « pourquoi » ; une autre « Pas encore. », **sans la réponse** ; une carte pas encore posée
+ * ne reçoit rien.
+ * @returns {{ complet: boolean, cartes: Array<{ code, rangee: boolean, juste: boolean,
+ *   message: string|null }> }}
+ */
+export function verifierRanger(model, rangement) {
+  const cartes = (model?.cartes || []).map((c) => {
+    const dit = texte(rangement?.[c.code]);
+    const juste = !!dit && dit === c.categorie;
+    return {
+      code: c.code,
+      rangee: !!dit,
+      juste,
+      message: juste
+        ? c.pourquoi || 'C’est la bonne colonne.'
+        : dit
+          ? TRAME_MESSAGES.pasEncore
+          : null,
+    };
+  });
+  return { complet: cartes.length > 0 && cartes.every((c) => c.juste), cartes };
+}
+
+/** Ranger est fini quand chaque carte est dans sa catégorie. */
+export function isRangerComplet(model, etat) {
+  return verifierRanger(model, etat?.rangement).complet;
+}
+
+// ---------------------------------------------------------------------
 // Indices : gratuits, illimités, en échelle, déterministes
 // ---------------------------------------------------------------------
+
+/** Phrases de l'échelle d'indices, par voix : réseau, fils cachés, fils de l'adaptation. */
+const INDICES = Object.freeze({
+  reseau: Object.freeze({
+    consigne: 'Relis la consigne : chaque flèche va de celui qui est mangé vers celui qui mange.',
+    structure: 'Commence par une plante : qui la mange ?',
+    toutEstLa:
+      'Tous les liens prévus sont là : vérifie le sens des flèches, et pense aux décomposeurs.',
+  }),
+  fils: Object.freeze({
+    consigne: 'Relis la consigne : chaque flèche va d’une cause vers son effet.',
+    structure:
+      'Cherche une carte qui peut servir de départ, puis demande-toi : et alors, que se passe-t-il ? Il peut y avoir plusieurs départs.',
+    toutEstLa: 'Tous les fils prévus sont là : vérifie le sens de chaque flèche.',
+  }),
+  adaptation: Object.freeze({
+    consigne:
+      'Relis la consigne : chaque flèche part du milieu, passe par le problème à résoudre, et arrive à l’espèce.',
+    structure:
+      'Cherche une carte qui décrit le milieu, puis demande-toi : quel problème cela pose-t-il aux êtres vivants ? Il y a plusieurs départs.',
+    toutEstLa: 'Tous les fils prévus sont là : vérifie le sens de chaque flèche.',
+  }),
+});
 
 /**
  * Indice suivant d'un plateau de cartes (Retisser, Fils cachés).
@@ -467,24 +601,15 @@ export function isReparerComplet(model, etat) {
  */
 export function nextHint(model, etat) {
   const rang = Math.max(0, Math.floor(Number(etat?.indices) || 0));
-  const fils = model.type === 'fils';
+  // Trois jeux de phrases sur une même échelle : réseau (qui mange qui), fils cachés (cause →
+  // effet), fils de l'adaptation (milieu → problème → espèce).
+  const voix =
+    model.type === 'adaptation' ? 'adaptation' : model.type === 'fils' ? 'fils' : 'reseau';
   if (rang === 0) {
-    return {
-      rang,
-      genre: 'consigne',
-      message: fils
-        ? 'Relis la consigne : chaque flèche va d’une cause vers son effet.'
-        : 'Relis la consigne : chaque flèche va de celui qui est mangé vers celui qui mange.',
-    };
+    return { rang, genre: 'consigne', message: INDICES[voix].consigne };
   }
   if (rang === 1) {
-    return {
-      rang,
-      genre: 'structure',
-      message: fils
-        ? 'Cherche une carte qui peut servir de départ, puis demande-toi : et alors, que se passe-t-il ? Il peut y avoir plusieurs départs.'
-        : 'Commence par une plante : qui la mange ?',
-    };
+    return { rang, genre: 'structure', message: INDICES[voix].structure };
   }
   const classees = classifyAll(model, etat?.fleches);
   const trouvees = new Set(
@@ -502,31 +627,29 @@ export function nextHint(model, etat) {
         rang,
         genre: 'piste',
         carte: isolee.code,
-        message: fils
-          ? `La carte ${cite(isolee.nom)} n’est reliée à rien : qu’est-ce qui la provoque, ou que provoque-t-elle ?`
-          : isolee.role === 'producteur'
-            ? `La carte ${cite(isolee.nom)} n’est reliée à rien : qui s’en nourrit ?`
-            : `La carte ${cite(isolee.nom)} n’est reliée à rien : de quoi se nourrit-elle, et qui s’en nourrit ?`,
+        message:
+          voix === 'adaptation'
+            ? `La carte ${cite(isolee.nom)} n’est reliée à rien : quel problème pose-t-elle, ou à quel problème répond-elle ?`
+            : voix === 'fils'
+              ? `La carte ${cite(isolee.nom)} n’est reliée à rien : qu’est-ce qui la provoque, ou que provoque-t-elle ?`
+              : isolee.role === 'producteur'
+                ? `La carte ${cite(isolee.nom)} n’est reliée à rien : qui s’en nourrit ?`
+                : `La carte ${cite(isolee.nom)} n’est reliée à rien : de quoi se nourrit-elle, et qui s’en nourrit ?`,
       };
     }
   }
   const lien = manquants[(rang - 2) % Math.max(1, manquants.length)] || null;
   if (!lien) {
-    return {
-      rang,
-      genre: 'structure',
-      message: fils
-        ? 'Tous les fils prévus sont là : vérifie le sens de chaque flèche.'
-        : 'Tous les liens prévus sont là : vérifie le sens des flèches, et pense aux décomposeurs.',
-    };
+    return { rang, genre: 'structure', message: INDICES[voix].toutEstLa };
   }
   return {
     rang,
     genre: 'revelation',
     lien: { de: lien.de, vers: lien.vers },
-    message: fils
-      ? `Un fil à tracer : ${cite(nom(lien.de))} mène à ${cite(nom(lien.vers))}.`
-      : `${cite(nom(lien.vers))} se nourrit de ${cite(nom(lien.de))} : trace la flèche de ${cite(nom(lien.de))} vers ${cite(nom(lien.vers))}.`,
+    message:
+      voix === 'reseau'
+        ? `${cite(nom(lien.vers))} se nourrit de ${cite(nom(lien.de))} : trace la flèche de ${cite(nom(lien.de))} vers ${cite(nom(lien.vers))}.`
+        : `Un fil à tracer : ${cite(nom(lien.de))} mène à ${cite(nom(lien.vers))}.`,
   };
 }
 
@@ -542,14 +665,15 @@ const borne = (v) => {
 /**
  * État d'un défi ramené à ses bornes : au plus 60 flèches entre cartes connues, textes de 280
  * caractères, coordonnées de 0 à 100. Tout ce qui n'est pas attendu est écarté.
- * @param {string} type `retisser` | `alteree` | `fils` | `reparer`
+ * @param {string} type `retisser` | `alteree` | `fils` | `reparer` | `ranger` | `adaptation`
  * @param {string[]} codes codes de cartes (ou d'espèces) admis
+ * @param {{ categories?: string[] }} [opts] `ranger` : codes des catégories du jeu
  */
-export function normaliserEtat(type, etat, codes = []) {
+export function normaliserEtat(type, etat, codes = [], opts = {}) {
   const admis = new Set((codes || []).map(texte));
   const src = etat && typeof etat === 'object' && !Array.isArray(etat) ? etat : {};
   const out = { indices: Math.min(999, Math.max(0, Math.floor(Number(src.indices) || 0))) };
-  if (type === 'retisser' || type === 'fils') {
+  if (type === 'retisser' || TRAME_TYPES_DE_FILS.includes(type)) {
     const vues = new Set();
     out.fleches = [];
     for (const f of Array.isArray(src.fleches) ? src.fleches : []) {
@@ -576,6 +700,14 @@ export function normaliserEtat(type, etat, codes = []) {
       if (TRAME_EFFETS.includes(p)) out.predictions[code] = p;
     }
     out.verifie = src.verifie === true;
+  }
+  if (type === 'ranger') {
+    const categories = new Set((opts?.categories || []).map(texte));
+    out.rangement = {};
+    for (const code of admis) {
+      const c = texte(src.rangement?.[code]);
+      if (categories.has(c)) out.rangement[code] = c;
+    }
   }
   if (type === 'reparer') {
     out.rangement = {};

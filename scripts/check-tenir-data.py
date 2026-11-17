@@ -51,7 +51,7 @@ REGLAGES_ATTENDUS = {
 BADGES_ATTENDUS = {
     "premiere_page", "lecteur", "fouilleur", "trouveur", "mains_tendues", "veilleur", "nommeur", "cartographe",
     "tisserand", "revelateur", "chuchoteur", "correcteur_du_renard", "passeur_de_seuil",
-    "gardien_des_fils", "reparateur",
+    "gardien_des_fils", "reparateur", "bon_rangeur",
 }
 
 

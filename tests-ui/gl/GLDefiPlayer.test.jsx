@@ -372,3 +372,201 @@ describe('GLDefisView — entrée « Défis »', () => {
     );
   });
 });
+
+// Ensemble unifié (M21) : « Le bon rôle », « Le bon pays », « Les fils de l'adaptation ».
+const ranger = (extra = {}) => ({
+  id: 9,
+  type: 'ranger',
+  libelle: 'Le bon rôle',
+  consigne: 'Range chaque être vivant selon son rôle dans la Trame.',
+  unite: 'role:savane',
+  mode: 'individuel',
+  statut: 'en_cours',
+  revision: 0,
+  indices: 0,
+  titre: 'Le bon rôle · Savane',
+  niveau: null,
+  famille: 'role',
+  cartes: [
+    { code: 'SP1', nom: 'Herbe à éléphant', indice: null, generique: false },
+    { code: 'SP2', nom: 'Zèbre des plaines', indice: null, generique: false },
+  ],
+  categories: [
+    { code: 'producteur', nom: 'Producteur', aide: 'fabrique sa matière avec la lumière' },
+    { code: 'consommateur', nom: 'Consommateur', aide: null },
+  ],
+  rangement: {},
+  rangementVerifie: [],
+  complet: false,
+  bilan: null,
+  ...extra,
+});
+
+describe('GLDefiPlayer — ranger et fils de l’adaptation', () => {
+  beforeEach(() => {
+    apiGlMock.mockReset();
+  });
+
+  test('Le bon rôle : la consigne du catalogue, « Pas encore. » sans la réponse, le pourquoi, puis le bilan', async () => {
+    const reponses = [
+      ranger({
+        revision: 1,
+        rangement: { SP1: 'consommateur' },
+        rangementVerifie: [{ code: 'SP1', juste: false, message: 'Pas encore.' }],
+      }),
+      ranger({
+        revision: 2,
+        statut: 'reussi',
+        complet: true,
+        rangement: { SP1: 'producteur', SP2: 'consommateur' },
+        rangementVerifie: [
+          { code: 'SP1', juste: true, message: 'Elle fabrique sa matière avec la lumière.' },
+          { code: 'SP2', juste: true, message: 'Il broute l’herbe.' },
+        ],
+        bilan: 'Sans producteurs, personne ne mange.',
+      }),
+    ];
+    const envois = [];
+    apiGlMock.mockImplementation(async (path, method, body) => {
+      if (method === 'POST' && path.endsWith('/defis')) return { defi: ranger() };
+      if (method === 'PUT') {
+        envois.push(body);
+        const defi = reponses.shift();
+        return { defi, reussite: defi.statut === 'reussi' ? { premiere: true, page: true } : null };
+      }
+      return {};
+    });
+    render(<GLDefiPlayer gameId={7} cible={{ type: 'ranger', unite: 'role:savane' }} />);
+    await waitFor(() => screen.getByTestId('gl-trame-ranger-SP1-producteur'));
+    // Le titre du catalogue seul (il porte déjà le nom du défi), et sa consigne.
+    expect(screen.getByRole('heading', { level: 4 }).textContent).toBe('Le bon rôle · Savane');
+    expect(screen.getByText('Range chaque être vivant selon son rôle dans la Trame.')).toBeTruthy();
+    expect(screen.getByText('fabrique sa matière avec la lumière')).toBeTruthy();
+    expect(screen.queryByTestId('gl-trame-bilan')).toBeNull();
+
+    fireEvent.click(screen.getByTestId('gl-trame-ranger-SP1-consommateur'));
+    await waitFor(() => screen.getByTestId('gl-trame-retour-SP1'));
+    expect(envois[0]).toEqual({ revision: 0, etat: { rangement: { SP1: 'consommateur' } } });
+    expect(screen.getByTestId('gl-trame-retour-SP1').textContent).toContain('Pas encore.');
+    expect(screen.getByTestId('gl-defi').textContent).not.toMatch(/faux|raté|Non[ ,.]/);
+
+    // Un nouveau geste efface le retour de l'ancienne colonne tant que le serveur n'a pas relu.
+    fireEvent.click(screen.getByTestId('gl-trame-ranger-SP1-producteur'));
+    expect(screen.queryByTestId('gl-trame-retour-SP1')).toBeNull();
+    fireEvent.click(screen.getByTestId('gl-trame-ranger-SP2-consommateur'));
+    await waitFor(() => screen.getByTestId('gl-defi-reussi'));
+    expect(envois[1].etat).toEqual({ rangement: { SP1: 'producteur', SP2: 'consommateur' } });
+    expect(screen.getByTestId('gl-trame-retour-SP1').textContent).toContain(
+      'Elle fabrique sa matière avec la lumière.',
+    );
+    expect(screen.getByTestId('gl-trame-bilan').textContent).toBe(
+      'Sans producteurs, personne ne mange.',
+    );
+    expect(screen.getByTestId('gl-trame-ranger-SP1-producteur').disabled).toBe(true);
+    expect(screen.getByTestId('gl-defi-reussi').textContent).not.toMatch(/gemme|cœur/i);
+  });
+
+  test('Le bon pays : l’indice de chaque carte est à l’écran', async () => {
+    apiGlMock.mockResolvedValue({
+      defi: ranger({
+        libelle: 'Le bon pays',
+        titre: 'Le bon pays',
+        unite: 'pays:p1',
+        famille: 'pays',
+        consigne: 'Lis l’indice de chaque carte, puis range-la dans le pays où elle vit.',
+        cartes: [{ code: 'SP1', nom: 'Okapi', indice: 'Vit seul et discret.', generique: false }],
+        categories: [
+          { code: 'jungle_afc', nom: 'Jungle d’Afrique centrale', aide: null },
+          { code: 'savane', nom: 'Savane tropicale', aide: null },
+        ],
+      }),
+    });
+    render(<GLDefiPlayer gameId={7} cible={{ type: 'ranger', unite: 'pays:p1' }} />);
+    await waitFor(() => screen.getByTestId('gl-trame-indice-SP1'));
+    expect(screen.getByTestId('gl-trame-indice-SP1').textContent).toContain('Vit seul et discret.');
+    expect(screen.getByTestId('gl-trame-ranger-SP1-savane').textContent).toBe('Savane tropicale');
+  });
+
+  test('Les fils de l’adaptation : le plateau de flèches, la consigne et le critère du catalogue', async () => {
+    apiGlMock.mockResolvedValue({
+      defi: {
+        ...retisser(),
+        type: 'adaptation',
+        libelle: 'Les fils de l’adaptation',
+        titre: "Les fils de l'adaptation · Savane",
+        unite: 'adaptation:savane',
+        niveau: null,
+        consigne: 'Relie chaque contrainte du milieu au problème qu’elle pose.',
+        critere: 'Chaque contrainte du milieu mène à son problème.',
+        cartes: [
+          { code: 'A', nom: 'La saison sèche dure', role: 'fil' },
+          { code: 'B', nom: 'Il faut trouver de l’eau', role: 'fil' },
+        ],
+      },
+    });
+    render(<GLDefiPlayer gameId={7} cible={{ type: 'adaptation', unite: 'adaptation:savane' }} />);
+    await waitFor(() => screen.getByTestId('gl-trame-board'));
+    expect(screen.getByRole('heading', { level: 4 }).textContent).toBe(
+      "Les fils de l'adaptation · Savane",
+    );
+    expect(
+      screen.getByText('Relie chaque contrainte du milieu au problème qu’elle pose.'),
+    ).toBeTruthy();
+    expect(screen.getByText(/Pour finir : Chaque contrainte du milieu/)).toBeTruthy();
+  });
+
+  test('liste : « ranger » se range en deux rubriques, une par famille', async () => {
+    apiGlMock.mockResolvedValue({
+      actifs: true,
+      mode: 'individuel',
+      tourOuvert: false,
+      pages: { utilisees: 0, plafond: 4 },
+      types: [
+        { type: 'ranger', famille: 'role', libelle: 'Le bon rôle' },
+        { type: 'ranger', famille: 'pays', libelle: 'Le bon pays' },
+        { type: 'adaptation', libelle: 'Les fils de l’adaptation' },
+      ],
+      defis: [
+        {
+          type: 'ranger',
+          famille: 'role',
+          unite: 'role:savane',
+          titre: 'Le bon rôle · Savane',
+          plateau: 1,
+          disponible: true,
+          statut: null,
+        },
+        {
+          type: 'ranger',
+          famille: 'pays',
+          unite: 'pays:p1',
+          titre: 'Le bon pays',
+          plateau: 1,
+          disponible: true,
+          statut: 'reussi',
+        },
+        {
+          type: 'adaptation',
+          unite: 'adaptation:savane',
+          titre: "Les fils de l'adaptation · Savane",
+          plateau: 1,
+          disponible: true,
+          statut: null,
+        },
+      ],
+      aReparer: [],
+    });
+    render(<GLDefisView gameId={7} />);
+    await waitFor(() => screen.getByTestId('gl-defis'));
+    const role = document.querySelector('[data-type="ranger"][data-famille="role"]');
+    const pays = document.querySelector('[data-type="ranger"][data-famille="pays"]');
+    expect(role.querySelector('h5').textContent).toBe('Le bon rôle');
+    expect(role.querySelectorAll('li')).toHaveLength(1);
+    expect(screen.getByTestId('gl-defi-ouvrir-ranger-role:savane').textContent).toBe('Savane');
+    expect(pays.querySelectorAll('li')).toHaveLength(1);
+    expect(screen.getByTestId('gl-defi-ouvrir-ranger-pays:p1').textContent).toContain('Plateau 1');
+    expect(screen.getByTestId('gl-defi-ouvrir-adaptation-adaptation:savane').textContent).toBe(
+      'Savane',
+    );
+  });
+});

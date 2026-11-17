@@ -1,0 +1,147 @@
+{
+  "format": "gl.tenir.adaptations/1",
+  "sens": "du milieu vers l'espèce : le milieu impose une contrainte, la contrainte pose un problème à résoudre, une espèce porte la solution",
+  "consigne": "Relie chaque contrainte du milieu au problème qu'elle pose, puis à l'espèce qui a la solution.",
+  "moteur": "celui des fils cachés (cartes de texte, flèches orientées, raccourci classé « il manque une étape »)",
+  "peuple": "any",
+  "biomes": [
+    {
+      "biome": "jungle_afc",
+      "plateau": 1,
+      "titre": "Les fils de l'adaptation · Forêt équatoriale",
+      "cartes": [
+        [
+          "A",
+          "Sous les grands arbres, il fait très sombre"
+        ],
+        [
+          "B",
+          "Il faut capter le peu de lumière qui passe"
+        ],
+        [
+          "C",
+          "Les plantes du sous-bois ont de très grandes feuilles"
+        ],
+        [
+          "D",
+          "Les fruits poussent tout en haut, dans la canopée"
+        ],
+        [
+          "E",
+          "Il faut atteindre la nourriture à 40 mètres du sol"
+        ],
+        [
+          "F",
+          "Le calao vole de cime en cime et cueille les fruits de son long bec"
+        ],
+        [
+          "G",
+          "Fourmis et termites vivent au fond de leurs galeries"
+        ],
+        [
+          "H",
+          "Il faut les attraper sans pouvoir entrer"
+        ],
+        [
+          "I",
+          "Le pangolin a une langue très longue et collante"
+        ]
+      ],
+      "liens": [
+        [
+          "A",
+          "B"
+        ],
+        [
+          "B",
+          "C"
+        ],
+        [
+          "D",
+          "E"
+        ],
+        [
+          "E",
+          "F"
+        ],
+        [
+          "G",
+          "H"
+        ],
+        [
+          "H",
+          "I"
+        ]
+      ]
+    },
+    {
+      "biome": "savane",
+      "plateau": 1,
+      "titre": "Les fils de l'adaptation · Savane",
+      "cartes": [
+        [
+          "A",
+          "Les arbres sont rares et leurs feuilles sont tout en haut"
+        ],
+        [
+          "B",
+          "Il faut brouter là où les autres n'arrivent pas"
+        ],
+        [
+          "C",
+          "La girafe a un cou et des pattes très longs"
+        ],
+        [
+          "D",
+          "Pendant des mois, il ne pleut pas"
+        ],
+        [
+          "E",
+          "Il faut garder de l'eau en réserve"
+        ],
+        [
+          "F",
+          "Le baobab stocke l'eau dans son tronc"
+        ],
+        [
+          "G",
+          "Le terrain est découvert : rien pour se cacher"
+        ],
+        [
+          "H",
+          "Il faut repérer le danger avant qu'il arrive"
+        ],
+        [
+          "I",
+          "Les suricates postent une sentinelle, debout sur une butte"
+        ]
+      ],
+      "liens": [
+        [
+          "A",
+          "B"
+        ],
+        [
+          "B",
+          "C"
+        ],
+        [
+          "D",
+          "E"
+        ],
+        [
+          "E",
+          "F"
+        ],
+        [
+          "G",
+          "H"
+        ],
+        [
+          "H",
+          "I"
+        ]
+      ]
+    }
+  ]
+}

@@ -1,0 +1,228 @@
+{
+  "format": "gl.tenir.trame-ranger/1",
+  "principe": "Ranger des cartes dans des catégories. Aucune carte n'est « fausse » : mal rangée, elle reçoit « Pas encore. » ; bien rangée, son pourquoi. Deux familles : role (une unité par biome) et pays (une unité par plateau, les pays déjà traversés reviennent).",
+  "familles": {
+    "role": {
+      "nom": "Le bon rôle",
+      "consigne": "Range chaque être vivant selon son rôle dans la Trame.",
+      "peuple": "any",
+      "categories": [
+        {
+          "code": "producteur",
+          "nom": "Producteur",
+          "aide": "fabrique sa matière avec la lumière"
+        },
+        {
+          "code": "consommateur",
+          "nom": "Consommateur",
+          "aide": "mange d'autres êtres vivants, vivants ou morts"
+        },
+        {
+          "code": "decomposeur",
+          "nom": "Décomposeur",
+          "aide": "transforme la matière morte et la rend au sol"
+        }
+      ]
+    },
+    "pays": {
+      "nom": "Le bon pays",
+      "consigne": "Lis l'indice de chaque carte, puis range-la dans le pays où elle vit.",
+      "peuple": "any",
+      "categories_depuis": "biomes",
+      "note": "categories = slugs de biomes ; le libellé vient du registre des biomes"
+    }
+  },
+  "jeux": [
+    {
+      "code": "role-jungle_afc",
+      "famille": "role",
+      "unite": "jungle_afc",
+      "plateau": 1,
+      "biome": "jungle_afc",
+      "titre": "Le bon rôle · Forêt équatoriale",
+      "cartes": [
+        {
+          "code": "SP0039",
+          "nom": "Moabi",
+          "categorie": "producteur",
+          "pourquoi": "Un arbre fabrique sa matière avec la lumière, l'eau et l'air."
+        },
+        {
+          "code": "SP0045",
+          "nom": "Marantacée",
+          "categorie": "producteur",
+          "pourquoi": "Même à l'ombre du sous-bois, ses grandes feuilles captent la lumière."
+        },
+        {
+          "code": "SP0043",
+          "nom": "Liane à eau",
+          "categorie": "producteur",
+          "pourquoi": "Elle grimpe sur les arbres pour atteindre la lumière, mais elle fabrique elle-même sa matière."
+        },
+        {
+          "code": "SP0027",
+          "nom": "Éléphant de forêt",
+          "categorie": "consommateur",
+          "pourquoi": "Il mange des fruits, des feuilles et des écorces."
+        },
+        {
+          "code": "SP0031",
+          "nom": "Léopard",
+          "categorie": "consommateur",
+          "pourquoi": "Il mange d'autres animaux."
+        },
+        {
+          "code": "SP0029",
+          "nom": "Pangolin géant",
+          "categorie": "consommateur",
+          "pourquoi": "Il mange des fourmis et des termites : il se nourrit d'êtres vivants."
+        },
+        {
+          "code": "DEC-CHAMPIGNONS",
+          "nom": "Champignons de la litière",
+          "categorie": "decomposeur",
+          "pourquoi": "Ils transforment les feuilles mortes en éléments que les racines peuvent reprendre.",
+          "generique": true
+        },
+        {
+          "code": "DEC-TERMITES",
+          "nom": "Termites du bois mort",
+          "categorie": "decomposeur",
+          "pourquoi": "Ils mangent le bois mort et le rendent au sol.",
+          "generique": true
+        }
+      ],
+      "bilan": "Sans décomposeurs, les feuilles mortes s'entasseraient et le sol s'appauvrirait : les arbres n'auraient plus de quoi pousser."
+    },
+    {
+      "code": "role-savane",
+      "famille": "role",
+      "unite": "savane",
+      "plateau": 1,
+      "biome": "savane",
+      "titre": "Le bon rôle · Savane",
+      "cartes": [
+        {
+          "code": "SP0115",
+          "nom": "Andropogon (herbe à éléphant)",
+          "categorie": "producteur",
+          "pourquoi": "Une herbe fabrique sa matière avec la lumière : c'est le départ de presque toutes les chaînes de la savane."
+        },
+        {
+          "code": "SP0110",
+          "nom": "Acacia parasol",
+          "categorie": "producteur",
+          "pourquoi": "Un arbre est un producteur, même quand il est couvert d'épines."
+        },
+        {
+          "code": "SP0111",
+          "nom": "Baobab africain",
+          "categorie": "producteur",
+          "pourquoi": "Il fabrique sa matière avec la lumière, et stocke l'eau dans son tronc."
+        },
+        {
+          "code": "SP0098",
+          "nom": "Zèbre des plaines",
+          "categorie": "consommateur",
+          "pourquoi": "Il broute l'herbe : il mange un producteur."
+        },
+        {
+          "code": "SP0095",
+          "nom": "Lion d'Afrique",
+          "categorie": "consommateur",
+          "pourquoi": "Il mange d'autres animaux."
+        },
+        {
+          "code": "SP0107",
+          "nom": "Vautour africain",
+          "categorie": "consommateur",
+          "pourquoi": "Il mange des animaux déjà morts : c'est un charognard, donc un consommateur. Il ne rend pas la matière au sol."
+        },
+        {
+          "code": "SP0109",
+          "nom": "Termite (Macrotermes)",
+          "categorie": "decomposeur",
+          "pourquoi": "Il transforme l'herbe sèche et le bois mort : la matière retourne au sol."
+        },
+        {
+          "code": "DEC-BOUSIER",
+          "nom": "Bousier",
+          "categorie": "decomposeur",
+          "pourquoi": "Ce scarabée enterre et mange les bouses : il les rend au sol, où les plantes les reprennent.",
+          "generique": true
+        }
+      ],
+      "bilan": "Un charognard mange de la viande : c'est un consommateur. Un décomposeur, lui, rend la matière morte au sol."
+    },
+    {
+      "code": "pays-p1",
+      "famille": "pays",
+      "unite": "p1",
+      "plateau": 1,
+      "titre": "Le bon pays",
+      "categories": [
+        "jungle_afc",
+        "savane"
+      ],
+      "cartes": [
+        {
+          "code": "SP0026",
+          "nom": "Okapi",
+          "indice": "Pelage sombre, rayé seulement aux pattes ; vit seul et discret.",
+          "categorie": "jungle_afc",
+          "pourquoi": "Dans l'ombre du sous-bois, un pelage sombre rayé de clair se confond avec les taches de lumière."
+        },
+        {
+          "code": "SP0033",
+          "nom": "Calao à casque jaune",
+          "indice": "Cueille de gros fruits tout en haut des arbres.",
+          "categorie": "jungle_afc",
+          "pourquoi": "Les gros fruits poussent dans la canopée de la forêt équatoriale."
+        },
+        {
+          "code": "SP0023",
+          "nom": "Gorille des plaines",
+          "indice": "Mange des feuilles et des tiges toute l'année, sans jamais migrer.",
+          "categorie": "jungle_afc",
+          "pourquoi": "En forêt équatoriale, il y a des feuilles vertes en toute saison."
+        },
+        {
+          "code": "SP0046",
+          "nom": "Fromager (kapokier)",
+          "indice": "Arbre géant aux contreforts, qui dépasse le toit de feuilles.",
+          "categorie": "jungle_afc",
+          "pourquoi": "Il faut monter très haut pour capter la lumière au-dessus de la canopée."
+        },
+        {
+          "code": "SP0098",
+          "nom": "Zèbre des plaines",
+          "indice": "Vit en grands troupeaux et broute l'herbe.",
+          "categorie": "savane",
+          "pourquoi": "L'herbe à perte de vue, c'est la savane."
+        },
+        {
+          "code": "SP0097",
+          "nom": "Girafe",
+          "indice": "Broute la cime d'arbres épineux, loin les uns des autres.",
+          "categorie": "savane",
+          "pourquoi": "Des arbres dispersés au milieu des herbes : c'est la savane."
+        },
+        {
+          "code": "SP0106",
+          "nom": "Suricate",
+          "indice": "Une sentinelle guette debout pendant que le clan fouille le sol.",
+          "categorie": "savane",
+          "pourquoi": "Guetter de loin ne sert qu'en terrain découvert."
+        },
+        {
+          "code": "SP0111",
+          "nom": "Baobab africain",
+          "indice": "Stocke l'eau dans son tronc pour tenir des mois sans pluie.",
+          "categorie": "savane",
+          "pourquoi": "La savane a une longue saison sèche ; la forêt équatoriale, non."
+        }
+      ],
+      "bilan": "Deux pays chauds, mais l'un a de l'eau toute l'année et l'autre une longue saison sèche : les êtres vivants n'y ont pas les mêmes solutions."
+    }
+  ]
+}

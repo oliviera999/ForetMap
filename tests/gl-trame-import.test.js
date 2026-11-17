@@ -23,7 +23,13 @@ const { runImports } = require('../scripts/gl-import-tenir');
 
 const EXEMPLE = path.join(__dirname, '..', 'data', 'gl', 'tenir', 'exemple');
 const lire = (nom) => JSON.parse(fs.readFileSync(path.join(EXEMPLE, `${nom}.json`), 'utf8'));
-const FICHIERS = ['trame-reseaux', 'trame-fils', 'trame-reparer'];
+const FICHIERS = [
+  'trame-reseaux',
+  'trame-fils',
+  'trame-reparer',
+  'trame-ranger',
+  'trame-adaptations',
+];
 const compte = async (table, where = '1 = 1') =>
   Number((await db.queryOne(`SELECT COUNT(*) AS n FROM ${table} WHERE ${where}`)).n);
 
@@ -37,6 +43,18 @@ async function etat() {
     mesures: await compte('gl_trame_mesures', 'actif = 1'),
     especes: await compte('gl_trame_reparer_especes', 'plateau = 1'),
     aClasser: await compte('gl_trame_reparer_a_classer', 'plateau = 1'),
+    rangerFamilles: await compte('gl_trame_ranger_familles', 'actif = 1'),
+    rangerJeux: await compte('gl_trame_ranger_jeux', 'actif = 1 AND plateau = 1'),
+    rangerCartes: await compte(
+      'gl_trame_ranger_cartes',
+      "jeu_code IN ('role-jungle_afc', 'role-savane', 'pays-p1')",
+    ),
+    adaptations: await compte('gl_trame_adaptation_jeux', 'actif = 1 AND plateau = 1'),
+    adaptationCartes: await compte(
+      'gl_trame_adaptation_cartes',
+      "biome IN ('jungle_afc', 'savane')",
+    ),
+    adaptationLiens: await compte('gl_trame_adaptation_liens', "biome IN ('jungle_afc', 'savane')"),
   };
 }
 
@@ -44,8 +62,8 @@ before(async () => {
   await db.initSchema();
 });
 
-test('registre : trois chargeurs, en fin d’ordre de chargement, chacun avec sa table de comptes', () => {
-  assert.deepEqual(IMPORT_ORDER.slice(-3), FICHIERS);
+test('registre : cinq chargeurs, en fin d’ordre de chargement, chacun avec sa table de comptes', () => {
+  assert.deepEqual(IMPORT_ORDER.slice(-5), FICHIERS);
   for (const f of FICHIERS) {
     assert.equal(typeof IMPORTERS[f], 'function');
     assert.ok(IMPORT_TABLES[f]?.table.startsWith('gl_trame_'));
@@ -74,6 +92,12 @@ test('jeu d’exemple : à blanc sans écriture, puis réel et idempotent', asyn
     mesures: 11,
     especes: 5,
     aClasser: 6,
+    rangerFamilles: 2,
+    rangerJeux: 3,
+    rangerCartes: 24,
+    adaptations: 2,
+    adaptationCartes: 18,
+    adaptationLiens: 12,
   });
   for (const fichier of FICHIERS) await runImports(db, { fichier, dossier: EXEMPLE });
   assert.deepEqual(await etat(), premier, 'deux passages = même base');
@@ -216,4 +240,158 @@ test('espèces : absentes de la base → avertissement (erreur en strict) ; pré
     );
     await db.execute('DELETE FROM gl_species WHERE species_code = ?', [code]);
   }
+});
+
+// ---------------------------------------------------------------------
+// Ensemble unifié (M21) : trame-ranger.json, trame-adaptations.json
+// ---------------------------------------------------------------------
+
+test('trame-ranger : structure refusée ; ligne fautive écartée en tolérant, fichier refusé en strict', async () => {
+  const refus = await IMPORTERS['trame-ranger'](db, { jeux: [] }, {});
+  assert.equal(refus.refuse, true);
+  assert.match(refus.errors[0], /familles\{\}.*jeux\[\]/);
+
+  const fautes = (modifier) => {
+    const json = lire('trame-ranger');
+    modifier(json);
+    return IMPORTERS['trame-ranger'](db, json, { dryRun: true });
+  };
+  const cas = [
+    [(j) => (j.jeux[0].cartes[0].categorie = 'herbivore'), /catégorie herbivore inconnue/],
+    [(j) => (j.jeux[0].cartes[0].pourquoi = ''), /pourquoi vide/],
+    [(j) => (j.jeux[0].biome = 'toundra'), /biome étranger au plateau 1/],
+    [(j) => (j.jeux[0].unite = 'p1'), /l'unité d'un jeu de rôle est son biome/],
+    [(j) => (j.jeux[1].code = j.jeux[0].code), /code en double/],
+    [(j) => delete j.jeux[2].cartes[0].indice, /indice attendu/],
+    [(j) => (j.jeux[2].categories = ['jungle_afc']), /au moins deux pays attendus/],
+    [
+      (j) => (j.jeux[2].categories = ['jungle_afc', 'mangrove']),
+      /pays mangrove hors des biomes joués/,
+    ],
+    [(j) => (j.jeux[2].unite = 'p3'), /l'unité d'un jeu de pays est p<plateau>/],
+    [(j) => (j.jeux[0].cartes = j.jeux[0].cartes.slice(0, 2)), /4 à 12 cartes attendues/],
+    [(j) => (j.jeux[0].bilan = ''), /bilan vide/],
+    // Une carte DEC-… est générique, et elle seule.
+    [(j) => (j.jeux[0].cartes[0].generique = true), /une carte DEC-… est générique, et elle seule/],
+    [(j) => delete j.jeux[0].cartes[6].generique, /une carte DEC-… est générique, et elle seule/],
+    [(j) => (j.jeux[0].cartes[0].code = 'MOABI'), /code d'espèce attendu/],
+    [(j) => (j.jeux[0].cartes[0].nom = 'Un arbre jamais perdu'), /chaîne interdite/],
+    [
+      (j) => (j.jeux[0].cartes = j.jeux[0].cartes.filter((c) => c.categorie !== 'decomposeur')),
+      /aucune carte pour la catégorie decomposeur/,
+    ],
+  ];
+  for (const [modifier, attendu] of cas) {
+    const rep = await fautes(modifier);
+    assert.ok(
+      rep.errors.some((e) => attendu.test(e)),
+      `${attendu} : ${rep.errors.join(' | ')}`,
+    );
+    assert.equal(rep.upserted, 0);
+  }
+  const famille = await fautes(
+    (j) => (j.familles.role.categories = [j.familles.role.categories[0]]),
+  );
+  assert.ok(famille.errors.some((e) => /au moins deux catégories/.test(e)));
+  assert.ok(
+    famille.errors.some((e) => /famille inconnue ou refusée/.test(e)),
+    'ses jeux sont écartés avec elle',
+  );
+  const inconnue = await fautes((j) => (j.familles.taille = { nom: 'x', consigne: 'y' }));
+  assert.ok(inconnue.warnings.some((w) => /famille taille inconnue/.test(w)));
+
+  // Tolérant : le jeu fautif est écarté, les autres sont écrits. Strict : rien n'est écrit.
+  const json = lire('trame-ranger');
+  json.jeux[1].cartes[0].categorie = 'herbivore';
+  const tolerant = await IMPORTERS['trame-ranger'](db, json, {});
+  assert.equal(tolerant.ecartees, 1);
+  assert.equal(tolerant.upserted, 2);
+  const strict = await IMPORTERS['trame-ranger'](db, json, { strict: true });
+  assert.equal(strict.refuse, true);
+  assert.equal(strict.upserted, 0);
+  // Un jeu sorti du fichier est désactivé, jamais supprimé ; il revient avec le fichier.
+  const court = lire('trame-ranger');
+  court.jeux = court.jeux.slice(0, 2);
+  const rep = await IMPORTERS['trame-ranger'](db, court, {});
+  assert.equal(rep.desactives, 1);
+  assert.equal(await compte('gl_trame_ranger_jeux', "code = 'pays-p1' AND actif = 0"), 1);
+  await runImports(db, { fichier: 'trame-ranger', dossier: EXEMPLE });
+  assert.equal(await compte('gl_trame_ranger_jeux', "code = 'pays-p1' AND actif = 1"), 1);
+});
+
+test('trame-ranger : une espèce d’un autre biome est refusée ; absente de la base, elle est signalée', async () => {
+  const json = lire('trame-ranger');
+  const carte = json.jeux[0].cartes[0];
+  const deja = await db.queryOne('SELECT id, biome_slug FROM gl_species WHERE species_code = ?', [
+    carte.code,
+  ]);
+  if (!deja) {
+    const tolerant = await IMPORTERS['trame-ranger'](db, json, { dryRun: true });
+    assert.ok(tolerant.warnings.some((w) => /espèce absente de gl_species/.test(w)));
+    const strict = await IMPORTERS['trame-ranger'](db, json, { dryRun: true, strict: true });
+    assert.ok(strict.errors.some((e) => /espèce absente de gl_species/.test(e)));
+    await db.execute(
+      `INSERT INTO gl_species (species_code, biome_slug, type, nom_commun, statut, created_at, updated_at)
+       VALUES (?, 'toundra', 'flore', ?, 'actif', NOW(), NOW())`,
+      [carte.code, `${carte.nom} (test ${Date.now()})`],
+    );
+  } else {
+    await db.execute("UPDATE gl_species SET biome_slug = 'toundra' WHERE id = ?", [deja.id]);
+  }
+  try {
+    const rep = await IMPORTERS['trame-ranger'](db, json, { dryRun: true });
+    assert.ok(
+      rep.errors.some((e) => /espèce du biome toundra, pas jungle_afc/.test(e)),
+      rep.errors.join(' | '),
+    );
+  } finally {
+    if (deja) {
+      await db.execute('UPDATE gl_species SET biome_slug = ? WHERE id = ?', [
+        deja.biome_slug,
+        deja.id,
+      ]);
+    } else {
+      await db.execute('DELETE FROM gl_species WHERE species_code = ?', [carte.code]);
+    }
+  }
+});
+
+test('trame-adaptations : structure refusée, contrôles d’un jeu de fils, tolérant et strict', async () => {
+  const refus = await IMPORTERS['trame-adaptations'](db, {}, {});
+  assert.equal(refus.refuse, true);
+  const fautes = (modifier) => {
+    const json = lire('trame-adaptations');
+    modifier(json);
+    return IMPORTERS['trame-adaptations'](db, json, { dryRun: true });
+  };
+  const cas = [
+    [(j) => (j.biomes[0].biome = 'toundra'), /biome étranger au plateau 1/],
+    [(j) => (j.biomes[1].biome = j.biomes[0].biome), /biome en double/],
+    [(j) => (j.biomes[0].titre = ''), /titre vide/],
+    [(j) => j.biomes[0].liens.push(['A', 'Z']), /lien A>Z hors des cartes du biome/],
+    [(j) => j.biomes[0].liens.push(['A', 'A']), /d'une carte vers elle-même/],
+    [(j) => j.biomes[0].liens.push(j.biomes[0].liens[0]), /en double/],
+    [(j) => j.biomes[0].liens.push([...j.biomes[0].liens[0]].reverse()), /posé dans les deux sens/],
+    [(j) => (j.biomes[0].liens = j.biomes[0].liens.slice(2)), /carte A sans fil/],
+    [(j) => (j.biomes[0].liens = []), /aucun lien/],
+    [(j) => (j.biomes[0].cartes = j.biomes[0].cartes.slice(0, 2)), /trois cartes distinctes/],
+    [(j) => (j.biomes[0].cartes[0][1] = 'Le milieu attaque'), /chaîne interdite/],
+    [(j) => (j.biomes[0].plateau = 7), /plateau hors 1-4/],
+  ];
+  for (const [modifier, attendu] of cas) {
+    const rep = await fautes(modifier);
+    assert.ok(
+      rep.errors.some((e) => attendu.test(e)),
+      `${attendu} : ${rep.errors.join(' | ')}`,
+    );
+  }
+  const json = lire('trame-adaptations');
+  json.biomes[1].liens = [];
+  const tolerant = await IMPORTERS['trame-adaptations'](db, json, {});
+  assert.equal(tolerant.ecartees, 1);
+  assert.equal(tolerant.upserted, 1);
+  const strict = await IMPORTERS['trame-adaptations'](db, json, { strict: true });
+  assert.equal(strict.refuse, true);
+  assert.equal(strict.upserted, 0);
+  await runImports(db, { fichier: 'trame-adaptations', dossier: EXEMPLE });
 });

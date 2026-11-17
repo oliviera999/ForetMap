@@ -4,6 +4,8 @@ const { createTenirGame } = require('../tests/helpers/glTenirFixtures');
 const { mountGlSession } = require('./fixtures/gl.fixture');
 const core = require('../lib/shared/glTrameCore');
 const catalogue = require('../data/gl/tenir/trame-reseaux.json');
+const ranger = require('../data/gl/tenir/trame-ranger.json');
+const adaptations = require('../data/gl/tenir/trame-adaptations.json');
 
 // « Tenir à deux », lot 3 — défis de la Trame.
 // Une tablette d'équipe (Gnomes, hors tour) relève un Retisser niveau 5 de bout en bout ; un
@@ -254,5 +256,136 @@ test.describe('GL — défis de la Trame', () => {
       [gameId],
     );
     expect(Number(evenements.n)).toBeGreaterThanOrEqual(2);
+  });
+  // Ensemble unifié (M21) : trois défis de plus, ouverts aux deux peuples, sans nouvel écran.
+  test('Le bon rôle, Le bon pays et Les fils de l’adaptation, pour une Licorne comme pour un Gnome', async ({
+    browser,
+    request,
+  }) => {
+    test.setTimeout(240_000);
+    const ctx = await createTenirGame({ stamp: Date.now(), plateau: 1, playerCount: 8 });
+    const gameId = Number(ctx.game.id);
+    const prof = { Authorization: `Bearer ${ctx.adminToken}`, ...GL };
+    const api = (path) => `/api/gl/games/${gameId}${path}`;
+    const leve = await request.put('/api/gl/admin/settings/gameplay.tenir_enabled', {
+      headers: prof,
+      data: { value: true },
+    });
+    expect(leve.ok(), await leve.text()).toBeTruthy();
+    const profil = await request.put(api('/tenir/profil'), {
+      headers: prof,
+      data: { profil: 'complet', overrides: { surface: 'tablette' } },
+    });
+    expect(profil.ok(), await profil.text()).toBeTruthy();
+    await semerPagesDeVeillee();
+    const avant = await bourses(gameId);
+
+    const ouvrirSeuil = async (eleve, viewport) => {
+      const contexte = await browser.newContext({ viewport, deviceScaleFactor: 2 });
+      const page = await contexte.newPage();
+      page.setDefaultTimeout(20_000);
+      await mountGlSession(page, {
+        token: eleve.token,
+        auth: {
+          userType: 'gl_player',
+          roleSlug: 'gl_player',
+          displayName: eleve.pseudo,
+          userId: String(eleve.id),
+          teamId: Number(eleve.teamId),
+        },
+        tab: 'seuil',
+      });
+      await page.getByTestId('gl-defis-entree-bouton').click();
+      await expect(page.getByTestId('gl-defis')).toBeVisible();
+      return { contexte, page };
+    };
+    const membre = (type) => {
+      const equipe = ctx.teams.find((t) => t.type === type);
+      return ctx.players.find((p) => Number(p.teamId) === Number(equipe.id));
+    };
+
+    // --- Une Licorne : « Le bon rôle », puis « Le bon pays » ---------------------------------
+    const licorne = await ouvrirSeuil(membre('unicorn'), { width: 1024, height: 768 });
+    const tab = licorne.page;
+    // Les trois défis communs sont proposés à côté de ceux de son peuple.
+    await expect(tab.locator('[data-type="ranger"][data-famille="role"]')).toBeVisible();
+    await expect(tab.locator('[data-type="ranger"][data-famille="pays"]')).toBeVisible();
+    await expect(tab.locator('[data-type="adaptation"]')).toBeVisible();
+    await tab.getByTestId(`gl-defi-ouvrir-ranger-role:${BIOME}`).click();
+    const jeu = ranger.jeux.find((j) => j.code === `role-${BIOME}`);
+    await expect(tab.getByTestId('gl-defi')).toHaveAttribute('data-type', 'ranger');
+    await expect(tab.getByTestId('gl-defi')).toContainText(ranger.familles.role.consigne);
+    // Une carte dans la mauvaise colonne : « Pas encore. », sans la réponse.
+    const [premiere] = jeu.cartes;
+    const autre = ranger.familles.role.categories.find((c) => c.code !== premiere.categorie).code;
+    await tab.getByTestId(`gl-trame-ranger-${premiere.code}-${autre}`).click();
+    const retour = tab.getByTestId(`gl-trame-retour-${premiere.code}`);
+    await expect(retour).toContainText('Pas encore.');
+    await expect(retour).not.toContainText(premiere.pourquoi);
+    await expect(tab.getByTestId('gl-defi')).not.toContainText(/faux|raté|perdu/i);
+    for (const c of jeu.cartes) {
+      await tab.getByTestId(`gl-trame-ranger-${c.code}-${c.categorie}`).click();
+    }
+    await expect(retour).toContainText(premiere.pourquoi);
+    await expect(tab.getByTestId('gl-defi-reussi')).toBeVisible();
+    await expect(tab.getByTestId('gl-defi-reussi')).not.toContainText(/gemme|cœur/i);
+    await expect(tab.getByTestId('gl-trame-bilan')).toHaveText(jeu.bilan);
+    await tab.getByTestId('gl-trame-bilan').scrollIntoViewIfNeeded();
+    await tab.screenshot({ path: 'docs/captures/tenir-v2/defis-bon-role-tablette.png' });
+    await tab.getByRole('button', { name: 'Retour aux défis' }).click();
+
+    await tab.getByTestId('gl-defi-ouvrir-ranger-pays:p1').click();
+    const pays = ranger.jeux.find((j) => j.code === 'pays-p1');
+    await expect(tab.getByTestId(`gl-trame-indice-${pays.cartes[0].code}`)).toContainText(
+      pays.cartes[0].indice,
+    );
+    await tab.screenshot({ path: 'docs/captures/tenir-v2/defis-bon-pays-tablette.png' });
+    for (const c of pays.cartes) {
+      await tab.getByTestId(`gl-trame-ranger-${c.code}-${c.categorie}`).click();
+    }
+    await expect(tab.getByTestId('gl-defi-reussi')).toBeVisible();
+    await expect(tab.getByTestId('gl-trame-bilan')).toHaveText(pays.bilan);
+    await licorne.contexte.close();
+
+    // --- Un Gnome : « Les fils de l'adaptation », sur le plateau de flèches ------------------
+    const gnome = await ouvrirSeuil(membre('gnome'), { width: 1024, height: 768 });
+    const g = gnome.page;
+    await g.getByTestId(`gl-defi-ouvrir-adaptation-adaptation:${BIOME}`).click();
+    const board = g.getByTestId('gl-trame-board');
+    await expect(board).toBeVisible();
+    const modele = core.buildAdaptation(adaptations.biomes.find((b) => b.biome === BIOME));
+    const relier = async (de, vers) => {
+      await g.getByTestId(`gl-trame-carte-${de}`).click();
+      await g.getByTestId(`gl-trame-carte-${vers}`).click();
+    };
+    // Un fil à l'envers : dit, jamais puni — on le retire.
+    const [fil] = modele.liens;
+    await relier(fil.vers, fil.de);
+    const inversee = g.locator('.gl-trame-legende li.is-inversee');
+    await expect(inversee).toContainText('Regarde le sens');
+    const nom = Object.fromEntries(modele.cartes.map((c) => [c.code, c.nom]));
+    await g
+      .getByRole('button', {
+        name: `Retirer la flèche de la carte « ${nom[fil.vers]} » vers la carte « ${nom[fil.de]} »`,
+      })
+      .click();
+    await expect(inversee).toHaveCount(0);
+    for (const l of modele.liens) await relier(l.de, l.vers);
+    await expect(g.getByTestId('gl-defi-reussi')).toBeVisible();
+    await g.getByTestId('gl-defi').scrollIntoViewIfNeeded();
+    await g.screenshot({ path: 'docs/captures/tenir-v2/defis-adaptation-tablette.png' });
+    await gnome.contexte.close();
+
+    // --- Ce qui est écrit : trois réussites, aucune ressource --------------------------------
+    const reussites = await queryAll(
+      'SELECT type, unite FROM gl_trame_reussites WHERE game_id = ? ORDER BY id',
+      [gameId],
+    );
+    expect(reussites.map((r) => `${r.type}|${r.unite}`)).toEqual([
+      `ranger|role:${BIOME}`,
+      'ranger|pays:p1',
+      `adaptation|adaptation:${BIOME}`,
+    ]);
+    expect(await bourses(gameId)).toBe(avant);
   });
 });

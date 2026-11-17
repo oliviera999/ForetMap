@@ -99,12 +99,22 @@ const mouvements = async () =>
 let gnome;
 let autreGnome;
 let licorne;
+/** Rubrique d'une liste : le type, et la famille quand « ranger » en compte deux. */
+const rubrique = (t) => (t.famille ? `${t.type}:${t.famille}` : t.type);
+/** Les défis ouverts aux deux peuples (ensemble unifié, M21), à la suite de ceux du peuple. */
+const COMMUNS = ['ranger:role', 'ranger:pays', 'adaptation'];
 
 before(async () => {
   await db.initSchema();
   ctx = await createTenirGame({ stamp: Date.now(), plateau: 1 });
   await importExempleChasse(db, { game: ctx.game });
-  for (const fichier of ['trame-reseaux', 'trame-fils', 'trame-reparer']) {
+  for (const fichier of [
+    'trame-reseaux',
+    'trame-fils',
+    'trame-reparer',
+    'trame-ranger',
+    'trame-adaptations',
+  ]) {
     const [rep] = await runImports(db, { fichier, dossier: EXEMPLE });
     assert.deepEqual(rep.errors, [], fichier);
   }
@@ -130,10 +140,7 @@ test('liste : les défis de son peuple, sur les deux biomes du plateau, niveaux 
   assert.equal(g.status, 200, JSON.stringify(g.body));
   assert.equal(g.body.actifs, true);
   assert.equal(g.body.mode, 'individuel');
-  assert.deepEqual(
-    g.body.types.map((t) => t.type),
-    ['retisser', 'reparer'],
-  );
+  assert.deepEqual(g.body.types.map(rubrique), ['retisser', 'reparer', ...COMMUNS]);
   const retisser = g.body.defis.filter((d) => d.type === 'retisser');
   assert.deepEqual(
     retisser.map((d) => [d.unite, d.disponible]),
@@ -154,10 +161,7 @@ test('liste : les défis de son peuple, sur les deux biomes du plateau, niveaux 
   );
   assert.deepEqual(g.body.pages, { utilisees: 0, plafond: 2 });
   const l = await lister(licorne.token);
-  assert.deepEqual(
-    l.body.types.map((t) => t.type),
-    ['alteree', 'fils'],
-  );
+  assert.deepEqual(l.body.types.map(rubrique), ['alteree', 'fils', ...COMMUNS]);
   assert.equal(l.body.defis.filter((d) => d.type === 'alteree').length, 6);
   // La liste ne dit rien des solutions.
   assert.ok(
@@ -588,10 +592,7 @@ test('mode équipe : tablette hors tour ou prof ; chaque membre présent est com
   assert.equal(parLeProf.body.defi.trouvees, 1);
   const listeProf = await lister(ctx.adminToken, `?teamId=${team(3).id}`);
   assert.equal(listeProf.body.mode, 'equipe');
-  assert.deepEqual(
-    listeProf.body.types.map((t) => t.type),
-    ['alteree', 'fils'],
-  );
+  assert.deepEqual(listeProf.body.types.map(rubrique), ['alteree', 'fils', ...COMMUNS]);
 });
 
 test('suivi du prof : tri alphabétique, unités et indices par élève, phrases à parcourir, export CSV', async () => {
@@ -630,10 +631,13 @@ test('réglages : défis fermés, défis ouverts aux deux peuples, mode équipe 
       .send({ profil: 'complet', overrides: { surface: 'tablette', ...overrides } })
       .expect(200);
   await profil({ defis_par_peuple: false });
-  assert.deepEqual(
-    (await lister(gnome.token)).body.types.map((t) => t.type),
-    ['retisser', 'reparer', 'alteree', 'fils'],
-  );
+  assert.deepEqual((await lister(gnome.token)).body.types.map(rubrique), [
+    'retisser',
+    'reparer',
+    'alteree',
+    'fils',
+    ...COMMUNS,
+  ]);
   await profil({ defis_mode_equipe: false });
   const tablette = await issueTeamSession(db, { gameId: ctx.game.id, teamId: team(1).id });
   const equipe = await ouvrir(tablette.token, { type: 'reparer', unite: 'p1' });
@@ -779,4 +783,170 @@ test('une page décidée mais pas encore écrite au carnet est rattrapée à la 
   );
   assert.equal(decouvertes.length, 1, 'écrite une seule fois');
   assert.equal(await sommeDesBourses(), avant, 'aucune ressource');
+});
+
+// ---------------------------------------------------------------------
+// Ensemble unifié (M21) : « Le bon rôle », « Le bon pays », « Les fils de l'adaptation »
+// ---------------------------------------------------------------------
+
+test('trois défis de plus, ouverts aux deux peuples, sur les biomes du plateau', async () => {
+  const [licorneC] = membres(3);
+  for (const eleve of [gnome, licorneC]) {
+    const liste = (await lister(eleve.token)).body;
+    assert.deepEqual(
+      liste.defis.filter((d) => d.type === 'ranger').map((d) => [d.unite, d.libelle]),
+      [
+        ['role:jungle_afc', 'Le bon rôle'],
+        ['role:savane', 'Le bon rôle'],
+        ['pays:p1', 'Le bon pays'],
+      ],
+    );
+    assert.deepEqual(
+      liste.defis.filter((d) => d.type === 'adaptation').map((d) => d.unite),
+      ['adaptation:jungle_afc', 'adaptation:savane'],
+    );
+    assert.ok(
+      liste.defis.filter((d) => COMMUNS.includes(rubrique(d))).every((d) => d.disponible),
+      'aucun niveau à ouvrir',
+    );
+    // La liste ne dit rien des solutions.
+    assert.ok(!/categorie|pourquoi|"liens"|bilan/.test(JSON.stringify(liste)));
+  }
+  // Une unité d'un autre plateau, une unité mal écrite : inconnues.
+  for (const [type, unite] of [
+    ['ranger', 'role:toundra'],
+    ['ranger', 'pays:p2'],
+    ['ranger', 'savane'],
+    ['adaptation', 'adaptation:taiga'],
+    ['adaptation', 'p1'],
+  ]) {
+    const res = await ouvrir(gnome.token, { type, unite });
+    assert.equal(res.status, 404, `${type} ${unite} : ${JSON.stringify(res.body)}`);
+    assert.equal(res.body.code, 'DEFI_UNITE_INCONNUE');
+  }
+});
+
+test('Le bon rôle : « Pas encore. » sans la réponse, le pourquoi d’une carte bien rangée, le bilan à la réussite', async () => {
+  const [licorneC] = membres(3);
+  const jeu = lire('trame-ranger').jeux.find((j) => j.code === 'role-savane');
+  const avant = await sommeDesBourses();
+  const cree = await ouvrir(licorneC.token, { type: 'ranger', unite: 'role:savane' });
+  assert.equal(cree.status, 201, JSON.stringify(cree.body));
+  const defi = cree.body.defi;
+  assert.equal(defi.libelle, 'Le bon rôle');
+  assert.equal(defi.titre, jeu.titre);
+  assert.equal(defi.consigne, lire('trame-ranger').familles.role.consigne);
+  assert.equal(defi.famille, 'role');
+  assert.deepEqual(
+    defi.categories.map((c) => c.code),
+    ['producteur', 'consommateur', 'decomposeur'],
+  );
+  assert.equal(defi.cartes.length, jeu.cartes.length);
+  assert.ok(
+    defi.cartes.every((c) => c.categorie === undefined && c.pourquoi === undefined),
+    'ni la catégorie ni le pourquoi ne sont servis',
+  );
+  assert.equal(defi.bilan, null);
+  assert.deepEqual(defi.rangementVerifie, []);
+
+  const [a, b] = jeu.cartes;
+  const autre = ['producteur', 'consommateur', 'decomposeur'].find((c) => c !== b.categorie);
+  const essai = await sauver(licorneC.token, defi.id, 0, {
+    rangement: { [a.code]: a.categorie, [b.code]: autre, HORS: 'producteur' },
+  });
+  assert.equal(essai.status, 200, JSON.stringify(essai.body));
+  assert.deepEqual(essai.body.defi.rangement, { [a.code]: a.categorie, [b.code]: autre });
+  assert.deepEqual(essai.body.defi.rangementVerifie, [
+    { code: a.code, juste: true, message: a.pourquoi },
+    { code: b.code, juste: false, message: 'Pas encore.' },
+  ]);
+  assert.equal(essai.body.defi.statut, 'en_cours');
+  assert.equal(essai.body.defi.bilan, null);
+  assert.ok(
+    !JSON.stringify(essai.body).includes(b.pourquoi),
+    'le pourquoi d’une carte mal rangée reste au serveur',
+  );
+  // Indices : comment chercher, jamais la colonne d'une carte.
+  const indice = await request(app)
+    .post(api(`/defis/${defi.id}/indice`))
+    .set(auth(licorneC.token));
+  assert.equal(indice.status, 200, JSON.stringify(indice.body));
+  assert.match(indice.body.indice.message, /chaque être vivant a un rôle/);
+
+  const fin = await sauver(licorneC.token, defi.id, 1, {
+    rangement: Object.fromEntries(jeu.cartes.map((c) => [c.code, c.categorie])),
+  });
+  assert.equal(fin.body.defi.statut, 'reussi', JSON.stringify(fin.body.defi).slice(0, 300));
+  assert.equal(fin.body.defi.bilan, jeu.bilan);
+  assert.equal(fin.body.reussite.premiere, true);
+  assert.equal(await sommeDesBourses(), avant, 'aucune ressource');
+  assert.equal(await createMetricContext(db, licorneC.id).value('trame_ranger'), 1);
+  const evt = await db.queryOne(
+    `SELECT payload_json FROM gl_game_events
+      WHERE game_id = ? AND event_type = 'defi_trame_reussi' ORDER BY id DESC LIMIT 1`,
+    [ctx.game.id],
+  );
+  const payload = JSON.parse(evt.payload_json);
+  assert.equal(payload.type, 'ranger');
+  assert.equal(payload.libelle, 'Le bon rôle');
+  assert.equal(payload.unite, 'role:savane');
+});
+
+test('Le bon pays : un indice par carte, les pays du registre des biomes ; Les fils de l’adaptation : du milieu vers l’espèce', async () => {
+  const pays = lire('trame-ranger').jeux.find((j) => j.code === 'pays-p1');
+  const p = await ouvrir(autreGnome.token, { type: 'ranger', unite: 'pays:p1' });
+  assert.equal(p.status, 201, JSON.stringify(p.body));
+  assert.equal(p.body.defi.libelle, 'Le bon pays');
+  assert.deepEqual(p.body.defi.categories, [
+    { code: 'jungle_afc', nom: "Jungle d'Afrique centrale", aide: null },
+    { code: 'savane', nom: 'Savane tropicale', aide: null },
+  ]);
+  assert.ok(
+    p.body.defi.cartes.every((c) => c.indice),
+    'un indice par carte',
+  );
+  const indice = await request(app)
+    .post(api(`/defis/${p.body.defi.id}/indice`))
+    .set(auth(autreGnome.token));
+  assert.match(indice.body.indice.message, /l’indice de chaque carte parle du milieu/);
+  const finPays = await sauver(autreGnome.token, p.body.defi.id, 0, {
+    rangement: Object.fromEntries(pays.cartes.map((c) => [c.code, c.categorie])),
+  });
+  assert.equal(finPays.body.defi.statut, 'reussi');
+  assert.equal(finPays.body.defi.bilan, pays.bilan);
+
+  const adapt = core.buildAdaptation(lire('trame-adaptations').biomes[0]);
+  const a = await ouvrir(autreGnome.token, { type: 'adaptation', unite: 'adaptation:jungle_afc' });
+  assert.equal(a.status, 201, JSON.stringify(a.body));
+  assert.equal(a.body.defi.cartes.length, 9);
+  assert.equal(a.body.defi.liens, undefined, 'les fils restent au serveur');
+  assert.match(a.body.defi.consigne, /contrainte du milieu/);
+  const [premier] = adapt.liens;
+  const inverse = await sauver(autreGnome.token, a.body.defi.id, 0, {
+    fleches: [{ de: premier.vers, vers: premier.de }],
+  });
+  assert.equal(inverse.body.defi.fleches[0].classement, 'inversee');
+  assert.match(inverse.body.defi.fleches[0].message, /part du milieu/);
+  const aide = await request(app)
+    .post(api(`/defis/${a.body.defi.id}/indice`))
+    .set(auth(autreGnome.token));
+  assert.match(aide.body.indice.message, /part du milieu/);
+  const finAdapt = await sauver(autreGnome.token, a.body.defi.id, 1, {
+    fleches: adapt.liens.map((l) => ({ de: l.de, vers: l.vers })),
+  });
+  assert.equal(finAdapt.body.defi.statut, 'reussi');
+  assert.match(finAdapt.body.defi.critere, /chaque problème à l’espèce qui le résout/);
+  // « Gardien des fils » avance avec les fils de l'adaptation ; « Bon rangeur » avec les pays.
+  const mesures = createMetricContext(db, autreGnome.id);
+  assert.ok((await mesures.value('trame_fils')) >= 1);
+  assert.ok((await mesures.value('trame_ranger')) >= 1);
+  // Le suivi du prof compte les deux types de plus.
+  const suivi = await request(app).get(api('/defis/suivi')).set(auth(ctx.adminToken));
+  const ligne = suivi.body.eleves.find((e) => e.playerId === Number(autreGnome.id));
+  assert.deepEqual(ligne.defis.ranger.reussies, ['pays:p1']);
+  assert.deepEqual(ligne.defis.adaptation.reussies, ['adaptation:jungle_afc']);
+  const inv = await checkTenirInvariantsFromDb(db, ctx.game.id, {
+    settings: await getGameplaySettings(),
+  });
+  assert.deepEqual(inv.violations || [], []);
 });
