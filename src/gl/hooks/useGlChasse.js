@@ -88,6 +88,8 @@ export function useGlChasse({ gameId, enabled = true, onChanged = null }) {
           verdict: result.correct ? 'page_trouvee' : 'pas_encore',
           zoneKey: result.zoneKey || question.zoneKey,
           feedback: result.feedback,
+          // M22 : après un « pas encore », où lire la réponse (fiche ou mot du glossaire).
+          piste: result.piste || null,
           at: Date.now(),
         });
       }

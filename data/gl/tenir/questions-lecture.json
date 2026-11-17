@@ -213,17 +213,21 @@
     },
     {
       "zone_key": "cz-p2-08",
-      "feuillet_code": "ep-I-08",
-      "question": "D'après la voyageuse, que se passe-t-il quand elle nomme une bête avec soin ?",
+      "feuillet_code": "ep-I-06",
+      "question": "Pourquoi Sélène protège-t-elle ce monde ?",
       "choix": {
-        "A": "La page tient : la ligne ne pâlit pas dans la nuit",
-        "B": "La bête s'enfuit et ne revient plus",
-        "C": "La bête devient visible seulement la nuit",
-        "D": "Son crayon s'use deux fois plus vite"
+        "A": "Parce que la Nature serait parfaite et pure.",
+        "B": "Parce qu'elle l'aime tel qu'il est, avec ses bêtes et ses odeurs.",
+        "C": "Parce que la Nature a besoin d'elle pour survivre.",
+        "D": "Parce qu'un homme le lui a demandé au bord de la piste."
       },
-      "reponse": "A",
-      "feedback_correct": "Oui. Le nom juste, ce qu'elle mange, qui la mange, l'heure où elle chante : alors la page tient. Nommer, c'est garder.",
-      "feedback_incorrect": "Pas encore. Relis le premier paragraphe : la voyageuse compare ce qui arrive quand elle nomme avec soin, et quand elle passe trop vite."
+      "reponse": "B",
+      "feedback_correct": "Oui : elle y tient parce que c'est le sien, pas parce qu'il serait parfait.",
+      "retours": {
+        "A": "Pas encore : c'est l'idée de l'homme de la piste. Sélène, elle, n'y croit pas.",
+        "C": "Pas encore : relis le deuxième paragraphe, elle dit le contraire.",
+        "D": "Pas encore : l'homme lui parle, mais ce n'est pas pour lui qu'elle écrit."
+      }
     },
     {
       "zone_key": "cz-p3-01",

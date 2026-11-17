@@ -1161,3 +1161,9 @@
   opacity: 0.55;
   border-style: dashed;
 }
+
+/* Piste de réponse d'une question de zone : où la lire sur le site (M22) */
+.gl-tenir-equipe__piste {
+  margin: var(--gl-space-1) 0 0;
+  font-style: italic;
+}

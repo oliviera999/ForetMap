@@ -124,7 +124,17 @@ const chasse = {
   },
   clearQuestion: vi.fn(),
   closePage: vi.fn(),
-  dernierVerdict: { verdict: 'pas_encore', feedback: 'Pas encore : la page dort encore ici.' },
+  dernierVerdict: {
+    verdict: 'pas_encore',
+    feedback: 'Pas encore : la page dort encore ici.',
+    // M22 : où lire la réponse — un lien, jamais la réponse.
+    piste: {
+      type: 'fiche',
+      code: 'SP0277',
+      nom: 'Fourmi magnan',
+      texte: 'La réponse se trouve dans la fiche « Fourmi magnan ».',
+    },
+  },
   fouiller: vi.fn(),
   repondre: vi.fn(),
   ouvrir: vi.fn(),
@@ -187,6 +197,38 @@ describe('chaînes interdites côté élève (spec § 2)', () => {
     // L'oiseau n'a ni nom ni texte ; le motif de retrait n'apparaît jamais.
     expect(container.querySelector('[data-testid="gl-kraa"]').textContent).toBe('');
     expect(container.textContent).not.toMatch(/motif/i);
+  });
+
+  test('piste de réponse (M22) : le texte seul sur la tablette, un bouton là où il y a des onglets', () => {
+    const { container, rerender } = render(
+      <GLTenirEquipeView
+        gameState={gameState}
+        tenir={tenir}
+        teamId={2}
+        onReloadGame={vi.fn()}
+        chasse={chasse}
+        tablette
+      />,
+    );
+    const piste = container.querySelector('[data-testid="gl-tenir-piste-reponse"]');
+    expect(piste.textContent).toContain('La réponse se trouve dans la fiche « Fourmi magnan ».');
+    expect(piste.querySelector('button')).toBeNull();
+    const onOuvrirPiste = vi.fn();
+    rerender(
+      <GLTenirEquipeView
+        gameState={gameState}
+        tenir={tenir}
+        teamId={2}
+        onReloadGame={vi.fn()}
+        chasse={chasse}
+        onOuvrirPiste={onOuvrirPiste}
+      />,
+    );
+    const bouton = container.querySelector('[data-testid="gl-tenir-piste-reponse"] button');
+    expect(bouton.textContent).toBe('Ouvrir la fiche');
+    bouton.click();
+    expect(onOuvrirPiste).toHaveBeenCalledWith(chasse.dernierVerdict.piste);
+    expect(texteInterdit(container.textContent)).toBeNull();
   });
 
   test('textes de repli et libellés de fenêtre', () => {
