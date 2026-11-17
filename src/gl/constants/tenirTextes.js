@@ -31,8 +31,8 @@ export const TENIR_VERDICT_TEXTES = Object.freeze({
 
 /**
  * Une seule limite de veillée (ensemble unifié, M8) : pages tenues en veillée et pages gagnées
- * par un défi de la Trame partagent le même compteur hebdomadaire. Lire reste toujours permis,
- * et une réussite compte toujours.
+ * par un défi de la Trame partagent le même compteur hebdomadaire. Une réussite compte toujours
+ * (regard, badge), même la semaine pleine.
  * @param {{ utilisees?: number, plafond?: number, restantes?: number }} pages
  */
 export function encorePagesDeVeillee(pages) {

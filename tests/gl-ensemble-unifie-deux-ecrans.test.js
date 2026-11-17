@@ -135,7 +135,7 @@ test('« Ce qui change » (pur) : ton peuple, tes nouveaux sorts, le plateau', (
   assert.deepEqual(change.lignePeuple(1, null), {
     cle: 'peuple',
     titre: 'Votre peuple',
-    texte: 'Chacun passe dans l’autre peuple.',
+    texte: 'Tout le monde passe dans l’autre peuple.',
   });
   assert.match(change.lignePeuple(2, null).texte, /vous le découvrirez au départ/);
 
@@ -149,6 +149,20 @@ test('« Ce qui change » (pur) : ton peuple, tes nouveaux sorts, le plateau', (
   ];
   // Peuple connu : ses sorts, et ceux de tous.
   const licorne = change.ligneSorts(actuels, suivants, 'unicorn');
+  // Qui change de peuple découvre aussi les sorts de son nouveau peuple déjà ouverts : un Gnome
+  // qui devient Licorne n'a jamais lancé Lanterne.
+  const dejaOuverts = [...actuels, { code: 'L', nom: 'Lanterne', peuple: 'unicorn' }];
+  assert.equal(
+    change.ligneSorts(dejaOuverts, [...dejaOuverts, ...suivants.slice(1)], 'unicorn', 'gnome')
+      .texte,
+    'Lanterne, Grand Regard, Cordée.',
+  );
+  // Sans changement de peuple, Lanterne est déjà connue.
+  assert.equal(
+    change.ligneSorts(dejaOuverts, [...dejaOuverts, ...suivants.slice(1)], 'unicorn', 'unicorn')
+      .texte,
+    'Grand Regard, Cordée.',
+  );
   assert.equal(licorne.titre, 'Tes nouveaux sorts');
   assert.equal(licorne.texte, 'Grand Regard, Cordée.');
   assert.deepEqual(licorne.sorts, ['B', 'D']);
@@ -228,6 +242,12 @@ test('GET /tenir/ce-qui-change : trois lignes pour l’équipe de l’élève, p
   assert.equal(sorts.titre, 'Tes nouveaux sorts');
   assert.match(sorts.texte, /Grand Regard/);
   assert.match(sorts.texte, /Cordée/);
+  assert.match(sorts.texte, /Lanterne/, 'les sorts de son nouveau peuple, nouveaux pour lui');
+  assert.doesNotMatch(
+    sorts.texte,
+    /Sentier/,
+    'les sorts du peuple qu’il quitte ne sont pas redits',
+  );
   assert.doesNotMatch(sorts.texte, /Abri/);
   assert.doesNotMatch(sorts.texte, /Progression/, 'un sort déjà connu n’est pas annoncé');
   assert.equal(sorts.sorts, undefined, 'les codes restent au serveur');

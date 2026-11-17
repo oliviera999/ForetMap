@@ -61,13 +61,13 @@ export const TRAME_MESSAGES = Object.freeze({
   inversee: 'Regarde le sens : la flèche va de celui qui est mangé vers celui qui mange.',
   inverseeFils: 'Regarde le sens : la flèche va de la cause vers son effet.',
   inverseeAdaptation:
-    'Regarde le sens : la flèche part du milieu, passe par le problème, et arrive à l’espèce.',
+    'Regarde le sens : le chemin part du milieu, passe par le problème, et arrive à l’espèce.',
   a_discuter: 'À discuter avec ton équipe ou avec ton professeur.',
   retisserComplet:
     'Chaque animal a trouvé quelque chose à manger, chaque plante a une suite, et une flèche au moins va vers les décomposeurs.',
   filsComplet: 'Tous les fils sont retrouvés, chacun dans le bon sens.',
   adaptationComplet:
-    'Chaque contrainte du milieu mène à son problème, et chaque problème à l’espèce qui le résout.',
+    'Chaque contrainte du milieu mène à l’espèce qui y répond, le plus souvent en passant par un problème.',
   matiereMorte:
     'Sans ces décomposeurs, la matière morte s’accumule : elle n’est plus transformée en éléments utiles aux plantes.',
   etapeManquante: 'C’est vrai, mais il manque une étape entre les deux.',
@@ -584,7 +584,7 @@ const INDICES = Object.freeze({
   }),
   adaptation: Object.freeze({
     consigne:
-      'Relis la consigne : chaque flèche part du milieu, passe par le problème à résoudre, et arrive à l’espèce.',
+      'Relis la consigne : le chemin part du milieu, passe par le problème à résoudre, et arrive à l’espèce. Chaque flèche suit ce sens.',
     structure:
       'Cherche une carte qui décrit le milieu, puis demande-toi : quel problème cela pose-t-il aux êtres vivants ? Il y a plusieurs départs.',
     toutEstLa: 'Tous les fils prévus sont là : vérifie le sens de chaque flèche.',

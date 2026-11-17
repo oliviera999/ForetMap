@@ -118,6 +118,23 @@ test('évènement → clés : ce qu’Olu dirait, dans l’ordre (pur)', () => {
     'role',
   ]);
   assert.deepEqual(cles({ eventType: 'tour_phase', payload: { phase: 'souffle' } }), []);
+  // Ce qui n'existe pas dans la partie ne s'annonce pas : pas de rôles à l'écran au tableau,
+  // pas de chapitre suivant au plateau 4, ni défis, ni Lumière, ni Marché quand ils sont coupés.
+  assert.deepEqual(
+    cles({ eventType: 'tour_phase', payload: { phase: 'jeu' }, surface: 'tableau' }),
+    ['chercher'],
+  );
+  assert.deepEqual(cles({ eventType: 'seuil_clos', plateau: 4 }), []);
+  assert.deepEqual(cles({ eventType: 'tour_clos', reglages: { defis: false } }), []);
+  assert.deepEqual(cles({ eventType: 'team_spirit', reglages: { lumiere: false } }), []);
+  assert.deepEqual(
+    cles({
+      eventType: 'tour_ouvert',
+      escalier: { pas: 4 },
+      reglages: { lumiere: false, marche: false },
+    }),
+    ['avancer', 'tenir', 'sorts'],
+  );
   assert.deepEqual(cles({ eventType: 'tour_clos' }), ['trame']);
   assert.deepEqual(cles({ eventType: 'pas_encore', payload: { kind: 'case' } }), [
     'question_pas_encore',

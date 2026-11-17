@@ -915,7 +915,7 @@ test('Le bon pays : un indice par carte, les pays du registre des biomes ; Les f
   const indice = await request(app)
     .post(api(`/defis/${p.body.defi.id}/indice`))
     .set(auth(autreGnome.token));
-  assert.match(indice.body.indice.message, /l’indice de chaque carte parle du milieu/);
+  assert.match(indice.body.indice.message, /l’indice dit comment elle vit/);
   const finPays = await sauver(autreGnome.token, p.body.defi.id, 0, {
     rangement: Object.fromEntries(pays.cartes.map((c) => [c.code, c.categorie])),
   });
@@ -942,7 +942,7 @@ test('Le bon pays : un indice par carte, les pays du registre des biomes ; Les f
     fleches: adapt.liens.map((l) => ({ de: l.de, vers: l.vers })),
   });
   assert.equal(finAdapt.body.defi.statut, 'reussi');
-  assert.match(finAdapt.body.defi.critere, /chaque problème à l’espèce qui le résout/);
+  assert.match(finAdapt.body.defi.critere, /mène à l’espèce qui y répond/);
   // « Gardien des fils » avance avec les fils de l'adaptation ; « Bon rangeur » avec les pays.
   const mesures = createMetricContext(db, autreGnome.id);
   assert.ok((await mesures.value('trame_fils')) >= 1);

@@ -381,8 +381,10 @@ test('gl_seance : avant (catalogues, partie, phase, lien, défis à juger) et ap
   assert.deepEqual(Object.keys(apres.data.questions).sort(), ['justes', 'posees', 'reponses']);
   // Défis de la Trame : des comptes par type, jamais un nom ni un rang.
   assert.deepEqual(Object.keys(apres.data.defisTrame).sort(), [
+    'adaptation',
     'alteree',
     'fils',
+    'ranger',
     'reparer',
     'retisser',
   ]);

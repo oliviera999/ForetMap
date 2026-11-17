@@ -203,7 +203,7 @@ test('séance 1 : on avance et on cherche ; ni voile, ni erreur du jour, ni sort
   const jauge = await db.queryOne('SELECT total FROM gl_game_lumiere WHERE game_id = ?', [
     ctx.game.id,
   ]);
-  assert.equal(Number(jauge.total), 103, 'la jauge monte sans palier');
+  assert.equal(Number(jauge.total), 99, 'la jauge monte, et s’arrête juste sous le palier');
   assert.equal((await evenements('lumiere_palier')).length, 0);
   assert.equal((await evenements('voile_recul')).length, 0);
   const spirit = await request(app).get(api('/tenir/tour/team-spirit')).set(prof());
@@ -358,8 +358,8 @@ test('« Ouvrir la suite » : le prof monte une marche tout de suite — le voil
       (await db.queryOne('SELECT total FROM gl_game_lumiere WHERE game_id = ?', [ctx.game.id]))
         .total,
     ),
-    4,
-    '103 + 1 − 100',
+    0,
+    '99 + 1 − 100',
   );
 
   // Le dé gris se lance : le voile avance pour la première fois.
