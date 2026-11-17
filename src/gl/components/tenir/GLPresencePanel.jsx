@@ -6,9 +6,10 @@ function nomDe(m) {
 }
 
 /**
- * Présences de l'équipe (« Tenir à deux », lot 2). Tant que l'équipe n'a pas répondu :
- * « Il manque quelqu'un ? » — on touche les absents, puis « C'est bon » (un seul appui si
- * l'équipe est complète). Ensuite : « Quelqu'un vient d'arriver » pour un retardataire.
+ * Présences de l'équipe (« Tenir à deux »). Ensemble unifié (M14) : **tout le monde est là par
+ * défaut**, rien n'est à confirmer et rien n'attend. S'il manque quelqu'un, l'équipe ouvre
+ * « Il manque quelqu'un ? », touche les absents, puis « C'est bon ». Ensuite : « Quelqu'un vient
+ * d'arriver » pour un retardataire.
  *
  * `presence` : `{ confirmee, absents: [playerId] }` de l'équipe (vue du tour) ; `mates` : les
  * membres de l'équipe (état de partie). Le serveur rejoue : ici on ne fait que préparer.
@@ -23,6 +24,7 @@ export function GLPresencePanel({
 }) {
   const [absents, setAbsents] = useState(() => new Set());
   const [retard, setRetard] = useState(false);
+  const [ouvert, setOuvert] = useState(false);
   const absentsServeur = (presence?.absents || []).map(Number);
   const cleAbsents = absentsServeur.join(',');
   useEffect(() => {
@@ -30,7 +32,24 @@ export function GLPresencePanel({
   }, [cleAbsents]);
   if (!presence || !ouverte) return null;
 
-  if (!presence.confirmee) {
+  // Rien à déclarer : un simple bouton, jamais un écran à passer.
+  if (!ouvert && !absentsServeur.length) {
+    return (
+      <section className="gl-presence gl-presence--confirmee" data-testid="gl-presence-ouvrir">
+        <GLButton
+          type="button"
+          variant="ghost"
+          size="sm"
+          disabled={busy}
+          onClick={() => setOuvert(true)}
+        >
+          Il manque quelqu’un ?
+        </GLButton>
+      </section>
+    );
+  }
+
+  if (ouvert) {
     return (
       <section
         className="gl-presence gl-gameplay-block"
@@ -68,7 +87,10 @@ export function GLPresencePanel({
           type="button"
           variant="primary"
           disabled={busy}
-          onClick={() => onConfirmer?.([...absents])}
+          onClick={() => {
+            setOuvert(false);
+            onConfirmer?.([...absents]);
+          }}
           data-testid="gl-presence-ok"
         >
           C’est bon
@@ -81,6 +103,15 @@ export function GLPresencePanel({
   if (!manquants.length) return null;
   return (
     <section className="gl-presence gl-presence--confirmee" data-testid="gl-presence-retard">
+      <GLButton
+        type="button"
+        variant="ghost"
+        size="sm"
+        disabled={busy}
+        onClick={() => setOuvert(true)}
+      >
+        Il manque quelqu’un ?
+      </GLButton>
       <GLButton
         type="button"
         variant="ghost"

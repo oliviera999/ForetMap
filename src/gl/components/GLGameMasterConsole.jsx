@@ -70,6 +70,8 @@ export function GLGameMasterConsole({
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [createName, setCreateName] = useState('Partie découverte');
   const [createChapterId, setCreateChapterId] = useState('');
+  // M14 : la nouvelle partie reprend les réglages d'une partie existante (surface, sabliers…).
+  const [createCopyFromId, setCreateCopyFromId] = useState('');
   const [createClassId, setCreateClassId] = useState('');
   const [editGameForm, setEditGameForm] = useState({ ...EMPTY_GAME_EDIT_FORM });
   const [narration, setNarration] = useState('');
@@ -382,11 +384,13 @@ export function GLGameMasterConsole({
         name: createName,
         chapterId: Number(createChapterId),
         classId: Number(createClassId),
+        ...(createCopyFromId ? { copyFromGameId: Number(createCopyFromId) } : {}),
       };
       resetForGameSwitch();
       const created = await apiGL('/api/gl/games', 'POST', payload);
       onGameStateChange(created);
-      showSuccess('Partie créée.');
+      showSuccess(createCopyFromId ? 'Partie créée, configuration copiée.' : 'Partie créée.');
+      setCreateCopyFromId('');
       setShowCreateForm(false);
       await loadGames();
       setRosterRefreshKey((value) => value + 1);
@@ -983,6 +987,9 @@ export function GLGameMasterConsole({
             setCreateClassId={setCreateClassId}
             createChapterId={createChapterId}
             setCreateChapterId={setCreateChapterId}
+            createCopyFromId={createCopyFromId}
+            setCreateCopyFromId={setCreateCopyFromId}
+            copySources={games.filter((g) => !g.isDemo)}
             activeClasses={activeClasses}
             chapters={chapters}
             gamesClassFilter={gamesClassFilter}

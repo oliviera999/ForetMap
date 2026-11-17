@@ -32,7 +32,6 @@ function TeamCard({
   isActive,
   presence = null,
   roster = [],
-  onPresence = null,
   onArrivee = null,
 }) {
   const fenetre = round?.fenetresFouille || {};
@@ -61,27 +60,12 @@ function TeamCard({
             : ''}
         </span>
       </header>
-      {presence ? (
+      {/* M14 : tout le monde est là par défaut — on ne montre que les absents déclarés. */}
+      {presence?.absents?.length ? (
         <p className="gl-tour-presence" data-testid={`gl-tour-presence-${team.id}`}>
-          <span
-            className={`gl-tour-presence__pastille${presence.confirmee ? ' is-ok' : ''}`}
-            role="status"
-          >
-            {presence.confirmee
-              ? `présences confirmées${presence.absents?.length ? ` · ${presence.absents.length} absent${presence.absents.length > 1 ? 's' : ''}` : ''}`
-              : 'présences à confirmer'}
+          <span className="gl-tour-presence__pastille" role="status">
+            {`${presence.absents.length} absent${presence.absents.length > 1 ? 's' : ''}`}
           </span>{' '}
-          {!presence.confirmee ? (
-            <GLButton
-              type="button"
-              variant="ghost"
-              size="sm"
-              disabled={busy}
-              onClick={() => onPresence?.(team.id, presence.absents || [])}
-            >
-              Tout le monde est là
-            </GLButton>
-          ) : null}
           {(presence.absents || []).map((playerId) => {
             const eleve = roster.find((r) => Number(r.playerId) === Number(playerId));
             const nom = eleve
@@ -149,6 +133,8 @@ export function GLTourScreen({
   const tourApi = useGlTenirTour({ gameId, enabled: !!gameId, onChanged: onReloadGame });
   const [refreshKey, setRefreshKey] = useState(0);
   const [absences, setAbsences] = useState(() => new Set());
+  // M14 : mot de passe provisoire d'un élève, montré une fois ici — jamais gardé ni journalisé.
+  const [motDePasse, setMotDePasse] = useState(null);
   const [projectionUrl, setProjectionUrl] = useState('');
   const view = tourApi.tour;
   const round = view?.round || null;
@@ -464,7 +450,6 @@ export function GLTourScreen({
                     : null
                 }
                 roster={roster}
-                onPresence={(teamId, absents) => act(() => tourApi.presences(absents, teamId))}
                 onArrivee={(teamId, playerId) => act(() => tourApi.arrivee(playerId, teamId))}
               />
             ))}
@@ -568,7 +553,10 @@ export function GLTourScreen({
 
           {round ? (
             <section className="gl-gameplay-block" data-testid="gl-tour-absences">
-              <h3>Absences et retrait</h3>
+              <h3>Absences, retrait, mot de passe</h3>
+              <p className="gl-hint">
+                Tout le monde est présent d’office. Un retrait se lève tout seul à la fin du tour.
+              </p>
               <ul className="gl-tour-roster">
                 {roster.map((p) => (
                   <li key={p.playerId} className="gl-inline-actions">
@@ -614,6 +602,39 @@ export function GLTourScreen({
                         ? 'Lever le retrait'
                         : 'Retrait'}
                     </GLButton>
+                    <GLButton
+                      type="button"
+                      variant="ghost"
+                      disabled={tourApi.busy}
+                      data-testid={`gl-tour-mdp-${p.playerId}`}
+                      onClick={async () => {
+                        setMotDePasse(null);
+                        try {
+                          const res = await tourApi.motDePasse(p.playerId);
+                          if (res?.motDePasse) {
+                            setMotDePasse({ playerId: p.playerId, valeur: res.motDePasse });
+                          }
+                        } catch (err) {
+                          showFailure?.(err.message || 'Mot de passe non réinitialisé');
+                        }
+                      }}
+                    >
+                      Mot de passe oublié
+                    </GLButton>
+                    {motDePasse && Number(motDePasse.playerId) === Number(p.playerId) ? (
+                      <span className="gl-tour-mdp" role="status" data-testid="gl-tour-mdp">
+                        Mot de passe provisoire : <strong>{motDePasse.valeur}</strong> (à changer à
+                        la connexion){' '}
+                        <GLButton
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setMotDePasse(null)}
+                        >
+                          Masquer
+                        </GLButton>
+                      </span>
+                    ) : null}
                   </li>
                 ))}
               </ul>

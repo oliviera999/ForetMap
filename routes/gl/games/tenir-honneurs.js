@@ -1,8 +1,8 @@
 'use strict';
 
 /**
- * « Tenir à deux » v2 — honneurs, missions, badges, Bestiaire des chimères, plumes (spec § 12
- * et § 13). Préfixe réel `/api/gl/games/:id/tenir/*` (monté par routes/gl/games.js).
+ * « Tenir à deux » v2 — honneurs, missions, badges, Bestiaire des chimères, Lettres à relire et
+ * Mentorats à écouter (spec § 12 et § 13). Préfixe réel `/api/gl/games/:id/tenir/*` (monté par routes/gl/games.js).
  * Tout ce qui touche la réalité passe par `gl.game.manage`.
  *
  * Badges : ils vivent désormais sur le moteur commun (`lib/glRewards.js`, routes
@@ -30,6 +30,7 @@ const { glRewards } = require('../../../lib/glRewards');
 const { awardGlManualToTeam } = require('../../../lib/glRewardsHooks');
 const { RewardAwardError } = require('../../../lib/rewards/core/engine');
 const { listPlumes, validerPlumeTx } = require('../../../lib/glVoyageurPlume');
+const { listMentorats, jugerMentoratTx } = require('../../../lib/glLettreMentorat');
 const { findForbiddenString } = require('../../../lib/glTenirImport');
 const { requireTenirGame } = require('./tenir');
 
@@ -50,6 +51,9 @@ function sendErr(res, err) {
   const message = MESSAGES[err?.message];
   if (message && err.status)
     return res.status(err.status).json({ error: message, code: err.message });
+  // Erreurs qui portent leur propre message (Mentorat) : `{ status, code, message }`.
+  if (err?.status && err?.code && err.message && err.message !== err.code)
+    return res.status(err.status).json({ error: err.message, code: err.code });
   throw err;
 }
 
@@ -445,12 +449,59 @@ router.put(
           plumeId,
           gameId,
           decision: String(req.body?.decision || 'valider'),
+          piste: req.body?.piste != null ? String(req.body.piste) : null,
           actorId: req.glAuth.userId,
         }),
       );
       for (const evt of result.events || []) emitGlGameEvent(gameId, evt);
       const { events, ...rest } = result; // eslint-disable-line no-unused-vars
       return res.json(rest);
+    } catch (err) {
+      return sendErr(res, err);
+    }
+  }),
+);
+
+// ---------------------------------------------------------------------
+// Mentorats (ensemble unifié, M23) : le prof écoute, puis « réussi » ou « pas encore ».
+// ---------------------------------------------------------------------
+
+router.get(
+  '/games/:id/tenir/mentorats',
+  requireGlPermission('gl.game.manage'),
+  asyncHandler(async (req, res) => {
+    const gameId = parseId(req.params.id);
+    const ctx = await guard(req, res, gameId);
+    if (!ctx) return undefined;
+    return res.json({ mentorats: await listMentorats(db, gameId) });
+  }),
+);
+
+router.put(
+  '/games/:id/tenir/mentorats/:mentoratId',
+  requireGlPermission('gl.game.manage'),
+  asyncHandler(async (req, res) => {
+    const gameId = parseId(req.params.id);
+    const mentoratId = parseId(req.params.mentoratId);
+    const ctx = await guard(req, res, gameId);
+    if (!ctx || !mentoratId)
+      return ctx ? res.status(400).json({ error: 'Identifiant invalide' }) : undefined;
+    const decision = String(req.body?.decision || '');
+    if (!['valider', 'pas_encore'].includes(decision)) {
+      return res.status(400).json({ error: 'Décision attendue : valider ou pas_encore' });
+    }
+    try {
+      const result = await withTransaction((tx) =>
+        jugerMentoratTx(tx, {
+          gameId,
+          mentoratId,
+          decision,
+          piste: req.body?.piste != null ? String(req.body.piste) : null,
+          actorId: req.glAuth.userId,
+        }),
+      );
+      for (const evt of result.events || []) emitGlGameEvent(gameId, evt);
+      return res.json({ mentorat: result.mentorat });
     } catch (err) {
       return sendErr(res, err);
     }

@@ -202,6 +202,10 @@ function setGlSite(over = {}) {
 }
 
 before(async () => {
+  // Ensemble unifié (M23) : en mode « Tenir », le délai après une mauvaise réponse est imposé par
+  // `tenir_delai_fiche_secondes` (0 par défaut). Cette caractérisation fige le moteur de
+  // conditionnement lui-même : elle coupe le mode le temps de la suite (en mémoire seulement).
+  glSettings.setGameplayCacheForTests({ tenirEnabled: false }, 3_600_000);
   await initSchema();
 
   // --- Réglages du site ForetMap : tous posés explicitement, restaurés à la fin.
@@ -428,6 +432,7 @@ after(async () => {
     fs.writeFileSync(GOLDEN_PATH, `${JSON.stringify(recorded, null, 2)}\n`);
   }
   glSettings.setGatingCacheForTests(null);
+  glSettings.setGameplayCacheForTests(null);
   const fmRefs = Object.values(plants);
   const glRefs = [R1, R2, R3, R4];
   const clean = (sql, params) => execute(sql, params).catch(() => {});

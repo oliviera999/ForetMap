@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * « Tenir à deux » v2 — état, profil, lignes d'Olu, retrait, tour à phases.
+ * « Tenir à deux » v2 — état, profil, lignes d'Olu, retrait, mot de passe provisoire d'un élève.
  * Préfixe réel : `/api/gl/games/:id/tenir/*` (monté par routes/gl/games.js).
  */
 
@@ -29,6 +29,9 @@ const {
 } = require('../../../lib/glTenir');
 const { viewerFromAuth, buildTenirBlock } = require('../../../lib/glTenirView');
 const { getPlayerGameMembership } = require('../../../lib/gl/gamesRuntime');
+const { buildGeneratedPassword } = require('../../../lib/gl/adminRouteHelpers');
+const { setGlPlayerPassword } = require('../../../lib/glPlayerIdentity');
+const { logAudit } = require('../../../lib/auditLog');
 
 const router = express.Router();
 
@@ -252,6 +255,60 @@ router.post(
     });
     emitGlGameEvent(gameId, { ...evt, payload: { entree, redacted: true } });
     return res.json({ ok: true, playerId, entree });
+  }),
+);
+
+/**
+ * POST /tenir/players/:playerId/mot-de-passe — MJ (ensemble unifié, M14).
+ * « Mot de passe oublié » en un appui depuis la console : un mot de passe provisoire est tiré,
+ * rendu **une seule fois** dans la réponse, à changer à la première connexion. Il n'entre ni
+ * dans un évènement de partie, ni dans le journal d'audit, ni dans un log.
+ *
+ * Même garde que `POST /api/gl/admin/players/:id/reset-password` : droit `gl.players.manage`, et
+ * jamais sur un joueur rattaché à un vrai compte ForêtMap (403 `GL_PLAYER_REAL_ACCOUNT`).
+ */
+router.post(
+  '/games/:id/tenir/players/:playerId/mot-de-passe',
+  requireGlPermission('gl.players.manage'),
+  asyncHandler(async (req, res) => {
+    const gameId = parseId(req.params.id);
+    const playerId = parseId(req.params.playerId);
+    if (!gameId || !playerId) return res.status(400).json({ error: 'gameId et playerId requis' });
+    if (!(await canAccessGlGame(req.glAuth, gameId))) {
+      return res.status(403).json({ error: 'Accès partie refusé' });
+    }
+    const joueur = await queryOne(
+      `SELECT p.id, u.auth_provider
+         FROM gl_players p
+         INNER JOIN gl_games g ON g.class_id = p.class_id
+         LEFT JOIN users u ON u.id = p.linked_foretmap_user_id
+        WHERE p.id = ? AND g.id = ? LIMIT 1`,
+      [playerId, gameId],
+    );
+    if (!joueur) {
+      return res
+        .status(404)
+        .json({ error: 'Le joueur n’appartient pas à la classe de cette partie' });
+    }
+    if (joueur.auth_provider && joueur.auth_provider !== 'gl_bridge') {
+      return res.status(403).json({
+        error:
+          'Cet élève utilise son compte ForetMap : mot de passe à réinitialiser depuis ForetMap ou par « mot de passe oublié »',
+        code: 'GL_PLAYER_REAL_ACCOUNT',
+      });
+    }
+    const motDePasse = buildGeneratedPassword();
+    // Source unique `users` ; révoque les sessions en cours du joueur.
+    await setGlPlayerPassword(playerId, { password: motDePasse, mustReset: true });
+    await logAudit(
+      'gl_player_reset_password',
+      'gl_player',
+      String(playerId),
+      'Mot de passe provisoire (console du tour)',
+      { req, payload: { must_reset: true, game_id: gameId, generated: true } },
+    );
+    res.set('Cache-Control', 'no-store');
+    return res.json({ ok: true, playerId, motDePasse });
   }),
 );
 

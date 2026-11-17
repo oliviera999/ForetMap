@@ -7,6 +7,7 @@ import { GLMascotAvatar } from './GLMascotAvatar.jsx';
 import { GLRewardsPanel } from './GLRewardsPanel.jsx';
 import { GLDefisCasePanel } from './tenir/GLDefisCasePanel.jsx';
 import { GLDefisEntree } from './defis/GLDefisEntree.jsx';
+import { GLSeuilLettre, GLSeuilMentorat } from './GLSeuilPagesVoyageur.jsx';
 import {
   GL_VOYAGEUR_SFX_CHANGED_EVENT,
   isVoyageurSfxMuted,
@@ -211,7 +212,6 @@ function SpellCard({ spell, onCast, loadTargets }) {
     }
   };
 
-  const [plume, setPlume] = useState({ titre: '', texte: '' });
   const horsPerimetre = spell.perimetre === 'hors_perimetre';
   let status;
   if (horsPerimetre) status = 'Réservé aux Deux Caravanes';
@@ -224,23 +224,6 @@ function SpellCard({ spell, onCast, loadTargets }) {
   else if (spell.usedThisChapter)
     status = 'Déjà servi ce chapitre : revient à la prochaine traversée';
   else status = 'Se recharge à la prochaine traversée';
-
-  const castPlume = async () => {
-    setBusy(true);
-    setMessage('');
-    try {
-      await onCast(spell.code, { titre: plume.titre, texte: plume.texte });
-      setOpen(false);
-      setJustCast(true);
-      playVoyageurSound('spell');
-      setMessage(`${spell.emoji} ${spell.name} : ta page part en relecture chez ton professeur.`);
-      setPlume({ titre: '', texte: '' });
-    } catch (err) {
-      setMessage(err?.message || 'Le sortilège a échoué.');
-    } finally {
-      setBusy(false);
-    }
-  };
 
   return (
     <li
@@ -267,56 +250,11 @@ function SpellCard({ spell, onCast, loadTargets }) {
       spell.charged &&
       !['qcm', 'fouille', 'messager'].includes(spell.targetKind) &&
       !open ? (
-        <GLButton
-          type="button"
-          variant="primary"
-          size="sm"
-          onClick={() => (spell.targetKind === 'plume' ? setOpen(true) : openPicker())}
-        >
-          {spell.targetKind === 'plume' ? 'Écrire' : 'Lancer'}
+        <GLButton type="button" variant="primary" size="sm" onClick={openPicker}>
+          Lancer
         </GLButton>
       ) : null}
-      {open && spell.targetKind === 'plume' ? (
-        <form
-          className="gl-seuil-spell__picker gl-seuil-plume"
-          onSubmit={(e) => {
-            e.preventDefault();
-            castPlume();
-          }}
-        >
-          <label>
-            Titre
-            <input
-              type="text"
-              maxLength={160}
-              value={plume.titre}
-              onChange={(e) => setPlume({ ...plume, titre: e.target.value })}
-              required
-            />
-          </label>
-          <label>
-            Texte
-            <textarea
-              rows={5}
-              maxLength={4000}
-              value={plume.texte}
-              onChange={(e) => setPlume({ ...plume, texte: e.target.value })}
-              required
-            />
-          </label>
-          <GLButton
-            type="submit"
-            variant="primary"
-            size="sm"
-            disabled={busy || plume.titre.length < 3 || plume.texte.length < 20}
-          >
-            Envoyer à la relecture
-          </GLButton>
-          <GLButton type="button" variant="ghost" size="sm" onClick={() => setOpen(false)}>
-            Fermer
-          </GLButton>
-        </form>
-      ) : open ? (
+      {open ? (
         <div className="gl-seuil-spell__picker">
           {!targets ? (
             <p role="status">Recherche des cibles…</p>
@@ -362,7 +300,16 @@ function SpellCard({ spell, onCast, loadTargets }) {
  * expédition (l'équipe et sa mascotte), puis le grimoire du voyageur.
  */
 export function GLSeuilView({ onNavigateTab, modules }) {
-  const { data, loading, error, errorStatus, loadTargets, castSpell } = useGLVoyageur();
+  const {
+    data,
+    loading,
+    error,
+    errorStatus,
+    loadTargets,
+    castSpell,
+    ecrireLettre,
+    retenterMentorat,
+  } = useGLVoyageur();
   const [levelUp, setLevelUp] = useState(null);
   const [gesture, setGesture] = useState(null);
   const [sfxMuted, setSfxMuted] = useState(() => isVoyageurSfxMuted());
@@ -592,6 +539,14 @@ export function GLSeuilView({ onNavigateTab, modules }) {
           </ul>
         </section>
       ) : null}
+
+      {/* Ensemble unifié (M23) : Lettre et Mentorat, payés une fois, rejoués sans repayer. */}
+      <GLSeuilLettre
+        key={`lettre-${data.lettre?.id}-${data.lettre?.statut}`}
+        lettre={data.lettre}
+        onEcrire={ecrireLettre}
+      />
+      <GLSeuilMentorat mentorat={data.mentorat} onRetenter={retenterMentorat} />
 
       <section
         className="gl-seuil-grimoire"

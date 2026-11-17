@@ -29,6 +29,13 @@ test.describe('GL — Le Seuil (voyageur)', () => {
       data: { value: true },
     });
     expect(enable.ok()).toBeTruthy();
+    // Ensemble unifié (M23) : sans délai d'attente (0, défaut), « Seconde chance » n'a plus
+    // d'objet et sort du grimoire. Ce scénario joue le retour en arrière : un délai d'une heure.
+    const delai = await request.put('/api/gl/admin/settings/gameplay.tenir_delai_fiche_secondes', {
+      headers: { Authorization: `Bearer ${seeded.adminToken}` },
+      data: { value: 3600 },
+    });
+    expect(delai.ok()).toBeTruthy();
 
     // 5 espèces étudiées → niveau 2, Seconde chance ouverte ; une fiche en délai d'attente.
     const stamp = Date.now();
@@ -71,6 +78,10 @@ test.describe('GL — Le Seuil (voyageur)', () => {
 
     await page.getByRole('button', { name: 'Rejoindre le plateau' }).click();
     await expect(page.locator('.gl-seuil')).toHaveCount(0);
+    await request.put('/api/gl/admin/settings/gameplay.tenir_delai_fiche_secondes', {
+      headers: { Authorization: `Bearer ${seeded.adminToken}` },
+      data: { value: 0 },
+    });
   });
 
   test('« +1 » : marquer un mot appris fait s’envoler une pastille du regard du proche', async ({

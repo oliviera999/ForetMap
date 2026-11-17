@@ -80,6 +80,12 @@ const TENIR_NUMBERS = [
     0,
     20,
   ],
+  [
+    'gameplay.tenir_delai_fiche_secondes',
+    'Délai après une mauvaise réponse à une fiche (secondes, 0 = aucun)',
+    0,
+    604800,
+  ],
   ['gameplay.tenir_palissement_pct', 'Pâlissement par tour (%)', 0, 100],
   ['gameplay.tenir_palissement_max', 'Pâlissement maximum (%)', 0, 100],
   ['gameplay.tenir_recul_carnet_complet', 'Recul du voile au carnet complet', 0, 20],

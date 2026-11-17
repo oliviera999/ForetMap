@@ -73,6 +73,10 @@ async function summaryItem() {
 
 before(async () => {
   await initSchema();
+  // Ensemble unifié (M23) : en mode « Tenir », le délai après une mauvaise réponse est imposé par
+  // `tenir_delai_fiche_secondes` (0 par défaut). Cette suite éprouve le verrou du
+  // conditionnement lui-même : elle coupe le mode le temps de ses tests (en mémoire seulement).
+  glSettings.setGameplayCacheForTests({ tenirEnabled: false }, 3_600_000);
   await execute(
     `INSERT IGNORE INTO gl_qcm_categories (slug, nom, order_index) VALUES (?, 'Question scope', 999)`,
     [catSlug],
@@ -126,6 +130,7 @@ beforeEach(async () => {
 
 after(async () => {
   glSettings.setGatingCacheForTests(null);
+  glSettings.setGameplayCacheForTests(null);
   await execute('DELETE FROM gl_qcm_attempts WHERE question_code IN (?, ?)', [q1, q2]).catch(
     () => {},
   );

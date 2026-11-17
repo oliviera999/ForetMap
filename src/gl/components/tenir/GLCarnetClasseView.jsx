@@ -14,6 +14,7 @@ const ETAT_LABELS = {
  * Carnet de la classe (« Tenir à deux », spec § 5) : les N pages du plateau — indice, état,
  * découvreuse, tenue par, pâlissement pour l'équipe du lecteur. Boutons « Lire » (page trouvée)
  * ; la question de lecture s'affiche quand l'équipe peut tenir la page. Aucun polygone.
+ * En dessous, « en marge » : les Lettres validées (L7), qui ne comptent pas pour le carnet.
  */
 export function GLCarnetClasseView({ chasse, teamId = null, readOnly = false }) {
   const carnet = chasse?.carnet;
@@ -72,6 +73,19 @@ export function GLCarnetClasseView({ chasse, teamId = null, readOnly = false }) 
           );
         })}
       </ol>
+      {/* L7 : les Lettres validées sont des pages de voyageurs, en marge — hors du compte. */}
+      {carnet.marge?.length ? (
+        <div className="gl-carnet-classe__marge" data-testid="gl-carnet-marge">
+          <h4>En marge : les pages des voyageurs</h4>
+          <ul>
+            {carnet.marge.map((m) => (
+              <li key={m.feuilletCode}>
+                « {m.titre} »{m.auteur ? <span className="gl-hint"> — {m.auteur}</span> : null}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
       {page ? (
         <article className="gl-carnet-page-ouverte" data-testid="gl-carnet-page-ouverte">
           <header>

@@ -779,6 +779,29 @@
   font-style: italic;
 }
 
+/* Piste donnée avec un « pas encore » (Lettre, Mentorat) */
+.gl-demandes__piste {
+  display: grid;
+  gap: var(--gl-space-1);
+  margin-top: var(--gl-space-1);
+}
+
+.gl-demandes__piste input {
+  min-height: 44px;
+  width: 100%;
+}
+
+/* Lettres validées : en marge du carnet de la classe (L7) */
+.gl-carnet-classe__marge {
+  margin-top: var(--gl-space-3);
+  padding-left: var(--gl-space-3);
+  border-left: 3px solid var(--line-soft, currentColor);
+}
+
+.gl-carnet-classe__marge h4 {
+  margin: 0 0 var(--gl-space-1);
+}
+
 /* Marché depuis la tablette d'équipe : « Qui agit ? » (lot 2) */
 .gl-marche-tablette__qui {
   display: flex;
@@ -1108,4 +1131,33 @@
   overflow-y: auto;
   padding: var(--gl-space-3) var(--gl-space-3)
     max(var(--gl-space-3), env(safe-area-inset-bottom, 0px));
+}
+
+/* Bilan Team Spirit : six cartes gardées d'office, on touche celles qu'on a retirées (M14) */
+.gl-team-spirit__ligne {
+  display: grid;
+  gap: var(--gl-space-1);
+  margin-bottom: var(--gl-space-2);
+}
+
+.gl-team-spirit__cartes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gl-space-1);
+}
+
+.gl-team-spirit__carte {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 var(--gl-space-2);
+  border: 1px solid var(--line-soft);
+  border-radius: 0.5rem;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.gl-team-spirit__carte.is-retiree {
+  opacity: 0.55;
+  border-style: dashed;
 }

@@ -79,6 +79,9 @@ export function useGlTenirTour({ gameId, enabled = true, onChanged = null }) {
     teamSpirit: (bilans) => put('/tour/team-spirit', { bilans }),
     oluCorrige: (teamId) => post('/tour/olu-corrige', { teamId }),
     retrait: (playerId, entree, motif) => post('/retrait', { playerId, entree, motif }),
+    // M14 : mot de passe provisoire d'un élève en un appui (affiché une fois, jamais gardé).
+    motDePasse: (playerId) =>
+      apiGL(`/api/gl/games/${gameId}/tenir/players/${playerId}/mot-de-passe`, 'POST', {}),
     peripetiePasser: (id, teamId) => post('/peripetie/passer', { id, teamId }),
     // « Tout au tableau » (lot 2) : le prof reprend tous les gestes, puis rend la main.
     toutAuTableau: (tableau = true) => post('/surface', { tableau }),

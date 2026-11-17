@@ -6,10 +6,10 @@ import { GLSablier } from '../tenir/GLSablier.jsx';
 
 /**
  * Panneau « Demandes » de « Jouer le tour » (« Tenir à deux », lot 2) : la file UNIQUE de ce qui
- * attend le prof — dés à valider, jets en suspens, sorts à appliquer ou à refuser, Nommer, pages
- * et chimères à relire, présences à confirmer, défis à juger. Une ligne par demande, la plus
- * ancienne en haut, un bouton principal par ligne. Rien n'y reste indéfiniment : le serveur
- * ferme seul ce qui n'a plus d'objet (changement de phase, tour suivant, Seuil).
+ * attend le prof — dés à valider, jets en suspens, sorts à honorer ou à refuser, Lettres et
+ * chimères à relire, Mentorats à écouter, défis à juger. Une ligne par demande, la plus ancienne
+ * en haut, un bouton principal par ligne. Rien n'y reste indéfiniment : le serveur ferme seul ce
+ * qui n'a plus d'objet (changement de phase, tour suivant, camp).
  *
  * `tourApi` : actions du tour (`useGlTenirTour`) ; `onChanged` : rafraîchit l'écran du tour.
  */
@@ -30,6 +30,8 @@ export function GLDemandesPanel({
   const [relecture, setRelecture] = useState(false);
   // Sablier d'un défi (durée du catalogue), affiché à la demande.
   const [sablierDe, setSablierDe] = useState(null);
+  // Piste donnée à l'élève avec un « pas encore » (Mentorat), par demande.
+  const [pistes, setPistes] = useState({});
 
   const load = useCallback(async () => {
     if (!gameId) return;
@@ -68,6 +70,13 @@ export function GLDemandesPanel({
   const sort = (draftId, path, body) =>
     apiGL(`/api/gl/games/${gameId}/spell-casts/drafts/${draftId}/${path}`, 'POST', body);
 
+  /** Mentorat (M23) : « réussi » ou « pas encore » avec une piste — jamais de remboursement. */
+  const jugerMentorat = (d, decision) =>
+    apiGL(`/api/gl/games/${gameId}/tenir/mentorats/${d.refId}`, 'PUT', {
+      decision,
+      piste: decision === 'pas_encore' ? pistes[d.id] || '' : null,
+    });
+
   /** Bouton principal et, s'il y a lieu, bouton secondaire d'une demande. */
   function actions(d) {
     switch (d.kind) {
@@ -78,8 +87,6 @@ export function GLDemandesPanel({
         ];
       case 'jet_en_suspens':
         return [[d.action, () => tourApi.garderJet(d.teamId)]];
-      case 'presence_a_confirmer':
-        return [[d.action, () => tourApi.presences([], d.teamId)]];
       case 'sort_a_appliquer':
         return [
           [d.action, () => sort(d.refId, 'effect-applied')],
@@ -94,6 +101,11 @@ export function GLDemandesPanel({
         return [
           ['Relevé', () => jugerDefi(d.refId, true)],
           ['Pas encore', () => jugerDefi(d.refId, false)],
+        ];
+      case 'mentorat':
+        return [
+          [d.action, () => jugerMentorat(d, 'valider')],
+          ['Pas encore', () => jugerMentorat(d, 'pas_encore')],
         ];
       default:
         return [];
@@ -138,6 +150,30 @@ export function GLDemandesPanel({
                     <div className="gl-demandes__critere" data-testid="gl-defi-critere">
                       Critère (pour vous seul) : {d.payload.critere}
                     </div>
+                  ) : null}
+                  {d.kind === 'mentorat' && d.payload?.critere ? (
+                    <div className="gl-demandes__critere" data-testid="gl-mentorat-critere">
+                      Critère (pour vous seul) : {d.payload.critere}
+                    </div>
+                  ) : null}
+                  {d.kind === 'mentorat' ? (
+                    <label className="gl-demandes__piste">
+                      <span className="gl-hint">Une piste, si c’est « pas encore »</span>
+                      <input
+                        type="text"
+                        maxLength={400}
+                        value={pistes[d.id] || ''}
+                        onChange={(e) => setPistes((p) => ({ ...p, [d.id]: e.target.value }))}
+                        data-testid="gl-mentorat-piste"
+                      />
+                    </label>
+                  ) : null}
+                  {d.kind === 'plume' && relecture && Array.isArray(d.payload?.relecture) ? (
+                    <ul className="gl-demandes__critere" data-testid="gl-lettre-relecture">
+                      {d.payload.relecture.map((point) => (
+                        <li key={point}>{point}</li>
+                      ))}
+                    </ul>
                   ) : null}
                   {d.kind === 'defi_case' && sablierDe === d.id ? (
                     <GLSablier

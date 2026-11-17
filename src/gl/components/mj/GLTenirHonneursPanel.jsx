@@ -4,7 +4,7 @@ import { GLButton } from '../ui/GLButton.jsx';
 
 /**
  * Console MJ « Tenir à deux » (spec § 11–13) : exports CSV de la classe (Team Spirit, badges),
- * mission réussie (sceau + titre), plumes et chimères à relire. Les badges individuels
+ * mission réussie (sceau + titre), Lettres et chimères à relire. Les badges individuels
  * (vitrine, badge décerné avec un mot) vivent dans `GLTenirRewardsPanel`. Aucun classement,
  * aucune bourse.
  */
@@ -13,6 +13,8 @@ export function GLTenirHonneursPanel({ game, teams = [], onReloadGame, showFailu
   const classId = game?.class_id;
   const [missions, setMissions] = useState({ missions: [], reussies: [] });
   const [plumes, setPlumes] = useState([]);
+  // Piste donnée à l'élève avec un « pas encore », par Lettre.
+  const [pistes, setPistes] = useState({});
   const [chimeres, setChimeres] = useState([]);
   const [honneurs, setHonneurs] = useState([]);
   const [missionForm, setMissionForm] = useState({ teamId: '', missionCode: '' });
@@ -157,12 +159,22 @@ export function GLTenirHonneursPanel({ game, teams = [], onReloadGame, showFailu
 
       {aRelire.length ? (
         <div className="gl-tenir-honneurs__relecture">
-          <h4>Pages à relire ({aRelire.length})</h4>
+          <h4>Lettres à relire ({aRelire.length})</h4>
           <ul>
             {aRelire.map((p) => (
               <li key={p.id}>
                 <strong>{p.titre}</strong> <span className="gl-hint">— {p.pseudo}</span>
                 <p className="gl-tenir-honneurs__texte">{p.texte}</p>
+                <label className="gl-demandes__piste">
+                  <span className="gl-hint">Une piste, si c’est « pas encore »</span>
+                  <input
+                    type="text"
+                    maxLength={400}
+                    value={pistes[p.id] || ''}
+                    onChange={(e) => setPistes((v) => ({ ...v, [p.id]: e.target.value }))}
+                    data-testid="gl-lettre-piste"
+                  />
+                </label>
                 <div className="gl-inline-actions">
                   <GLButton
                     type="button"
@@ -174,7 +186,7 @@ export function GLTenirHonneursPanel({ game, teams = [], onReloadGame, showFailu
                           apiGL(`/api/gl/games/${gameId}/tenir/plumes/${p.id}`, 'PUT', {
                             decision: 'valider',
                           }),
-                        'Page validée : elle entre au carnet de la classe.',
+                        'Page validée : elle entre au carnet de la classe, en marge.',
                       )
                     }
                   >
@@ -189,13 +201,14 @@ export function GLTenirHonneursPanel({ game, teams = [], onReloadGame, showFailu
                       run(
                         () =>
                           apiGL(`/api/gl/games/${gameId}/tenir/plumes/${p.id}`, 'PUT', {
-                            decision: 'refuser',
+                            decision: 'pas_encore',
+                            piste: pistes[p.id] || '',
                           }),
-                        'Page renvoyée à son auteur.',
+                        'Pas encore : l’élève réécrit sa page, sans rien repayer.',
                       )
                     }
                   >
-                    Renvoyer
+                    Pas encore
                   </GLButton>
                 </div>
               </li>

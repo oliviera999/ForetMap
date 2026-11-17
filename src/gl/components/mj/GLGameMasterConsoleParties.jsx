@@ -15,6 +15,9 @@ export default function GLGameMasterConsoleParties({
   setCreateClassId,
   createChapterId,
   setCreateChapterId,
+  createCopyFromId = '',
+  setCreateCopyFromId = null,
+  copySources = [],
   activeClasses,
   chapters,
   gamesClassFilter,
@@ -90,6 +93,27 @@ export default function GLGameMasterConsoleParties({
               </label>
             ) : null}
           </GLField>
+          {setCreateCopyFromId && copySources.length ? (
+            <GLField label="Copier la configuration d’une partie (facultatif)">
+              <GLSelect
+                value={createCopyFromId}
+                onChange={(event) => setCreateCopyFromId(event.target.value)}
+                data-testid="gl-mj-copier-config"
+              >
+                <option value="">Réglages par défaut</option>
+                {copySources.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.name}
+                    {item.className ? ` — ${item.className}` : ''}
+                  </option>
+                ))}
+              </GLSelect>
+              <span className="gl-hint">
+                Surface, dés, sabliers et réglages de la partie choisie sont repris. Ni les équipes,
+                ni les pions, ni les bourses.
+              </span>
+            </GLField>
+          ) : null}
           <GLButton type="submit" disabled={busy}>
             Créer une partie
           </GLButton>
