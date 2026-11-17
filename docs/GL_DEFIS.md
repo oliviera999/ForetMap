@@ -19,7 +19,7 @@ Catalogue `data/gl/tenir/defis-cases.json` (16 défis, 4 par plateau) → `gl_te
 Moteur `lib/glDefisCase.js`, routes `routes/gl/games/defis-case.js`, table de partie
 `gl_game_defis_case`. L'équipe qui s'arrête sur une case « Défi d'équipe » reçoit un défi **à
 préparer pour la séance suivante** ; le tour continue. Le critère n'est servi qu'au prof, qui
-juge « Relevé » ou « Pas encore ». Un défi sans décision au Seuil s'annule sans effet : aucun
+juge « Relevé » ou « Pas encore ». Un défi sans décision au camp s'annule sans effet : aucun
 état d'attente sans sortie. Réglages `defis_case`, `defi_declenchement`, `defi_recul`.
 
 ## 2. Défis de la Trame : quatre défis, un plateau de cartes
@@ -182,7 +182,7 @@ ouvert (409 `DEFIS_FERMES`), une partie terminée n'en donne plus ; la lecture r
    | Badge            | Mesure                  | Fil · Nœud · Étoffe |
    | ---------------- | ----------------------- | ------------------- |
    | Tisserand        | niveaux de Retisser     | 3 · 8 · 16          |
-   | Révélateur       | trames altérées         | 3 · 6 · 12          |
+   | Voyant des fils  | trames altérées         | 3 · 6 · 12          |
    | Gardien des fils | plateaux de fils cachés | 2 · 3 · 4           |
    | Réparateur       | plateaux réparés        | 2 · 3 · 4           |
 

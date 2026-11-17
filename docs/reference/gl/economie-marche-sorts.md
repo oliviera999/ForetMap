@@ -117,7 +117,7 @@ notamment par la résolution d'actions — il ne se confond pas avec la vitalit�
 
 > **À ne pas confondre avec le grimoire du voyageur.** Les sorts décrits ici sont ceux des
 > chapitres, lancés pendant une partie, payés en cœurs et en gemmes. Le **Seuil** donne aussi
-> à chaque élève quelques sortilèges **personnels** (_Seconde chance_, _Mémoire_, _Loupe_), débloqués
+> à chaque élève quelques sortilèges **personnels** (_Loupe_, _Mémoire_, _Flair_), débloqués
 > par son niveau, lancés hors séance, gratuits et sans validation du MJ. Voir
 > [Présentation — Le Seuil](presentation.md#le-seuil-laccueil-des-joueurs).
 
@@ -306,9 +306,9 @@ en retrait ne voit pas la place.
 phase jeu, au seuil…) et une limite (par tour et par équipe, par partie, par chapitre et par élève,
 par trimestre). Hors fenêtre, l'écran dit pourquoi. Le **pot** est pré-rempli à parts égales entre
 les membres présents (le reste au plus riche) et reste modifiable. Les sorts automatiques
-s'appliquent aussitôt ; ceux du prof (Question, Conseil, Pause, Lettre…) entrent dans votre
-file : vous cochez « effet appliqué » quand c'est fait. Aucun sort ne crée de ressource (« Nommer »,
-qui en rendait, est sorti du grimoire le 17 novembre 2026).
+s'appliquent aussitôt ; ceux du prof (Question, Conseil, Pause, Rôle…) entrent dans votre
+file : vous touchez « Honorer » quand c'est fait, ou « Refuser et rembourser ». Aucun sort ne crée
+de ressource (« Nommer », qui en rendait, est sorti du grimoire le 17 novembre 2026).
 
 ## Ensemble unifié : gains et grimoire (17 novembre 2026)
 
@@ -323,7 +323,7 @@ qui en rendait, est sorti du grimoire le 17 novembre 2026).
   Question ; chapitre 2 : Grand Regard, Abri, Cordée, Conseil, Pause, Rôle ; chapitre 3 : Esquive,
   Mentorat, Lettre, Choix ; troisième trimestre : Consécration.
 - **L'écran des sorts** range les sorts en cinq moments (avant de lancer, après le jet, pendant le
-  tour, pendant l'activité, en fin de chapitre ou en veillée) et ne montre que ceux qu'on peut
+  tour, pendant l'activité, au camp ou en veillée) et ne montre que ceux qu'on peut
   lancer **et payer** à cet instant.
 - **La Cordée** se lance pendant le jeu, à n'importe quel moment : elle agit **au prochain tour**
   des deux équipes (le meilleur des deux jets vaut pour les deux, le voile ne les touche pas ce
@@ -332,6 +332,35 @@ qui en rendait, est sorti du grimoire le 17 novembre 2026).
   rien à payer.
 - **Lumière** : voir [Chapitres et progression](chapitres-et-progression.md) ; elle ne donne
   jamais de ressource.
+
+## Ensemble unifié : Mentorat, Lettre, sorts du Travail (17 novembre 2026)
+
+- **Les sorts du Travail** (Question, Conseil, Pause, Rôle) sont **payés dès le lancement**. Ils
+  arrivent dans votre panneau « Demandes » : **« Honorer »** quand vous l'accordez, **« Refuser et
+  rembourser »** sinon (l'équipe retrouve exactement ce qu'elle a versé). Un sort resté sans
+  réponse est rendu à l'équipe à la séance suivante.
+- **Le Mentorat** coûte **3** et ne se rembourse jamais. L'élève explique à la classe, en deux
+  minutes, une page du carnet ou une espèce du biome. **Un seul Mentorat par séance et par
+  classe** : un second élève lit « Un Mentorat est déjà prévu aujourd'hui. », et rien ne lui est
+  débité. Dans « Demandes », la ligne « Mentorat à écouter » vous montre le critère (pour vous
+  seul) : touchez **« Réussi »**, ou **« Pas encore »** avec une piste. Après un « pas encore »,
+  l'élève **retente une autre séance sans repayer**, depuis son Seuil. Si vous n'avez pas eu le
+  temps de l'écouter, le Mentorat repasse seul en « pas encore » à la séance suivante : rien ne
+  reste bloqué, rien n'est repris.
+- **La Lettre** coûte **2**. Une fois le sort lancé, l'élève écrit sa page depuis son Seuil
+  (« Ma Lettre »), à partir d'une des trois amorces d'Olu : « Ce que j'ai vu », « Ce qui m'a
+  surpris », « Ce que je me demande ». Vous la relisez (« Lettres à relire ») : **« Valider »**, ou
+  **« Pas encore »** avec une piste — l'élève la **réécrit sans repayer**, autant de fois qu'il le
+  faut. Validée, la Lettre entre au carnet de la classe **en marge** : elle ne compte pas pour le
+  carnet complet. Points de relecture affichés pour vous : ni le visage de Sélène, ni le nom de
+  l'oiseau, ni le copiste ; le Souffle se décrit par ce qu'on voit, jamais comme quelqu'un.
+- **Le grimoire du voyageur** garde trois sortilèges personnels : **Loupe**, **Mémoire**, **Flair**.
+  La **Plume** en est sortie (une page d'élève passe par la Lettre). **Seconde chance** aussi, tant
+  qu'aucun délai n'est réglé : depuis le 17 novembre, une mauvaise réponse au QCM d'une fiche ne
+  coûte plus rien, pas même une attente. Le réglage « Délai après une mauvaise réponse à une fiche »
+  (0 par défaut) rétablit le délai — et Seconde chance avec lui — si vous le souhaitez.
+- **Le lexique** : la fin de chapitre s'appelle **le camp** (les sorts se lancent « au camp ou en
+  veillée ») ; **le Seuil** reste l'espace personnel de l'élève.
 
 ## Ajustements du 7 novembre 2026
 
@@ -388,8 +417,8 @@ haut)._
   souffle, l'équipe lanceuse est **remboursée en entier** et la protection contre le voile tombe.
   Le journal le dit : « Sort rendu ».
 
-**Refuser un sort du prof rembourse.** Un sort que vous appliquez vous-même (Question, Conseil,
-Pause, Lettre…) est payé au lancement, puis attend dans votre file. S'il tombe mal, le
+**Refuser un sort du prof rembourse.** Un sort que vous honorez vous-même (Question, Conseil,
+Pause, Rôle) est payé au lancement, puis attend dans votre file. S'il tombe mal, le
 bouton **« Refuser et rembourser »** rend à l'équipe exactement ce qu'elle a payé — bourses et
 réserve de la caravane — et vous pouvez lui laisser un mot, qu'elle lit dans le journal. Le sort
 rendu ne compte pas dans sa limite : l'équipe peut le relancer plus tard dans la séance.

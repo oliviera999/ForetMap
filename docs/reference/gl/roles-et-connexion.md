@@ -153,6 +153,11 @@ démonstration** du [Guide du MJ](guide-du-mj.md#une-partie-de-démonstration-po
   héritée du « PIN » a disparu ; tout parle désormais de « mot de passe »). Le joueur est
   **déconnecté partout** (jeu et ForetMap) : un mot de passe changé invalide les sessions
   ouvertes, ce qui permet de reprendre un compte compromis sans attendre.
+- **En pleine séance « Tenir à deux »** (depuis le 17 novembre 2026) : sur l'écran « Jouer le
+  tour », le bouton « Mot de passe oublié » en face d'un élève tire un **mot de passe provisoire**
+  affiché **une seule fois**, à changer à sa prochaine connexion. Mêmes limites que la commande
+  ci-dessus : droit de gérer les joueurs, et jamais sur un élève qui se connecte avec son compte
+  ForetMap.
 - **Changement forcé à la prochaine connexion** : un joueur peut être marqué
   « doit changer son mot de passe ». À sa connexion suivante, une fenêtre bloquante
   l'oblige à en choisir un nouveau avant de pouvoir jouer. **Dès que le nouveau mot

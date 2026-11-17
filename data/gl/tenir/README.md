@@ -1,6 +1,6 @@
 # `data/gl/tenir/` — fichiers de données « Tenir à deux »
 
-Jeu de données de la mouture « Tenir à deux » de Gnomes & Licornes (règles de référence v2,
+Jeu de données de la mouture « Tenir à deux » de Gnomes & Licornes (règles de référence v3,
 `docs/GL_TENIR_A_DEUX_REGLES.md`, § 16). Tous les fichiers sont en UTF-8, JSON indenté, avec une
 clé `format` en tête qui nomme la version du format. Aucune donnée d'élève, aucun identifiant de
 compte, aucun secret.
@@ -53,7 +53,7 @@ montre comptes, écarts et dernier rapport, et permet de resynchroniser (`POST
 | `badges.json` | `code` | 15 |
 | `olu-lignes.json` | `id` (`actif: false` : la ligne reste au fichier, Olu ne la dit plus) | 77 |
 | `parures.json` | `code` | 12 |
-| `sorts.json` | `code` (table `gl_spells`) | 25 + 6 voyageur |
+| `sorts.json` | `code` (table `gl_spells`) | 25 (19 actifs) + 5 voyageur |
 | `reglages-defaut.json` | clé de réglage `gameplay.tenir_*` | — |
 | `passeur-plateau4.json` | `(plateau, ordre)` | 7 / 7 / 9 / 7 |
 | `defis-cases.json` | `code` (table `gl_tenir_defis_cases`) | 16 (4 par plateau) |
@@ -82,8 +82,9 @@ Une zone :
 | `question_code` | string | question `gl_qcm_questions` active, niveau `6ème`, biome du feuillet, **unique sur les 36 zones** |
 | `theme_secours` | string | `categorie_slug` de la banque (`biome`, `ecosystemes`, `faune`, `flore`, `geologie`, `perturbations`) ; égal à la catégorie de `question_code` |
 | `ordre` | int | 1..N par plateau, sans trou ; le réglage `zones_par_plateau` active les N premières |
-| `especes` | `[code, …]` | 1 à 3 codes `gl_species` liés au dessin de la zone : **pistes de veillée** (étudier la fiche d'une de ces espèces révèle la zone) ; le chargeur retombe sur `lien_canal = 'espece'` du feuillet si la clé manque |
-| `actif` | bool | `true`, sauf une zone **en attente d'un autre feuillet** (`false` : écrite inactive, feuillet d'un autre plateau toléré avec avertissement ; sa question de lecture est désactivée) — au 7/11 : `cz-p2-08` (`ep-I-08` est au plateau 3) |
+| `especes` | `[code, …]` | 1 à 3 codes `gl_species` liés au dessin de la zone. **La première fiche donne la réponse** de la question de zone (ensemble unifié, M22) ; toutes servent aux **pistes de veillée** (étudier la fiche d'une de ces espèces révèle la zone) ; le chargeur retombe sur `lien_canal = 'espece'` du feuillet si la clé manque |
+| `glossaire` | `[code, …]` (facultatif) | 1 à 3 codes de termes `gl_glossary_terms` (`GL####`) qui donnent la réponse quand elle n'est pas dans une fiche (M22). Après un « pas encore », l'écran dit « La réponse se trouve au mot … du glossaire » (à défaut de terme : « … dans la fiche … ») — un lien, jamais la réponse. Un terme absent de la base est un avertissement, pas un refus |
+| `actif` | bool | `true`, sauf une zone **en attente d'un autre feuillet** (`false` : écrite inactive, feuillet d'un autre plateau toléré avec avertissement ; sa question de lecture est désactivée). Depuis le 17 novembre 2026 (L5), les 36 zones sont actives : `cz-p2-08` porte le feuillet `ep-I-06` (son polygone, celui de `zf-p2-07`, est écrit en clair car `polygone_ref` exige le même feuillet) |
 
 Le chargeur exige `polygone` **ou** `polygone_ref` pour activer une zone ; une zone avec les deux à
 `null` est importée mais **refusée à l'activation** tant qu'Oliv n'a pas dessiné le polygone. Les
@@ -91,13 +92,17 @@ polygones ne sont jamais envoyés aux élèves.
 
 ## `questions-lecture.json`
 
-`{ "format", "questions": [ { zone_key, feuillet_code, question, choix: {A,B,C,D}, reponse, feedback_correct, feedback_incorrect } ] }`
+`{ "format", "questions": [ { zone_key, feuillet_code, question, choix: {A,B,C,D}, reponse, feedback_correct, feedback_incorrect?, retours? } ] }`
 
 - Une question par zone, `zone_key` et `feuillet_code` identiques à `chasse-zones.json`.
 - `reponse` ∈ {A,B,C,D} ; 4 choix non vides et distincts.
 - Porte sur le texte réel de la page (un fait, une image, une espèce, un geste), jamais sur le lore
   secret ni sur l'oiseau. Retentatives illimitées, aucune perte : `feedback_incorrect` commence par
   « Pas encore » et renvoie au passage de la page.
+- `retours` (facultatif, ensemble unifié) : `{ "A": "Pas encore : …", … }`, un retour **propre à un
+  mauvais choix**, qui prime sur le retour commun. Jamais pour la bonne lettre (c'est
+  `feedback_correct`) ; chaque retour commence par « Pas encore ». Quand les trois mauvais choix
+  ont le leur, `feedback_incorrect` devient facultatif.
 
 ## `qcm-feedbacks-zones.json`
 
@@ -151,6 +156,9 @@ réussie » (équipe × chapitre → sceau + titre).
 - `honneurs.<eclaireurs|gardiens|passeurs|esprit>` : `libelle`, `critere`, puis un titre par biome
   de chapitre `tropiques | aride | tempere | grands_froids` (plateaux 1 à 4, voir `biomes`).
 - `sceaux_peuple.<eclaireuses|mains>` : même structure, avec `peuple` (`unicorn` / `gnome`).
+- Lexique (L2, 17 novembre 2026) : les **clés** gardent leur nom, les `libelle` disent
+  « Avant-garde » (`eclaireurs`), « Compagnons » (`passeurs`), « Révélatrices » (`eclaireuses` :
+  pages trouvées + zones révélées). Mêmes noms dans `lib/glHonneursLibelles.js`.
 - `prefixe_double` : préfixe quand un honneur est gagné deux fois (« Très Grands … »).
 - `missions` : liste des titres de sceau (20) ; `voyageur` : titres individuels du Seuil (à
   harmoniser avec `lib/glVoyageur.js`).
@@ -160,7 +168,9 @@ réussie » (équipe × chapitre → sceau + titre).
 `{ "format", "badges": [ { code, nom, critere, regle: { type, seuil, source }, icone } ] }` —
 `regle.type` ∈ `compteur | serie_hebdo | saisie_prof | reserve` ; `seuil` entier ou `null`
 (`reserve`) ; `source` nomme le compteur à dériver des événements `gl_game_events` ou des tables
-existantes. `icone` est un mot-clé, pas un fichier. Aucun badge ne donne de ressource.
+existantes. `icone` est un mot-clé, pas un fichier. Aucun badge ne donne de ressource. Lexique
+(L2) : `passeur_de_seuil` s'appelle « Grand voyageur », `revelateur` « Voyant des fils » (les codes
+ne changent pas).
 
 ## `olu-lignes.json`
 
@@ -199,13 +209,24 @@ sorts de `gl_spells` absents du fichier. Le coût de Consécration (8 « offerte
 `ressource: choix`. Ensemble unifié (M6, 17 novembre 2026) : **19 sorts** au grimoire ; un sort
 `actif: false` (Nommer, Héritage, Boussole, Tablette, Musique, Lumière) reste au fichier, passe en
 `propose` et n'est ouvert à aucun chapitre ; la Cordée (fenêtre `jeu`, `effet_auto_json.prochain_tour`)
-agit au tour suivant et `offerte_plateau_4` la rend gratuite une fois par équipe au plateau 4. `voyageur` : grimoire individuel gratuit, un usage par chapitre, débloqué par le
-niveau du Seuil (niveaux 1-6 ; Messager hors périmètre).
+agit au tour suivant et `offerte_plateau_4` la rend gratuite une fois par équipe au plateau 4.
+
+**Mentorat et Lettre** (M23) : leurs textes vivent dans `effet_auto_json` — `{ type: "mentorat",
+consigne, critere_prof, retour_pas_encore, retour_valide }` et `{ type: "lettre", presentation,
+amorces: [{ code, titre, texte }], retour_pas_encore, retour_valide, relecture_prof: [ … ] }`.
+`critere_prof` et `relecture_prof` ne sortent que dans la file du prof ; tous les autres champs
+passent le crible des chaînes interdites. Le sort se paie une fois (Mentorat 3, Lettre 2) et ne se
+rembourse jamais.
+
+`voyageur` : grimoire individuel gratuit, un usage par chapitre, débloqué par le niveau du Seuil
+(Messager hors périmètre). Cette section est **documentaire** (la vérité est `lib/glVoyageur.js`).
+La Plume en est sortie ; « Seconde chance » porte une `condition` : elle n'existe que si
+`tenir_delai_fiche_secondes` > 0.
 
 ## `reglages-defaut.json`
 
 `defaut` : valeurs du profil `complet`, une clé par réglage `gameplay.tenir_<clé>` ; `profils` :
-`complet` (aucun écart) et `prologue` (`ecarts` appliqués par-dessus `defaut`). Le chargeur n'écrit
+`complet` (aucun écart), `prologue` et `court` (`ecarts` appliqués par-dessus `defaut`). Le chargeur n'écrit
 une clé que si elle est absente de `gl_settings` (les réglages déjà modifiés depuis le compte MJ ne
 sont jamais écrasés) ; l'application d'un profil sur une partie copie `defaut` + `ecarts` dans
 l'état de la partie.

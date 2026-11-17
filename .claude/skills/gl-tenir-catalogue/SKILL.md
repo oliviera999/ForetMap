@@ -45,6 +45,18 @@ Le reste suit seul, car tout lit `IMPORT_ORDER` :
 - L'import strict a besoin du **corpus réel** (feuillets, espèces, QCM) : il se lance sur la
   base du banc (`npm run gl:sim:db`), pas sur la base de test nue.
 
+## Champs facultatifs à connaître (ensemble unifié, 17 novembre 2026)
+
+- `chasse-zones.json` : `especes` range la fiche qui porte la réponse **en premier** ; `glossaire`
+  (1 à 3 codes `GL####`) passe devant elle pour la piste offerte après un « pas encore »
+  (`pisteDeReponse`, `lib/glChasse.js`).
+- `questions-lecture.json` : `retours` (un retour « Pas encore… » par mauvaise lettre, jamais sur
+  la bonne) ; `feedback_incorrect` devient facultatif quand les trois mauvais choix sont couverts.
+- `sorts.json` : les textes du Mentorat et de la Lettre (consigne, critère, amorces, points de
+  relecture) vivent dans `effet_auto_json`.
+- Contrôle « la réponse est-elle sur le site ? » : `node scripts/gl-controle-reponses-sur-site.js`
+  (lecture seule, CSV).
+
 ## Écriture gardée
 
 Quand un catalogue complète une table d'auteur (ex. `qcm-feedbacks-zones` dans

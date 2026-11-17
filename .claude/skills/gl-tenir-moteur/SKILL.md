@@ -19,7 +19,13 @@ registre de `lib/glSettings.js`, puis `data/gl/tenir/reglages-defaut.json` (et s
 ## Phases et surfaces
 
 - Phases d'un tour : `ouverture → jeu → souffle → clos` (`ouvrirTourTx`, `changerPhaseTx` de
-  `lib/glTour.js`). La clôture du chapitre (`POST /end`, `lib/glSeuil.js`) ferme le tour.
+  `lib/glTour.js`). La clôture du chapitre (`POST /end`, `lib/glSeuil.js`) ferme le tour : à
+  l'écran, c'est **le camp** (le fichier garde son nom technique).
+- Présences : chacun est présent par défaut (`lib/glPresences.js`) ; aucune confirmation, aucune
+  demande. Le Retrait est levé pour tous au passage en `clos`.
+- File du prof (`lib/glDemandes.js`) : `des_a_valider`, `jet_en_suspens`, `sort_a_appliquer`
+  (« Sort à honorer »), `plume` (« Lettre à relire »), `mentorat`, `chimere`, `defi_case`,
+  `nommer`. Sorties automatiques dans `solderAttentesDeSeanceTx` (`lib/glTour.js`).
 - Surfaces : `tableau` (le prof porte les gestes de l'équipe active), `hybride`, `tablette`
   (`resolveSurface`). Au tableau, rien ne change sans décision.
 - Chaque phase est chronométrée (`gl_game_round_phases`, `lib/glRoundPhases.js`).
@@ -67,7 +73,8 @@ Les routes prof portent `requireGlPermission('gl.game.manage')`.
 1. Le droit dans `glTenirPermissionsCore` (puis `npm run sync:shared-cores`) et son contrôle serveur.
 2. La fonction `…Tx` dans le module du domaine, la route dans `routes/gl/games/`.
 3. L'évènement, son libellé de journal, son éventuelle ligne d'Olu (`lib/glTenirOlu.js`).
-4. Sa **sortie automatique** s'il attend quelqu'un (changement de phase, clôture, Seuil).
+4. Sa **sortie automatique** s'il attend quelqu'un (changement de phase, clôture, séance
+   suivante, camp).
 5. Tests `tests/gl-tenir-*.test.js` (fixtures `tests/helpers/glTenirFixtures.js`, suites
    séquentielles `--test-concurrency=1 --test-force-exit`), puis le banc (skill `gl-banc`).
 6. `docs/API.md`, `docs/GL_TENIR_A_DEUX.md`, doc de référence `docs/reference/gl/`.

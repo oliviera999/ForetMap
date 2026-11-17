@@ -331,8 +331,9 @@ l'a trouvée ne gagne rien de plus). Les Gnomes réparent les pages pâlies.
   recule de 5 tout seul et la jauge repart à zéro : plus rien à choisir. Les cartes ne font plus
   avancer les pions.
 
-**À la clôture** : quatre honneurs (Éclaireurs, Gardiens, Passeurs, Esprit d'équipe), un par
-équipe au plus, deux sceaux de peuple (Éclaireuses, Mains), un titre par honneur et par biome qui
+**Au camp** (la fin de chapitre, nommée ainsi depuis le 17 novembre 2026) : quatre honneurs
+(Avant-garde, Gardiens du carnet, Compagnons, Esprit d'équipe), un par
+équipe au plus, deux sceaux de peuple (Révélatrices, Mains), un titre par honneur et par biome qui
 suit les élèves (affiché sous la mascotte au chapitre suivant) ; les **badges** individuels
 (Première page, Lecteur, Fouilleur, Trouveur, Mains tendues, Veilleur, Nommeur, Cartographe,
 Passeur de seuil ; Chuchoteur et Correcteur du renard à votre main) ne donnent aucune ressource et

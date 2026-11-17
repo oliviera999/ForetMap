@@ -91,7 +91,8 @@
   le réglage l'exige — puis **appliquer l'effet**. Le logiciel encaisse le coût, il
   n'exécute pas l'effet : la file **« Sortilèges à appliquer »** liste les sorts payés
   dont l'effet reste à jouer, avec son texte, et un bouton « Effet appliqué ✔ » quand
-  c'est fait. Détail : [Économie du jeu](economie-marche-sorts.md).
+  c'est fait (en mouture « Tenir à deux », ces sorts arrivent dans le panneau « Demandes »,
+  avec le bouton « Honorer »). Détail : [Économie du jeu](economie-marche-sorts.md).
 - **Entre deux chapitres** : annoncer le **passage de seuil** — et, si vous changez
   les mascottes des équipes, c'est le récit qui le justifie (« le seuil donne la forme
   dont le prochain territoire aura besoin »).
@@ -383,30 +384,31 @@ parallèle. Au tableau, rien ne change.
   temps de la séance. Vous voyez les tablettes connectées et pouvez en **déconnecter** une.
   « Régénérer… » annule l'ancien QR et déconnecte toutes les tablettes. Un élève connecté avec
   son propre compte arrive sur le même écran d'équipe.
-- **Les présences se confirment par équipe.** À l'ouverture du tour, chaque tablette demande
-  « Il manque quelqu'un ? » : l'équipe touche les absents, puis « C'est bon ». Un retardataire
-  se signale par « Quelqu'un vient d'arriver ». Votre bouton « Tout le monde est là » confirme
-  toute la classe d'un coup. Tant qu'une équipe n'a pas confirmé, elle ne lance pas de sort.
+- **Chacun est présent par défaut.** Plus rien à confirmer à l'ouverture du tour : une équipe
+  lance ses sorts tout de suite. Si un élève manque, l'équipe touche le bouton discret « Il manque
+  quelqu'un ? » sur sa tablette, puis l'absent ; un retardataire se signale par « Quelqu'un vient
+  d'arriver ». Vous pouvez faire la même chose depuis votre écran. _(Depuis le 17 novembre 2026 :
+  auparavant, chaque équipe devait confirmer ses présences avant de lancer un sort.)_
 - **Un sort se paie à plusieurs, sans calcul.** Sur la tablette, le coût se partage seul entre
   les présents ; un élève qui ne veut pas verser touche « pas moi » sur sa ligne. La bourse de
   chacun reste la sienne : une équipe ne voit jamais le pot d'une autre.
 - **Tout ce qui attend votre geste est au même endroit.** Le panneau **« Demandes »** réunit
-  les dés à valider, les jets en suspens, les sorts à appliquer, les présences, les pages et
-  chimères à relire, les défis à juger. Une ligne par demande, la plus ancienne en haut, un
+  les dés à valider, les jets en suspens, les sorts à honorer, les Lettres à relire, les
+  Mentorats à écouter, les chimères à relire, les défis à juger. Une ligne par demande, la plus ancienne en haut, un
   bouton par ligne ; un compteur reste visible. **Rien ne reste bloqué** : ce que vous n'avez
-  pas traité se règle seul — à la fin de la phase de jeu pour les dés et les présences, à la
-  clôture du tour pour un sort du tour (il est rendu à l'équipe), à la séance suivante pour un
-  sort d'activité, à la clôture du chapitre pour le reste.
+  pas traité se règle seul — à la fin de la phase de jeu pour les dés, à la clôture du tour pour
+  un sort du tour (il est rendu à l'équipe), à la séance suivante pour un sort d'activité ou un
+  Mentorat (il repasse en « pas encore », sans rien reprendre), au camp pour le reste.
 - **« Refuser et rembourser ».** Un sort que vous ne voulez pas accorder se refuse d'un bouton,
   avec un mot facultatif : l'équipe retrouve exactement ce qu'elle a versé.
 - **« Tout au tableau ».** Si la classe s'agite ou si le réseau flanche, ce bouton vous rend la
   main en pleine séance : vous jouez pour chaque équipe comme au tableau. « Rendre la main aux
   équipes » revient à l'état précédent. Les tablettes restent connectées.
 - **L'écran d'équipe guide le tour.** Les sorts y sont rangés par moment (« Avant de lancer »,
-  « Après le jet », « Pendant le tour », « Plus tard »), les six cases à venir sont affichées
+  « Après le jet », « Pendant le tour », « Au camp ou en veillée »), les six cases à venir sont affichées
   avant le jet, la distance au voile se lit sous chaque mascotte, et le carnet de la classe
   signale les pages qui « attendent un lecteur ».
-- **Le défi de case.** Les deux cases « Défi d'équipe » de chaque plateau confient à l'équipe
+- **Le défi de case.** Les trois cases « Défi d'équipe » de chaque plateau confient à l'équipe
   qui s'y arrête un défi **à préparer pour la séance suivante** (titre, consigne, préparation
   sur son écran et à son Seuil). Le tour continue. Dans « Demandes », la ligne du défi vous
   montre le **critère de réussite, pour vous seul**, et un sablier à la demande : touchez
@@ -427,7 +429,7 @@ parallèle. Au tableau, rien ne change.
     sans la réponse. Les indices sont gratuits et sans limite.
   - **Un défi ne donne aucune ressource.** La première réussite de chaque défi apporte à
     l'élève une page de veillée à son nom (deux par semaine au plus par cette voie), un point de
-    regard et l'avancée d'un badge (Tisserand, Révélateur, Gardien des fils, Réparateur).
+    regard et l'avancée d'un badge (Tisserand, Voyant des fils, Gardien des fils, Réparateur).
   - L'onglet « Défis » montre le **suivi** : par élève, ce qui est réussi et les indices
     demandés, dans l'ordre alphabétique, sans classement, avec un export. Les phrases « Dis
     pourquoi » écrites dans Réparer s'y lisent d'un coup d'œil.
@@ -441,6 +443,38 @@ parallèle. Au tableau, rien ne change.
   **« Court »** réserve la lecture des pages à la veillée, pour une séance plus brève. La Farce
   ne vise plus une équipe déjà sous le voile. Détail dans
   [Économie, Marché et sorts](economie-marche-sorts.md).
+
+### Ensemble unifié : moins de gestes pour vous (17 novembre 2026)
+
+- **Les sorts du Travail** (Question, Conseil, Pause, Rôle) sont payés au lancement. Dans
+  « Demandes », la ligne s'appelle **« Sort à honorer »** : **« Honorer »** quand c'est fait,
+  **« Refuser et rembourser »** sinon.
+- **Le Retrait se lève tout seul.** Un élève entré en retrait revient dans la partie à la clôture
+  du tour, sans geste de votre part. Le journal le dit : « Fin du tour : chacun revient dans la
+  partie. »
+- **Le bilan Team Spirit se remplit à l'envers.** Chaque équipe a **six cartes gardées par
+  défaut** : vous ne touchez que celles qui ont été **retirées**. Une séance sans carte retirée se
+  valide en un geste.
+- **Copier la configuration d'une partie.** À la création d'une partie, le menu « Copier la
+  configuration d'une partie (facultatif) » reprend le profil, la surface et les réglages d'une
+  partie que vous avez déjà menée. Ni les équipes, ni les bourses, ni le journal ne sont copiés.
+- **Mot de passe oublié, en un appui.** Sur l'écran « Jouer le tour », le bouton « Mot de passe
+  oublié » en face d'un élève tire un **mot de passe provisoire**, affiché **une seule fois** :
+  dictez-le à l'élève, qui devra le changer à sa prochaine connexion. Il n'est écrit nulle part
+  ailleurs (ni journal, ni historique). Pour un élève qui se connecte avec son **compte ForetMap**,
+  le bouton répond que le mot de passe se change depuis ForetMap ou par « mot de passe oublié ».
+- **Mentorat et Lettre.** Deux nouvelles lignes dans « Demandes » : « Mentorat à écouter »
+  (« Réussi » ou « Pas encore » avec une piste) et « Lettre à relire » (« Valider » ou « Pas
+  encore » avec une piste). Un seul Mentorat par séance et par classe. Détail dans
+  [Économie, Marché et sorts](economie-marche-sorts.md).
+- **Le camp.** La fin de chapitre s'appelle désormais **le camp** dans tous les écrans ; **le
+  Seuil** reste l'espace personnel de l'élève. Les honneurs s'appellent **Avant-garde**, Gardiens
+  du carnet, **Compagnons** et Esprit d'équipe ; le sceau des Licornes, **Révélatrices**.
+- **Les zones de la carte : la réponse est sur le site.** Après un « Pas encore » à la question
+  d'une zone, la tablette propose une **piste** : « La réponse se trouve dans la fiche … » (ou
+  « au mot … du glossaire »), avec un bouton pour l'ouvrir. La piste ne donne jamais la réponse.
+  Cinq questions de zone ont été réécrites, et la zone du Sahara qui attendait son feuillet est
+  ouverte.
 
 ## Pour aller plus loin
 
