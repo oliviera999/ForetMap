@@ -9,6 +9,25 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — G&L : tests de la PR 1b — scénario e2e des tablettes, garde d'un test de contenu (17 novembre 2026)
+
+Suite de la PR 1b de l'ensemble unifié (#664).
+
+- `e2e/gl-tenir-tablettes.spec.js` attendait encore l'écran de confirmation des présences, retiré
+  par la décision M14 : le scénario vérifie désormais que chacun est présent d'office, qu'une
+  équipe peut ouvrir « Il manque quelqu'un ? » puis le refermer, et qu'aucune demande de présence
+  n'attend dans la file du prof. Captures `docs/captures/tenir-v2/` régénérées (tablettes, console).
+  Ce scénario ne tourne que dans l'e2e G&L nocturne, informatif : la CI de la PR ne le voyait pas.
+- `tests/content/gl-ensemble-unifie-zones.test.js` : deux contrôles (« les 5 questions remplacées
+  sont sorties du tirage », zone `cz-p2-08`) ne valent que sur le catalogue réel des zones. Sur
+  la base neuve de la CI, la suite backend importe des questions du corpus **après** les
+  migrations : le premier échouait, et a rendu rouge l'étape « Contenu pédagogique » de #664.
+  Ils se sautent désormais, comme leur voisin, quand le catalogue réel n'est pas chargé.
+- **Banc, à lire avec la PR 1b** (scénario `ensemble-unifie`, graines 14 et 15, 80 chapitres de
+  chaque côté, 0 échec) : aucune mesure du § 6.12 ne s'écarte de plus de 1,3 erreur type. Un seul
+  effet réel, attendu : au plateau 2, la zone `cz-p2-08` activée porte le carnet à 8 pages (comme
+  au plateau 1), et le carnet complet y devient plus rare (45 % → 15 % des chapitres simulés).
+
 ### Modifié — G&L : ensemble unifié, PR 1b — charge du prof, lexique, zones, règles v3 (17 novembre 2026)
 
 Prompt `docs/GL_ENSEMBLE_UNIFIE_PROMPT.md` (§ 6, fin de l'étape 1.5 et étapes 1.8 à 1.11). Rien

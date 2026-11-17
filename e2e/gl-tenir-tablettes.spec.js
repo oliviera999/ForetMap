@@ -6,7 +6,7 @@ const { mountGlSession } = require('./fixtures/gl.fixture');
 // « Tenir à deux », lot 2 — jeu en parallèle sur tablettes de classe.
 // Quatre tablettes ouvrent le lien de la classe (trois par le QR, une par le code à huit
 // caractères), touchent chacune la mascotte de leur équipe et arrivent sur l'écran d'équipe.
-// Le prof ouvre le tour : chaque tablette confirme sa présence, l'une jette les dés. Un
+// Le prof ouvre le tour : chacun est présent d'office (rien à confirmer), l'une jette les dés. Un
 // cinquième appareil, connecté avec un compte d'élève, arrive sur le même écran d'équipe.
 // Captures : docs/captures/tenir-v2/tablette-*.png.
 
@@ -42,7 +42,7 @@ test.describe('GL — tablettes d’équipe par le lien de classe', () => {
     caseMarquee = null;
   });
 
-  test('quatre tablettes rejoignent leur équipe, confirment leur présence et jouent en parallèle ; un compte élève arrive sur le même écran', async ({
+  test('quatre tablettes rejoignent leur équipe et jouent en parallèle, sans présence à confirmer ; un compte élève arrive sur le même écran', async ({
     browser,
     request,
   }) => {
@@ -126,19 +126,26 @@ test.describe('GL — tablettes d’équipe par le lien de classe', () => {
         }
         await expect(equipe).toBeVisible({ timeout: 3_000 });
       }).toPass({ timeout: 30_000 });
-      // « Il manque quelqu'un ? » : personne ne manque.
-      await expect(t.page.getByTestId('gl-presence')).toBeVisible({ timeout: 15_000 });
+      // Ensemble unifié (M14) : tout le monde est là d'office. Rien à confirmer pour jouer,
+      // seulement un bouton discret « Il manque quelqu'un ? ».
+      const ouvrir = t.page.getByTestId('gl-presence-ouvrir');
+      await expect(ouvrir).toBeVisible({ timeout: 15_000 });
+      await expect(t.page.getByTestId('gl-presence')).toBeHidden();
       if (t === tablettes[0]) {
+        // Une équipe ouvre le panneau : personne ne manque, « C'est bon » le referme.
+        await ouvrir.getByRole('button').click();
+        await expect(t.page.getByTestId('gl-presence')).toBeVisible();
         await t.page.screenshot({ path: 'docs/captures/tenir-v2/tablette-presences.png' });
+        await t.page.getByTestId('gl-presence-ok').click();
+        await expect(t.page.getByTestId('gl-presence')).toBeHidden({ timeout: 15_000 });
       }
-      await t.page.getByTestId('gl-presence-ok').click();
-      await expect(t.page.getByTestId('gl-presence')).toBeHidden({ timeout: 15_000 });
     }
-    const presences = await queryOne(
-      'SELECT COUNT(*) AS n FROM gl_game_round_presences WHERE game_id = ?',
+    // Aucune demande de présence n'attend dans la file du prof.
+    const demandesPresence = await queryOne(
+      "SELECT COUNT(*) AS n FROM gl_game_demandes WHERE game_id = ? AND kind = 'presence_a_confirmer'",
       [gameId],
     );
-    expect(Number(presences.n)).toBe(4);
+    expect(Number(demandesPresence.n)).toBe(0);
 
     // Deux tablettes jettent les dés au même instant : chacune garde son propre jet.
     const jeter = async (t) => {
@@ -312,7 +319,7 @@ test.describe('GL — tablettes d’équipe par le lien de classe', () => {
       tab: 'maps',
     });
     await expect(pageEleve.getByTestId('gl-tenir-equipe')).toBeVisible({ timeout: 30_000 });
-    // Sa tablette d'équipe a déjà confirmé la présence : on ne la lui redemande pas.
+    // Présent d'office, comme sa tablette d'équipe : aucun écran de présence à passer.
     await expect(pageEleve.getByTestId('gl-presence')).toBeHidden();
     await expect(pageEleve.getByTestId('gl-tenir-cases-a-venir')).toBeVisible();
 
