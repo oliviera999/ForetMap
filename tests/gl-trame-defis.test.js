@@ -24,9 +24,9 @@ const {
   ouvrirTourEnJeu,
   readPlayerBourses,
   setGlSetting,
+  ouvrirTablette,
 } = require('./helpers/glTenirFixtures');
 const { runImports } = require('../scripts/gl-import-tenir');
-const { issueTeamSession } = require('../lib/glGuestToken');
 const core = require('../lib/shared/glTrameCore');
 const { createMetricContext } = require('../lib/glRewardsMetrics');
 const { checkTenirInvariantsFromDb } = require('../lib/glTenirInvariants');
@@ -537,7 +537,7 @@ test('indices : gratuits, en échelle, sans effet sur la récompense', async () 
 
 test('mode équipe : tablette hors tour ou prof ; chaque membre présent est compté', async () => {
   const equipe = team(1);
-  const tablette = await issueTeamSession(db, { gameId: ctx.game.id, teamId: equipe.id });
+  const tablette = await ouvrirTablette({ gameId: ctx.game.id, teamId: equipe.id });
   // Pendant un tour, les défis attendent.
   await ouvrirTourEnJeu(request, app, ctx);
   const liste = await lister(tablette.token);
@@ -561,7 +561,7 @@ test('mode équipe : tablette hors tour ou prof ; chaque membre présent est com
   // Un élève de l'équipe ne joue pas le défi d'équipe depuis son compte ; une autre tablette non plus.
   const membre = membres(1)[0];
   assert.equal((await sauver(membre.token, cree.body.defi.id, 0, { fleches: [] })).status, 403);
-  const autreTablette = await issueTeamSession(db, { gameId: ctx.game.id, teamId: team(0).id });
+  const autreTablette = await ouvrirTablette({ gameId: ctx.game.id, teamId: team(0).id });
   assert.equal((await voir(autreTablette.token, cree.body.defi.id)).status, 403);
   const fin = await sauver(tablette.token, cree.body.defi.id, 0, {
     fleches: solution('jungle_afc', 5),
@@ -646,7 +646,7 @@ test('réglages : défis fermés, défis ouverts aux deux peuples, mode équipe 
     ...COMMUNS,
   ]);
   await profil({ defis_mode_equipe: false });
-  const tablette = await issueTeamSession(db, { gameId: ctx.game.id, teamId: team(1).id });
+  const tablette = await ouvrirTablette({ gameId: ctx.game.id, teamId: team(1).id });
   const equipe = await ouvrir(tablette.token, { type: 'reparer', unite: 'p1' });
   assert.equal(equipe.status, 409, JSON.stringify(equipe.body));
   assert.equal(equipe.body.code, 'DEFIS_EQUIPE_FERMES');

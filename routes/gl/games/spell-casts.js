@@ -6,6 +6,7 @@ const {
   hasGlPermission,
 } = require('../../../middleware/requireGlAuth');
 const { refusSiTeamSessionHorsTour, resolveActingPlayer } = require('../../../lib/glActeur');
+const { gardeDEquipe } = require('../../../lib/glEquipeEtat');
 const { normalizeEventRow } = require('../../../lib/glGameEvents');
 const { emitGlGameEvent, emitGlSpellCastDraftChanged } = require('../../../lib/realtime');
 const {
@@ -84,6 +85,26 @@ function requireSpellCastPermission(req, res, next) {
   });
 }
 
+/** Équipe d'un brouillon, pour la garde d'équipe quand c'est le prof qui agit dessus. */
+async function equipeDuBrouillon(req) {
+  const draftId = parseId(req.params.draftId);
+  const gameId = parseId(req.params.id);
+  if (!draftId || !gameId) return null;
+  const row = await queryOne(
+    'SELECT team_id FROM gl_spell_cast_drafts WHERE id = ? AND game_id = ? LIMIT 1',
+    [draftId, gameId],
+  );
+  return row?.team_id ?? null;
+}
+
+// Plusieurs appareils par équipe (M13) : préparer un sort prend la main ; le lancer ou
+// l'annuler la rend. Hors d'un tour ouvert (sorts du camp, d'activité), la garde laisse passer.
+// Régler SA part ou dire « pas moi » est un geste personnel, sur sa propre bourse : il ne passe
+// pas par la garde, pour qu'un élève le fasse de son compte pendant qu'un autre appareil
+// prépare le sort.
+const gardeSortPrepare = gardeDEquipe({ prend: 'sort' });
+const gardeSortFini = gardeDEquipe({ rend: true, equipeDuProf: equipeDuBrouillon });
+
 async function handleSpellCastRoute(req, res, handler) {
   try {
     const gameId = parseId(req.params.id);
@@ -133,7 +154,9 @@ router.get('/spell-cast-settings', requireGlAuthOrTeam, async (_req, res) => {
   });
 });
 
-router.post('/games/:id/spell-casts/drafts', requireSpellCastPermission, async (req, res) => {
+const routeBrouillon = ['/games/:id/spell-casts/drafts', requireSpellCastPermission];
+
+router.post(...routeBrouillon, gardeSortPrepare, async (req, res) => {
   return handleSpellCastRoute(req, res, async ({ gameId, config }) => {
     const spellCode = normalizeSpellCode(req.body?.spellCode);
     if (!spellCode) {
@@ -207,9 +230,9 @@ router.put(
 );
 
 /**
- * « Pas moi » (lot 2) : `{ playerId, exclu }`. L'élève pour lui-même, la tablette de l'équipe
- * « au nom de » un membre présent, ou le prof. Le partage se recalcule sur les présents non
- * exclus.
+ * « Pas moi » (lot 2) : `{ playerId, exclu }`. L'élève pour lui-même, depuis son propre compte,
+ * ou le prof — jamais la tablette de l'équipe (M13, bourses au propriétaire). Le partage se
+ * recalcule sur les présents non exclus.
  */
 router.post(
   '/games/:id/spell-casts/drafts/:draftId/exclure',
@@ -224,7 +247,7 @@ router.post(
         [draftId, gameId],
       );
       if (!row) return res.status(404).json({ error: 'Brouillon introuvable' });
-      // Tablette d'équipe : « Qui agit ? » — un membre présent de SON équipe, non en retrait.
+      // Bourses au propriétaire : un élève ne se retire que lui-même ; une tablette, personne.
       if (req.glAuth.actor?.kind !== 'mj') {
         const agit = await resolveActingPlayer(req, {
           gameId,
@@ -255,6 +278,7 @@ router.post(
 router.post(
   '/games/:id/spell-casts/drafts/:draftId/launch',
   requireSpellCastPermission,
+  gardeSortFini,
   async (req, res) => {
     return handleSpellCastRoute(req, res, async ({ gameId, config }) => {
       const draftId = parseId(req.params.draftId);
@@ -454,6 +478,7 @@ router.post('/games/:id/spell-casts/drafts/:draftId/refuser', requireGlAuth, asy
 router.delete(
   '/games/:id/spell-casts/drafts/:draftId',
   requireSpellCastPermission,
+  gardeSortFini,
   async (req, res) => {
     return handleSpellCastRoute(req, res, async ({ gameId }) => {
       const draftId = parseId(req.params.draftId);

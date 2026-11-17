@@ -17,8 +17,8 @@ const {
   setPlayerBourses,
   ouvrirTourEnJeu,
   importExempleChasse,
+  ouvrirTablette,
 } = require('./helpers/glTenirFixtures');
-const { issueTeamSession } = require('../lib/glGuestToken');
 const {
   SORT_MOMENTS,
   momentDeFenetre,
@@ -124,7 +124,7 @@ test('sorts par moment (M6) : ceux du peuple de l’équipe, seulement lançable
   for (const m of membres(0)) await setPlayerBourses(m.id, 5, 5);
 
   // Tablette de l'équipe : la même liste ; le prof la lit avec `teamId`.
-  const s = await issueTeamSession(db, { gameId: ctx.game.id, teamId: team(2).id });
+  const s = await ouvrirTablette({ gameId: ctx.game.id, teamId: team(2).id });
   const licornes = await sortsDe(s.token);
   assert.equal(licornes.teamId, Number(team(2).id));
   assert.ok(trouver(licornes, 'SL039'), 'Bourrasque pour les Licornes');

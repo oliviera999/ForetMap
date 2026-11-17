@@ -14,8 +14,12 @@ const assert = require('node:assert/strict');
 const request = require('supertest');
 const { app } = require('../server');
 const db = require('../database');
-const { createTenirGame, setPlayerBourses, ouvrirTourEnJeu } = require('./helpers/glTenirFixtures');
-const { issueTeamSession } = require('../lib/glGuestToken');
+const {
+  createTenirGame,
+  setPlayerBourses,
+  ouvrirTourEnJeu,
+  ouvrirTablette,
+} = require('./helpers/glTenirFixtures');
 const { listPresentMembers } = require('../lib/glTenir');
 const { listDemandes } = require('../lib/glDemandes');
 const { presentJournalEvent } = require('../lib/glJournalPresent');
@@ -187,7 +191,7 @@ test('retardataire : « Quelqu’un vient d’arriver » le remet dans le pot su
 test('tablette d’équipe : déclare pour SON équipe ; le prof corrige à tout moment ; l’appel du prof vaut pour tout le monde', async () => {
   const licornes = ctx.teams[2];
   const [a, b] = membres(licornes.id);
-  const s = await issueTeamSession(db, { gameId: ctx.game.id, teamId: licornes.id });
+  const s = await ouvrirTablette({ gameId: ctx.game.id, teamId: licornes.id });
   const tablette = await request(app)
     .post(api('/tenir/presences'))
     .set(auth(s.token))

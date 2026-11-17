@@ -89,7 +89,8 @@
       ]
     },
     "titre_prefixe_double": "Très Grands",
-    "delai_fiche_secondes": 0
+    "delai_fiche_secondes": 0,
+    "delai_debat_secondes": 8
   },
   "profils": {
     "complet": {

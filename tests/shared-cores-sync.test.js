@@ -39,6 +39,7 @@ test('la liste des paires couvre bien les noyaux attendus', () => {
     'glCaseNumeroCore.js',
     'glGardeFousCore.js',
     'glImageFrameCore.js',
+    'glMainCore.js',
     'glMarkerAppearanceCore.js',
     'glMarkerBackgroundsCore.js',
     'glMarkerEventConfigCore.js',

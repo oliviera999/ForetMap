@@ -96,7 +96,8 @@
     "palissement_rang_plancher": 8,
     "surplus_reserve": true,
     "olu_bourse_pleine": true,
-    "delai_fiche_secondes": 0
+    "delai_fiche_secondes": 0,
+    "delai_debat_secondes": 8
   },
   "profils": {
     "complet": {
@@ -140,6 +141,7 @@
     "questions_spirale": "M9 : part (en pour cent) des questions de case tirées dans un biome d'un plateau déjà traversé, à partir du plateau 2 ; 20 = une question sur cinq",
     "lumiere": "ensemble unifié (M17) : la Lumière, version simple — une jauge commune qui ne descend jamais ; chaque carte Team Spirit gardée ajoute 1, l'erreur d'Olu corrigée 1, un défi de la Trame réussi en mode équipe 10 ; au palier (100), le voile recule de recul_lumiere (5) d'office et la jauge repart à 0 ; plus de choix à enregistrer, plus de sort Lumière ; cartes_vers_cases retiré",
     "delai_fiche_secondes": "ensemble unifié (M23) : délai d'attente après une mauvaise réponse à une fiche, en secondes ; 0 (défaut) = aucun délai, une erreur ne coûte rien, et « Seconde chance » sort du grimoire du voyageur ; une valeur > 0 rétablit le délai (arrondi à l'heure supérieure) et « Seconde chance » avec lui",
+    "delai_debat_secondes": "ensemble unifié (M13) : délai de débat, en secondes — sur une question de case, le bouton de réponse s'allume après ce délai, le temps que l'équipe se mette d'accord ; 0 = tout de suite ; tenu par l'écran (un conseil, pas un droit)",
     "escalier": "ensemble unifié (M8) : l'escalier du chapitre 1 — une partie créée au plateau 1 ouvre ses règles séance après séance (1 : avancer, chercher, défi de case, défis de la Trame ; 2 : tenir, l'erreur du jour d'Olu ; 3 : le voile, la page témoin, trois sorts, la jauge de Lumière ; 4 : le Marché, trois sorts) ; remplace le profil prologue ; l'état vit dans la partie (surcharges escalier et escalier_pas), le prof peut ouvrir la suite d'un clic ou couper l'escalier"
   }
 }

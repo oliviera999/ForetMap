@@ -12,9 +12,17 @@ const assert = require('node:assert/strict');
 const request = require('supertest');
 const { app } = require('../server');
 const db = require('../database');
-const { createTenirGame, setPlayerBourses, ouvrirTourEnJeu } = require('./helpers/glTenirFixtures');
+const {
+  createTenirGame,
+  setPlayerBourses,
+  ouvrirTourEnJeu,
+  ouvrirTablette,
+} = require('./helpers/glTenirFixtures');
 const {
   issueTeamSession,
+  acceptTeamSessions,
+  readTeamSessionRequest,
+  listTeamSessionRequests,
   findValidTeamSession,
   revokeTeamSessions,
   listTeamSessions,
@@ -65,6 +73,20 @@ test('session d’équipe : émise, valide pour sa partie et son équipe, révoc
   assert.equal(row.jti_hash, hashJti(claims.team_session.jti), 'seul le hachage est stocké');
   assert.notEqual(row.jti_hash, claims.team_session.jti);
 
+  // Sessions protégées (M13) : une session neuve n'est qu'une demande, tant qu'elle n'est pas
+  // acceptée ; deux minutes plus tard, elle n'attendrait plus.
+  assert.equal(await findValidTeamSession(db, claims.team_session), null);
+  assert.equal((await listTeamSessions(db, ctx.game.id)).length, 0);
+  assert.equal((await readTeamSessionRequest(db, claims.team_session)).statut, 'en_attente');
+  assert.deepEqual(
+    (await listTeamSessionRequests(db, ctx.game.id)).map((d) => [d.id, d.teamId]),
+    [[s.id, Number(team.id)]],
+  );
+  assert.equal(await acceptTeamSessions(db, { gameId: ctx.game.id, id: s.id, par: 'mj' }), 1);
+  assert.equal(await acceptTeamSessions(db, { gameId: ctx.game.id, id: s.id }), 0, 'une fois');
+  assert.equal((await readTeamSessionRequest(db, claims.team_session)).statut, 'acceptee');
+  assert.deepEqual(await listTeamSessionRequests(db, ctx.game.id), []);
+
   const ok = await findValidTeamSession(db, claims.team_session);
   assert.deepEqual(ok, {
     id: s.id,
@@ -85,12 +107,13 @@ test('session d’équipe : émise, valide pour sa partie et son équipe, révoc
 
   assert.equal(await revokeTeamSessions(db, { id: s.id }), 1);
   assert.equal(await findValidTeamSession(db, claims.team_session), null);
+  assert.equal((await readTeamSessionRequest(db, claims.team_session)).statut, 'refusee');
   await assert.rejects(() => revokeTeamSessions(db, {}), /critère requis/);
 });
 
 test('middleware : une tablette lit sa partie, pas une autre ; révoquée → 401 ; hors route de partie → 403', async () => {
   const team = equipe(2);
-  const s = await issueTeamSession(db, { gameId: ctx.game.id, teamId: team.id });
+  const s = await ouvrirTablette({ gameId: ctx.game.id, teamId: team.id });
   const lu = await request(app).get(api('/tenir/tour')).set(auth(s.token));
   assert.equal(lu.status, 200, JSON.stringify(lu.body));
   assert.equal('durees' in (lu.body.round || {}), false);
@@ -114,7 +137,7 @@ test('middleware : une tablette lit sa partie, pas une autre ; révoquée → 40
   assert.equal(apres.body.code, 'TEAM_SESSION_TERMINEE');
 });
 
-test('acteur unique : prof, élève, tablette d’équipe ; « au nom de » vérifié présent et non en retrait', async () => {
+test('acteur unique : prof, élève, tablette d’équipe ; bourses au propriétaire', async () => {
   const team = equipe(0);
   const [eleve, camarade] = membres(team.id);
   const reqMj = { glAuth: { userType: 'gl_admin', userId: '7' } };
@@ -158,32 +181,33 @@ test('acteur unique : prof, élève, tablette d’équipe ; « au nom de » vér
     'TEAM_SESSION_AUTRE_EQUIPE',
   );
 
-  // « Au nom de » : la tablette doit dire qui agit, parmi les présents de SON équipe.
+  // Bourses au propriétaire (M13) : une tablette d'équipe ne désigne plus personne — avec ou
+  // sans élève nommé, présent ou non, elle est refusée.
   const base = { gameId: ctx.game.id, teamId: team.id };
-  assert.equal((await resolveActingPlayer(reqTeam, base)).code, 'QUI_AGIT_REQUIS');
-  assert.deepEqual(await resolveActingPlayer(reqTeam, { ...base, onBehalfOfPlayerId: eleve.id }), {
+  const etranger = membres(equipe(1).id)[0];
+  for (const qui of [null, eleve.id, camarade.id, etranger.id]) {
+    const refus = await resolveActingPlayer(reqTeam, { ...base, onBehalfOfPlayerId: qui });
+    assert.deepEqual(
+      [refus.ok, refus.status, refus.code],
+      [false, 403, 'BOURSE_AU_PROPRIETAIRE'],
+      `tablette, élève désigné : ${qui}`,
+    );
+  }
+  // Le prof agit pour un membre présent de l'équipe ; sans élève désigné, pour personne.
+  assert.deepEqual(await resolveActingPlayer(reqMj, base), {
+    ok: true,
+    playerId: null,
+    onBehalf: false,
+  });
+  assert.deepEqual(await resolveActingPlayer(reqMj, { ...base, onBehalfOfPlayerId: eleve.id }), {
     ok: true,
     playerId: eleve.id,
     onBehalf: true,
   });
-  const etranger = membres(equipe(1).id)[0];
   assert.equal(
-    (await resolveActingPlayer(reqTeam, { ...base, onBehalfOfPlayerId: etranger.id })).code,
+    (await resolveActingPlayer(reqMj, { ...base, onBehalfOfPlayerId: etranger.id })).code,
     'QUI_AGIT_INVALIDE',
   );
-  await db.execute(
-    'INSERT INTO gl_game_retraits (game_id, player_id, motif, entree_at) VALUES (?, ?, NULL, NOW())',
-    [ctx.game.id, camarade.id],
-  );
-  assert.equal(
-    (await resolveActingPlayer(reqTeam, { ...base, onBehalfOfPlayerId: camarade.id })).code,
-    'QUI_AGIT_INVALIDE',
-    'un élève en retrait n’agit pas depuis la tablette',
-  );
-  await db.execute('DELETE FROM gl_game_retraits WHERE game_id = ? AND player_id = ?', [
-    ctx.game.id,
-    camarade.id,
-  ]);
   // Un élève n'agit que pour lui.
   assert.deepEqual(await resolveActingPlayer(reqEleve, base), {
     ok: true,

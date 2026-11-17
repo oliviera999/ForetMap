@@ -30,11 +30,17 @@ const api = (p, c = ctx) => `/api/gl/games/${c.game.id}${p}`;
 const equipe = (i) => ctx.teams[i];
 const membres = (teamId) => ctx.players.filter((p) => Number(p.teamId) === Number(teamId));
 
+/** Demande de session d'équipe, acceptée par le prof (M13 : une session neuve attend). */
 async function ouvrirSession(teamId, by = { code: lien.code }) {
   const res = await request(app)
     .post('/api/gl/class-link/session')
     .send({ ...by, teamId });
-  assert.equal(res.status, 201, JSON.stringify(res.body));
+  assert.equal(res.status, 202, JSON.stringify(res.body));
+  assert.equal(res.body.enAttente, true);
+  const accepte = await request(app)
+    .post(api(`/tenir/sessions/${res.body.sessionId}/accepter`))
+    .set(auth(ctx.adminToken));
+  assert.equal(accepte.status, 200, JSON.stringify(accepte.body));
   return res.body;
 }
 
@@ -150,14 +156,14 @@ test('hors tour : la tablette lit sa partie sans aucune bourse, et ne fait aucun
     .send({ x: 0.5, y: 0.5 });
   assert.equal(fouille.status, 409);
   assert.equal(fouille.body.code, 'TEAM_SESSION_HORS_TOUR');
-  // Le Marché aussi attend le tour : hors tour, chacun y va depuis son propre compte.
+  // Le Marché ne s'ouvre jamais depuis une tablette d'équipe : chacun y va depuis son compte.
   const marche = await request(app)
     .get('/api/gl/market/annonces')
     .set(auth(s.token))
     .set('X-GL-On-Behalf-Of', String(membres(team.id)[0].id));
-  assert.equal(marche.status, 409, JSON.stringify(marche.body));
-  assert.equal(marche.body.code, 'TEAM_SESSION_HORS_TOUR');
-  assert.deepEqual(etat.body.tenir.tablette.presents, []);
+  assert.equal(marche.status, 403, JSON.stringify(marche.body));
+  assert.equal(marche.body.code, 'BOURSE_AU_PROPRIETAIRE');
+  assert.equal('presents' in etat.body.tenir.tablette, false, '« Qui agit ? » a disparu');
 });
 
 test('quatre sessions d’équipe jouent un tour complet en parallèle', async () => {
@@ -248,9 +254,10 @@ test('quatre sessions d’équipe jouent un tour complet en parallèle', async (
   assert.deepEqual(inv.violations || [], []);
 });
 
-test('un membre en retrait ne retire pas le Marché à la tablette de son équipe', async () => {
+test('bourses au propriétaire : la tablette d’équipe ne touche la bourse de personne', async () => {
   const team = equipe(2);
-  const [eleve] = membres(team.id);
+  const [eleve, autre] = membres(team.id);
+  assert.ok(autre, 'un second membre dans l’équipe');
   const s = await ouvrirSession(team.id);
   const retrait = await request(app)
     .post(api('/tenir/retrait'))
@@ -264,59 +271,45 @@ test('un membre en retrait ne retire pas le Marché à la tablette de son équip
   assert.equal(etatEleve.body.tenir.permissions.marche, false);
   const etat = await request(app).get(api('')).set(auth(s.token));
   assert.equal(etat.body.tenir.enRetrait, false, 'le retrait reste individuel');
-  assert.equal(etat.body.tenir.permissions.marche, true);
   assert.deepEqual(etat.body.tenir.retraits, [], 'la tablette ne voit pas qui est en retrait');
+  assert.equal('presents' in etat.body.tenir.tablette, false, '« Qui agit ? » a disparu');
 
-  // « Qui agit ? » : la tablette agit au Marché au nom d'un membre présent, jamais d'un autre.
-  const [, autre] = membres(team.id);
-  assert.ok(autre, 'un second membre dans l’équipe');
-  assert.deepEqual(
-    etat.body.tenir.tablette.presents.map(Number).sort(),
-    membres(team.id)
-      .map((p) => Number(p.id))
-      .filter((id) => id !== Number(eleve.id))
-      .sort(),
-    'les présents, sans l’élève en retrait',
-  );
+  // Au Marché, plus de « Qui agit ? » : avec ou sans élève désigné, la tablette est refusée,
+  // et aucune bourse ne bouge.
   const marche = (method, path, qui, body) => {
     let req = request(app)[method](`/api/gl/market${path}`).set(auth(s.token));
     if (qui != null) req = req.set('X-GL-On-Behalf-Of', String(qui));
     return body ? req.send(body) : req;
   };
-  const sans = await marche('get', '/annonces', null);
-  assert.equal(sans.status, 400, JSON.stringify(sans.body));
-  assert.equal(sans.body.code, 'QUI_AGIT_REQUIS');
-  const enRetrait = await marche('get', '/annonces', eleve.id);
-  assert.equal(enRetrait.status, 403, JSON.stringify(enRetrait.body));
-  assert.equal(enRetrait.body.code, 'QUI_AGIT_INVALIDE');
-  const etranger = await marche('get', '/annonces', membres(equipe(0).id)[0].id);
-  assert.equal(etranger.status, 403);
-  assert.equal(etranger.body.code, 'QUI_AGIT_INVALIDE');
-  const place = await marche('get', '/annonces', autre.id);
-  assert.equal(place.status, 200, JSON.stringify(place.body));
-  assert.ok(Array.isArray(place.body.items));
-
-  // Un don depuis la tablette : la bourse de celui qui agit, et un évènement vu du prof seul.
+  for (const qui of [null, autre.id, eleve.id, membres(equipe(0).id)[0].id]) {
+    const res = await marche('get', '/annonces', qui);
+    assert.equal(res.status, 403, JSON.stringify(res.body));
+    assert.equal(res.body.code, 'BOURSE_AU_PROPRIETAIRE');
+  }
   const receveur = membres(equipe(0).id)[0];
   const avant = await readPlayerBourses(autre.id);
   const don = await marche('post', '/dons', autre.id, { receveurId: receveur.id, gemmes: 1 });
-  assert.equal(don.status, 201, JSON.stringify(don.body));
-  assert.equal((await readPlayerBourses(autre.id)).power, avant.power - 1);
-  let evt = null;
-  for (let i = 0; i < 40 && !evt; i += 1) {
-    evt = await db.queryOne(
-      "SELECT actor_type, actor_id, team_id, payload_json FROM gl_game_events WHERE game_id = ? AND event_type = 'marche_au_nom_de' ORDER BY id DESC LIMIT 1",
-      [ctx.game.id],
-    );
-    if (!evt) await new Promise((resolve) => setTimeout(resolve, 25));
-  }
-  assert.ok(evt, 'le geste est journalisé');
-  assert.equal(evt.actor_id, `equipe-${team.id}`);
-  const journal = JSON.parse(evt.payload_json);
-  assert.deepEqual(
-    [journal.private, journal.playerId, journal.action],
-    [true, Number(autre.id), 'POST /dons'],
+  assert.equal(don.status, 403, JSON.stringify(don.body));
+  assert.equal(don.body.code, 'BOURSE_AU_PROPRIETAIRE');
+  const donParCorps = await request(app)
+    .post('/api/gl/market/dons')
+    .set(auth(s.token))
+    .send({ receveurId: receveur.id, gemmes: 1, onBehalfOfPlayerId: autre.id });
+  assert.equal(donParCorps.status, 403, JSON.stringify(donParCorps.body));
+  assert.deepEqual(await readPlayerBourses(autre.id), avant, 'la bourse n’a pas bougé');
+  const evt = await db.queryOne(
+    "SELECT id FROM gl_game_events WHERE game_id = ? AND event_type = 'marche_au_nom_de' LIMIT 1",
+    [ctx.game.id],
   );
+  assert.equal(evt, undefined, 'plus aucun geste « au nom de »');
+
+  // Depuis son propre compte, le même don passe : la bourse suit son propriétaire.
+  const donDuCompte = await request(app)
+    .post('/api/gl/market/dons')
+    .set(auth(autre.token))
+    .send({ receveurId: receveur.id, gemmes: 1 });
+  assert.equal(donDuCompte.status, 201, JSON.stringify(donDuCompte.body));
+  assert.equal((await readPlayerBourses(autre.id)).power, avant.power - 1);
   const inv = await checkTenirInvariantsFromDb(db, ctx.game.id, {
     settings: await getGameplaySettings(),
   });

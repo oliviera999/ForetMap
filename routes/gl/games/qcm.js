@@ -2,6 +2,7 @@ const express = require('express');
 const { queryAll, queryOne, execute, withTransaction } = require('../../../database');
 const { requireGlAuthOrTeam, hasGlPermission } = require('../../../middleware/requireGlAuth');
 const { resolveGameActor, refusSiTeamSessionHorsTour } = require('../../../lib/glActeur');
+const { gardeDEquipe } = require('../../../lib/glEquipeEtat');
 const { insertGameEvent } = require('../../../lib/glGameEvents');
 const { queueGlRewardsForTeam } = require('../../../lib/glRewardsHooks');
 const { emitGlGameEvent } = require('../../../lib/realtime');
@@ -123,7 +124,10 @@ async function resolveQcmAnswerContext(req, gameId) {
   };
 }
 
-router.post('/games/:id/qcm/answer', requireGlAuthOrTeam, async (req, res) => {
+// M13 : répondre à la question de la case rend la main prise à sa présentation.
+const gardeReponse = gardeDEquipe({ rend: true });
+
+router.post('/games/:id/qcm/answer', requireGlAuthOrTeam, gardeReponse, async (req, res) => {
   const gameId = parseId(req.params.id);
   if (!gameId) return res.status(400).json({ error: 'Identifiant de partie invalide' });
 
