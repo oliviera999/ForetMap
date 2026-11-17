@@ -1,0 +1,110 @@
+{
+  "format": "gl.tenir.cases-souffle/1",
+  "regle": "Un seul effet, le même pour les deux peuples et sur les quatre plateaux : au tour suivant, l'équipe ne lance qu'un dé. deltaMove 0, deltaPv 0, deltaGems 0, passTurn false. eventMeta.tonalite reste `souffle`.",
+  "cases": [
+    {
+      "plateau": 1,
+      "rang": 5,
+      "marker_id": 11,
+      "titre": "Chaleur sans soleil",
+      "description": "Une chaleur moite monte du sol alors que le ciel est couvert. Les feuilles pendent, on marche moins vite.",
+      "effet_libelle": "L'air lourd ralentit la caravane → au prochain tour, un seul dé."
+    },
+    {
+      "plateau": 1,
+      "rang": 25,
+      "marker_id": 28,
+      "titre": "Le point d'eau tari",
+      "description": "La mare a séché bien avant la saison sèche. Les traces des animaux s'arrêtent au bord de la boue craquelée.",
+      "effet_libelle": "Il faut chercher l'eau plus loin → au prochain tour, un seul dé."
+    },
+    {
+      "plateau": 1,
+      "rang": 37,
+      "marker_id": 187,
+      "titre": "L'air qui tremble",
+      "description": "Pas un nuage : l'air tremble au-dessus de l'herbe sèche. Même les gnous cherchent l'ombre.",
+      "effet_libelle": "Halte à l'ombre → au prochain tour, un seul dé."
+    },
+    {
+      "plateau": 2,
+      "rang": 5,
+      "marker_id": 46,
+      "titre": "Le terne s'étend",
+      "description": "L'or du sable et le vert de l'oasis se délavent. Toutes les dunes se ressemblent.",
+      "effet_libelle": "Sans repères, on tourne en rond → au prochain tour, un seul dé."
+    },
+    {
+      "plateau": 2,
+      "rang": 16,
+      "marker_id": 194,
+      "titre": "Piste ensablée",
+      "description": "Un vent de sable recouvre les traces de la caravane. Le chemin disparaît sous les dunes.",
+      "effet_libelle": "On cherche la piste → au prochain tour, un seul dé."
+    },
+    {
+      "plateau": 2,
+      "rang": 25,
+      "marker_id": 63,
+      "titre": "Le terne gagne",
+      "description": "Une poussière terne couvre tout, même les fleurs du maquis. Les couleurs attendent qu'on les retrouve.",
+      "effet_libelle": "Les pas s'alourdissent → au prochain tour, un seul dé."
+    },
+    {
+      "plateau": 3,
+      "rang": 5,
+      "marker_id": 81,
+      "titre": "Plus un chant",
+      "description": "Un matin, la forêt s'est tue : plus un oiseau, plus un insecte. On s'arrête pour écouter.",
+      "effet_libelle": "On tend l'oreille → au prochain tour, un seul dé."
+    },
+    {
+      "plateau": 3,
+      "rang": 25,
+      "marker_id": 98,
+      "titre": "Le bruit qui remplace",
+      "description": "À la place des chants, un bruit sourd et continu couvre tout. On ne s'entend plus parler.",
+      "effet_libelle": "Impossible de se parler → au prochain tour, un seul dé."
+    },
+    {
+      "plateau": 3,
+      "rang": 36,
+      "marker_id": 201,
+      "titre": "Silence soudain",
+      "description": "Le merle s'arrête au milieu de sa chanson. Tout le sous-bois se tait d'un coup.",
+      "effet_libelle": "On attend que le chant revienne → au prochain tour, un seul dé."
+    },
+    {
+      "plateau": 4,
+      "rang": 5,
+      "marker_id": 116,
+      "titre": "Un fil lâche",
+      "description": "Le lac gèle trop tôt : les oiseaux pêcheurs ne trouvent plus de poissons et partent, les renards maigrissent. Ce fil-là, les Gnomes savent le renouer.",
+      "effet_libelle": "On remonte le fil → au prochain tour, un seul dé."
+    },
+    {
+      "plateau": 4,
+      "rang": 16,
+      "marker_id": 208,
+      "titre": "Moins de lièvres",
+      "description": "Cet hiver, les lièvres variables se font rares : le lynx boréal doit chasser beaucoup plus loin.",
+      "effet_libelle": "On fait un détour par la forêt → au prochain tour, un seul dé."
+    },
+    {
+      "plateau": 4,
+      "rang": 25,
+      "marker_id": 221,
+      "titre": "Le mot oublié",
+      "description": "Au bivouac, plus personne ne se souvient du nom de cette petite fleur. On le cherchera ensemble demain.",
+      "effet_libelle": "On s'arrête pour retrouver le mot → au prochain tour, un seul dé."
+    },
+    {
+      "plateau": 4,
+      "rang": 32,
+      "marker_id": 227,
+      "titre": "La nuit qui tombe",
+      "description": "Le soleil se couche et ne se lèvera plus avant des semaines : c'est la nuit polaire. On avance à la lueur des étoiles.",
+      "effet_libelle": "Dans le noir, on avance pas à pas → au prochain tour, un seul dé."
+    }
+  ]
+}
