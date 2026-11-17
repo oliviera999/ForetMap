@@ -9,7 +9,6 @@ const express = require('express');
 const db = require('../../../database');
 const { queryAll, queryOne, execute, withTransaction } = db;
 const {
-  requireGlAuth,
   requireGlAuthOrProjection,
   requireGlPermission,
 } = require('../../../middleware/requireGlAuth');
@@ -219,6 +218,50 @@ router.post(
       ok: true,
       escalier: escalier.vueEscalier(resolveTenirSettings(ctx.settings, game)),
       ouvert: { modules: marche.modules, sorts: marche.sorts },
+    });
+  }),
+);
+
+/**
+ * GET /tenir/ce-qui-change — « Ce qui change » (ensemble unifié, M8) : au camp, trois lignes pour
+ * le chapitre suivant (ton peuple, tes nouveaux sorts, le plateau), calculées depuis les sorts
+ * rattachés aux chapitres et les réglages résolus. Un élève ou une tablette d'équipe reçoit les
+ * lignes de son équipe ; le prof et la projection, celles de la classe. `ceQuiChange: null` au
+ * dernier plateau. Lecture seule, aucune donnée d'élève.
+ */
+router.get(
+  '/games/:id/tenir/ce-qui-change',
+  requireGlAuthOrProjection,
+  asyncHandler(async (req, res) => {
+    const gameId = parseId(req.params.id);
+    if (!gameId) return res.status(400).json({ error: 'Identifiant de partie invalide' });
+    if (!(await canAccessGlGame(req.glAuth, gameId))) {
+      return res.status(403).json({ error: 'Accès partie refusé' });
+    }
+    const ctx = await requireTenirGame(req, res, gameId);
+    if (!ctx) return undefined;
+    const viewer = viewerFromAuth(req.glAuth);
+    let teamId = null;
+    if (viewer.kind === 'player') {
+      const membership = await getPlayerGameMembership(gameId, viewer.playerId);
+      teamId = membership?.team_id != null ? Number(membership.team_id) : null;
+    } else if (viewer.kind === 'team') {
+      teamId = viewer.teamId ?? null;
+    }
+    const team = teamId
+      ? await queryOne('SELECT type FROM gl_teams WHERE id = ? AND game_id = ? LIMIT 1', [
+          teamId,
+          gameId,
+        ])
+      : null;
+    const { ceQuiChange } = require('../../../lib/glCeQuiChange');
+    return res.json({
+      gameId,
+      auCamp: String(ctx.game.status) === 'ended',
+      ceQuiChange: await ceQuiChange(
+        { queryAll, queryOne },
+        { game: ctx.game, settings: ctx.settings, teamType: team?.type || null },
+      ),
     });
   }),
 );

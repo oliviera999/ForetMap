@@ -7,6 +7,7 @@ import { GLMascotAvatar } from './GLMascotAvatar.jsx';
 import { GLRewardsPanel } from './GLRewardsPanel.jsx';
 import { GLDefisCasePanel } from './tenir/GLDefisCasePanel.jsx';
 import { GLDefisEntree } from './defis/GLDefisEntree.jsx';
+import { GLCeQuiChange } from './tenir/GLCeQuiChange.jsx';
 import { GLSeuilLettre, GLSeuilMentorat } from './GLSeuilPagesVoyageur.jsx';
 import {
   GL_VOYAGEUR_SFX_CHANGED_EVENT,
@@ -480,6 +481,10 @@ export function GLSeuilView({ onNavigateTab, modules }) {
                   <GLButton type="button" variant="primary" onClick={() => onNavigateTab?.('maps')}>
                     Rejoindre le plateau
                   </GLButton>
+                ) : null}
+                {/* Au camp (M8) : ce qui change au chapitre suivant — ton peuple, tes sorts, le plateau. */}
+                {exp.gameId && exp.tenir && exp.gameStatus === 'ended' ? (
+                  <GLCeQuiChange gameId={exp.gameId} />
                 ) : null}
                 {/* « Tenir à deux » : le défi de case à préparer pour la prochaine séance. */}
                 {exp.gameId ? <GLDefisCasePanel gameId={exp.gameId} /> : null}

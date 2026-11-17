@@ -1086,6 +1086,39 @@
   display: grid;
   gap: var(--gl-space-1);
 }
+/* « Maintenant, vous pouvez… » (M8) : les gestes possibles, en tête de l'écran d'équipe. */
+.gl-tenir-maintenant {
+  margin: var(--gl-space-2) 0;
+  padding: var(--gl-space-2) var(--gl-space-3);
+  border: 2px solid var(--gl-border);
+  border-radius: var(--gl-radius-lg);
+  background: var(--gl-surface);
+}
+.gl-tenir-maintenant h4 {
+  margin: 0 0 var(--gl-space-1);
+}
+.gl-tenir-maintenant ul {
+  display: grid;
+  gap: var(--gl-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+/* « Ce qui change » (camp) et accroche de fin de séance (projection). */
+.gl-ce-qui-change,
+.gl-projection__accroche {
+  margin: var(--gl-space-2) 0;
+  padding: var(--gl-space-2) var(--gl-space-3);
+  border: 1px solid var(--gl-border);
+  border-radius: var(--gl-radius-lg);
+}
+.gl-ce-qui-change ul {
+  display: grid;
+  gap: var(--gl-space-1);
+  margin: var(--gl-space-1) 0 0;
+  padding: 0;
+  list-style: none;
+}
 /* Ranger (« Le bon rôle », « Le bon pays ») : autant de colonnes que de catégories (2 à 6). */
 .gl-trame-ranger__colonnes {
   grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));

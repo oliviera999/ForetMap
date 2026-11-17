@@ -14,7 +14,8 @@ import { GLSablier } from './GLSablier.jsx';
 import { GLPresencePanel } from './GLPresencePanel.jsx';
 import { GLSortsParMoment } from './GLSortsParMoment.jsx';
 import { GLDefisCasePanel } from './GLDefisCasePanel.jsx';
-import { ROLES_EN_CONSEIL } from '../../../shared/glSortMomentsCore.js';
+import { GLCeQuiChange } from './GLCeQuiChange.jsx';
+import { ROLES_EN_CONSEIL, maintenantVousPouvez } from '../../../shared/glSortMomentsCore.js';
 import { numeroCase } from '../../../shared/glCaseNumeroCore.js';
 
 const VERDICT_TEXTES = {
@@ -180,6 +181,24 @@ export function GLTenirEquipeView({
       chasse ? () => setCarnetOuvert((v) => !v) : onLire,
     ],
   ];
+  // « Maintenant, vous pouvez… » (M8) : les gestes possibles à cet instant, chacun avec l'appel
+  // du rôle (M10). Un conseil, jamais un contrôle : les boutons restent ceux des droits servis.
+  const pagesATenir = (chasse?.carnet?.pages || []).filter(
+    (p) => p.attendUnLecteur && p.trouveePar && p.trouveePar.type !== team.type,
+  ).length;
+  const maintenant = maintenantVousPouvez({
+    perms,
+    phase: round?.phase || null,
+    aLance: !!maVue?.hasRolledDiceThisRound,
+    auCamp: !!maVue?.auCamp,
+    des: maVue?.desProchainJet || tenir.settings?.des_count || 2,
+    questionDue: !!questionDue,
+    fouillesRestantes: fouilles ? fouilles.restantes : null,
+    pagesATenir,
+    sortsOuverts: sortsOuvertsParLEscalier && !!onJeter,
+    defis: tenir.settings?.defis !== false,
+    effectif: mates.length,
+  });
   const verdict = chasse?.dernierVerdict || null;
   // Cordée offerte (lot 2) : l'équipe partenaire ne paie rien et n'a rien à accepter ; son écran
   // lui dit simplement qui l'encorde ce tour.
@@ -242,6 +261,24 @@ export function GLTenirEquipeView({
           <strong>L’équipe {encordeePar.name} vous encorde.</strong> Le meilleur de vos deux jets
           vaut pour les deux.
         </p>
+      ) : null}
+      {/* Au camp : trois lignes pour le chapitre suivant (ton peuple, tes sorts, le plateau). */}
+      {gameState?.game?.status === 'ended' ? <GLCeQuiChange gameId={gameId} /> : null}
+      {maintenant.length ? (
+        <section
+          className="gl-tenir-maintenant"
+          aria-labelledby="gl-tenir-maintenant-titre"
+          data-testid="gl-tenir-maintenant"
+        >
+          <h4 id="gl-tenir-maintenant-titre">Maintenant, vous pouvez…</h4>
+          <ul>
+            {maintenant.map((m) => (
+              <li key={m.geste} data-geste-possible={m.geste}>
+                <strong>{m.role || 'Toute l’équipe'}</strong> : {m.texte}
+              </li>
+            ))}
+          </ul>
+        </section>
       ) : null}
       <GLPresencePanel
         presence={presence}
