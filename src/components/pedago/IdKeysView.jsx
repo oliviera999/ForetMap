@@ -2,11 +2,19 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { resolveExternalImageUrl } from '../../shared/privacy/externalAssets.js';
 import { api } from '../../services/api';
 import { useData } from '../../contexts/DataContext.jsx';
-import { IconAdd, IconBiodiv, IconDelete, IconEdit, IconSearch } from '../../shared/icons.jsx';
+import { IconAdd, IconBiodiv, IconEdit, IconSearch } from '../../shared/icons.jsx';
 import { IdKeySchemaView } from './IdKeySchemaView.jsx';
 import { isLeadUsable } from '../../utils/idKeySchemaLayout.js';
 import { ModuleLearnerOffBanner } from './ModuleLearnerOffBanner.jsx';
-import { QUESTION_NIVEAU_ENUM } from '../../shared/enums/pedagoEnums.js';
+import { ID_KEY_TOOL_ENUM, QUESTION_NIVEAU_ENUM } from '../../shared/enums/pedagoEnums.js';
+import { resolveLeadOutcome } from '../../shared/idKeyLeadCore.js';
+import { IdKeyArrival, arrivalFromLead } from './IdKeyArrival.jsx';
+import {
+  IdKeyLeadEditor,
+  draftToPayload,
+  emptyLeadDraft,
+  leadToDraft,
+} from './IdKeyLeadEditor.jsx';
 
 const READER_MODE_KEY = 'foretmap.id-keys.readerMode';
 
@@ -42,7 +50,27 @@ function TrailRecap({ trail, title = 'Chemin parcouru' }) {
   );
 }
 
-function ReaderPanel({ keyBundle, onOpenPlant, onBack, canManage = false }) {
+/** Matériel et consigne de sécurité de la clé, affichés avant la première question. */
+function KitNotice({ keyBundle }) {
+  const tools = Array.isArray(keyBundle?.tool_required) ? keyBundle.tool_required : [];
+  if (!tools.length && !keyBundle?.safety_note) return null;
+  return (
+    <div className="id-key-reader__kit">
+      {tools.length ? (
+        <p>
+          <strong>Matériel :</strong> {tools.map((t) => ID_KEY_TOOL_ENUM.labels[t] || t).join(', ')}
+        </p>
+      ) : null}
+      {keyBundle.safety_note ? (
+        <p>
+          <strong>Sécurité :</strong> {keyBundle.safety_note}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function ReaderPanel({ keyBundle, onOpenPlant, onOpenKey, onBack, canManage = false }) {
   /** Propositions choisies, dans l'ordre : on sait ainsi *pourquoi* on est arrivé ici. */
   const [trail, setTrail] = useState([]);
   const [readerMode, setReaderMode] = useState(readStoredReaderMode);
@@ -55,7 +83,7 @@ function ReaderPanel({ keyBundle, onOpenPlant, onBack, canManage = false }) {
     [couplets],
   );
   const lastStep = trail.length ? trail[trail.length - 1] : null;
-  const arrivedPlant = lastStep?.plant || null;
+  const arrival = lastStep?.arrival || null;
   const history = useMemo(
     () => trail.filter((step) => step.nextCoupletId != null).map((step) => step.nextCoupletId),
     [trail],
@@ -71,13 +99,12 @@ function ReaderPanel({ keyBundle, onOpenPlant, onBack, canManage = false }) {
   const chooseLead = useCallback(
     (lead) => {
       if (!isLeadUsable(lead, coupletIds)) return;
+      const outcome = resolveLeadOutcome(lead);
       const step = {
         leadId: Number(lead.id),
         statement: lead.statement || '',
-        nextCoupletId: lead.next_couplet_id ? Number(lead.next_couplet_id) : null,
-        plant: lead.next_couplet_id
-          ? null
-          : { id: lead.plant_id, name: lead.plant_name, emoji: lead.plant_emoji },
+        nextCoupletId: outcome === 'couplet' ? Number(lead.next_couplet_id) : null,
+        arrival: outcome === 'couplet' ? null : arrivalFromLead(lead, outcome),
       };
       setTrail((t) => [...t, step]);
     },
@@ -88,20 +115,12 @@ function ReaderPanel({ keyBundle, onOpenPlant, onBack, canManage = false }) {
   const restart = useCallback(() => setTrail([]), []);
 
   if (!keyBundle) return null;
-  if (arrivedPlant) {
+  if (arrival) {
     return (
       <div className="id-key-reader">
-        <p className="form-success">Espèce identifiée</p>
+        <IdKeyArrival arrival={arrival} onOpenPlant={onOpenPlant} onOpenKey={onOpenKey} />
         <TrailRecap trail={trail} title="Caractères observés" />
         <div className="id-key-reader__nav">
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={() => onOpenPlant?.(arrivedPlant.id)}
-          >
-            {arrivedPlant.emoji ? `${arrivedPlant.emoji} ` : ''}
-            {arrivedPlant.name || `Fiche #${arrivedPlant.id}`}
-          </button>
           <button type="button" className="btn" onClick={stepBack}>
             Retour
           </button>
@@ -144,6 +163,7 @@ function ReaderPanel({ keyBundle, onOpenPlant, onBack, canManage = false }) {
           Schéma
         </button>
       </div>
+      {trail.length === 0 ? <KitNotice keyBundle={keyBundle} /> : null}
       <TrailRecap trail={trail} />
       {readerMode === 'schema' ? (
         <>
@@ -194,7 +214,10 @@ function ReaderPanel({ keyBundle, onOpenPlant, onBack, canManage = false }) {
                         className="id-key-lead-img"
                       />
                     ) : null}
-                    <span>{lead.statement}</span>
+                    <span>
+                      {lead.statement}
+                      {lead.hint ? <small className="id-key-lead-hint">{lead.hint}</small> : null}
+                    </span>
                     {!usable ? <span className="muted"> (à compléter)</span> : null}
                   </button>
                 </li>
@@ -215,41 +238,49 @@ function ReaderPanel({ keyBundle, onOpenPlant, onBack, canManage = false }) {
   );
 }
 
-function EditorPanel({ keyBundle, onReload, plants }) {
-  const [meta, setMeta] = useState({
+function metaFromBundle(keyBundle) {
+  return {
     title: keyBundle.title || '',
     description: keyBundle.description || '',
     scope_label: keyBundle.scope_label || '',
     niveau: keyBundle.niveau || 'college',
+    tool_required: Array.isArray(keyBundle.tool_required) ? keyBundle.tool_required : [],
+    safety_note: keyBundle.safety_note || '',
     is_published: Boolean(keyBundle.is_published),
-  });
+  };
+}
+
+function EditorPanel({ keyBundle, onReload, plants, keys }) {
+  const [meta, setMeta] = useState(() => metaFromBundle(keyBundle));
+  const [clades, setClades] = useState([]);
   const [selectedCoupletId, setSelectedCoupletId] = useState(keyBundle.couplets?.[0]?.id || null);
   const [leadsDraft, setLeadsDraft] = useState([]);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    setMeta({
-      title: keyBundle.title || '',
-      description: keyBundle.description || '',
-      scope_label: keyBundle.scope_label || '',
-      niveau: keyBundle.niveau || 'college',
-      is_published: Boolean(keyBundle.is_published),
-    });
+    setMeta(metaFromBundle(keyBundle));
   }, [keyBundle]);
+
+  useEffect(() => {
+    let alive = true;
+    api('/api/clades')
+      .then((data) => {
+        if (alive) setClades(Array.isArray(data?.items) ? data.items : []);
+      })
+      .catch(() => {
+        if (alive) setClades([]);
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   useEffect(() => {
     const couplet = (keyBundle.couplets || []).find(
       (c) => Number(c.id) === Number(selectedCoupletId),
     );
-    setLeadsDraft(
-      (couplet?.leads || []).map((l) => ({
-        statement: l.statement || '',
-        image_url: l.image_url || '',
-        next_couplet_id: l.next_couplet_id || '',
-        plant_id: l.plant_id || '',
-      })),
-    );
+    setLeadsDraft((couplet?.leads || []).map(leadToDraft));
   }, [keyBundle, selectedCoupletId]);
 
   const saveMeta = async () => {
@@ -281,13 +312,7 @@ function EditorPanel({ keyBundle, onReload, plants }) {
     setError('');
     try {
       await api(`/api/id-keys/${keyBundle.id}/couplets/${selectedCoupletId}/leads`, 'PUT', {
-        leads: leadsDraft.map((l, i) => ({
-          statement: l.statement,
-          image_url: l.image_url || null,
-          next_couplet_id: l.next_couplet_id ? Number(l.next_couplet_id) : null,
-          plant_id: l.plant_id ? Number(l.plant_id) : null,
-          sort_order: i,
-        })),
+        leads: leadsDraft.map(draftToPayload),
       });
       await onReload();
     } catch (err) {
@@ -330,6 +355,35 @@ function EditorPanel({ keyBundle, onReload, plants }) {
             ))}
           </select>
         </label>
+        <fieldset className="id-key-editor__tools">
+          <legend>Matériel nécessaire</legend>
+          {ID_KEY_TOOL_ENUM.values.map((tool) => (
+            <label key={tool} className="id-key-editor__check">
+              <input
+                type="checkbox"
+                checked={meta.tool_required.includes(tool)}
+                onChange={(e) =>
+                  setMeta((m) => ({
+                    ...m,
+                    tool_required: e.target.checked
+                      ? [...m.tool_required, tool]
+                      : m.tool_required.filter((t) => t !== tool),
+                  }))
+                }
+              />
+              {ID_KEY_TOOL_ENUM.labels[tool]}
+            </label>
+          ))}
+        </fieldset>
+        <label>
+          Consigne de sécurité
+          <textarea
+            value={meta.safety_note}
+            onChange={(e) => setMeta((m) => ({ ...m, safety_note: e.target.value }))}
+            rows={2}
+            placeholder="Ex. Observer sans toucher ni cueillir."
+          />
+        </label>
         <label className="id-key-editor__check">
           <input
             type="checkbox"
@@ -362,101 +416,30 @@ function EditorPanel({ keyBundle, onReload, plants }) {
         </div>
 
         <p className="muted">
-          Chaque proposition mène soit à un autre couplet, soit à une espèce — pas les deux. Décrire
-          un caractère observable, sans invitation à manipuler.
+          Chaque proposition mène à une seule issue : un autre couplet, une espèce, un groupe
+          d’espèces trop proches pour être séparées, ou un grand groupe. Un résultat peut renvoyer à
+          une autre clé « pour aller plus loin ». Décrire un caractère observable, sans invitation à
+          manipuler.
         </p>
         {leadsDraft.map((lead, idx) => (
-          <div key={idx} className="id-key-editor__lead">
-            <label>
-              Énoncé
-              <textarea
-                value={lead.statement}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setLeadsDraft((rows) =>
-                    rows.map((r, i) => (i === idx ? { ...r, statement: v } : r)),
-                  );
-                }}
-                rows={2}
-              />
-            </label>
-            <label>
-              Image (URL)
-              <input
-                value={lead.image_url}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setLeadsDraft((rows) =>
-                    rows.map((r, i) => (i === idx ? { ...r, image_url: v } : r)),
-                  );
-                }}
-              />
-            </label>
-            <label>
-              Couplet suivant
-              <select
-                value={lead.next_couplet_id}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setLeadsDraft((rows) =>
-                    rows.map((r, i) =>
-                      i === idx ? { ...r, next_couplet_id: v, plant_id: v ? '' : r.plant_id } : r,
-                    ),
-                  );
-                }}
-              >
-                <option value="">—</option>
-                {(keyBundle.couplets || [])
-                  .filter((c) => Number(c.id) !== Number(selectedCoupletId))
-                  .map((c) => (
-                    <option key={c.id} value={c.id}>
-                      Couplet {c.number}
-                    </option>
-                  ))}
-              </select>
-            </label>
-            <label>
-              Espèce
-              <select
-                value={lead.plant_id}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setLeadsDraft((rows) =>
-                    rows.map((r, i) =>
-                      i === idx
-                        ? { ...r, plant_id: v, next_couplet_id: v ? '' : r.next_couplet_id }
-                        : r,
-                    ),
-                  );
-                }}
-              >
-                <option value="">—</option>
-                {(plants || []).slice(0, 400).map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <button
-              type="button"
-              className="btn btn-sm"
-              onClick={() => setLeadsDraft((rows) => rows.filter((_, i) => i !== idx))}
-            >
-              <IconDelete size={14} />
-            </button>
-          </div>
+          <IdKeyLeadEditor
+            key={lead.id ?? `new-${idx}`}
+            draft={lead}
+            onChange={(next) => setLeadsDraft((rows) => rows.map((r, i) => (i === idx ? next : r)))}
+            onRemove={() => setLeadsDraft((rows) => rows.filter((_, i) => i !== idx))}
+            couplets={keyBundle.couplets}
+            selectedCoupletId={selectedCoupletId}
+            plants={plants}
+            clades={clades}
+            keys={keys}
+            currentKeyId={keyBundle.id}
+          />
         ))}
         <div className="id-key-editor__lead-actions">
           <button
             type="button"
             className="btn"
-            onClick={() =>
-              setLeadsDraft((rows) => [
-                ...rows,
-                { statement: '', image_url: '', next_couplet_id: '', plant_id: '' },
-              ])
-            }
+            onClick={() => setLeadsDraft((rows) => [...rows, emptyLeadDraft()])}
           >
             <IconAdd size={14} /> Proposition
           </button>
@@ -600,12 +583,13 @@ export function IdKeysView({
           <button type="button" className="btn" onClick={() => setActive(null)}>
             ← Liste
           </button>
-          <EditorPanel keyBundle={active} onReload={reloadActive} plants={plants} />
+          <EditorPanel keyBundle={active} onReload={reloadActive} plants={plants} keys={items} />
         </>
       ) : (
         <ReaderPanel
           keyBundle={active}
           onOpenPlant={onOpenPlant}
+          onOpenKey={(idOrSlug) => openKey(idOrSlug, 'read')}
           onBack={() => setActive(null)}
           canManage={canManage}
         />

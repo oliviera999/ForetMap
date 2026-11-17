@@ -72,6 +72,38 @@ rencontre les règles une à une au lieu de les entendre d'un bloc.
 - **Docs** : `docs/GL_TENIR_A_DEUX_REGLES.md`, `docs/API.md`, `docs/GL_DEFIS.md`,
   `docs/GL_TENIR_A_DEUX.md`, `docs/reference/gl/`, `data/gl/tenir/README.md`, skills
   `.claude/skills/gl-*`.
+### Ajouté — Clés d'identification : issues groupe, grand groupe et renvoi vers une autre clé (17 novembre 2026)
+
+Les clés de la production aboutissaient déjà à des groupes d'espèces, à des grands groupes
+(clades) et à d'autres clés, mais ces colonnes n'existaient que dans la base : l'API, le
+lecteur, l'éditeur et l'audit ne connaissaient que « couplet suivant XOR espèce ». Résultat :
+152 « chemins morts » signalés à tort et 29 clés impubliables.
+
+- **Migration 366** (idempotente) : `id_key_leads.outcome` (`couplet`, `espece`, `groupe`,
+  `clade`), `clade_id`, `result_label`, `next_key_id`, `hint` (aide sous la proposition),
+  table `id_key_lead_plants` (espèces
+  candidates d'un groupe), `id_keys.tool_required` et `safety_note`. Formalise le schéma déjà
+  présent en production ; recale `outcome = 'espece'` sur les feuilles espèce restées en
+  `couplet` par défaut.
+- **Règles partagées** `src/shared/idKeyLeadCore.js` (miroir `lib/shared/`) : déduction de
+  l'issue, validation de forme, praticabilité — utilisées par la route, le lecteur, le schéma
+  et l'audit `id_key_dead_paths`. Référentiels `ID_KEY_LEAD_OUTCOME_ENUM` et `ID_KEY_TOOL_ENUM`.
+- **API** : le détail d'une clé renvoie l'issue complète de chaque proposition (grand groupe,
+  candidats, renvoi masqué aux élèves s'il vise un brouillon), le matériel et la consigne de
+  sécurité ; l'écriture des propositions accepte ces champs et **conserve** l'issue d'une
+  proposition renvoyée par son `id` sans champ d'issue (l'outil MCP `upsert_node` et les anciens
+  clients ne les effacent plus). **Correctif** : l'aide `hint` (501 propositions en production)
+  était effacée à chaque réécriture d'un couplet ; elle est désormais lue, écrite et conservée.
+  Lecture de la clé extraite dans `lib/idKeyBundle.js`.
+- **Lecteur** : aide affichée sous chaque proposition ; écrans d'arrivée « Groupe identifié » (fiches candidates) et « Grand groupe
+  identifié » (point commun), bouton « Pour aller plus loin » ; matériel et sécurité avant la
+  première question ; feuilles groupe et grand groupe sur le schéma.
+- **Éditeur** : menu « Mène à » par proposition (`IdKeyLeadEditor.jsx`), matériel et consigne
+  de sécurité de la clé.
+- **Filtre « manipulation »** : plus de faux positifs sur « goutte » / « gouttière » ; ajout de
+  « froisser ».
+- **Connecteur MCP** : `foretmap_get_id_key` et `foretmap_id_keys` exposent les nouvelles
+  issues ; table `id_key_lead_plants` en liste blanche de lecture.
 
 ### Modifié — G&L : ensemble unifié, PR 1b — charge du prof, lexique, zones, règles v3 (17 novembre 2026)
 

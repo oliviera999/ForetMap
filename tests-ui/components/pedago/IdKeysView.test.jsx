@@ -105,3 +105,99 @@ describe('IdKeysView — lecteur (audit 29/09, K11/K12/K7)', () => {
     expect(document.querySelector('.id-key-schema').textContent).toContain('Chêne');
   });
 });
+
+const KEY_OUTCOMES = {
+  id: 2,
+  slug: 'petites-betes',
+  title: 'Petites bêtes',
+  is_published: true,
+  tool_required: ['boite_loupe'],
+  safety_note: 'Relâcher l’animal là où il a été trouvé.',
+  couplets: [
+    {
+      id: 30,
+      number: 1,
+      leads: [
+        {
+          id: 301,
+          statement: 'Six pattes',
+          outcome: 'clade',
+          clade_id: 'insectes',
+          clade: { id: 'insectes', name: 'Insectes', shared_attribute: 'trois paires de pattes' },
+          next_key: { id: 3, slug: 'insectes', title: 'Clé des insectes', is_published: true },
+        },
+        {
+          id: 302,
+          statement: 'Huit pattes',
+          outcome: 'groupe',
+          result_label: 'Araignées du jardin',
+          group_plant_ids: [41, 42],
+          group_plants: [
+            { id: 41, name: 'Épeire diadème', emoji: '🕷️' },
+            { id: 42, name: 'Tégénaire', emoji: '🕷️' },
+          ],
+        },
+      ],
+    },
+  ],
+};
+
+describe('IdKeysView — issues groupe, grand groupe et renvoi (migration 366)', () => {
+  beforeEach(() => {
+    apiMock.mockImplementation(async (url) => {
+      if (url.startsWith('/api/id-keys/')) return KEY_OUTCOMES;
+      if (url.startsWith('/api/clades')) return { items: [{ id: 'insectes', name: 'Insectes' }] };
+      return { items: [{ id: 2, title: 'Petites bêtes', is_published: true }] };
+    });
+  });
+
+  test('matériel et sécurité affichés avant la première question', async () => {
+    render(<IdKeysView initialKey="petites-betes" />);
+    await screen.findByRole('heading', { name: /Petites bêtes/ });
+    expect(screen.getByText(/Boîte-loupe/)).toBeTruthy();
+    expect(screen.getByText(/Relâcher l’animal/)).toBeTruthy();
+  });
+
+  test('grand groupe : arrivée avec point commun et renvoi vers une autre clé', async () => {
+    render(<IdKeysView initialKey="petites-betes" />);
+    await screen.findByRole('heading', { name: /Petites bêtes/ });
+    fireEvent.click(screen.getByRole('button', { name: 'Six pattes' }));
+    expect(screen.getByText('Grand groupe identifié')).toBeTruthy();
+    expect(screen.getByText(/trois paires de pattes/)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Clé des insectes' }));
+    expect(apiMock).toHaveBeenCalledWith('/api/id-keys/insectes');
+  });
+
+  test('groupe : chaque espèce candidate ouvre sa fiche', async () => {
+    const onOpenPlant = vi.fn();
+    render(<IdKeysView initialKey="petites-betes" onOpenPlant={onOpenPlant} />);
+    await screen.findByRole('heading', { name: /Petites bêtes/ });
+    fireEvent.click(screen.getByRole('button', { name: 'Huit pattes' }));
+    expect(screen.getByText('Groupe identifié')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: /Tégénaire/ }));
+    expect(onOpenPlant).toHaveBeenCalledWith(42);
+  });
+
+  test('éditeur : l’issue de chaque proposition est conservée à l’enregistrement', async () => {
+    render(<IdKeysView canManage />);
+    fireEvent.click(await screen.findByRole('button', { name: /Éditer/ }));
+    await screen.findByDisplayValue('Araignées du jardin');
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer les propositions' }));
+    const call = apiMock.mock.calls.find(
+      ([url, method]) => url.endsWith('/leads') && method === 'PUT',
+    );
+    const [first, second] = call[2].leads;
+    expect(first).toMatchObject({
+      id: 301,
+      outcome: 'clade',
+      clade_id: 'insectes',
+      next_key_id: 3,
+    });
+    expect(second).toMatchObject({
+      id: 302,
+      outcome: 'groupe',
+      result_label: 'Araignées du jardin',
+      group_plant_ids: [41, 42],
+    });
+  });
+});
