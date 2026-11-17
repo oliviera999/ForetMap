@@ -339,3 +339,45 @@ describe('idKeySchemaLayout — géométrie (audit 29/09, K1/K2/K8)', () => {
     assert.equal(isLeadUsable({}), false);
   });
 });
+
+it('feuilles groupe et grand groupe : nœuds terminaux sans fiche', async () => {
+  const { buildIdKeyTree, isLeadUsable } = await import('../src/utils/idKeySchemaLayout.js');
+  const bundle = {
+    couplets: [
+      {
+        id: 1,
+        number: 1,
+        leads: [
+          {
+            id: 11,
+            statement: 'Ailes colorées',
+            outcome: 'groupe',
+            result_label: 'Papillons',
+            group_plants: [{ id: 5, name: 'Piéride', emoji: '🦋' }],
+            group_plant_ids: [5],
+          },
+          {
+            id: 12,
+            statement: 'Six pattes',
+            outcome: 'clade',
+            clade_id: 'insectes',
+            clade: { id: 'insectes', name: 'Insectes' },
+          },
+        ],
+      },
+    ],
+  };
+  const tree = buildIdKeyTree(bundle);
+  const group = tree.nodes.get('plant-lead:11');
+  const clade = tree.nodes.get('plant-lead:12');
+  assert.equal(group.outcome, 'groupe');
+  assert.equal(group.name, 'Papillons');
+  assert.equal(group.emoji, '🦋');
+  assert.equal(group.plantId, null);
+  assert.equal(clade.outcome, 'clade');
+  assert.equal(clade.name, 'Insectes');
+  const ids = new Set([1]);
+  assert.equal(isLeadUsable(bundle.couplets[0].leads[0], ids), true);
+  assert.equal(isLeadUsable(bundle.couplets[0].leads[1], ids), true);
+  assert.equal(isLeadUsable({ id: 13, outcome: 'groupe', group_plant_ids: [] }, ids), false);
+});

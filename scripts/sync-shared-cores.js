@@ -62,6 +62,8 @@ const PAIRS = Object.freeze([
   ['src/shared/glSablierCore.js', 'glSablierCore.js'],
   // Cœur des défis de la Trame (lot 3) : noyau du produit G&L, hors de src/shared/.
   ['src/gl/defis/trameCore.js', 'glTrameCore.js'],
+  // Clés d'identification : issue d'une proposition (couplet, espèce, groupe, clade), migration 366.
+  ['src/shared/idKeyLeadCore.js', 'idKeyLeadCore.js'],
 ]);
 
 function banner(relSrc) {

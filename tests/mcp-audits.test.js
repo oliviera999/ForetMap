@@ -73,6 +73,41 @@ test('clés : feuille sans espèce, renvoi cassé, couplet inatteignable, espèc
   assert.ok(out.includes('couplet:20'), 'une seule proposition');
 });
 
+test('clés : feuilles groupe, grand groupe et renvoi vers une autre clé (migration 366)', () => {
+  const out = ids(
+    checks.idKeyDeadPaths({
+      idKeys: [
+        { id: 3, map_id: null, is_published: 1 },
+        { id: 4, map_id: null, is_published: 0 },
+      ],
+      idKeyCouplets: [
+        { id: 30, key_id: 3, number: 1 },
+        { id: 31, key_id: 3, number: 2 },
+      ],
+      idKeyLeads: [
+        { id: 300, couplet_id: 30, outcome: 'clade', clade_id: 'insectes', next_key_id: 4 },
+        { id: 301, couplet_id: 30, outcome: 'couplet', next_couplet_id: 31 },
+        {
+          id: 310,
+          couplet_id: 31,
+          outcome: 'groupe',
+          result_label: 'Goélands',
+          clade_id: 'oiseaux',
+          group_count: 3,
+        },
+        { id: 311, couplet_id: 31, outcome: 'groupe', result_label: 'Vide', group_count: 0 },
+        { id: 312, couplet_id: 31, outcome: 'espece', plant_id: 9, next_key_id: 3 },
+        { id: 313, couplet_id: 31, outcome: 'clade', clade_id: 'x', next_key_id: 404 },
+      ],
+    }),
+  );
+  assert.ok(!out.includes('lead:300'), 'grand groupe avec renvoi valide');
+  assert.ok(!out.includes('lead:310'), 'groupe complet');
+  assert.ok(out.includes('lead:311'), 'groupe sans candidat');
+  assert.ok(out.includes('lead:312'), 'renvoi vers la même clé');
+  assert.ok(out.includes('lead:313'), 'clé suivante absente');
+});
+
 test('espèces présentes sur une carte mais hors clé publiée', () => {
   const out = checks.speciesNotCoveredByIdKey({
     ...KEY,
