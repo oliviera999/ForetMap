@@ -72,6 +72,12 @@ describe('helpers', () => {
     expect(pluralizeUnit('tâche de jardinage', 3)).toBe('tâches de jardinage');
     expect(pluralizeUnit('espèce observée', 2)).toBe('espèces observées');
     expect(pluralizeUnit('tâche Flash', 2)).toBe('tâches Flash');
+    // Pluriels en « x » : « jeu », « niveau », « plateau ».
+    expect(pluralizeUnit('jeu réussi', 2)).toBe('jeux réussis');
+    expect(pluralizeUnit('niveau retissé', 3)).toBe('niveaux retissés');
+    expect(pluralizeUnit('plateau réparé', 2)).toBe('plateaux réparés');
+    expect(pluralizeUnit('jeu de fils démêlé', 2)).toBe('jeux de fils démêlé');
+    expect(pluralizeUnit('pneu bleu', 2)).toBe('pneus bleus');
     expect(pluralizeUnit('tâche de jardinage', 1)).toBe('tâche de jardinage');
     expect(progressLabel(JARDINAGE, { remaining: 3, nextTier: 2 })).toBe(
       'encore 3 tâches de jardinage pour 🌼 Fleur',

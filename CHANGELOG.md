@@ -64,6 +64,9 @@ rencontre les règles une à une au lieu de les entendre d'un bloc.
   « Les fils de l'adaptation » (type `adaptation`, catalogue `trame-adaptations.json`). Les
   solutions ne quittent pas le serveur ; jamais de gemme. « Gardien des fils » compte aussi les
   fils de l'adaptation ; badge « Bon rangeur » proposé. Migration 367.
+- **Pluriels des unités de badge** : « jeux », « niveaux », « plateaux » (au lieu de « jeus »,
+  « niveaus », « plateaus ») dans « encore N … pour … » (`src/shared/rewards/rewardsCore.js`,
+  ForetMap et G&L).
 - **Retiré** : le profil `prologue` (une partie qui le portait passe en `complet` avec
   l'escalier), les réglages `tenir_pages_veillee_par_semaine` et `tenir_defis_pages_par_semaine`,
   le Marché éteint d'office à la création d'une partie du chapitre 1 (l'escalier l'ouvre à la
