@@ -363,7 +363,10 @@ export function GLTenirEquipeView({
       ) : null}
       {maVue?.unDe ? (
         <p className="gl-hint gl-tenir-equipe__un-de" role="status" data-testid="gl-tenir-un-de">
-          Au prochain tour : un seul dé.
+          {/* Le tour où le seul dé est dû, l'écran le dit au présent. */}
+          {maVue.desProchainJet === 1
+            ? 'Ce tour-ci : un seul dé.'
+            : 'Au prochain tour : un seul dé.'}
         </p>
       ) : null}
       {chasse && fouilles ? (

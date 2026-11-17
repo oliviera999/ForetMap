@@ -306,9 +306,9 @@ en retrait ne voit pas la place.
 phase jeu, au seuil…) et une limite (par tour et par équipe, par partie, par chapitre et par élève,
 par trimestre). Hors fenêtre, l'écran dit pourquoi. Le **pot** est pré-rempli à parts égales entre
 les membres présents (le reste au plus riche) et reste modifiable. Les sorts automatiques
-s'appliquent aussitôt ; ceux du prof (Question, Conseil, Pause, Nommer, Lettre…) entrent dans votre
-file : vous cochez « effet appliqué » quand c'est fait. Aucun sort ne crée de ressource, sauf
-« Nommer » qui rend un cœur à chaque Gnome de l'équipe qui répare une page.
+s'appliquent aussitôt ; ceux du prof (Question, Conseil, Pause, Lettre…) entrent dans votre
+file : vous cochez « effet appliqué » quand c'est fait. Aucun sort ne crée de ressource (« Nommer »,
+qui en rendait, est sorti du grimoire le 17 novembre 2026).
 
 ## Ensemble unifié : gains et grimoire (17 novembre 2026)
 
@@ -389,7 +389,7 @@ haut)._
   Le journal le dit : « Sort rendu ».
 
 **Refuser un sort du prof rembourse.** Un sort que vous appliquez vous-même (Question, Conseil,
-Pause, Nommer, Lettre…) est payé au lancement, puis attend dans votre file. S'il tombe mal, le
+Pause, Lettre…) est payé au lancement, puis attend dans votre file. S'il tombe mal, le
 bouton **« Refuser et rembourser »** rend à l'équipe exactement ce qu'elle a payé — bourses et
 réserve de la caravane — et vous pouvez lui laisser un mot, qu'elle lit dans le journal. Le sort
 rendu ne compte pas dans sa limite : l'équipe peut le relancer plus tard dans la séance.
