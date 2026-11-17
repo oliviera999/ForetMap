@@ -225,7 +225,7 @@ case;;VQCM0017;foret_mediterraneenne;introuvable;0;Seulement les mâles, pour at
 case;;VQCM0018;foret_mediterraneenne;introuvable;0;Il les lâche de très haut sur les rochers pour les casser;;lache haut rocher casser;;;aucune ressource reliée
 case;;VQCM0019;foret_mediterraneenne;introuvable;0;Elle protège le tronc pendant un incendie;;proteg tronc incendi;;;aucune ressource reliée
 case;;VQCM0020;foret_mediterraneenne;introuvable;0;Pour se confondre avec le sous-bois;;confondr bois;;;aucune ressource reliée
-case;;VQCM0071;foret_mediterraneenne;introuvable;0;Leurs huiles parfumées repoussent ceux qui voudraient les brouter;;huile parfume repoussent voudraient brouter;;;aucune ressource reliée
+case;;VQCM0071;foret_mediterraneenne;introuvable;0;Leur huile au goût fort décourage les animaux brouteurs;;huile gout fort decourag animal brouteur;;;aucune ressource reliée
 case;;VQCM0072;foret_mediterraneenne;introuvable;0;Plus de 50 ans, parfois bien davantage;;parfoi davantag;;;aucune ressource reliée
 case;;VQCM0073;foret_mediterraneenne;introuvable;0;Il reste vivant et refait son écorce en dix ans environ;;reste vivant refait ecorc environ;;;aucune ressource reliée
 case;;VQCM0074;foret_mediterraneenne;introuvable;0;Ils bougent chacun de leur côté, sans se suivre;;bougent chacun cote suivr;;;aucune ressource reliée
@@ -300,9 +300,9 @@ case;;VQCM0041;jungle_afc;introuvable;0;Il bouche l'entrée avec de la boue, et 
 case;;VQCM0042;jungle_afc;introuvable;0;Elles ressortent intactes dans ses crottes, loin de l'arbre;;ressortent intact crott loin arbre;;;aucune ressource reliée
 case;;VQCM0043;jungle_afc;introuvable;0;Grâce à des contreforts, de grandes « ailes » de bois au pied du tronc;;contrefort aile bois pied tronc;;;aucune ressource reliée
 case;;VQCM0044;jungle_afc;introuvable;0;Il fait chaud et humide : les décomposeurs ne s'arrêtent jamais;;chaud humid decomposeur arretent;;;aucune ressource reliée
-case;;VQCM0045;jungle_afc;introuvable;0;« Regarde comme je suis grand » : il impressionne pour ne pas se battre;;regard suis impressionn battr;;;aucune ressource reliée
-case;;VQCM0046;jungle_afc;introuvable;0;Plus de 3 kilos, autant qu'un chat;;kilo autant chat;;;aucune ressource reliée
-case;;VQCM0047;jungle_afc;introuvable;0;Pour atteindre la lumière sans fabriquer un gros tronc;;atteindr lumier fabriquer gros tronc;;;aucune ressource reliée
+case;;VQCM0045;jungle_afc;introuvable;0;« Regarde comme je suis grand » : souvent, cela évite la bagarre;;regard suis evite bagarr;;;aucune ressource reliée
+case;;VQCM0046;jungle_afc;introuvable;0;Jusqu'à 3 kilos, autant qu'un chat;;jusqu kilo autant chat;;;aucune ressource reliée
+case;;VQCM0047;jungle_afc;introuvable;0;Elle atteint la lumière sans fabriquer de gros tronc;;atteint lumier fabriquer gros tronc;;;aucune ressource reliée
 case;;VQCM0048;jungle_afc;introuvable;0;Qu'il est en pleine forme et haut placé dans le groupe;;plein forme haut place group;;;aucune ressource reliée
 case;;VQCM0049;jungle_afc;introuvable;0;Tout en haut, dans la canopée, près de la lumière et des fruits;;haut canope pres lumier fruit;;;aucune ressource reliée
 case;;VQCM0050;jungle_afc;introuvable;0;Un nid de branches pliées, dans un arbre;;branch pliee arbre;;;aucune ressource reliée
@@ -559,7 +559,7 @@ case;;VQCM0066;sahara;introuvable;0;Plusieurs mois, parfois près d'un an;;mois 
 case;;VQCM0067;sahara;introuvable;0;Elles perdent très peu d'eau au soleil;;perdent soleil;;;aucune ressource reliée
 case;;VQCM0068;sahara;introuvable;0;À une savane verte, avec des lacs et des girafes;;savan verte lacs giraf;;;aucune ressource reliée
 case;;VQCM0069;sahara;introuvable;0;Son plumage couleur de sable la cache dès qu'elle s'immobilise;;plumag couleur sable cache immobilis;;;aucune ressource reliée
-case;;VQCM0070;sahara;introuvable;0;C'est un reptile : il se réchauffe au soleil pour être actif;;reptil rechauff soleil actif;;;aucune ressource reliée
+case;;VQCM0070;sahara;introuvable;0;C'est un reptile : le soleil réchauffe son corps;;reptil soleil rechauff corp;;;aucune ressource reliée
 case;;GQCM9103;savane;en partie;0.5;Plusieurs relations alimentaires qui se croisent, pas une seule file d’espèces;relation alimentair espec;croisent seule file;glossaire:GL9005;glossaire:GL9005 glossaire:GL9006;
 case;;QCM0241;savane;en partie;0.63;En groupe social (une troupe) regroupant plusieurs femelles, des lionceaux et un ou deux mâles dominants;group social femell lionceal male;troup regroupant dominant;fiche:SP0095;fiche:SP0095 glossaire:GL0210 glossaire:GL0239 glossaire:GL0255;absentes de cette base : glossaire:GL0210 glossaire:GL0239 glossaire:GL0255
 case;;QCM0242;savane;en partie;0.33;Sa taille bien plus grande et ses oreilles immenses;oreill;taill immens;fiche:SP0096;fiche:SP0096 fiche:SP0115 fiche:SP0027 glossaire:GL0080 glossaire:GL0151 glossaire:GL0239;absentes de cette base : glossaire:GL0080 glossaire:GL0151 glossaire:GL0239
