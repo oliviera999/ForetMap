@@ -17,10 +17,8 @@ import { usesPeopleSpecificEffects } from './glMarkerEventConfigCore.js';
  * cas d'échec.
  */
 
-const RESSOURCE_LABELS = Object.freeze({
-  health: ['cœur', 'cœurs'],
-  power: ['gemme', 'gemmes'],
-});
+// Ensemble unifié (M1) : une seule monnaie, les gemmes.
+const GEMME_LABELS = Object.freeze(['gemme', 'gemmes']);
 
 /** Peuple d'une équipe : `gnome`, `unicorn` ou `null`. */
 export function peopleKeyOf(teamType) {
@@ -32,9 +30,12 @@ export function peopleKeyOf(teamType) {
   return null;
 }
 
-/** Ressource du peuple : `power` (gemmes) pour une licorne, `health` (cœurs) sinon. */
-export function resourceOfPeopleCore(teamType) {
-  return peopleKeyOf(teamType) === 'unicorn' ? 'power' : 'health';
+/**
+ * Ensemble unifié (M1) : la monnaie d'une équipe est la gemme (`power`), quel que soit son
+ * peuple. L'ancienne « ressource du peuple » (cœurs pour un gnome) a disparu.
+ */
+export function resourceOfPeopleCore() {
+  return 'power';
 }
 
 /** Branche d'effet d'une case pour une équipe (peuple si la case en distingue, sinon neutre). */
@@ -88,7 +89,10 @@ export function normalizeCasesPositives(value) {
  *   les deux peuples, ni recul, ni tour passé, ni ressource retirée ; Sentier l'empêche ;
  * - case **Trame** : +1 gemme à chaque membre de l'équipe (la seule case qui donne une gemme) ;
  * - cases **positives** : leur mouvement, sans ressource ;
- * - plus aucun recul ni tour passé (`passTurn`) en mode tenir, sauf réglage `brut`.
+ * - plus aucun recul ni tour passé (`passTurn`) en mode tenir, sauf réglage `brut` ;
+ * - **une seule monnaie** (M1) : une case ne touche jamais aux cœurs — `healthDelta` vaut
+ *   toujours 0, même en `brut` ; un ancien `deltaPv` du plateau ne sert plus qu'à dire si la
+ *   case était favorable ou non.
  *
  * @param {object} marker ligne de case (`event_type`, `event_config_json`…)
  * @param {string|null} teamType `gnome` | `unicorn`
@@ -96,7 +100,7 @@ export function normalizeCasesPositives(value) {
  *   `resolved` : branche déjà résolue (sinon calculée ici) ; `casesPositives` : réglage
  *   `tenir_cases_positives` (`neutre` | `brut`) ; `sentierActif` : un Sentier (sort gnome)
  *   neutralise la prochaine case Souffle.
- * @returns {{ branch: string|null, label: string|null, tonalite: string|null, resource: 'health'|'power',
+ * @returns {{ branch: string|null, label: string|null, tonalite: string|null, resource: 'power',
  *   healthDelta: number, powerDelta: number, moveDelta: number, passTurn: boolean, unDe: boolean,
  *   sentier: boolean, neutralise: 'gain'|'perte'|null, applique: boolean }}
  */
@@ -106,7 +110,7 @@ export function resolveTenirCaseEffet(marker, teamType, options = {}) {
   const resolved =
     options.resolved !== undefined ? options.resolved : resolveMarkerBranchCore(marker, teamType);
   const tonalite = markerTonaliteCore(marker) || null;
-  const resource = resourceOfPeopleCore(teamType);
+  const resource = resourceOfPeopleCore();
   const out = {
     branch: resolved?.branch ?? null,
     label: resolved?.label ?? null,
@@ -145,7 +149,13 @@ export function resolveTenirCaseEffet(marker, teamType, options = {}) {
     return finish({ powerDelta: 1, moveDelta: avance });
   }
   if (casesPositives === 'brut') {
-    return finish({ ...base, passTurn: resolved?.passTurn === true });
+    // Les cœurs du plateau ne s'appliquent plus (M1) : une case qui n'avait que cela à donner
+    // ou à prendre le dit, comme en `neutre`.
+    const brut = { ...base, healthDelta: 0, passTurn: resolved?.passTurn === true };
+    const reste = brut.powerDelta || brut.moveDelta || brut.passTurn;
+    if (!reste && base.healthDelta > 0) return finish({ ...brut, neutralise: 'gain' });
+    if (!reste && base.healthDelta < 0) return finish({ ...brut, neutralise: 'perte' });
+    return finish(brut);
   }
   const unDe = resolved?.unDeAuProchainTour === true;
   const gain = base.healthDelta > 0 || base.powerDelta > 0;
@@ -159,9 +169,9 @@ function pluriel(n, [singulier, plurielForme]) {
   return Math.abs(n) > 1 ? plurielForme : singulier;
 }
 
-function ressourceText(n, resource) {
+function gemmesText(n) {
   const signe = n > 0 ? '+' : '−';
-  return `${signe}${Math.abs(n)} ${pluriel(n, RESSOURCE_LABELS[resource])} pour chaque membre de l’équipe`;
+  return `${signe}${Math.abs(n)} ${pluriel(n, GEMME_LABELS)} pour chaque membre de l’équipe`;
 }
 
 /**
@@ -177,8 +187,7 @@ export function formatTenirCaseEffet(effet, options = {}) {
   if (effet?.sentier) {
     text = 'Sentier : la case Souffle n’a aucun effet sur l’équipe.';
   } else if (effet) {
-    if (effet.healthDelta) parts.push(ressourceText(effet.healthDelta, 'health'));
-    if (effet.powerDelta) parts.push(ressourceText(effet.powerDelta, 'power'));
+    if (effet.powerDelta) parts.push(gemmesText(effet.powerDelta));
     if (effet.moveDelta) {
       const n = Math.abs(effet.moveDelta);
       parts.push(

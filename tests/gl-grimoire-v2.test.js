@@ -5,8 +5,9 @@
  * partie / séance / chapitre-élève / trimestre-élève), peuple, pot pré-rempli, effets
  * automatiques (Lanterne, Abri, Progression, Relance, Grand Regard, Bourrasque, Sentier,
  * Cordée, Relais, Farce, Héritage), file du prof (Nommer via effect-applied, Esquive), sort
- * `propose` refusé. Assertion globale : aucun sort ne crée de ressource (sauf Nommer : +1 cœur
- * par Gnome, documenté). Fixtures anonymes.
+ * `propose` refusé. Assertion globale : aucun sort ne crée de ressource (Nommer compris : la
+ * page réparée ne donne plus rien). Une seule monnaie (ensemble unifié, M1) : tout sort se paie
+ * en gemmes, les cœurs ne bougent jamais. Fixtures anonymes.
  */
 
 require('./helpers/setup');
@@ -133,13 +134,23 @@ test('Abri : pot sans l’élève en retrait, cible une autre équipe, effet « 
     effectParams: { targetTeamId: lA().id },
   });
   assert.equal(d.status, 201, JSON.stringify(d.body));
+  // Une seule monnaie : l'Abri des Gnomes (2) se paie en gemmes, comme tout le grimoire.
+  assert.deepEqual(d.body.draft.required, { gems: 2, hearts: 0 });
   const byPlayer = Object.fromEntries(
-    d.body.draft.suggestedContributions.map((c) => [c.playerId, c.hearts]),
+    d.body.draft.suggestedContributions.map((c) => [c.playerId, c.gems]),
   );
   assert.equal(byPlayer[p(8).id], undefined, 'l’élève en retrait ne verse pas');
   assert.deepEqual([byPlayer[p(0).id], byPlayer[p(4).id]].sort(), [1, 1]);
+  assert.ok(
+    d.body.draft.suggestedContributions.every((c) => c.hearts === 0),
+    'aucune part en cœurs',
+  );
+  const avant = await totalBourses();
   const l = await launch(p(0).token, d.body.draft.id);
   assert.equal(l.status, 200, JSON.stringify(l.body));
+  const apres = await totalBourses();
+  assert.equal(apres.g, avant.g - 2, 'deux gemmes payées');
+  assert.equal(apres.h, avant.h, 'les cœurs ne bougent pas');
   const rows = await effets('abri');
   assert.equal(rows.length, 1);
   assert.equal(Number(rows[0].team_id), lA().id);
@@ -152,6 +163,7 @@ test('Abri : pot sans l’élève en retrait, cible une autre équipe, effet « 
 });
 
 test('Relance : pas avant le jet ; après le jet la case attend, Relance annule le jet (la mascotte revient, la case ne s’applique pas) ; Progression part de la case jouée (C1)', async () => {
+  // `ressource` est ignoré depuis la monnaie unique : le garder ici prouve qu'il ne pèse plus.
   const early = await draft(p(1).token, {
     spellCode: 'SL002',
     teamId: gB().id,
@@ -200,11 +212,17 @@ test('Relance : pas avant le jet ; après le jet la case attend, Relance annule 
     ressource: 'coeurs',
   });
   assert.equal(relance.status, 200, JSON.stringify(relance.body));
+  assert.deepEqual(
+    relance.body.draft.required,
+    { gems: 2, hearts: 0 },
+    '« ressource: coeurs » ignoré : Relance se paie en gemmes',
+  );
+  assert.equal('ressourceChoisie' in relance.body.draft, false, 'plus de ressource choisie');
   assert.ok(relance.body.effectEvents.some((e) => e.eventType === 'jet_annule'));
   assert.equal(await teamIndex(gB().id), depart, 'la mascotte revient sur sa case de départ');
   const apresRelance = await totalBourses();
-  assert.equal(apresRelance.h, avantJet.h - 2, 'seul le coût de Relance est payé');
-  assert.equal(apresRelance.g, avantJet.g);
+  assert.equal(apresRelance.g, avantJet.g - 2, 'seul le coût de Relance est payé');
+  assert.equal(apresRelance.h, avantJet.h, 'les cœurs ne bougent pas');
   const [ligne] = await effets('arrivee_suspendue');
   assert.equal(JSON.parse(ligne.payload_json).issue, 'annulee');
   assert.equal((await effets('relance')).length, 1);
@@ -238,12 +256,12 @@ test('Relance : pas avant le jet ; après le jet la case attend, Relance annule 
   });
   assert.equal(res.status, 200, JSON.stringify(res.body));
   assert.equal(await teamIndex(gB().id), depart + 3);
-  assert.equal(res.body.draft.required.hearts, 1);
+  assert.deepEqual(res.body.draft.required, { gems: 1, hearts: 0 });
   // C1 : la case d'arrivée (ici une Trame) n'est pas appliquée — aucune ressource créée.
   assert.equal(res.body.effectResult?.arrival, undefined, 'case non appliquée');
   const apres = await totalBourses();
-  assert.equal(apres.h, avant.h - 1);
-  assert.equal(apres.g, avant.g);
+  assert.equal(apres.g, avant.g - 1);
+  assert.equal(apres.h, avant.h, 'les cœurs ne bougent pas');
 });
 
 test('Relance : une arrivée laissée en suspens s’applique quand l’équipe garde son jet', async () => {
@@ -342,9 +360,9 @@ test('Sentier : avant le jet seulement ; la prochaine case Souffle n’a pas d�
   assert.equal(JSON.parse(evt.payload_json).sentier, true);
 });
 
-// Lot 2 : la Cordée est OFFERTE — l'équipe lanceuse paie seule (4, dans la ressource de son
-// peuple), la partenaire de l'autre peuple ne paie rien. Ensemble unifié (M6) : lancée pendant
-// le jeu, elle agit au PROCHAIN tour des deux équipes.
+// Lot 2 : la Cordée est OFFERTE — l'équipe lanceuse paie seule (4 gemmes, quel que soit son
+// peuple : une seule monnaie, M1), la partenaire de l'autre peuple ne paie rien. Ensemble unifié
+// (M6) : lancée pendant le jeu, elle agit au PROCHAIN tour des deux équipes.
 test('Cordée offerte : la lanceuse paie seule, pendant le jeu ; au prochain tour, le meilleur des deux jets', async () => {
   for (const t of [gA(), lA(), gB(), lB()]) await place(t.id, 0);
   // La lanceuse a déjà jeté ce tour : la fenêtre « jeu » l'accepte quand même.
@@ -362,24 +380,35 @@ test('Cordée offerte : la lanceuse paie seule, pendant le jeu ; au prochain tou
     partnerTeamId: lA().id,
   });
   assert.equal(d.status, 201, JSON.stringify(d.body));
-  assert.deepEqual(d.body.draft.required, { gems: 0, hearts: 4 });
+  assert.deepEqual(d.body.draft.required, { gems: 4, hearts: 0 });
   assert.equal(d.body.draft.offerte, false, 'plateau 3 : rien d’offert');
   const parts = d.body.draft.suggestedContributions;
   assert.equal(
-    parts.reduce((s, c) => s + c.hearts, 0),
+    parts.reduce((s, c) => s + c.gems, 0),
     4,
-    'quatre cœurs',
+    'quatre gemmes',
   );
   assert.ok(
-    parts.every((c) => c.teamId === gA().id && c.gems === 0),
-    'les Gnomes paient seuls, rien n’est demandé aux Licornes',
+    parts.every((c) => c.teamId === gA().id && c.hearts === 0),
+    'les Gnomes paient seuls, en gemmes ; rien n’est demandé aux Licornes',
   );
   assert.ok(
     d.body.draft.roster.every((r) => Number(r.teamId) === Number(gA().id)),
     'le pot ne montre que l’équipe lanceuse',
   );
+  const avantPot = await totalBourses();
   const l = await launch(p(0).token, d.body.draft.id);
   assert.equal(l.status, 200, JSON.stringify(l.body));
+  const apresPot = await totalBourses();
+  assert.equal(apresPot.g, avantPot.g - 4, 'quatre gemmes payées');
+  assert.equal(apresPot.h, avantPot.h, 'les cœurs ne bougent pas');
+  for (const i of [2, 6]) {
+    assert.deepEqual(
+      await readPlayerBourses(p(i).id),
+      { health: 4, power: 4 },
+      'la partenaire ne paie rien',
+    );
+  }
   const round = Number(
     (await queryOne('SELECT current_round_number AS r FROM gl_games WHERE id = ?', [ctx.game.id]))
       .r,
@@ -428,10 +457,16 @@ test('Cordée offerte : la lanceuse paie seule, pendant le jeu ; au prochain tou
 test('Relais : l’équipe la plus en retard rejoint la case du lanceur (1/tour/partie)', async () => {
   await place(gB().id, 1);
   await place(lB().id, 3);
-  for (const i of [0, 4, 8]) await setPlayerBourses(p(i).id, 4, 2);
+  // Une seule monnaie : le Relais des Gnomes (3) se paie en gemmes — on leur en donne.
+  for (const i of [0, 4, 8]) await setPlayerBourses(p(i).id, 2, 4);
+  const avant = await totalBourses();
   const r = await cast(p(0).token, { spellCode: 'SL044', teamId: gA().id });
   assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.deepEqual(r.body.draft.required, { gems: 3, hearts: 0 });
   assert.equal(await teamIndex(gB().id), await teamIndex(gA().id));
+  const apres = await totalBourses();
+  assert.equal(apres.g, avant.g - 3, 'trois gemmes payées');
+  assert.equal(apres.h, avant.h, 'les cœurs ne bougent pas');
 });
 
 test('Farce : 1/séance/équipe, la mascotte d’une autre équipe danse ; Nommer (prof) : en file puis effet appliqué avec zoneKey', async (t) => {
@@ -484,7 +519,8 @@ test('Farce : 1/séance/équipe, la mascotte d’une autre équipe danse ; Nomme
     !file.body.drafts.some((d) => d.spellCode === 'SL036'),
     'la Farce (auto) n’est pas en file',
   );
-  const avant = await readPlayerBourses(p(1).id);
+  const avant = await totalBourses();
+  const avantGnome = await readPlayerBourses(p(1).id);
   const applied = await request(app)
     .post(api(`/spell-casts/drafts/${n.body.draft.id}/effect-applied`))
     .set(auth(ctx.adminToken))
@@ -495,11 +531,21 @@ test('Farce : 1/séance/équipe, la mascotte d’une autre équipe danse ; Nomme
     [ctx.game.id, zone.id],
   );
   assert.equal(page.etat, 'reparee');
-  assert.equal(
-    (await readPlayerBourses(p(1).id)).health,
-    avant.health + 1,
-    'Nommer : +1 cœur par Gnome (documenté)',
+  // Une seule monnaie : la page réparée ne donne plus rien (l'ancien + 1 cœur a disparu).
+  assert.deepEqual(
+    await readPlayerBourses(p(1).id),
+    avantGnome,
+    'Nommer : aucune ressource pour le Gnome',
   );
+  assert.deepEqual(await totalBourses(), avant, 'Nommer ne crée aucune ressource');
+  const reparee = await queryOne(
+    "SELECT payload_json FROM gl_game_events WHERE game_id = ? AND team_id = ? AND event_type = 'page_reparee' ORDER BY id DESC LIMIT 1",
+    [ctx.game.id, gB().id],
+  );
+  const payload = JSON.parse(reparee.payload_json);
+  assert.equal(payload.via, 'nommer');
+  assert.equal(payload.vitality, undefined, 'l’évènement ne porte plus de gain');
+  assert.equal(payload.private, undefined);
 });
 
 test('Héritage : au seuil seulement, 1/chapitre/élève, versé à l’ouverture de la partie suivante', async (t) => {
@@ -536,7 +582,8 @@ test('Héritage : au seuil seulement, 1/chapitre/élève, versé à l’ouvertur
     [ctx.game.id],
   );
   assert.equal(Number(row.beneficiaire_player_id), p(0).id);
-  assert.equal(row.ressource, 'health');
+  // Une seule monnaie : un legs est en gemmes, même demandé en cœurs (`ressource: 'coeurs'`).
+  assert.equal(row.ressource, 'power');
   assert.equal(row.applique_at, null);
   const again = await draft(p(2).token, {
     spellCode: 'SL033',
@@ -554,7 +601,9 @@ test('Héritage : au seuil seulement, 1/chapitre/élève, versé à l’ouvertur
     appliquerHeritagesTx(tx, { gameId: next.game.id, classId: ctx.cls.id, settings }),
   );
   assert.equal(applied.applied, 1);
-  assert.equal((await readPlayerBourses(p(0).id)).health, Math.min(8, before.health + 2));
+  const after = await readPlayerBourses(p(0).id);
+  assert.equal(after.power, Math.min(8, before.power + 2), 'deux gemmes versées');
+  assert.equal(after.health, before.health, 'les cœurs ne bougent pas');
 });
 
 test('Esquive : 1/trimestre/élève (prof) ; sort proposé → 409 ; Lumière → route dédiée', async () => {

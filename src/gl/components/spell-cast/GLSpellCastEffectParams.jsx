@@ -28,13 +28,15 @@ export function limiteLabel(limite) {
   return `${limite.n}/${par}/${portee}`;
 }
 
-/** Paramètres que l'assistant doit demander pour ce sort v2 (déduits de `cible`, `ressource`, `peuple`). */
+/**
+ * Paramètres que l'assistant doit demander pour ce sort v2 (déduits de `cible` et `peuple`).
+ * Ensemble unifié (M1) : une seule monnaie — plus de ressource à choisir.
+ */
 export function neededParams(spell) {
   if (!spell?.tenir_v2 && !spell?.tenirV2) return [];
   const out = [];
   const cible = String(spell.cible || '');
   const code = String(spell.spell_code || spell.spellCode || '');
-  if (String(spell.ressource) === 'choix') out.push('ressource');
   if (String(spell.peuple) === 'pacte') out.push('partenaire');
   if (cible === 'autre_equipe') out.push('cible');
   if (code === 'SL002') out.push('delta');
@@ -45,7 +47,7 @@ export function neededParams(spell) {
 
 /**
  * Formulaire des paramètres d'un sort v2 : sens de Progression, équipe cible, partenaire du
- * pacte, ressource au choix, page pâlie (Nommer), bénéficiaire (Héritage).
+ * pacte, page pâlie (Nommer), bénéficiaire (Héritage).
  */
 export function GLSpellCastEffectParams({
   spell,
@@ -65,28 +67,17 @@ export function GLSpellCastEffectParams({
   const set = (k, v) => onChange?.({ ...(value || {}), [k]: v });
   const v = value || {};
   const ready =
-    (!needs.includes('ressource') || v.ressource) &&
     (!needs.includes('partenaire') || v.partnerTeamId) &&
     (!needs.includes('cible') || v.targetTeamId) &&
     (!needs.includes('delta') || v.delta === 1 || v.delta === -1) &&
     (!needs.includes('zoneKey') || v.zoneKey) &&
-    (!needs.includes('heritage') || (v.beneficiairePlayerId && v.heritageRessource));
+    (!needs.includes('heritage') || v.beneficiairePlayerId);
   return (
     <div className="gl-spell-cast-panel__body" data-testid="gl-spell-cast-params">
       {spell?.fenetre ? (
         <p className="gl-hint">Fenêtre : {FENETRE_LABELS[spell.fenetre] || spell.fenetre}</p>
       ) : null}
       {spell?.limite ? <p className="gl-hint">Limite : {limiteLabel(spell.limite)}</p> : null}
-      {needs.includes('ressource') ? (
-        <label className="gl-field">
-          Payer en
-          <select value={v.ressource || ''} onChange={(e) => set('ressource', e.target.value)}>
-            <option value="">—</option>
-            <option value="coeurs">cœurs ❤️</option>
-            <option value="gemmes">gemmes 💎</option>
-          </select>
-        </label>
-      ) : null}
       {needs.includes('delta') ? (
         <fieldset className="gl-field">
           <legend>Sens</legend>
@@ -171,17 +162,6 @@ export function GLSpellCastEffectParams({
               ))}
             </select>
           </label>
-          <label className="gl-field">
-            Ressource léguée
-            <select
-              value={v.heritageRessource || ''}
-              onChange={(e) => set('heritageRessource', e.target.value)}
-            >
-              <option value="">—</option>
-              <option value="coeurs">cœurs ❤️</option>
-              <option value="gemmes">gemmes 💎</option>
-            </select>
-          </label>
         </>
       ) : null}
       <GLButton
@@ -204,10 +184,9 @@ export function buildDraftOptions(params = {}) {
   if (params.zoneKey) effectParams.zoneKey = String(params.zoneKey);
   if (params.beneficiairePlayerId) {
     effectParams.beneficiairePlayerId = Number(params.beneficiairePlayerId);
-    effectParams.ressource = params.heritageRessource || 'coeurs';
+    effectParams.ressource = 'gemmes';
   }
   return {
-    ressource: params.ressource || undefined,
     partnerTeamId: params.partnerTeamId || undefined,
     effectParams: Object.keys(effectParams).length ? effectParams : undefined,
   };

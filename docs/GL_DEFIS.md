@@ -216,7 +216,7 @@ ouvert (409 `DEFIS_FERMES`), une partie terminée n'en donne plus ; la lecture r
 4. L'évènement `defi_trame_reussi` au journal (type, biome ; jamais un nom d'élève) et une ligne
    d'Olu.
 
-Une réussite suivante de la même unité ne donne plus de page. **Jamais** un cœur, une gemme, un
+Une réussite suivante de la même unité ne donne plus de page. **Jamais** une gemme, un
 recul du voile ou un rang.
 
 **Une transaction, puis une écriture rattrapable.** Le passage du défi à « réussi », les lignes

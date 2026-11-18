@@ -7,6 +7,15 @@
 //     l'algorithme historique (4 requêtes par échange), recopié ici comme référence ;
 //  2. le nombre de requêtes SQL est CONSTANT quel que soit le nombre d'échanges de la page
 //     (avant : 2 + 5N, soit jusqu'à 102 requêtes pour une page de 20).
+//
+// Ensemble unifié (M1, « une seule monnaie ») : la lecture consulte aussi les réglages
+// (`gl_settings`), la classe du joueur (`gl_players`) et la partie la plus récente de la classe
+// (`gl_games`) pour savoir si elle joue « Tenir à deux ». Les deux garanties sont donc rejouées
+// dans trois situations (`MODES`) :
+//  - mouture éteinte et classe sans partie « Tenir » : jeu classique, payload historique intact ;
+//  - classe « Tenir » : même payload, SANS aucun cœur (`offerHealth`, `healthPoints`) ni aucun
+//    solde (`powerPoints` : bourses privées), et un
+//    échange resté en cœurs se ferme seul à la première lecture (deux écritures, une seule fois).
 const test = require('node:test');
 const assert = require('node:assert');
 
@@ -14,7 +23,67 @@ const assert = require('node:assert');
 // Base factice : tables en mémoire + mini-interpréteur des requêtes du module marché.
 // ---------------------------------------------------------------------------------------
 
-function makeData(tradeCount) {
+const CLASS_ID = 9;
+/** Échange « d'avant » d'une classe « Tenir » : encore en négociation, avec des cœurs. */
+const STALE_TRADE_ID = 900;
+
+/**
+ * Les trois situations d'une classe. `settings` : lignes de `gl_settings` (vide = défauts,
+ * mouture levée) ; `games` : parties de la classe ; `queries` / `queriesSuivantes` /
+ * `emptyQueries` : nombre exact de requêtes d'une page pleine (première lecture, puis les
+ * suivantes) et d'une page vide, détaillé à côté de chaque valeur.
+ */
+const MODES = [
+  {
+    key: 'eteinte',
+    label: 'jeu classique, mouture éteinte',
+    tenir: false,
+    settings: [{ key: 'gameplay.tenir_enabled', value_json: 'false' }],
+    games: [{ id: 1, class_id: CLASS_ID, status: 'live', tenir_profil: 'complet' }],
+    // classe du joueur + réglages + total + page d'ids + échanges + côtés + messages + feuillets
+    // + joueurs. Mouture éteinte : `gl_games` n'est jamais lue.
+    queries: 9,
+    // Deuxième lecture : les réglages viennent du cache.
+    queriesSuivantes: 8,
+    // classe du joueur + réglages + total + page d'ids.
+    emptyQueries: 4,
+  },
+  {
+    key: 'classique',
+    label: 'jeu classique, classe sans partie « Tenir »',
+    tenir: false,
+    settings: [{ key: 'gameplay.market_hearts_enabled', value_json: 'true' }],
+    games: [{ id: 1, class_id: CLASS_ID, status: 'live', tenir_profil: null }],
+    // Les 9 précédentes + la partie la plus récente de la classe, lue deux fois (avant la
+    // liste, puis au moment de composer les payloads).
+    queries: 11,
+    queriesSuivantes: 10,
+    // Les 4 précédentes + la partie de la classe (une fois : aucun payload à composer).
+    emptyQueries: 5,
+  },
+  {
+    key: 'tenir',
+    label: 'classe « Tenir à deux »',
+    tenir: true,
+    settings: [
+      { key: 'gameplay.tenir_enabled', value_json: 'true' },
+      // Même ouvert pour le jeu classique, ce réglage ne rend aucun cœur à une classe « Tenir ».
+      { key: 'gameplay.market_hearts_enabled', value_json: 'true' },
+    ],
+    games: [
+      { id: 1, class_id: CLASS_ID, status: 'finished', tenir_profil: null },
+      { id: 2, class_id: CLASS_ID, status: 'live', tenir_profil: 'complet' },
+    ],
+    // Les 11 du jeu classique + les deux écritures qui ferment ce qui parlait encore de cœurs
+    // (échanges en cours, annonces ouvertes) — à la première lecture seulement.
+    queries: 13,
+    // Deuxième lecture : plus d'écriture, et les réglages viennent du cache.
+    queriesSuivantes: 10,
+    emptyQueries: 7,
+  },
+];
+
+function makeData(tradeCount, mode = MODES[0]) {
   const players = [];
   const trades = [];
   const sides = [];
@@ -23,24 +92,36 @@ function makeData(tradeCount) {
   const feuillets = [];
 
   const selfId = 101;
-  players.push({ id: selfId, pseudo: 'Alix', health_points: 4, power_points: 7 });
+  players.push({
+    id: selfId,
+    class_id: CLASS_ID,
+    pseudo: 'Alix',
+    health_points: 4,
+    power_points: 7,
+  });
 
   for (let i = 1; i <= tradeCount; i += 1) {
     const peerId = 200 + i;
     players.push({
       id: peerId,
+      class_id: CLASS_ID,
       pseudo: `Camarade ${i}`,
       health_points: (i % 6) + 1,
       power_points: (i * 2) % 10,
     });
     const low = Math.min(selfId, peerId);
     const high = Math.max(selfId, peerId);
+    const status = i % 3 === 0 ? 'completed' : 'negotiating';
+    // Classe « Tenir » : plus aucun échange en cours ne porte de cœurs (ils ne peuvent plus y
+    // entrer) ; seuls les échanges conclus « avant » en gardent la trace en base — elle ne doit
+    // pas être servie pour autant.
+    const sansCoeurs = mode.tenir && status === 'negotiating';
     trades.push({
       id: i,
-      class_id: 9,
+      class_id: CLASS_ID,
       player_low_id: low,
       player_high_id: high,
-      status: i % 3 === 0 ? 'completed' : 'negotiating',
+      status,
       initiator_player_id: selfId,
       frozen_at: i % 4 === 0 ? `2026-08-0${(i % 9) + 1} 10:00:00` : null,
       created_at: `2026-08-01 09:00:${String(i).padStart(2, '0')}`,
@@ -51,7 +132,7 @@ function makeData(tradeCount) {
       {
         trade_id: i,
         player_id: low,
-        offer_health: i % 3,
+        offer_health: sansCoeurs ? 0 : i % 3,
         offer_power: (i + 1) % 4,
         accepted: i % 2,
         accepted_at: i % 2 ? `2026-08-02 08:00:${String(i).padStart(2, '0')}` : null,
@@ -59,7 +140,7 @@ function makeData(tradeCount) {
       {
         trade_id: i,
         player_id: high,
-        offer_health: (i + 2) % 3,
+        offer_health: sansCoeurs ? 0 : (i + 2) % 3,
         offer_power: i % 5,
         accepted: 0,
         accepted_at: null,
@@ -95,7 +176,60 @@ function makeData(tradeCount) {
       );
     }
   }
-  return { players, trades, sides, messages, sideFeuillets, feuillets, selfId };
+  if (mode.tenir && tradeCount > 0) {
+    // Un échange « d'avant », resté en négociation avec des cœurs : la première lecture d'une
+    // classe « Tenir » l'annule, il ne doit plus ni compter ni s'afficher.
+    const peerId = 990;
+    players.push({
+      id: peerId,
+      class_id: CLASS_ID,
+      pseudo: 'Camarade d’avant',
+      health_points: 5,
+      power_points: 5,
+    });
+    trades.push({
+      id: STALE_TRADE_ID,
+      class_id: CLASS_ID,
+      player_low_id: selfId,
+      player_high_id: peerId,
+      status: 'negotiating',
+      initiator_player_id: peerId,
+      frozen_at: null,
+      created_at: '2026-07-01 09:00:00',
+      updated_at: '2026-09-01 09:00:00',
+      completed_at: null,
+    });
+    sides.push(
+      {
+        trade_id: STALE_TRADE_ID,
+        player_id: selfId,
+        offer_health: 0,
+        offer_power: 1,
+        accepted: 0,
+        accepted_at: null,
+      },
+      {
+        trade_id: STALE_TRADE_ID,
+        player_id: peerId,
+        offer_health: 2,
+        offer_power: 0,
+        accepted: 0,
+        accepted_at: null,
+      },
+    );
+  }
+  return {
+    players,
+    trades,
+    sides,
+    messages,
+    sideFeuillets,
+    feuillets,
+    selfId,
+    settings: mode.settings.map((row) => ({ ...row })),
+    games: mode.games.map((row) => ({ ...row })),
+    tenir: mode.tenir,
+  };
 }
 
 function statusRank(status) {
@@ -110,7 +244,9 @@ function paramIds(params, sql) {
 }
 
 function createFakeDb(data) {
-  const counter = { queries: 0 };
+  // `queries` : toute requête (lecture ou écriture) ; `writes` : les écritures seules ;
+  // `log` : le SQL de chaque requête, pour vérifier ce qui a été lu.
+  const counter = { queries: 0, writes: 0, log: [] };
 
   function listVisibleTrades(pid) {
     return data.trades.filter(
@@ -123,7 +259,21 @@ function createFakeDb(data) {
   async function queryAll(sql, params = []) {
     counter.queries += 1;
     const q = String(sql);
+    counter.log.push(q);
 
+    if (/FROM `?gl_settings`?/.test(q)) {
+      const keys = new Set(params.map(String));
+      return data.settings.filter((row) => keys.has(row.key));
+    }
+    if (/SELECT tenir_profil FROM gl_games\s+WHERE class_id = \?/.test(q)) {
+      // La partie la plus récente de la classe : celle en cours d'abord, puis la dernière créée.
+      const rows = data.games
+        .filter((g) => Number(g.class_id) === Number(params[0]))
+        .sort(
+          (a, b) => (b.status === 'live' ? 1 : 0) - (a.status === 'live' ? 1 : 0) || b.id - a.id,
+        );
+      return rows.slice(0, 1).map((g) => ({ tenir_profil: g.tenir_profil }));
+    }
     if (/SELECT COUNT\(\*\) AS c FROM gl_market_trades/.test(q)) {
       return [{ c: listVisibleTrades(Number(params[0])).length }];
     }
@@ -193,14 +343,42 @@ function createFakeDb(data) {
     return rows[0] || null;
   }
 
+  // Écritures : la lecture du marché n'en fait AUCUNE en jeu classique. Dans une classe
+  // « Tenir », elle ferme une fois ce qui parlait encore de cœurs — et rien d'autre.
+  async function execute(sql, params = []) {
+    const q = String(sql);
+    if (!data.tenir) {
+      throw new Error(`execute ne doit pas être appelé par la lecture du marché : ${q}`);
+    }
+    counter.queries += 1;
+    counter.writes += 1;
+    counter.log.push(q);
+    if (/UPDATE gl_market_trades t SET t\.status = 'cancelled'/.test(q)) {
+      const classId = Number(params[0]);
+      let affectedRows = 0;
+      for (const trade of data.trades) {
+        const enCoeurs = data.sides.some(
+          (s) => Number(s.trade_id) === Number(trade.id) && Number(s.offer_health) > 0,
+        );
+        if (Number(trade.class_id) === classId && trade.status === 'negotiating' && enCoeurs) {
+          trade.status = 'cancelled';
+          affectedRows += 1;
+        }
+      }
+      return { affectedRows };
+    }
+    if (/UPDATE gl_market_annonces SET statut = 'expiree'/.test(q)) {
+      return { affectedRows: 0 };
+    }
+    throw new Error(`Écriture inattendue dans la base factice : ${q}`);
+  }
+
   return {
     counter,
     exports: {
       queryAll,
       queryOne,
-      execute: async () => {
-        throw new Error('execute ne doit pas être appelé par la lecture du marché');
-      },
+      execute,
       withTransaction: async () => {
         throw new Error('withTransaction ne doit pas être appelé par la lecture du marché');
       },
@@ -357,64 +535,190 @@ async function legacyListTrades(db, playerId, { page = 1, pageSize = 20 } = {}) 
 // Tests
 // ---------------------------------------------------------------------------------------
 
-async function runListForTradeCount(tradeCount, options) {
-  const data = makeData(tradeCount);
+/** Référence d'une classe « Tenir » : le payload historique, sans aucun cœur. */
+function sansCoeurs(reference) {
+  return {
+    ...reference,
+    items: reference.items.map((item) => ({
+      ...item,
+      sides: item.sides.map((side) => {
+        const {
+          offerHealth: _offerHealth,
+          healthPoints: _healthPoints,
+          powerPoints: _powerPoints,
+          ...rest
+        } = side;
+        return rest;
+      }),
+    })),
+  };
+}
+
+async function runListForTradeCount(tradeCount, options, mode = MODES[0]) {
+  const data = makeData(tradeCount, mode);
   const fakeDb = createFakeDb(data);
   const loaded = loadGlMarketWithFakeDb(fakeDb);
   try {
-    fakeDb.counter.queries = 0;
     const result = await loaded.glMarket.listTradesForPlayer(data.selfId, options);
-    const queries = fakeDb.counter.queries;
-    const reference = await legacyListTrades(fakeDb.exports, data.selfId, options);
-    return { result, reference, queries };
+    const { queries, writes } = fakeDb.counter;
+    const log = [...fakeDb.counter.log];
+    // Deuxième lecture, même processus : les écritures d'une classe « Tenir » ne se rejouent pas.
+    fakeDb.counter.queries = 0;
+    fakeDb.counter.writes = 0;
+    const again = await loaded.glMarket.listTradesForPlayer(data.selfId, options);
+    const queriesSuivantes = fakeDb.counter.queries;
+    const writesSuivantes = fakeDb.counter.writes;
+    // La référence est calculée APRÈS la lecture : elle voit la base telle que la lecture l'a
+    // laissée (un échange « d'avant » en cœurs annulé dans une classe « Tenir »).
+    const legacy = await legacyListTrades(fakeDb.exports, data.selfId, options);
+    const reference = mode.tenir ? sansCoeurs(legacy) : legacy;
+    return {
+      data,
+      result,
+      again,
+      reference,
+      queries,
+      writes,
+      queriesSuivantes,
+      writesSuivantes,
+      log,
+    };
   } finally {
     loaded.restore();
   }
 }
 
-for (const tradeCount of [1, 5, 20]) {
-  test(`listTradesForPlayer — payload strictement identique à l'algorithme historique (${tradeCount} échanges)`, async () => {
-    const { result, reference } = await runListForTradeCount(tradeCount, { page: 1, pageSize: 20 });
-    assert.strictEqual(result.items.length, Math.min(tradeCount, 20));
+for (const mode of MODES) {
+  for (const tradeCount of [1, 5, 20]) {
+    test(`listTradesForPlayer — payload strictement identique à l'algorithme historique (${tradeCount} échanges ; ${mode.label})`, async () => {
+      const { result, again, reference } = await runListForTradeCount(
+        tradeCount,
+        { page: 1, pageSize: 20 },
+        mode,
+      );
+      assert.strictEqual(result.items.length, Math.min(tradeCount, 20));
+      assert.strictEqual(result.total, tradeCount);
+      assert.deepStrictEqual(result, reference);
+      assert.deepStrictEqual(again, reference, 'une deuxième lecture rend le même payload');
+      const sides = result.items.flatMap((item) => item.sides);
+      if (mode.tenir) {
+        // Une seule monnaie : aucun cœur servi, même pour un échange conclu « avant ».
+        for (const side of sides) {
+          assert.ok(!('offerHealth' in side), 'aucune offre en cœurs servie');
+          assert.ok(!('healthPoints' in side), 'aucune bourse de cœurs servie');
+          // Bourses privées : le solde du partenaire (peut-être d'une autre équipe) n'est pas
+          // servi non plus — seule l'offre l'est.
+          assert.ok(!('powerPoints' in side), 'aucun solde servi dans un échange');
+          assert.strictEqual(typeof side.offerPower, 'number');
+        }
+      } else {
+        // Jeu classique : les cœurs restent servis, comme avant.
+        for (const side of sides) {
+          assert.strictEqual(typeof side.offerHealth, 'number');
+          assert.strictEqual(typeof side.healthPoints, 'number');
+        }
+        assert.ok(
+          tradeCount < 2 || sides.some((side) => side.offerHealth > 0),
+          'le jeu de données porte bien des offres en cœurs',
+        );
+      }
+    });
+  }
+
+  test(`listTradesForPlayer — nombre de requêtes SQL constant pour 1, 5 et 20 échanges (${mode.label})`, async () => {
+    const counts = new Map();
+    const suivantes = new Map();
+    for (const tradeCount of [1, 5, 20]) {
+      const run = await runListForTradeCount(tradeCount, { page: 1, pageSize: 20 }, mode);
+      counts.set(tradeCount, run.queries);
+      suivantes.set(tradeCount, run.queriesSuivantes);
+      assert.strictEqual(
+        run.writes,
+        mode.tenir ? 2 : 0,
+        `écritures de la première lecture (${tradeCount} échanges)`,
+      );
+      assert.strictEqual(
+        run.writesSuivantes,
+        0,
+        `aucune écriture à la deuxième lecture (${tradeCount} échanges)`,
+      );
+    }
+    assert.strictEqual(
+      counts.get(5),
+      counts.get(1),
+      `5 échanges (${counts.get(5)} requêtes) doivent coûter autant que 1 (${counts.get(1)})`,
+    );
+    assert.strictEqual(
+      counts.get(20),
+      counts.get(1),
+      `20 échanges (${counts.get(20)} requêtes) doivent coûter autant que 1 (${counts.get(1)})`,
+    );
+    assert.strictEqual(suivantes.get(5), suivantes.get(1), 'deuxième lecture : 5 comme 1');
+    assert.strictEqual(suivantes.get(20), suivantes.get(1), 'deuxième lecture : 20 comme 1');
+    // Compte attendu (détaillé dans `MODES`) : classe du joueur + réglages + total + page d'ids
+    // + échanges + côtés + messages + feuillets + joueurs, plus la partie de la classe quand la
+    // mouture est levée, plus les deux écritures d'une classe « Tenir » (première lecture).
+    assert.ok(
+      counts.get(20) <= mode.queries,
+      `le chargement groupé ne doit pas dépasser ${mode.queries} requêtes (mesuré : ${counts.get(20)})`,
+    );
+    assert.ok(
+      suivantes.get(20) <= mode.queriesSuivantes,
+      `une deuxième lecture ne doit pas dépasser ${mode.queriesSuivantes} requêtes (mesuré : ${suivantes.get(20)})`,
+    );
+  });
+
+  test(`listTradesForPlayer — page vide : payload identique, aucune requête de détail (${mode.label})`, async () => {
+    const { result, reference, queries, log } = await runListForTradeCount(
+      0,
+      { page: 1, pageSize: 20 },
+      mode,
+    );
+    assert.deepStrictEqual(result, reference);
+    assert.deepStrictEqual(result.items, []);
+    assert.ok(
+      queries <= mode.emptyQueries,
+      `une page vide coûte au plus ${mode.emptyQueries} requêtes (mesuré : ${queries})`,
+    );
+    const detail = log.filter((q) =>
+      /gl_market_trade_sides|gl_market_trade_messages|gl_market_trade_side_feuillets|FROM gl_market_trades\s+WHERE id/.test(
+        q,
+      ),
+    );
+    // La purge d'une classe « Tenir » nomme `gl_market_trade_sides` dans un UPDATE : ce n'est
+    // pas une requête de détail.
+    assert.deepStrictEqual(
+      detail.filter((q) => !/^\s*UPDATE /.test(q)),
+      [],
+      'aucune requête de détail sur une page vide',
+    );
+  });
+
+  // G5 : LIMIT/OFFSET sont désormais des paramètres SQL — la pagination doit rester exacte.
+  test(`listTradesForPlayer — pagination identique à la référence (page 2, pageSize 2 ; ${mode.label})`, async () => {
+    const { result, reference } = await runListForTradeCount(5, { page: 2, pageSize: 2 }, mode);
+    assert.strictEqual(result.items.length, 2);
+    assert.strictEqual(result.page, 2);
+    assert.strictEqual(result.total, 5);
     assert.deepStrictEqual(result, reference);
   });
 }
 
-test('listTradesForPlayer — nombre de requêtes SQL constant pour 1, 5 et 20 échanges', async () => {
-  const counts = new Map();
-  for (const tradeCount of [1, 5, 20]) {
-    const { queries } = await runListForTradeCount(tradeCount, { page: 1, pageSize: 20 });
-    counts.set(tradeCount, queries);
-  }
-  assert.strictEqual(
-    counts.get(5),
-    counts.get(1),
-    `5 échanges (${counts.get(5)} requêtes) doivent coûter autant que 1 (${counts.get(1)})`,
+test('listTradesForPlayer — classe « Tenir » : un échange resté en cœurs est annulé avant le décompte, il ne s’affiche plus', async () => {
+  const mode = MODES.find((m) => m.key === 'tenir');
+  const { data, result, log } = await runListForTradeCount(5, { page: 1, pageSize: 20 }, mode);
+  const stale = data.trades.find((t) => t.id === STALE_TRADE_ID);
+  assert.strictEqual(stale.status, 'cancelled', 'l’échange « d’avant » est annulé');
+  assert.ok(!result.items.some((item) => item.id === STALE_TRADE_ID));
+  assert.strictEqual(result.total, 5, 'il ne compte plus dans le total');
+  // La fermeture passe AVANT le décompte : sinon le total compterait un échange disparu.
+  const purge = log.findIndex((q) =>
+    /UPDATE gl_market_trades t SET t\.status = 'cancelled'/.test(q),
   );
-  assert.strictEqual(
-    counts.get(20),
-    counts.get(1),
-    `20 échanges (${counts.get(20)} requêtes) doivent coûter autant que 1 (${counts.get(1)})`,
-  );
-  // Compte attendu : total + page d'ids + échanges + côtés + messages + feuillets + joueurs.
+  const total = log.findIndex((q) => /SELECT COUNT\(\*\) AS c FROM gl_market_trades/.test(q));
+  assert.ok(purge >= 0 && total >= 0 && purge < total, 'purge avant le total');
+  // Les échanges en cours sans cœurs, eux, ne sont pas touchés.
   assert.ok(
-    counts.get(20) <= 7,
-    `le chargement groupé ne doit pas dépasser 7 requêtes (mesuré : ${counts.get(20)})`,
+    data.trades.filter((t) => t.id !== STALE_TRADE_ID).every((t) => t.status !== 'cancelled'),
   );
-});
-
-test('listTradesForPlayer — page vide : payload identique, aucune requête de détail', async () => {
-  const { result, reference, queries } = await runListForTradeCount(0, { page: 1, pageSize: 20 });
-  assert.deepStrictEqual(result, reference);
-  assert.deepStrictEqual(result.items, []);
-  assert.ok(queries <= 2, `une page vide coûte au plus 2 requêtes (mesuré : ${queries})`);
-});
-
-// G5 : LIMIT/OFFSET sont désormais des paramètres SQL — la pagination doit rester exacte.
-test('listTradesForPlayer — pagination identique à la référence (page 2, pageSize 2)', async () => {
-  const { result, reference } = await runListForTradeCount(5, { page: 2, pageSize: 2 });
-  assert.strictEqual(result.items.length, 2);
-  assert.strictEqual(result.page, 2);
-  assert.strictEqual(result.total, 5);
-  assert.deepStrictEqual(result, reference);
 });

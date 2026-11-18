@@ -368,18 +368,13 @@ export function GLTenirEquipeView({
         {mates.map((m) => (
           <li key={m.playerId}>
             {m.pseudo || `${m.firstName} ${m.lastName}`.trim()}
-            {m.healthPoints != null ? (
-              <span className="gl-hint">
-                {' '}
-                ❤️ {m.healthPoints} · 💎 {m.powerPoints}
-              </span>
-            ) : null}
+            {m.powerPoints != null ? <span className="gl-hint"> 💎 {m.powerPoints}</span> : null}
           </li>
         ))}
       </ul>
       {reserve ? (
         <p className="gl-hint" data-testid="gl-tenir-reserve">
-          Réserve de la caravane : ❤️ {reserve.health} · 💎 {reserve.power}
+          Réserve de la caravane : 💎 {reserve.power}
           <span className="fm-visually-hidden">
             {' '}
             (les gains au-dessus du plafond y vont ; elle paie d’abord les sorts de l’équipe)

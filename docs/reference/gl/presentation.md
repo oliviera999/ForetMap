@@ -249,6 +249,11 @@ distinct du glossaire scientifique) et tutoriels.
 
 ## L'économie du jeu : cœurs et gemmes
 
+> **« Tenir à deux » : une seule monnaie.** Dans la mouture « Tenir à deux », chaque élève n'a
+> qu'une bourse, les **gemmes 💎** (3 au départ du chapitre 1, 8 au plus, gardée toute l'année) :
+> aucun écran n'y montre de cœurs. Ce qui suit décrit le jeu classique ; le détail de « Tenir à
+> deux » est dans [L'économie du jeu](economie-marche-sorts.md).
+
 Chaque joueur possède deux jauges persistantes (elles ne se réinitialisent pas entre
 les parties), plafonnées à 99 :
 

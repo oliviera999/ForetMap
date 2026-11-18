@@ -22,7 +22,8 @@ Tu ne modifies **aucun fichier** : tu lis, tu cherches, tu rends un rapport.
   l'élève, aucun nom pour l'oiseau, aucune personnification du Souffle, niveau 6e.
 - **L'erreur ne punit jamais** : aucune perte, aucun compteur d'échecs montré, aucun défi qui
   « échoue ».
-- **Ressources** : aucun cœur ni gemme créé hors des sources admises ; toute écriture de bourse
+- **Ressources** : une seule monnaie, les gemmes — aucune gemme créée hors des sources admises,
+  aucun cœur qui bouge, s'affiche ou se nomme en « Tenir » ; toute écriture de bourse
   passe par `applyBourseDeltaTx`, la réserve par `creditReserveTx` / `debitReserveTx`.
 - **Vie privée** : aucune bourse d'une autre équipe servie à un élève, rien à la projection,
   aucun classement, aucun nom d'élève dans un log, un test, une fixture ou un rapport.

@@ -418,20 +418,21 @@ Champs et comportements étendus en mode tenir : `POST /dice-roll` → 400 si `c
 sinon 409 `TENIR_LANCER` (passer par `/tenir/lancer`) ; `POST /turn/next` → 409 `TENIR_TOUR` ;
 `POST /qcm/answer` : aucun score, bonne réponse de case = +1 case et dé réarmé (`relance_bonus`),
 retour « Pas encore… », 403 `GL_QCM_TOKEN_CHASSE` pour un jeton de chasse ; `POST /vitality/*`
-(geste exceptionnel du prof) : motif ≥ 3 caractères, |delta| ≤ 3, plafonds ; `GET /games/:id` :
+(geste exceptionnel du prof) : en gemmes seulement, motif ≥ 3 caractères, |delta| ≤ 3, plafond ;
+`GET /games/:id` :
 bloc `tenir`, `teams[].titre` (titre majoritaire des membres), événements expurgés.
 
-**Grimoire v2 (`/api/gl/games/:id/spell-casts/*`)** : `POST …/drafts` accepte `ressource`
-(`gemmes|coeurs` pour un sort à ressource `choix`), `partnerTeamId` (pacte), `effectParams`
-(`delta`, `targetTeamId`, `zoneKey`, `beneficiairePlayerId`, `ressource`) et `playerId` (limite
+**Grimoire v2 (`/api/gl/games/:id/spell-casts/*`)** : `POST …/drafts` accepte `partnerTeamId`
+(sort du pacte), `effectParams` (`delta`, `targetTeamId`, `zoneKey`, `beneficiairePlayerId`) et
+`playerId` (limite
 par élève) ; refus 403 `SPELL_PEUPLE`, 400 `SPELL_PARTENAIRE`, 409 `SPELL_FENETRE` (message de la
 fenêtre), 409 `SPELL_LIMITE`, 409 `SPELL_NOT_OFFICIEL`, 409 `SPELL_CLASSE` (Lumière). Le brouillon
-porte `required` (coût par ressource), `suggestedContributions` (pot pré-rempli : parts égales
+porte `required` (coût, en gemmes : `{ gems, hearts: 0 }`), `suggestedContributions` (pot pré-rempli : parts égales
 entre présents non en retrait, reste au plus riche), `fenetre`, `limite`, `execution`,
 `effectParams`. `POST …/launch` rejoue fenêtre et limite, débite, exécute l'effet automatique
 (`effectEvents`, `effect_applied_at` posé par le système) ou met le sort en file du prof
 (`spell_file`) ; `awaiting-effect` ne liste que les sorts `execution = 'prof'` ;
-`POST …/effect-applied { zoneKey }` applique « Nommer » (page pâlie → réparée, +1 cœur par Gnome).
+`POST …/effect-applied { zoneKey }` applique « Nommer » (page pâlie → réparée, sans ressource).
 **Relance** (effet `reroll`, 9 novembre 2026) : brouillon et lancement exigent un jet de l'équipe
 en suspens (sinon 409 `SPELL_FENETRE`, « … tant que la case d'arrivée ne s'est pas appliquée ») ;
 l'effet annule ce jet (événements `jet_annule` puis `move` de retour avec
@@ -441,8 +442,8 @@ d'abord les arrivées en suspens de la partie.
 
 **Marché v2 (`/api/gl/market`)** : `GET/POST/DELETE /annonces` (`cherche|offre|propose`),
 `POST /annonces/:id/repondre` (ouvre un échange pré-rempli), `POST /dons` (immédiat, plafond du
-receveur, surplus au donneur), `GET /parures`, `POST /parures/:code/acheter` (la ressource débitée
-est celle du catalogue, `ressource` du corps ne sert qu'aux parures `choix`) ; 403
+receveur, surplus au donneur), `GET /parures`, `POST /parures/:code/acheter` (en gemmes ; la
+parure achetée reste à l'élève toute l'année — voir « Ensemble unifié, PR 4 ») ; 403
 `MARCHE_RETRAIT` / `MARCHE_FERME` (hors fenêtre) / `MARCHE_PHASE` (action hors veillée en `tableau`,
 ou `marche_pendant_tour` faux — la lecture reste libre).
 
@@ -464,7 +465,7 @@ servis à un élève ni à une projection ; une mauvaise réponse ne retire rien
 | GET     | `/api/gl/games/:id/chasse`                      | —                                                    | Auth GL **ou projection**. Carnet de la classe : `pages[]` (`zoneKey`, `ordre`, `indice`, `etat` `endormie\|revelee\|trouvee\|tenue\|palie\|reparee`, `titre` et `feuilletCode` une fois trouvée, `trouveePar`, `tenuePar`, `palissementPct` pour l'équipe du lecteur, `contour` = centre public dès que la page n'est plus endormie ; `points` + `rangCase` pour le prof seul), `empreintes[]` (x, y, verdict, équipe, tour), `voilePosition`, `kraa` (position et état de l'oiseau témoin), `carnetCompletAt`, `viewerTeamId`, `fouilles` (`quota`, `utilisees`, `restantes`, `sousVoile` — ensemble unifié M2 : `tenir_fouilles_par_tour` (2) pour les deux peuples, `tenir_fouilles_sous_voile` (1) sous le voile sauf Abri ou Cordée, + Grand Regard ; plus de fouille de réparation) pour un joueur ; chaque page porte aussi `reveleePar` (équipe qui l'a révélée : fouille licorne « pas encore » ou Lanterne). |
 | GET     | `/api/gl/games/:id/chasse/carnet`               | —                                                    | Idem, pages seules (`pages`, `total`, `tenues`, `trouvees`, `carnetCompletAt`).                                                                                                                                                                                                                                                                                                                                       |
 | POST    | `/api/gl/games/:id/chasse/fouiller`             | `{ x, y, teamId? }` (0–1, origine haut-gauche)       | Joueur (son équipe) ou MJ (`teamId`). Geste `fouiller` rejoué côté serveur (phase `jeu`, surface). 201 `{ verdict, zoneKey?, question?, kraa, fouilles }` : `zone` + question (fixe puis thème de secours), `froid\|tiede\|chaud` à côté (empreinte publique), `deja_trouvee` / `palie` (réservée aux Gnomes : `message` « Cette zone a pâli : les Gnomes savent la réparer. ») sans consommer de fouille. Une équipe gnome répare une zone pâlie avec une fouille ordinaire (M2). 409 `FOUILLES_EPUISEES` (`fouilles`, `sousVoile`). `POST …/chasse/repondre` : une mauvaise réponse ne révèle la zone que pour une équipe licorne (`revelee_par_team_id`, `revelee_round`) ; une équipe gnome « pas encore » ne révèle rien.                           |
-| POST    | `/api/gl/games/:id/chasse/repondre`             | `{ presentationToken, questionCode, choiceId, teamId? }` | Réponse à la question de chasse du jeton (`zoneKey`). Juste → `trouvee` (ou `reparee` : +1 cœur par Gnome de l'équipe), feuillet découvert, carnet personnel des présents, `page_trouvee` ; sinon → `revelee`, `feedback` « Pas encore… ». 400 jeton invalide, 403 `JETON_AUTRE_EQUIPE`. **Un essai par présentation** : rejouer le même `presentationToken` (autre `choiceId` compris) → 409 `JETON_DEJA_UTILISE`, sans trouver la page ni créditer. |
+| POST    | `/api/gl/games/:id/chasse/repondre`             | `{ presentationToken, questionCode, choiceId, teamId? }` | Réponse à la question de chasse du jeton (`zoneKey`). Juste → `trouvee` (ou `reparee`, sans ressource), feuillet découvert, carnet personnel des présents, `page_trouvee` ; sinon → `revelee`, `feedback` « Pas encore… ». 400 jeton invalide, 403 `JETON_AUTRE_EQUIPE`. **Un essai par présentation** : rejouer le même `presentationToken` (autre `choiceId` compris) → 409 `JETON_DEJA_UTILISE`, sans trouver la page ni créditer. |
 | POST    | `/api/gl/games/:id/chasse/pages/:zoneKey/ouvrir` | `{ teamId? }`                                        | Lecture d'une page trouvée (409 `PAGE_PAS_TROUVEE`) : `feuillet`, `palissementPct`, `peutTenir`, `question` de lecture si l'équipe est de l'autre peuple que la découvreuse et la page n'est pas tenue, `via` `tour\|veillee`. En veillée, 409 `VEILLEE_LIMITE` au-delà de `tenir_pages_par_semaine` (4, compteur unique : pages tenues en veillée + pages gagnées par un défi de la Trame). Escalier du chapitre 1, séance 1 : la page se lit, `peutTenir: false`. Permissions rejouées : 403 `TENIR_LIRE_SURFACE` (élève en `tableau`), `TENIR_RETRAIT`, 409 partie non en cours. |
 | POST    | `/api/gl/games/:id/chasse/pages/:zoneKey/tenir`  | `{ presentationToken, questionCode, choiceId, teamId? }` | Réponse à la question de lecture (jeton `lecture`). Juste → `tenue`, +1 ressource du peuple à chaque membre des deux équipes (plafond), `page_tenue` (bourses privées), carnet complet le cas échéant (+1 à tous, voile −`recul_carnet_complet`, `carnet_complet`) ; sinon « Pas encore » et nouvelle présentation. 409 `MEME_PEUPLE` ; 409 `ESCALIER_FERME` tant que l'escalier du chapitre 1 n'a pas ouvert « tenir » (séance 2), pour le prof comme pour l'équipe, sans consommer le jeton ; 400 `JETON_AUTRE_PAGE` si le jeton porte une autre page (vérifié avant toute écriture). **Un essai par présentation** : rejouer le jeton déjà consommé → 409 `JETON_DEJA_UTILISE` (la nouvelle carte jointe au « Pas encore » reste jouable). |
 
@@ -882,6 +883,78 @@ Catalogues nouveaux de `GET/POST /api/gl/admin/tenir/catalogues[/sync]` : `trame
 `gameplay.tenir_escalier` (booléen, défaut `true`). Retirés : `tenir_pages_veillee_par_semaine`,
 `tenir_defis_pages_par_semaine` (migration 368 : la somme des deux valeurs est reprise).
 
+#### Ensemble unifié, PR 4 — une seule monnaie, les gemmes (18 novembre 2026)
+
+Décisions M1 et M19 (`docs/GL_TENIR_A_DEUX_REGLES.md` § 8 à § 10). En « Tenir à deux », tout
+coût et tout gain passe par les gemmes (`gl_players.power_points`). La colonne `health_points`
+reste en base (jeu classique, historique) ; le moteur « Tenir » ne la lit plus et aucune réponse
+d'une partie « Tenir » ne la sert.
+
+- `GET /api/gl/gameplay-settings` : nouveau champ `settings.monnaieUnique` (booléen) — vrai pour
+  un élève ou une tablette dont la classe joue « Tenir » (réglage `gameplay.tenir_enabled` et
+  partie la plus récente de la classe avec un profil), vrai pour le prof dès que le mode est
+  actif. Quand il est vrai, `settings.marketHeartsEnabled` vaut `false` : l'écran ne montre ni ne
+  nomme aucun cœur.
+- `GET /api/gl/games/:id` (partie « Tenir ») : `roster[].healthPoints` et
+  `vitality.byPlayerId[*].health` ne sont plus servis, à personne (prof compris) ;
+  `powerPoints` / `power` gardent leur filtre (son équipe pour un élève, tout pour le prof, rien
+  en projection). `tenir.reserves[]` sert `{ teamId, power }`. `tenir.settings` ne porte plus
+  `max_health_points` ni `market_hearts_enabled`. `GET /api/gl/games/:id/roster` : plus de
+  `healthPoints` pour une partie « Tenir ».
+- `POST /api/gl/games` (mode « Tenir », plateau 1) : à la **première** partie du plateau 1 de la
+  classe dans l'année scolaire (bascule au 1er août), la bourse de chaque élève actif est posée à
+  `gameplay.default_power_points` (3) — cause `depart` au grand livre ; les cœurs ne sont pas
+  touchés. Une autre partie du plateau 1 créée ensuite (essai, copie, re-création) ne remet rien
+  à zéro ; rien non plus aux plateaux 2 à 4 : la bourse se garde toute l'année.
+- `POST /api/gl/games/:id/vitality/player|team` (partie « Tenir ») : `healthDelta` non nul → 400
+  (« la bourse ne compte que des gemmes ») ; `powerDelta` borné à ±3, motif obligatoire.
+- Sorts (`/api/gl/games/:id/spell-casts/*`) : `required` vaut toujours `{ gems: cout, hearts: 0 }`
+  — Sentier, Abri et Relais se paient en gemmes, la Cordée 4 gemmes par l'équipe qui lance. Le
+  champ `ressource` de `POST …/drafts` est ignoré, `draft.ressourceChoisie` n'est plus servi,
+  `suggestedContributions[].hearts` vaut 0, le pot n'a qu'une équipe (`equipesDuPot`). Une part
+  en cœurs est refusée (400). Codes retirés : `SPELL_PARAM_RESSOURCE`, `CONTRIBUTION_PACTE_PEUPLE`.
+  `GET …/tenir/sorts` : chaque sort porte `ressource: 'gemmes'` ; nouveau champ
+  **`butDeLAnnee`** `{ code: 'SL018', nom, emoji, cout: 8, effetCourt, ouverte }` — la
+  Consécration, à afficher grisée (ce n'est pas un bouton), `null` quand elle figure déjà parmi
+  les sorts lançables. Aucun solde dans cette carte.
+- Chasse : réparer une page pâlie ne donne plus rien (`page_reparee` sans `vitality`) ; de même
+  `POST …/effect-applied { zoneKey }` (« Nommer », sort sorti du grimoire).
+- Marché (`/api/gl/market`), classe qui joue « Tenir » : gemmes et pages seulement. Une annonce,
+  un don ou une offre en cœurs → 409 (`HEARTS_NOT_TRADABLE`), quel que soit
+  `gameplay.market_hearts_enabled` ; `/classmates` et les échanges ne servent plus
+  `healthPoints` / `offerHealth`. **Bourses privées** : `/classmates` ne sert `powerPoints` que
+  pour les coéquipiers de la partie en cours — rien quand la partie est en pause, close ou pas
+  encore lancée — et un échange ne sert plus le solde (`powerPoints`) d'aucun côté, seulement les
+  offres. Aucun message d'erreur du Marché ne nomme les cœurs. Une annonce ouverte ou un échange en cours qui parlaient encore
+  de cœurs se ferment seuls (annonce `expiree`, échange `cancelled`). Une classe sans partie
+  « Tenir » garde le comportement du jeu classique.
+- Parures : `POST /api/gl/market/parures/:code/acheter` — en gemmes seulement (`ressource` autre
+  que `gemmes` → 400), prix de 2 à 8. La parure entre dans la garde-robe de l'élève
+  (`gl_player_parures`) et se pose aussitôt sur la mascotte de son équipe ; 409 si elle est déjà
+  acquise (« Tu as déjà cette parure : elle est dans ta garde-robe »). `GET /api/gl/market/parures`
+  rend en plus `catalogue[].rare`, `catalogue[].acquise`, `gardeRobe: [{ code, nom, description,
+  rare, type, typeEffectif, asset, pelage, pastille, acquiseLe, posee }]` et `peutPoser`. À la
+  clôture d'une partie, plus rien ne revient au comptoir.
+- Garde-robe, au Seuil (`/api/gl/voyageur`, compte d'élève) : `GET /garde-robe` →
+  `{ parures, peutPoser, teamId, gameId }` ; `POST /garde-robe/:code/poser` pose une de ses
+  parures sur la mascotte de son équipe du moment (gratuit, rejouable sans effet : `deja`) ;
+  `POST /garde-robe/:code/ranger` la range (elle reste à lui). 404 pour une parure qu'il n'a pas,
+  409 sans équipe dans une partie en cours, 409 `PARURES_DISABLED` si les parures sont coupées,
+  403 `GARDE_ROBE_SPECTATEUR` pour un élève absent ou en retrait pendant un tour ouvert.
+  L'évènement `parure` du journal n'est écrit qu'à la première pose d'une parure par son
+  propriétaire dans la partie (ranger puis reposer n'écrit rien). `GET /api/gl/voyageur/me` porte `gardeRobe`
+  (`{ parures, peutPoser }`, `null` si elle est vide) et `butDeLAnnee`.
+- Catalogues : `sorts.json` — `ressource` ∈ `gemmes` | `cartes` (les valeurs `coeurs`, `peuple`,
+  `choix`, `pacte` sont refusées) ; `parures.json` — `prix` de 2 à 8, `rare` (booléen, 6 gemmes
+  ou plus, trois au plus), plus de champ `ressource` ; `reglages-defaut.json` — plus de
+  `max_health_points` (un fichier qui le porterait encore : ignoré et signalé).
+- Migration 373 : cause `depart` du grand livre ; sorts « Tenir » en gemmes ;
+  `gl_tenir_parures.rare`, `gl_player_parures` (reprise des parures déjà achetées) ; conversion
+  des bourses des parties « Tenir » non closes — gemmes = min(8, gemmes + cœurs), jamais à la
+  baisse, journal `gl_tenir_conversion_monnaie` (identifiants seulement) et ligne `migration` au
+  grand livre ; réserves de la caravane en gemmes ; repère `gl_tenir_monnaie_unique` pour
+  l'invariant `COEURS_HORS_JEU` (`lib/glTenirInvariants.js`).
+
 #### Défi de case (lot 2)
 
 Les huit cases « Défi d'équipe » (repères marqués `event_config_json.tenir.defi = true`)
@@ -1276,11 +1349,12 @@ sur la carte du royaume). Couleur invalide → `400`.
 
 **Cœurs non échangeables (défaut)** : le réglage `gameplay.market_hearts_enabled` vaut `false`
 (migration `174_gl_market_hearts_setting.sql`) — seules les **gemmes** circulent. Toute offre en
-cœurs est refusée en `409` (`Les cœurs ne s’échangent pas : seules les gemmes circulent sur le
-Marché`), au dépôt de l’offre **et** à la finalisation (une offre déposée avant une bascule du
+cœurs est refusée en `409` (`Le Marché n’échange que des gemmes et des pages`), au dépôt de l’offre **et** à la finalisation (une offre déposée avant une bascule du
 réglage ne se finalise pas : l’échange est refusé, jamais amputé en silence). Motif : dès lors
 qu’un cœur peut être retiré pour un écart de conduite, le laisser s’échanger permettrait de
-racheter — ou de se faire offrir — la sanction.
+racheter — ou de se faire offrir — la sanction. **« Tenir à deux »** : dans une classe qui joue
+cette mouture, les cœurs ne circulent jamais, quel que soit ce réglage (une seule monnaie, les
+gemmes — ensemble unifié, PR 4).
 
 **Plafond de jeu et Marché** : si `maxHealthPoints` / `maxPowerPoints` est > 0, un échange dont
 le gain net ferait dépasser le plafond chez l’un des deux joueurs est refusé en `409`

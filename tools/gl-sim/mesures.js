@@ -103,6 +103,66 @@ function mesurerEnsembleUnifie({
   };
 }
 
+/**
+ * Mesures de la monnaie unique (ensemble unifié, PR 4, § 9.6 du prompt) : bourses de gemmes en
+ * fin de chapitre, sorts payés, et ce que les équipes avaient en poche à l'ouverture de chaque
+ * séance — pour dire si les bourses sont trop maigres pour lancer un sort. Le banc mesure : il
+ * ne règle rien (le levier, le prix des sorts, est une donnée).
+ *
+ * @param {object} p
+ * @param {Array<number>} p.gemmes bourse de gemmes de chaque élève en fin de chapitre
+ * @param {number} p.plafond plafond de la bourse (réglage `max_power_points`)
+ * @param {Array<object>} p.ledger lignes du grand livre de la partie
+ * @param {Array<Array<{ teamId, type, pot }>>} p.potsParSeance pot de chaque équipe (bourses
+ *   des membres + réserve) à l'ouverture de chaque séance
+ * @param {object} p.compteurs compteurs du chapitre (`sorts.lances`, `sorts.refuses`)
+ */
+function mesurerUneMonnaie({ gemmes, plafond, ledger, potsParSeance = [], compteurs }) {
+  const n = gemmes.length || 1;
+  const tri = [...gemmes].sort((a, b) => a - b);
+  const mediane = tri.length
+    ? tri.length % 2
+      ? tri[(tri.length - 1) / 2]
+      : (tri[tri.length / 2 - 1] + tri[tri.length / 2]) / 2
+    : null;
+  let coeursBouges = 0;
+  let payeEnSorts = 0;
+  let payeEnParures = 0;
+  for (const r of ledger) {
+    if (Number(r.delta_health) !== 0) coeursBouges += 1;
+    const dg = Number(r.delta_power) || 0;
+    if (String(r.cause) === 'sort_pot' && dg < 0) payeEnSorts += -dg;
+    if (String(r.cause) === 'parure' && dg < 0) payeEnParures += -dg;
+  }
+  const pots = potsParSeance.flat();
+  const part = (seuil) =>
+    pots.length ? pourcent(pots.filter((x) => x.pot < seuil).length, pots.length) : null;
+  const premiere = potsParSeance[0] || [];
+  return {
+    gemmesMoyenne: arrondi(gemmes.reduce((a, b) => a + b, 0) / n, 2),
+    gemmesMediane: mediane,
+    auPlafondPct: pourcent(gemmes.filter((g) => g >= plafond).length, n),
+    aZeroPct: pourcent(gemmes.filter((g) => g === 0).length, n),
+    // Aucun cœur ne doit bouger : 0 attendu (l'invariant COEURS_HORS_JEU le garde aussi).
+    mouvementsDeCoeurs: coeursBouges,
+    gemmesPayeesEnSortsParEleve: arrondi(payeEnSorts / n, 2),
+    gemmesPayeesEnParuresParEleve: arrondi(payeEnParures / n, 2),
+    sortsLances: compteurs?.sorts?.lances ?? null,
+    sortsRefuses: compteurs?.sorts?.refuses ?? null,
+    // Pot d'une équipe à l'ouverture d'une séance : moyenne, et part des couples équipe ×
+    // séance qui ne peuvent pas payer un sort à 2 gemmes (Lanterne, Sentier, Relance…) ni
+    // même à 1 (Progression, Farce).
+    potMoyenParEquipe: pots.length
+      ? arrondi(pots.reduce((a, x) => a + x.pot, 0) / pots.length, 2)
+      : null,
+    potPremiereSeance: premiere.length
+      ? arrondi(premiere.reduce((a, x) => a + x.pot, 0) / premiere.length, 2)
+      : null,
+    equipesSeancesSousDeuxPct: part(2),
+    equipesSeancesAZeroPct: part(1),
+  };
+}
+
 async function etatsPages(db, gameId) {
   const rows = await db.queryAll(
     `SELECT z.zone_key, z.rang_case, p.etat, p.trouvee_par_team_id, p.tenue_par_team_id, p.reparee_at, p.palissement_json
@@ -226,18 +286,13 @@ async function mesurerChapitre(ctx, deroule) {
     [gameId],
   );
 
-  // Bourses et grand livre.
+  // Bourses et grand livre. Ensemble unifié (M1) : une seule monnaie, les gemmes.
   const joueurs = [...ctx.joueurs.values()];
   const soldes = await db.queryAll(
-    `SELECT p.id, p.health_points, p.power_points FROM gl_players p WHERE p.id IN (${joueurs.map(() => '?').join(', ')})`,
+    `SELECT p.id, p.power_points FROM gl_players p WHERE p.id IN (${joueurs.map(() => '?').join(', ')})`,
     joueurs.map((j) => j.id),
   );
-  const soldeDe = new Map(
-    soldes.map((r) => [
-      Number(r.id),
-      { coeurs: Number(r.health_points) || 0, gemmes: Number(r.power_points) || 0 },
-    ]),
-  );
+  const soldeDe = new Map(soldes.map((r) => [Number(r.id), Number(r.power_points) || 0]));
   const ledger = await db.queryAll(
     'SELECT player_id, delta_health, delta_power, cause FROM gl_resource_ledger WHERE game_id = ?',
     [gameId],
@@ -260,19 +315,10 @@ async function mesurerChapitre(ctx, deroule) {
         gainsHorsMarche.set(pid, gainsHorsMarche.get(pid) + Math.max(0, dh) + Math.max(0, dg));
     }
   }
-  const totaux = joueurs.map((j) => {
-    const s = soldeDe.get(j.id) || { coeurs: 0, gemmes: 0 };
-    return s.coeurs + s.gemmes;
-  });
-  const zero = joueurs.filter((j) => {
-    const s = soldeDe.get(j.id);
-    return s && s.coeurs === 0 && s.gemmes === 0;
-  }).length;
-  const plafond = Number(ctx.resolved.max_health_points) || 8;
-  const double = joueurs.filter((j) => {
-    const s = soldeDe.get(j.id);
-    return s && s.coeurs >= plafond && s.gemmes >= plafond;
-  }).length;
+  const totaux = joueurs.map((j) => soldeDe.get(j.id) || 0);
+  const zero = totaux.filter((g) => g === 0).length;
+  const plafond = Number(ctx.resolved.max_power_points) || 8;
+  const auPlafond = totaux.filter((g) => g >= plafond).length;
   const seuil = evts.find((e) => e.type === 'seuil_clos');
   // Honneurs : lus dans la table (le payload `seuil_clos.honneurs` reste nul, cf. rapport).
   let honneurs = seuil?.payload?.honneurs || null;
@@ -299,6 +345,13 @@ async function mesurerChapitre(ctx, deroule) {
     compteurs: ctx.compteurs,
     rangs: deroule.rangs || [],
     rangsParSeance: deroule.rangsParSeance || [],
+  });
+  const uneMonnaie = mesurerUneMonnaie({
+    gemmes: totaux,
+    plafond,
+    ledger,
+    potsParSeance: deroule.potsParSeance || [],
+    compteurs: ctx.compteurs,
   });
 
   return {
@@ -332,24 +385,21 @@ async function mesurerChapitre(ctx, deroule) {
     partGnomesPct: trouvees.length ? pourcent(parGnomes, trouvees.length) : null,
     pagesTrouveesEvts: trouvees.length,
     elevesZeroPct: pourcent(zero, joueurs.length || 1),
-    doublePlafondPct: pourcent(double, joueurs.length || 1),
+    // « Au plafond » : la bourse de gemmes pleine. La clé `doublePlafondPct` (deux bourses
+    // pleines, du temps des deux monnaies) garde son nom pour les rapports déjà produits.
+    auPlafondPct: pourcent(auPlafond, joueurs.length || 1),
+    doublePlafondPct: pourcent(auPlafond, joueurs.length || 1),
     gini: gini(totaux),
     matthieu: spearman(
       joueurs.map((j) => j.persona.justesse),
       joueurs.map((j) => gainsHorsMarche.get(j.id) || 0),
     ),
     boursesMoyenne: {
-      coeurs: arrondi(
-        joueurs.reduce((a, j) => a + (soldeDe.get(j.id)?.coeurs || 0), 0) / (joueurs.length || 1),
-        2,
-      ),
-      gemmes: arrondi(
-        joueurs.reduce((a, j) => a + (soldeDe.get(j.id)?.gemmes || 0), 0) / (joueurs.length || 1),
-        2,
-      ),
+      gemmes: arrondi(totaux.reduce((a, g) => a + g, 0) / (joueurs.length || 1), 2),
     },
     ledgerParCause: parCause,
     ensembleUnifie,
+    uneMonnaie,
     peripeties: evts.filter((e) => e.type === 'peripetie').length,
     chapardeur: evts.some((e) => e.type === 'chapardeur'),
     sortsLances: evts.filter((e) => e.type === 'spell_cast').length,
@@ -366,25 +416,27 @@ async function mesurerChapitre(ctx, deroule) {
   };
 }
 
-/** Mesures de fin d'année (après le dernier chapitre) : double plafond et bourses finales. */
+/**
+ * Mesures de fin d'année (après le dernier chapitre) : élèves au plafond de gemmes, à zéro,
+ * bourse moyenne. Une seule monnaie (M1) : `doublePlafondPct` vaut `auPlafondPct` (clé gardée).
+ */
 async function mesurerAnnee(ctx) {
   const joueurs = [...ctx.joueurs.values()];
   if (!joueurs.length) return null;
   const soldes = await ctx.db.queryAll(
-    `SELECT id, health_points, power_points FROM gl_players WHERE id IN (${joueurs.map(() => '?').join(', ')})`,
+    `SELECT id, power_points FROM gl_players WHERE id IN (${joueurs.map(() => '?').join(', ')})`,
     joueurs.map((j) => j.id),
   );
-  const plafond = Number(ctx.resolved?.max_health_points) || 8;
-  const double = soldes.filter(
-    (r) => Number(r.health_points) >= plafond && Number(r.power_points) >= plafond,
-  ).length;
-  const zero = soldes.filter(
-    (r) => Number(r.health_points) === 0 && Number(r.power_points) === 0,
-  ).length;
+  const plafond = Number(ctx.resolved?.max_power_points) || 8;
+  const gemmes = soldes.map((r) => Number(r.power_points) || 0);
+  const auPlafond = gemmes.filter((g) => g >= plafond).length;
+  const zero = gemmes.filter((g) => g === 0).length;
   return {
-    doublePlafondPct: pourcent(double, soldes.length),
+    auPlafondPct: pourcent(auPlafond, soldes.length),
+    doublePlafondPct: pourcent(auPlafond, soldes.length),
     elevesZeroPct: pourcent(zero, soldes.length),
-    gini: gini(soldes.map((r) => Number(r.health_points) + Number(r.power_points))),
+    gemmesMoyenne: arrondi(gemmes.reduce((a, g) => a + g, 0) / (gemmes.length || 1), 2),
+    gini: gini(gemmes),
   };
 }
 
@@ -395,4 +447,5 @@ module.exports = {
   mesurerBadges,
   mesurerChapitre,
   mesurerAnnee,
+  mesurerUneMonnaie,
 };

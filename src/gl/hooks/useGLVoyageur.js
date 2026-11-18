@@ -5,7 +5,7 @@ import { apiGL } from '../services/apiGL.js';
  * Données du Seuil (`GET /api/gl/voyageur/me`) : niveau à deux regards, expédition en cours,
  * grimoire personnel, Lettre et Mentorat de l'élève. `castSpell` / `loadTargets` pilotent les
  * sortilèges du voyageur ; `ecrireLettre` / `retenterMentorat` rejouent, sans repayer, les deux
- * sorts payés pendant la partie.
+ * sorts payés pendant la partie ; `gesteParure` pose ou range une parure de la garde-robe (M19).
  */
 export function useGLVoyageur({ enabled = true } = {}) {
   const [data, setData] = useState(null);
@@ -83,11 +83,26 @@ export function useGLVoyageur({ enabled = true } = {}) {
     [reload],
   );
 
+  /** Garde-robe (M19) : poser une de ses parures sur la mascotte de son équipe, ou la ranger. */
+  const gesteParure = useCallback(
+    async (code, action) => {
+      const result = await apiGL(
+        `/api/gl/voyageur/garde-robe/${encodeURIComponent(code)}/${action === 'ranger' ? 'ranger' : 'poser'}`,
+        'POST',
+        {},
+      );
+      await reload();
+      return result;
+    },
+    [reload],
+  );
+
   return {
     data,
     loading,
     error,
     errorStatus,
+    gesteParure,
     reload,
     loadTargets,
     castSpell,

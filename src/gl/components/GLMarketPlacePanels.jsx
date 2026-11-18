@@ -75,8 +75,7 @@ const EMPTY_SIDE = { gemmes: 0, coeurs: 0, feuillets: [] };
  * de l'onglet Échanges (`role="note"`, « Règles du marché ») : un seul des deux est monté à
  * la fois.
  */
-export function GLMarketPlaceRegles({ heartsTradable = false, paruresEnabled = true }) {
-  const ressource = heartsTradable ? 'tes gemmes ou tes cœurs' : 'tes gemmes';
+export function GLMarketPlaceRegles({ gemmesSeules = false, paruresEnabled = true }) {
   return (
     <aside
       className="gl-market-disclaimer gl-market-disclaimer--place"
@@ -102,8 +101,13 @@ export function GLMarketPlaceRegles({ heartsTradable = false, paruresEnabled = t
           </li>
           {paruresEnabled ? (
             <li>
-              Au <strong>Comptoir</strong>, les <strong>parures</strong> s’achètent avec {ressource}{' '}
-              et décorent ton équipe.
+              Au <strong>Comptoir</strong>, les <strong>parures</strong> s’achètent avec tes gemmes
+              : une parure achetée est <strong>à toi toute l’année</strong>.
+            </li>
+          ) : gemmesSeules ? (
+            <li>
+              Tes <strong>gemmes</strong> restent à toi d’un chapitre à l’autre. Un don ne revient
+              pas.
             </li>
           ) : (
             <li>
@@ -121,6 +125,7 @@ export function GLMarketPlacePanel({
   place,
   playerId,
   heartsTradable,
+  gemmesSeules = false,
   ownFeuillets,
   onTradeOpened,
   paruresEnabled = true,
@@ -144,7 +149,7 @@ export function GLMarketPlacePanel({
 
   return (
     <div className="gl-market-place" data-testid="gl-market-place">
-      <GLMarketPlaceRegles heartsTradable={heartsTradable} paruresEnabled={paruresEnabled} />
+      <GLMarketPlaceRegles gemmesSeules={gemmesSeules} paruresEnabled={paruresEnabled} />
       <form className="gl-market-annonce-form gl-form" onSubmit={submit}>
         <h3>Publier une annonce</h3>
         <label>
@@ -294,12 +299,18 @@ export function GLMarketDonButton({ mate, place, heartsTradable, ownFeuillets })
   );
 }
 
-export function GLMarketComptoirPanel({ place, heartsTradable }) {
+/**
+ * Comptoir des parures (ensemble unifié, M19) : payée en gemmes, une parure achetée est à
+ * l'élève toute l'année. Elle se pose aussitôt sur la mascotte de son équipe ; il la retrouve
+ * dans sa garde-robe, au Seuil. Elle ne s'échange pas.
+ */
+export function GLMarketComptoirPanel({ place }) {
   return (
     <div className="gl-market-comptoir" data-testid="gl-market-comptoir">
       <h3>Comptoir des parures</h3>
       <p className="gl-hint">
-        Une parure est portée par la mascotte de ton équipe jusqu’au camp. Aucun effet de jeu.
+        Une parure achetée est à toi toute l’année : elle se pose sur la mascotte de ton équipe, et
+        tu la retrouves dans ta garde-robe, au Seuil. Aucun effet de jeu.
       </p>
       {place.parures.portees.length ? (
         <p className="gl-market-parures-portees">
@@ -310,29 +321,27 @@ export function GLMarketComptoirPanel({ place, heartsTradable }) {
         {place.parures.catalogue.map((p) => (
           <li key={p.code} className={p.disponible ? '' : 'is-unavailable'}>
             <div>
-              <strong>{p.nom}</strong> <span className="gl-hint">— {p.prix} au choix</span>
+              <strong>{p.nom}</strong>{' '}
+              <span className="gl-hint">
+                — {p.prix} {p.prix > 1 ? 'gemmes' : 'gemme'}
+                {p.rare ? ' · rare' : ''}
+              </span>
               <p>{p.description}</p>
             </div>
-            {p.disponible ? (
+            {p.acquise ? (
+              <span className="gl-hint" data-testid={`gl-parure-acquise-${p.code}`}>
+                dans ta garde-robe
+              </span>
+            ) : p.disponible ? (
               <span className="gl-inline-actions">
                 <GLButton
                   type="button"
                   variant="secondary"
                   disabled={place.busy}
-                  onClick={() => place.acheterParure(p.code, 'gemmes')}
+                  onClick={() => place.acheterParure(p.code)}
                 >
                   💎 {p.prix}
                 </GLButton>
-                {heartsTradable ? (
-                  <GLButton
-                    type="button"
-                    variant="secondary"
-                    disabled={place.busy}
-                    onClick={() => place.acheterParure(p.code, 'coeurs')}
-                  >
-                    ❤️ {p.prix}
-                  </GLButton>
-                ) : null}
               </span>
             ) : (
               <span className="gl-hint">bientôt au comptoir</span>

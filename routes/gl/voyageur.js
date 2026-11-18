@@ -8,6 +8,9 @@
  * POST /api/gl/voyageur/spells/:code/cast        → lance le sortilège sur `{ target }`
  * PUT  /api/gl/voyageur/lettre/:id               → écrit ou réécrit sa Lettre (sans repayer)
  * POST /api/gl/voyageur/mentorat/:id/retenter    → retente son Mentorat (sans repayer)
+ * GET  /api/gl/voyageur/garde-robe               → ses parures, gardées toute l'année (M19)
+ * POST /api/gl/voyageur/garde-robe/:code/poser   → pose une parure sur la mascotte de son équipe
+ * POST /api/gl/voyageur/garde-robe/:code/ranger  → la range (elle reste à lui)
  *
  * Réservé aux joueurs (`gl_player`), module `modules.voyageur_enabled`. Aucun geste du MJ :
  * chaque effet est borné et appliqué par le serveur (`lib/glVoyageur.js`).
@@ -23,6 +26,7 @@ const { ecrireLettreTx, retenterMentoratTx } = require('../../lib/glLettreMentor
 const { resolveGlPlayerActiveMembership } = require('../../lib/glPlayerMembership');
 const { z, validate } = require('../../lib/validate');
 const asyncHandler = require('../../lib/asyncHandler');
+const marketPlace = require('../../lib/glMarketPlace');
 
 const router = express.Router();
 const db = { queryAll, queryOne };
@@ -36,6 +40,7 @@ const castBodySchema = z.object({
   y: z.number().optional(),
 });
 const idParamsSchema = z.object({ id: z.coerce.number().int().positive() });
+const parureParamsSchema = z.object({ code: z.string().trim().min(1).max(48) });
 const lettreBodySchema = z.object({
   amorce: z.string().trim().max(32).optional().nullable(),
   titre: z.string().trim().max(160),
@@ -160,6 +165,63 @@ router.post(
       });
     } catch (err) {
       return sendVoyageurError(err, res);
+    }
+  }),
+);
+
+// ---------------------------------------------------------------------
+// Garde-robe (ensemble unifié, M19) : une parure achetée reste à l'élève toute l'année ; il la
+// pose sur la mascotte de son équipe du moment, ou la range. Elle ne s'échange pas.
+// ---------------------------------------------------------------------
+
+function sendGardeRobeError(err, res) {
+  const mapped = marketPlace.resolveMarketPlaceError(err);
+  if (mapped) return res.status(mapped.status).json({ error: mapped.error, code: err.message });
+  throw err;
+}
+
+router.get(
+  '/garde-robe',
+  asyncHandler(async (req, res) => {
+    try {
+      const { gardeRobe, peutPoser, teamId, gameId } = await marketPlace.listParures(
+        Number(req.glAuth.userId),
+      );
+      return res.json({ parures: gardeRobe, peutPoser, teamId, gameId });
+    } catch (err) {
+      return sendGardeRobeError(err, res);
+    }
+  }),
+);
+
+router.post(
+  '/garde-robe/:code/poser',
+  validate({ params: parureParamsSchema }),
+  asyncHandler(async (req, res) => {
+    try {
+      const out = await marketPlace.poserParure(
+        Number(req.glAuth.userId),
+        req.validatedParams.code,
+      );
+      return res.json({ success: true, ...out });
+    } catch (err) {
+      return sendGardeRobeError(err, res);
+    }
+  }),
+);
+
+router.post(
+  '/garde-robe/:code/ranger',
+  validate({ params: parureParamsSchema }),
+  asyncHandler(async (req, res) => {
+    try {
+      const out = await marketPlace.rangerParure(
+        Number(req.glAuth.userId),
+        req.validatedParams.code,
+      );
+      return res.json({ success: true, ...out });
+    } catch (err) {
+      return sendGardeRobeError(err, res);
     }
   }),
 );

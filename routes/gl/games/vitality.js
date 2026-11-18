@@ -16,11 +16,20 @@ const { normalizeOptionalString } = require('../../../lib/shared/httpHelpers');
 
 /**
  * « Tenir à deux » (spec § 8) : le geste exceptionnel du prof sur une bourse exige un motif
- * (≥ 3 caractères), reste borné à ±3 par bourse et respecte le plafond de jeu.
+ * (≥ 3 caractères), reste borné à ±3 et respecte le plafond de jeu. Ensemble unifié (M1) : une
+ * seule monnaie — le geste ne porte que sur les gemmes ; un delta de cœurs est refusé.
  * @returns {{ ok: true, caps: object|null } | { ok: false, error: string }}
  */
 async function resolveTenirVitalityRules(settings, gameRow, { healthDelta, powerDelta, reason }) {
   if (!isTenirGame(settings, gameRow)) return { ok: true, caps: null };
+  const h = parseVitalityDelta(healthDelta);
+  const p = parseVitalityDelta(powerDelta);
+  if (h !== 0) {
+    return {
+      ok: false,
+      error: 'En mode « Tenir à deux », la bourse ne compte que des gemmes (powerDelta)',
+    };
+  }
   const motif = normalizeOptionalString(reason);
   if (!motif || motif.length < 3) {
     return {
@@ -28,10 +37,8 @@ async function resolveTenirVitalityRules(settings, gameRow, { healthDelta, power
       error: 'Un motif (3 caractères au moins) est obligatoire en mode « Tenir à deux »',
     };
   }
-  const h = parseVitalityDelta(healthDelta);
-  const p = parseVitalityDelta(powerDelta);
-  if (Math.abs(h) > 3 || Math.abs(p) > 3) {
-    return { ok: false, error: 'Delta borné à ±3 par bourse en mode « Tenir à deux »' };
+  if (Math.abs(p) > 3) {
+    return { ok: false, error: 'Delta borné à ±3 gemmes en mode « Tenir à deux »' };
   }
   return { ok: true, caps: resolveVitalityCaps(settings) };
 }

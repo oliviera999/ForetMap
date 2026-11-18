@@ -316,11 +316,11 @@ lit, mais ne verse pas au pot et ne voit pas le Marché, jusqu'à la levée ; le
 par équipe et par tour** ; les suivantes donnent +1 case sans relance. **Progression** et
 **Relance** ne se lancent que juste après le jet de l'équipe (si une autre équipe a joué depuis,
 le sort attend le prochain jet) et Progression déplace d'une case sans appliquer la case
-d'arrivée. Les cases « +2 cœurs » ou « +1 gemme » du plateau donnent **+1 de la ressource du
-peuple**, comme la Trame. Les **péripéties** sortent aussi sur les cases sans effet (Averse
+d'arrivée. Les cases positives du plateau donnent leur mouvement, sans ressource : seule la case
+Trame donne une gemme (depuis le 18 novembre 2026, il n'y a plus qu'une monnaie, les gemmes). Les **péripéties** sortent aussi sur les cases sans effet (Averse
 tropicale, Lion à l'affût…), avec la description de la case au-dessus. Un élève en **retrait**
 peut lire et tenir une page. Les **parures** sans image s'achètent quand même : une pastille sur
-la mascotte. Dans la console, pour une partie en cours, l'onglet **« Jouer le tour »** s'ouvre
+la mascotte ; une parure achetée reste à l'élève toute l'année (« Ma garde-robe », au Seuil). Dans la console, pour une partie en cours, l'onglet **« Jouer le tour »** s'ouvre
 seul, les réglages hérités (popovers, feuillets…) sont repliés sous « Réglages hors Tenir », et
 le sélecteur de chapitres ne propose que les **plateaux** (case « Afficher les chapitres hors
 plateau » pour la démo et « test »). Les catalogues (zones, questions, péripéties, Olu, parures)
@@ -342,8 +342,9 @@ Dans **« Jouer le tour »**, le bloc « Jets en attente » liste ces équipes a
 s'applique tout de suite, comme avant.
 
 À la **clôture** du chapitre (bouton « Clore »), la caravane porte les retardataires au camp, les
-honneurs, sceaux et titres s'attribuent, les parures reviennent au comptoir, les badges se
-calculent. La **projection** (bouton « Projeter ») donne un lien à ouvrir sur le vidéoprojecteur :
+honneurs, sceaux et titres s'attribuent, les badges se calculent. Les parures ne reviennent plus
+au comptoir : chaque élève garde les siennes et les repose, au chapitre suivant, sur la mascotte
+de sa nouvelle équipe. La **projection** (bouton « Projeter ») donne un lien à ouvrir sur le vidéoprojecteur :
 rien n'y est cliquable, aucune bourse ne s'y affiche. Les **exports** (Team Spirit, badges) se
 téléchargent depuis le panneau « Tenir à deux » de la console ; la mission réussie, le badge à la
 main, la relecture des pages écrites et des chimères s'y saisissent aussi.

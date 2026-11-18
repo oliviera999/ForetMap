@@ -22,7 +22,8 @@ describe('GLTenirSettings', () => {
       screen.getByText('Mouture « Tenir à deux » active (nouvelles parties)'),
     ).toBeInTheDocument();
     expect(screen.getByText('Surface par défaut d’une nouvelle partie')).toBeInTheDocument();
-    expect(screen.getByText('Cœurs maximum')).toBeInTheDocument();
+    // Ensemble unifié (M1) : une seule monnaie — le plafond des cœurs a quitté ces réglages.
+    expect(screen.queryByText('Cœurs maximum')).toBeNull();
     expect(screen.getByText('Gemmes maximum')).toBeInTheDocument();
   });
 

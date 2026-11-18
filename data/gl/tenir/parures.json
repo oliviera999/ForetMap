@@ -1,12 +1,12 @@
 {
-  "format": "parures v1 — comptoir du Marché ; achetée par un membre, portée par la mascotte de son équipe jusqu'au seuil ; aucun effet de jeu ; `asset` à renseigner quand le calque ou la pastille existe",
+  "format": "parures v2 — comptoir du Marché (ensemble unifié, M19) ; payée en gemmes (2 à 8), une parure achetée reste à l'élève toute l'année (garde-robe du Seuil) et se pose sur la mascotte de son équipe du moment ; `rare` marque les deux ou trois plus chères ; elle ne s'échange pas ; aucun effet de jeu ; `asset` à renseigner quand le calque ou la pastille existe",
   "parures": [
     {
       "code": "couronne_lianes",
       "nom": "Couronne de lianes",
       "description": "Trois lianes tressées, encore un peu humides de la canopée, posées de travers sur la tête.",
       "prix": 2,
-      "ressource": "choix",
+      "rare": false,
       "chapitre_min": 1,
       "type": "pastille",
       "asset": null
@@ -16,7 +16,7 @@
       "nom": "Plume de calao",
       "description": "Une grande plume noire et blanche, tombée du passage de la locomotive, glissée derrière l'oreille.",
       "prix": 2,
-      "ressource": "choix",
+      "rare": false,
       "chapitre_min": 1,
       "type": "pastille",
       "asset": null
@@ -26,7 +26,7 @@
       "nom": "Collier de graines de baobab",
       "description": "Des graines dures enfilées sur un fil d'herbe ; elles cliquettent quand la mascotte marche.",
       "prix": 3,
-      "ressource": "choix",
+      "rare": false,
       "chapitre_min": 1,
       "type": "calque",
       "asset": null
@@ -36,7 +36,7 @@
       "nom": "Foulard des dunes",
       "description": "Un long foulard couleur de sable, noué comme les voyageurs du désert, qui flotte dans le vent chaud.",
       "prix": 3,
-      "ressource": "choix",
+      "rare": false,
       "chapitre_min": 2,
       "type": "calque",
       "asset": null
@@ -46,7 +46,7 @@
       "nom": "Lunettes de sable",
       "description": "Deux verres fumés, un peu rayés par la tempête, qui donnent à n'importe quelle mascotte un air de chamelier blasé.",
       "prix": 2,
-      "ressource": "choix",
+      "rare": false,
       "chapitre_min": 2,
       "type": "pastille",
       "asset": null
@@ -56,7 +56,7 @@
       "nom": "Brin de thym en boutonnière",
       "description": "Un brin de thym cueilli dans la garrigue, qui sent bon même sur l'écran.",
       "prix": 2,
-      "ressource": "choix",
+      "rare": false,
       "chapitre_min": 2,
       "type": "pastille",
       "asset": null
@@ -66,7 +66,7 @@
       "nom": "Cape de feuilles d'automne",
       "description": "Une cape cousue de feuilles rouges et or, qui perd une feuille à chaque pas et n'en manque jamais.",
       "prix": 4,
-      "ressource": "choix",
+      "rare": false,
       "chapitre_min": 3,
       "type": "calque",
       "asset": null
@@ -76,7 +76,7 @@
       "nom": "Bonnet de bruyère",
       "description": "Un petit bonnet rose tricoté dans la forêt naine, taille unique, pour toutes les têtes à cornes ou à chapeau.",
       "prix": 2,
-      "ressource": "choix",
+      "rare": false,
       "chapitre_min": 3,
       "type": "pastille",
       "asset": null
@@ -86,7 +86,7 @@
       "nom": "Écharpe de laine des grands froids",
       "description": "Une écharpe filée dans la laine la plus chaude du monde, huit fois plus chaude que celle d'un mouton.",
       "prix": 3,
-      "ressource": "choix",
+      "rare": false,
       "chapitre_min": 4,
       "type": "calque",
       "asset": null
@@ -96,7 +96,7 @@
       "nom": "Bottes à raquettes",
       "description": "Des bottes aux semelles larges comme des pattes de lièvre variable, pour courir sur la neige sans s'enfoncer.",
       "prix": 3,
-      "ressource": "choix",
+      "rare": false,
       "chapitre_min": 4,
       "type": "pastille",
       "asset": null
@@ -105,8 +105,8 @@
       "code": "pelage_bestiaire",
       "nom": "Pelage du Bestiaire",
       "description": "La mascotte prend le pelage d'une chimère de la classe : taches, rayures et couleurs que la science n'a jamais validées.",
-      "prix": 4,
-      "ressource": "choix",
+      "prix": 7,
+      "rare": true,
       "chapitre_min": 4,
       "type": "calque",
       "asset": null,
@@ -116,8 +116,8 @@
       "code": "pelage_neon",
       "nom": "Pelage néon",
       "description": "Un pelage qui brille dans la nuit polaire, vert et rose comme une aurore, visible de tout le plateau.",
-      "prix": 4,
-      "ressource": "choix",
+      "prix": 8,
+      "rare": true,
       "chapitre_min": 4,
       "type": "calque",
       "asset": null,

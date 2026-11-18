@@ -35,7 +35,8 @@ PREMIERE_FOIS_CLES = {
 EXPRESSIONS = {"neutre", "joie", "curieux", "surpris", "agace", "pensif", "explique", "peur"}
 BIOMES_TITRES = {"tropiques", "aride", "tempere", "grands_froids"}
 PEUPLES = {"any", "gnome", "unicorn", "pacte", "classe"}
-RESSOURCES = {"gemmes", "coeurs", "peuple", "choix", "pacte", "cartes"}
+# Ensemble unifié (M1) : une seule monnaie, les gemmes ; `cartes` = sort de classe, pas une bourse.
+RESSOURCES = {"gemmes", "cartes"}
 FENETRES = {"avant_jet", "apres_jet", "jeu", "jeu_avant_fouille", "activite", "seuil", "seuil_veillee", "fin_seance", "trimestre_3"}
 LIMITE_PAR = {"tour", "seance", "chapitre", "trimestre", "annee"}
 LIMITE_PORTEE = {"equipe", "partie", "eleve"}
@@ -50,7 +51,7 @@ REGLAGES_ATTENDUS = {
     "pages_par_semaine", "voile", "voile_bonus_par_plateau", "palissement_pct", "palissement_max",
     "recul_carnet_complet", "marche", "marche_pendant_tour", "parures", "lumiere", "lumiere_palier",
     "chapardeur", "peripeties", "olu_erreur_du_jour", "escalier", "sablier_secondes",
-    "max_power_points", "max_health_points", "lore_feuillet_retrigger", "lore_gemme_costs_enabled",
+    "max_power_points", "lore_feuillet_retrigger", "lore_gemme_costs_enabled",
     "lore_heart_rewards_enabled", "feuillet_zone_traversal_enabled",
 }
 BADGES_ATTENDUS = {
@@ -643,7 +644,7 @@ def check_parures(d, rep):
     pelages = set()
     for p in items:
         code = str(p.get("code", "?"))
-        allowed = ["code", "nom", "description", "prix", "ressource", "chapitre_min", "type", "asset", "pelage"]
+        allowed = ["code", "nom", "description", "prix", "rare", "chapitre_min", "type", "asset", "pelage"]
         extra = [k for k in p if k not in allowed]
         missing = [k for k in allowed[:8] if k not in p]
         if extra or missing:
@@ -651,10 +652,13 @@ def check_parures(d, rep):
         if code in codes:
             rep.err(f"{name} {code}: code en double")
         codes.add(code)
-        if p.get("prix") not in (2, 3, 4):
-            rep.err(f"{name} {code}: prix {p.get('prix')!r} hors 2-4")
-        if p.get("ressource") != "choix":
-            rep.err(f"{name} {code}: ressource doit être choix")
+        # M19 : de 2 à 8 gemmes ; `rare` marque les plus chères (6 et plus), trois au plus.
+        if p.get("prix") not in (2, 3, 4, 5, 6, 7, 8):
+            rep.err(f"{name} {code}: prix {p.get('prix')!r} hors 2-8")
+        if not isinstance(p.get("rare"), bool):
+            rep.err(f"{name} {code}: rare doit être un booléen")
+        elif p["rare"] and isinstance(p.get("prix"), int) and p["prix"] < 6:
+            rep.err(f"{name} {code}: une parure rare coûte 6 gemmes ou plus")
         if p.get("chapitre_min") not in (1, 2, 3, 4):
             rep.err(f"{name} {code}: chapitre_min invalide")
         if p.get("type") not in ("calque", "pastille"):
@@ -729,13 +733,9 @@ def check_sorts(d, rep, use_db):
         co = s.get("chapitre_ouverture")
         if co not in (1, 2, 3, 4, "retour"):
             rep.err(f"{name} {code}: chapitre_ouverture invalide")
-        # Lot 2 : un sort du pacte se paie à deux (`pacte`) ou est offert par la lanceuse (`peuple`).
-        if s.get("peuple") == "pacte" and s.get("ressource") not in ("pacte", "peuple"):
-            rep.err(f"{name} {code}: un sort du pacte se paie en pacte, ou est offert (peuple)")
-        if s.get("peuple") == "unicorn" and s.get("ressource") != "gemmes":
-            rep.err(f"{name} {code}: un sort licorne se paie en gemmes")
-        if s.get("peuple") == "gnome" and s.get("ressource") != "coeurs":
-            rep.err(f"{name} {code}: un sort gnome se paie en cœurs")
+        # M1 : une seule monnaie — tout sort d'équipe ou d'élève se paie en gemmes.
+        if s.get("peuple") != "classe" and s.get("ressource") != "gemmes":
+            rep.err(f"{name} {code}: un sort se paie en gemmes (une seule monnaie)")
         if not isinstance(s.get("nouveau"), bool):
             rep.err(f"{name} {code}: nouveau doit être un booléen")
     if names != SPELL_NAMES_ATTENDUS:
@@ -817,7 +817,6 @@ def check_reglages(d, rep):
         ("palissement_pct", lambda v: isinstance(v, int) and 0 < v <= 100),
         ("palissement_max", lambda v: isinstance(v, int) and 0 < v <= 100),
         ("max_power_points", lambda v: isinstance(v, int) and v > 0),
-        ("max_health_points", lambda v: isinstance(v, int) and v > 0),
         ("lore_feuillet_retrigger", lambda v: v in ("once_per_team", "once_per_game", "every_arrival")),
     ]
     for key, ok in checks:

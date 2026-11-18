@@ -103,8 +103,15 @@ dont les transactions du moteur verrouillent la ligne (un compteur posé dessus 
 - **Bourses** : uniquement `applyBourseDeltaTx` (`lib/glBourses.js`) ; réserve de la caravane :
   `creditReserveTx` / `debitReserveTx`. Chaque mouvement écrit une ligne du grand livre
   (`gl_resource_ledger`, cause dans `CAUSES`). Une cause nouvelle s'ajoute à `CAUSES`.
+- **Une seule monnaie, les gemmes** (ensemble unifié, M1) : en « Tenir », on ne passe jamais de
+  `dh` / `healthDelta` — un coût se calcule par `resolveRequired` (`lib/glSpellCast.js`, toujours
+  `{ gems: cout, hearts: 0 }`), un gain par `gemmesDelta(n)` (`lib/glTenir.js`). `resourceOfPeople`
+  ne sert plus qu'à comparer deux peuples. Hors partie (Marché en veillée), `classeJoueTenir` dit
+  si la classe joue « Tenir » ; côté écran, `gemmesSeules` (`src/gl/utils/glMonnaie.js`) retire les
+  cœurs. L'état servi d'une partie « Tenir » passe par `sansCoeurs` (`lib/glTenirView.js`).
 - **Invariants** : `lib/glTenirInvariants.js` (bourses, livre, pions, voile, pages, quotas). Le
-  banc les rejoue après chaque geste ; `LIVRE_TOTAL` attrape toute ressource créée de rien.
+  banc les rejoue après chaque geste ; `LIVRE_TOTAL` attrape toute ressource créée de rien,
+  `COEURS_HORS_JEU` tout mouvement de cœurs écrit après la conversion (migration 373).
 - **Aléa et horloge** : `lib/glRandom.js` (`forGame(gameId)`), `lib/glClock.js` (`now()`).
   Jamais `Math.random()` ni `new Date()` dans une règle du jeu.
 

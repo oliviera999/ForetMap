@@ -58,9 +58,7 @@ function TeamCard({
           {team.hasRolledDiceThisRound ? ' · dés lancés' : ''}
           {team.unDe ? ' · un seul dé au prochain tour' : ''}
           {fouilles ? ` · fouilles ${fouilles.restantes}/${fouilles.quota}` : ''}
-          {reserve && (reserve.health || reserve.power)
-            ? ` · réserve ❤️ ${reserve.health} 💎 ${reserve.power}`
-            : ''}
+          {reserve && reserve.power ? ` · réserve 💎 ${reserve.power}` : ''}
         </span>
       </header>
       {/* M14 : tout le monde est là par défaut — on ne montre que les absents déclarés. */}

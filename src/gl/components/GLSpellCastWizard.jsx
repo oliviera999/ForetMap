@@ -433,8 +433,10 @@ export function GLSpellCastWizard({
 
         {isPendingApproval ? (
           <p className="gl-spell-cast-panel__pending" role="status">
-            ⏳ Sortilège soumis au maître du jeu. Les gemmes / cœurs ne seront débités qu&apos;après
-            sa validation.
+            {/* Une seule monnaie (M1) : un sort qui ne coûte aucun cœur n'en nomme pas. */}
+            {required.hearts > 0
+              ? '⏳ Sortilège soumis au maître du jeu. Les gemmes / cœurs ne seront débités qu’après sa validation.'
+              : '⏳ Sort envoyé au prof. Les gemmes ne seront débitées qu’après son accord.'}
           </p>
         ) : null}
 

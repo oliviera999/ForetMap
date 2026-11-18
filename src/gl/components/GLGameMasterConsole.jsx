@@ -631,7 +631,7 @@ export function GLGameMasterConsole({
     if (!game?.id || draftId == null) return;
     const mot = await prompt({
       title: 'Refuser et rembourser',
-      message: 'Un mot pour l’équipe (facultatif). Les cœurs et les gemmes lui sont rendus.',
+      message: 'Un mot pour l’équipe (facultatif). Ses gemmes lui sont rendues.',
       required: false,
     });
     if (mot == null) return;
@@ -712,12 +712,24 @@ export function GLGameMasterConsole({
     const h = Number(healthDelta) || 0;
     const p = Number(powerDelta) || 0;
     if (h === 0 && p === 0) return;
+    // « Tenir à deux » : le geste du prof sur une bourse se justifie (motif obligatoire) et ne
+    // porte que sur les gemmes (M1).
+    let reason;
+    if (gameState?.tenir?.enabled) {
+      reason = await prompt({
+        title: 'Geste sur les bourses',
+        message: 'Le motif de ce geste (3 caractères au moins) : il est noté au journal.',
+        required: true,
+      });
+      if (reason == null) return;
+    }
     setBusy(true);
     try {
       const data = await apiGL(`/api/gl/games/${game.id}/vitality/team`, 'POST', {
         teamId: effectiveSelectedTeamId,
-        healthDelta: h,
+        healthDelta: gameState?.tenir?.enabled ? 0 : h,
         powerDelta: p,
+        ...(reason ? { reason } : {}),
       });
       const count = Array.isArray(data?.results) ? data.results.length : 0;
       await onReloadGame?.();

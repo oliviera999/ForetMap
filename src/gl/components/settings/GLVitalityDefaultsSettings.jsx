@@ -28,6 +28,11 @@ export function GLVitalityDefaultsSettings({
         S&apos;appliquent uniquement à la création d&apos;un joueur. Les comptes existants ne sont
         pas réinitialisés.
       </p>
+      <p className="gl-hint">
+        En « Tenir à deux », seules les gemmes comptent : c&apos;est la bourse de départ, reposée à
+        cette valeur quand une partie du plateau 1 est créée. Les PV ne servent qu&apos;au jeu
+        classique.
+      </p>
       <div className="gl-inline-actions">
         <GLField label="PV initiaux (❤️)">
           <GLInput

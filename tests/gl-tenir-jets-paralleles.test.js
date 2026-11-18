@@ -131,6 +131,8 @@ test('A en suspens, B jette : A reste en suspens et peut encore lancer Relance',
     ressource: 'coeurs',
   });
   assert.equal(relance.status, 200, JSON.stringify(relance.body));
+  // Une seule monnaie : `ressource: 'coeurs'` est ignoré, Relance se paie en gemmes.
+  assert.deepEqual(relance.body.draft.required, { gems: 2, hearts: 0 });
   assert.equal(await indexOf(team(0).id), 0, 'la mascotte de A revient sur sa case de départ');
   assert.equal((await suspens(team(0).id))[0].issue, 'annulee');
 });
@@ -278,12 +280,24 @@ test('« Nommer » sans objet : la page est réparée entre-temps, la ligne se r
     assert.equal(res.status, 200, JSON.stringify(res.body));
     lance.push(res.body.draft.id);
   }
-  const sommeB = async () => {
-    let s = 0;
-    for (const p of membres(1)) s += (await readPlayerBourses(p.id)).health;
-    return s;
+  // Une seule monnaie : Nommer (sort de Gnomes) se paie en gemmes ; les cœurs ne bougent pas.
+  const somme = async (i) => {
+    const total = { health: 0, power: 0 };
+    for (const p of membres(i)) {
+      const b = await readPlayerBourses(p.id);
+      total.health += b.health;
+      total.power += b.power;
+    }
+    return total;
   };
-  assert.equal(await sommeB(), membres(1).length * 4 - 2, 'Gnomes B a payé 2 cœurs');
+  const sommeB = () => somme(1);
+  const pleinB = { health: membres(1).length * 4, power: membres(1).length * 4 };
+  assert.deepEqual(
+    await sommeB(),
+    { health: pleinB.health, power: pleinB.power - 2 },
+    'Gnomes B a payé 2 gemmes',
+  );
+  const avantA = await somme(0);
   const file = async () =>
     (await request(app).get(api('/spell-casts/awaiting-effect')).set(auth(ctx.adminToken))).body;
 
@@ -293,13 +307,14 @@ test('« Nommer » sans objet : la page est réparée entre-temps, la ligne se r
     .set(auth(ctx.adminToken))
     .send({ zoneKey: zone.zone_key });
   assert.equal(applique.status, 200, JSON.stringify(applique.body));
+  assert.deepEqual(await somme(0), avantA, 'la page réparée ne donne rien à Gnomes A');
   const restante = JSON.stringify(await file());
   assert.ok(!restante.includes(`"id":${lance[1]},`), 'la ligne de Gnomes B s’est retirée seule');
   const draftB = await db.queryOne('SELECT status FROM gl_spell_cast_drafts WHERE id = ?', [
     lance[1],
   ]);
   assert.equal(draftB.status, 'rembourse');
-  assert.equal(await sommeB(), membres(1).length * 4, 'remboursement exact');
+  assert.deepEqual(await sommeB(), pleinB, 'remboursement exact');
   const evt = await db.queryOne(
     "SELECT payload_json FROM gl_game_events WHERE game_id = ? AND team_id = ? AND event_type = 'spell_rembourse' ORDER BY id DESC LIMIT 1",
     [ctx.game.id, team(1).id],

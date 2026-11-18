@@ -38,10 +38,10 @@ describe('GLSpellCastEffectParams', () => {
       neededParams({
         tenir_v2: true,
         spell_code: 'SL002',
-        ressource: 'choix',
+        ressource: 'gemmes',
         cible: 'pion_equipe',
       }),
-    ).toEqual(['ressource', 'delta']);
+    ).toEqual(['delta']);
     expect(
       neededParams({
         tenir_v2: true,
@@ -55,7 +55,7 @@ describe('GLSpellCastEffectParams', () => {
         tenir_v2: true,
         spell_code: 'SL045',
         peuple: 'pacte',
-        ressource: 'pacte',
+        ressource: 'gemmes',
         cible: 'deux_equipes',
       }),
     ).toEqual(['partenaire']);
@@ -63,22 +63,27 @@ describe('GLSpellCastEffectParams', () => {
       neededParams({
         tenir_v2: true,
         spell_code: 'SL041',
-        ressource: 'coeurs',
+        ressource: 'gemmes',
         cible: 'zone_palie',
       }),
     ).toEqual(['zoneKey']);
     expect(
-      neededParams({ tenir_v2: true, spell_code: 'SL033', ressource: 'choix', cible: 'eleve' }),
-    ).toEqual(['ressource', 'heritage']);
+      neededParams({ tenir_v2: true, spell_code: 'SL033', ressource: 'gemmes', cible: 'eleve' }),
+    ).toEqual(['heritage']);
+    // Une seule monnaie (M1) : une ancienne valeur `choix` ne fait plus rien demander.
+    expect(
+      neededParams({ tenir_v2: true, spell_code: 'SL005', ressource: 'choix', cible: 'equipe' }),
+    ).toEqual([]);
     expect(neededParams({ spell_code: 'SCT01' })).toEqual([]);
+    // Plus de ressource à choisir : le brouillon n'en porte pas, même si on en fournit une.
     expect(buildDraftOptions({ ressource: 'coeurs', delta: 1 })).toEqual({
-      ressource: 'coeurs',
       partnerTeamId: undefined,
       effectParams: { delta: 1 },
     });
-    expect(
-      buildDraftOptions({ beneficiairePlayerId: 4, heritageRessource: 'gemmes' }).effectParams,
-    ).toEqual({ beneficiairePlayerId: 4, ressource: 'gemmes' });
+    expect(buildDraftOptions({ beneficiairePlayerId: 4 }).effectParams).toEqual({
+      beneficiairePlayerId: 4,
+      ressource: 'gemmes',
+    });
   });
 
   test('le bouton « Continuer » attend les paramètres requis', () => {

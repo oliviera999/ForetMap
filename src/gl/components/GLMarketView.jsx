@@ -34,6 +34,8 @@ export function GLMarketView({
   classId,
   playerId,
   heartsTradable = false,
+  /** Ensemble unifié (M1) : une seule monnaie — le Marché ne nomme que des gemmes. */
+  gemmesSeules = false,
   selfHealthPoints,
   selfPowerPoints,
   onTradeCompleted,
@@ -130,6 +132,7 @@ export function GLMarketView({
           place={place}
           playerId={playerId}
           heartsTradable={heartsTradable}
+          gemmesSeules={gemmesSeules}
           paruresEnabled={paruresEnabled}
           ownFeuillets={market.ownFeuillets}
           onTradeOpened={(tradeId) => {
@@ -138,31 +141,44 @@ export function GLMarketView({
           }}
         />
       ) : null}
-      {marketPlaceEnabled && tab === 'comptoir' ? (
-        <GLMarketComptoirPanel place={place} heartsTradable={heartsTradable} />
-      ) : null}
+      {marketPlaceEnabled && tab === 'comptoir' ? <GLMarketComptoirPanel place={place} /> : null}
       {!marketPlaceEnabled || tab === 'echanges' ? (
         <div className="gl-market-echanges">
           <aside className="gl-market-disclaimer" role="note" aria-label="Règles du marché">
             <h2>Comment fonctionne le marché ?</h2>
             <ul>
-              <li>
-                Les <strong>cœurs</strong> (❤️) et <strong>gemmes</strong> (💎) sont tes points de
-                vie et de pouvoir : ils restent sur ton compte même d’une partie à l’autre.
-              </li>
-              {heartsTradable ? (
-                <li>
-                  Tu peux <strong>échanger</strong> avec un camarade de ta classe ou lui faire un{' '}
-                  <strong>don</strong> (tu proposes des cœurs et/ou des gemmes, l’autre peut
-                  proposer zéro).
-                </li>
+              {gemmesSeules ? (
+                <>
+                  <li>
+                    Tes <strong>gemmes</strong> (💎) sont ta bourse : elle reste sur ton compte
+                    toute l’année.
+                  </li>
+                  <li>
+                    Tu peux <strong>échanger</strong> des gemmes ou des pages avec un camarade de ta
+                    classe, ou lui en faire <strong>don</strong> (l’autre peut proposer zéro).
+                  </li>
+                </>
               ) : (
-                <li>
-                  Seules les <strong>gemmes</strong> (💎) s’échangent : tes <strong>cœurs</strong>{' '}
-                  (❤️) n’appartiennent qu’à toi et ne se donnent pas. Tu peux échanger des gemmes
-                  avec un camarade de ta classe ou lui en faire <strong>don</strong> (l’autre peut
-                  proposer zéro).
-                </li>
+                <>
+                  <li>
+                    Les <strong>cœurs</strong> (❤️) et <strong>gemmes</strong> (💎) sont tes points
+                    de vie et de pouvoir : ils restent sur ton compte même d’une partie à l’autre.
+                  </li>
+                  {heartsTradable ? (
+                    <li>
+                      Tu peux <strong>échanger</strong> avec un camarade de ta classe ou lui faire
+                      un <strong>don</strong> (tu proposes des cœurs et/ou des gemmes, l’autre peut
+                      proposer zéro).
+                    </li>
+                  ) : (
+                    <li>
+                      Seules les <strong>gemmes</strong> (💎) s’échangent : tes{' '}
+                      <strong>cœurs</strong> (❤️) n’appartiennent qu’à toi et ne se donnent pas. Tu
+                      peux échanger des gemmes avec un camarade de ta classe ou lui en faire{' '}
+                      <strong>don</strong> (l’autre peut proposer zéro).
+                    </li>
+                  )}
+                </>
               )}
               <li>
                 Discute dans le fil de l’échange, ajuste ton offre, puis coche{' '}
@@ -197,7 +213,11 @@ export function GLMarketView({
                       {mate.pseudo}
                       {mate.teamName ? <small className="gl-hint"> · {mate.teamName}</small> : null}
                     </span>
-                    {mate.healthPoints != null || mate.powerPoints != null ? (
+                    {gemmesSeules ? (
+                      mate.powerPoints != null ? (
+                        <span className="gl-market-classmate-vitality">💎 {mate.powerPoints}</span>
+                      ) : null
+                    ) : mate.healthPoints != null || mate.powerPoints != null ? (
                       <span className="gl-market-classmate-vitality">
                         ❤️ {mate.healthPoints ?? '—'} · 💎 {mate.powerPoints ?? '—'}
                       </span>

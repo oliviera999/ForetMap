@@ -18,7 +18,7 @@ before(async () => {
   await setGlSetting('gameplay.lore_heart_rewards_enabled', true);
 });
 
-test('la traversée d’une zone feuillet n’applique plus cout_gemme / gain_coeur du JSON', async () => {
+test('la traversée d’une zone feuillet n’applique plus cout_gemme / gain_coeur du JSON (et ne montre aucun cœur en « Tenir »)', async () => {
   const team = ctx.teams[0];
   const members = ctx.players.filter((p) => p.teamId === Number(team.id));
   const before = await Promise.all(members.map((m) => readPlayerBourses(m.id)));
@@ -40,7 +40,8 @@ test('la traversée d’une zone feuillet n’applique plus cout_gemme / gain_co
   );
   assert.ok(result.presentEvent, JSON.stringify(result));
   assert.equal(result.coutGemme, 2, 'affichage conservé');
-  assert.equal(result.gainCoeur, 3, 'affichage conservé');
+  // Ensemble unifié (M1) : une partie « Tenir » n'affiche ni ne crédite aucun cœur.
+  assert.equal(result.gainCoeur, 0, 'aucun cœur affiché en « Tenir »');
   const after = await Promise.all(members.map((m) => readPlayerBourses(m.id)));
   assert.deepEqual(after, before, 'aucune bourse touchée par la traversée');
   const changes = await queryOne(

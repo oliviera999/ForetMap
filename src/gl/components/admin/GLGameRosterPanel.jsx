@@ -223,12 +223,17 @@ export function GLGameRosterPanel({
                 {vitalityEnabled ? (
                   <>
                     <td>
-                      <GLVitalityCounts health={item.healthPoints} power={item.powerPoints} />
+                      <GLVitalityCounts
+                        health={item.healthPoints}
+                        power={item.powerPoints}
+                        gemmesSeules={item.healthPoints == null}
+                      />
                     </td>
                     <td>
                       <GLVitalityAdjustButtons
                         health={item.healthPoints}
                         power={item.powerPoints}
+                        gemmesSeules={item.healthPoints == null}
                         busy={vitalityBusyId === item.id}
                         disabled={busy}
                         onAdjust={(deltas) => adjustPlayerVitality(item.id, deltas)}

@@ -186,13 +186,13 @@ export const GAMEPLAY_TOGGLES = [
     key: 'gameplay.vitality_enabled',
     camel: 'vitalityEnabled',
     label: 'Points de vie et de pouvoir',
-    hint: 'PV (❤️) et points de pouvoir (💎) persistants par joueur, gérés par le MJ.',
+    hint: 'Bourses persistantes par joueur. En « Tenir à deux » : une seule monnaie, les gemmes (💎). Jeu classique : PV (❤️) et points de pouvoir (💎), gérés par le MJ.',
   },
   {
     key: 'gameplay.market_hearts_enabled',
     camel: 'marketHeartsEnabled',
     label: 'Cœurs échangeables sur le Marché',
-    hint: 'Désactivé par défaut : seules les gemmes (💎) circulent. À laisser désactivé si un cœur peut être retiré pour un écart de conduite — sinon la sanction se rachète ou se fait offrir.',
+    hint: 'Jeu classique seulement — en « Tenir à deux », il n’y a qu’une monnaie, les gemmes, et ce réglage est sans effet. Désactivé par défaut : seules les gemmes (💎) circulent. À laisser désactivé si un cœur peut être retiré pour un écart de conduite — sinon la sanction se rachète ou se fait offrir.',
   },
   {
     key: 'gameplay.market_feuillets_enabled',

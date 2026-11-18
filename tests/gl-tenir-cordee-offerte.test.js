@@ -8,6 +8,9 @@
  * Ensemble unifié (M6, M16) : la Cordée se lance pendant le jeu (fenêtre `jeu`) et agit au
  * PROCHAIN tour des deux équipes ; une Cordée qui ne s'est pas faite est rendue, au souffle de son
  * tour ou au Seuil ; au plateau 4, la première Cordée de chaque équipe est offerte.
+ *
+ * Une seule monnaie (M1) : la Cordée coûte 4 gemmes à la lanceuse, quel que soit son peuple ;
+ * les cœurs ne bougent jamais.
  */
 
 require('./helpers/setup');
@@ -76,11 +79,11 @@ before(async () => {
   await ouvrirTourEnJeu(request, app, ctx);
 });
 
-test('catalogue : la Cordée se paie dans la ressource du peuple lanceur ; texte visible sans mot interdit', async () => {
+test('catalogue : la Cordée se paie en gemmes, quel que soit le peuple lanceur ; texte visible sans mot interdit', async () => {
   const row = await db.queryOne(
     "SELECT ressource, cout, peuple, effet_court FROM gl_spells WHERE spell_code = 'SL045'",
   );
-  assert.equal(row.ressource, 'peuple');
+  assert.equal(row.ressource, 'gemmes', 'une seule monnaie : plus de « ressource du peuple »');
   assert.equal(Number(row.cout), 4);
   const fenetre = await db.queryOne("SELECT fenetre FROM gl_spells WHERE spell_code = 'SL045'");
   assert.equal(fenetre.fenetre, 'jeu', 'lancée pendant le jeu (M6)');
@@ -184,12 +187,17 @@ test('fenêtre « jeu » (M6) : la partenaire a déjà jeté ce tour, la Cordée
     .set(auth(membres(1)[0].token))
     .send({ spellCode: 'SL045', teamId: team(1).id, partnerTeamId: team(3).id });
   assert.equal(d.status, 201, JSON.stringify(d.body));
-  assert.deepEqual(d.body.draft.required, { gems: 0, hearts: 4 });
+  // Des Gnomes lancent : quatre gemmes, comme pour les Licornes (une seule monnaie).
+  assert.deepEqual(d.body.draft.required, { gems: 4, hearts: 0 });
+  assert.ok(
+    d.body.draft.suggestedContributions.every((c) => c.hearts === 0),
+    'aucune part en cœurs',
+  );
   const l = await request(app)
     .post(api(`/spell-casts/drafts/${d.body.draft.id}/launch`))
     .set(auth(membres(1)[0].token));
   assert.equal(l.status, 200, JSON.stringify(l.body));
-  assert.deepEqual(await sommeEquipe(1), { health: avant.health - 4, power: avant.power });
+  assert.deepEqual(await sommeEquipe(1), { health: avant.health, power: avant.power - 4 });
   // Ni l'une ni l'autre ne jette au tour de la Cordée : rendue à son souffle.
   await phase({ phase: 'souffle', dort: true }).expect(200);
   await tourSuivant();
@@ -214,7 +222,7 @@ test('la partenaire ne jette pas : au souffle, remboursement intégral, voile no
     .post(api(`/spell-casts/drafts/${d.body.draft.id}/launch`))
     .set(auth(membres(0)[0].token))
     .expect(200);
-  assert.deepEqual(await sommeEquipe(0), { health: avant.health - 4, power: avant.power });
+  assert.deepEqual(await sommeEquipe(0), { health: avant.health, power: avant.power - 4 });
   // Au tour de la Cordée, seule la lanceuse jette.
   await phase({ phase: 'souffle', dort: true }).expect(200);
   await tourSuivant();
@@ -294,10 +302,14 @@ test('plateau 4 (M16) : la première Cordée de chaque équipe est offerte, la s
   const gnomes = p4.teams[0];
   const membre = p4.players.find((p) => Number(p.teamId) === Number(gnomes.id));
   const somme = async () => {
-    let h = 0;
-    for (const p of p4.players.filter((x) => Number(x.teamId) === Number(gnomes.id)))
-      h += (await readPlayerBourses(p.id)).health;
-    return h;
+    let health = 0;
+    let power = 0;
+    for (const p of p4.players.filter((x) => Number(x.teamId) === Number(gnomes.id))) {
+      const b = await readPlayerBourses(p.id);
+      health += b.health;
+      power += b.power;
+    }
+    return { health, power };
   };
   const avant = await somme();
   const sorts = await request(app).get(api4('/tenir/sorts')).set(auth(membre.token)).expect(200);
@@ -314,7 +326,7 @@ test('plateau 4 (M16) : la première Cordée de chaque équipe est offerte, la s
     .post(api4(`/spell-casts/drafts/${d.body.draft.id}/launch`))
     .set(auth(membre.token));
   assert.equal(l.status, 200, JSON.stringify(l.body));
-  assert.equal(await somme(), avant, 'offerte : rien n’est débité');
+  assert.deepEqual(await somme(), avant, 'offerte : rien n’est débité');
   // Tour suivant : la seconde Cordée de l'équipe se paie.
   await request(app)
     .post(api4('/tenir/tour/phase'))
@@ -332,6 +344,15 @@ test('plateau 4 (M16) : la première Cordée de chaque équipe est offerte, la s
     .set(auth(membre.token))
     .send({ spellCode: 'SL045', teamId: gnomes.id, partnerTeamId: p4.teams[3].id });
   assert.equal(d2.status, 201, JSON.stringify(d2.body));
-  assert.deepEqual(d2.body.draft.required, { gems: 0, hearts: 4 });
+  assert.deepEqual(d2.body.draft.required, { gems: 4, hearts: 0 });
   assert.equal(d2.body.draft.offerte, false);
+  const l2 = await request(app)
+    .post(api4(`/spell-casts/drafts/${d2.body.draft.id}/launch`))
+    .set(auth(membre.token));
+  assert.equal(l2.status, 200, JSON.stringify(l2.body));
+  assert.deepEqual(
+    await somme(),
+    { health: avant.health, power: avant.power - 4 },
+    'la seconde se paie : quatre gemmes, aucun cœur',
+  );
 });

@@ -192,7 +192,7 @@ router.post(
   }),
 );
 
-/** Don immédiat : une ressource ou une page à la fois. */
+/** Don immédiat : des gemmes ou une page à la fois (`coeurs` : jeu classique seulement, M1). */
 router.post(
   '/dons',
   asyncHandler(async (req, res) => {

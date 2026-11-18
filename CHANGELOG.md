@@ -9,6 +9,81 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — G&L : ensemble unifié, PR 4 — une seule monnaie, les gemmes (18 novembre 2026)
+
+Prompt `docs/GL_ENSEMBLE_UNIFIE_PROMPT.md` (§ 9, décisions M1 et M19). En « Tenir à deux », tout
+coût et tout gain passe par les gemmes ; les cœurs quittent tout écran et toute règle. La colonne
+`health_points` reste en base pour le jeu classique (partie sans profil « Tenir ») et
+l'historique : le moteur « Tenir » ne la lit plus.
+
+- **Bourse unique.** Un sort se paie toujours en gemmes (`resolveRequired` : `{ gems: cout,
+  hearts: 0 }`) — Sentier, Abri et Relais gardent leur prix, la Cordée coûte 4 gemmes à l'équipe
+  qui lance. `sorts.json` : `ressource` vaut `gemmes` partout ; les valeurs `coeurs`, `peuple`,
+  `choix` et `pacte` quittent le vocabulaire, les chargeurs et l'écran (plus de « Payer en… »).
+  Pot, réserve de la caravane, chapardeur et nid, Héritage : en gemmes. Le geste du prof sur une
+  bourse ne porte que sur les gemmes (un delta de cœurs → 400).
+- **Réparer une page ne donne plus rien** : l'ancien + 1 cœur aux Gnomes (fouille d'une zone
+  pâlie, sort « Nommer ») disparaît avec les cœurs — les gemmes viennent des pages tenues, de la
+  case Trame, du carnet complet et du Marché (règles v3, § 8).
+- **Départ à 3, plafond 8, gardée toute l'année** : créer la première partie « Tenir » du
+  plateau 1 d'une classe, dans l'année scolaire, pose la bourse de chaque élève actif à
+  `gameplay.default_power_points` (3), cause `depart` au grand livre ; une autre partie du
+  plateau 1, ou un plateau suivant, ne remet rien à zéro.
+- **Cœurs hors de l'écran** : l'état d'une partie « Tenir » ne sert plus `healthPoints` /
+  `health`, à personne ; bourse de la barre du haut, plateau, écran d'équipe, console, journal,
+  statistiques, Marché, outils de diagnostic ne montrent que des gemmes. Nouveau champ
+  `monnaieUnique` de `GET /api/gl/gameplay-settings`.
+- **Marché** : dans une classe qui joue « Tenir », gemmes et pages seulement — une annonce, un
+  don ou une offre en cœurs sont refusés (409), quel que soit `market_hearts_enabled` ; une
+  annonce ou un échange d'avant qui en parlaient encore se ferment seuls. Bourses privées
+  resserrées : `/classmates` ne sert les gemmes que des coéquipiers de la partie en cours (plus
+  toute la classe quand la partie est en pause ou close), un échange ne sert plus le solde du
+  partenaire ; aucun message d'erreur du Marché ne nomme les cœurs.
+- **Parures et garde-robe (M19)** : `parures.json` de 2 à 8 gemmes, deux rares (pelage du
+  Bestiaire 7, pelage néon 8) ; une parure achetée reste à l'élève toute l'année
+  (`gl_player_parures`), se pose sur la mascotte de son équipe du moment depuis « Ma garde-robe »
+  au Seuil (`GET /api/gl/voyageur/garde-robe`, `POST …/garde-robe/:code/poser|ranger` ; droits
+  rejoués par le serveur : parures coupées, élève spectateur du tour), ne se rachète pas et ne
+  s'échange pas. La clôture d'une partie ne rend plus les parures au comptoir.
+- **Consécration, but de l'année** : une carte grisée (jamais un bouton) la montre avec son prix,
+  8 gemmes, dès le chapitre 1 — sous les sorts de l'écran d'équipe et au Seuil
+  (`butDeLAnnee` de `GET …/tenir/sorts` et de `GET /api/gl/voyageur/me`).
+- **Migration 373**, idempotente : sorts « Tenir » en gemmes, `gl_tenir_parures.rare`,
+  `gl_player_parures` (reprise des parures déjà achetées), **conversion** des bourses des parties
+  « Tenir » non closes — gemmes = min(8, gemmes + cœurs), jamais à la baisse, cœurs laissés tels
+  quels — journalisée par identifiant (`gl_tenir_conversion_monnaie`, ligne `migration` du grand
+  livre), réserves de la caravane en gemmes, repère `gl_tenir_monnaie_unique`.
+- **Invariant `COEURS_HORS_JEU`** (`lib/glTenirInvariants.js`) : aucun mouvement de cœurs au
+  grand livre d'une partie « Tenir » après la conversion ; rejoué par le banc après chaque geste.
+  Un gain de cause `reparation` écrit après la conversion est signalé lui aussi ; `depart` est
+  une source admise.
+- Les feuillets ne créditent jamais de cœur dans une partie « Tenir » (même si le réglage
+  classique `lore_heart_rewards_enabled` est actif) ; le plancher de vitalité de la composition
+  des équipes ne compte que les gemmes ; le libellé de coût périmé du Mentorat (« 4 gemmes
+  (récupère 2) ») est retiré du catalogue des sorts.
+
+**Retiré** : les ressources de sort `coeurs`, `peuple`, `choix`, `pacte` ; le choix de ressource
+d'un brouillon de sort (`ressource`, `ressourceChoisie`) et d'une parure ; le pacte payé à deux ;
+les codes `SPELL_PARAM_RESSOURCE` et `CONTRIBUTION_PACTE_PEUPLE` ; le + 1 cœur de la réparation ;
+`rendreParuresTx` (retour des parures au camp) ; `max_health_points` et `market_hearts_enabled`
+des réglages résolus d'une partie, « Cœurs maximum » de l'écran des réglages « Tenir » et du
+catalogue `reglages-defaut.json` (la clé générale `gameplay.max_health_points` reste au registre
+pour le jeu classique) ; `tenir.reserves[].health` ; la mise en avant « ressource du peuple » de
+la bourse.
+
+**Banc** (`tools/gl-sim`) : élèves virtuels et mesures en gemmes, nouveau scénario `une-monnaie`
+(une année, plateaux 1 à 4, deux classes). À graine égale (`ensemble-unifie`, graine 14,
+40 chapitres de chaque côté, 0 échec, 0 invariant) : gemmes créées par élève et par chapitre
+2,2 à 3,7 → 1,6 à 2,4 ; sorts lancés inchangés ; aucune équipe, à aucune séance, à moins de
+2 gemmes en poche (les bourses ne sont pas trop maigres au chapitre 1). **Signal** : en fin
+d'année, 27 à 61 % des élèves virtuels sont au plafond de 8 (repère : 25 % au plus) — ils
+gagnent environ 2 gemmes par chapitre et n'en dépensent que 0,8 ; le prix des sorts et des
+parures, données seules, n'a pas été touché. Détail : `docs/GL_SIMULATION.md` § 11.
+
+**Tests** : `tests/gl-tenir-une-monnaie.test.js` (ancien `gl-tenir-deux-monnaies`),
+`tests/gl-ensemble-unifie-une-monnaie.test.js`, `tests-ui/gl/GLUneMonnaie.test.jsx` ; suites
+des sorts, du Marché, des parures, de la réserve et des invariants alignées sur la règle.
+
 ### Ajouté — G&L : ensemble unifié, PR 3 — plusieurs écrans par équipe (17 novembre 2026)
 
 Prompt `docs/GL_ENSEMBLE_UNIFIE_PROMPT.md` (§ 8, décision M13). Une équipe peut jouer sur
@@ -67,7 +142,7 @@ Rejeu élève sur téléphone (375 × 667) : la séance se perdait d'un onglet �
 badges, et terminer une tâche demandait 8 à 9 gestes. Côté mesure, `tasks_completed` ne
 voyait presque aucune tâche terminée.
 
-- **Reprise côté serveur (migration 372)** : `pedago_session_runs` gagne `current_step` (étape
+- **Reprise côté serveur (migration 373)** : `pedago_session_runs` gagne `current_step` (étape
   du passage en cours, NULL hors passage) et `last_step_at`. `POST runs/start` **reprend** un
   passage en cours sans recompter de démarrage (`{ run, resumed }`, `{ restart: true }` pour
   repartir de l'étape 1) ; nouvelle route `POST runs/progress { step }` ; la fin clôt le

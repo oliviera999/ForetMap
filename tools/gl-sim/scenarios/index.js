@@ -14,6 +14,7 @@ const regression = require('./regression-7nov');
 const tabletteParallele = require('./tablette-parallele');
 const ensembleUnifie = require('./ensemble-unifie');
 const multiAppareils = require('./multi-appareils');
+const uneMonnaie = require('./une-monnaie');
 
 const SCENARIOS = Object.freeze([
   ...base.SCENARIOS,
@@ -23,6 +24,7 @@ const SCENARIOS = Object.freeze([
   tabletteParallele,
   ensembleUnifie,
   multiAppareils,
+  uneMonnaie,
 ]);
 
 function trouverScenario(id) {

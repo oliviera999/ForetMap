@@ -76,7 +76,7 @@ jet et d'entraide, fouilles, lecture / tenue, Marché ; relecture des écrans d'
 6e séance (`POST /end` : caravane, honneurs, badges). **À chaque geste** :
 `checkTenirInvariantsFromDb`, 5xx, mots interdits, bourses d'une autre équipe.
 
-## 4. Scénarios (23)
+## 4. Scénarios (24)
 
 | Scénario                                  | Particularité                                                                                                                                                                                                                                                                                                  |
 | ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -97,6 +97,7 @@ jet et d'entraide, fouilles, lecture / tenue, Marché ; relecture des écrans d'
 | `ensemble-unifie`                         | ensemble unifié (PR 1a) : classe moyenne / en difficulté × plateaux 1-4 ; mesures `ensembleUnifie` (fouilles possibles, part des Licornes, ressources créées par élève, tours à un dé, défis de case, reculs de Lumière, écart Licornes − Gnomes)                                                              |
 | `tablette-parallele-absences`             | chapitre 3, quatre tablettes d'équipe ouvertes par le lien de classe, équipes en parallèle : présences confirmées par les équipes, absences, retraits, Cordée, Relance concurrente, sort du prof refusé, équipe déplacée avec une question en attente ; **aucune demande du tour en attente après sa clôture** |
 | `multi-appareils`                         | ensemble unifié (M13) : chapitre 1, **deux tablettes par équipe** (acceptées par le prof, puis par l'équipe), chaque geste envoyé par les deux au même instant ; assertions `DOUBLONS` (0), `LIVRE`, `PERIMES`, `JETS`, `SESSIONS`, `MAINS`                                                                    |
+| `une-monnaie`                             | ensemble unifié (PR 4, M1) : une année, plateaux 1 à 4, classe moyenne / en difficulté ; mesures `uneMonnaie` (bourse de gemmes, plafond, pot des équipes par séance) ; assertions `COEURS` et `PARURES`, signaux `PLAFOND` et `BOURSES-FIN`                                                                   |
 | `equilibrage`                             | grille × {moyenne, difficulté} × plateaux 1-4, variantes côte à côte, écart aux références du modèle rapide                                                                                                                                                                                                    |
 | `badges`                                  | `GET /api/gl/rewards/me` : part d'élèves avec un palier Fil, Spearman justesse ↔ paliers, aucun classement                                                                                                                                                                                                     |
 
@@ -117,8 +118,8 @@ Attendus (`attendus.js`, § 7.6 du cahier des charges) : **avertissements** du r
 | Pages tenues au Seuil (% des zones)              | P1-P2 ≥ 70 · P3-P4 ≥ 50           | P1-P2 ≥ 55 · P3-P4 ≥ 33 |
 | Carnet complet (% des exécutions)                | P1-P2 20-40 · P3-P4 ≥ 1           | —                       |
 | Part des Gnomes dans les pages (%)               | 40-55                             | 40-55                   |
-| Élèves à 0 / 0 en fin de chapitre (%)            | ≤ 5                               | ≤ 5                     |
-| Double plafond 8/8 en fin d'année (%)            | ≤ 20                              | —                       |
+| Élèves à 0 gemme en fin de chapitre (%)          | ≤ 5                               | ≤ 5                     |
+| Au plafond de gemmes (8) en fin d'année (%)      | ≤ 25                              | ≤ 25                    |
 | Indice Matthieu (Spearman justesse ↔ ressources) | ≤ 0,3                             | ≤ 0,3                   |
 | Gini des bourses                                 | ≤ 0,25                            | ≤ 0,25                  |
 | Élèves avec un palier Fil fin chapitre 1 (%)     | ≥ 90                              | ≥ 85                    |
@@ -331,3 +332,49 @@ doit jamais être nommé ; ici ce sont les textes du lore et des fiches nature) 
 « faux », « raté » ou « perdu »** (« Non, c'est faux : … ») alors que l'erreur ne punit pas ;
 faux positif de la liste : « couleurs perdues » (case 54). Décisions d'auteur : une migration
 gardée peut réécrire les 28 retours en « Pas encore : … ».
+
+## 11. Une seule monnaie (18 novembre 2026, ensemble unifié PR 4)
+
+Depuis la PR 4, le banc ne compte plus que des gemmes : les élèves virtuels ne paient, ne donnent
+et n'achètent qu'en gemmes ; `elevesZeroPct` se lit « à 0 gemme », `auPlafondPct` (et l'ancienne
+clé `doublePlafondPct`, gardée pour les rapports déjà produits) « bourse de gemmes pleine ».
+L'invariant `COEURS_HORS_JEU` est rejoué après chaque geste. Chaque chapitre porte un bloc
+`uneMonnaie` dans `summary.json`.
+
+**Avant / après, à graine égale** (`ensemble-unifie`, graine 14, 5 exécutions par classe, soit
+40 chapitres de chaque côté ; moyennes ; 0 échec, 0 invariant, 0 mouvement de cœurs après) :
+
+| Mesure                                                                         | Classe        | P1              | P2              | P3              | P4              |
+| ------------------------------------------------------------------------------ | ------------- | --------------- | --------------- | --------------- | --------------- |
+| Ressources créées par élève et par chapitre, avant → après                     | moyenne       | 2,93 → 2,28     | 3,12 → 2,06     | 3,73 → 2,38     | 3,57 → 2,12     |
+|                                                                                | en difficulté | 2,64 → 1,94     | 2,15 → 1,55     | 3,14 → 2,12     | 2,89 → 1,69     |
+| Bourse moyenne en fin de chapitre, avant (gemmes + cœurs) → après (gemmes)     | moyenne       | 4,9 + 3,2 → 4,4 | 6,4 + 3,9 → 5,7 | 7,5 + 4,6 → 6,7 | 7,7 + 5,7 → 7,1 |
+|                                                                                | en difficulté | 4,5 + 3,4 → 4,2 | 5,4 + 3,7 → 4,8 | 6,7 + 4,4 → 5,9 | 7,3 + 5,1 → 6,3 |
+| Sorts lancés par chapitre (classe), avant → après                              | moyenne       | 10,2 → 9,8      | 8,2 → 7,8       | 7,2 → 8,6       | 7,0 → 10,0      |
+|                                                                                | en difficulté | 9,2 → 9,0       | 8,6 → 8,6       | 10,0 → 10,2     | 8,8 → 9,6       |
+| Élèves au plafond de gemmes en fin de chapitre, après (%)                      | moyenne       | 1               | 9               | 45              | 61              |
+|                                                                                | en difficulté | 2               | 6               | 17              | 27              |
+| Pot d'une équipe à l'ouverture de la première séance, après (gemmes)           | les deux      | 15              | 21 à 22         | 24 à 28         | 29 à 33         |
+| Couples équipe × séance qui ne peuvent pas payer un sort à 2 gemmes, après (%) | les deux      | 0               | 0               | 0               | 0               |
+
+Ce que le banc dit, sans rien régler :
+
+1. **Les bourses ne sont pas trop maigres au chapitre 1.** Une équipe de cinq ouvre l'année avec
+   15 gemmes ; aucune équipe, à aucune séance, n'a moins de 2 gemmes en poche. Les sorts des
+   Gnomes, payés en gemmes, se lancent autant qu'avant.
+2. **Les bourses se remplissent.** En fin d'année, 61 % (classe moyenne) et 27 % (classe en
+   difficulté) des élèves sont au plafond de 8 dans cette campagne ; 53 % et 53 % dans une
+   seconde campagne de même graine jouée à la suite sur la même base (`ensemble-unifie` et
+   `une-monnaie` jouent la même année ; les tirages suivent l'état de la base, donc l'ordre de
+   passage). D'une exécution à l'autre, la part va de 10 % à 95 % : cinq exécutions donnent un
+   ordre de grandeur, pas une mesure fine. Le repère du prompt — 25 % au plus — n'est pas
+   tenu. Ce n'est pas un effet de la monnaie unique : avant elle, la bourse de gemmes finissait
+   déjà à 7,7 en moyenne (7,1 après). Les élèves virtuels gagnent environ 2 gemmes par chapitre et
+   n'en dépensent que 0,7 à 0,8 en sorts et 0,1 en parures ; ils ne lancent aucun sort du camp
+   (Mentorat 3, Lettre 2, Choix 4, Consécration 8) et achètent peu de parures. Leviers, tous des
+   données, non touchés : le prix des sorts, celui des parures, le plafond.
+3. **La création de gemmes est dans la cible du § 6.12** (1,6 à 2,4 par élève et par chapitre) :
+   la réparation ne donne plus rien.
+
+Commandes : `npm run gl:sim -- --scenario ensemble-unifie --runs 5 --seed 14` (à rejouer sur le
+code d'avant pour la colonne « avant ») et `npm run gl:sim -- --scenario une-monnaie --runs 5 --seed 14`.

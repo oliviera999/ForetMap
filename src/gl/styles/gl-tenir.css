@@ -739,6 +739,37 @@
 .gl-sorts-moments__liste li.is-ferme .gl-btn {
   opacity: 0.6;
 }
+/* But de l'année (ensemble unifié, M19) : la Consécration, grisée, avec son prix — une
+   carte, jamais un bouton. */
+.gl-but-annee {
+  margin-top: var(--gl-space-2);
+  padding: var(--gl-space-2);
+  border: 1px dashed var(--line-soft, currentColor);
+  border-radius: 8px;
+  opacity: 0.72;
+}
+.gl-but-annee__titre {
+  font-weight: 600;
+}
+/* Garde-robe du Seuil (M19) : une parure par ligne, un geste par parure. */
+.gl-seuil-garde-robe__liste {
+  display: grid;
+  gap: var(--gl-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.gl-seuil-garde-robe__liste li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gl-space-2);
+  min-height: 44px;
+}
+.gl-seuil-garde-robe__liste .gl-btn {
+  min-height: 44px;
+}
 .gl-role-conseil {
   font-style: italic;
 }

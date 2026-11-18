@@ -169,9 +169,11 @@ test('gl_game_state : bourses agrégées par équipe seulement ; bourses_eleves 
   assert.ok(st.data.bourses.length === 4);
   for (const b of st.data.bourses) {
     assert.ok(b.membres >= 2);
+    // Une seule monnaie (M1) : l'agrégat ne porte que les gemmes.
     assert.ok(
-      'somme' in b.coeurs && 'min' in b.coeurs && 'max' in b.coeurs && 'auPlafond' in b.coeurs,
+      'somme' in b.gemmes && 'min' in b.gemmes && 'max' in b.gemmes && 'auPlafond' in b.gemmes,
     );
+    assert.ok(!('coeurs' in b), 'aucun cœur dans l’état d’une partie « Tenir »');
     assert.ok(!('items' in b) && !('players' in b), 'rien par élève');
   }
   assert.equal(st.data.reserves.length, 4);
@@ -186,6 +188,7 @@ test('gl_game_state : bourses agrégées par équipe seulement ; bourses_eleves 
   assert.equal(nominative.isError, false, nominative.text);
   assert.equal(nominative.data.count, 10);
   assert.ok(nominative.data.items.every((i) => String(i.pseudo).startsWith('joueur-')));
+  assert.ok(nominative.data.items.every((i) => 'gemmes' in i && !('coeurs' in i)));
   assert.doesNotMatch(nominative.text, RANKING_RE);
   const audit = await queryOne(
     "SELECT payload_json FROM audit_log WHERE action = 'mcp.privacy_bypass.read' ORDER BY id DESC LIMIT 1",

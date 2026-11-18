@@ -9,12 +9,8 @@
       "classe"
     ],
     "ressource": {
-      "gemmes": "gemmes (bourse power_points)",
-      "coeurs": "cœurs (bourse health_points)",
-      "peuple": "la ressource du peuple du lanceur (gemmes si Licorne, cœurs si Gnome)",
-      "choix": "l'une ou l'autre, au choix de l'équipe",
-      "pacte": "2 cœurs versés par l'équipe gnome + 2 gemmes versés par l'équipe licorne",
-      "cartes": "palier de cartes Team Spirit gardées (pas une bourse)"
+      "gemmes": "gemmes (bourse power_points) — la seule monnaie du jeu (ensemble unifié, M1)",
+      "cartes": "palier de cartes Team Spirit gardées (pas une bourse ; sort de classe sorti du grimoire)"
     },
     "fenetre": {
       "avant_jet": "phase jeu, avant le jet de l'équipe",
@@ -52,7 +48,7 @@
       "famille": "commun",
       "peuple": "any",
       "cout": 1,
-      "ressource": "choix",
+      "ressource": "gemmes",
       "fenetre": "apres_jet",
       "limite": {
         "par": "tour",
@@ -79,7 +75,7 @@
       "famille": "commun",
       "peuple": "any",
       "cout": 2,
-      "ressource": "choix",
+      "ressource": "gemmes",
       "fenetre": "apres_jet",
       "limite": {
         "par": "tour",
@@ -102,7 +98,7 @@
       "famille": "commun",
       "peuple": "any",
       "cout": 1,
-      "ressource": "choix",
+      "ressource": "gemmes",
       "fenetre": "jeu",
       "limite": {
         "par": "seance",
@@ -125,7 +121,7 @@
       "famille": "commun",
       "peuple": "any",
       "cout": 3,
-      "ressource": "choix",
+      "ressource": "gemmes",
       "fenetre": "seuil",
       "limite": {
         "par": "chapitre",
@@ -134,11 +130,11 @@
       },
       "cible": "eleve",
       "execution": "auto",
-      "effet_court": "lègue 2 unités (ressource au choix) à un élève pour le chapitre suivant",
+      "effet_court": "lègue 2 gemmes à un élève pour le chapitre suivant",
       "effet_auto_json": {
         "type": "heritage",
         "montant": 2,
-        "ressource": "choix",
+        "ressource": "gemmes",
         "application": "ouverture_chapitre_suivant"
       },
       "chapitre_ouverture": 3,
@@ -252,7 +248,7 @@
       "famille": "gnomes",
       "peuple": "gnome",
       "cout": 2,
-      "ressource": "coeurs",
+      "ressource": "gemmes",
       "fenetre": "jeu",
       "limite": {
         "par": "tour",
@@ -261,16 +257,11 @@
       },
       "cible": "zone_palie",
       "execution": "prof",
-      "effet_court": "une page pâlie au choix devient reparee si l'équipe nomme 3 vivants du biome (clic de validation du prof) ; +1 cœur aux Gnomes de l'équipe",
+      "effet_court": "une page pâlie au choix devient réparée si l'équipe nomme 3 vivants du biome (clic de validation du prof)",
       "effet_auto_json": {
         "type": "reparer_zone",
         "validation": "prof",
-        "vivants_a_nommer": 3,
-        "bonus": {
-          "ressource": "coeurs",
-          "montant": 1,
-          "beneficiaires": "gnomes_equipe"
-        }
+        "vivants_a_nommer": 3
       },
       "chapitre_ouverture": 1,
       "nouveau": true
@@ -281,7 +272,7 @@
       "famille": "gnomes",
       "peuple": "gnome",
       "cout": 2,
-      "ressource": "coeurs",
+      "ressource": "gemmes",
       "fenetre": "avant_jet",
       "limite": {
         "par": "tour",
@@ -303,7 +294,7 @@
       "famille": "gnomes",
       "peuple": "gnome",
       "cout": 2,
-      "ressource": "coeurs",
+      "ressource": "gemmes",
       "fenetre": "jeu",
       "limite": {
         "par": "tour",
@@ -329,7 +320,7 @@
       "famille": "gnomes",
       "peuple": "gnome",
       "cout": 3,
-      "ressource": "coeurs",
+      "ressource": "gemmes",
       "fenetre": "jeu",
       "limite": {
         "par": "tour",
@@ -354,7 +345,7 @@
       "famille": "pacte",
       "peuple": "pacte",
       "cout": 4,
-      "ressource": "peuple",
+      "ressource": "gemmes",
       "fenetre": "jeu",
       "limite": {
         "par": "tour",
@@ -382,7 +373,7 @@
       "famille": "travail",
       "peuple": "any",
       "cout": 2,
-      "ressource": "peuple",
+      "ressource": "gemmes",
       "fenetre": "activite",
       "limite": {
         "par": "seance",
@@ -402,7 +393,7 @@
       "famille": "travail",
       "peuple": "any",
       "cout": 2,
-      "ressource": "peuple",
+      "ressource": "gemmes",
       "fenetre": "activite",
       "limite": {
         "par": "seance",
@@ -422,7 +413,7 @@
       "famille": "travail",
       "peuple": "any",
       "cout": 2,
-      "ressource": "peuple",
+      "ressource": "gemmes",
       "fenetre": "activite",
       "limite": {
         "par": "seance",
@@ -442,7 +433,7 @@
       "famille": "travail",
       "peuple": "any",
       "cout": 3,
-      "ressource": "peuple",
+      "ressource": "gemmes",
       "fenetre": "activite",
       "limite": {
         "par": "seance",
@@ -462,7 +453,7 @@
       "famille": "travail",
       "peuple": "any",
       "cout": 3,
-      "ressource": "peuple",
+      "ressource": "gemmes",
       "fenetre": "activite",
       "limite": {
         "par": "seance",
@@ -482,7 +473,7 @@
       "famille": "travail",
       "peuple": "any",
       "cout": 2,
-      "ressource": "peuple",
+      "ressource": "gemmes",
       "fenetre": "activite",
       "limite": {
         "par": "seance",
@@ -502,7 +493,7 @@
       "famille": "seuil",
       "peuple": "any",
       "cout": 3,
-      "ressource": "peuple",
+      "ressource": "gemmes",
       "fenetre": "seuil_veillee",
       "limite": {
         "par": "trimestre",
@@ -522,7 +513,7 @@
       "famille": "seuil",
       "peuple": "any",
       "cout": 3,
-      "ressource": "peuple",
+      "ressource": "gemmes",
       "fenetre": "seuil_veillee",
       "limite": {
         "par": "chapitre",
@@ -549,7 +540,7 @@
       "famille": "seuil",
       "peuple": "any",
       "cout": 2,
-      "ressource": "peuple",
+      "ressource": "gemmes",
       "fenetre": "seuil_veillee",
       "limite": {
         "par": "chapitre",
@@ -597,7 +588,7 @@
       "famille": "seuil",
       "peuple": "any",
       "cout": 4,
-      "ressource": "peuple",
+      "ressource": "gemmes",
       "fenetre": "seuil",
       "limite": {
         "par": "chapitre",
@@ -617,7 +608,7 @@
       "famille": "seuil",
       "peuple": "any",
       "cout": 8,
-      "ressource": "choix",
+      "ressource": "gemmes",
       "fenetre": "trimestre_3",
       "limite": {
         "par": "annee",
@@ -626,7 +617,7 @@
       },
       "cible": "eleve",
       "execution": "prof",
-      "effet_court": "vert + au bulletin (8 unités offertes)",
+      "effet_court": "vert + au bulletin : le but de l'année (8 gemmes)",
       "effet_auto_json": null,
       "chapitre_ouverture": "retour",
       "nouveau": false

@@ -25,7 +25,7 @@ before(async () => {
   await runImports(db, { fichier: 'parures', dossier: EXEMPLE });
 });
 
-test('clôture forcée : la caravane porte les retardataires, parures rendues, annonces expirées, retraits clos, une seule fois', async () => {
+test('clôture forcée : la caravane porte les retardataires, parures gardées (plus rendues au comptoir), annonces expirées, retraits clos, une seule fois', async () => {
   const ctx = await createTenirGame({ stamp: Date.now() });
   const camp = ctx.markers[ctx.markers.length - 1];
   await execute('UPDATE gl_teams SET position_marker_id = ? WHERE id = ?', [
@@ -50,13 +50,15 @@ test('clôture forcée : la caravane porte les retardataires, parures rendues, a
   const a = ctx.players[0];
   await setPlayerBourses(a.id, 3, 5);
   const parure = await queryOne(
-    'SELECT code FROM gl_tenir_parures WHERE asset IS NOT NULL AND actif = 1 LIMIT 1',
+    'SELECT code, prix FROM gl_tenir_parures WHERE asset IS NOT NULL AND actif = 1 LIMIT 1',
   );
   const bought = await request(app)
     .post(`/api/gl/market/parures/${parure.code}/acheter`)
     .set(auth(a.token))
     .send({ ressource: 'gemmes' });
   assert.equal(bought.status, 201, JSON.stringify(bought.body));
+  // Payée en gemmes seulement : les cœurs ne bougent pas.
+  assert.deepEqual(await readPlayerBourses(a.id), { health: 3, power: 5 - Number(parure.prix) });
   const annonce = await request(app)
     .post('/api/gl/market/annonces')
     .set(auth(a.token))
@@ -89,7 +91,22 @@ test('clôture forcée : la caravane porte les retardataires, parures rendues, a
   const worn = await queryOne('SELECT rendue_at FROM gl_game_parures WHERE id = ?', [
     bought.body.id,
   ]);
-  assert.ok(worn.rendue_at, 'parure rendue au comptoir');
+  // Ensemble unifié (M19) : la clôture ne rend plus les parures au comptoir.
+  assert.equal(worn.rendue_at, null, 'la parure n’est pas rendue au comptoir');
+  const gardeRobe = await queryAll(
+    'SELECT parure_code, game_id FROM gl_player_parures WHERE player_id = ?',
+    [a.id],
+  );
+  assert.deepEqual(
+    gardeRobe.map((r) => ({ code: r.parure_code, gameId: Number(r.game_id) })),
+    [{ code: parure.code, gameId: Number(ctx.game.id) }],
+    'la parure reste dans la garde-robe de l’élève après la clôture',
+  );
+  assert.deepEqual(
+    await readPlayerBourses(a.id),
+    { health: 3, power: 5 - Number(parure.prix) },
+    'la clôture ne rembourse ni ne reprend rien',
+  );
   const ann = await queryOne('SELECT statut FROM gl_market_annonces WHERE id = ?', [
     annonce.body.id,
   ]);

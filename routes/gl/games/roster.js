@@ -7,6 +7,7 @@ const {
   unassignPlayerFromGameTx,
   autoAssignRosterTx,
 } = require('../../../lib/glRoster');
+const { isTenirGame } = require('../../../lib/glTenir');
 const asyncHandler = require('../../../lib/asyncHandler');
 // O10 — resolveRosterError partagé via lib/gl/gamesRuntime.js (aussi utilisé par join-team dans gl/games.js).
 const { resolveRosterError } = require('../../../lib/gl/gamesRuntime');
@@ -20,10 +21,15 @@ router.get(
   asyncHandler(async (req, res) => {
     const gameId = parseId(req.params.id);
     if (!gameId) return res.status(400).json({ error: 'Identifiant de partie invalide' });
-    const game = await queryOne('SELECT id, class_id FROM gl_games WHERE id = ? LIMIT 1', [gameId]);
+    const game = await queryOne(
+      'SELECT id, class_id, tenir_profil FROM gl_games WHERE id = ? LIMIT 1',
+      [gameId],
+    );
     if (!game) return res.status(404).json({ error: 'Partie introuvable' });
 
     const settings = await getGameplaySettings();
+    // Ensemble unifié (M1) : une partie « Tenir » n'a qu'une monnaie — aucun cœur servi.
+    const gemmesSeules = isTenirGame(settings, game);
     const vitalitySelect = settings.vitalityEnabled ? ', p.health_points, p.power_points' : '';
     const rows = await queryAll(
       `SELECT p.id, p.first_name, p.last_name, p.pseudo, p.is_active,
@@ -47,7 +53,7 @@ router.get(
           teamName: row.team_name || null,
         };
         if (settings.vitalityEnabled) {
-          out.healthPoints = Number(row.health_points) || 0;
+          if (!gemmesSeules) out.healthPoints = Number(row.health_points) || 0;
           out.powerPoints = Number(row.power_points) || 0;
         }
         return out;

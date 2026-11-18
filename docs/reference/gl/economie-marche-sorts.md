@@ -9,6 +9,12 @@
 Comprendre d'où viennent et où vont les points du jeu — pour l'expliquer simplement
 aux élèves et régler des séances équilibrées.
 
+> **« Tenir à deux » : une seule monnaie.** Depuis le 18 novembre 2026, une classe qui joue la
+> mouture « Tenir à deux » n'a plus qu'une bourse, les **gemmes 💎** : aucun écran n'y montre ni
+> n'y nomme de cœurs. Les trois premières parties de ce document (les deux jauges, le Marché, les
+> sortilèges) décrivent le **jeu classique** ; pour « Tenir à deux », lisez directement
+> [« Tenir à deux » : une seule monnaie](#-tenir-à-deux---une-seule-monnaie-la-place-le-grimoire).
+
 ## Les deux jauges : cœurs ❤️ et gemmes 💎
 
 Chaque joueur possède deux jauges **personnelles et durables** (elles ne se remettent
@@ -287,19 +293,21 @@ de gemmes.
 > gnomes, prévoyez au moins une équipe gnome — ou laissez ces sorts sur « Gnomes et
 > licornes ».
 
-## « Tenir à deux » : deux monnaies, la place, le grimoire
+## « Tenir à deux » : une seule monnaie, la place, le grimoire
 
-Dans cette mouture, chaque élève a **ses gemmes et ses cœurs** (3 et 3 au départ, 8 au plus) : il
-les voit, son équipe les voit, vous les voyez ; personne d'autre. On gagne la ressource de son
-peuple (gemmes chez les Licornes, cœurs chez les Gnomes) en tenant une page à deux, sur les cases
-de la Trame et quand le carnet de la classe est complet. Rien ne retire une ressource sinon un sort,
-un échange, un don, une case Souffle ou le chapardeur — jamais une mauvaise réponse, jamais le
-voile. **Un défi ne donne jamais de ressource** : un défi de case fait reculer le voile, un défi
-de la Trame apporte une page de veillée et un badge. Vous pouvez, exceptionnellement, ajuster
-une bourse avec un motif.
+Dans cette mouture, chaque élève a **une bourse de gemmes** : 3 au départ du chapitre 1, 8 au
+plus, **gardée toute l'année**. Il la voit, son équipe la voit, vous la voyez ; personne d'autre.
+Les cœurs n'existent plus dans ce jeu : ni à l'écran, ni dans le journal, ni au Marché. On gagne
+une gemme en faisant tenir une page (les lecteurs présents), sur les cases de la Trame et quand le
+carnet de la classe est complet. Rien ne retire une gemme sinon un sort, un échange, un don, une
+parure ou le chapardeur — jamais une mauvaise réponse, jamais le voile, jamais une case.
+**Un défi ne donne jamais de gemme**, une page réparée non plus : un défi de case fait reculer le
+voile, un défi de la Trame apporte une page de veillée et un badge, une page réparée attend son
+lecteur. Vous pouvez, exceptionnellement, ajuster une bourse (3 gemmes au plus, avec un motif).
 
 **La place du Marché** : annonces (je cherche, j'offre, je propose), échanges à deux, **dons**
-immédiats, et un **comptoir de parures** pour la mascotte de l'équipe (sans effet de jeu). Un élève
+immédiats (des gemmes ou des pages, rien d'autre), et un **comptoir de parures** (sans effet de
+jeu ; voir plus bas). Un élève
 en retrait ne voit pas la place. **Chacun vient au Marché avec son propre compte** : depuis le
 17 novembre 2026, la tablette de l'équipe ne l'ouvre plus (une bourse ne bouge que depuis le
 compte de son propriétaire, ou par le MJ).
@@ -318,8 +326,8 @@ de ressource (« Nommer », qui en rendait, est sorti du grimoire le 17 novembre
   fait tenir) ; rien de plus à l'équipe qui l'a trouvée. En veillée, le gain va à l'équipe du
   lecteur. Une case Trame donne une gemme à chaque membre ; le carnet complet, une gemme à tous.
   Les cases positives ne donnent plus de ressource, et aucune case Souffle n'en retire (au tour
-  suivant, un seul dé). Jusqu'à la monnaie unique (gemmes seulement, prochaine livraison), les
-  sorts gnomes se paient encore en cœurs.
+  suivant, un seul dé). Depuis le 18 novembre 2026, tous les sorts se paient en gemmes (voir
+  « Une seule monnaie » plus bas).
 - **Grimoire à 19 sorts** : Nommer, Héritage, Boussole, Tablette, Musique et le sort « Lumière »
   sortent. Chapitre 1 : Progression, Relance, Farce, Lanterne, Bourrasque, Sentier, Relais,
   Question ; chapitre 2 : Grand Regard, Abri, Cordée, Conseil, Pause, Rôle ; chapitre 3 : Esquive,
@@ -365,6 +373,54 @@ de ressource (« Nommer », qui en rendait, est sorti du grimoire le 17 novembre
 - **Le lexique** : la fin de chapitre s'appelle **le camp** (les sorts se lancent « au camp ou en
   veillée ») ; **le Seuil** reste l'espace personnel de l'élève.
 
+## Ensemble unifié : une seule monnaie, parures gardées, but de l'année (18 novembre 2026)
+
+- **Une seule monnaie, les gemmes.** Tout se paie et tout se gagne en gemmes. Les sorts des
+  Gnomes (Sentier, Abri, Relais) coûtent le même nombre qu'avant, en gemmes ; la Cordée coûte
+  4 gemmes à l'équipe qui la lance ; plus aucun sort ne demande de choisir « en quoi payer ». Le
+  pot d'un sort se partage toujours entre les présents de l'équipe, et la réserve de la caravane
+  (les gemmes gagnées au-dessus du plafond) le paie en premier.
+- **Départ à 3.** Quand vous créez la **première** partie du **plateau 1** d'une classe, la
+  bourse de chaque élève est posée à 3 gemmes : c'est le début de l'année. Ensuite, rien n'est
+  plus remis à zéro — ni aux plateaux suivants, ni si vous recréez une partie du plateau 1 (un
+  essai, par exemple). Le plafond est de 8.
+- **Ce qui a changé pour les bourses déjà ouvertes.** Le jour de la mise en service, les bourses
+  des parties « Tenir à deux » en cours ont été converties une seule fois : gemmes + cœurs,
+  jusqu'à 8. Personne n'y a rien cédé.
+- **Réparer une page ne donne plus rien.** L'ancien + 1 cœur aux Gnomes a disparu avec les
+  cœurs : la page réparée attend son lecteur de l'autre peuple, et c'est lui qui gagne la gemme.
+- **Le chapardeur** prend une gemme à la bourse la plus pleine du groupe ; elle revient, à la
+  prochaine page trouvée, au membre le moins riche de l'équipe qui la trouve.
+- **Votre geste sur une bourse** (console, « Gemmes (équipe active) ») : de − 3 à + 3 gemmes, un
+  motif vous est demandé, il est noté au journal.
+- **Au Marché** : gemmes et pages seulement. Une annonce ou un échange d'avant qui parlaient
+  encore de cœurs se ferment seuls ; les élèves n'ont rien à faire. Un élève n'y voit que les
+  bourses de sa propre équipe, et seulement pendant une partie en cours.
+- **Parures : de 2 à 8 gemmes, et elles se gardent.** Le comptoir propose douze parures, dont deux
+  **rares** (le pelage du Bestiaire, 7 gemmes, et le pelage néon, 8 gemmes, au chapitre 4). Une
+  parure achetée est **à l'élève toute l'année** : elle se pose aussitôt sur la mascotte de son
+  équipe, et plus rien ne revient au comptoir à la fin d'un chapitre. Quand les équipes changent,
+  l'élève ouvre **« Ma garde-robe »**, au Seuil, et pose sa parure sur la mascotte de sa nouvelle
+  équipe (il peut aussi la ranger ; un élève absent ou en retrait attend la fin du tour). Une parure déjà acquise ne se rachète pas, et ne s'échange
+  pas.
+- **La Consécration, but de l'année.** Sous les sorts de l'écran d'équipe, et au Seuil, une carte
+  grisée montre la Consécration et son prix (8 gemmes) **dès le chapitre 1**. Ce n'est pas un
+  bouton : on ne peut rien y lancer avant le troisième trimestre. Elle ne montre jamais la bourse
+  de personne.
+- **Réglages.** « Cœurs maximum » a quitté les réglages de « Tenir à deux » ; « Gemmes maximum »
+  (8) reste. Le réglage « Cœurs échangeables sur le Marché » ne concerne plus que le jeu
+  classique.
+
+> ⚠️ **Point d'attention** — D'après la simulation (élèves virtuels, une année entière), les
+> bourses suffisent dès le chapitre 1 pour lancer des sorts : une équipe de cinq ouvre l'année
+> avec 15 gemmes. En revanche elles **se remplissent** au fil des chapitres : en fin d'année,
+> environ la moitié des élèves atteignent le plafond de 8, dans une classe à l'aise comme dans
+> une classe en difficulté (le repère visé était un quart au plus). Ce qui dépasse le plafond
+> part à la réserve de l'équipe, qui paie ses sorts. Les élèves virtuels ne lancent pas les sorts
+> du camp (Mentorat, Lettre, Choix, Consécration) et achètent peu de parures : de vrais élèves
+> dépenseront sans doute davantage. Si les bourses restent trop pleines, le prix des sorts et des
+> parures est une donnée du catalogue, simple à ajuster — elle n'a pas été touchée.
+
 ## Ensemble unifié : au chapitre 1, sorts et Marché arrivent en cours de route (17 novembre 2026)
 
 Dans une partie du plateau 1 qui monte l'**escalier** (voir
@@ -389,6 +445,7 @@ Dans une partie du plateau 1 qui monte l'**escalier** (voir
   Trame ; une case neutre ne retire jamais de ressource (réglage « Cases positives à ressource »).
   _Remplacé le 17 novembre 2026 : une case positive donne son mouvement, sans ressource._
 - Les **parures** sans image restent achetables : la mascotte porte une pastille texte.
+  _Depuis le 18 novembre 2026, une parure achetée reste à l'élève toute l'année (voir plus haut)._
 - Un élève en **retrait** lit et tient une page ; le Marché et le pot lui restent fermés.
 
 ## Relance annule le jet (9 novembre 2026)
@@ -401,7 +458,7 @@ ce choix ait un sens, la case ne doit pas déjà avoir joué :
   avance et la case d'arrivée **s'affiche sans s'appliquer** : l'écran d'équipe montre le jet, la
   case et son effet, avec **« Garder ce jet »** et **« Relance… »**.
 - **Relance** annule le jet : la mascotte revient sur sa case de départ, la case ne s'applique
-  jamais, seul le coût de Relance (2, cœurs ou gemmes) est payé. L'équipe rejette les dés ; ce
+  jamais, seul le coût de Relance (2 gemmes) est payé. L'équipe rejette les dés ; ce
   second jet s'applique aussitôt (Relance est déjà pris pour le tour).
 - Relance ne se lance **qu'à ce moment-là** : ni avant le jet, ni une fois la case appliquée.
 - La case attendue s'applique d'office dès que la partie avance : une autre équipe jette, le MJ
@@ -422,8 +479,8 @@ ce choix ait un sens, la case ne doit pas déjà avoir joué :
 En surface **hybride** et **tablette**, les équipes jouent en même temps. Au tableau, rien de ce
 qui suit ne s'applique : les règles ci-dessus restent celles de l'équipe active.
 
-**La Cordée est offerte.** L'équipe qui la lance la **paie seule** : 4 dans la ressource de son
-peuple (4 cœurs pour des Gnomes, 4 gemmes pour des Licornes). L'équipe partenaire, de l'autre
+**La Cordée est offerte.** L'équipe qui la lance la **paie seule** : 4 gemmes (depuis le
+18 novembre 2026, quel que soit son peuple). L'équipe partenaire, de l'autre
 peuple, ne paie rien et n'a rien à accepter : son écran affiche « L'équipe … vous encorde. ». Le
 reste ne change pas : le meilleur des deux jets vaut pour les deux, et le voile ne les touche pas.
 _Depuis le 17 novembre 2026, la Cordée se lance pendant le jeu et agit au tour suivant (voir plus

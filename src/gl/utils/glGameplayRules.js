@@ -83,14 +83,15 @@ export function computePlayerVitality({
   if (!showsPlayerChrome || !vitalityEnabled) return null;
   const playerId = auth?.userId != null ? Number(auth.userId) : null;
   if (playerId == null) return null;
+  // Ensemble unifié (M1) : une partie « Tenir » ne sert que des gemmes (`health` absent).
   const fromGame = gameState?.vitality?.byPlayerId?.[playerId];
   if (fromGame) {
-    return { health: fromGame.health, power: fromGame.power };
+    return { health: fromGame.health ?? null, power: fromGame.power };
   }
   const source = profile || {};
   if (source.health_points != null || source.power_points != null) {
     return {
-      health: Number(source.health_points) || 0,
+      health: source.health_points != null ? Number(source.health_points) || 0 : null,
       power: Number(source.power_points) || 0,
     };
   }

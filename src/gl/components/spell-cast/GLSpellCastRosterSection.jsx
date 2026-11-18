@@ -134,8 +134,7 @@ function RosterPlayerRow({
       <div className="gl-spell-cast-roster__identity">
         <strong>{formatPlayerLabel(player)}</strong>
         <span className="gl-spell-cast-roster__balance">
-          ❤️
-          {player.healthPoints} · 💎
+          {player.healthPoints != null ? `❤️${player.healthPoints} · ` : ''}💎
           {player.powerPoints}
         </span>
         {blockedByCasterKind ? (
