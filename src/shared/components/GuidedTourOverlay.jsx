@@ -16,36 +16,78 @@ const CARD_WIDTH_WITH_PORTRAIT = 384;
 /** Sous ce seuil, le portrait devient un médaillon d'angle et la carte reste étroite (§9.3). */
 const COMPACT_QUERY = '(max-width: 480px)';
 
-/** Calcule la position de la carte d'info autour de la cible mise en lumière. */
-function computeCardPosition(rect, placement, cardWidth = CARD_WIDTH) {
-  const vw = window.innerWidth;
-  const vh = window.innerHeight;
-  const width = Math.min(cardWidth, Math.max(240, vw - 24));
-  if (!rect) {
-    return {
-      left: Math.max(12, (vw - width) / 2),
-      top: Math.max(12, vh / 2 - 90),
-      centered: true,
-      width,
-    };
-  }
+/** Marge minimale entre la carte et les bords de l'écran. */
+const VIEWPORT_GUTTER = 12;
+/** Hauteur supposée tant que la carte n'a pas encore été mesurée (premier rendu). */
+const CARD_HEIGHT_FALLBACK = 220;
+
+/**
+ * Calcule la position de la carte d'info autour de la cible mise en lumière.
+ *
+ * `cardHeight` est la hauteur **mesurée** de la carte : sans elle, une carte placée sous
+ * une cible basse débordait de l'écran et ses boutons (Passer / Suivant) devenaient
+ * inaccessibles. La carte est donc retournée au-dessus quand elle tient mieux, puis
+ * recalée verticalement pour rester entière dans la fenêtre. Exportée pour les tests.
+ */
+export function computeCardPosition(
+  rect,
+  placement,
+  cardWidth = CARD_WIDTH,
+  cardHeight = 0,
+  viewport = null,
+) {
+  const vw = viewport?.width ?? window.innerWidth;
+  const vh = viewport?.height ?? window.innerHeight;
+  const width = Math.min(cardWidth, Math.max(240, vw - VIEWPORT_GUTTER * 2));
+  // La carte ne dépasse jamais la fenêtre (le CSS borne aussi sa hauteur et fait défiler
+  // le texte) : on raisonne sur la hauteur effectivement affichable.
+  const maxHeight = Math.max(0, vh - VIEWPORT_GUTTER * 2);
+  const height = Math.min(cardHeight > 0 ? cardHeight : CARD_HEIGHT_FALLBACK, maxHeight);
+  const clampTop = (top) => Math.max(VIEWPORT_GUTTER, Math.min(top, vh - VIEWPORT_GUTTER - height));
+  const clampLeft = (left) =>
+    Math.max(VIEWPORT_GUTTER, Math.min(left, vw - width - VIEWPORT_GUTTER));
+  const centered = () => ({
+    left: clampLeft((vw - width) / 2),
+    top: clampTop((vh - height) / 2),
+    centered: true,
+    width,
+    maxHeight,
+  });
+
+  if (!rect || placement === 'center') return centered();
 
   const space = {
-    top: rect.top,
-    bottom: vh - rect.bottom,
-    left: rect.left,
-    right: vw - rect.right,
+    top: rect.top - CARD_MARGIN,
+    bottom: vh - rect.bottom - CARD_MARGIN,
+    left: rect.left - CARD_MARGIN,
+    right: vw - rect.right - CARD_MARGIN,
   };
+  const fitsBottom = space.bottom >= height + VIEWPORT_GUTTER;
+  const fitsTop = space.top >= height + VIEWPORT_GUTTER;
+  const fitsRight = space.right >= width + VIEWPORT_GUTTER;
+  const fitsLeft = space.left >= width + VIEWPORT_GUTTER;
+
   let place = placement;
   if (!place || place === 'auto') {
-    place =
-      space.bottom >= 220
-        ? 'bottom'
-        : space.top >= 220
-          ? 'top'
-          : space.right >= 340
-            ? 'right'
-            : 'left';
+    place = fitsBottom
+      ? 'bottom'
+      : fitsTop
+        ? 'top'
+        : fitsRight
+          ? 'right'
+          : fitsLeft
+            ? 'left'
+            : space.bottom >= space.top
+              ? 'bottom'
+              : 'top';
+  } else if (place === 'bottom' && !fitsBottom && fitsTop) {
+    place = 'top';
+  } else if (place === 'top' && !fitsTop && fitsBottom) {
+    place = 'bottom';
+  } else if (place === 'right' && !fitsRight && fitsLeft) {
+    place = 'left';
+  } else if (place === 'left' && !fitsLeft && fitsRight) {
+    place = 'right';
   }
 
   let left;
@@ -53,7 +95,7 @@ function computeCardPosition(rect, placement, cardWidth = CARD_WIDTH) {
   switch (place) {
     case 'top':
       left = rect.left + rect.width / 2 - width / 2;
-      top = rect.top - CARD_MARGIN;
+      top = rect.top - CARD_MARGIN - height;
       break;
     case 'left':
       left = rect.left - width - CARD_MARGIN;
@@ -63,8 +105,6 @@ function computeCardPosition(rect, placement, cardWidth = CARD_WIDTH) {
       left = rect.right + CARD_MARGIN;
       top = rect.top;
       break;
-    case 'center':
-      return { left: (vw - width) / 2, top: vh / 2 - 90, centered: true, width };
     case 'bottom':
     default:
       left = rect.left + rect.width / 2 - width / 2;
@@ -72,11 +112,8 @@ function computeCardPosition(rect, placement, cardWidth = CARD_WIDTH) {
       break;
   }
 
-  // On garde la carte dans l'écran.
-  left = Math.max(12, Math.min(left, vw - width - 12));
-  top = Math.max(12, Math.min(top, vh - 12));
-  const translateY = place === 'top' ? '-100%' : '0';
-  return { left, top, translateY, centered: false, width };
+  // On garde la carte entière dans l'écran, quitte à recouvrir un peu la cible.
+  return { left: clampLeft(left), top: clampTop(top), centered: false, width, maxHeight };
 }
 
 /**
@@ -101,8 +138,10 @@ export function GuidedTourOverlay({
   onStop,
 }) {
   const [rect, setRect] = useState(null);
+  const [cardHeight, setCardHeight] = useState(0);
   const rafRef = useRef(0);
   const bubbleRef = useRef(null);
+  const cardRef = useRef(null);
   const compact = useMediaQuery(COMPACT_QUERY);
 
   const step = active?.steps?.[active.index] || null;
@@ -171,6 +210,26 @@ export function GuidedTourOverlay({
     };
   }, [active, target, stepIndex, measure]);
 
+  // Hauteur réelle de la carte (titre, texte d'Olu, boutons) : elle conditionne le
+  // placement, sans quoi la carte déborde sous l'écran. Recalée si le contenu change.
+  useLayoutEffect(() => {
+    const el = cardRef.current;
+    if (!active || !el) return undefined;
+    const update = () => {
+      const h = el.scrollHeight || el.getBoundingClientRect().height || 0;
+      setCardHeight((prev) => (Math.abs(prev - h) < 1 ? prev : h));
+    };
+    update();
+    let observer = null;
+    if (typeof ResizeObserver !== 'undefined') {
+      observer = new ResizeObserver(update);
+      observer.observe(el);
+    }
+    return () => {
+      if (observer) observer.disconnect();
+    };
+  }, [active, stepIndex]);
+
   // Raccourcis clavier.
   useEffect(() => {
     if (!active) return undefined;
@@ -205,6 +264,7 @@ export function GuidedTourOverlay({
     rect,
     step.placement,
     showPortrait && !compact ? CARD_WIDTH_WITH_PORTRAIT : CARD_WIDTH,
+    cardHeight,
   );
   const isLast = stepIndex >= stepCount - 1;
 
@@ -227,13 +287,14 @@ export function GuidedTourOverlay({
       )}
 
       <div
+        ref={cardRef}
         className={`discovery-tour__card ${card.centered ? 'is-centered' : ''}`}
         style={{
           position: 'fixed',
           left: card.left,
           top: card.top,
           width: card.width,
-          transform: card.translateY ? `translateY(${card.translateY})` : undefined,
+          maxHeight: card.maxHeight,
         }}
       >
         <div className="discovery-tour__progress">
