@@ -9,6 +9,22 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — Popups d'Olu tronquées en bas d'écran (18 novembre 2026)
+
+Les fenêtres où parle Olu pouvaient sortir de l'écran par le bas, sans moyen d'en sortir :
+
+- **Visite guidée** (`GuidedTourOverlay`, ForetMap + G&L) : la carte était placée sous la cible
+  sans tenir compte de sa propre hauteur. Elle est désormais **mesurée**, retournée au-dessus
+  de la cible quand elle n'a pas la place dessous, puis recalée pour tenir entière dans la
+  fenêtre ; sa hauteur est bornée à l'écran et seul le texte d'Olu défile — les boutons
+  « Passer / Suivant » restent toujours visibles. Test : `tests-ui/shared/GuidedTourCardPosition.test.js`.
+- **Aide « ? » G&L et Plan** (`HelpDock`) : les classes d'overlay `gl-help-dialog-overlay` et
+  `plan-help-overlay` n'avaient aucune règle CSS, la fenêtre s'ajoutait donc en bas de page. Le
+  dock pose maintenant le socle partagé `fm-modal-overlay` (overlay fixe) et
+  `fm-help-dock-dialog` (hauteur bornée, contenu défilant, `modal-shell.css`).
+- **Célébration de récompense** : hauteur bornée et défilement, pour qu'une longue liste ne
+  pousse plus la bulle d'Olu hors de l'écran.
+
 ### Corrigé — G&L : ensemble unifié, vérification des cinq PR (18 novembre 2026)
 
 Relecture des PR #662 (1a), #664 (1b), #667, #670 et #672 après fusion
