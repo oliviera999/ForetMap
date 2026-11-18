@@ -56,7 +56,11 @@ function TeamCard({
           case {numeroCase(team.pathIndex) ?? '—'}
           {team.auCamp ? ' · au camp' : ''}
           {team.hasRolledDiceThisRound ? ' · dés lancés' : ''}
-          {team.unDe ? ' · un seul dé au prochain tour' : ''}
+          {team.unDe
+            ? team.desProchainJet === 1
+              ? ' · un seul dé ce tour-ci'
+              : ' · un seul dé au prochain tour'
+            : ''}
           {fouilles ? ` · fouilles ${fouilles.restantes}/${fouilles.quota}` : ''}
           {reserve && reserve.power ? ` · réserve 💎 ${reserve.power}` : ''}
         </span>

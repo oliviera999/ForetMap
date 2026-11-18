@@ -316,8 +316,10 @@ l'a trouvée ne gagne rien de plus). Les Gnomes réparent les pages pâlies.
   projection disent « révélée par …, trouvée par …, tenue par … ».
 - **Case Souffle** : au tour suivant, l'équipe ne lance **qu'un dé** — le même effet pour les deux
   peuples, sur les quatre plateaux. Ni recul, ni tour passé, ni ressource retirée. L'écran d'équipe,
-  la console et la projection affichent « Au prochain tour : un seul dé ». Sentier l'empêche ; la
-  relance gagnée par une bonne réponse se joue à deux dés.
+  la console et la projection affichent « Au prochain tour : un seul dé », puis « Ce tour-ci : un
+  seul dé » le tour où il est dû. Sentier l'empêche ; la relance gagnée par une bonne réponse se
+  joue à deux dés. **Cela ne dure qu'un tour** : une équipe qui ne lance pas au tour suivant
+  (absence, temps écoulé) retrouve ses deux dés au tour d'après.
 - **Cases** : une case Trame donne une gemme à chaque membre (aux deux peuples) ; une case positive
   donne son mouvement, sans ressource ; plus aucune case ne fait reculer.
 - **Trois cases Défi** par plateau, aux cases 12, 21 et 30 (31 au plateau 4) ; l'ancienne case

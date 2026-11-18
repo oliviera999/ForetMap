@@ -125,7 +125,7 @@ async function resolveQcmAnswerContext(req, gameId) {
 }
 
 // M13 : répondre à la question de la case rend la main prise à sa présentation.
-const gardeReponse = gardeDEquipe({ rend: true });
+const gardeReponse = gardeDEquipe({ rend: true, finit: 'repondre' });
 
 router.post('/games/:id/qcm/answer', requireGlAuthOrTeam, gardeReponse, async (req, res) => {
   const gameId = parseId(req.params.id);

@@ -128,24 +128,33 @@ router.put(
     if (checked.error) return res.status(400).json({ error: checked.error });
     // L'escalier du chapitre 1 (M8) se coupe ou se remet ici ; son pas ne se choisit pas (il
     // avance à la clôture d'un tour ou par « Ouvrir la suite », et ne recule jamais).
-    const overrides =
-      req.body?.overrides === undefined
-        ? null
-        : escalier.surchargesDuProf(checked.value, {
-            actuelles: parseOverrides(game.tenir_overrides_json),
-            toursClos: await escalier.toursClos(db, gameId),
-          });
-    const nextGame = {
-      ...game,
-      tenir_profil: profil,
-      tenir_overrides_json:
-        overrides === null ? game.tenir_overrides_json : JSON.stringify(overrides),
-    };
-    const resolved = resolveTenirSettings(settings, nextGame);
-    await execute(
-      `UPDATE gl_games SET tenir_profil = ?, tenir_overrides_json = ?, tenir_surface = ?, updated_at = NOW() WHERE id = ?`,
-      [profil, nextGame.tenir_overrides_json, resolved.surface, gameId],
-    );
+    // Les surcharges se relisent et se réécrivent sous le verrou de la partie : sans lui, un
+    // tour clos entre la lecture et l'écriture voyait son pas d'escalier remplacé par l'ancien.
+    let resolved = null;
+    await withTransaction(async (tx) => {
+      const row = await tx.queryOne(
+        'SELECT tenir_overrides_json FROM gl_games WHERE id = ? LIMIT 1 FOR UPDATE',
+        [gameId],
+      );
+      const enBase = row ? row.tenir_overrides_json : game.tenir_overrides_json;
+      const overrides =
+        req.body?.overrides === undefined
+          ? null
+          : escalier.surchargesDuProf(checked.value, {
+              actuelles: parseOverrides(enBase),
+              toursClos: await escalier.toursClos(tx, gameId),
+            });
+      const nextGame = {
+        ...game,
+        tenir_profil: profil,
+        tenir_overrides_json: overrides === null ? enBase : JSON.stringify(overrides),
+      };
+      resolved = resolveTenirSettings(settings, nextGame);
+      await tx.execute(
+        `UPDATE gl_games SET tenir_profil = ?, tenir_overrides_json = ?, tenir_surface = ?, updated_at = NOW() WHERE id = ?`,
+        [profil, nextGame.tenir_overrides_json, resolved.surface, gameId],
+      );
+    });
     const evt = await insertGameEvent(db, {
       gameId,
       actorType: 'mj',
@@ -159,10 +168,12 @@ router.put(
 );
 
 /**
- * POST /tenir/escalier/suite — MJ (ensemble unifié, M8). « Ouvrir la suite » : l'escalier du
- * chapitre 1 monte d'une marche tout de suite, sans attendre la clôture du tour. Jamais de
- * retour en arrière. 409 `ESCALIER_INACTIF` si la partie ne monte pas l'escalier,
- * `ESCALIER_MONTE` s'il est déjà en haut.
+ * POST /tenir/escalier/suite { pas? } — MJ (ensemble unifié, M8). « Ouvrir la suite » :
+ * l'escalier du chapitre 1 monte d'une marche tout de suite, sans attendre la clôture du tour.
+ * Jamais de retour en arrière. `pas` = la séance que l'écran affichait : si l'escalier a déjà
+ * avancé depuis (double appui, deux onglets, tour clos entre-temps), rien ne monte et la réponse
+ * rend l'état courant (`deja: true`) — un appui n'ouvre jamais deux marches. 409
+ * `ESCALIER_INACTIF` si la partie ne monte pas l'escalier, `ESCALIER_MONTE` s'il est déjà en haut.
  */
 router.post(
   '/games/:id/tenir/escalier/suite',
@@ -181,6 +192,10 @@ router.post(
     if (avant.monte) {
       return res.status(409).json({ error: 'Tout est déjà ouvert.', code: 'ESCALIER_MONTE' });
     }
+    const pasVu = req.body?.pas;
+    if (pasVu != null && !(Number.isInteger(Number(pasVu)) && Number(pasVu) >= 1)) {
+      return res.status(400).json({ error: 'Séance de l’escalier invalide' });
+    }
     const events = [];
     let marche = null;
     await withTransaction(async (tx) => {
@@ -189,6 +204,7 @@ router.post(
         motif: 'prof',
         actorId: String(req.glAuth.userId),
         roundNumber: Number(ctx.game.current_round_number) || null,
+        depuis: pasVu != null ? Number(pasVu) : null,
       });
       if (!marche) return;
       events.push(...marche.events);
@@ -208,12 +224,16 @@ router.post(
         if (temoin) events.push(temoin.event);
       }
     });
-    // Deux appuis en même temps : le second trouve l'escalier déjà monté d'un pas.
+    const game = await loadGame(gameId);
     if (!marche) {
+      const maintenant = escalier.vueEscalier(resolveTenirSettings(ctx.settings, game));
+      // L'écran a dit d'où il partait et l'escalier a déjà avancé : l'appui est déjà servi.
+      if (pasVu != null && maintenant && maintenant.pas > Number(pasVu)) {
+        return res.json({ ok: true, deja: true, escalier: maintenant, ouvert: null });
+      }
       return res.status(409).json({ error: 'Tout est déjà ouvert.', code: 'ESCALIER_MONTE' });
     }
     for (const evt of events) emitGlGameEvent(gameId, evt);
-    const game = await loadGame(gameId);
     return res.json({
       ok: true,
       escalier: escalier.vueEscalier(resolveTenirSettings(ctx.settings, game)),

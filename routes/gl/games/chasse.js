@@ -301,7 +301,7 @@ router.post(
 router.post(
   '/games/:id/chasse/repondre',
   requireGlAuthOrTeam,
-  equipeEtat.gardeDEquipe({ rend: true }),
+  equipeEtat.gardeDEquipe({ rend: true, finit: 'fouiller' }),
   asyncHandler(async (req, res) => {
     const gameId = parseId(req.params.id);
     if (!gameId) return res.status(400).json({ error: 'Identifiant de partie invalide' });
@@ -404,7 +404,7 @@ router.post(
 router.post(
   '/games/:id/chasse/pages/:zoneKey/tenir',
   requireGlAuthOrTeam,
-  equipeEtat.gardeDEquipe({ rend: true }),
+  equipeEtat.gardeDEquipe({ rend: true, finit: 'tenir' }),
   asyncHandler(async (req, res) => {
     const gameId = parseId(req.params.id);
     const zoneKey = normalizeOptionalString(req.params.zoneKey);

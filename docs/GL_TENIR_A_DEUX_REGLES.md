@@ -116,7 +116,9 @@ Un tour est un objet serveur à **phases** : `ouverture` → `jeu` → `souffle`
 - **Case Trame** : **+1 gemme** à chaque membre de l'équipe, quel que soit son peuple, plafonnée. C'est la seule case qui donne une ressource.
 - **Case Souffle** (M3) : **au tour suivant, l'équipe ne lance qu'un dé.** Même effet pour les deux peuples et les quatre plateaux. Ni recul, ni tour passé, ni ressource retirée.
   - L'état se pose quand le pion **s'arrête** sur la case (après le jet, la relance ou le +1 d'une question juste) ; Sentier l'empêche.
-  - C'est un oui / non par équipe : deux cases Souffle avant le tour suivant ne se cumulent pas.
+  - C'est un oui / non par équipe : deux cases Souffle avant le tour suivant ne se cumulent pas, et le tour de pose ne se réécrit pas (une case présentée deux fois ne repousse pas le dé unique).
+  - Il ne dure qu'un tour : posé au tour N, il vaut pour le tour N + 1 ; si l'équipe n'y lance pas, il s'efface à l'ouverture du tour N + 2.
+  - Un arrêt déjà joué par le moteur du tour (Sentier compris) n'est pas rejoué quand l'écran présente la case (`present-arrival`).
   - Il se consomme au **premier lancer** du tour suivant (un dé tiré par l'app, ou une seule face saisie) ; la relance d'une question juste se joue à deux dés ; le sort Relance relance ce seul dé.
   - Il s'efface si l'équipe arrive au camp, et à la clôture de la partie.
   - Il s'affiche aussitôt sur l'écran d'équipe, la console et la projection : « Au prochain tour : un seul dé », puis « Ce tour-ci : un seul dé ».
@@ -135,7 +137,7 @@ Un tour est un objet serveur à **phases** : `ouverture` → `jeu` → `souffle`
 - **Fouilles par tour** (M2) : `fouilles_par_tour` (2) par équipe, pour les deux peuples ; `fouilles_sous_voile` (1) sous le voile, sauf Abri ou Cordée qui rendent le quota entier ; +1 par Grand Regard. Aucun couple équipe × séance sans fouille possible.
 - **Fouiller = cliquer** (x, y normalisés) :
   - dans une zone `endormie` ou `revelee` : une question. Zone jamais tentée dans la partie → sa question fixe ; déjà tentée → une question du thème de secours, en excluant les codes déjà présentés pour cette zone. **Juste** → `trouvee` (découvreuse = l'équipe), carnet personnel des membres présents. **« Pas encore »** → rien n'est retiré ; si c'est une équipe **licorne**, la zone passe `revelee` (contour visible de toute la classe, crédit « révélée par ») ; une fouille gnome « pas encore » ne révèle rien.
-  - **La réponse est sur le site** (M22) : après un « pas encore », l'écran dit où la lire — « La réponse se trouve dans la fiche … » ou « … au mot … du glossaire ». Un lien, jamais la réponse.
+  - **La réponse est sur le site** (M22) : après un « pas encore », l'écran dit où la lire — « La réponse se trouve dans la fiche … » ou « … au mot … du glossaire ». Un lien, jamais la réponse. La piste ne suit que la question fixe de la zone : après une question du thème de secours, `piste` vaut `null`.
   - dans une zone `palie` : réservée aux équipes **gnomes** (c'est la réparation) ; une équipe licorne lit « Cette zone a pâli : les Gnomes savent la réparer. », sans perdre sa fouille. Juste → `reparee` (= trouvée, découvreuse = l'équipe), sans aucune ressource.
   - dans une zone `trouvee` / `tenue` : rien (« déjà trouvée »).
   - à côté : verdict `froid` / `tiede` / `chaud` selon la distance au centroïde de la zone endormie ou pâlie la plus proche (réglage `fouille_seuils` `{ chaud: 0.06, tiede: 0.15 }`), une **empreinte** visible de toute la classe sur le plateau.

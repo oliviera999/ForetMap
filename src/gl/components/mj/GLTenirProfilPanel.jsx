@@ -59,11 +59,20 @@ export function GLTenirProfilPanel({ gameId, tenir, onChanged, showFailure }) {
   }
 
   const escalier = tenir?.escalier || null;
+  // L'escalier a sa propre case à cocher : « Revenir aux réglages du profil » n'y touche pas
+  // (une partie du plateau 1 porte toujours `escalier` dans ses surcharges ; les vider toutes
+  // ouvrait d'un coup le voile, le Marché et les sorts).
+  const surchargesHorsEscalier = Object.keys(overrides).filter(
+    (k) => k !== 'escalier' && k !== 'escalier_pas',
+  );
 
   async function ouvrirLaSuite() {
     setBusy(true);
     try {
-      await apiGL(`/api/gl/games/${gameId}/tenir/escalier/suite`, 'POST', {});
+      // La séance affichée part avec la demande : un double appui n'ouvre pas deux marches.
+      await apiGL(`/api/gl/games/${gameId}/tenir/escalier/suite`, 'POST', {
+        pas: escalier?.pas ?? null,
+      });
       await onChanged?.();
     } catch (err) {
       showFailure?.(err.message || 'La suite ne s’est pas ouverte');
@@ -179,12 +188,13 @@ export function GLTenirProfilPanel({ gameId, tenir, onChanged, showFailure }) {
       {flagRow('marche', 'Marché')}
       {flagRow('chapardeur', 'Chapardeur')}
       {flagRow('peripeties', 'Péripéties')}
-      {Object.keys(overrides).length ? (
+      {surchargesHorsEscalier.length ? (
         <GLButton
           type="button"
           variant="secondary"
           disabled={busy}
-          onClick={() => save({ overrides: {} })}
+          onClick={() => save({ overrides: overrides.escalier === true ? { escalier: true } : {} })}
+          data-testid="gl-tenir-profil-revenir"
         >
           Revenir aux réglages du profil
         </GLButton>
