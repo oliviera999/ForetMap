@@ -27,10 +27,10 @@ const {
 } = require('../../lib/glTenir');
 const { resolveTenirPermissions } = require('../../lib/shared/glTenirPermissionsCore');
 const { getGameplaySettings } = require('../../lib/glSettings');
-const { queryOne, withTransaction } = require('../../database');
-const { actorOf, refusSiTeamSessionHorsTour, resolveActingPlayer } = require('../../lib/glActeur');
-const { insertGameEvent } = require('../../lib/glGameEvents');
-const logger = require('../../lib/logger');
+const { queryOne } = require('../../database');
+const { actorOf } = require('../../lib/glActeur');
+const { estSpectateur } = require('../../lib/glEquipeEtat');
+const { CODE_SPECTATEUR, MESSAGE_SPECTATEUR } = require('../../lib/shared/glMainCore');
 const { parsePageQuery } = require('../../lib/shared/httpHelpers');
 const { z, validate } = require('../../lib/validate');
 const asyncHandler = require('../../lib/asyncHandler');
@@ -49,61 +49,17 @@ router.use(requireGlAuthOrTeam);
 router.use(requireGlMarket);
 
 /**
- * « Qui agit ? » (lot 2) : une tablette d'équipe agit au Marché **au nom d'un membre présent**
- * de son équipe, non en retrait, pendant qu'un tour est ouvert. L'élève est désigné par
- * `onBehalfOfPlayerId` (corps, query, ou en-tête `X-GL-On-Behalf-Of` posé par l'app). La suite
- * du routeur le traite comme ce joueur ; chaque geste abouti est journalisé (évènement
- * `marche_au_nom_de`, vu du prof seul).
+ * **Bourses au propriétaire** (ensemble unifié, M13) : le Marché touche la bourse d'un élève,
+ * il ne s'ouvre donc que depuis le compte de cet élève. Une tablette d'équipe ne fait que les
+ * gestes d'équipe : « Qui agit ? » a disparu (403 `BOURSE_AU_PROPRIETAIRE`).
  */
-router.use(
-  asyncHandler(async (req, res, next) => {
-    const actor = actorOf(req);
-    if (actor.kind !== 'team') return next();
-    const horsTour = await refusSiTeamSessionHorsTour(req, actor.gameId);
-    if (horsTour) {
-      return res.status(horsTour.status).json({ error: horsTour.error, code: horsTour.code });
-    }
-    const demande =
-      req.body?.onBehalfOfPlayerId ??
-      req.query?.onBehalfOfPlayerId ??
-      req.get('X-GL-On-Behalf-Of') ??
-      null;
-    const qui = await resolveActingPlayer(req, {
-      gameId: actor.gameId,
-      teamId: actor.teamId,
-      onBehalfOfPlayerId: demande,
-    });
-    if (!qui.ok) return res.status(qui.status).json({ error: qui.error, code: qui.code });
-    const joueur = await queryOne('SELECT class_id FROM gl_players WHERE id = ? LIMIT 1', [
-      qui.playerId,
-    ]);
-    req.glAuth = {
-      ...req.glAuth,
-      userType: 'gl_player',
-      userId: String(qui.playerId),
-      classId: joueur?.class_id != null ? Number(joueur.class_id) : null,
-      teamId: Number(actor.teamId),
-      auNomDe: { gameId: Number(actor.gameId), teamId: Number(actor.teamId) },
-    };
-    if (req.method !== 'GET') {
-      const action = `${req.method} ${String(req.path || '').replace(/\/\d+/g, '/:id')}`;
-      res.on('finish', () => {
-        if (res.statusCode >= 400) return;
-        withTransaction((tx) =>
-          insertGameEvent(tx, {
-            gameId: Number(actor.gameId),
-            teamId: Number(actor.teamId),
-            actorType: 'team',
-            actorId: `equipe-${actor.teamId}`,
-            eventType: 'marche_au_nom_de',
-            payload: { private: true, playerId: Number(qui.playerId), action },
-          }),
-        ).catch((err) => logger.warn({ err }, 'marche_au_nom_de non journalisé'));
-      });
-    }
-    return next();
-  }),
-);
+router.use((req, res, next) => {
+  if (actorOf(req).kind !== 'team') return next();
+  return res.status(403).json({
+    error: 'Le Marché s’ouvre depuis le compte de chacun.',
+    code: 'BOURSE_AU_PROPRIETAIRE',
+  });
+});
 
 router.use(requireGlPlayer);
 
@@ -134,11 +90,22 @@ router.use(
     // `marche_pendant_tour` est faux, le Marché attend la veillée.
     if (req.method !== 'GET') {
       const round = await queryOne(
-        `SELECT r.phase FROM gl_games g
+        `SELECT r.phase, r.round_number FROM gl_games g
            INNER JOIN gl_game_rounds r ON r.game_id = g.id AND r.round_number = g.current_round_number
           WHERE g.id = ? LIMIT 1`,
         [Number(live.id)],
       );
+      // M13 : un élève absent du tour ouvert regarde, il n'échange pas (le tour clos, il revient).
+      if (
+        round?.phase &&
+        round.phase !== 'clos' &&
+        (await estSpectateur(
+          { queryOne },
+          { gameId: Number(live.id), playerId, roundNumber: Number(round.round_number) || 0 },
+        ))
+      ) {
+        return res.status(403).json({ error: MESSAGE_SPECTATEUR, code: CODE_SPECTATEUR });
+      }
       const perms = resolveTenirPermissions({
         surface: resolveSurface(live, settings),
         phase: round ? round.phase : null,
@@ -237,15 +204,12 @@ router.post(
         feuilletCode: req.body?.feuilletCode,
       });
       emitGlMarketTradeChanged(req.glAuth.classId, { action: 'don' });
-      // Badge « Mains tendues » (hors transaction, jamais bloquant). Un geste porté par la
-      // tablette de l'équipe ne crédite aucune mesure « par l'élève » (lot 2).
-      if (!req.glAuth.auNomDe) {
-        queueGlRewards([req.glAuth.userId], {
-          families: ['cooperation'],
-          source: { type: 'don', ref: null },
-          reason: 'don',
-        });
-      }
+      // Badge « Mains tendues » (hors transaction, jamais bloquant).
+      queueGlRewards([req.glAuth.userId], {
+        families: ['cooperation'],
+        source: { type: 'don', ref: null },
+        reason: 'don',
+      });
       return res.status(201).json(result);
     } catch (err) {
       return handleMarketPlaceError(err, res);

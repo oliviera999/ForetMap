@@ -397,6 +397,7 @@ une autre équipe ni vers une projection ; les payloads privés du journal sont 
 | POST    | `/api/gl/games/:id/tenir/des/:id/valider\|refuser`   | —                                                                                      | `gl.game.manage`.                                                                                                                                                                                                                                              |
 | PUT/GET | `/api/gl/games/:id/tenir/tour/team-spirit`           | `{ bilans: [{ teamId, cartesGardees (0–6), cartes? }] }`                                | `gl.game.manage`. Bilan par séance ; Lumière (M17) : chaque carte gardée ajoute 1 à la jauge, comptée une fois par séance et par équipe (`lumiere_comptee`), la jauge ne descend jamais ; au palier, recul du voile d'office (plus de choix ni de cartes → cases).                                                                                                                                                                       |
 | POST    | `/api/gl/games/:id/tenir/tour/olu-corrige`           | `{ teamId }`                                                                           | `gl.game.manage`. Événement `olu_corrige` (correction), +1 Lumière (palier atteint → recul d'office) ; une fois par tour. Sans correction, Olu la dit au passage en `clos`.                                                                                                          |
+| POST    | `/api/gl/games/:id/tenir/main/rendre`                | —                                                                                      | Auth GL ou tablette d'équipe. L'appareil rend la main de son équipe s'il la tenait (question fermée sans réponse, assistant de sort fermé). `{ ok, rendue }`. Sans effet sinon : la main expire seule au bout de 60 s.                         |
 | POST    | `/api/gl/games/:id/tenir/peripetie/passer`           | `{ id, teamId? }`                                                                      | Auth GL, partie tenir. « On passe » : un joueur passe pour sa propre équipe (`teamId` ignoré), le prof pour `teamId` de la partie (404 sinon).                                                                                                                                                                                                                                         |
 | POST    | `/api/gl/games/:id/projection-token`                 | `{ revoke? }`                                                                          | `gl.game.manage`. 201 `{ token, url, expiresAt }` (JWT `gl_guest` 12 h, hachage révocable) ; révoqué à la clôture.                                                                                                                                             |
 | GET     | `/api/gl/games/:id/tenir/honneurs`                   | —                                                                                      | Auth GL ou projection. Honneurs, sceaux et missions attribués ; `apercu` (prof) tel qu'ils seraient attribués maintenant. Jamais un classement d'élèves.                                                                                                      |
@@ -547,8 +548,10 @@ tableau, rien ne change.
   entre les présents non exclus : réserve de la caravane d'abord, parts égales, reste au plus
   riche, jamais au-delà d'un solde.
 - `POST /api/gl/games/:id/spell-casts/drafts/:draftId/exclure` `{ playerId, exclu }` — l'élève
-  pour lui-même (403 `QUI_AGIT_INVALIDE` sinon), la tablette de l'équipe « au nom de » un
-  membre présent de son équipe, ou le prof. Recalcule le partage et renvoie `{ draft }`. Si le
+  pour lui-même, depuis son propre compte (403 `QUI_AGIT_INVALIDE` sinon), ou le prof. Depuis
+  la tablette de l'équipe : 403 `BOURSE_AU_PROPRIETAIRE` (ensemble unifié, M13). De même,
+  `PUT …/contributions` depuis un compte d'élève ne peut pas alourdir la part d'un camarade
+  (403 `BOURSE_AU_PROPRIETAIRE`). Recalcule le partage et renvoie `{ draft }`. Si le
   reste ne couvre plus le coût, `draft.ready` vaut `false` et le lancement est refusé (409)
   sans aucun débit. 409 `EXCLUSION_ABSENT` (absent ou en retrait : il n'est pas dans le pot),
   409 pot déjà lancé.
@@ -1012,9 +1015,13 @@ reçoit une **session d'équipe** de 3 heures.
 | GET     | `/api/gl/classes/:classId/lien`               | —                            | `gl.game.manage`. Crée le lien au besoin, sinon le rend tel quel (permanent). `{ classId, className, code, url }` avec `url = gl.html?classe=<jeton>` (relative, comme le lien de projection). 404 classe inconnue.                                                          |
 | POST    | `/api/gl/classes/:classId/lien/regenerer`     | —                            | `gl.game.manage`. Nouveau jeton et nouveau code : l'ancien QR est refusé, toutes les sessions d'équipe de la classe sont révoquées. Même réponse, plus `sessionsRevoquees`.                                                                                                  |
 | POST    | `/api/gl/class-link/open`                     | `{ token }` ou `{ code }`    | **Public**, limité en débit comme une connexion. `{ className, game: { id, name, status } \| null, teams: [{ teamId, name, type, mascotId, color }], phase }`. **Aucun nom d'élève, aucune bourse.** `game` vaut `null` sans partie « Tenir » en cours. 404 `CLASS_LINK_INCONNU`. |
-| POST    | `/api/gl/class-link/session`                  | `{ token \| code, teamId }`  | **Public**, limité en débit. 201 `{ token, expiresInSeconds, gameId, teamId, teamName, teamType, className }` : JWT `gl_guest` portant `team_session: { gameId, teamId, jti }` (seul le hachage du `jti` est stocké). 409 `CLASS_LINK_SANS_PARTIE`, 404 équipe inconnue.       |
-| GET     | `/api/gl/games/:id/tenir/sessions`            | —                            | `gl.game.manage`. `{ sessions: [{ id, teamId, createdAt, lastSeenAt, expiresAt }] }` : sessions d'équipe ouvertes aujourd'hui, non révoquées. Aucun jeton.                                                                                                                   |
-| DELETE  | `/api/gl/games/:id/tenir/sessions/:sessionId` | —                            | `gl.game.manage`. « Déconnecter » une tablette. `{ ok }`, 404 si la session n'est pas (ou plus) ouverte sur cette partie.                                                                                                                                                    |
+| POST    | `/api/gl/class-link/session`                  | `{ token \| code, teamId }`  | **Public**, limité en débit. **Demande** de session d'équipe (ensemble unifié, M13) : 202 `{ token, sessionId, enAttente: true, demandeExpireDansSecondes: 120, expiresInSeconds, gameId, teamId, teamName, teamType, className }`. Le jeton (JWT `gl_guest` portant `team_session: { gameId, teamId, jti }` ; seul le hachage du `jti` est stocké) **ne vaut qu'une fois la demande acceptée** : d'ici là, toute route de partie répond 401 `TEAM_SESSION_TERMINEE`. 409 `CLASS_LINK_SANS_PARTIE`, 404 équipe inconnue. |
+| GET     | `/api/gl/class-link/demande`                  | —                            | Jeton de la demande (`Authorization: Bearer`). `{ statut, gameId, teamId, resteSecondes }` avec `statut` = `en_attente`, `acceptee`, `refusee` (refusée, ou tablette déconnectée par le prof) ou `expiree` (sans réponse au bout de deux minutes). Compté dans le plafond de l'API **par appareil** (le jeton), jamais par adresse. 401 sans jeton, 404 pour un jeton qui n'est pas une demande. |
+| POST    | `/api/gl/games/:id/tenir/sessions/:sessionId/accepter` | —                   | Le prof (`gl.game.manage`), une tablette **déjà acceptée** de la même équipe, ou le compte d'un membre de l'équipe. La session vaut alors 3 heures. `{ ok, teamId }`. 403 pour une autre équipe, 403 `SPECTATEUR` pour le compte d'un élève absent du tour ou en retrait, 404 `DEMANDE_APPAREIL_INTROUVABLE` (expirée ou déjà traitée).                |
+| POST    | `/api/gl/games/:id/tenir/sessions/:sessionId/refuser`  | —                   | Mêmes acteurs. La demande est révoquée. `{ ok, teamId }`.                                                                                                                                                                                                                     |
+| POST    | `/api/gl/games/:id/tenir/sessions/accepter-tout`       | —                   | `gl.game.manage`. « Tout accepter » en début de séance : toutes les demandes en attente de la partie. `{ ok, acceptees }`.                                                                                                                                                    |
+| GET     | `/api/gl/games/:id/tenir/sessions`            | —                            | `gl.game.manage`. `{ sessions: [{ id, teamId, createdAt, lastSeenAt, expiresAt }], demandes: [{ id, teamId, createdAt, resteSecondes }] }` : sessions d'équipe **acceptées** ouvertes aujourd'hui, et demandes en attente. Aucun jeton.                                       |
+| DELETE  | `/api/gl/games/:id/tenir/sessions/:sessionId` | —                            | `gl.game.manage`. « Déconnecter » une tablette (elle rend la main de son équipe si elle la tenait). `{ ok }`, 404 si la session n'est pas (ou plus) ouverte sur cette partie.                                                                                                 |
 
 Ce qu'une session d'équipe peut faire :
 
@@ -1022,8 +1029,7 @@ Ce qu'une session d'équipe peut faire :
   `…/tenir/olu`, `…/tenir/chimeres`, journal). `roster` ne porte que **l'effectif de son
   équipe** (une tablette s'ouvre avec le seul code de la classe : elle ne reçoit pas les noms
   du reste de la classe). Le bloc `tenir` porte
-  `tablette: { teamId, horsTour, presents }` (`presents` : identifiants des membres présents,
-  non en retrait — vide hors tour ; sert à « Qui agit ? »). **Hors tour : aucune bourse, aucune réserve, toutes les
+  `tablette: { teamId, horsTour }` et `equipe` (ci-dessous). **Hors tour : aucune bourse, aucune réserve, toutes les
   permissions à `false`.** Pendant un tour ouvert : les bourses de son équipe seulement, les
   droits d'un membre (`resolveTenirPermissions`), jamais « en retrait » (le retrait reste
   individuel).
@@ -1033,21 +1039,59 @@ Ce qu'une session d'équipe peut faire :
   `…/chasse/repondre`, `…/chasse/pages/:zoneKey/ouvrir`, `…/chasse/pages/:zoneKey/tenir`. Au
   journal : `actor_type = 'team'`, `actor_id = 'equipe-<teamId>'` (jamais un identifiant
   d'élève).
-- **Marché « au nom de »** (`/api/gl/market/*`, pendant un tour ouvert) : un geste de Marché
-  touche la bourse d'un élève, la tablette dit donc **qui agit** — `onBehalfOfPlayerId` (corps
-  ou query) ou en-tête `X-GL-On-Behalf-Of: <playerId>` (posé par l'app). L'élève doit être un
-  membre **présent** de l'équipe, non en retrait ; la suite de la route le traite comme ce
-  joueur (mêmes règles : `MARCHE_FERME`, `MARCHE_PHASE`, plafonds). 400 `QUI_AGIT_REQUIS`
-  (personne de désigné), 403 `QUI_AGIT_INVALIDE` (absent, en retrait, autre équipe), 409
-  `TEAM_SESSION_HORS_TOUR`. Chaque geste abouti écrit un évènement `marche_au_nom_de`
-  (`actor_id = 'equipe-<teamId>'`, payload privé `{ playerId, action }`, vu du prof seul) ; il
-  ne crédite aucun badge « par l'élève ». Un membre en retrait ne retire pas le Marché à la
-  tablette : seuls les autres peuvent y agir.
+- **Bourses au propriétaire** (ensemble unifié, M13) : une tablette d'équipe ne fait que les
+  gestes d'équipe. Tout geste qui touche la bourse d'un élève — `/api/gl/market/*` (lecture
+  comprise), « pas moi » (`…/spell-casts/drafts/:draftId/exclure`) — répond 403
+  `BOURSE_AU_PROPRIETAIRE`, avec ou sans élève désigné : il se fait depuis le compte de cet
+  élève, ou par le prof. « Qui agit ? » (`onBehalfOfPlayerId`, `X-GL-On-Behalf-Of`) a disparu,
+  ainsi que l'évènement `marche_au_nom_de` (son libellé de journal reste, pour l'historique).
+  Le pot d'un sort d'équipe, lui, se partage d'office entre les présents.
 - Refus : 409 `TEAM_SESSION_HORS_TOUR` (geste hors tour), 403 `TEAM_SESSION_AUTRE_PARTIE`,
   403 `TEAM_SESSION_AUTRE_EQUIPE` (`teamId` d'une autre équipe), 401 `TEAM_SESSION_TERMINEE`
   (session révoquée, expirée, lien régénéré, partie close, équipes rebrassées par
   `POST …/teams/compose/apply`) ; toute autre route « compte requis » répond 403
   `guestBlocked`.
+
+**Plusieurs appareils par équipe** (ensemble unifié, M13) — une équipe joue sur plusieurs écrans
+(tablettes de classe, comptes de ses élèves). Pendant un tour ouvert d'une partie « Tenir » :
+
+- **Version d'état.** Le bloc `tenir` servi à un membre ou à une tablette de l'équipe porte
+  `equipe: { gameId, teamId, version, main, appareils }`. Tout geste d'équipe renvoie la version
+  vue dans l'en-tête `X-GL-Etat-Version` (ou `etatVersion` dans le corps). Périmée : 409
+  `ETAT_PERIME` `{ error: « L'équipe a déjà joué ce geste. Voici où vous en êtes. », code,
+  etatVersion: { gameId, teamId, version } }`, **sans rien changer** — l'écran recharge. De deux
+  gestes partis avec la même version, un seul passe. Un geste abouti rend
+  `etatVersion: { gameId, teamId, version }` dans sa réponse ; un geste que le moteur refuse
+  rend sa version (personne n'est périmé). L'app renvoie **une fois** la réponse à une question déjà à l'écran (`…/qcm/answer`, `…/chasse/repondre`, `…/chasse/pages/:zoneKey/tenir`) avec la version rendue : une fouille ou un jet déjà joué ne se perd pas, et le jeton de présentation, à usage unique, empêche tout doublon. Sans en-tête (ancien écran, prof), pas de contrôle ;
+  le geste du prof pour une équipe avance sa version.
+- **La main.** `equipe.main` vaut `null`, ou `{ moi, geste, tablette, prenom, texte,
+  resteSecondes }` (`texte` : « Lina répond… », prénom seul ; « Une autre tablette… » pour une
+  tablette). Prennent la main, pour 60 s au plus : `…/markers/:markerId/present-question`
+  (`repondre`), `…/chasse/fouiller` quand une question s'ouvre (`fouiller`),
+  `…/chasse/pages/:zoneKey/ouvrir` quand la page est à tenir (`tenir`), `…/spell-casts/drafts`
+  (`sort`). La rendent : `…/qcm/answer`, `…/chasse/repondre`, `…/chasse/pages/:zoneKey/tenir`,
+  `…/spell-casts/drafts/:draftId/launch`, `DELETE …/spell-casts/drafts/:draftId`,
+  `POST …/tenir/main/rendre` (`{ ok, rendue }` : l'appareil ferme sa question ou son sort sans
+  aller au bout), l'échéance, la déconnexion de l'appareil, le changement de phase. Tant qu'un
+  autre appareil la tient, tout geste d'équipe répond 409 `MAIN_AILLEURS`
+  `{ error: « Lina répond… Attendez la fin de son geste. », code, main, etatVersion }` ; fermer
+  une péripétie (`…/tenir/peripetie/passer`) n'est retenu que par la version. Le prof n'est
+  jamais retenu. Régler sa part d'un pot ou dire « pas moi » sont des gestes personnels, hors de
+  la garde.
+- **Absent spectateur.** Un compte d'élève noté absent du tour, ou en retrait, reçoit 403
+  `SPECTATEUR` sur tout geste d'équipe et sur toute écriture du Marché ; le bloc `tenir` porte
+  `spectateur: true`, toutes permissions à `false`. Les lectures restent ouvertes. Une tablette
+  d'équipe n'est jamais spectatrice.
+- **Appareils.** `equipe.appareils: [{ id, resteSecondes }]` : tablettes qui demandent à
+  rejoindre l'équipe (voir `…/tenir/sessions/:sessionId/accepter`). Le prof lit
+  `tenir.appareilsEnAttente` (un compte).
+- **Temps réel.** Évènement socket `gl:game:equipe` `{ gameId, teamId, type: 'main' | 'appareil' }`
+  dans la salle de la partie : la main a changé, ou une tablette demande à entrer. Aucune
+  donnée : les écrans rechargent.
+- Réglage `gameplay.tenir_delai_debat_secondes` (entier, 0 à 60, défaut 8), servi dans
+  `tenir.settings.delai_debat_secondes` : sur une question de case, le bouton de réponse de
+  l'écran s'allume après ce délai. Tenu par l'écran, non rejoué par le serveur.
+
 - Catalogues nouveaux de `GET/POST /api/gl/admin/tenir/catalogues[/sync]` :
   `qcm-feedbacks-zones` (retours de mauvais choix des questions de zone, écrits seulement si la
   colonne est vide ou commence par « Non ») et `questions-vives` (40 questions de case

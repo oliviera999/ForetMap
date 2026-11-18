@@ -19,7 +19,10 @@ Ils priment sur toute autre règle. Source : `docs/GL_TENIR_A_DEUX_REGLES.md` §
 5. **Aucune ressource (cœur ou gemme) pour un défi**, une bonne réponse, une lecture, une
    fouille, un badge. Les ressources viennent des pages tenues, de la Trame, du carnet complet,
    du Marché.
-6. Bourses privées, aucun classement d'élèves. La projection ne montre aucun solde.
+6. Bourses privées, aucun classement d'élèves. La projection ne montre aucun solde. **Bourses au
+   propriétaire** (M13) : une bourse ne bouge que depuis le compte de son propriétaire, ou par le
+   prof — jamais depuis la tablette de l'équipe (le pot d'un sort d'équipe, partagé d'office
+   entre les présents, reste un geste d'équipe).
 7. Aucune donnée d'élève dans les logs, tests, fixtures ou rapports (`joueur-a-<stamp>`).
 8. Isolement G&L / ForêtMap : `/api/gl/*`, `src/gl/`, `lib/gl*`, tables `gl_*`.
 9. Tout ce qui touche au réel passe par le prof. Le serveur rejoue les droits ; le client grise.
@@ -28,7 +31,8 @@ Ils priment sur toute autre règle. Source : `docs/GL_TENIR_A_DEUX_REGLES.md` §
 11. **Aucun état d'attente sans sortie automatique** : ce qui attend un geste (jet en suspens,
     défi, demande, Mentorat) se résout ou s'annule seul au changement de phase, à la clôture
     du tour, à la séance suivante ou au camp (la fin de chapitre ; « le Seuil » ne désigne plus
-    que l'espace personnel de l'élève).
+    que l'espace personnel de l'élève). De même la main d'un appareil (60 s au plus) et une
+    demande d'appareil (2 min) : elles échoient seules (M13).
 12. Au tableau (`surface = tableau`), le comportement existant ne change pas sans décision.
 
 ## Où vit la liste des mots interdits

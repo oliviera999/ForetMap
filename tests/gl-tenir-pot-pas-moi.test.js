@@ -18,8 +18,8 @@ const {
   readPlayerBourses,
   ouvrirTourEnJeu,
   activerSortRetire,
+  ouvrirTablette,
 } = require('./helpers/glTenirFixtures');
-const { issueTeamSession } = require('../lib/glGuestToken');
 const { checkTenirInvariantsFromDb } = require('../lib/glTenirInvariants');
 const { getGameplaySettings } = require('../lib/glSettings');
 const { findForbiddenString } = require('../lib/shared/glGardeFousCore');
@@ -143,9 +143,9 @@ test('un absent n’apparaît jamais dans le pot ; on ne le retire ni ne le reme
     .expect(200);
 });
 
-test('tablette de l’équipe : pot automatique, « pas moi » au nom d’un présent, aucune saisie de part, lancement débité aux présents', async () => {
+test('tablette de l’équipe : pot automatique, ni « pas moi » ni saisie de part (bourses au propriétaire), lancement débité aux présents', async () => {
   for (const p of [a, e, i]) await setPlayerBourses(p.id, 4, 4);
-  const s = await issueTeamSession(db, { gameId: ctx.game.id, teamId: gnomes.id });
+  const s = await ouvrirTablette({ gameId: ctx.game.id, teamId: gnomes.id });
   const reglages = await request(app).get('/api/gl/spell-cast-settings').set(auth(s.token));
   assert.equal(reglages.status, 200, JSON.stringify(reglages.body));
 
@@ -170,11 +170,14 @@ test('tablette de l’équipe : pot automatique, « pas moi » au nom d’un pr�
   assert.equal(saisie.status, 403, JSON.stringify(saisie.body));
   assert.equal(saisie.body.code, 'CONTRIBUTION_TABLETTE');
 
-  // « Pas moi » sur la ligne de e ; un membre d'une autre équipe n'est pas un « qui agit » valable.
-  const intrus = await exclure(s.token, draft.id, { playerId: membres(ctx.teams[1].id)[0].id });
-  assert.equal(intrus.status, 403, JSON.stringify(intrus.body));
-  assert.equal(intrus.body.code, 'QUI_AGIT_INVALIDE');
-  const sansE = await exclure(s.token, draft.id, { playerId: e.id, exclu: true });
+  // « Pas moi » ne se dit plus depuis la tablette (M13) : ni pour un membre, ni pour un autre.
+  for (const cible of [e.id, membres(ctx.teams[1].id)[0].id]) {
+    const refus = await exclure(s.token, draft.id, { playerId: cible, exclu: true });
+    assert.equal(refus.status, 403, JSON.stringify(refus.body));
+    assert.equal(refus.body.code, 'BOURSE_AU_PROPRIETAIRE');
+  }
+  // e le dit depuis son propre compte : le partage se refait sur les présents restants.
+  const sansE = await exclure(e.token, draft.id, { playerId: e.id, exclu: true });
   assert.equal(sansE.status, 200, JSON.stringify(sansE.body));
   assert.deepEqual(sansE.body.draft.exclus, [e.id]);
   assert.equal(sommeCoeurs(sansE.body.draft), 2);
@@ -195,7 +198,7 @@ test('tablette de l’équipe : pot automatique, « pas moi » au nom d’un pr�
 test('sort à limite par élève : refusé depuis la tablette de l’équipe', async () => {
   // Héritage (SL033, sorti du grimoire par M6) engage UN élève ; remis pour ce test.
   const remettre = await activerSortRetire(ctx.chapter.id, 'SL033');
-  const s = await issueTeamSession(db, { gameId: ctx.game.id, teamId: gnomes.id });
+  const s = await ouvrirTablette({ gameId: ctx.game.id, teamId: gnomes.id });
   const res = await pot(s.token, { spellCode: 'SL033' });
   assert.equal(res.status, 403, JSON.stringify(res.body));
   assert.equal(res.body.code, 'SPELL_COMPTE_ELEVE');
@@ -222,6 +225,19 @@ test('compte élève : la saisie de part reste possible, pour l’équipe lanceu
     });
   assert.equal(manuelle.status, 200, JSON.stringify(manuelle.body));
   assert.equal(part(manuelle.body.draft, l1.id).gems, 2);
+  // Bourses au propriétaire (M13) : un élève ne règle pas la part d'un camarade.
+  const pourUnAutre = await request(app)
+    .put(api(`/spell-casts/drafts/${draft.id}/contributions`))
+    .set(auth(l1.token))
+    .send({
+      contributions: [
+        { playerId: l1.id, gems: 1, hearts: 0 },
+        { playerId: l2.id, gems: 1, hearts: 0 },
+      ],
+    });
+  assert.equal(pourUnAutre.status, 403, JSON.stringify(pourUnAutre.body));
+  assert.equal(pourUnAutre.body.code, 'BOURSE_AU_PROPRIETAIRE');
+  assert.equal(part(manuelle.body.draft, l2.id)?.gems || 0, 0, 'la part de l2 n’a pas bougé');
 
   const etranger = await request(app)
     .put(api(`/spell-casts/drafts/${draft.id}/contributions`))
@@ -270,7 +286,7 @@ test('le serveur rejoue le pot : une autre équipe ne le lance pas ; une absence
   const parUnEleve = await lancer(a.token);
   assert.equal(parUnEleve.status, 403, JSON.stringify(parUnEleve.body));
   assert.equal(parUnEleve.body.code, 'CONTRIBUTION_AUTRE_EQUIPE');
-  const tabletteA = await issueTeamSession(db, { gameId: ctx.game.id, teamId: gnomes.id });
+  const tabletteA = await ouvrirTablette({ gameId: ctx.game.id, teamId: gnomes.id });
   const parUneTablette = await lancer(tabletteA.token);
   assert.equal(parUneTablette.status, 403, JSON.stringify(parUneTablette.body));
   assert.equal(await coeurs(equipe), equipe.length * 4, 'aucun débit');

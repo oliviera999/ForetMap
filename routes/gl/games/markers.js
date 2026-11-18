@@ -3,6 +3,7 @@ const db = require('../../../database');
 const { queryAll, queryOne, withTransaction } = db;
 const { requireGlAuthOrTeam, requireGlPermission } = require('../../../middleware/requireGlAuth');
 const { resolveGesteActorOrRespond } = require('../../../lib/glActeur');
+const equipeEtat = require('../../../lib/glEquipeEtat');
 const { insertGameEvent } = require('../../../lib/glGameEvents');
 const { emitGlGameEvent } = require('../../../lib/realtime');
 const { getGameplaySettings } = require('../../../lib/glSettings');
@@ -187,6 +188,8 @@ async function garderArriveeEnSuspens({ gameId, game, settings, teamId, acteur }
 router.post(
   '/games/:id/markers/:markerId/present-question',
   requireGlAuthOrTeam,
+  // M13 : présenter la question de la case prend la main, jusqu'à la réponse (60 s au plus).
+  equipeEtat.gardeDEquipe({ prend: 'repondre' }),
   asyncHandler(async (req, res) => {
     const gameId = parseId(req.params.id);
     const markerId = parseId(req.params.markerId);
@@ -376,6 +379,7 @@ router.post(
 router.post(
   '/games/:id/markers/:markerId/present-arrival',
   requireGlAuthOrTeam,
+  equipeEtat.gardeDEquipe(),
   asyncHandler(async (req, res) => {
     const gameId = parseId(req.params.id);
     const markerId = parseId(req.params.markerId);

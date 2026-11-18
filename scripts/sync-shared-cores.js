@@ -58,6 +58,8 @@ const PAIRS = Object.freeze([
   ['src/shared/glTenirCaseEffetCore.js', 'glTenirCaseEffetCore.js'],
   // « Tenir à deux » : liste unique des chaînes jamais visibles d'un élève (garde-fous § 1).
   ['src/shared/glGardeFousCore.js', 'glGardeFousCore.js'],
+  // « Tenir à deux », ensemble unifié (M13) : la main et la version d'état (plusieurs appareils).
+  ['src/shared/glMainCore.js', 'glMainCore.js'],
   // « Tenir à deux », lot 2 : sorts rangés par moment du tour, rôles en conseil.
   ['src/shared/glSortMomentsCore.js', 'glSortMomentsCore.js'],
   // « Tenir à deux » : sabliers (durée, pause, temps restant), même calcul serveur et client.

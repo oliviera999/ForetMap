@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
+import { repondreSansPerte } from '../utils/glReponseSansPerte.js';
 
 /**
  * « Tenir à deux », lot 2 — question de case due à l'arrivée du tour : l'écran d'équipe la
@@ -48,7 +49,7 @@ export function useGlQuestionDeCase({ gameId, onChanged = null }) {
       setBusy(true);
       setError('');
       try {
-        const data = await apiGL(`/api/gl/games/${gameId}/qcm/answer`, 'POST', {
+        const data = await repondreSansPerte(`/api/gl/games/${gameId}/qcm/answer`, {
           questionCode: question.questionCode,
           presentationToken: question.presentationToken,
           choiceId,
@@ -60,6 +61,9 @@ export function useGlQuestionDeCase({ gameId, onChanged = null }) {
         return data;
       } catch (err) {
         setError(err.message || 'Réponse impossible');
+        // M13 : la question reste à l'écran — le jet qui l'a ouverte est joué, on ne la fait
+        // pas perdre à l'équipe ; l'écran se relit.
+        if (err?.code === 'ETAT_PERIME') await onChanged?.();
         return null;
       } finally {
         setBusy(false);
@@ -75,6 +79,10 @@ export function useGlQuestionDeCase({ gameId, onChanged = null }) {
     error,
     presenter,
     repondre,
-    fermer: () => setQuestion(null),
+    // Fermer sans répondre rend la main à l'équipe (M13) ; elle expirerait seule sinon.
+    fermer: () => {
+      setQuestion(null);
+      if (gameId) apiGL(`/api/gl/games/${gameId}/tenir/main/rendre`, 'POST', {}).catch(() => {});
+    },
   };
 }

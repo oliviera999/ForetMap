@@ -19,9 +19,9 @@ const {
   setPlayerBourses,
   readPlayerBourses,
   ouvrirTourEnJeu,
+  ouvrirTablette,
 } = require('./helpers/glTenirFixtures');
 const { runImports } = require('../scripts/gl-import-tenir');
-const { issueTeamSession } = require('../lib/glGuestToken');
 const { issueProjectionToken } = require('../lib/glProjection');
 const { isDefiMarker, normalizeEventConfig } = require('../lib/shared/glMarkerEventConfigCore');
 const { casesDeclenchees, tirerDefiTx } = require('../lib/glDefisCase');
@@ -150,7 +150,7 @@ test('réception à l’arrêt : le défi arrive sans bloquer le tour ; le crit�
   assert.equal(eleve.length, 1);
   assert.equal('critere' in eleve[0], false);
   assert.equal(eleve[0].titre, prof[0].titre);
-  const tablette = await issueTeamSession(db, { gameId: ctx.game.id, teamId: team(0).id });
+  const tablette = await ouvrirTablette({ gameId: ctx.game.id, teamId: team(0).id });
   const vueTablette = await defisDe(tablette.token);
   assert.equal('critere' in vueTablette[0], false);
   const autre = await defisDe(membres(1)[0].token);
@@ -188,7 +188,7 @@ test('jugement : route refusée à un joueur ; « Relevé » fait reculer le voi
     .set(auth(membres(0)[0].token))
     .send(body);
   assert.equal(joueur.status, 403);
-  const tablette = await issueTeamSession(db, { gameId: ctx.game.id, teamId: team(0).id });
+  const tablette = await ouvrirTablette({ gameId: ctx.game.id, teamId: team(0).id });
   const parTablette = await request(app)
     .post(api(`/defis-case/${defi.id}/decider`))
     .set(auth(tablette.token))

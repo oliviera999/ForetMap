@@ -93,6 +93,14 @@ test.describe('GL — défis de la Trame', () => {
     await sansIntro(page);
     await page.goto(`/?classe=${encodeURIComponent(jeton)}`);
     await page.getByTestId(`gl-class-link-team-${gnomes.id}`).click();
+    // Sessions protégées (ensemble unifié, M13) : la tablette demande à rejoindre l'équipe ; le
+    // prof l'accepte (« Tout accepter »).
+    await expect(page.getByTestId('gl-class-link-attente')).toBeVisible();
+    const acceptee = await request.post(api('/tenir/sessions/accepter-tout'), {
+      headers: prof,
+      data: {},
+    });
+    expect(acceptee.ok(), await acceptee.text()).toBeTruthy();
     await expect(page.getByTestId('gl-team-session')).toBeVisible();
     await page.getByTestId('gl-defis-entree-bouton').click();
     await expect(page.getByTestId('gl-defis')).toBeVisible();

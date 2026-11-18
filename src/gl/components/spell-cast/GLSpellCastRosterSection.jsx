@@ -82,7 +82,8 @@ function RosterPlayerInputs({ player, row, required, busy, onUpdateContrib, onCo
 
 /**
  * Ligne du pot « Tenir à deux » (lot 2) : la part automatique d'un présent, « pas moi » pour se
- * retirer, « remettre » pour revenir. Sur la tablette de l'équipe, aucune saisie de part.
+ * retirer, « remettre » pour revenir. Sur la tablette de l'équipe, aucune saisie de part, et
+ * aucun « pas moi » : une bourse ne bouge que depuis le compte de son propriétaire (M13).
  */
 function PotPlayerRow({ player, row, required, exclu, peutExclure, busy, onExclure, children }) {
   return (
@@ -182,7 +183,10 @@ export function GLSpellCastRosterSection({
   busy,
   onUpdateContrib,
   onContribBlur,
-  /** Tablette de l'équipe : partage automatique seul, « pas moi » sur chaque ligne. */
+  /**
+   * Tablette de l'équipe : partage automatique seul. « Pas moi » se dit depuis son propre
+   * compte, ou au prof (ensemble unifié, M13 : bourses au propriétaire).
+   */
   tablette = false,
   onExclure = null,
 }) {
@@ -213,6 +217,12 @@ export function GLSpellCastRosterSection({
       ) : null}
       <ProgressBar label="Gemmes" current={totals.gems} required={required.gems} emoji="💎" />
       <ProgressBar label="Cœurs" current={totals.hearts} required={required.hearts} emoji="❤️" />
+      {tablette && presents != null && !rosterEmpty ? (
+        <p className="gl-hint" data-testid="gl-pot-comptes">
+          Le pot se partage entre les présents. « Pas moi » se dit depuis son propre compte, ou au
+          prof.
+        </p>
+      ) : null}
       {rosterEmpty ? (
         <p className="gl-hint">
           Aucun joueur assigné aux équipes de cette partie. Assignez les joueurs depuis la console
@@ -244,10 +254,12 @@ export function GLSpellCastRosterSection({
                   });
                   if (presents != null) {
                     const exclu = exclus.includes(Number(player.playerId));
-                    // « Pas moi » : chacun pour soi ; la tablette et le prof, ligne par ligne.
+                    // « Pas moi » : chacun pour soi, depuis son compte ; le prof, ligne par ligne.
+                    // Jamais depuis la tablette de l'équipe (M13, bourses au propriétaire).
                     const peutExclure =
                       !!onExclure &&
-                      (tablette || isStaff || Number(player.playerId) === Number(playerId));
+                      !tablette &&
+                      (isStaff || Number(player.playerId) === Number(playerId));
                     return (
                       <PotPlayerRow
                         key={player.playerId}

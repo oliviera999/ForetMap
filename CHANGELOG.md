@@ -9,6 +9,58 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — G&L : ensemble unifié, PR 3 — plusieurs écrans par équipe (17 novembre 2026)
+
+Prompt `docs/GL_ENSEMBLE_UNIFIE_PROMPT.md` (§ 8, décision M13). Une équipe peut jouer sur
+plusieurs appareils — des tablettes de classe, les comptes de ses élèves — sans qu'un geste
+compte deux fois ni qu'un écran joue sur un état qu'il ne voit plus.
+
+- **Version d'état** : chaque équipe en partie porte un compteur (`gl_team_etat.version`) qui
+  avance à chaque geste ; l'app renvoie la version vue (`X-GL-Etat-Version`). Périmée : 409
+  `ETAT_PERIME`, sans perte — « L'équipe a déjà joué ce geste. Voici où vous en êtes. » — et
+  l'écran se recharge. De deux gestes partis au même instant avec la même version, un seul passe ;
+  un geste rejoué après une coupure réseau ne s'applique pas deux fois.
+- **La main** : un geste décisif (répondre, fouiller, faire tenir, préparer un sort) prend la
+  main pour 60 s au plus ; les autres écrans de l'équipe affichent « Lina répond… » (prénom seul)
+  et reçoivent 409 `MAIN_AILLEURS`. Elle se rend à la fin du geste, sur
+  `POST …/tenir/main/rendre`, à l'échéance, à la déconnexion de l'appareil, au changement de
+  phase. Le prof n'est jamais retenu.
+- **Délai de débat** : sur une question de case, « Valider » s'allume après 8 s. Nouveau réglage
+  `gameplay.tenir_delai_debat_secondes` (0 à 60, défaut 8).
+- **Sessions d'équipe protégées** : toucher la mascotte **demande** à rejoindre l'équipe
+  (`POST /api/gl/class-link/session` → 202, `enAttente`). Un appareil déjà dans l'équipe, ou le
+  prof, accepte (`…/tenir/sessions/:sessionId/accepter|refuser`, « Tout accepter » :
+  `…/tenir/sessions/accepter-tout`) ; sans réponse, la demande expire seule au bout de 2 min.
+  L'appareil qui attend relit `GET /api/gl/class-link/demande`.
+- **Bourses au propriétaire** : une bourse ne bouge que depuis le compte de son propriétaire, ou
+  par le prof. La tablette d'équipe ne fait plus que les gestes d'équipe : Marché et « pas moi »
+  y répondent 403 `BOURSE_AU_PROPRIETAIRE` ; un compte d'élève n'alourdit pas la part d'un
+  camarade dans un pot. Le pot d'un sort d'équipe se partage toujours d'office entre les présents.
+- **Absent spectateur** : connecté avec son compte, un élève absent du tour ou en retrait voit
+  tout et ne joue rien (403 `SPECTATEUR`, `tenir.spectateur`), et ne fait pas entrer d'appareil ;
+  le tour clos, il rejoue. Remplace le choix C6 du 7 novembre (un élève en retrait ouvrait et
+  tenait une page). L'écran d'équipe dit désormais « en retrait jusqu'à la fin du tour ».
+- **Rien ne se perd** : la réponse à une question déjà à l'écran repart une fois si l'écran était
+  périmé (la fouille ou le jet qui l'a ouverte est déjà joué) ; à l'échéance d'une main ou d'une
+  demande d'appareil, l'écran se relit et se rallume de lui-même.
+- **Réseau** : les sessions d'équipe, acceptées ou en attente, comptent dans le plafond de l'API
+  par appareil (clé du jeton), jamais par adresse — vérifié à 30 appareils derrière une adresse.
+- Migration 371 (`gl_team_etat`, `gl_guest_tokens.accepted_at/accepted_by`, réglage). Signal
+  temps réel `gl:game:equipe` (sans donnée). Garde unique `lib/glEquipeEtat.js › gardeDEquipe`,
+  noyau pur `src/shared/glMainCore.js`.
+
+**Retiré** : « Qui agit ? » — l'écran `GLMarcheTablette`, l'en-tête `X-GL-On-Behalf-Of`, le
+paramètre `onBehalfOfPlayerId` côté tablette, les refus `QUI_AGIT_REQUIS`, l'évènement
+`marche_au_nom_de` (son libellé de journal reste pour l'historique), `tenir.tablette.presents`,
+le bouton « pas moi » de la tablette d'équipe.
+
+**Tests** : `tests/gl-tenir-plusieurs-appareils.test.js`, `tests/gl-tenir-charge-30-appareils.test.js`,
+tests d'interface (`tests-ui/gl/`), e2e « trois appareils dans une équipe »
+(`e2e/gl-tenir-tablettes.spec.js`), banc `multi-appareils` (deux tablettes par équipe, chaque
+geste envoyé au même instant : 0 doublon, 0 invariant ; ajouté à la fumée `npm run test:sim`).
+Le scénario e2e des quatre tablettes ne dépend plus du tirage des dés (une équipe arrêtée par
+hasard sur la case marquée « Défi » le faisait échouer une fois sur dix-huit).
+
 ### Corrigé — Migration 366 : premier déploiement refusé par la contrainte CHECK de la prod (17 novembre 2026)
 
 Le déploiement de la v1.245.0 a échoué à la migration 366 (retour arrière automatique, aucune

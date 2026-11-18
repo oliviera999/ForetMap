@@ -227,6 +227,7 @@ function creerClient({ app, horloge, motsInterdits = 'souple', fuitesBourses = '
      * @param {'eleve'|'prof'} [p.acteur]
      * @param {Iterable<number>} [p.membres] équipe du lecteur (contrôle des bourses)
      * @param {string} [p.geste] libellé du geste (contexte d'échec)
+     * @param {Record<string, string>} [p.headers] en-têtes en plus (version d'état vue)
      */
     async appel({
       token,
@@ -236,10 +237,12 @@ function creerClient({ app, horloge, motsInterdits = 'souple', fuitesBourses = '
       acteur = 'prof',
       membres = [],
       geste = null,
+      headers = null,
     }) {
       const t0 = Date.now();
       let req = request(app)[method](path).set('Authorization', `Bearer ${token}`);
       if (horloge) req = req.set('X-GL-Sim-Clock', horloge.iso());
+      for (const [nom, valeur] of Object.entries(headers || {})) req = req.set(nom, valeur);
       if (body !== undefined) req = req.send(body);
       const res = await req;
       stats.appels += 1;

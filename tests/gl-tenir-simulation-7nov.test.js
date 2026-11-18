@@ -19,6 +19,7 @@ const {
   createTenirGame,
   importExempleChasse,
   confirmerPresences,
+  ouvrirTablette,
 } = require('./helpers/glTenirFixtures');
 const { resolveTenirMarkerDeltas } = require('../lib/glMarkerVitalityEffects');
 const { caseTirePeripetie, tirerErreurDuJour } = require('../lib/glTour');
@@ -295,7 +296,9 @@ test('pistes : étudier une espèce listée dans `especes` de la zone révèle l
   assert.equal(page.etat, 'revelee');
 });
 
-test('C6 : un élève en retrait peut ouvrir une page trouvée (200) ; le Marché lui reste fermé', async () => {
+// Le choix C6 (un élève en retrait ouvre et tient une page depuis son compte) est remplacé par
+// la décision M13 de l'ensemble unifié : absent du tour ou en retrait, il regarde sans jouer.
+test('M13 (remplace C6) : en retrait, un élève regarde le tour depuis son compte ; la tablette de son équipe ouvre la page ; le Marché lui reste fermé', async () => {
   const gnome = ctx.players.find((p) => p.teamId === Number(ctx.teams[0].id));
   const licorneTeam = ctx.teams[2];
   const zone = await queryOne('SELECT id FROM gl_chasse_zones WHERE zone_key = ?', ['cz-p1-01']);
@@ -310,11 +313,22 @@ test('C6 : un élève en retrait peut ouvrir une page trouvée (200) ; le March�
     .set(auth(ctx.adminToken))
     .send({ playerId: gnome.id, entree: true, motif: 'test' })
     .expect(200);
-  const ouvert = await request(app)
+  const spectateur = await request(app)
     .post(api('/chasse/pages/cz-p1-01/ouvrir'))
     .set(auth(gnome.token));
+  assert.equal(spectateur.status, 403, JSON.stringify(spectateur.body));
+  assert.equal(spectateur.body.code, 'SPECTATEUR');
+  // Il voit tout : le carnet de la classe se lit toujours.
+  const carnet = await request(app).get(api('/chasse')).set(auth(gnome.token));
+  assert.equal(carnet.status, 200, JSON.stringify(carnet.body));
+  // Le retrait reste individuel : la tablette de son équipe ouvre la page.
+  const tablette = await ouvrirTablette({ gameId: ctx.game.id, teamId: ctx.teams[0].id });
+  const ouvert = await request(app)
+    .post(api('/chasse/pages/cz-p1-01/ouvrir'))
+    .set(auth(tablette.token));
   assert.equal(ouvert.status, 200, JSON.stringify(ouvert.body));
   assert.equal(ouvert.body.peutTenir, true);
+  await request(app).post(api('/tenir/main/rendre')).set(auth(tablette.token)).expect(200);
   const marche = await request(app).get('/api/gl/market/annonces').set(auth(gnome.token));
   assert.equal(marche.status, 403, JSON.stringify(marche.body));
   await request(app)

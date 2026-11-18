@@ -16,6 +16,7 @@ const {
   isMj,
 } = require('../../../middleware/requireGlAuth');
 const { resolveGesteActorOrRespond, actorOf } = require('../../../lib/glActeur');
+const equipeEtat = require('../../../lib/glEquipeEtat');
 const presences = require('../../../lib/glPresences');
 const { canAccessGlGame } = require('../../../lib/glGameAccess');
 const { getGameplaySettings } = require('../../../lib/glSettings');
@@ -342,6 +343,17 @@ router.post(
           dort: req.body?.dort === true,
         });
       });
+      // M13 : un changement de phase rend toutes les mains (aucune attente sans sortie), avant
+      // que les écrans ne relisent. La phase est déjà validée : un échec ici ne la défait pas
+      // (une main échoit seule en 60 s).
+      try {
+        await equipeEtat.rendreToutesLesMains(db, gameId);
+      } catch (err) {
+        require('../../../lib/logger').warn(
+          { err, gameId },
+          'Mains G&L non rendues au changement de phase',
+        );
+      }
       emitAll(gameId, result.events);
       return res.json({
         ok: true,
@@ -651,6 +663,7 @@ async function resolvePresenceContext(req, res, gameId) {
 router.post(
   '/games/:id/tenir/presences',
   requireGlAuthOrTeam,
+  equipeEtat.gardeDEquipe(),
   asyncHandler(async (req, res) => {
     const gameId = parseId(req.params.id);
     if (!gameId) return res.status(400).json({ error: 'Identifiant de partie invalide' });
@@ -681,6 +694,7 @@ router.post(
 router.post(
   '/games/:id/tenir/presences/arrivee',
   requireGlAuthOrTeam,
+  equipeEtat.gardeDEquipe(),
   asyncHandler(async (req, res) => {
     const gameId = parseId(req.params.id);
     const playerId = parseId(req.body?.playerId);
@@ -725,6 +739,7 @@ function parseFaces(raw, count) {
 router.post(
   '/games/:id/tenir/lancer',
   requireGlAuthOrTeam,
+  equipeEtat.gardeDEquipe(),
   asyncHandler(async (req, res) => {
     const gameId = parseId(req.params.id);
     if (!gameId) return res.status(400).json({ error: 'Identifiant de partie invalide' });
@@ -870,6 +885,7 @@ router.post(
 router.post(
   '/games/:id/tenir/arrivee/garder',
   requireGlAuthOrTeam,
+  equipeEtat.gardeDEquipe(),
   asyncHandler(async (req, res) => {
     const gameId = parseId(req.params.id);
     if (!gameId) return res.status(400).json({ error: 'Identifiant de partie invalide' });
@@ -1057,6 +1073,9 @@ router.post(
 router.post(
   '/games/:id/tenir/peripetie/passer',
   requireGlAuthOrTeam,
+  // M13 : fermer une péripétie n'attend pas la main d'un autre appareil ; la version suffit à
+  // ce que deux écrans ne la ferment pas deux fois.
+  equipeEtat.gardeDEquipe({ sansMain: true }),
   asyncHandler(async (req, res) => {
     const gameId = parseId(req.params.id);
     if (!gameId) return res.status(400).json({ error: 'Identifiant de partie invalide' });
@@ -1087,6 +1106,31 @@ router.post(
     });
     emitGlGameEvent(gameId, evt);
     return res.json({ ok: true });
+  }),
+);
+
+// ---------------------------------------------------------------------
+// Plusieurs appareils par équipe (M13) : rendre la main
+// ---------------------------------------------------------------------
+
+/**
+ * POST /tenir/main/rendre — l'appareil ferme sa question ou son sort sans aller au bout : la
+ * main revient à l'équipe. Sans effet s'il ne la tenait pas (ou plus : elle expire seule).
+ */
+router.post(
+  '/games/:id/tenir/main/rendre',
+  requireGlAuthOrTeam,
+  asyncHandler(async (req, res) => {
+    const gameId = parseId(req.params.id);
+    if (!gameId) return res.status(400).json({ error: 'Identifiant de partie invalide' });
+    if (!(await canAccessGlGame(req.glAuth, gameId)))
+      return res.status(403).json({ error: 'Accès partie refusé' });
+    const porteur = equipeEtat.porteurDeLAuth(req.glAuth);
+    const teamId = await equipeDuSpectateur(req, gameId);
+    if (!porteur || !teamId) return res.json({ ok: true, rendue: false });
+    const rendue = await equipeEtat.rendreLaMain(db, { gameId, teamId, porteur });
+    if (rendue) equipeEtat.signalerEquipe(gameId, teamId, 'main');
+    return res.json({ ok: true, rendue });
   }),
 );
 

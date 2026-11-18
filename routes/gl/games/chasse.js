@@ -17,6 +17,7 @@ const {
   requireGlAuthOrProjection,
 } = require('../../../middleware/requireGlAuth');
 const { resolveGesteActorOrRespond } = require('../../../lib/glActeur');
+const equipeEtat = require('../../../lib/glEquipeEtat');
 const { canAccessGlGame } = require('../../../lib/glGameAccess');
 const { parseId, normalizeOptionalString } = require('../../../lib/shared/httpHelpers');
 const asyncHandler = require('../../../lib/asyncHandler');
@@ -250,6 +251,8 @@ router.get(
 router.post(
   '/games/:id/chasse/fouiller',
   requireGlAuthOrTeam,
+  // M13 : fouiller prend la main ; elle se rend aussitôt si aucune question ne s'ouvre.
+  equipeEtat.gardeDEquipe({ prend: 'fouiller', rend: true }),
   asyncHandler(async (req, res) => {
     const gameId = parseId(req.params.id);
     if (!gameId) return res.status(400).json({ error: 'Identifiant de partie invalide' });
@@ -289,6 +292,8 @@ router.post(
       source: { type: 'fouille', ref: String(gameId) },
     });
     const { events, ...rest } = result; // eslint-disable-line no-unused-vars
+    // Une page dort ici : l'appareil qui a fouillé garde la main jusqu'à sa réponse.
+    if (rest.question && req.glGarde) req.glGarde.rend = false;
     return res.status(201).json(rest);
   }),
 );
@@ -296,6 +301,7 @@ router.post(
 router.post(
   '/games/:id/chasse/repondre',
   requireGlAuthOrTeam,
+  equipeEtat.gardeDEquipe({ rend: true }),
   asyncHandler(async (req, res) => {
     const gameId = parseId(req.params.id);
     if (!gameId) return res.status(400).json({ error: 'Identifiant de partie invalide' });
@@ -348,6 +354,8 @@ router.post(
 router.post(
   '/games/:id/chasse/pages/:zoneKey/ouvrir',
   requireGlAuthOrTeam,
+  // M13 : ouvrir une page pour la faire tenir prend la main (rendue si rien n'est à tenir).
+  equipeEtat.gardeDEquipe({ prend: 'tenir', rend: true }),
   asyncHandler(async (req, res) => {
     const gameId = parseId(req.params.id);
     const zoneKey = normalizeOptionalString(req.params.zoneKey);
@@ -387,6 +395,8 @@ router.post(
       });
     }
     const { events, ...rest } = result; // eslint-disable-line no-unused-vars
+    // La question de lecture est à l'écran : l'appareil garde la main jusqu'à la réponse.
+    if (rest.question && req.glGarde) req.glGarde.rend = false;
     return res.json({ ...rest, via: ctx.via });
   }),
 );
@@ -394,6 +404,7 @@ router.post(
 router.post(
   '/games/:id/chasse/pages/:zoneKey/tenir',
   requireGlAuthOrTeam,
+  equipeEtat.gardeDEquipe({ rend: true }),
   asyncHandler(async (req, res) => {
     const gameId = parseId(req.params.id);
     const zoneKey = normalizeOptionalString(req.params.zoneKey);

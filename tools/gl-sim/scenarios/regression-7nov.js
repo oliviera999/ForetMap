@@ -67,7 +67,9 @@ async function sondeProgression(ctx, tour) {
 }
 
 async function sondeRetrait(ctx) {
-  // C6 : un élève en retrait ouvre une page trouvée (200) mais ne voit pas le Marché (403).
+  // C6, remplacé par la décision M13 de l'ensemble unifié (absent spectateur) : depuis son
+  // compte, un élève en retrait regarde le tour — ouvrir une page lui répond 403 `SPECTATEUR`
+  // pendant un tour ouvert (200 en veillée) — et ne voit pas le Marché (403).
   const pages = await ctx.db.queryAll(
     `SELECT z.zone_key, p.trouvee_par_team_id FROM gl_game_chasse_pages p INNER JOIN gl_chasse_zones z ON z.id = p.zone_id
       WHERE p.game_id = ? AND p.etat IN ('trouvee', 'reparee', 'tenue') LIMIT 5`,
@@ -103,7 +105,7 @@ async function sondeRetrait(ctx) {
       membres: eq.membres,
       geste: 'ouvrir-retrait',
     });
-    lecture = r.status;
+    lecture = r.status === 403 ? `403 ${r.body?.code || ''}`.trim() : r.status;
   }
   await ctx.client.appel({
     token: ctx.mjToken,
@@ -116,7 +118,7 @@ async function sondeRetrait(ctx) {
   const ok =
     marche.status === 403 &&
     marche.body?.code === 'MARCHE_RETRAIT' &&
-    (lecture == null || lecture === 200);
+    (lecture == null || lecture === 200 || lecture === '403 SPECTATEUR');
   noter(
     'C6',
     ok,

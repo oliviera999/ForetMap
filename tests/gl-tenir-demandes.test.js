@@ -17,8 +17,8 @@ const {
   setPlayerBourses,
   readPlayerBourses,
   ouvrirTourEnJeu,
+  ouvrirTablette,
 } = require('./helpers/glTenirFixtures');
-const { issueTeamSession } = require('../lib/glGuestToken');
 const { checkTenirInvariantsFromDb } = require('../lib/glTenirInvariants');
 const { getGameplaySettings } = require('../lib/glSettings');
 const { presentJournalEvent } = require('../lib/glJournalPresent');
@@ -177,7 +177,7 @@ test('aucune attente sans sortie : la phase ferme dés et jets ; le tour suivant
 });
 
 test('« Tout au tableau » : les jets en suspens s’appliquent, les tablettes restent connectées sous les droits du tableau, et retour', async () => {
-  const s = await issueTeamSession(db, { gameId: ctx.game.id, teamId: team(0).id });
+  const s = await ouvrirTablette({ gameId: ctx.game.id, teamId: team(0).id });
   // Un jet en suspens (tirage serveur du prof pour Gnomes A).
   const jet = await request(app)
     .post(api('/tenir/lancer'))

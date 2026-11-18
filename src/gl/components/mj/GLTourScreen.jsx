@@ -330,7 +330,11 @@ export function GLTourScreen({
           </p>
         ) : null}
         {surface !== 'tableau' ? (
-          <GLClassLinkPanel game={game} teams={teams} refreshKey={refreshKey} />
+          <GLClassLinkPanel
+            game={game}
+            teams={teams}
+            refreshKey={`${refreshKey}:${tenir?.appareilsEnAttente || 0}`}
+          />
         ) : null}
         {round?.phase === 'clos' && round.durees?.libelle ? (
           <p className="gl-hint gl-tour-durees" data-testid="gl-tour-durees">

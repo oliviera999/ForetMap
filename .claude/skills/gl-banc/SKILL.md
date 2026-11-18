@@ -54,6 +54,11 @@ Options utiles : `--seances N`, `--plateaux 1,3`, `--mots-interdits souple|stric
 - **Scénarios** : `tools/gl-sim/scenarios/` (`base.js` porte les variantes, `equilibrage.js` la
   grille, `regression-7nov.js` les assertions C1-C10). Un scénario nouveau s'ajoute à `index.js`.
 
+- **Plusieurs appareils** : `multi-appareils` joue le chapitre 1 avec deux tablettes par équipe,
+  qui envoient chaque geste au même instant (`equipe.js › appelADeuxAppareils`). Ses assertions
+  (`DOUBLONS`, `LIVRE`, `MAINS`…) font échouer la fumée `npm run test:sim`. À relancer dès qu'on
+  touche à `lib/glEquipeEtat.js`, à une route d'équipe ou aux sessions d'équipe.
+
 ## Ce qui fait échouer
 
 Après **chaque geste** : `checkTenirInvariantsFromDb`, réponse 5xx, mot interdit dans une

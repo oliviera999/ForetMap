@@ -12,8 +12,9 @@ import {
   saveGlSession,
   clearGlSession,
   apiGL,
-  setGlActingPlayer,
-  getGlActingPlayer,
+  apiGLAvecJeton,
+  getGlEtatVersion,
+  resetGlEtatVersions,
 } from '../../src/gl/services/apiGL.js';
 
 describe('session d’équipe (tablette de classe)', () => {
@@ -60,31 +61,99 @@ describe('session d’équipe (tablette de classe)', () => {
     expect(getGlSession()).toBeNull();
   });
 
-  test('« Qui agit ? » : la tablette n’annonce l’élève qu’au Marché, jamais avec un compte', async () => {
+  test('version d’état : lue dans l’état de la partie, renvoyée avec chaque geste, jamais avec une lecture', async () => {
+    resetGlEtatVersions();
+    let corps = {};
+    let statut = 200;
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async () => ({
+      ok: statut < 400,
+      status: statut,
+      headers: { get: () => 'application/json' },
+      json: async () => corps,
+      text: async () => JSON.stringify(corps),
+    }));
+    const entetes = () => fetchMock.mock.calls.at(-1)[1].headers;
+    saveGlSession(buildTeamSession({ token: 'equipe', gameId: 7, teamId: 12 }));
+
+    // Avant toute lecture : aucun en-tête (le serveur accepte, comme pour un ancien écran).
+    await apiGL('/api/gl/games/7/tenir/lancer', 'POST', {});
+    expect(entetes()['X-GL-Etat-Version']).toBeUndefined();
+
+    corps = { tenir: { equipe: { gameId: 7, teamId: 12, version: 4, main: null } } };
+    await apiGL('/api/gl/games/7');
+    expect(entetes()['X-GL-Etat-Version']).toBeUndefined();
+    expect(getGlEtatVersion(7)).toBe(4);
+
+    // Le geste part avec la version vue ; sa réponse rend la suivante.
+    corps = { ok: true, etatVersion: { gameId: 7, teamId: 12, version: 5 } };
+    await apiGL('/api/gl/games/7/chasse/fouiller', 'POST', { x: 0.1, y: 0.2 });
+    expect(entetes()['X-GL-Etat-Version']).toBe('4');
+    expect(getGlEtatVersion(7)).toBe(5);
+    // Une autre partie, le Marché, une lecture : jamais d'en-tête.
+    for (const [chemin, methode] of [
+      ['/api/gl/games/8/tenir/lancer', 'POST'],
+      ['/api/gl/market/dons', 'POST'],
+      ['/api/gl/games/7/chasse', 'GET'],
+    ]) {
+      await apiGL(chemin, methode, methode === 'GET' ? null : {});
+      expect(entetes()['X-GL-Etat-Version']).toBeUndefined();
+    }
+    // Plus aucun « au nom de » : le Marché passe par le compte de chacun.
+    expect(entetes()['X-GL-On-Behalf-Of']).toBeUndefined();
+
+    // État périmé : l'erreur porte son code, et les écrans sont prévenus pour recharger.
+    const entendus = [];
+    const ecoute = (evt) => entendus.push(evt.detail);
+    window.addEventListener('gl:equipe-etat', ecoute);
+    statut = 409;
+    corps = {
+      error: 'L’équipe a déjà joué ce geste. Voici où vous en êtes.',
+      code: 'ETAT_PERIME',
+      etatVersion: { gameId: 7, teamId: 12, version: 6 },
+    };
+    await expect(apiGL('/api/gl/games/7/tenir/lancer', 'POST', {})).rejects.toMatchObject({
+      status: 409,
+      code: 'ETAT_PERIME',
+      message: 'L’équipe a déjà joué ce geste. Voici où vous en êtes.',
+    });
+    window.removeEventListener('gl:equipe-etat', ecoute);
+    expect(entendus).toEqual([
+      {
+        code: 'ETAT_PERIME',
+        message: 'L’équipe a déjà joué ce geste. Voici où vous en êtes.',
+        gameId: 7,
+      },
+    ]);
+    // La version rendue par le serveur est retenue : l'écran recharge, le geste suivant part de
+    // l'état courant.
+    expect(getGlEtatVersion(7)).toBe(6);
+    // Réponse à une question déjà à l'écran : le refus reste silencieux (elle repartira une fois).
+    corps = { ...corps, etatVersion: { gameId: 7, teamId: 12, version: 7 } };
+    const entendusAvant = entendus.length;
+    window.addEventListener('gl:equipe-etat', ecoute);
+    await expect(
+      apiGL('/api/gl/games/7/qcm/answer', 'POST', {}, { perimeSilencieux: true }),
+    ).rejects.toMatchObject({ code: 'ETAT_PERIME' });
+    window.removeEventListener('gl:equipe-etat', ecoute);
+    expect(entendus.length).toBe(entendusAvant);
+    expect(getGlEtatVersion(7)).toBe(7);
+    fetchMock.mockRestore();
+    resetGlEtatVersions();
+  });
+
+  test('demande d’appareil : lue avec le jeton de la demande, sans toucher à la session', async () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
       ok: true,
       status: 200,
       headers: { get: () => 'application/json' },
-      json: async () => ({ items: [] }),
-      text: async () => '{"items":[]}',
+      json: async () => ({ statut: 'en_attente' }),
+      text: async () => '{"statut":"en_attente"}',
     });
-    const entetes = () => fetchMock.mock.calls.at(-1)[1].headers;
-    saveGlSession(buildTeamSession({ token: 'equipe', gameId: 7, teamId: 12 }));
-    setGlActingPlayer(41);
-    expect(getGlActingPlayer()).toBe(41);
-    await apiGL('/api/gl/market/annonces');
-    expect(entetes()['X-GL-On-Behalf-Of']).toBe('41');
-    await apiGL('/api/gl/games/7');
-    expect(entetes()['X-GL-On-Behalf-Of']).toBeUndefined();
-    setGlActingPlayer(null);
-    await apiGL('/api/gl/market/annonces');
-    expect(entetes()['X-GL-On-Behalf-Of']).toBeUndefined();
-    // Avec un compte d'élève, on n'agit que pour soi : aucun en-tête.
-    setGlActingPlayer(41);
     saveGlSession({ token: 'compte', auth: { userType: 'gl_player', userId: '4' } });
-    await apiGL('/api/gl/market/annonces');
-    expect(entetes()['X-GL-On-Behalf-Of']).toBeUndefined();
-    setGlActingPlayer(null);
+    const etat = await apiGLAvecJeton('/api/gl/class-link/demande', 'jeton-de-la-demande');
+    expect(etat).toEqual({ statut: 'en_attente' });
+    expect(fetchMock.mock.calls.at(-1)[1].headers.Authorization).toBe('Bearer jeton-de-la-demande');
+    expect(getGlToken()).toBe('compte');
     fetchMock.mockRestore();
   });
 

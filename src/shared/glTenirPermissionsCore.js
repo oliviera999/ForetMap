@@ -70,6 +70,8 @@ const ALL_FALSE = Object.freeze(Object.fromEntries(TENIR_GESTES.map((g) => [g, f
  * @param {boolean} [input.isMember] l'acteur est-il membre de l'équipe visée ? (défaut vrai)
  * @param {boolean} [input.fouilleFenetreOuverte] hybride : fenêtre de fouille ouverte par le prof
  * @param {boolean} [input.enRetrait] l'élève est en retrait (jamais de Marché)
+ * @param {boolean} [input.spectateur] l'élève est absent du tour ou en retrait : pendant un tour
+ *   ouvert, il voit tout et ne joue rien (M13)
  * @param {object} [input.settings] réglages résolus (`marche`, `marche_pendant_tour`,
  *   `lecture_pendant_tour`, et l'escalier : `escalier`, `escalier_pas`)
  * @returns {Record<string, boolean>}
@@ -86,6 +88,9 @@ export function resolveTenirPermissions(input = {}) {
   }
   const surface = normalizeTenirSurface(input.surface);
   const phase = normalizeTenirPhase(input.phase);
+  // Ensemble unifié (M13) : un élève absent du tour ou en retrait, connecté avec son compte,
+  // regarde le tour ouvert sans rien jouer (ni geste, ni Marché). Le tour clos, il rejoue.
+  if (input.spectateur === true && !!phase && phase !== 'clos') return { ...ALL_FALSE };
   const isMember = input.isMember !== false;
   const enJeu = phase === 'jeu';
   const enRetrait = input.enRetrait === true;

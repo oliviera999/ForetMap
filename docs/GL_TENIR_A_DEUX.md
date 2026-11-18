@@ -86,6 +86,7 @@ chasse initialisées, les Héritages de la classe versés.
 | 368 | ensemble unifié (M8) : `tenir_pages_par_semaine` (4, somme des deux anciennes limites reprise) remplace `tenir_pages_veillee_par_semaine` et `tenir_defis_pages_par_semaine` |
 | 369 | ensemble unifié (M8) : réglage `tenir_escalier` (true) ; une partie restée en profil `prologue` passe en `complet` avec `escalier` et `escalier_pas` (tours clos + 1, 4 au plus) dans ses surcharges |
 | 370 | ensemble unifié (M8) : `gl_tenir_olu_lignes.id` à 48 caractères, colonnes `cle` et `seance_escalier` ; mémoire `gl_game_olu_premieres` (partie, clé, équipe ou 0) |
+| 371 | ensemble unifié (M13) : `gl_team_etat` (version d'état et main d'une équipe en partie) ; `gl_guest_tokens.accepted_at/accepted_by` (sessions d'équipe à accepter) ; réglage `gameplay.tenir_delai_debat_secondes` (8) |
 
 Le chargeur `npm run gl:import:tenir -- --fichier tous|<nom> [--dry-run] [--forcer] [--strict]`
 (`lib/glTenirImport.js`, données `data/gl/tenir/`, README des clés) reste maître des catalogues ;
@@ -105,6 +106,7 @@ Contenus → Chapitres (`GET/POST /api/gl/admin/tenir/catalogues[/sync]`).
 | `lib/glTenirOlu.js` (première fois)                                                                                                | **Olu « première fois »** (M8) : `clesPremiereFois` (évènement → clés, pur), `avecPremieresFois` appelé par `insertGameEvent` (`lib/glGameEvents.js`) — la ligne est portée par l'évènement (`payload.olu`), la mémoire `gl_game_olu_premieres` s'écrit dans la transaction du geste                                                                                                                                                                                                                                                                                                                                                                    |
 | `lib/glCeQuiChange.js`                                                                                                             | « **Ce qui change** » au camp : trois lignes (peuple, sorts, plateau) calculées depuis `gl_chapter_spells` et les réglages résolus ; route `GET …/tenir/ce-qui-change`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | `src/shared/glSortMomentsCore.js`                                                                                                  | sorts par moment ; **cinq rôles** (M10 : `ROLES_TENIR`, `roleDuGeste`) et `maintenantVousPouvez` (« Maintenant, vous pouvez… », calcul pur lu par l'écran d'équipe)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| `src/shared/glMainCore.js`, `lib/glEquipeEtat.js`                                                                                  | **plusieurs appareils par équipe** (M13) : noyau pur (porteur, version vue, main tenue ou échue, textes « Lina répond… ») ; côté serveur, `gardeDEquipe` (version d'état, main, spectateur) posée sur les routes d'équipe, `vueEquipe` (bloc `tenir.equipe`), rendu de la main (fin de geste, échéance, déconnexion, changement de phase)                                                                                                                                                                                                                                                                                                               |
 | `src/shared/glTenirPermissionsCore.js`                                                                                             | permissions pures par surface / phase / acteur (miroir `lib/shared/`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | `lib/glTour.js`                                                                                                                    | tour à phases, ordre inverse du plateau, vent, jets (serveur / physique / libre), bénéficiaire au camp, arrivée (Trame, Souffle, péripétie, camp), Cordée                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | `lib/glChasse.js`                                                                                                                  | zones, fouilles (verdicts, quota), questions de chasse, pages trouvées / réparées / lues / tenues, carnet complet, pistes, carnet de la classe, oiseau                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
@@ -257,6 +259,13 @@ Lot « Vérité et mesure » (14 novembre 2026, base du banc, élèves fictifs) 
 `lot1-durees-du-tour-console-1440x900.png` (ligne « Ce tour : … » ; durées reportées sur une
 séance type, la base du banc jouant le tour en quelques secondes).
 
+Lot « Plusieurs appareils » (17 novembre 2026, partie d'exemple, élèves fictifs, produites par
+`e2e/gl-tenir-tablettes.spec.js`) : `tablette-attente.png` (la tablette attend d'être acceptée
+dans son équipe), `appareils-demande.png` (« Une tablette demande à rejoindre l'équipe. » sur un
+appareil déjà dans l'équipe), `appareils-la-main.png` (« Lina prépare un sort… », gestes éteints),
+`appareils-etat-perime.png` (l'écran arrivé en second : « L'équipe a déjà joué ce geste. Voici où
+vous en êtes. »).
+
 Lot « Défis de la Trame » (15 novembre 2026, partie d'exemple, élèves fictifs, produites par
 `e2e/gl-tenir-defis-trame.spec.js`) : `defis-retisser-tablette.png` et
 `defis-retisser-reussi.png` (Retisser niveau 5 sur une tablette d'équipe, 1024 × 768),
@@ -282,11 +291,12 @@ jouent en même temps** : il n'y a d'« équipe active » qu'au tableau. Ce qui 
 - **Qui agit** : un compte d'élève, ou la **tablette de l'équipe** (session ouverte par le lien de
   classe, `lib/glClassLink.js`, acteur `team` de `lib/glActeur.js`). Une tablette a les droits
   d'un membre, pour sa partie et son équipe, tant qu'un tour est ouvert (409
-  `TEAM_SESSION_HORS_TOUR` sinon) ; un geste qui touche une bourse individuelle passe par « Qui
-  agit ? » (`resolveActingPlayer`).
-- **Présences** : chaque équipe confirme la sienne à l'ouverture du tour (`lib/glPresences.js`) ;
-  sans confirmation, aucun pot ne se crée (409 `PRESENCE_A_CONFIRMER`). L'appel du prof confirme
-  toutes les équipes d'un coup.
+  `TEAM_SESSION_HORS_TOUR` sinon). **Bourses au propriétaire** (M13) : elle ne fait que les gestes
+  d'équipe ; un geste qui touche la bourse d'un élève (Marché, « pas moi ») se fait depuis le
+  compte de cet élève, ou par le prof (403 `BOURSE_AU_PROPRIETAIRE`, `resolveActingPlayer`).
+- **Présences** (M14) : tout le monde est présent par défaut (`lib/glPresences.js`) ; l'équipe
+  dit qui manque, le prof corrige. Un élève noté absent, ou en retrait, regarde le tour depuis
+  son compte sans jouer (M13, 403 `SPECTATEUR`).
 - **Jets et fenêtres par équipe** : le dernier jet, la fenêtre « après le jet » et le jet en
   suspens (Relance) se tiennent **par équipe** (`derniersJets`, `lib/glArriveeSuspendue.js`) ; un
   autre geste de l'équipe (fouiller, répondre, lire, tenir) garde son jet. Une question de case
@@ -298,6 +308,43 @@ jouent en même temps** : il n'y a d'« équipe active » qu'au tableau. Ce qui 
   rendu), Seuil (tout le reste, défis de case compris).
 - **« Tout au tableau »** (`POST …/tenir/surface`) : en pleine séance, le prof reprend la main ;
   les jets en suspens s'appliquent, les tablettes restent connectées sous les droits du tableau.
+
+**Plusieurs appareils par équipe** (ensemble unifié, M13, 17 novembre 2026). Une équipe joue sur
+plusieurs écrans : des tablettes de classe, les comptes de ses élèves. Trois règles, posées d'un
+seul geste sur les routes d'équipe par `lib/glEquipeEtat.js › gardeDEquipe` (noyau pur
+`src/shared/glMainCore.js`) ; l'état vit dans `gl_team_etat`, une ligne par équipe, née à son
+premier geste.
+
+- **Version d'état** : `gl_team_etat.version` avance à chaque geste de l'équipe. L'app renvoie la
+  version vue (en-tête `X-GL-Etat-Version`, ou `etatVersion` dans le corps) ; la prise est un
+  `UPDATE` conditionnel — de deux gestes partis avec la même version, un seul passe. L'autre
+  reçoit 409 `ETAT_PERIME`, sans perte, et son écran se recharge. Un geste que le moteur refuse
+  rend sa version. Un geste sans version (ancien écran, prof) n'est pas contrôlé ; le geste du
+  prof pour une équipe avance sa version. Toute réponse d'un geste abouti porte
+  `etatVersion: { gameId, teamId, version }`. Une connexion coupée avant la réponse ne rend pas
+  la version : l'app rejoue son écriture avec la même version, et la trouve périmée. La réponse
+  à une question déjà à l'écran repart une fois avec la version rendue
+  (`src/gl/utils/glReponseSansPerte.js`) : une fouille déjà jouée ne se perd pas.
+- **La main** : un geste décisif — `repondre` (question de case), `fouiller`, `tenir` (ouvrir une
+  page à tenir), `sort` (préparer un sort) — la prend pour 60 s au plus (`main_holder` : `p:<id>`
+  pour un compte, `s:<clé>` pour une tablette). Les autres appareils de l'équipe reçoivent 409
+  `MAIN_AILLEURS` (« Lina répond… Attendez la fin de son geste. », prénom seul). Elle se rend à la
+  fin du geste (réponse donnée, sort lancé ou annulé), sur `POST …/tenir/main/rendre`, à
+  l'échéance, à la déconnexion de la socket de l'appareil (`lib/realtime.js`), quand le prof
+  déconnecte la tablette, au changement de phase. Le prof n'est jamais retenu. Régler sa part ou
+  dire « pas moi » reste un geste personnel, hors de la garde.
+- **Absent spectateur** : `estSpectateur` (absent du tour ouvert, ou en retrait) → 403
+  `SPECTATEUR` pour un compte d'élève, y compris pour accepter un appareil ; le bloc `tenir` porte `spectateur: true`, toutes
+  permissions à `false`.
+- **Sessions d'équipe protégées** (`lib/glGuestToken.js`) : `POST /class-link/session` rend une
+  **demande** (202, `enAttente`), qui ne vaut qu'une fois acceptée (`accepted_at`) par un appareil
+  déjà dans l'équipe ou par le prof ; elle expire seule au bout de 2 min. L'appareil qui attend
+  relit `GET /class-link/demande` avec le jeton de sa demande.
+- **Signal temps réel** `gl:game:equipe` (`emitGlEquipeSignal`) : la main a changé, ou un appareil
+  demande à entrer — sans donnée, les écrans rechargent.
+- **Délai de débat** : réglage `tenir_delai_debat_secondes` (8), tenu par l'écran sur la question
+  de case (`GLTenirQuestionCard`).
+- Hors d'un tour ouvert et hors mode « Tenir », la garde laisse passer sans rien toucher.
 
 **Défis de la Trame** (lot 3, 15 novembre 2026). Ils se jouent **hors du tour** et ne dépendent
 pas de la surface : un compte d'élève y joue à tout moment (mode `individuel`), le prof ou une

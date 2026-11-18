@@ -508,7 +508,21 @@ async function activerSortRetire(chapterId, code) {
   };
 }
 
+/**
+ * Tablette d'équipe **déjà acceptée** (ensemble unifié, M13 : une session d'équipe neuve n'est
+ * qu'une demande, que le prof ou un appareil de l'équipe accepte). Même retour que
+ * `issueTeamSession` ; `accepter: false` laisse la demande en attente.
+ */
+async function ouvrirTablette({ gameId, teamId, classId = null, accepter = true }) {
+  const { issueTeamSession, acceptTeamSessions } = require('../../lib/glGuestToken');
+  const db = require('../../database');
+  const session = await issueTeamSession(db, { gameId, teamId, classId });
+  if (accepter) await acceptTeamSessions(db, { gameId, id: session.id, par: 'mj' });
+  return session;
+}
+
 module.exports = {
+  ouvrirTablette,
   activerSortRetire,
   confirmerPresences,
   attachTenirSpells,

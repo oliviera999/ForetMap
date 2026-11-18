@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
+import { repondreSansPerte } from '../utils/glReponseSansPerte.js';
 
 /**
  * « Tenir à deux » — la chasse côté client : carnet de la classe (`GET /chasse`), fouille au
@@ -44,6 +45,9 @@ export function useGlChasse({ gameId, enabled = true, onChanged = null }) {
         return result;
       } catch (err) {
         setError(err.message || 'Action impossible');
+        // M13 : l'écran était périmé — le carnet se relit. Une question déjà ouverte reste à
+        // l'écran : la fouille qui l'a ouverte est jouée, on ne la fait pas perdre à l'équipe.
+        if (err?.code === 'ETAT_PERIME') await refresh();
         return null;
       } finally {
         setBusy(false);
@@ -51,6 +55,11 @@ export function useGlChasse({ gameId, enabled = true, onChanged = null }) {
     },
     [refresh, onChanged],
   );
+
+  /** Fermer sans répondre rend la main à l'équipe (M13) ; elle expirerait seule sinon. */
+  const rendreLaMain = useCallback(() => {
+    if (gameId) apiGL(`/api/gl/games/${gameId}/tenir/main/rendre`, 'POST', {}).catch(() => {});
+  }, [gameId]);
 
   const fouiller = useCallback(
     async ({ x, y, teamId = null }) => {
@@ -75,7 +84,7 @@ export function useGlChasse({ gameId, enabled = true, onChanged = null }) {
     async (choiceId, teamId = null) => {
       if (!question?.question) return null;
       const result = await run(() =>
-        apiGL(`/api/gl/games/${gameId}/chasse/repondre`, 'POST', {
+        repondreSansPerte(`/api/gl/games/${gameId}/chasse/repondre`, {
           presentationToken: question.question.presentationToken,
           questionCode: question.question.questionCode,
           choiceId,
@@ -117,9 +126,8 @@ export function useGlChasse({ gameId, enabled = true, onChanged = null }) {
     async (choiceId, teamId = null) => {
       if (!page?.question) return null;
       const result = await run(() =>
-        apiGL(
+        repondreSansPerte(
           `/api/gl/games/${gameId}/chasse/pages/${encodeURIComponent(page.zoneKey)}/tenir`,
-          'POST',
           {
             presentationToken: page.question.presentationToken,
             questionCode: page.question.questionCode,
@@ -154,9 +162,15 @@ export function useGlChasse({ gameId, enabled = true, onChanged = null }) {
     fouilleMode,
     setFouilleMode,
     question,
-    clearQuestion: () => setQuestion(null),
+    clearQuestion: () => {
+      setQuestion(null);
+      rendreLaMain();
+    },
     page,
-    closePage: () => setPage(null),
+    closePage: () => {
+      setPage(null);
+      rendreLaMain();
+    },
     dernierVerdict,
     fouiller,
     repondre,

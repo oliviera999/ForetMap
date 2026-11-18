@@ -10,6 +10,13 @@ import { GLOluBulle } from '../../src/gl/components/tenir/GLOluBulle.jsx';
 import { TENIR_OLU_FALLBACK, TENIR_VERDICT_TEXTES } from '../../src/gl/constants/tenirTextes.js';
 import { findForbiddenString } from '../../src/shared/glGardeFousCore.js';
 import {
+  GESTES_DE_MAIN,
+  MESSAGE_ETAT_PERIME,
+  MESSAGE_SPECTATEUR,
+  messageMainAilleurs,
+  texteMain,
+} from '../../src/shared/glMainCore.js';
+import {
   FENETRE_LABELS,
   GLSpellCastEffectParams,
 } from '../../src/gl/components/spell-cast/GLSpellCastEffectParams.jsx';
@@ -58,6 +65,25 @@ const tenir = {
   permissions: { jeter: true, lancer: true, repondre: true, fouiller: true, lire: true },
   enRetrait: true,
   plume: true,
+  // Plusieurs appareils par équipe (M13) : la main ailleurs, le spectateur, deux demandes.
+  spectateur: true,
+  equipe: {
+    gameId: 7,
+    teamId: 2,
+    version: 4,
+    main: {
+      moi: false,
+      geste: 'repondre',
+      tablette: false,
+      prenom: 'Lina',
+      texte: texteMain({ prenom: 'Lina', geste: 'repondre' }),
+      resteSecondes: 40,
+    },
+    appareils: [
+      { id: 1, resteSecondes: 100 },
+      { id: 2, resteSecondes: 60 },
+    ],
+  },
 };
 
 const chasse = {
@@ -156,6 +182,8 @@ describe('chaînes interdites côté élève (spec § 2)', () => {
         <GLTenirQuestionCard
           question={chasse.question.question}
           feedback="Pas encore : la page dort encore ici."
+          submitLabel="Valider"
+          delaiSecondes={8}
         />
         <GLChasseLayer carnet={chasse.carnet} teams={gameState.teams} />
         <GLVoileLayer
@@ -193,6 +221,24 @@ describe('chaînes interdites côté élève (spec § 2)', () => {
       </>,
     );
     expect(texteInterdit(container.textContent)).toBeNull();
+    // M13 : ces textes sont bien à l'écran (le crible ci-dessus les a donc lus).
+    expect(container.querySelector('[data-testid="gl-tenir-main"]').textContent).toBe(
+      'Lina répond…',
+    );
+    expect(container.querySelector('[data-testid="gl-tenir-spectateur"]').textContent).toBe(
+      MESSAGE_SPECTATEUR,
+    );
+    expect(container.querySelector('[data-testid="gl-tenir-appareils"]').textContent).toContain(
+      '2 tablettes demandent à rejoindre l’équipe.',
+    );
+    expect(container.querySelector('[data-testid="gl-tenir-debat"]').textContent).toContain(
+      'Mettez-vous d’accord',
+    );
+    for (const geste of GESTES_DE_MAIN) {
+      expect(texteInterdit(messageMainAilleurs({ prenom: 'Lina', geste }))).toBeNull();
+      expect(texteInterdit(texteMain({ geste }))).toBeNull();
+    }
+    expect(texteInterdit(MESSAGE_ETAT_PERIME)).toBeNull();
     expect(container.querySelector('polygon')).toBeNull();
     // L'oiseau n'a ni nom ni texte ; le motif de retrait n'apparaît jamais.
     expect(container.querySelector('[data-testid="gl-kraa"]').textContent).toBe('');

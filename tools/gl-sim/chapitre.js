@@ -169,6 +169,7 @@ async function jouerChapitre({
       avantEquipes: crochets.avantEquipes ? (c, tour) => crochets.avantEquipes(c, tour, s) : null,
       apresEquipes: crochets.apresEquipes ? (c, tour) => crochets.apresEquipes(c, tour, s) : null,
       sessionsEquipe: scenario.sessionsEquipe === true,
+      appareilsParEquipe: scenario.appareilsParEquipe,
     });
     seances.push(resume);
     rangsParSeance.push(await rangsAvantSeuil(ctx.db, partie));
