@@ -186,7 +186,8 @@ les 40 nouvelles passent le filtre des mots interdits.
 ### 5.3 Indices scientifiques (étape 1.4)
 
 Copie `chasse-zones.json`. La synchronisation par empreinte l'importera. Vérifie que l'import tolérant ne
-rapporte aucune erreur et que `cz-p2-08` reste `actif: false`. Dans le carnet de la classe, l'indice
+rapporte aucune erreur et que `cz-p2-08` garde l'état du catalogue (consigne d'origine : en attente ; depuis
+la décision L5 de l'ensemble unifié, la zone est active avec le feuillet `ep-I-06`). Dans le carnet de la classe, l'indice
 s'affiche en entier (tablette 1024 px et projection).
 
 ### 5.4 Contrôle de surface au lancement d'un sort (étape 1.5)
