@@ -18,6 +18,7 @@ export function GLJoueursView({
   modules,
   vitalityEnabled,
   heartsTradable = false,
+  gemmesSeules = false,
   includeMarket,
   showStaffAdminUi,
   canModerateForum,
@@ -94,6 +95,7 @@ export function GLJoueursView({
               classId={classId}
               playerId={playerId}
               heartsTradable={heartsTradable}
+              gemmesSeules={gemmesSeules}
               selfHealthPoints={selfHealthPoints}
               selfPowerPoints={selfPowerPoints}
               onTradeCompleted={onTradeCompleted}
@@ -112,6 +114,7 @@ export function GLJoueursView({
             classes={classes}
             auth={auth}
             vitalityEnabled={vitalityEnabled}
+            gemmesSeules={gemmesSeules}
             modules={modules}
           />
         ) : null}

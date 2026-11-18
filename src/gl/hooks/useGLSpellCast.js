@@ -28,13 +28,13 @@ export function useGLSpellCast({ token, gameId, enabled, onCastComplete }) {
   }, []);
 
   const startDraft = useCallback(
-    async ({ spellCode, teamId, ressource, partnerTeamId, effectParams, playerId }) => {
+    async ({ spellCode, teamId, partnerTeamId, effectParams, playerId }) => {
       if (!gameId) throw new Error('Aucune partie active');
       return runAction(async () => {
         const body = { spellCode };
         if (teamId != null && Number(teamId) > 0) body.teamId = Number(teamId);
-        // « Tenir à deux » v2 : ressource au choix, partenaire du pacte, paramètres d'effet.
-        if (ressource) body.ressource = ressource;
+        // « Tenir à deux » v2 : partenaire du pacte, paramètres d'effet (M1 : une seule monnaie,
+        // plus de ressource à choisir).
         if (partnerTeamId != null && Number(partnerTeamId) > 0)
           body.partnerTeamId = Number(partnerTeamId);
         if (effectParams && typeof effectParams === 'object') body.effectParams = effectParams;

@@ -9,6 +9,8 @@ import { GLDefisCasePanel } from './tenir/GLDefisCasePanel.jsx';
 import { GLDefisEntree } from './defis/GLDefisEntree.jsx';
 import { GLCeQuiChange } from './tenir/GLCeQuiChange.jsx';
 import { GLSeuilLettre, GLSeuilMentorat } from './GLSeuilPagesVoyageur.jsx';
+import { GLSeuilGardeRobe } from './GLSeuilGardeRobe.jsx';
+import { GLButDeLAnnee } from './tenir/GLButDeLAnnee.jsx';
 import {
   GL_VOYAGEUR_SFX_CHANGED_EVENT,
   isVoyageurSfxMuted,
@@ -310,6 +312,7 @@ export function GLSeuilView({ onNavigateTab, modules }) {
     castSpell,
     ecrireLettre,
     retenterMentorat,
+    gesteParure,
   } = useGLVoyageur();
   const [levelUp, setLevelUp] = useState(null);
   const [gesture, setGesture] = useState(null);
@@ -552,6 +555,10 @@ export function GLSeuilView({ onNavigateTab, modules }) {
         onEcrire={ecrireLettre}
       />
       <GLSeuilMentorat mentorat={data.mentorat} onRetenter={retenterMentorat} />
+
+      {/* M19 : les parures gardées toute l'année, et le but de l'année (jamais un bouton). */}
+      <GLSeuilGardeRobe gardeRobe={data.gardeRobe} onGeste={gesteParure} />
+      <GLButDeLAnnee but={data.butDeLAnnee} />
 
       <section
         className="gl-seuil-grimoire"

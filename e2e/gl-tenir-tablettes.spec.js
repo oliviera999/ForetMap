@@ -206,12 +206,15 @@ test.describe('GL — tablettes d’équipe par le lien de classe', () => {
     // Le pot d'un sort sur la tablette : part automatique des présents. « Pas moi » ne se dit
     // plus d'ici (M13, bourses au propriétaire) : depuis son propre compte, ou au prof.
     const potier = tablettes[1].page;
-    // Sentier (gnome, 2 cœurs, chapitre 1 : ensemble unifié M6 — Abri s’ouvre au chapitre 2).
+    // Sentier (gnome, 2 gemmes — une seule monnaie, M1 ; chapitre 1 : ensemble unifié M6, Abri
+    // s’ouvre au chapitre 2).
     await potier.getByRole('button', { name: 'Jeter un sort' }).click();
     await potier.getByTestId('gl-sorts-moments').locator('[data-sort="SL042"]').click();
     const lignes = potier.locator('[data-testid^="gl-pot-ligne-"]');
     await expect(lignes).toHaveCount(2, { timeout: 15_000 });
-    await expect(lignes.first()).toContainText('❤️ 1');
+    await expect(lignes.first()).toContainText('💎 1');
+    // Aucun cœur à l'écran d'une partie « Tenir à deux ».
+    await expect(lignes.first()).not.toContainText('❤️');
     await expect(potier.getByRole('button', { name: 'pas moi' })).toHaveCount(0);
     await expect(potier.getByTestId('gl-pot-comptes')).toContainText(
       '« Pas moi » se dit depuis son propre compte, ou au prof.',

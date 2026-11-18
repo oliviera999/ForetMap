@@ -2,13 +2,12 @@ import { useCallback, useEffect, useState } from 'react';
 import { apiGL } from '../../services/apiGL.js';
 import { GLButton } from '../ui/GLButton.jsx';
 import { ROLES_EN_CONSEIL } from '../../../shared/glSortMomentsCore.js';
+import { GLButDeLAnnee } from './GLButDeLAnnee.jsx';
 
-const RESSOURCES = { gemmes: '💎', coeurs: '❤️', peuple: 'du peuple', choix: 'au choix' };
-
+// Ensemble unifié (M1) : une seule monnaie — tout sort se paie en gemmes.
 function cout(sort) {
   if (!sort.cout) return '';
-  const unite = RESSOURCES[sort.ressource] || '';
-  return ` · ${sort.cout}${unite ? ` ${unite}` : ''}`;
+  return ` · ${sort.cout} 💎`;
 }
 
 /**
@@ -26,6 +25,8 @@ export function GLSortsParMoment({
   onJeter,
 }) {
   const [moments, setMoments] = useState(null);
+  // M19 : la Consécration, but de l'année — visible grisée dès le chapitre 1.
+  const [but, setBut] = useState(null);
   const [error, setError] = useState('');
 
   const load = useCallback(async () => {
@@ -35,6 +36,7 @@ export function GLSortsParMoment({
         `/api/gl/games/${gameId}/tenir/sorts${teamId != null ? `?teamId=${teamId}` : ''}`,
       );
       setMoments(Array.isArray(data?.moments) ? data.moments : []);
+      setBut(data?.butDeLAnnee || null);
       setError('');
     } catch (err) {
       setError(err.message || 'Sorts indisponibles');
@@ -81,6 +83,7 @@ export function GLSortsParMoment({
           </ul>
         </div>
       ))}
+      <GLButDeLAnnee but={but} />
     </section>
   );
 }

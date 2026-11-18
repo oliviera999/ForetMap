@@ -53,8 +53,43 @@ function playerLabel(row) {
 const VITALITY_HISTORY_HINT =
   'Cumul sur toute la vie en classe (événements MJ, lancements de sorts, échanges marché terminés). Ne reflète pas uniquement la partie en cours.';
 
-function VitalityStatsGrid({ stats, highlightPossessed = false }) {
-  if (!stats || stats.hearts == null) return null;
+// « Tenir à deux » : même cumul, dit avec les mots de la classe (le prof, pas « MJ »).
+const GEMMES_HISTORY_HINT =
+  'Cumul sur toute ta vie en classe (gestes du prof, sorts lancés, échanges du Marché terminés). Ce n’est pas seulement la partie en cours.';
+
+function VitalityStatsGrid({ stats, highlightPossessed = false, gemmesSeules = false }) {
+  if (!stats || (stats.hearts == null && stats.gems == null)) return null;
+  // Ensemble unifié (M1) : une seule monnaie — la bourse de gemmes, sans aucun cœur.
+  if (gemmesSeules) {
+    return (
+      <>
+        <h3 className="gl-stats-section-title">Bourse (gemmes)</h3>
+        <p className="gl-hint gl-stats-note">{GEMMES_HISTORY_HINT}</p>
+        <StatsSummaryGrid className="gl-stats-grid">
+          <GlStatCard
+            icon="💎"
+            value={stats.gems}
+            animateCount
+            label="Gemmes dans ta bourse"
+            highlight={highlightPossessed}
+            title="Solde actuel sur ton compte joueur"
+          />
+          <GlStatCard
+            icon="⬆️"
+            value={formatCount(stats.gems_gained)}
+            label="Gemmes gagnées"
+            title={GEMMES_HISTORY_HINT}
+          />
+          <GlStatCard
+            icon="⬇️"
+            value={formatCount(stats.gems_lost)}
+            label="Gemmes dépensées"
+            title={GEMMES_HISTORY_HINT}
+          />
+        </StatsSummaryGrid>
+      </>
+    );
+  }
   return (
     <>
       <h3 className="gl-stats-section-title">Vitalité (cœurs & gemmes)</h3>
@@ -134,6 +169,7 @@ function LearningStatsGrid({ stats, catalogTotals }) {
 function ClassLeaderboardRow({
   row,
   vitalityEnabled,
+  gemmesSeules = false,
   rank,
   onViewJournal,
   showJournalButton,
@@ -161,11 +197,13 @@ function ClassLeaderboardRow({
       <div className="gl-stats-lb-metrics">
         {vitalityEnabled ? (
           <>
-            <span title="Cœurs possédés">❤️ {formatCount(s.hearts)}</span>
+            {gemmesSeules ? null : <span title="Cœurs possédés">❤️ {formatCount(s.hearts)}</span>}
             <span title="Gemmes possédées">💎 {formatCount(s.gems)}</span>
-            <span title={VITALITY_HISTORY_HINT}>
-              ❤️ +{formatCount(s.hearts_gained)} / −{formatCount(s.hearts_lost)}
-            </span>
+            {gemmesSeules ? null : (
+              <span title={VITALITY_HISTORY_HINT}>
+                ❤️ +{formatCount(s.hearts_gained)} / −{formatCount(s.hearts_lost)}
+              </span>
+            )}
             <span title={VITALITY_HISTORY_HINT}>
               💎 +{formatCount(s.gems_gained)} / −{formatCount(s.gems_lost)}
             </span>
@@ -202,6 +240,8 @@ export function GLStatsView({
   classes = [],
   auth = null,
   vitalityEnabled = false,
+  /** Ensemble unifié (M1) : une seule monnaie — aucun cœur dans les statistiques. */
+  gemmesSeules = false,
   initialClassId = null,
   compact = false,
   onClose = null,
@@ -314,10 +354,12 @@ export function GLStatsView({
         </p>
         {!vitalityOn ? (
           <p className="gl-hint gl-stats-note">
-            La vitalité (cœurs / gemmes) n’est pas activée sur cette plateforme.
+            {gemmesSeules
+              ? 'Les gemmes ne sont pas activées sur cette plateforme.'
+              : 'La vitalité (cœurs / gemmes) n’est pas activée sur cette plateforme.'}
           </p>
         ) : (
-          <VitalityStatsGrid stats={stats} highlightPossessed />
+          <VitalityStatsGrid stats={stats} highlightPossessed gemmesSeules={gemmesSeules} />
         )}
         <LearningStatsGrid stats={stats} catalogTotals={data?.catalogTotals} />
       </div>
@@ -374,7 +416,9 @@ export function GLStatsView({
 
       {vitalityOn ? (
         <StatsSummaryGrid className="gl-stats-grid gl-stats-grid--class-totals">
-          <GlStatCard icon="❤️" value={formatCount(totals.hearts)} label="Cœurs (total classe)" />
+          {gemmesSeules ? null : (
+            <GlStatCard icon="❤️" value={formatCount(totals.hearts)} label="Cœurs (total classe)" />
+          )}
           <GlStatCard icon="💎" value={formatCount(totals.gems)} label="Gemmes (total classe)" />
         </StatsSummaryGrid>
       ) : null}
@@ -416,6 +460,7 @@ export function GLStatsView({
               key={row.id}
               row={row}
               vitalityEnabled={vitalityOn}
+              gemmesSeules={gemmesSeules}
               rank={index + 1}
               showJournalButton={canViewPlayerJournal}
               onViewJournal={setJournalPlayerId}

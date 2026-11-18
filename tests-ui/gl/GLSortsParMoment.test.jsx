@@ -16,7 +16,7 @@ const moments = [
         code: 'SL042',
         nom: 'Sentier',
         cout: 2,
-        ressource: 'coeurs',
+        ressource: 'gemmes',
         ouvert: true,
         effetCourt: 'la prochaine case Souffle n’a pas d’effet',
       },
@@ -30,7 +30,7 @@ const moments = [
         code: 'SL002',
         nom: 'Progression',
         cout: 1,
-        ressource: 'choix',
+        ressource: 'gemmes',
         ouvert: false,
         message:
           'Ce sort se lance en phase « jeu », juste après le jet de l’équipe — avant tout autre geste de l’équipe.',
@@ -54,7 +54,7 @@ describe('GLSortsParMoment — sorts rangés par moment du tour', () => {
     // M10 : jeter un sort est le geste de l'Assistante ou de l'Assistant.
     expect(screen.getByText('C’est le moment de l’Assistante ou de l’Assistant.')).toBeTruthy();
 
-    const ouvert = screen.getByRole('button', { name: /Sentier · 2 ❤️/ });
+    const ouvert = screen.getByRole('button', { name: /Sentier · 2 💎/ });
     expect(ouvert.disabled).toBe(false);
     fireEvent.click(ouvert);
     expect(onJeter).toHaveBeenCalledWith('SL042');

@@ -81,10 +81,9 @@ export function useGLMarketPlace({ enabled, onChanged }) {
     [run],
   );
   const acheterParure = useCallback(
-    (code, ressource) =>
-      run(() =>
-        apiGL(`/api/gl/market/parures/${encodeURIComponent(code)}/acheter`, 'POST', { ressource }),
-      ),
+    // Ensemble unifié (M1) : une parure se paie en gemmes — plus de ressource à choisir.
+    (code) =>
+      run(() => apiGL(`/api/gl/market/parures/${encodeURIComponent(code)}/acheter`, 'POST', {})),
     [run],
   );
 

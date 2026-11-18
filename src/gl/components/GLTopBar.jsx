@@ -25,7 +25,8 @@ export function GLTopBar({
   vitalityEnabled = false,
   playerHealthPoints = null,
   playerPowerPoints = null,
-  playerPeopleResource = null,
+  /** Ensemble unifié (M1) : une seule monnaie — la barre ne montre que les gemmes. */
+  gemmesSeules = false,
   playerPlume = false,
   showVersion = false,
   appVersion = null,
@@ -74,11 +75,13 @@ export function GLTopBar({
           <GLMascotRenderer mascotId={playerMascotId} size={32} />
         </span>
       ) : null}
-      {vitalityEnabled && playerHealthPoints != null && playerPowerPoints != null ? (
+      {vitalityEnabled &&
+      playerPowerPoints != null &&
+      (gemmesSeules || playerHealthPoints != null) ? (
         <GLVitalityBadge
           health={playerHealthPoints}
           power={playerPowerPoints}
-          peopleResource={playerPeopleResource}
+          gemmesSeules={gemmesSeules}
           plume={playerPlume}
           onClick={typeof onOpenStats === 'function' ? onOpenStats : null}
         />

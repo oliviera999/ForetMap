@@ -50,7 +50,7 @@ export function GLSpellCastSpellPicker({ chapterSpells = [], onPick, playerTeamT
               {casterBadge ? <span className="gl-badge">{casterBadge}</span> : null}
               {v2 ? (
                 <span className="gl-spell-tile__v2 gl-hint">
-                  {s.cout != null ? `${s.cout} ${s.ressource || ''}` : ''}
+                  {s.cout != null ? `${s.cout}${s.ressource === 'cartes' ? '' : ' 💎'}` : ''}
                   {s.fenetre ? ` · ${FENETRE_LABELS[s.fenetre] || s.fenetre}` : ''}
                   {s.limite ? ` · ${limiteLabel(s.limite)}` : ''}
                   {raison ? ` · ${raison}` : ''}

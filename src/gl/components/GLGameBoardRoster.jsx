@@ -2,18 +2,20 @@ import { useMemo } from 'react';
 import { GLVitalityCounts } from './GLVitalityDisplay.jsx';
 import { buildMapRosterGroups, formatPlayerLabel } from '../utils/glSpellCastRules.js';
 
+// Ensemble unifié (M1) : une partie « Tenir » ne sert que des gemmes — `health` reste `null`
+// et l'affichage ne montre aucun cœur.
 function resolvePlayerVitality(player, vitalityEnabled, vitalityByPlayerId) {
   if (!vitalityEnabled) return null;
   if (player?.healthPoints != null || player?.powerPoints != null) {
     return {
-      health: Number(player.healthPoints) || 0,
+      health: player.healthPoints != null ? Number(player.healthPoints) || 0 : null,
       power: Number(player.powerPoints) || 0,
     };
   }
   const fromGame = vitalityByPlayerId?.[Number(player?.playerId)];
   if (fromGame) {
     return {
-      health: Number(fromGame.health) || 0,
+      health: fromGame.health != null ? Number(fromGame.health) || 0 : null,
       power: Number(fromGame.power) || 0,
     };
   }
@@ -127,6 +129,7 @@ export function GLGameBoardRoster({
                           <GLVitalityCounts
                             health={vitality.health}
                             power={vitality.power}
+                            gemmesSeules={vitality.health == null}
                             className="gl-map-roster-player__vitality"
                           />
                         ) : null}

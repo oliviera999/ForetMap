@@ -58,6 +58,9 @@ export default function GLGameMasterConsoleLive({
   tenir = null,
   onReloadGame = null,
 }) {
+  // Ensemble unifié (M1) : une seule monnaie — la console d'une partie « Tenir » ne nomme
+  // que des gemmes.
+  const gemmesSeules = !!tenir?.enabled;
   const [nommerZones, setNommerZones] = useState({});
   if (!game?.id) {
     return (
@@ -135,7 +138,9 @@ export default function GLGameMasterConsoleLive({
         <div className="gl-gameplay-block">
           <h3>Sortilèges</h3>
           <p className="gl-hint">
-            Lancement collaboratif (toutes équipes) : répartissez gemmes et cœurs entre les joueurs.
+            {gemmesSeules
+              ? 'Lancement collaboratif (toutes équipes) : répartissez les gemmes entre les joueurs.'
+              : 'Lancement collaboratif (toutes équipes) : répartissez gemmes et cœurs entre les joueurs.'}
           </p>
           <GLButton type="button" onClick={() => onLaunchSpell?.(null)} disabled={busy}>
             Lancer un sortilège
@@ -165,7 +170,11 @@ export default function GLGameMasterConsoleLive({
       {pendingSpellCasts.length > 0 ? (
         <div className="gl-gameplay-block gl-spell-approval-queue">
           <h3>Sortilèges à valider ({pendingSpellCasts.length})</h3>
-          <p className="gl-hint">Les gemmes / cœurs ne sont débités qu&apos;après votre accord.</p>
+          <p className="gl-hint">
+            {gemmesSeules
+              ? 'Les gemmes ne sont débitées qu’après votre accord.'
+              : 'Les gemmes / cœurs ne sont débités qu’après votre accord.'}
+          </p>
           <ul className="gl-pending-actions">
             {pendingSpellCasts.map((draft) => {
               const team = teams.find((t) => Number(t.id) === Number(draft.teamId));
@@ -181,7 +190,8 @@ export default function GLGameMasterConsoleLive({
                     <span className="gl-hint">{team?.name || `Équipe #${draft.teamId}`}</span>
                   </div>
                   <div className="gl-hint">
-                    Coût : {Number(cost.gems) || 0} 💎 · {Number(cost.hearts) || 0} ❤️
+                    Coût : {Number(cost.gems) || 0} 💎
+                    {gemmesSeules ? '' : ` · ${Number(cost.hearts) || 0} ❤️`}
                   </div>
                   <div className="gl-inline-actions">
                     <GLButton
@@ -213,8 +223,9 @@ export default function GLGameMasterConsoleLive({
         <div className="gl-gameplay-block gl-spell-effect-queue">
           <h3>Sortilèges à appliquer ({castsAwaitingEffect.length})</h3>
           <p className="gl-hint">
-            Les cœurs et les gemmes sont déjà débités. L’effet, lui, c’est vous qui l’appliquez —
-            ajustez la vitalité ou le score ci-dessous, racontez-le, puis cochez.
+            {gemmesSeules
+              ? 'Les gemmes sont déjà débitées. L’effet, lui, c’est vous qui l’appliquez — racontez-le, puis cochez.'
+              : 'Les cœurs et les gemmes sont déjà débités. L’effet, lui, c’est vous qui l’appliquez — ajustez la vitalité ou le score ci-dessous, racontez-le, puis cochez.'}
           </p>
           <ul className="gl-pending-actions">
             {castsAwaitingEffect.map((draft) => {
@@ -243,7 +254,8 @@ export default function GLGameMasterConsoleLive({
                     </span>
                   </div>
                   <div className="gl-hint">
-                    Payé : {Number(cost.gems) || 0} 💎 · {Number(cost.hearts) || 0} ❤️
+                    Payé : {Number(cost.gems) || 0} 💎
+                    {gemmesSeules ? '' : ` · ${Number(cost.hearts) || 0} ❤️`}
                   </div>
                   {effect ? (
                     <p className="gl-spell-effect-queue__effect">{effect}</p>
@@ -409,7 +421,36 @@ export default function GLGameMasterConsoleLive({
         </div>
       )}
 
-      {vitalityEnabled && teams.length > 0 && (
+      {vitalityEnabled && teams.length > 0 && gemmesSeules && (
+        <div className="gl-gameplay-block gl-vitality-team-panel">
+          <h3>Gemmes (équipe active)</h3>
+          <p className="gl-hint">
+            Geste exceptionnel : ajuste la bourse de tous les joueurs de l&apos;équipe sélectionnée
+            sur la carte (3 gemmes au plus, un motif est demandé).
+          </p>
+          <div className="gl-inline-actions">
+            <GLField label="Δ gemmes (💎)">
+              <GLInput
+                type="number"
+                min={-3}
+                max={3}
+                value={teamPowerDelta}
+                onChange={(event) => setTeamPowerDelta(Number(event.target.value) || 0)}
+                style={{ width: 72 }}
+              />
+            </GLField>
+            <GLButton
+              type="button"
+              disabled={busy || effectiveSelectedTeamId == null}
+              onClick={() => applyTeamVitality({ healthDelta: 0, powerDelta: teamPowerDelta })}
+            >
+              Appliquer à l&apos;équipe
+            </GLButton>
+          </div>
+        </div>
+      )}
+
+      {vitalityEnabled && teams.length > 0 && !gemmesSeules && (
         <div className="gl-gameplay-block gl-vitality-team-panel">
           <h3>Points de vie et de pouvoir (équipe active)</h3>
           <p className="gl-hint">

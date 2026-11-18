@@ -142,7 +142,7 @@ export const GL_TEAM_COMPOSE_WARNING_LABELS = Object.freeze({
   PEOPLE_ROTATION:
     'Peuple de la première équipe choisi pour éviter des troisièmes tours consécutifs dans le même peuple.',
   VITALITY_FLOOR:
-    'Une équipe au moins n’a ni cœur ni gemme : le plancher de vitalité n’est pas tenu.',
+    'Une équipe au moins n’a aucune ressource pour un sort : le plancher de vitalité n’est pas tenu.',
 });
 
 /** Politiques d'équipes d'une classe (miroir de `TEAM_POLICIES`, lib/gl/teamComposition.js). */

@@ -10,6 +10,7 @@ function formatVitalitySummary(vitality) {
   const parts = [];
   const health = Number(vitality.healthDelta) || 0;
   const power = Number(vitality.powerDelta) || 0;
+  // Jeu classique seulement : une partie « Tenir » ne touche jamais aux cœurs (M1).
   if (health !== 0) {
     parts.push(`${health > 0 ? '+' : ''}${health} cœur${Math.abs(health) > 1 ? 's' : ''}`);
   }

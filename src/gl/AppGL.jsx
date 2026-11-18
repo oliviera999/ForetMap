@@ -22,6 +22,7 @@ import {
 } from './utils/glAppShellHelpers.js';
 import { useTabBrowserHistory } from '../shared/platform/useTabBrowserHistory.js';
 import { computePlayerVitality, findPlayerMascotId } from './utils/glGameplayRules.js';
+import { gemmesSeules } from './utils/glMonnaie.js';
 import { resolvePlateauMapVisibility } from './utils/glPlateauMapVisibility.js';
 import { markerBackgroundStyleFromSettings } from './utils/glMarkerBackgrounds.js';
 import { resolveBoardFocusSettings } from './utils/glBoardFocus.js';
@@ -771,13 +772,9 @@ export function AppGL() {
     [showsPlayerChrome, gameplaySettings.vitalityEnabled, auth, gameState, glProfile],
   );
 
-  // « Tenir à deux » : ressource du peuple de l'équipe courante (gemme licorne, cœur gnome).
-  const playerPeopleResource = useMemo(() => {
-    if (!gameState?.tenir?.enabled || !auth?.teamId) return null;
-    const team = (gameState?.teams || []).find((t) => Number(t.id) === Number(auth.teamId));
-    if (!team?.type) return null;
-    return String(team.type) === 'unicorn' ? 'power' : 'health';
-  }, [gameState, auth?.teamId]);
+  // Ensemble unifié (M1) : une seule monnaie — aucun cœur à l'écran dès que la partie joue
+  // « Tenir à deux », ou que le serveur le dit pour la classe (`monnaieUnique`).
+  const monnaieUnique = gemmesSeules({ gameplaySettings, gameState });
 
   // « Tenir à deux » : chasse (carnet de la classe, fouilles, pages) d'une partie en cours.
   const tenirChasseEnabled =
@@ -1007,7 +1004,7 @@ export function AppGL() {
               vitalityEnabled={!!gameplaySettings.vitalityEnabled}
               playerHealthPoints={playerVitality?.health}
               playerPowerPoints={playerVitality?.power}
-              playerPeopleResource={playerPeopleResource}
+              gemmesSeules={monnaieUnique}
               playerPlume={!!gameState?.tenir?.plume}
               onOpenProfile={() => setShowProfile(true)}
               onOpenStats={
@@ -1284,7 +1281,8 @@ export function AppGL() {
                       onSubTabChange={navigateTab}
                       modules={modules}
                       vitalityEnabled={!!gameplaySettings.vitalityEnabled}
-                      heartsTradable={!!gameplaySettings.marketHeartsEnabled}
+                      heartsTradable={!monnaieUnique && !!gameplaySettings.marketHeartsEnabled}
+                      gemmesSeules={monnaieUnique}
                       includeMarket={showsPlayerChrome}
                       showStaffAdminUi={showStaffAdminUi}
                       canModerateForum={showStaffAdminUi}
@@ -1395,6 +1393,7 @@ export function AppGL() {
                 ariaLabel="Mes statistiques"
               >
                 <GLStatsView
+                  gemmesSeules={monnaieUnique}
                   mode="self"
                   auth={auth}
                   vitalityEnabled={!!gameplaySettings.vitalityEnabled}

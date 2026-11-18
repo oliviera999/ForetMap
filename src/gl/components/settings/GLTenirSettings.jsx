@@ -107,7 +107,7 @@ const TENIR_NUMBERS = [
     0,
     3600,
   ],
-  ['gameplay.max_health_points', 'Cœurs maximum', 0, 99],
+  // Ensemble unifié (M1) : une seule monnaie — le plafond des cœurs a quitté ces réglages.
   ['gameplay.max_power_points', 'Gemmes maximum', 0, 99],
 ];
 
