@@ -67,7 +67,7 @@ Rejeu élève sur téléphone (375 × 667) : la séance se perdait d'un onglet �
 badges, et terminer une tâche demandait 8 à 9 gestes. Côté mesure, `tasks_completed` ne
 voyait presque aucune tâche terminée.
 
-- **Reprise côté serveur (migration 373)** : `pedago_session_runs` gagne `current_step` (étape
+- **Reprise côté serveur (migration 372)** : `pedago_session_runs` gagne `current_step` (étape
   du passage en cours, NULL hors passage) et `last_step_at`. `POST runs/start` **reprend** un
   passage en cours sans recompter de démarrage (`{ run, resumed }`, `{ restart: true }` pour
   repartir de l'étape 1) ; nouvelle route `POST runs/progress { step }` ; la fin clôt le

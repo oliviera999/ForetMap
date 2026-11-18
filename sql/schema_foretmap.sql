@@ -1483,7 +1483,7 @@ CREATE TABLE IF NOT EXISTS pedago_session_runs (
   first_completed_at DATETIME DEFAULT NULL,
   last_completed_at DATETIME DEFAULT NULL,
   completion_count INT UNSIGNED NOT NULL DEFAULT 0,
-  -- Migration 373 : reprise côté serveur (étape du passage en cours, NULL hors passage).
+  -- Migration 372 : reprise côté serveur (étape du passage en cours, NULL hors passage).
   current_step SMALLINT UNSIGNED NULL DEFAULT NULL,
   last_step_at DATETIME NULL DEFAULT NULL,
   PRIMARY KEY (session_id, user_id),

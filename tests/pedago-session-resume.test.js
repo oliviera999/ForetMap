@@ -1,7 +1,7 @@
 'use strict';
 
 // Séances guidées — reprise côté serveur (chantier « parcours d'apprentissage », lot 5,
-// migration 373) : `current_step` sur `pedago_session_runs`, route `runs/progress`, reprise
+// migration 372) : `current_step` sur `pedago_session_runs`, route `runs/progress`, reprise
 // sans recompter de démarrage, fin qui clôt le passage.
 
 require('./helpers/setup');
@@ -41,7 +41,7 @@ after(async () => {
   }
 });
 
-test('migration 373 : colonnes current_step et last_step_at présentes', async () => {
+test('migration 372 : colonnes current_step et last_step_at présentes', async () => {
   for (const col of ['current_step', 'last_step_at']) {
     const row = await queryOne(
       `SELECT COLUMN_NAME FROM information_schema.COLUMNS

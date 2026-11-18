@@ -1,5 +1,5 @@
 -- =====================================================================
--- 373 — Séances guidées : reprise côté serveur (chantier « parcours d'apprentissage », lot 5).
+-- 372 — Séances guidées : reprise côté serveur (chantier « parcours d'apprentissage », lot 5).
 --
 -- L'étape en cours vivait dans le `sessionStorage` de l'onglet : un nouvel onglet, un autre
 -- appareil ou un autre jour repartaient de l'étape 1, et « Reprendre » relançait la séance en
