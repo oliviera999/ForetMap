@@ -16,9 +16,11 @@ Ils priment sur toute autre règle. Source : `docs/GL_TENIR_A_DEUX_REGLES.md` §
 3. Aucun contenu du tiers `secret` du lore côté élève (`gl_lore_glossary_terms.niveau`).
 4. **L'erreur ne punit jamais.** Côté élève : « Pas encore… », « à discuter ». Jamais « Non »,
    jamais « faux ». Un défi n'échoue pas. Le mot « erreur » reste permis (l'erreur du jour d'Olu).
-5. **Aucune ressource (cœur ou gemme) pour un défi**, une bonne réponse, une lecture, une
-   fouille, un badge. Les ressources viennent des pages tenues, de la Trame, du carnet complet,
-   du Marché.
+5. **Aucune gemme pour un défi**, une bonne réponse, une lecture, une fouille (réparation
+   comprise), un badge. Les gemmes viennent des pages tenues, de la Trame, du carnet complet,
+   du Marché. **Une seule monnaie** (M1) : les cœurs ont quitté « Tenir à deux » — aucun écran,
+   aucun texte, aucun retour ne les montre ni ne les nomme, et le moteur ne les fait plus
+   bouger (`health_points` reste en base pour le jeu classique).
 6. Bourses privées, aucun classement d'élèves. La projection ne montre aucun solde. **Bourses au
    propriétaire** (M13) : une bourse ne bouge que depuis le compte de son propriétaire, ou par le
    prof — jamais depuis la tablette de l'équipe (le pot d'un sort d'équipe, partagé d'office
@@ -65,6 +67,7 @@ Source unique : `src/shared/glGardeFousCore.js` (miroir `lib/shared/`, `npm run 
 | Libellés du journal             | `tests/gl-journal-tenir-exhaustif.test.js` (tout évènement émis a son libellé)   |
 | Retours « Pas encore »          | `tests/gl-retour-qcm.test.js`                                                    |
 | Aucune ressource créée          | `tests/gl-tenir-economie-globale.test.js`, invariants `lib/glTenirInvariants.js` |
+| Une seule monnaie, aucun cœur   | `tests/gl-tenir-une-monnaie.test.js`, invariant `COEURS_HORS_JEU` (banc)         |
 | Bourses privées, projection     | `tests/gl-tenir-projection.test.js`, `gl-tenir-correctifs-banc.test.js`          |
 | Tout corps servi à un élève     | banc `tools/gl-sim/client.js` (`--mots-interdits strict`)                        |
 

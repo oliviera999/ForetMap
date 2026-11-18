@@ -53,11 +53,14 @@ Le reste suit seul, car tout lit `IMPORT_ORDER` :
 - `questions-lecture.json` : `retours` (un retour « Pas encore… » par mauvaise lettre, jamais sur
   la bonne) ; `feedback_incorrect` devient facultatif quand les trois mauvais choix sont couverts.
 - `sorts.json` : les textes du Mentorat et de la Lettre (consigne, critère, amorces, points de
-  relecture) vivent dans `effet_auto_json`.
+  relecture) vivent dans `effet_auto_json`. `ressource` vaut toujours `gemmes` (M1 : une seule
+  monnaie ; `cartes` pour le sort de classe sorti du grimoire).
+- `parures.json` : `prix` de 2 à 8 gemmes, `rare` (booléen, 6 ou plus, trois au plus), plus de
+  champ `ressource`.
 - `olu-lignes.json` : moment `premiere_fois` (une ligne par `cle`, liste `PREMIERE_FOIS_CLES` de
   `lib/glTenirOlu.js` ; `seance_escalier` 0 à 6) ; `id` de 48 caractères au plus.
 - `reglages-defaut.json` : profils `complet` et `court` seulement ; `pages_par_semaine` (limite
-  de veillée unique), `escalier`.
+  de veillée unique), `escalier` ; plus de `max_health_points` (ignoré et signalé s'il revient).
 - `trame-ranger.json` (« Le bon rôle », « Le bon pays ») et `trame-adaptations.json` (« Les fils
   de l'adaptation ») : chargeurs dans `lib/glTrameImport.js` ; une carte est une fiche `SP####`
   du bon biome ou une carte générique `DEC-…` marquée `generique`.

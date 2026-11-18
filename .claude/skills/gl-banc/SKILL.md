@@ -59,6 +59,12 @@ Options utiles : `--seances N`, `--plateaux 1,3`, `--mots-interdits souple|stric
   (`DOUBLONS`, `LIVRE`, `MAINS`…) font échouer la fumée `npm run test:sim`. À relancer dès qu'on
   touche à `lib/glEquipeEtat.js`, à une route d'équipe ou aux sessions d'équipe.
 
+- **Une monnaie** : `une-monnaie` joue une année (plateaux 1 à 4, bourses gardées) pour une classe
+  moyenne et une classe en difficulté. Ses mesures `uneMonnaie` (bourse moyenne, élèves au plafond
+  et à zéro, pot des équipes à l'ouverture de chaque séance) se lisent dans `summary.json` ; ses
+  assertions `COEURS` et `PARURES` sont dures, `PLAFOND` et `BOURSES-FIN` sont des signaux. À
+  relancer dès qu'on touche au prix d'un sort, à un gain ou au plafond.
+
 ## Ce qui fait échouer
 
 Après **chaque geste** : `checkTenirInvariantsFromDb`, réponse 5xx, mot interdit dans une
