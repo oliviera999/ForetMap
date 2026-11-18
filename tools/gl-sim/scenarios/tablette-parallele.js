@@ -42,19 +42,15 @@ function noter(ctx, code, ok, detail) {
   ctx.cache.sondes[code] = { ok, detail };
 }
 
-function ressourceDe(equipe) {
-  return equipe.type === 'unicorn' ? 'gemmes' : 'coeurs';
-}
-
 async function sommeBourses(ctx, equipe) {
   const row = await ctx.db.queryOne(
-    `SELECT SUM(p.health_points) + SUM(p.power_points) AS t
+    `SELECT SUM(p.power_points) AS t
        FROM gl_players p INNER JOIN gl_team_members tm ON tm.player_id = p.id
       WHERE tm.game_id = ? AND tm.team_id = ?`,
     [ctx.partie.gameId, equipe.id],
   );
   const reserve = await ctx.db.queryOne(
-    'SELECT COALESCE(SUM(reserve_health), 0) + COALESCE(SUM(reserve_power), 0) AS t FROM gl_game_team_reserves WHERE game_id = ? AND team_id = ?',
+    'SELECT COALESCE(SUM(reserve_power), 0) AS t FROM gl_game_team_reserves WHERE game_id = ? AND team_id = ?',
     [ctx.partie.gameId, equipe.id],
   );
   return (Number(row?.t) || 0) + (Number(reserve?.t) || 0);
@@ -96,8 +92,7 @@ async function sondeRelanceConcurrente(ctx, tour) {
     await traiterArrivee(ctx, equipe, operateur, jet.arrival);
     return noter(ctx, 'RELANCE', null, 'jet appliqué sans attendre : Relance hors de portée');
   }
-  const lancer = () =>
-    lancerSort(ctx, equipe, operateur, SORTS.RELANCE, { ressource: ressourceDe(equipe) });
+  const lancer = () => lancerSort(ctx, equipe, operateur, SORTS.RELANCE, {});
   const resultats = await Promise.all([lancer(), lancer()]);
   const reussies = resultats.filter((r) => r.ok).length;
   if (reussies === 0) {
@@ -125,9 +120,7 @@ async function sondeSortRefuse(ctx, tour) {
   for (const equipe of jouables(ctx, tour)) {
     const avant = await sommeBourses(ctx, equipe);
     for (const code of SORTS_DU_PROF) {
-      const r = await lancerSort(ctx, equipe, ctx.operateurDe(equipe), code, {
-        ressource: ressourceDe(equipe),
-      });
+      const r = await lancerSort(ctx, equipe, ctx.operateurDe(equipe), code, {});
       if (!r.ok) continue;
       const refus = await ctx.client.appel({
         token: ctx.mjToken,

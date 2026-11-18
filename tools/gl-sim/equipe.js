@@ -185,13 +185,12 @@ async function lancerSort(
   equipe,
   operateur,
   code,
-  { effectParams, ressource, partnerTeamId, playerId } = {},
+  { effectParams, partnerTeamId, playerId } = {},
 ) {
   if (!ctx.partie.sorts.has(code)) return { ok: false, status: 0, code: 'SORT_HORS_CHAPITRE' };
   const a = acteurPour(ctx, equipe, 'sort', operateur);
   const body = { spellCode: code, teamId: equipe.id };
   if (effectParams) body.effectParams = effectParams;
-  if (ressource) body.ressource = ressource;
   if (partnerTeamId) body.partnerTeamId = partnerTeamId;
   if (playerId) body.playerId = playerId;
   const d = await ctx.client.appel({
@@ -226,10 +225,6 @@ async function lancerSort(
   };
 }
 
-function ressourceDuPeuple(equipe) {
-  return equipe.type === 'unicorn' ? 'gemmes' : 'coeurs';
-}
-
 async function sortsAvantJet(ctx, equipe, operateur) {
   if (!ctx.rng.chance(penchant(equipe, 'sorts') * 0.35)) return;
   // Lot 2 : la Boussole est sortie du grimoire (ses six cases à venir sont affichées
@@ -243,7 +238,6 @@ async function sortsApresJet(ctx, equipe, operateur) {
   if (!ctx.rng.chance(penchant(equipe, 'sorts') * 0.3)) return;
   await lancerSort(ctx, equipe, operateur, SORTS.PROGRESSION, {
     effectParams: { delta: 1 },
-    ressource: ressourceDuPeuple(equipe),
   });
 }
 
@@ -272,7 +266,6 @@ async function sortsEntraide(ctx, equipe, operateur, tour) {
   if (ctx.rng.chance(p * 0.1)) {
     await lancerSort(ctx, equipe, operateur, SORTS.FARCE, {
       effectParams: { targetTeamId: Number(ctx.rng.pick(autres).id) },
-      ressource: ressourceDuPeuple(equipe),
     });
   }
 }
@@ -591,12 +584,12 @@ async function lireEtTenir(ctx, equipe, operateur) {
 // Marché (élèves seulement : jamais le prof)
 // ---------------------------------------------------------------------
 
+// Ensemble unifié (M1) : une seule monnaie — les élèves virtuels ne comptent que leurs gemmes.
 async function bourses(ctx, joueur) {
-  const row = await ctx.db.queryOne(
-    'SELECT health_points, power_points FROM gl_players WHERE id = ?',
-    [joueur.id],
-  );
-  return { coeurs: Number(row?.health_points) || 0, gemmes: Number(row?.power_points) || 0 };
+  const row = await ctx.db.queryOne('SELECT power_points FROM gl_players WHERE id = ?', [
+    joueur.id,
+  ]);
+  return { gemmes: Number(row?.power_points) || 0 };
 }
 
 async function marche(ctx, equipe, { veillee = false } = {}) {
@@ -606,11 +599,11 @@ async function marche(ctx, equipe, { veillee = false } = {}) {
   if (presents.length < 2) return;
   const pMarche = penchant(equipe, 'marche');
   const pDons = penchant(equipe, 'dons');
-  // Don : le plus riche (dans la ressource du peuple) donne une unité au moins riche.
+  // Don : le plus riche donne une gemme au moins riche.
   if (ctx.rng.chance(pDons * (veillee ? 0.5 : 0.25))) {
     const soldes = [];
     for (const j of presents) soldes.push({ j, ...(await bourses(ctx, j)) });
-    const cle = equipe.type === 'unicorn' ? 'gemmes' : 'coeurs';
+    const cle = 'gemmes';
     soldes.sort((a, b) => b[cle] - a[cle]);
     const riche = soldes[0];
     const pauvre = soldes[soldes.length - 1];
@@ -632,7 +625,7 @@ async function marche(ctx, equipe, { veillee = false } = {}) {
   if (ctx.rng.chance(pMarche * 0.2)) {
     const j = ctx.rng.pick(presents);
     const b = await bourses(ctx, j);
-    const cherche = b.gemmes === 0 ? { gemmes: 1 } : b.coeurs === 0 ? { coeurs: 1 } : null;
+    const cherche = b.gemmes === 0 ? { gemmes: 1 } : null;
     if (cherche) {
       const res = await ctx.client.appel({
         token: j.token,
@@ -650,8 +643,7 @@ async function marche(ctx, equipe, { veillee = false } = {}) {
   if (ctx.resolved.parures !== false && ctx.rng.chance(pMarche * 0.12)) {
     const j = ctx.rng.pick(presents);
     const b = await bourses(ctx, j);
-    const cle = equipe.type === 'unicorn' ? 'gemmes' : 'coeurs';
-    if (b[cle] >= 5) {
+    if (b.gemmes >= 5) {
       const cat = await ctx.client.appel({
         token: j.token,
         method: 'get',
@@ -660,11 +652,9 @@ async function marche(ctx, equipe, { veillee = false } = {}) {
         membres: equipe.membres,
         geste: 'parures',
       });
+      // M19 : une parure déjà acquise ne se rachète pas (elle est dans la garde-robe).
       const dispo = (cat.body?.catalogue || []).filter(
-        (p) =>
-          p.disponible !== false &&
-          Number(p.prix) <= b[cle] - 2 &&
-          ['choix', cle].includes(String(p.ressource || 'choix')),
+        (p) => p.disponible !== false && p.acquise !== true && Number(p.prix) <= b.gemmes - 2,
       );
       const parure = ctx.rng.pick(dispo);
       if (parure) {
@@ -672,7 +662,7 @@ async function marche(ctx, equipe, { veillee = false } = {}) {
           token: j.token,
           method: 'post',
           path: `/api/gl/market/parures/${encodeURIComponent(parure.code)}/acheter`,
-          body: { ressource: cle },
+          body: {},
           acteur: 'eleve',
           membres: equipe.membres,
           geste: 'parure-achat',

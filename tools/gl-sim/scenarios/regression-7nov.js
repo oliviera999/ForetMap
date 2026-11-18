@@ -28,7 +28,6 @@ async function sondeProgression(ctx, tour) {
   if (autre) {
     const r = await lancerSort(ctx, autre, autre.presents[0], SORTS.PROGRESSION, {
       effectParams: { delta: 1 },
-      ressource: autre.type === 'unicorn' ? 'gemmes' : 'coeurs',
     });
     noter(
       'C2',
@@ -38,16 +37,15 @@ async function sondeProgression(ctx, tour) {
   }
   if (derniere && derniere.presents.length) {
     const avant = await ctx.db.queryOne(
-      'SELECT SUM(p.health_points) + SUM(p.power_points) AS t FROM gl_players p INNER JOIN gl_team_members tm ON tm.player_id = p.id WHERE tm.game_id = ? AND tm.team_id = ?',
+      'SELECT SUM(p.power_points) AS t FROM gl_players p INNER JOIN gl_team_members tm ON tm.player_id = p.id WHERE tm.game_id = ? AND tm.team_id = ?',
       [ctx.partie.gameId, derniere.id],
     );
     const r = await lancerSort(ctx, derniere, derniere.presents[0], SORTS.PROGRESSION, {
       effectParams: { delta: 1 },
-      ressource: derniere.type === 'unicorn' ? 'gemmes' : 'coeurs',
     });
     if (r.ok) {
       const apres = await ctx.db.queryOne(
-        'SELECT SUM(p.health_points) + SUM(p.power_points) AS t FROM gl_players p INNER JOIN gl_team_members tm ON tm.player_id = p.id WHERE tm.game_id = ? AND tm.team_id = ?',
+        'SELECT SUM(p.power_points) AS t FROM gl_players p INNER JOIN gl_team_members tm ON tm.player_id = p.id WHERE tm.game_id = ? AND tm.team_id = ?',
         [ctx.partie.gameId, derniere.id],
       );
       const delta = Number(apres.t) - Number(avant.t);
@@ -145,10 +143,8 @@ async function sondeParures(ctx) {
   );
   if (!sansImage.length) return noter('C10', null, 'aucune parure sans image au catalogue');
   const b = await bourses(ctx, j);
-  const cle = eq.type === 'unicorn' ? 'gemmes' : 'coeurs';
-  const abordable = sansImage.find(
-    (p) => Number(p.prix) <= b[cle] && ['choix', cle].includes(String(p.ressource || 'choix')),
-  );
+  // Une seule monnaie (M1) : une parure se paie en gemmes ; une parure acquise ne se rachète pas.
+  const abordable = sansImage.find((p) => Number(p.prix) <= b.gemmes && p.acquise !== true);
   if (!abordable)
     return noter(
       'C10',
@@ -159,7 +155,7 @@ async function sondeParures(ctx) {
     token: j.token,
     method: 'post',
     path: `/api/gl/market/parures/${abordable.code}/acheter`,
-    body: { ressource: cle },
+    body: {},
     acteur: 'eleve',
     membres: eq.membres,
     geste: 'parure-sonde',
@@ -210,17 +206,14 @@ async function assertions(ctx, mesures) {
     max <= 1,
     `relances de case par équipe et par tour : max ${max} ; bonnes réponses au-delà (+1 case sans relance) : ${Number(sansRelance?.n) || 0}`,
   );
-  // C4 : cases positives → +1 ressource du peuple, jamais +2 ni une perte hors Souffle.
+  // C4 : cases positives → au plus +1 gemme (plus rien depuis M3), jamais +2 ni une perte, et
+  // jamais un cœur (M1, une seule monnaie).
   const positives = await db.queryAll(
     "SELECT delta_health, delta_power FROM gl_resource_ledger WHERE game_id = ? AND cause = 'case_positive'",
     [gameId],
   );
-  // +1 dans une seule ressource (0 quand le plafond rogne le gain) ; jamais +2, jamais une perte.
   const okC4 = positives.every(
-    (r) =>
-      [0, 1].includes(Number(r.delta_health)) &&
-      [0, 1].includes(Number(r.delta_power)) &&
-      Number(r.delta_health) + Number(r.delta_power) <= 1,
+    (r) => Number(r.delta_health) === 0 && [0, 1].includes(Number(r.delta_power)),
   );
   const plafonnes = positives.filter(
     (r) => Number(r.delta_health) + Number(r.delta_power) === 0,
@@ -228,7 +221,7 @@ async function assertions(ctx, mesures) {
   push(
     'C4',
     positives.length ? okC4 : null,
-    `${positives.length} mouvements « case positive » : +1 d'une seule ressource (${plafonnes} rognés par le plafond), aucun +2 ni perte : ${okC4}`,
+    `${positives.length} mouvements « case positive » : +1 gemme au plus (${plafonnes} rognés par le plafond), aucun +2, aucune perte, aucun cœur : ${okC4}`,
   );
   // C5 : péripéties sur des cases `behavior` sans effet (tonalité négative / neutre), jamais sur un Défi.
   const peripeties = await db.queryAll(

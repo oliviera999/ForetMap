@@ -38,7 +38,7 @@ const INDICATEURS = Object.freeze([
     unite: '%',
     source: (m) => m.partGnomesPct,
   },
-  { cle: 'elevesZero', libelle: 'Élèves à 0 / 0', unite: '%', source: (m) => m.elevesZeroPct },
+  { cle: 'elevesZero', libelle: 'Élèves à 0 gemme', unite: '%', source: (m) => m.elevesZeroPct },
   { cle: 'matthieu', libelle: 'Indice Matthieu', unite: '', source: (m) => m.matthieu },
   { cle: 'gini', libelle: 'Gini des bourses', unite: '', source: (m) => m.gini },
   { cle: 'appels', libelle: 'Appels HTTP', unite: '', source: (m) => m.compteurs?.appels ?? null },
@@ -121,6 +121,7 @@ function agregerAnnee(runs) {
   return {
     doublePlafond: mediane(annees.map((a) => a.doublePlafondPct)),
     elevesZero: mediane(annees.map((a) => a.elevesZeroPct)),
+    gemmesMoyenne: mediane(annees.map((a) => a.gemmesMoyenne).filter((x) => x != null)),
     gini: mediane(annees.map((a) => a.gini)),
   };
 }
@@ -300,7 +301,10 @@ function sectionGroupe(groupe, agregats, annee, attendusParPlateau, modele) {
     html += `<tr><td>${esc(lib)}</td>${plateaux.map((p) => `<td class="num" colspan="3">${fmt(agregats[p][cle], 0)}</td>`).join('')}</tr>`;
   }
   if (annee) {
-    html += `<tr><td>Double plafond 8/8 en fin d’année (%)</td><td class="num" colspan="${plateaux.length * 3}">${fmt(annee.doublePlafond, 1)}</td></tr>`;
+    html += `<tr><td>Au plafond de gemmes en fin d’année (%)</td><td class="num" colspan="${plateaux.length * 3}">${fmt(annee.doublePlafond, 1)}</td></tr>`;
+    if (annee.gemmesMoyenne != null) {
+      html += `<tr><td>Bourse moyenne en fin d’année (gemmes)</td><td class="num" colspan="${plateaux.length * 3}">${fmt(annee.gemmesMoyenne, 2)}</td></tr>`;
+    }
   }
   html += '</tbody></table>';
   // Graphiques : barres des médianes par plateau, boîtes des distributions.

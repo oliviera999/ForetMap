@@ -14,8 +14,10 @@
 const REGLAGES_BASE = Object.freeze({
   'gameplay.tenir_enabled': true,
   'gameplay.vitality_enabled': true,
-  'gameplay.max_health_points': 8,
+  // Ensemble unifié (M1) : une seule monnaie — le plafond de la bourse est celui des gemmes.
   'gameplay.max_power_points': 8,
+  // Comme en prod : le réglage classique est resté à `true`, et une classe « Tenir » refuse
+  // tout de même les cœurs au Marché.
   'gameplay.market_hearts_enabled': true,
   'gameplay.lore_gemme_costs_enabled': false,
   'gameplay.lore_heart_rewards_enabled': false,

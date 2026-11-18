@@ -62,6 +62,36 @@ async function rangsAvantSeuil(db, partie) {
 }
 
 /**
+ * Pot de chaque équipe à l'ouverture d'une séance : gemmes de ses membres + sa réserve de la
+ * caravane (ensemble unifié, PR 4 : ce qu'une équipe a en poche pour un sort).
+ */
+async function potsDesEquipes(db, partie) {
+  const rows = await db.queryAll(
+    `SELECT t.id, t.type, COALESCE(SUM(p.power_points), 0) AS gemmes
+       FROM gl_teams t
+       LEFT JOIN gl_team_members tm ON tm.team_id = t.id AND tm.game_id = t.game_id
+       LEFT JOIN gl_players p ON p.id = tm.player_id
+      WHERE t.game_id = ? GROUP BY t.id, t.type ORDER BY t.id ASC`,
+    [partie.gameId],
+  );
+  let reserves = [];
+  try {
+    reserves = await db.queryAll(
+      'SELECT team_id, reserve_power FROM gl_game_team_reserves WHERE game_id = ?',
+      [partie.gameId],
+    );
+  } catch (_) {
+    reserves = [];
+  }
+  const reserveDe = new Map(reserves.map((r) => [Number(r.team_id), Number(r.reserve_power) || 0]));
+  return rows.map((r) => ({
+    teamId: Number(r.id),
+    type: String(r.type),
+    pot: (Number(r.gemmes) || 0) + (reserveDe.get(Number(r.id)) || 0),
+  }));
+}
+
+/**
  * @param {object} p
  * @param {object} p.base `{ client, db, oracle, rng, horloge, mjToken, classe, joueurs }`
  * @param {object} p.scenario
@@ -157,9 +187,12 @@ async function jouerChapitre({
   const seances = [];
   // Ensemble unifié (§ 6.12) : écart de position Licornes − Gnomes, relevé en fin de séance.
   const rangsParSeance = [];
+  // Une monnaie (PR 4) : pot de chaque équipe à l'ouverture de chaque séance.
+  const potsParSeance = [];
   let finParCamp = false;
   for (let s = 1; s <= seancesMax; s += 1) {
     const prof = scenario.prof || {};
+    potsParSeance.push(await potsDesEquipes(ctx.db, partie));
     const resume = await jouerSeance(ctx, s, {
       voileDort: typeof prof.voileDort === 'function' ? prof.voileDort(s) : prof.voileDort === true,
       parallele: scenario.parallele === true,
@@ -201,6 +234,7 @@ async function jouerChapitre({
     finParCamp,
     rangs,
     rangsParSeance,
+    potsParSeance,
   });
   return { ctx, partie, seances, mesures };
 }
