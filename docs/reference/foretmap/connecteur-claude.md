@@ -18,7 +18,9 @@ pédagogique du site. Une fois connecté, vous pouvez demander à l'assistant, e
   questions de quiz incomplètes, niveaux du jeu qui ne correspondent pas à la 6ᵉ, doublons
   d'espèces, zones vides… ;
 - d'obtenir une **vue d'usage anonyme** (combien de réponses aux quiz, d'observations, de
-  lectures de tutoriels — jamais par élève).
+  lectures de tutoriels, de tâches réalisées — jamais par élève). Depuis le 17/11/2026,
+  « tâches réalisées » compte les tâches **validées par un professeur** sur la période :
+  l'ancien compteur ne voyait presque aucune tâche terminée.
 
 Les **administrateurs** peuvent en plus faire **corriger** du contenu via l'assistant (voir plus
 bas) et lui faire **surveiller le site** (voir « Surveiller le site »).

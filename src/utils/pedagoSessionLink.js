@@ -53,3 +53,19 @@ export function clearPendingSessionLink(win = typeof window !== 'undefined' ? wi
     /* ignore */
   }
 }
+
+/**
+ * Slug d'une séance qui attend la connexion (lien `?seance=slug`), **sans** le consommer :
+ * l'écran de connexion l'annonce, le shell authentifié la lance ensuite.
+ */
+export function peekPendingSessionSlug(win = typeof window !== 'undefined' ? window : null) {
+  if (!win) return null;
+  const fromUrl = readSessionSlugFromSearch(win.location?.search);
+  if (fromUrl) return fromUrl;
+  try {
+    const stored = win.sessionStorage.getItem(PENDING_KEY);
+    return stored && SLUG_RE.test(stored) ? stored : null;
+  } catch {
+    return null;
+  }
+}

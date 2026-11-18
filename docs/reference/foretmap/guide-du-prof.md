@@ -100,6 +100,17 @@ L'onglet **Séances** sert à dérouler une activité étape par étape avec la 
   scannant.
 - Une séance peut être **liée à une tâche** : le bouton « Lancer la séance » apparaît alors
   directement depuis la tâche.
+- **Côté élève** (depuis le 17/11/2026) : l'onglet Séances montre d'abord la séance **à
+  reprendre**, puis le catalogue (les badges viennent en dernier). Pendant la séance, un
+  **bandeau en bas de l'écran** indique « Étape n sur N » et reste cliquable par-dessus les
+  fenêtres que l'étape ouvre (fiche plante, réseau…). L'étape atteinte est **gardée par le
+  serveur** : en rouvrant le lien, un autre jour ou sur un autre appareil, l'élève reprend
+  là où il s'était arrêté (« Reprendre · étape n sur N », ou « Recommencer »). « Quitter »
+  demande confirmation et met la séance en pause, sans rien effacer. En fin de séance, une
+  seule fenêtre « Séance terminée » montre les badges gagnés.
+- Un élève qui arrive par le lien ou le QR code sans être connecté voit sur l'écran de
+  connexion qu'**une séance l'attend** : elle s'ouvre après la connexion. La visite sans
+  compte ne lance pas les séances.
 - L'onglet **Fresque** propose **La Fresque du Climat (version Enfant)** en autonomie : l'élève
   la fait seul, quand il veut ; vous suivez l'avancement en lecture seule, sans classement. Une
   étape de séance peut la lancer. Détail : [La Fresque du Climat](fresque-du-climat.md).
@@ -125,6 +136,8 @@ Les élèves voient les tâches sur la carte et dans leur liste. Sur une tâche,
 - **« ✋ Je m'en occupe »** pour s'inscrire ;
 - **« ↩️ Me retirer »** pour se désinscrire ;
 - **« ✅ Marquer terminée »** quand le travail est fait, avec une photo si elle est demandée.
+  Sur téléphone, ce bouton est visible directement sur la carte de « Mes tâches », sans la
+  déplier ; commentaire et photo restent facultatifs.
 
 La tâche passe alors dans la section **« ⏳ En attente de validation »** de votre côté. Les
 tâches dont l'échéance approche s'affichent dans l'encart **« 🚨 Urgent ! »**.
@@ -132,7 +145,8 @@ tâches dont l'échéance approche s'affichent dans l'encart **« 🚨 Urgent ! 
 ### Suivre en direct
 
 - L'onglet **Stats** montre la **présence en ligne** des élèves et l'avancement de chacun.
-- Le **Suivi** d'une séance guidée indique où en est chaque élève.
+- Le **Suivi** d'une séance guidée indique où en est chaque élève (séance démarrée,
+  terminée, et l'étape atteinte pendant un passage en cours).
 - Si un élève est **bloqué sur un quiz** (trop d'essais), il apparaît dans « Élèves bloqués » :
   le bouton **« Débloquer »** lui redonne la main.
 

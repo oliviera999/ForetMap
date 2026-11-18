@@ -237,6 +237,57 @@ describe('TaskTileCard — interactions (les handlers passés en props restent c
   });
 });
 
+describe('TaskTileCard — geste de fin à portée (lot 5)', () => {
+  const mine = {
+    id: 'task-1',
+    title: 'Arroser les tomates',
+    status: 'in_progress',
+    required_students: 2,
+    assignments: [
+      { id: 'a1', student_id: 's1', student_first_name: 'Léa', student_last_name: 'Martin' },
+    ],
+  };
+  const studentProps = (overrides = {}) =>
+    makeProps({
+      isTeacher: false,
+      student: { id: 's1', first_name: 'Léa', last_name: 'Martin' },
+      canSelfAssignTasks: true,
+      viewMode: 'condensed',
+      t: mine,
+      ...overrides,
+    });
+
+  test('carte condensée repliée : « Marquer terminée » visible sans dépliage', () => {
+    const props = studentProps();
+    render(<TaskTileCard {...props} />);
+    expect(screen.getByRole('button', { name: /Afficher les détails/ })).toHaveAttribute(
+      'aria-expanded',
+      'false',
+    );
+    const quick = screen.getByTestId('task-quick-done');
+    fireEvent.click(quick.querySelector('button'));
+    expect(props.setLogTask).toHaveBeenCalledWith(mine);
+  });
+
+  test('pas de bouton rapide si la tâche n’est pas à moi, déjà faite ou en attente d’envoi', () => {
+    const { rerender } = render(
+      <TaskTileCard {...studentProps({ t: { ...mine, assignments: [] } })} />,
+    );
+    expect(screen.queryByTestId('task-quick-done')).toBeNull();
+    rerender(<TaskTileCard {...studentProps({ t: { ...mine, status: 'done' } })} />);
+    expect(screen.queryByTestId('task-quick-done')).toBeNull();
+    rerender(<TaskTileCard {...studentProps({ queuedDoneTaskIds: new Set(['task-1']) })} />);
+    expect(screen.queryByTestId('task-quick-done')).toBeNull();
+  });
+
+  test('carte dépliée : un seul « Marquer terminée », dans les actions', () => {
+    render(<TaskTileCard {...studentProps()} />);
+    fireEvent.click(screen.getByRole('button', { name: /Afficher les détails/ }));
+    expect(screen.queryByTestId('task-quick-done')).toBeNull();
+    expect(screen.getAllByRole('button', { name: /Marquer terminée/ })).toHaveLength(1);
+  });
+});
+
 describe('TaskTileCard — React.memo (pas de re-rendu quand l’état parent non lié change)', () => {
   test('un changement d’état parent sans rapport ne re-rend pas la tuile (props stables)', () => {
     // tooltipText est appelé pendant le rendu (tooltips Modifier/Dupliquer/Supprimer côté n3boss) :

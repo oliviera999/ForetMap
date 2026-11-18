@@ -60,6 +60,45 @@ tests d'interface (`tests-ui/gl/`), e2e « trois appareils dans une équipe »
 geste envoyé au même instant : 0 doublon, 0 invariant ; ajouté à la fumée `npm run test:sim`).
 Le scénario e2e des quatre tablettes ne dépend plus du tirage des dés (une équipe arrêtée par
 hasard sur la case marquée « Défi » le faisait échouer une fois sur dix-huit).
+### Ajouté — Séances guidées et tâches : lever ce qui bloque (parcours d'apprentissage, lot 5, 17 novembre 2026)
+
+Rejeu élève sur téléphone (375 × 667) : la séance se perdait d'un onglet à l'autre, le bouton
+« Suivant » sortait de l'écran ou passait sous la fiche, le catalogue était enfoui sous les
+badges, et terminer une tâche demandait 8 à 9 gestes. Côté mesure, `tasks_completed` ne
+voyait presque aucune tâche terminée.
+
+- **Reprise côté serveur (migration 372)** : `pedago_session_runs` gagne `current_step` (étape
+  du passage en cours, NULL hors passage) et `last_step_at`. `POST runs/start` **reprend** un
+  passage en cours sans recompter de démarrage (`{ run, resumed }`, `{ restart: true }` pour
+  repartir de l'étape 1) ; nouvelle route `POST runs/progress { step }` ; la fin clôt le
+  passage. Séance sans étape : 422 `SESSION_EMPTY`. **Donnée liée à l'élève** (même table,
+  même suppression en cascade) : `docs/MCP_REGISTRE_TRAITEMENT.md` et la notice « Vos
+  données » complétés.
+- **Bandeau de séance** fixé en bas, au-dessus de la barre basse et des fenêtres ouvertes par
+  l'étape (nouveau palier `--fm-z-session-banner`, `z-layers.css`) ; « Étape n sur N » avec
+  barre de progression ; Précédent / Quitter lisibles (fond clair) ; « Quitter » demande
+  confirmation et met en pause ; la page et les fenêtres réservent sa hauteur
+  (`--fm-session-banner-h`).
+- **Onglet Séances** : étape « message » en tête avec un bouton « Étape suivante », puis
+  « À reprendre » (« Reprendre · étape n sur N » / « Recommencer »), puis le catalogue, la
+  création prof, et « Mes badges » en dernier.
+- **Plus d'échec silencieux** : démarrage, étape ou fin non enregistrés → message (une seule
+  fois par séance) ; séance vide → message ; l'écran de connexion annonce la séance qui attend
+  (`?seance=`) et précise que la visite sans compte ne la lance pas.
+- **Une seule fenêtre de fin** : les badges gagnés s'affichent dans « Séance terminée » (qui a
+  désormais un vrai panneau) ; ils ne rouvrent plus « Nouveau badge ! » par-dessus ni plus
+  tard dans l'onglet Tâches (`markRewardsCelebrated`, `seen_at` posé à la fermeture).
+- **Tâches** : « Marquer terminée » visible sur la carte repliée de « Mes tâches » (affichage
+  condensé du téléphone), en bouton principal ; la fenêtre de compte rendu dit que
+  commentaire et photo sont facultatifs.
+- **MCP `foretmap_usage_overview`** : `tasks_completed` compte les tâches **validées par le
+  prof** sur la période (`tasks.validated_at`) au lieu de `task_assignments.done_at` (jamais
+  posé en mode `single_done`, et chaîne comparée à une date).
+- Tests : `tests/pedago-session-resume.test.js`, `tests/mcp-usage-tasks-completed.test.js`,
+  `tests-ui/components/pedago/SessionsResumeBanner.test.jsx`,
+  `PendingSessionNotice.test.jsx`, cas ajoutés au hook, au shell et à `TaskTileCard` ; e2e
+  téléphone `e2e/pedago-session-phone.spec.js`. Plafond des littéraux hexadécimaux abaissé
+  (629 → 627). Docs : `docs/API.md`, `docs/MCP.md`, guide du prof, tâches, connecteur.
 
 ### Corrigé — Migration 366 : premier déploiement refusé par la contrainte CHECK de la prod (17 novembre 2026)
 

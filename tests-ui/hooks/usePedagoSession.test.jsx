@@ -173,7 +173,7 @@ describe('usePedagoSession', () => {
     await act(async () => {
       expect(await result.current.startSession(SEANCE)).toBe(true);
     });
-    expect(apiMock).toHaveBeenCalledWith('/api/pedago-sessions/5/runs/start', 'POST');
+    expect(apiMock).toHaveBeenCalledWith('/api/pedago-sessions/5/runs/start', 'POST', undefined);
     expect(result.current.currentStep).toBe(SEANCE.steps[0]);
     expect(result.current.imposedLevel).toBe('college');
     expect(result.current.imposedNotionNiveau).toBe('cycle4');
@@ -182,6 +182,10 @@ describe('usePedagoSession', () => {
     act(() => result.current.goStep(1));
     expect(result.current.activeSession.stepIndex).toBe(1);
     expect(navigation.navigateTab).toHaveBeenLastCalledWith('glossary');
+    // Lot 5 : l'étape atteinte est mémorisée côté serveur (reprise ailleurs).
+    expect(apiMock).toHaveBeenCalledWith('/api/pedago-sessions/5/runs/progress', 'POST', {
+      step: 1,
+    });
 
     apiMock.mockImplementation(async () => ({ rewards: [{ key: 'r' }] }));
     await act(async () => {
@@ -190,8 +194,78 @@ describe('usePedagoSession', () => {
     expect(result.current.activeSession).toBeNull();
     expect(result.current.completedSession).toMatchObject({ id: 5, newRewards: [{ key: 'r' }] });
     expect(result.current.runsVersion).toBe(1);
-    act(() => result.current.setCompletedSession(null));
+    act(() => result.current.closeCompletedSession());
     expect(result.current.completedSession).toBeNull();
+    // Badges montrés dans la fenêtre de fin : « vus » à sa fermeture.
+    expect(apiMock).toHaveBeenLastCalledWith('/api/rewards/me/seen', 'POST');
+  });
+
+  it('reprise : le serveur renvoie l’étape mémorisée, la séance s’y rouvre', async () => {
+    apiMock.mockImplementation(async (url) =>
+      url.endsWith('/runs/start') ? { resumed: true, run: { currentStep: 1 } } : {},
+    );
+    const { result, navigation, onToast } = renderSession();
+    await act(async () => {
+      await result.current.startSession(SEANCE);
+    });
+    expect(result.current.activeSession.stepIndex).toBe(1);
+    expect(navigation.navigateTab).toHaveBeenLastCalledWith('glossary');
+    expect(onToast).toHaveBeenCalledWith('Reprise de « S5 » à l’étape 2.');
+  });
+
+  it('recommencer : `restart` envoyé, retour à l’étape 1', async () => {
+    const { result } = renderSession();
+    await act(async () => {
+      await result.current.startSession(SEANCE, { restart: true });
+    });
+    expect(apiMock).toHaveBeenCalledWith('/api/pedago-sessions/5/runs/start', 'POST', {
+      restart: true,
+    });
+    expect(result.current.activeSession.stepIndex).toBe(0);
+  });
+
+  it('démarrage en échec réseau : la séance s’ouvre, mais l’élève est prévenu', async () => {
+    apiMock.mockImplementation(async () => {
+      throw Object.assign(new Error('réseau'), { status: 0 });
+    });
+    const { result, onToast } = renderSession();
+    await act(async () => {
+      expect(await result.current.startSession(SEANCE)).toBe(true);
+    });
+    expect(onToast).toHaveBeenCalledWith(
+      'Séance ouverte sans connexion au serveur : ton avancée ne sera pas enregistrée.',
+    );
+    // Les étapes qui suivent n'ajoutent pas un second avertissement.
+    await act(async () => {
+      result.current.goStep(1);
+    });
+    expect(onToast).toHaveBeenCalledTimes(1);
+  });
+
+  it('fin en échec : la fenêtre de fin le dit au lieu de se taire', async () => {
+    const { result } = renderSession();
+    await act(async () => {
+      await result.current.startSession(SEANCE);
+    });
+    act(() => result.current.goStep(1));
+    apiMock.mockImplementation(async () => {
+      throw Object.assign(new Error('x'), { status: 500, body: {} });
+    });
+    await act(async () => {
+      result.current.goStep(1);
+    });
+    expect(result.current.completedSession.saveError).toMatch(/n’a pas pu être enregistrée/);
+  });
+
+  it('séance sans étape : message, rien ne démarre', async () => {
+    const { result, onToast } = renderSession();
+    await act(async () => {
+      expect(await result.current.startSession({ ...SEANCE, steps: [] })).toBe(false);
+    });
+    expect(onToast).toHaveBeenCalledWith(
+      'Cette séance n’a pas encore d’étape : préviens ton professeur.',
+    );
+    expect(apiMock).not.toHaveBeenCalled();
   });
 
   it('module éteint : la séance reste mémorisée mais n’impose plus son niveau', async () => {
@@ -221,11 +295,21 @@ describe('usePedagoSession', () => {
     await act(async () => {
       expect(await result.current.launchSession('s5')).toBe(false);
     });
-    expect(onToast).toHaveBeenCalledWith('Cette séance n’est plus disponible.');
+    expect(onToast).toHaveBeenCalledWith(
+      'Cette séance n’a pas encore d’étape : préviens ton professeur.',
+    );
+    apiMock.mockImplementation(async () => {
+      throw new Error('404');
+    });
+    await act(async () => {
+      expect(await result.current.launchSession('s6')).toBe(false);
+    });
+    expect(onToast).toHaveBeenLastCalledWith('Cette séance n’est plus disponible.');
+    apiMock.mockClear();
     await act(async () => {
       expect(await result.current.launchSession('  ')).toBe(false);
     });
-    expect(apiMock).toHaveBeenCalledTimes(1);
+    expect(apiMock).not.toHaveBeenCalled();
   });
 
   it('le contexte partage la valeur du hook avec l’arbre', async () => {

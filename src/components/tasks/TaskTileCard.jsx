@@ -170,6 +170,19 @@ function TaskTileCardImpl({
   const unreadLinkedTutorials = (t.tutorials_linked || []).filter(
     (tu) => tu.is_active !== false && !(tutorialReadIds && tutorialReadIds.has(Number(tu.id))),
   );
+  /**
+   * Geste de fin à portée (lot 5, rejeu téléphone du 17/11/2026) : la carte condensée de
+   * « Mes tâches » montre « Marquer terminée » sans dépliage — il fallait 8 à 9 gestes et deux
+   * défilements. Mêmes conditions que le bouton de la carte dépliée.
+   */
+  const canMarkOwnDone =
+    !isTeacher &&
+    canSelfAssignTasks &&
+    isMine &&
+    !isDoneQueued &&
+    t.status !== 'done' &&
+    t.status !== 'validated' &&
+    !hasCompletedOwnAssignment;
   const toggleCondensedHead = () => {
     setCondensedExpanded((prev) => {
       const next = !prev;
@@ -229,6 +242,19 @@ function TaskTileCardImpl({
           )}
         </div>
       </TopTag>
+      {!showTaskDetails && canMarkOwnDone && (
+        <div className="task-actions task-actions--quick" data-testid="task-quick-done">
+          {unreadLinkedTutorials.length > 0 ? (
+            <p className="section-sub task-tutorial-prereq-hint" role="status">
+              Lis d’abord {unreadLinkedTutorials.map((tu) => `« ${tu.title} »`).join(', ')} avant de
+              marquer la tâche terminée.
+            </p>
+          ) : null}
+          <button type="button" className="btn btn-primary btn-sm" onClick={() => setLogTask(t)}>
+            <IconCheck size={15} /> Marquer terminée
+          </button>
+        </div>
+      )}
       {showTaskDetails && (
         <>
           <TaskTileMeta
@@ -468,39 +494,33 @@ function TaskTileCardImpl({
                 <IconCheck size={14} /> Notée faite — partira au retour du réseau
               </span>
             )}
-            {!isTeacher &&
-              canSelfAssignTasks &&
-              isMine &&
-              !isDoneQueued &&
-              t.status !== 'done' &&
-              t.status !== 'validated' &&
-              !hasCompletedOwnAssignment && (
-                <>
-                  {unreadLinkedTutorials.length > 0 ? (
-                    <p className="section-sub task-tutorial-prereq-hint" role="status">
-                      Lis d’abord {unreadLinkedTutorials.map((tu) => `« ${tu.title} »`).join(', ')}{' '}
-                      avant de marquer la tâche terminée.
-                    </p>
-                  ) : null}
-                  <button className="btn btn-secondary btn-sm" onClick={() => setLogTask(t)}>
-                    <IconCheck size={15} /> Marquer terminée
-                  </button>
-                  <button
-                    className="btn btn-ghost btn-sm"
-                    disabled={loading[t.id + 'unassign']}
-                    onClick={() => unassign(t)}
-                    title="Me retirer de cette tâche"
-                  >
-                    {loading[t.id + 'unassign'] ? (
-                      '…'
-                    ) : (
-                      <>
-                        <IconUndo size={15} /> Me retirer
-                      </>
-                    )}
-                  </button>
-                </>
-              )}
+            {canMarkOwnDone && (
+              <>
+                {unreadLinkedTutorials.length > 0 ? (
+                  <p className="section-sub task-tutorial-prereq-hint" role="status">
+                    Lis d’abord {unreadLinkedTutorials.map((tu) => `« ${tu.title} »`).join(', ')}{' '}
+                    avant de marquer la tâche terminée.
+                  </p>
+                ) : null}
+                <button className="btn btn-primary btn-sm" onClick={() => setLogTask(t)}>
+                  <IconCheck size={15} /> Marquer terminée
+                </button>
+                <button
+                  className="btn btn-ghost btn-sm"
+                  disabled={loading[t.id + 'unassign']}
+                  onClick={() => unassign(t)}
+                  title="Me retirer de cette tâche"
+                >
+                  {loading[t.id + 'unassign'] ? (
+                    '…'
+                  ) : (
+                    <>
+                      <IconUndo size={15} /> Me retirer
+                    </>
+                  )}
+                </button>
+              </>
+            )}
             {!isTeacher && hasCompletedOwnAssignment && (
               <span className="task-chip">
                 <IconCheck size={14} /> Ta partie est déjà marquée terminée

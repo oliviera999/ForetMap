@@ -39,3 +39,15 @@ export function useRewardsCelebration(rewards, { onSeen } = {}) {
   }, [pending, onSeen]);
   return { pending, close };
 }
+
+/**
+ * Marque des badges comme déjà fêtés dans la page : l'écran qui vient de les montrer (fenêtre
+ * de fin de séance ForetMap, par exemple) empêche qu'une seconde fenêtre « Nouveau badge ! »
+ * les annonce à nouveau, par-dessus ou plus tard dans un autre onglet de l'application.
+ * @param {string[]} keys
+ */
+export function markRewardsCelebrated(keys) {
+  for (const key of Array.isArray(keys) ? keys : []) {
+    if (key) celebratedKeys.add(key);
+  }
+}

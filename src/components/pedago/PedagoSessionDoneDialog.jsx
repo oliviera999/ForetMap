@@ -44,6 +44,9 @@ export function buildPedagoSessionNote(session) {
 /**
  * Fin de séance : félicitation + note préremplie facultative dans le carnet
  * (réutilise la route d’articles du carnet ; rien n’est écrit sans clic).
+ * **Seule fenêtre de fin** (lot 5) : les badges gagnés s'y affichent, et `usePedagoSession`
+ * les marque fêtés pour que « Nouveau badge ! » ne se superpose pas, ni ne revienne ailleurs.
+ * `session.saveError` : la fin n'a pas pu être enregistrée (message, au lieu du silence).
  * `showRewards` suit l'interrupteur `ui.modules.rewards_enabled` : éteint, la liste des
  * nouveaux badges n'est pas rendue (le serveur n'en attribue d'ailleurs plus).
  */
@@ -79,7 +82,7 @@ export function PedagoSessionDoneDialog({
     // (useDialogA11y) — au lieu d'écouteurs posés à la main sur l'élément `dialog`.
     <DialogShell
       onClose={onClose}
-      dialogClassName="modal-content pedago-session-done"
+      dialogClassName="log-modal fade-in pedago-session-done"
       ariaLabelledBy="pedago-session-done-title"
     >
       <div data-testid="pedago-session-done">
@@ -104,6 +107,11 @@ export function PedagoSessionDoneDialog({
             ))}
           </ul>
         )}
+        {session.saveError ? (
+          <p className="form-error" role="alert" data-testid="pedago-session-done-save-error">
+            {session.saveError}
+          </p>
+        ) : null}
         {added && (
           <p className="pedago-session-done__ok" role="status">
             Note ajoutée à ton carnet : complète-la quand tu veux.

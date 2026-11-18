@@ -210,7 +210,8 @@ function LogModal({
         <IconReports size={18} /> Rapport de tâche
       </h3>
       <p style={{ fontSize: 'var(--text-sm)', color: '#777', marginBottom: 16 }}>
-        <strong>{task.title}</strong> — laisse un commentaire ou une photo avant de valider
+        <strong>{task.title}</strong> — commentaire et photo facultatifs : tu peux marquer la tâche
+        terminée tout de suite.
       </p>
       {err && (
         <p

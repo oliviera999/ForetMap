@@ -79,6 +79,13 @@
   --fm-z-modal-nested-2: 380;
   /* Tiroir de navigation G&L : recouvre les dialogues ouverts. */
   --fm-z-drawer: 420;
+  /*
+   * Bandeau de séance guidée ForetMap : il PILOTE les fenêtres que l'étape ouvre (fiche
+   * plante, réseau…) — ce qui appelle est sous ce qui est appelé, sauf ce chrome-là, qui
+   * doit rester cliquable par-dessus pour passer à l'étape suivante. Sous les popovers de
+   * contenu (une fiche de glossaire ouverte depuis la fiche le recouvre) et les toasts.
+   */
+  --fm-z-session-banner: 450;
 
   /* ── Surfaces pédagogiques ───────────────────────────────────────── */
   /*

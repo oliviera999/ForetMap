@@ -896,7 +896,8 @@
       display:flex;
       flex-direction:column;
       padding:var(--space-page-x);
-      padding-bottom:calc(var(--bottom-nav-height) + var(--safe-bottom) + 16px);
+      /* `--fm-session-banner-h` : bandeau de séance fixé au-dessus de la barre basse. */
+      padding-bottom:calc(var(--bottom-nav-height) + var(--safe-bottom) + 16px + var(--fm-session-banner-h, 0px));
       max-width:900px;
       margin:0 auto;
       width:100%;
@@ -922,7 +923,7 @@
       display:flex;
       flex-direction:column;
       padding:var(--space-page-x);
-      padding-bottom:24px;
+      padding-bottom:calc(24px + var(--fm-session-banner-h, 0px));
       max-width:900px;
       margin:0 auto;
       width:100%;
@@ -1844,6 +1845,8 @@
     }
     .task-desc { font-size:var(--text-sm); color:var(--ink-muted); margin-bottom:10px; line-height:var(--lh-relaxed); }
     .task-actions { display:flex; gap:8px; flex-wrap:wrap; }
+    /* Lot 5 : « Marquer terminée » visible sur la carte condensée, sans dépliage. */
+    .task-actions--quick { margin-top:0; }
     .assignees { margin-bottom:8px; display:flex; gap:6px; flex-wrap:wrap; }
     .assignee-tag { background:var(--mint); color:var(--forest); border-radius:6px; padding:3px 9px; font-size:var(--text-xs); font-weight:var(--fw-medium); }
     .assignee-tag.me { font-weight:var(--fw-bold); border:1px solid #86efac; }

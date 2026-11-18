@@ -45,7 +45,7 @@ export function AppPedagoOverlays({
     activeSession: activePedagoSession,
     currentStep: pedagoSessionCurrentStep,
     completedSession: completedPedagoSession,
-    setCompletedSession: setCompletedPedagoSession,
+    closeCompletedSession: closeCompletedPedagoSession,
     exitSession: exitPedagoSession,
     goStep: goPedagoSessionStep,
   } = pedagoSession;
@@ -73,7 +73,7 @@ export function AppPedagoOverlays({
           onPrev={() => goPedagoSessionStep(-1)}
           onNext={() => goPedagoSessionStep(1)}
           onExit={exitPedagoSession}
-          onShowMessage={() => navigateTab('sessions')}
+          onShowMessage={tab === 'sessions' ? null : () => navigateTab('sessions')}
         />
       )}
       {completedPedagoSession && (
@@ -81,9 +81,9 @@ export function AppPedagoOverlays({
           session={completedPedagoSession}
           showRewards={rewardsModuleEnabled}
           canAddToNotebook={canAddToNotebook}
-          onClose={() => setCompletedPedagoSession(null)}
+          onClose={closeCompletedPedagoSession}
           onOpenNotebook={() => {
-            setCompletedPedagoSession(null);
+            closeCompletedPedagoSession();
             navigateTab('notebook');
           }}
         />

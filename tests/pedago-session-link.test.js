@@ -51,3 +51,19 @@ test('consumeSessionLinkFromLocation : met de côté puis retire le paramètre',
   assert.equal(consumeSessionLinkFromLocation(after), null);
   assert.equal(consumeSessionLinkFromLocation(null), null);
 });
+
+test('peekPendingSessionSlug : lit l’adresse ou la mise de côté, sans rien consommer', async () => {
+  const { peekPendingSessionSlug, consumeSessionLinkFromLocation } =
+    await import('../src/utils/pedagoSessionLink.js');
+  const win = fakeWindow('https://foret.example/?seance=Qui-Mange-Qui');
+  assert.equal(peekPendingSessionSlug(win), 'qui-mange-qui');
+  assert.equal(win.replacedWith, undefined, 'adresse intacte');
+  assert.equal(win.sessionStorage.getItem('foretmap.pendingSeance.v1'), null);
+
+  // Après consommation par le shell : le slug reste lisible depuis la mise de côté.
+  consumeSessionLinkFromLocation(win);
+  win.location.search = '';
+  assert.equal(peekPendingSessionSlug(win), 'qui-mange-qui');
+  assert.equal(peekPendingSessionSlug(fakeWindow('https://foret.example/')), null);
+  assert.equal(peekPendingSessionSlug(null), null);
+});
