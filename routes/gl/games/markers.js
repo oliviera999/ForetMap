@@ -55,6 +55,7 @@ const router = express.Router();
 const {
   resolveTenirMarkerContext: resolveSentierContext,
   consumeSentier,
+  arriveeDejaAppliquee,
 } = require('../../../lib/glTourArrivalHelpers');
 
 /** Contexte « Tenir à deux » d'une case : règles v2 actives ? Sentier posé pour l'équipe ? */
@@ -442,6 +443,13 @@ router.post(
     // Mode « Tenir à deux » : le texte lu par l'élève est calculé depuis l'effet appliqué
     // (Sentier compris), jamais depuis le champ d'auteur `effet_mecanique`.
     const arrivalCtx = await resolveTenirMarkerContext(db, settings, game, teamId);
+    // Arrêt déjà joué par le moteur du tour (jet, relance, +1 d'une question juste) : l'écran
+    // le présente après coup. Un Sentier consommé à l'arrêt reste vrai pour le texte, et
+    // cette présentation ne pose plus « un seul dé » (ensemble unifié, M3).
+    const dejaAppliquee = arrivalCtx.tenir
+      ? await arriveeDejaAppliquee(db, { gameId, teamId, markerId })
+      : null;
+    if (dejaAppliquee?.sentier) arrivalCtx.sentierActif = true;
     const arrival = buildMarkerArrivalPayload(marker, team, arrivalCtx);
     const actorType = acteur.actorType;
     const actorId = acteur.actorId;
@@ -475,13 +483,19 @@ router.post(
           playerIds,
           skipIfAlreadyApplied: true,
           tenir: tenirCtx.tenir,
-          sentierActif: tenirCtx.sentierActif,
+          sentierActif: tenirCtx.sentierActif || dejaAppliquee?.sentier === true,
           casesPositives: tenirCtx.tenir ? tenirCtx.casesPositives : undefined,
           reserveTeamId: tenirCtx.tenir && tenirCtx.surplusReserve ? Number(teamId) : null,
         });
-        if (vitalityPayload?.sentier) await consumeSentier(tx, gameId, teamId);
-        // Ensemble unifié (M3) : une case Souffle pose « un seul dé au prochain tour ».
-        if (tenirCtx.tenir && vitalityPayload?.unDe && !vitalityPayload?.sentier) {
+        if (vitalityPayload?.sentier && !dejaAppliquee) await consumeSentier(tx, gameId, teamId);
+        // Ensemble unifié (M3) : une case Souffle pose « un seul dé au prochain tour » — sauf
+        // si le moteur du tour a déjà joué cet arrêt (il l'a posé, ou un Sentier l'a empêché).
+        if (
+          tenirCtx.tenir &&
+          vitalityPayload?.unDe &&
+          !vitalityPayload?.sentier &&
+          !dejaAppliquee
+        ) {
           const poses = await require('../../../lib/glTour').poserUnDeTx(tx, {
             gameId,
             teamId,

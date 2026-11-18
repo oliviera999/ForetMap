@@ -127,7 +127,10 @@ describe('escalier du chapitre 1 — écrans', () => {
     expect(voile.checked).toBe(false);
     fireEvent.click(screen.getByTestId('gl-tenir-escalier-suite'));
     await waitFor(() =>
-      expect(apiGlMock).toHaveBeenCalledWith('/api/gl/games/7/tenir/escalier/suite', 'POST', {}),
+      // La séance affichée part avec la demande : un double appui n'ouvre pas deux marches.
+      expect(apiGlMock).toHaveBeenCalledWith('/api/gl/games/7/tenir/escalier/suite', 'POST', {
+        pas: 2,
+      }),
     );
     await waitFor(() => expect(onChanged).toHaveBeenCalled());
     // Couper l'escalier : la surcharge part avec les autres ; le serveur garde ou retire le pas.
@@ -145,5 +148,33 @@ describe('escalier du chapitre 1 — écrans', () => {
     rerender(<GLTenirProfilPanel gameId={7} tenir={tenir(null)} onChanged={onChanged} />);
     expect(screen.getByTestId('gl-tenir-escalier-actif').checked).toBe(false);
     expect(screen.queryByTestId('gl-tenir-escalier-pas')).toBeNull();
+  });
+
+  test('« Revenir aux réglages du profil » ne touche pas à l’escalier', async () => {
+    apiGlMock.mockResolvedValue({ ok: true });
+    // L'escalier seul dans les surcharges (toute partie du plateau 1) : rien à défaire.
+    const { rerender } = render(<GLTenirProfilPanel gameId={7} tenir={tenir(1)} />);
+    expect(screen.queryByTestId('gl-tenir-profil-revenir')).toBeNull();
+    // Une surcharge du prof en plus : le bouton paraît, et il garde l'escalier.
+    const avecSurcharge = tenir(1);
+    avecSurcharge.settings.overrides = { escalier: true, escalier_pas: 1, chapardeur: false };
+    rerender(<GLTenirProfilPanel gameId={7} tenir={avecSurcharge} />);
+    fireEvent.click(screen.getByTestId('gl-tenir-profil-revenir'));
+    await waitFor(() =>
+      expect(apiGlMock).toHaveBeenCalledWith('/api/gl/games/7/tenir/profil', 'PUT', {
+        overrides: { escalier: true },
+      }),
+    );
+    // Escalier coupé par le prof : le retour au profil ne le remet pas.
+    apiGlMock.mockClear();
+    const coupe = tenir(null);
+    coupe.settings.overrides = { escalier: false, vent: false };
+    rerender(<GLTenirProfilPanel gameId={7} tenir={coupe} />);
+    fireEvent.click(screen.getByTestId('gl-tenir-profil-revenir'));
+    await waitFor(() =>
+      expect(apiGlMock).toHaveBeenCalledWith('/api/gl/games/7/tenir/profil', 'PUT', {
+        overrides: {},
+      }),
+    );
   });
 });

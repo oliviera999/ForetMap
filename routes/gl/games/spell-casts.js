@@ -103,7 +103,11 @@ async function equipeDuBrouillon(req) {
 // pas par la garde, pour qu'un élève le fasse de son compte pendant qu'un autre appareil
 // prépare le sort.
 const gardeSortPrepare = gardeDEquipe({ prend: 'sort' });
-const gardeSortFini = gardeDEquipe({ rend: true, equipeDuProf: equipeDuBrouillon });
+const gardeSortFini = gardeDEquipe({
+  rend: true,
+  finit: 'sort',
+  equipeDuProf: equipeDuBrouillon,
+});
 
 async function handleSpellCastRoute(req, res, handler) {
   try {

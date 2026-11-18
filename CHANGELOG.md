@@ -9,6 +9,47 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — G&L : ensemble unifié, vérification des cinq PR (18 novembre 2026)
+
+Relecture des PR #662 (1a), #664 (1b), #667, #670 et #672 après fusion
+(`docs/AUDIT_GL_ENSEMBLE_UNIFIE_2026-11-18.md`). Aucun défaut bloquant ; neuf défauts corrigés,
+chacun avec son test.
+
+- **Sentier protège de nouveau de la case Souffle sur tablette (1a).** Après le jet, l'écran
+  présente la case (`present-arrival`) ; le Sentier étant déjà consommé à l'arrêt, la route
+  posait quand même « un seul dé ». Un arrêt déjà joué par le moteur du tour n'est plus rejoué
+  (`lib/glTourArrivalHelpers.js › arriveeDejaAppliquee`), et la case reste présentée « Sentier :
+  la case Souffle n'a aucun effet ».
+- **« Un seul dé » ne dure qu'un tour (1a).** Le tour de pose ne se réécrit plus quand l'état
+  attend déjà (une case présentée deux fois repoussait le dé unique d'un tour) ; une équipe qui
+  n'a pas lancé au tour suivant retrouve ses deux dés à l'ouverture du tour d'après, comme le dit
+  Olu (« Ça ne dure qu'un tour »). La projection et la console disent « ce tour-ci » le tour où le
+  dé unique est dû, comme l'écran d'équipe.
+- **Spirale des questions (1a).** Le réglage `tenir_questions_spirale` est un entier en pour
+  cent : réglé à 1, il valait 100 % (lu comme une fraction). 1 vaut maintenant 1 %.
+- **La piste d'une zone ne suit que sa question (1b).** Après un « pas encore » à une question du
+  thème de secours (zone déjà tentée dans la partie), l'écran disait encore « La réponse se trouve
+  dans la fiche … », alors que la fiche répond à la question fixe de la zone. `piste` vaut alors
+  `null`.
+- **Escalier du chapitre 1 (PR 2).** « Revenir aux réglages du profil » ne coupe plus l'escalier
+  (il ouvrait d'un coup le voile, le Marché et les sorts) : le bouton n'efface que les autres
+  surcharges et ne paraît plus quand il n'y en a pas. « Ouvrir la suite » envoie la séance
+  affichée (`{ pas }`) : un double appui ou deux onglets n'ouvrent plus deux marches (réponse
+  `{ deja: true }`). `PUT …/tenir/profil` relit et réécrit les surcharges sous le verrou de la
+  partie : un tour clos au même instant ne voit plus son pas remplacé par l'ancien.
+- **La main se rend quand le prof finit le geste (PR 3).** Le prof qui répondait, faisait tenir
+  ou lançait le sort à la place d'une équipe laissait ses autres appareils grisés sur
+  « … répond… » jusqu'à 60 s. La main prise pour ce geste se rend aussitôt (`gardeDEquipe`,
+  option `finit`) ; une main prise pour un autre geste n'est pas touchée.
+- **Remboursement d'un sort au plafond (PR 4, défaut antérieur).** `rembourserCastTx` créditait
+  sans plafond : une bourse remplie entre le paiement et le refus du prof passait de 8 à 10. Le
+  plafond s'applique, et le surplus va à la réserve de l'équipe, comme le disait déjà le
+  commentaire.
+
+Non corrigé, à trancher : voir « Décisions » dans l'audit (Retrait et gemme de la page tenue,
+reste de la jauge de Lumière au palier, trois zones dont la piste donne la réponse, ligne d'Olu
+`olu-pf-main` jamais dite, seuils du badge « Bon rangeur », ordre des cartes des « fils »).
+
 ### Modifié — G&L : ensemble unifié, PR 4 — une seule monnaie, les gemmes (18 novembre 2026)
 
 Prompt `docs/GL_ENSEMBLE_UNIFIE_PROMPT.md` (§ 9, décisions M1 et M19). En « Tenir à deux », tout

@@ -381,7 +381,7 @@ une autre équipe ni vers une projection ; les payloads privés du journal sont 
 | ------- | ---------------------------------------------------- | -------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | GET     | `/api/gl/games/:id/tenir`                            | —                                                                                      | Auth GL ou projection. `{ enabled, profil, surface, settings (résolus, `des_mode_effectif`), state (voile, première arrivée, oiseau ; nid et tour du chapardeur pour le prof), round, permissions (dont `tenir`), escalier (`null` hors escalier du chapitre 1), retraits (motif pour le prof seul), enRetrait, plume, reserves }`. **E4** : `reserves[]` (`teamId`, `health`, `power`) = réserve de la caravane (surplus au plafond) — toutes les équipes pour le prof, la sienne pour un élève, aucune en projection. **E5** : pour un élève dont au moins 3 coéquipiers sont au plafond de leur ressource du peuple, la lecture journalise une fois par séance et par équipe l'événement privé `olu_bourse_pleine` (moment Olu `bourse_pleine`, écran d'équipe seulement ; réglage `tenir_olu_bourse_pleine`). |
 | PUT     | `/api/gl/games/:id/tenir/profil`                     | `{ profil: complet\|court\|null, overrides? }`                                          | `gl.game.manage`. `profil: null` explicite remet la partie aux règles classiques (`tenir_profil` NULL). Le profil `prologue` n'existe plus (400). Surcharges limitées aux clés `OVERRIDABLE_KEYS` (surface, des_mode, vent, voile, marche, chapardeur, péripéties, zones par plateau, lumière, défis, `pages_par_semaine`, `escalier`). `escalier: true \| false` remet ou coupe l'escalier du chapitre 1 ; `escalier_pas` appartient au serveur : une valeur envoyée est ignorée (le pas atteint est gardé, ou repart de tours clos + 1). |
-| POST    | `/api/gl/games/:id/tenir/escalier/suite`             | —                                                                                      | `gl.game.manage`. « Ouvrir la suite » : l'escalier du chapitre 1 monte d'une marche tout de suite. `{ ok, escalier: { pas, dernier, monte, modules, sorts, prochaine }, ouvert: { modules, sorts } }`. Évènement `escalier_pas` (`motif: 'prof'`) ; la page témoin se pose si la séance 3 s'ouvre pendant un tour. 409 `ESCALIER_INACTIF` (la partie ne monte pas l'escalier), 409 `ESCALIER_MONTE` (tout est déjà ouvert).                                              |
+| POST    | `/api/gl/games/:id/tenir/escalier/suite`             | `{ pas? }`                                                                             | `gl.game.manage`. « Ouvrir la suite » : l'escalier du chapitre 1 monte d'une marche tout de suite. `{ ok, escalier: { pas, dernier, monte, modules, sorts, prochaine }, ouvert: { modules, sorts } }`. `pas` (facultatif) = la séance que l'écran affichait : si l'escalier a déjà avancé depuis (double appui, tour clos entre-temps), rien ne monte et la réponse est `{ ok, deja: true, escalier, ouvert: null }` ; 400 si `pas` n'est pas un entier ≥ 1. Évènement `escalier_pas` (`motif: 'prof'`) ; la page témoin se pose si la séance 3 s'ouvre pendant un tour. 409 `ESCALIER_INACTIF` (la partie ne monte pas l'escalier), 409 `ESCALIER_MONTE` (tout est déjà ouvert).                                              |
 | GET     | `/api/gl/games/:id/tenir/ce-qui-change`              | —                                                                                      | Auth GL ou projection. « Ce qui change » au camp : `{ gameId, auCamp, ceQuiChange: null \| { plateau, lignes: [{ cle: peuple\|sorts\|plateau, titre, texte }] } }`. Un élève ou une tablette d'équipe reçoit les lignes de son équipe (« Ton peuple », « Tes nouveaux sorts » : ceux que le chapitre suivant ouvre, et ceux de son nouveau peuple quand il en change) ; le prof et la projection, celles de la classe. `null` au dernier plateau. Calculé depuis les sorts rattachés aux chapitres et les réglages résolus.                                 |
 | GET     | `/api/gl/games/:id/tenir/olu`                        | —                                                                                      | Lignes d'Olu actives (sans la correction des erreurs) + `moments` (type d'événement → moment).                                                                                                                                                                  |
 | POST    | `/api/gl/games/:id/tenir/retrait`                    | `{ playerId, entree, motif? }`                                                         | `gl.game.manage`. Conduite hors économie : l'élève ne verse pas au pot et ne voit pas le Marché ; motif vu du prof seul.                                                                                                                                      |
@@ -705,7 +705,10 @@ Au tableau, rien ne change. En `hybride` et sur `tablette`, les équipes jouent 
   qui suit une case Souffle ; la relance d'une question juste se joue à deux dés, une Relance
   (sort) relance le seul dé. Le payload `dice_roll` porte `unDe: true` ; évènements
   `un_de_pose`, `un_de_joue`. Plus d'erreur `TOUR_PASSE`, plus d'effet `tour_passe`. L'arrivée
-  (`arrival`) porte `unDe`. `gameplay.tenir_cases_positives` : `neutre` (défaut) ou `brut` ;
+  (`arrival`) porte `unDe`. L'état ne dure qu'un tour : posé au tour N et non joué au tour
+  N + 1, il s'efface à `POST …/tenir/tour/ouvrir` du tour N + 2 ; le tour de pose ne se réécrit
+  pas. `POST …/markers/:markerId/present-arrival` ne pose rien quand le moteur du tour a déjà
+  joué l'arrêt (Sentier compris : la case reste présentée « Sentier : … n'a aucun effet »). `gameplay.tenir_cases_positives` : `neutre` (défaut) ou `brut` ;
   `ressource_peuple` est retiré. Case Trame : +1 gemme aux deux peuples.
 - **Questions de case (M9)** : `POST /api/gl/games/:id/markers/:markerId/present-question` en
   partie « Tenir » (case au hasard, hors lore) : question vive pas encore posée dans la partie,
@@ -806,7 +809,9 @@ camp ou en veillée » ; badges `lecture.tenues` Porte-page, `voyage.chapitres` 
 
 - `POST …/chasse/repondre` : sur un « pas encore », la réponse porte `piste` — `{ type:
   'glossaire' | 'fiche', code, nom, texte }` ou `null` — : le terme de glossaire relié à la zone
-  s'il y en a un, sinon sa première fiche d'espèce. Un lien, jamais la réponse.
+  s'il y en a un, sinon sa première fiche d'espèce. Un lien, jamais la réponse. `piste` vaut
+  `null` quand la question posée n'est pas la question fixe de la zone (question du thème de
+  secours, zone déjà tentée dans la partie) : la fiche et le mot reliés n'y répondent pas.
 - Catalogue `chasse-zones.json` : champ facultatif `glossaire` (1 à 3 codes `GL####`,
   `gl_chasse_zones.glossaire_json`) ; un terme absent de la base est un avertissement, jamais un
   refus. `questions-lecture.json` : champ facultatif `retours` (`{ lettre: texte }`, un retour
@@ -1149,7 +1154,9 @@ Ce qu'une session d'équipe peut faire :
   autre appareil la tient, tout geste d'équipe répond 409 `MAIN_AILLEURS`
   `{ error: « Lina répond… Attendez la fin de son geste. », code, main, etatVersion }` ; fermer
   une péripétie (`…/tenir/peripetie/passer`) n'est retenu que par la version. Le prof n'est
-  jamais retenu. Régler sa part d'un pot ou dire « pas moi » sont des gestes personnels, hors de
+  jamais retenu ; quand il finit le geste à la place de l'équipe (`…/qcm/answer`,
+  `…/chasse/repondre`, `…/chasse/pages/:zoneKey/tenir`, lancement ou annulation du brouillon de
+  sort), la main qu'un appareil tenait pour ce geste se rend aussi. Régler sa part d'un pot ou dire « pas moi » sont des gestes personnels, hors de
   la garde.
 - **Absent spectateur.** Un compte d'élève noté absent du tour, ou en retrait, reçoit 403
   `SPECTATEUR` sur tout geste d'équipe et sur toute écriture du Marché ; le bloc `tenir` porte

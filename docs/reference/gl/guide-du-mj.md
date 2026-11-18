@@ -507,6 +507,8 @@ parallèle. Au tableau, rien ne change.
 - **Les zones de la carte : la réponse est sur le site.** Après un « Pas encore » à la question
   d'une zone, la tablette propose une **piste** : « La réponse se trouve dans la fiche … » (ou
   « au mot … du glossaire »), avec un bouton pour l'ouvrir. La piste ne donne jamais la réponse.
+  Elle ne suit que la question propre à la zone : quand la zone a déjà été tentée dans la partie,
+  la question posée est une question de secours du même thème, et aucune piste n'est proposée.
   Cinq questions de zone ont été réécrites, et la zone du Sahara qui attendait son feuillet est
   ouverte.
 
@@ -531,8 +533,10 @@ Au chapitre 1, on n'explique plus les règles : la classe les rencontre, une à 
 
 - **« Ouvrir la suite ».** Votre classe va vite ? Dans le panneau « Profil » de la console, la
   ligne « Escalier du chapitre 1 » dit la séance atteinte et ce qui s'ouvrira ensuite ; le bouton
-  **« Ouvrir la suite »** monte une marche tout de suite. On ne redescend jamais. La case à cocher
-  de la même ligne coupe l'escalier (tout s'ouvre) ou le remet.
+  **« Ouvrir la suite »** monte une marche tout de suite. On ne redescend jamais, et un double
+  appui n'ouvre pas deux marches. La case à cocher de la même ligne coupe l'escalier (tout
+  s'ouvre) ou le remet ; le bouton « Revenir aux réglages du profil », lui, n'y touche pas : il
+  n'efface que vos autres surcharges (vent, voile, Marché, chapardeur, péripéties, surface).
 - **La page témoin.** À l'ouverture de la séance 3, une zone qui dormait encore, près du départ,
   pâlit toute seule : les Gnomes découvrent la réparation sans que rien ne soit en jeu. Une
   seule fois par partie.
