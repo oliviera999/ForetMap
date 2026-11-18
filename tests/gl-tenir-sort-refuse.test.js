@@ -50,16 +50,17 @@ const file = async () =>
 
 before(async () => {
   await db.initSchema();
-  // Plateau 2 : « Pause » (activité, exécution du prof, 3 dans la ressource du peuple) y est ouverte.
+  // Plateau 2 : « Pause » (activité, exécution du prof, 3 gemmes — une seule monnaie) y est ouverte.
   ctx = await createTenirGame({ stamp: Date.now(), plateau: 2 });
   for (const p of ctx.players) await setPlayerBourses(p.id, 4, 4);
-  // Un cœur dans la réserve des Gnomes A : elle paie en premier.
+  // Une gemme dans la réserve des Gnomes A (la réserve est en gemmes seulement) : elle paie en
+  // premier.
   await db.withTransaction((tx) =>
     creditReserveTx(tx, {
       gameId: ctx.game.id,
       teamId: team(0).id,
-      dh: 1,
-      dg: 0,
+      dh: 0,
+      dg: 1,
       cause: 'reserve_entree',
     }),
   );
@@ -69,11 +70,21 @@ before(async () => {
 test('Pause refusée : bourses et réserve à l’identique, livre équilibré, Pause relançable dans la séance', async () => {
   const avant = await bourses(0);
   const reserveAvant = await loadReserve(db, ctx.game.id, team(0).id);
+  assert.equal(reserveAvant.power, 1, 'une gemme en réserve');
+  assert.equal(reserveAvant.health, 0, 'aucun cœur en réserve');
   const lance = await lancerPause(0);
   assert.equal(lance.status, 200, JSON.stringify(lance.body));
   const draftId = lance.body.draft.id;
-  assert.notDeepEqual(await bourses(0), avant, 'le sort est débité au lancement');
-  assert.equal((await loadReserve(db, ctx.game.id, team(0).id)).health, 0, 'la réserve a payé');
+  assert.deepEqual(lance.body.draft.required, { gems: 3, hearts: 0 });
+  const debitees = await bourses(0);
+  assert.notDeepEqual(debitees, avant, 'le sort est débité au lancement');
+  // Trois gemmes : une de la réserve, deux des bourses ; aucun cœur ne bouge.
+  const total = (liste, cle) => liste.reduce((s, b) => s + b[cle], 0);
+  assert.equal(total(debitees, 'power'), total(avant, 'power') - 2, 'deux gemmes des bourses');
+  assert.equal(total(debitees, 'health'), total(avant, 'health'), 'les cœurs ne bougent pas');
+  const reserveApres = await loadReserve(db, ctx.game.id, team(0).id);
+  assert.equal(reserveApres.power, 0, 'la réserve a payé');
+  assert.equal(reserveApres.health, 0);
   assert.ok(
     (await file()).some((d) => d.id === draftId),
     'le sort attend dans la file du prof',

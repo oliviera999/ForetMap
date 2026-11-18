@@ -112,14 +112,16 @@ test('geste du prof et page tenue passent par le livre avec leur cause', async (
   const res = await request(app)
     .post(`/api/gl/games/${ctx.game.id}/vitality/player`)
     .set(auth(ctx.adminToken))
-    .send({ playerId: player.id, healthDelta: 1, powerDelta: 0, reason: 'test livre' });
+    .send({ playerId: player.id, healthDelta: 0, powerDelta: 1, reason: 'test livre' });
   assert.ok([200, 201].includes(res.status), JSON.stringify(res.body));
   const rows = await queryAll(
-    'SELECT cause, delta_health FROM gl_resource_ledger WHERE game_id = ? AND player_id = ? ORDER BY id DESC LIMIT 1',
+    'SELECT cause, delta_health, delta_power FROM gl_resource_ledger WHERE game_id = ? AND player_id = ? ORDER BY id DESC LIMIT 1',
     [ctx.game.id, player.id],
   );
   assert.equal(rows[0]?.cause, 'geste_prof');
-  assert.equal(Number(rows[0]?.delta_health), 1);
+  // Une seule monnaie (M1) : le geste du prof d'une partie « Tenir » ne porte que des gemmes.
+  assert.equal(Number(rows[0]?.delta_power), 1);
+  assert.equal(Number(rows[0]?.delta_health), 0);
   const parCause = await sumLedgerByCause(db, ctx.game.id);
   assert.ok(parCause.some((c) => c.cause === 'geste_prof' && c.count >= 1));
 });

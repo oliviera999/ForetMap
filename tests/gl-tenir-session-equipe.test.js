@@ -170,15 +170,30 @@ test('quatre sessions d’équipe jouent un tour complet en parallèle', async (
   const sessions = await Promise.all(ctx.teams.map((t) => ouvrirSession(t.id)));
   await ouvrirTourEnJeu(request, app, ctx);
 
-  // Pendant le tour : les bourses de SON équipe seulement.
+  // Pendant le tour : les bourses de SON équipe seulement — en gemmes (une seule monnaie : les
+  // cœurs ne sont plus servis à personne).
   const etat = await request(app).get(api('')).set(auth(sessions[0].token));
   assert.equal(etat.body.tenir.tablette.horsTour, false);
   assert.equal(etat.body.tenir.permissions.lancer, true);
+  assert.ok(
+    etat.body.roster.some((r) => Number(r.teamId) === Number(equipe(0).id)),
+    'l’effectif de son équipe est servi',
+  );
   for (const r of etat.body.roster) {
     const mienne = Number(r.teamId) === Number(equipe(0).id);
-    assert.equal('healthPoints' in r, mienne, 'bourses de son équipe seulement');
+    assert.equal('powerPoints' in r, mienne, 'bourses de son équipe seulement');
+    if (mienne) assert.equal(r.powerPoints, 5);
+    assert.equal('healthPoints' in r, false, 'les cœurs ne sont plus servis');
+  }
+  for (const v of Object.values(etat.body.vitality?.byPlayerId || {})) {
+    assert.equal('health' in v, false, 'aucun cœur dans la vitalité servie');
   }
   assert.equal(etat.body.tenir.reserves.length, 1);
+  assert.deepEqual(
+    etat.body.tenir.reserves[0],
+    { teamId: Number(equipe(0).id), power: 0 },
+    'réserve de son équipe, en gemmes seulement',
+  );
 
   const jets = await Promise.all(
     sessions.map((s) =>

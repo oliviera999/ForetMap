@@ -196,11 +196,15 @@ l'adaptation (source `defis_trame_fils`), et `bon_rangeur` (« Bon rangeur », s
 
 ## `parures.json`
 
-`{ "format", "parures": [ { code, nom, description, prix, ressource, chapitre_min, type, asset, pelage? } ] }` —
-`prix` 2 à 4, `ressource` toujours `choix`, `type` ∈ `calque | pastille`, `asset` chemin de calque
-ou de pastille (`null` tant qu'il n'existe pas : la parure est alors listée mais non achetable),
-`pelage` ∈ `bestiaire | neon` pour les deux pelages du chapitre 4 (appliqués au sprite de la
-mascotte plutôt que superposés).
+`{ "format", "parures": [ { code, nom, description, prix, rare, chapitre_min, type, asset, pelage? } ] }` —
+`prix` de 2 à 8 **gemmes** (ensemble unifié, M19 : une seule monnaie, plus de champ `ressource` ;
+un fichier qui en porterait un autre que `gemmes` est refusé), `rare` booléen (6 gemmes ou plus,
+trois parures rares au plus — aujourd'hui les deux pelages, 7 et 8), `type` ∈ `calque | pastille`,
+`asset` chemin de calque ou de pastille (`null` tant qu'il n'existe pas : la parure se porte alors
+en pastille texte et reste achetable), `pelage` ∈ `bestiaire | neon` pour les deux pelages du
+chapitre 4 (appliqués au sprite de la mascotte plutôt que superposés). Une parure achetée reste à
+l'élève toute l'année (`gl_player_parures`) ; il la pose sur la mascotte de son équipe du moment
+depuis la garde-robe du Seuil.
 
 ## `sorts.json`
 
@@ -214,8 +218,10 @@ Mentorat, SL033 Héritage ; SL036 à SL050 pour les nouveaux, SL022/029/034/035 
 `chapitre_ouverture` (1-4 ou `"retour"`), `nouveau`. Les valeurs admises sont listées dans
 `vocabulaire`. Le chargeur upserte `gl_spells` (statut `officiel`, `approval_mode` dérivé de
 `execution`), réécrit `gl_chapter_spells` depuis `ouverture_par_chapitre` et passe en `propose` les
-sorts de `gl_spells` absents du fichier. Le coût de Consécration (8 « offertes ») est porté par
-`ressource: choix`. Ensemble unifié (M6, 17 novembre 2026) : **19 sorts** au grimoire ; un sort
+sorts de `gl_spells` absents du fichier. **Une seule monnaie** (ensemble unifié, M1, PR 4) :
+`ressource` vaut toujours `gemmes` (`cartes` pour le seul sort de classe, sorti du grimoire) ; les
+valeurs `coeurs`, `peuple`, `choix` et `pacte` sont refusées par le chargeur. La Consécration
+coûte 8 gemmes : c'est le but de l'année, affiché grisé dès le chapitre 1. Ensemble unifié (M6, 17 novembre 2026) : **19 sorts** au grimoire ; un sort
 `actif: false` (Nommer, Héritage, Boussole, Tablette, Musique, Lumière) reste au fichier, passe en
 `propose` et n'est ouvert à aucun chapitre ; la Cordée (fenêtre `jeu`, `effet_auto_json.prochain_tour`)
 agit au tour suivant et `offerte_plateau_4` la rend gratuite une fois par équipe au plateau 4.
@@ -239,7 +245,9 @@ La Plume en est sortie ; « Seconde chance » porte une `condition` : elle n'exi
 a disparu (ensemble unifié, M8) : l'escalier du chapitre 1 le remplace — réglage `escalier`
 (`true` : une partie créée au plateau 1 ouvre ses règles séance après séance). `pages_par_semaine`
 (4) est la limite de veillée unique ; elle remplace `pages_veillee_par_semaine` et
-`defis_pages_par_semaine`. Le chargeur n'écrit
+`defis_pages_par_semaine`. `max_health_points` a quitté le fichier (ensemble unifié, M1 : une seule
+monnaie ; `max_power_points`, 8, est le plafond de la bourse) — un fichier qui le porterait encore
+est chargé, la clé est ignorée et signalée. Le chargeur n'écrit
 une clé que si elle est absente de `gl_settings` (les réglages déjà modifiés depuis le compte MJ ne
 sont jamais écrasés) ; l'application d'un profil sur une partie copie `defaut` + `ecarts` dans
 l'état de la partie.

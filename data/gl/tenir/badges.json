@@ -48,7 +48,7 @@
     {
       "code": "mains_tendues",
       "nom": "Mains tendues",
-      "critere": "Trois dons faits au Marché (ressource ou copie de page).",
+      "critere": "Trois dons faits au Marché (gemmes ou copie de page).",
       "regle": {
         "type": "compteur",
         "seuil": 3,

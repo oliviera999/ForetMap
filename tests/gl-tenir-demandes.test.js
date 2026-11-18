@@ -283,7 +283,13 @@ test('clôture du tour : un « Nommer » que le prof n’a pas appliqué est ren
     .set(auth(membres(0)[0].token));
   assert.equal(lance.status, 200, JSON.stringify(lance.body));
   assert.ok((await kinds()).includes('nommer'));
-  assert.equal((await somme()).coeurs, avant.coeurs - 2, 'Nommer coûte deux cœurs à l’équipe');
+  // Une seule monnaie : Nommer (sort de Gnomes) se paie en gemmes, les cœurs ne bougent pas.
+  assert.deepEqual(d.body.draft.required, { gems: 2, hearts: 0 });
+  assert.deepEqual(
+    await somme(),
+    { coeurs: avant.coeurs, gemmes: avant.gemmes - 2 },
+    'Nommer coûte deux gemmes à l’équipe',
+  );
 
   await phase({ phase: 'souffle', dort: true }).expect(200);
   assert.ok(
@@ -296,8 +302,8 @@ test('clôture du tour : un « Nommer » que le prof n’a pas appliqué est ren
   assert.ok(!(await kinds()).includes('nommer'), 'plus de ligne après la clôture du tour');
   assert.deepEqual(
     await somme(),
-    { coeurs: avantCloture.coeurs + 2, gemmes: avantCloture.gemmes },
-    'remboursement exact',
+    { coeurs: avantCloture.coeurs, gemmes: avantCloture.gemmes + 2 },
+    'remboursement exact, en gemmes',
   );
   const draft = await db.queryOne('SELECT status FROM gl_spell_cast_drafts WHERE id = ?', [
     d.body.draft.id,

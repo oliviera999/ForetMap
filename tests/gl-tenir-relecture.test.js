@@ -5,7 +5,8 @@
  * diffusion temps réel expurgée, jeton de lecture vérifié avant écriture, permissions de
  * lecture et de Marché rejouées par surface, mode de dés borné, « on passe » validé, motif
  * libre privé, profil remis à null, état tenir lu sans écriture, titres groupés, CSV sans
- * formule, parure à la ressource du catalogue, voyageur hors expédition, Trame sans `effects`.
+ * formule, parure payée en gemmes seulement (ni le corps de la requête ni une ligne de catalogue
+ * « d'avant » ne rouvrent les cœurs), voyageur hors expédition, Trame sans `effects`.
  */
 
 require('./helpers/setup');
@@ -215,25 +216,60 @@ test('Marché : en `tableau` pendant la phase `jeu`, les actions attendent la ve
   assert.equal(ok.status, 201, JSON.stringify(ok.body));
 });
 
-test('parure : la ressource du catalogue prime sur celle du corps (sauf `choix`)', async () => {
+test('parure : une seule monnaie — ni le corps (`coeurs`, `choix`) ni une ligne de catalogue « d’avant » ne rouvrent les cœurs', async () => {
   const parure = await queryOne(
-    'SELECT code FROM gl_tenir_parures WHERE actif = 1 AND asset IS NOT NULL ORDER BY prix ASC, code ASC LIMIT 1',
+    'SELECT code, prix, ressource FROM gl_tenir_parures WHERE actif = 1 AND asset IS NOT NULL ORDER BY prix ASC, code ASC LIMIT 1',
   );
   assert.ok(parure, 'une parure achetable');
-  await execute("UPDATE gl_tenir_parures SET ressource = 'gemmes', prix = 1 WHERE code = ?", [
-    parure.code,
-  ]);
-  await setPlayerBourses(gnomeA().id, 3, 3);
+  const prix = Number(parure.prix);
+  // Une ligne restée « au choix » en base (avant la migration 373) : elle ne décide plus de rien.
+  await execute("UPDATE gl_tenir_parures SET ressource = 'choix' WHERE code = ?", [parure.code]);
+  await setPlayerBourses(gnomeA().id, 8, 8);
   try {
+    for (const ressource of ['coeurs', 'choix', 'peuple']) {
+      const refus = await request(app)
+        .post(`/api/gl/market/parures/${parure.code}/acheter`)
+        .set(auth(gnomeA().token))
+        .send({ ressource });
+      assert.equal(refus.status, 400, `${ressource} → ${JSON.stringify(refus.body)}`);
+      assert.match(refus.body.error, /gemmes/);
+    }
+    assert.deepEqual(
+      await readPlayerBourses(gnomeA().id),
+      { health: 8, power: 8 },
+      'un refus ne débite rien',
+    );
+    const acquise = await queryOne(
+      'SELECT id FROM gl_player_parures WHERE player_id = ? AND parure_code = ?',
+      [gnomeA().id, parure.code],
+    );
+    assert.ok(!acquise, 'un refus n’ajoute rien à la garde-robe');
+    const comptoir = await request(app).get('/api/gl/market/parures').set(auth(gnomeA().token));
+    assert.equal(comptoir.status, 200, JSON.stringify(comptoir.body));
+    assert.equal(
+      comptoir.body.catalogue.find((p) => p.code === parure.code).ressource,
+      'gemmes',
+      'le comptoir affiche des gemmes, quelle que soit la colonne en base',
+    );
     const bought = await request(app)
       .post(`/api/gl/market/parures/${parure.code}/acheter`)
       .set(auth(gnomeA().token))
-      .send({ ressource: 'coeurs' });
+      .send({ ressource: 'gemmes' });
     assert.equal(bought.status, 201, JSON.stringify(bought.body));
     assert.equal(bought.body.ressource, 'gemmes');
-    assert.deepEqual(await readPlayerBourses(gnomeA().id), { health: 3, power: 2 });
+    assert.equal(bought.body.prix, prix);
+    // Payée en gemmes ; les cœurs, même au plafond, ne bougent pas.
+    assert.deepEqual(await readPlayerBourses(gnomeA().id), { health: 8, power: 8 - prix });
+    const pose = await queryOne('SELECT ressource, rendue_at FROM gl_game_parures WHERE id = ?', [
+      bought.body.id,
+    ]);
+    assert.equal(pose.ressource, 'gemmes');
+    assert.equal(pose.rendue_at, null);
   } finally {
-    await execute("UPDATE gl_tenir_parures SET ressource = 'choix' WHERE code = ?", [parure.code]);
+    await execute('UPDATE gl_tenir_parures SET ressource = ? WHERE code = ?', [
+      parure.ressource,
+      parure.code,
+    ]);
   }
 });
 

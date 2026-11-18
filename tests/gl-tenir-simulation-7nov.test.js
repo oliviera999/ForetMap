@@ -3,9 +3,10 @@
 /**
  * Correctifs de règles et d'équilibre issus de la simulation du 7 novembre 2026 (étape 3) :
  * C1/C2 fenêtre « après le jet » = dernier jet du tour ; Progression sans application de la case ;
- * C4 cases positives converties en ressource du peuple ; C5 péripéties sur les cases `behavior`
- * sans effet (tonalité négative ou neutre) ; pistes de veillée par `especes` de zone ; C6 un
- * élève en retrait lit et tient ; erreur d'Olu filtrée par plateau. Fixtures anonymes.
+ * C4 cases positives sans ressource (une seule monnaie : jamais de cœurs, même en `brut`) ;
+ * C5 péripéties sur les cases `behavior` sans effet (tonalité négative ou neutre) ; pistes de
+ * veillée par `especes` de zone ; C6 un élève en retrait lit et tient ; erreur d'Olu filtrée par
+ * plateau. Fixtures anonymes.
  */
 
 require('./helpers/setup');
@@ -168,7 +169,7 @@ test('assertFenetre apres_jet : dernier jet d’une autre équipe → refus ; sa
   );
 });
 
-test('C4 revu par M3 : une case positive ne donne plus de ressource (son mouvement seulement) ; brut → plateau ; perte neutralisée ; Souffle → un seul dé', () => {
+test('C4 revu par M3 : une case positive ne donne plus de ressource (son mouvement seulement) ; brut → gemmes du plateau, jamais de cœurs ; perte neutralisée ; Souffle → un seul dé', () => {
   const positive = (deltaPv, deltaGems) => ({
     branch: 'neutral',
     deltaPv,
@@ -192,10 +193,22 @@ test('C4 revu par M3 : une case positive ne donne plus de ressource (son mouveme
     casesPositives: 'ressource_peuple',
   });
   assert.deepEqual({ h: ancien.healthDelta, p: ancien.powerDelta }, { h: 0, p: 0 });
-  const brut = resolveTenirMarkerDeltas(marker, 'gnome', positive(2, 0), {
-    casesPositives: 'brut',
-  });
-  assert.deepEqual({ h: brut.healthDelta, p: brut.powerDelta }, { h: 2, p: 0 });
+  // Une seule monnaie (M1) : même en `brut`, les cœurs du plateau ne s'appliquent plus — pour
+  // aucun des deux peuples, en gain comme en perte ; seules les gemmes du plateau passent.
+  for (const teamType of ['gnome', 'unicorn']) {
+    const brut = resolveTenirMarkerDeltas(marker, teamType, positive(2, 0), {
+      casesPositives: 'brut',
+    });
+    assert.deepEqual({ h: brut.healthDelta, p: brut.powerDelta }, { h: 0, p: 0 });
+    const brutMixte = resolveTenirMarkerDeltas(marker, teamType, positive(2, 1), {
+      casesPositives: 'brut',
+    });
+    assert.deepEqual({ h: brutMixte.healthDelta, p: brutMixte.powerDelta }, { h: 0, p: 1 });
+    const brutPerte = resolveTenirMarkerDeltas(marker, teamType, positive(-2, -1), {
+      casesPositives: 'brut',
+    });
+    assert.deepEqual({ h: brutPerte.healthDelta, p: brutPerte.powerDelta }, { h: 0, p: -1 });
+  }
   // Déplacement conservé, perte neutre neutralisée.
   const avecMove = resolveTenirMarkerDeltas(marker, 'gnome', { ...positive(1, 0), deltaMove: 1 });
   assert.equal(avecMove.moveDelta, 1);

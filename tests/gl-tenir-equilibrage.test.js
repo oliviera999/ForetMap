@@ -12,6 +12,9 @@
  *   et du prof, jamais en projection ; la réserve paie le pot d'un sort en premier ; remise à
  *   zéro au Seuil ; invariants (somme du livre = bourses + réserves, réserve ≥ 0) ;
  * - E5 `tenir_olu_bourse_pleine` : une fois par séance, à l'écran d'équipe seulement.
+ * Ensemble unifié (M1, une seule monnaie, migration 373) : réserve et plafond ne parlent plus
+ * que de gemmes, pour une équipe gnome comme licorne ; les cœurs ne bougent plus
+ * (`COEURS_HORS_JEU`) et ne sont plus servis (`reserves[]` : `{ teamId, power }`).
  * Fixtures anonymes (`joueur-a-<stamp>`…).
  */
 
@@ -69,8 +72,13 @@ async function bonneReponse(question) {
 }
 
 /** Nouvelle partie prête (tour ouvert en phase jeu), zones d'exemple du plateau 1. */
-async function nouvellePartie(suffix, settings = {}) {
-  const ctx = await createTenirGame({ stamp: `${stamp}-${suffix}`, plateau: 1, settings });
+async function nouvellePartie(suffix, settings = {}, { playerCount = 10 } = {}) {
+  const ctx = await createTenirGame({
+    stamp: `${stamp}-${suffix}`,
+    plateau: 1,
+    settings,
+    playerCount,
+  });
   await importExempleChasse(db, { game: ctx.game });
   await request(app).get(api(ctx, '/tenir')).set(auth(ctx.adminToken)).expect(200);
   // Pas de chapardeur dans ces parties : il brouillerait les soldes attendus.
@@ -207,7 +215,9 @@ test('E4 : le surplus au plafond va à la réserve de la caravane ; visible de l
   const ctx = await nouvellePartie('e4');
   const gnomes = membres(ctx, 0); // 3 membres
   const licornes = membres(ctx, 2); // 2 membres
-  for (const p of gnomes) await setPlayerBourses(p.id, 8, 3);
+  // Une seule monnaie : les deux peuples sont au plafond de GEMMES. Les Gnomes ont aussi leurs
+  // cœurs au plafond — ils ne doivent bouger à aucun moment.
+  for (const p of gnomes) await setPlayerBourses(p.id, 8, 8);
   for (const p of licornes) await setPlayerBourses(p.id, 3, 8);
   const initial = {};
   for (const p of ctx.players) initial[p.id] = await readPlayerBourses(p.id);
@@ -268,13 +278,18 @@ test('E4 : le surplus au plafond va à la réserve de la caravane ; visible de l
     [ctx.game.id],
   );
   assert.equal(entrees.length, 2, 'une ligne de réserve par surplus');
-  // Un surplus de cœurs des Gnomes au plafond (gain d'une autre source) part aussi en réserve.
+  assert.ok(
+    entrees.every((e) => Number(e.delta_health) === 0 && Number(e.delta_power) === 1),
+    'la réserve ne reçoit que des gemmes',
+  );
+  // Un surplus de gemmes des Gnomes au plafond (gain d'une autre source, ici une case Trame)
+  // part aussi en réserve : même règle pour les deux peuples.
   await withTransaction(async (tx) => {
     for (const p of gnomes) {
       await applyPlayerVitalityDelta(tx, {
         playerId: p.id,
-        healthDelta: 1,
-        powerDelta: 0,
+        healthDelta: 0,
+        powerDelta: 1,
         caps: { maxHealth: 8, maxPower: 8 },
         cause: 'trame',
         gameId: ctx.game.id,
@@ -282,20 +297,46 @@ test('E4 : le surplus au plafond va à la réserve de la caravane ; visible de l
       });
     }
   });
+  for (const p of gnomes) {
+    assert.deepEqual(await readPlayerBourses(p.id), { health: 8, power: 8 }, 'bourse inchangée');
+  }
+  assert.deepEqual(await loadReserve(db, ctx.game.id, ctx.teams[0].id), {
+    teamId: Number(ctx.teams[0].id),
+    health: 0,
+    power: 3,
+  });
   const inv1 = await checkTenirInvariantsFromDb(db, ctx.game.id);
   assert.deepEqual(inv1.violations, []);
   assert.equal(inv1.snapshot.reserves.length, 4);
+  const coeurs = await queryOne(
+    'SELECT COUNT(*) AS n FROM gl_resource_ledger WHERE game_id = ? AND delta_health <> 0',
+    [ctx.game.id],
+  );
+  assert.equal(Number(coeurs.n), 0, 'aucun mouvement de cœurs au grand livre');
 
   // Visibilité : son équipe pour l'élève, tout pour le prof, rien en projection.
   const vueGnome = await request(app)
     .get(api(ctx, '/tenir'))
     .set(auth(gnomes[0].token))
     .expect(200);
-  assert.deepEqual(vueGnome.body.reserves, [
-    { teamId: Number(ctx.teams[0].id), health: 3, power: 0 },
-  ]);
+  // La réserve servie ne porte que des gemmes : `{ teamId, power }`, plus de `health`.
+  assert.deepEqual(vueGnome.body.reserves, [{ teamId: Number(ctx.teams[0].id), power: 3 }]);
+  const vueLicorne = await request(app)
+    .get(api(ctx, '/tenir'))
+    .set(auth(licornes[0].token))
+    .expect(200);
+  assert.deepEqual(vueLicorne.body.reserves, [{ teamId: Number(ctx.teams[2].id), power: 2 }]);
   const vueProf = await request(app).get(api(ctx, '/tenir')).set(auth(ctx.adminToken)).expect(200);
-  assert.equal(vueProf.body.reserves.length, 4);
+  assert.deepEqual(
+    vueProf.body.reserves,
+    [
+      { teamId: Number(ctx.teams[0].id), power: 3 },
+      { teamId: Number(ctx.teams[1].id), power: 0 },
+      { teamId: Number(ctx.teams[2].id), power: 2 },
+      { teamId: Number(ctx.teams[3].id), power: 0 },
+    ],
+    'le prof voit les quatre réserves, en gemmes seulement',
+  );
   const jeton = await request(app)
     .post(api(ctx, '/projection-token'))
     .set(auth(ctx.adminToken))
@@ -333,19 +374,20 @@ test('E4 : le surplus au plafond va à la réserve de la caravane ; visible de l
   const inv2 = await checkTenirInvariantsFromDb(db, ctx.game.id);
   assert.deepEqual(inv2.violations, []);
 
-  // Seuil : la réserve des Gnomes (3 cœurs) s'éteint, sans transfert.
+  // Seuil : la réserve des Gnomes (3 gemmes) s'éteint, sans transfert.
   await request(app).post(api(ctx, '/end')).set(auth(ctx.adminToken)).expect(200);
   assert.deepEqual(
     (await listReserves(db, ctx.game.id)).map((r) => r.health + r.power),
     [0, 0, 0, 0],
   );
   const seuil = await queryOne(
-    "SELECT SUM(delta_health) AS dh FROM gl_resource_ledger WHERE game_id = ? AND cause = 'reserve_seuil'",
+    "SELECT SUM(delta_health) AS dh, SUM(delta_power) AS dg FROM gl_resource_ledger WHERE game_id = ? AND cause = 'reserve_seuil'",
     [ctx.game.id],
   );
-  assert.equal(Number(seuil.dh), -3);
+  assert.equal(Number(seuil.dg), -3);
+  assert.equal(Number(seuil.dh), 0, 'la remise à zéro ne touche aucun cœur');
   for (const p of gnomes)
-    assert.equal((await readPlayerBourses(p.id)).health, 8, 'aucun transfert');
+    assert.deepEqual(await readPlayerBourses(p.id), { health: 8, power: 8 }, 'aucun transfert');
   const inv3 = await checkTenirInvariantsFromDb(db, ctx.game.id);
   assert.deepEqual(inv3.violations, []);
 });
@@ -353,18 +395,23 @@ test('E4 : le surplus au plafond va à la réserve de la caravane ; visible de l
 test('E4 désactivé : le surplus est perdu comme avant ; invariants purs de la réserve', async () => {
   const ctx = await nouvellePartie('e4off');
   const gnome = membres(ctx, 0)[0];
-  await setPlayerBourses(gnome.id, 8, 3);
+  await setPlayerBourses(gnome.id, 3, 8);
   await withTransaction(async (tx) => {
     await applyPlayerVitalityDelta(tx, {
       playerId: gnome.id,
-      healthDelta: 1,
+      powerDelta: 1,
       caps: { maxHealth: 8, maxPower: 8 },
       cause: 'page_tenue',
       gameId: ctx.game.id,
       reserveTeamId: null,
     });
   });
-  assert.equal((await loadReserve(db, ctx.game.id, ctx.teams[0].id)).health, 0);
+  assert.deepEqual(await loadReserve(db, ctx.game.id, ctx.teams[0].id), {
+    teamId: Number(ctx.teams[0].id),
+    health: 0,
+    power: 0,
+  });
+  assert.deepEqual(await readPlayerBourses(gnome.id), { health: 3, power: 8 }, 'surplus perdu');
   await setGlSetting('gameplay.tenir_surplus_reserve', false);
   const settings = await getGameplaySettings({ forceRefresh: true });
   assert.equal(surplusReserveActif(resolveTenirSettings(settings, ctx.game)), false);
@@ -375,7 +422,7 @@ test('E4 désactivé : le surplus est perdu comme avant ; invariants purs de la 
   // Invariants purs : réserve négative, livre de réserve incohérent, total bourses + réserves.
   const snap = {
     caps: { maxHealth: 8, maxPower: 8 },
-    players: [{ id: 1, teamId: 10, health: 8, power: 3, initialHealth: 8, initialPower: 3 }],
+    players: [{ id: 1, teamId: 10, health: 3, power: 8, initialHealth: 3, initialPower: 8 }],
     teams: [{ id: 10, type: 'gnome', pathIndex: 1 }],
     campIndex: 11,
     voilePosition: -1,
@@ -386,22 +433,22 @@ test('E4 désactivé : le surplus est perdu comme avant ; invariants purs de la 
         kind: 'bourse',
         deltaHealth: 0,
         deltaPower: 0,
-        soldeHealthApres: 8,
-        soldePowerApres: 3,
+        soldeHealthApres: 3,
+        soldePowerApres: 8,
         cause: 'page_tenue',
       },
       {
         playerId: 1,
         kind: 'reserve',
         teamId: 10,
-        deltaHealth: 1,
-        deltaPower: 0,
-        soldeHealthApres: 1,
-        soldePowerApres: 0,
+        deltaHealth: 0,
+        deltaPower: 1,
+        soldeHealthApres: 0,
+        soldePowerApres: 1,
         cause: 'reserve_entree',
       },
     ],
-    reserves: [{ teamId: 10, health: 1, power: 0 }],
+    reserves: [{ teamId: 10, health: 0, power: 1 }],
     fouilles: [{ roundNumber: 1, teamId: 10, n: 2, quotaMax: 2 }],
     relances: [],
     relancesMax: 1,
@@ -409,17 +456,40 @@ test('E4 désactivé : le surplus est perdu comme avant ; invariants purs de la 
   assert.deepEqual(checkTenirInvariants(snap).violations, []);
   const codes = (s) => checkTenirInvariants(s).violations.map((v) => v.code);
   assert.ok(
-    codes({ ...snap, reserves: [{ teamId: 10, health: -1, power: 0 }] }).includes(
+    codes({ ...snap, reserves: [{ teamId: 10, health: 0, power: -1 }] }).includes(
       'RESERVE_NEGATIVE',
     ),
   );
   assert.ok(
-    codes({ ...snap, reserves: [{ teamId: 10, health: 2, power: 0 }] }).includes('RESERVE_LIVRE'),
+    codes({ ...snap, reserves: [{ teamId: 10, health: 0, power: 2 }] }).includes('RESERVE_LIVRE'),
   );
   assert.ok(
-    codes({ ...snap, reserves: [{ teamId: 10, health: 2, power: 0 }] }).includes('LIVRE_TOTAL'),
+    codes({ ...snap, reserves: [{ teamId: 10, health: 0, power: 2 }] }).includes('LIVRE_TOTAL'),
     'rien ne se perd entre bourses et réserves',
   );
+  // Une seule monnaie (M1) : après la conversion (repère `coeursHorsJeuDepuis`), un mouvement
+  // de cœurs au livre d'une partie « Tenir » est une violation ; un mouvement d'avant, non.
+  const avecCoeur = (id) => ({
+    ...snap,
+    coeursHorsJeuDepuis: 100,
+    players: [{ id: 1, teamId: 10, health: 4, power: 8, initialHealth: 3, initialPower: 8 }],
+    ledger: [
+      ...snap.ledger,
+      {
+        id,
+        playerId: 1,
+        kind: 'bourse',
+        deltaHealth: 1,
+        deltaPower: 0,
+        soldeHealthApres: 4,
+        soldePowerApres: 8,
+        cause: 'trame',
+      },
+    ],
+  });
+  assert.ok(codes(avecCoeur(101)).includes('COEURS_HORS_JEU'));
+  assert.ok(!codes(avecCoeur(100)).includes('COEURS_HORS_JEU'), 'mouvement d’avant la conversion');
+  assert.ok(!codes({ ...snap, coeursHorsJeuDepuis: 100 }).includes('COEURS_HORS_JEU'));
   assert.ok(
     codes({
       ...snap,
@@ -437,7 +507,7 @@ test('E4 désactivé : le surplus est perdu comme avant ; invariants purs de la 
 });
 
 // ---------------------------------------------------------------- E5
-test('E5 : Olu signale les bourses pleines une fois par séance, à l’écran d’équipe seulement ; désactivable', async () => {
+test('E5 : Olu signale les bourses pleines (plafond de gemmes, Gnomes comme Licornes) une fois par séance, à l’écran d’équipe seulement ; désactivable', async () => {
   assert.equal(EVENT_MOMENTS.olu_bourse_pleine, 'bourse_pleine');
   // Catalogue d'Olu chargé depuis data/gl/tenir/ (la base de test n'est pas synchronisée au démarrage).
   const { runImports } = require('../scripts/gl-import-tenir');
@@ -450,32 +520,65 @@ test('E5 : Olu signale les bourses pleines une fois par séance, à l’écran d
     "SELECT id, texte FROM gl_tenir_olu_lignes WHERE moment = 'bourse_pleine' AND actif = 1",
   );
   assert.ok(lignes.length >= 3, 'trois lignes au moins dans olu-lignes.json');
-  const ctx = await nouvellePartie('e5');
+  // 12 joueurs : trois membres par équipe, pour éprouver une équipe gnome ET une équipe licorne.
+  const ctx = await nouvellePartie('e5', {}, { playerCount: 12 });
   const gnomes = membres(ctx, 0);
-  const compter = async () =>
+  const licornes = membres(ctx, 2);
+  assert.equal(gnomes.length, 3);
+  assert.equal(licornes.length, 3);
+  assert.equal(ctx.teams[0].type, 'gnome');
+  assert.equal(ctx.teams[2].type, 'unicorn');
+  const compter = async (teamId = null) =>
     Number(
       (
         await queryOne(
-          "SELECT COUNT(*) AS n FROM gl_game_events WHERE game_id = ? AND event_type = 'olu_bourse_pleine'",
-          [ctx.game.id],
+          `SELECT COUNT(*) AS n FROM gl_game_events
+            WHERE game_id = ? AND event_type = 'olu_bourse_pleine' AND (? IS NULL OR team_id = ?)`,
+          [ctx.game.id, teamId, teamId],
         )
       ).n,
     );
-  // Deux membres au plafond : rien.
-  await setPlayerBourses(gnomes[0].id, 8, 3);
-  await setPlayerBourses(gnomes[1].id, 8, 3);
+  // Une seule monnaie (M1) : seul le plafond de GEMMES compte, pour les deux peuples. Des cœurs
+  // au plafond (l'ancienne ressource des Gnomes) ne déclenchent plus rien.
+  for (const p of [...gnomes, ...licornes]) await setPlayerBourses(p.id, 8, 3);
   await request(app).get(api(ctx, '/tenir')).set(auth(gnomes[0].token)).expect(200);
+  await request(app).get(api(ctx, '/tenir')).set(auth(licornes[0].token)).expect(200);
+  assert.equal(await compter(), 0, 'des cœurs au plafond ne comptent plus');
+  // Deux membres au plafond de gemmes : rien.
+  for (const equipe of [gnomes, licornes]) {
+    await setPlayerBourses(equipe[0].id, 3, 8);
+    await setPlayerBourses(equipe[1].id, 3, 8);
+    await setPlayerBourses(equipe[2].id, 3, 7);
+  }
+  await request(app).get(api(ctx, '/tenir')).set(auth(gnomes[0].token)).expect(200);
+  await request(app).get(api(ctx, '/tenir')).set(auth(licornes[0].token)).expect(200);
   assert.equal(await compter(), 0);
-  // Trois membres au plafond de leur ressource (cœurs pour des Gnomes) : une fois.
-  await setPlayerBourses(gnomes[2].id, 8, 3);
+  // Trois Gnomes au plafond de gemmes : une fois.
+  await setPlayerBourses(gnomes[2].id, 3, 8);
   await request(app).get(api(ctx, '/tenir')).set(auth(gnomes[0].token)).expect(200);
   await request(app).get(api(ctx, '/tenir')).set(auth(gnomes[1].token)).expect(200);
-  assert.equal(await compter(), 1, 'une seule fois par séance et par équipe');
+  assert.equal(
+    await compter(ctx.teams[0].id),
+    1,
+    'une seule fois par séance et par équipe (Gnomes)',
+  );
+  assert.equal(await compter(), 1, 'les Licornes, à deux au plafond, n’ont rien reçu');
   const evt = await queryOne(
     "SELECT team_id, payload_json FROM gl_game_events WHERE game_id = ? AND event_type = 'olu_bourse_pleine' LIMIT 1",
     [ctx.game.id],
   );
   assert.equal(Number(evt.team_id), Number(ctx.teams[0].id));
+  assert.equal(JSON.parse(evt.payload_json).auPlafond, 3);
+  // Trois Licornes au plafond de gemmes : même règle, une fois pour leur équipe.
+  await setPlayerBourses(licornes[2].id, 3, 8);
+  await request(app).get(api(ctx, '/tenir')).set(auth(licornes[0].token)).expect(200);
+  await request(app).get(api(ctx, '/tenir')).set(auth(licornes[1].token)).expect(200);
+  assert.equal(
+    await compter(ctx.teams[2].id),
+    1,
+    'une seule fois par séance et par équipe (Licornes)',
+  );
+  assert.equal(await compter(), 2);
   // La projection et le prof ne déclenchent rien ; le journal d'un autre élève ne porte pas les détails.
   const jeton = await request(app)
     .post(api(ctx, '/projection-token'))
@@ -483,10 +586,10 @@ test('E5 : Olu signale les bourses pleines une fois par séance, à l’écran d
     .expect(201);
   await request(app).get(api(ctx, '/tenir')).set(auth(jeton.body.token)).expect(200);
   await request(app).get(api(ctx, '/tenir')).set(auth(ctx.adminToken)).expect(200);
-  assert.equal(await compter(), 1);
+  assert.equal(await compter(), 2);
   const journal = await request(app)
     .get(`/api/gl/journal/games/${ctx.game.id}`)
-    .set(auth(membres(ctx, 2)[0].token))
+    .set(auth(membres(ctx, 1)[0].token))
     .expect(200);
   assert.ok(!/auPlafond/.test(JSON.stringify(journal.body)), 'payload privé expurgé');
   // Séance suivante : Olu peut le redire une fois.
@@ -502,7 +605,9 @@ test('E5 : Olu signale les bourses pleines une fois par séance, à l’écran d
     .expect(200);
   await ouvrirTourEnJeu(request, app, ctx);
   await request(app).get(api(ctx, '/tenir')).set(auth(gnomes[0].token)).expect(200);
-  assert.equal(await compter(), 2);
+  assert.equal(await compter(), 3);
+  await request(app).get(api(ctx, '/tenir')).set(auth(licornes[0].token)).expect(200);
+  assert.equal(await compter(), 4);
   // Désactivé : plus rien, même au tour suivant.
   await setGlSetting('gameplay.tenir_olu_bourse_pleine', false);
   await request(app)
@@ -517,6 +622,7 @@ test('E5 : Olu signale les bourses pleines une fois par séance, à l’écran d
     .expect(200);
   await ouvrirTourEnJeu(request, app, ctx);
   await request(app).get(api(ctx, '/tenir')).set(auth(gnomes[0].token)).expect(200);
-  assert.equal(await compter(), 2);
+  await request(app).get(api(ctx, '/tenir')).set(auth(licornes[0].token)).expect(200);
+  assert.equal(await compter(), 4);
   await setGlSetting('gameplay.tenir_olu_bourse_pleine', true);
 });

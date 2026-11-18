@@ -23,6 +23,7 @@ const {
   resolveDesMode,
   TENIR_PROFILS,
   validateOverrides,
+  classeJoueTenir,
 } = require('../../lib/glTenir');
 const { surchargesDeCreation } = require('../../lib/glEscalier');
 
@@ -97,12 +98,22 @@ router.get(
 router.get(
   '/gameplay-settings',
   requireGlAuth,
-  asyncHandler(async (_req, res) => {
+  asyncHandler(async (req, res) => {
     const settings = await getGameplaySettings();
     const spellCast = await getSpellCastConfig();
+    // Ensemble unifié (M1) : une seule monnaie. `monnaieUnique` dit à l'écran de ne montrer
+    // ni nommer aucun cœur — pour un élève ou une tablette, quand sa classe joue « Tenir à
+    // deux » ; pour le prof, dès que le mode est actif.
+    const classId = Number(req.glAuth?.classId) || null;
+    const monnaieUnique =
+      req.glAuth?.userType === 'gl_admin' || !classId
+        ? isTenirEnabled(settings)
+        : await classeJoueTenir({ queryOne }, classId, settings);
     return res.json({
       settings: {
         ...settings,
+        monnaieUnique,
+        marketHeartsEnabled: monnaieUnique ? false : settings.marketHeartsEnabled,
         spellCastEnabled: spellCast.enabled,
         spellCastContributionMode: spellCast.contributionMode,
         spellCastTeamScope: spellCast.teamScope,
@@ -331,6 +342,20 @@ router.post(
       await seedTeamsFromTemplate({ gameId: newId, classId });
     } catch (seedErr) {
       logger.warn({ err: seedErr, gameId: newId }, 'amorçage gabarit équipes ignoré');
+    }
+    // Ensemble unifié (M1) : une seule monnaie, gardée toute l'année. Elle commence au
+    // chapitre 1 — la première partie « Tenir » du plateau 1 de la classe, dans l'année scolaire,
+    // pose la bourse de chaque élève à la valeur de départ (`gameplay.default_power_points`, 3).
+    // Une autre partie du plateau 1 créée ensuite ne remet rien à zéro.
+    if (tenirProfil && Number(chapterRow.plateau_number) === 1) {
+      const { poserBoursesDeDepartTx } = require('../../lib/glBourses');
+      await withTransaction((tx) =>
+        poserBoursesDeDepartTx(tx, {
+          gameId: newId,
+          classId,
+          depart: gameplay.defaultPowerPoints ?? 3,
+        }),
+      );
     }
     const state = await readGameState(newId);
     return res.status(201).json(state);

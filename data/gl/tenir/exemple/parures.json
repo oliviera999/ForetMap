@@ -1,12 +1,12 @@
 {
-  "format": "parures v1 — comptoir du Marché ; achetée par un membre, portée par la mascotte de son équipe jusqu'au seuil ; aucun effet de jeu ; `asset` à renseigner quand le calque ou la pastille existe",
+  "format": "parures v2 — comptoir du Marché (ensemble unifié, M19) ; payée en gemmes (2 à 8), une parure achetée reste à l'élève toute l'année (garde-robe du Seuil) et se pose sur la mascotte de son équipe du moment ; `rare` marque les deux ou trois plus chères ; elle ne s'échange pas ; aucun effet de jeu ; `asset` à renseigner quand le calque ou la pastille existe",
   "parures": [
     {
       "code": "couronne_lianes",
       "nom": "Couronne de lianes",
       "description": "Trois lianes tressées, encore un peu humides de la canopée, posées de travers sur la tête.",
       "prix": 2,
-      "ressource": "choix",
+      "rare": false,
       "chapitre_min": 1,
       "type": "pastille",
       "asset": "parures/exemple.svg"
@@ -16,7 +16,7 @@
       "nom": "Plume de calao",
       "description": "Une grande plume noire et blanche, tombée du passage de la locomotive, glissée derrière l'oreille.",
       "prix": 2,
-      "ressource": "choix",
+      "rare": false,
       "chapitre_min": 1,
       "type": "pastille",
       "asset": null
@@ -26,7 +26,7 @@
       "nom": "Collier de graines de baobab",
       "description": "Des graines dures enfilées sur un fil d'herbe ; elles cliquettent quand la mascotte marche.",
       "prix": 3,
-      "ressource": "choix",
+      "rare": false,
       "chapitre_min": 1,
       "type": "calque",
       "asset": null

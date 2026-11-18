@@ -112,7 +112,7 @@ test('phase souffle : position = min(position + dé + bonus, camp − 1) ; équi
   assert.equal(carnet.body.pages.find((p) => p.zoneKey === 'cz-p1-01').etat, 'palie');
 });
 
-test('sous le voile : une seule fouille par tour (M2) ; une équipe hors du voile fouille ; une zone pâlie est réservée aux gnomes', async () => {
+test('sous le voile : une seule fouille par tour (M2) ; une équipe hors du voile fouille ; une zone pâlie est réservée aux gnomes, sa réparation ne donne rien', async () => {
   await request(app)
     .post(api('/tenir/tour/phase'))
     .set(auth(ctx.adminToken))
@@ -160,7 +160,9 @@ test('sous le voile : une seule fouille par tour (M2) ; une équipe hors du voil
   assert.equal(gnome.status, 201, JSON.stringify(gnome.body));
   assert.equal(gnome.body.verdict, 'zone');
   const right = gnome.body.question.choices.find((c) => c.text === 'La forêt respire');
-  const avant = await readPlayerBourses(ctx.players[0].id);
+  const gnomes = ctx.players.filter((p) => p.teamId === ctx.players[0].teamId);
+  const avant = [];
+  for (const membre of gnomes) avant.push(await readPlayerBourses(membre.id));
   const rep = await request(app)
     .post(api('/chasse/repondre'))
     .set(auth(ctx.players[0].token))
@@ -171,11 +173,29 @@ test('sous le voile : une seule fouille par tour (M2) ; une équipe hors du voil
     });
   assert.equal(rep.status, 200, JSON.stringify(rep.body));
   assert.equal(rep.body.etat, 'reparee');
-  assert.equal(
-    (await readPlayerBourses(ctx.players[0].id)).health,
-    avant.health + 1,
-    'réparation : +1 cœur par gnome',
+  // Ensemble unifié (M1, une seule monnaie) : la réparation ne donne plus rien — ni cœur
+  // (l'ancien + 1 par gnome a disparu), ni gemme.
+  for (let i = 0; i < gnomes.length; i += 1) {
+    assert.deepEqual(
+      await readPlayerBourses(gnomes[i].id),
+      avant[i],
+      `réparation : la bourse de ${gnomes[i].pseudo} ne bouge pas`,
+    );
+  }
+  const livre = await queryOne(
+    "SELECT COUNT(*) AS n FROM gl_resource_ledger WHERE game_id = ? AND cause = 'reparation'",
+    [ctx.game.id],
   );
+  assert.equal(Number(livre.n), 0, 'aucune ligne « réparation » au grand livre');
+  const evt = await queryOne(
+    "SELECT payload_json FROM gl_game_events WHERE game_id = ? AND event_type = 'page_reparee' ORDER BY id DESC LIMIT 1",
+    [ctx.game.id],
+  );
+  assert.ok(evt, 'la réparation reste journalisée');
+  const payload = JSON.parse(evt.payload_json);
+  assert.equal(payload.zoneKey, 'cz-p1-01');
+  assert.ok(!('vitality' in payload), 'l’évènement ne porte plus de vitalité');
+  assert.ok(!('private' in payload), 'l’évènement ne porte plus de bloc privé');
 });
 
 test('« le voile dort » : pas d’avance ; recul jamais sous −1 ; une seule avance par tour', async () => {

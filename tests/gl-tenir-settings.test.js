@@ -141,7 +141,11 @@ test('résolution : profil court → Marché et lecture en veillée ; override p
   assert.equal(override.voile, false);
   assert.equal(override.surface, 'tablette');
   assert.equal(override.marche_pendant_tour, false);
-  assert.equal(override.max_health_points, 8);
+  // Ensemble unifié (M1) : une seule monnaie — le plafond de la bourse est celui des gemmes ;
+  // le plafond des cœurs et les cœurs au Marché ont quitté les réglages résolus.
+  assert.equal(override.max_power_points, 8);
+  assert.ok(!('max_health_points' in override));
+  assert.ok(!('market_hearts_enabled' in override));
   assert.equal(override.lore_gemme_costs_enabled, false);
   // Ensemble unifié (M8) : `prologue` n'est plus un profil — une ligne restée en base (avant la
   // migration 369) se résout sans écart et sans profil.

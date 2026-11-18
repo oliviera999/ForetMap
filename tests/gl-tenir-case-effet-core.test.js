@@ -161,8 +161,31 @@ test('cases positives (M3) : leur mouvement, sans ressource ; brut → plateau ;
   // Ancienne valeur du réglage : lue `neutre`.
   const ancien = resolveTenirCaseEffet(positive, 'gnome', { casesPositives: 'ressource_peuple' });
   assert.equal(ancien.healthDelta, 0);
+  // Une seule monnaie (M1) : même en `brut`, les cœurs du plateau ne s'appliquent plus — une
+  // case qui n'avait que cela à donner le dit ; le reste du plateau (gemmes, mouvement) passe.
   const brut = resolveTenirCaseEffet(positive, 'gnome', { casesPositives: 'brut' });
-  assert.equal(brut.healthDelta, 2);
+  assert.deepEqual(
+    { h: brut.healthDelta, n: brut.neutralise, a: brut.applique },
+    { h: 0, n: 'gain', a: false },
+  );
+  assert.equal(formatTenirCaseEffet(brut), 'Une case favorable : on repart, sans gain.');
+  const brutPerte = resolveTenirCaseEffet(perteNeutre, 'gnome', { casesPositives: 'brut' });
+  assert.equal(brutPerte.healthDelta, 0);
+  const brutMouvement = resolveTenirCaseEffet(avance, 'unicorn', { casesPositives: 'brut' });
+  assert.deepEqual(
+    { h: brutMouvement.healthDelta, m: brutMouvement.moveDelta, n: brutMouvement.neutralise },
+    { h: 0, m: 2, n: null },
+  );
+  const brutGemmes = resolveTenirCaseEffet(
+    {
+      event_type: 'behavior',
+      event_config_json: cfg({ neutral: { label: null, deltaPv: -1, deltaGems: 1 } }),
+    },
+    'gnome',
+    { casesPositives: 'brut' },
+  );
+  assert.deepEqual({ h: brutGemmes.healthDelta, p: brutGemmes.powerDelta }, { h: 0, p: 1 });
+  assert.equal(formatTenirCaseEffet(brutGemmes), '+1 gemme pour chaque membre de l’équipe.');
   const perte = resolveTenirCaseEffet(perteNeutre, 'gnome');
   assert.deepEqual(
     { h: perte.healthDelta, n: perte.neutralise, a: perte.applique },
@@ -282,8 +305,10 @@ test('toutes les branches du noyau : peuples, branches de repli, brut, textes', 
   } = require('../lib/shared/glTenirCaseEffetCore');
   assert.equal(peopleKeyOf('Licorne'), 'unicorn');
   assert.equal(peopleKeyOf(null), null);
+  // Une seule monnaie (M1) : la gemme, quel que soit le peuple.
   assert.equal(resourceOfPeopleCore('unicorn'), 'power');
-  assert.equal(resourceOfPeopleCore(undefined), 'health');
+  assert.equal(resourceOfPeopleCore('gnome'), 'power');
+  assert.equal(resourceOfPeopleCore(undefined), 'power');
   assert.equal(normalizeCasesPositives(undefined), 'neutre');
   assert.equal(normalizeCasesPositives('brut'), 'brut');
   const marqueeVide = { event_type: 'behavior', event_config_json: null };
@@ -331,7 +356,8 @@ test('toutes les branches du noyau : peuples, branches de repli, brut, textes', 
     formatTenirCaseEffet(resolveTenirCaseEffet(marqueeSeule, 'unicorn')),
     'Au prochain tour, l’équipe ne lance qu’un dé.',
   );
-  // Brut : valeurs du plateau (recul et tour passé compris), mises en mots.
+  // Brut : valeurs du plateau (recul et tour passé compris), mises en mots — sans les cœurs,
+  // qui ne s'appliquent plus et ne se nomment plus (M1).
   const brut = resolveTenirCaseEffet(
     {
       event_type: 'behavior',
@@ -342,13 +368,13 @@ test('toutes les branches du noyau : peuples, branches de repli, brut, textes', 
     'gnome',
     { casesPositives: 'brut' },
   );
+  assert.equal(formatTenirCaseEffet(brut), 'L’équipe recule de 1 case, l’équipe passe son tour.');
+  assert.equal(brut.healthDelta, 0);
+  // Un effet qui porterait encore des cœurs (ancien payload) : le texte n'en dit rien.
   assert.equal(
-    formatTenirCaseEffet(brut),
-    '−2 cœurs pour chaque membre de l’équipe, l’équipe recule de 1 case, l’équipe passe son tour.',
+    formatTenirCaseEffet({ healthDelta: 1, powerDelta: 1, moveDelta: 3 }, { peripetie: true }),
+    '+1 gemme pour chaque membre de l’équipe, l’équipe avance de 3 cases. Une péripétie à relever ensemble.',
   );
-  assert.equal(
-    formatTenirCaseEffet({ healthDelta: 1, moveDelta: 3 }, { peripetie: true }),
-    '+1 cœur pour chaque membre de l’équipe, l’équipe avance de 3 cases. Une péripétie à relever ensemble.',
-  );
+  assert.doesNotMatch(formatTenirCaseEffet({ healthDelta: 2 }), /c[œo]eur/i);
   assert.equal(formatTenirCaseEffet(null), '');
 });
