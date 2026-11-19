@@ -19,6 +19,11 @@ réglages numériques « Tenir à deux » affichent leur minimum et l'enregistre
 de chapitre tourne en boucle sans enregistrer, l'escalier met chaque jet en suspens pour une
 Relance encore fermée. Aucun code modifié : lots de correction et décisions à trancher en fin de
 document.
+### Modifié — Pôle Suivi : l'onglet Tâches passe en premier (19 novembre 2026)
+
+Côté prof, cliquer le pôle **Suivi** ouvre désormais l'onglet **Tâches** (et non plus
+« Individus », placé juste après). Seul l'ordre des onglets change (`TeacherTopTabs.jsx`) ;
+test : `tests-ui/components/app/TeacherTopTabs.test.jsx`. Doc : `guide-du-prof.md`.
 
 ### Corrigé — Popups d'Olu tronquées en bas d'écran (18 novembre 2026)
 
