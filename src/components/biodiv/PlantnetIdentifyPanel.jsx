@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { api } from '../../services/api';
+import { uploadPlantPhotoRequest } from './plantPhotoUpload.js';
 import { compressImageWithPreset } from '../../shared/platform/image';
 import {
   armNativeFilePickerGuard,
@@ -67,6 +68,8 @@ const PLANTNET_IDENTIFY_PHOTO_FIELD_ORDER = [
  * @param {() => Promise<string|number>} [props.onEnsurePlantId] crée la fiche si besoin, renvoie son id
  * @param {(updater: Function) => void} props.setForm setter du formulaire parent
  * @param {(msg: string) => void} [props.onToast] notification utilisateur
+ * @param {(plantId: string|number, body: object) => Promise<object>} [props.onUploadPhoto]
+ *   téléversement dans la file d’enregistrement de la fiche (adopte la révision renvoyée)
  */
 export function PlantnetIdentifyPanel({
   saving = false,
@@ -74,6 +77,7 @@ export function PlantnetIdentifyPanel({
   onEnsurePlantId = null,
   setForm,
   onToast,
+  onUploadPhoto = null,
 }) {
   const [identifySlots, setIdentifySlots] = useState(() => [newPlantnetIdentifySlot()]);
   const [identifyLoading, setIdentifyLoading] = useState(false);
@@ -164,11 +168,11 @@ export function PlantnetIdentifyPanel({
         if (!field) break;
         const imageData = slots[i].imageData;
         const position = i === 0 ? 'prepend' : 'append';
-        const result = await api(`/api/plants/${targetId}/photo-upload`, 'POST', {
-          field,
-          imageData,
-          position,
-        });
+        const result = await uploadPlantPhotoRequest(
+          targetId,
+          { field, imageData, position },
+          onUploadPhoto,
+        );
         const newUrl = result?.url;
         if (!newUrl) continue;
         // Liste de photos du formulaire (migration 303) : la photo téléversée s'y ajoute,
