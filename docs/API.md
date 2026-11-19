@@ -628,7 +628,8 @@ Au tableau, rien ne change. En `hybride` et sur `tablette`, les équipes jouent 
     seul `marker_arrival` est journalisé (`sansEffet: true`), jamais `marker_effect`. Pour le
     prof seul, la réponse porte aussi `effetPossible` (le résumé de ce que la case ferait) :
     son écran propose « Appliquer les effets (MJ) » (`POST …/apply-effects`) ou « Ne pas
-    appliquer ».
+    appliquer ». En partie « Tenir », `POST …/apply-effects` pose aussi « un seul dé au prochain
+    tour » pour une case Souffle (évènement `un_de_pose`), comme l'arrêt joué par le moteur.
   - `POST …/tenir/tour/phase` vers `souffle` : une Relance lancée dont le dé n'a pas été rejoué
     est rendue (`spell_rembourse`, `motif: 'relance'`, brouillon `rembourse`) et le jet
     qu'elle avait annulé est réappliqué : `move` (`fromDice: true`, `relanceRendue: true`),

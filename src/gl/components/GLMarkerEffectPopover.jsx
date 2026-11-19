@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useBodyScrollLock } from '../../shared/platform/bodyScrollLock.js';
 import { useOverlayHistoryBack } from '../../shared/platform/useOverlayHistoryBack.js';
 import { createPortal } from 'react-dom';
@@ -48,6 +48,11 @@ export function GLMarkerEffectPopover({
   }, [open, onClose]);
 
   useBodyScrollLock(open);
+  // Refus de « Appliquer les effets (MJ) » : dit au prof, la fenêtre reste ouverte.
+  const [applyError, setApplyError] = useState('');
+  useEffect(() => {
+    setApplyError('');
+  }, [open, marker?.id, teamId]);
 
   if (!open) return null;
 
@@ -75,8 +80,8 @@ export function GLMarkerEffectPopover({
       });
       onApplied?.();
       onClose?.();
-    } catch (_) {
-      onClose?.();
+    } catch (err) {
+      setApplyError(err?.message || 'La case n’a pas pu être appliquée.');
     }
   }
 
@@ -154,6 +159,11 @@ export function GLMarkerEffectPopover({
               </p>
             ) : null}
           </div>
+        ) : null}
+        {applyError ? (
+          <p className="gl-error" role="alert">
+            {applyError}
+          </p>
         ) : null}
         <footer className="gl-marker-effect-popover__footer">
           {showManualApply || choixDuProf ? (

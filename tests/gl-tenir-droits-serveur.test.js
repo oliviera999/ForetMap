@@ -352,6 +352,46 @@ test('M3 — Progression pose l’équipe sur une Trame sans la jouer : la prés
   assert.equal(await gemmes(c, 0), avant + membres(c, 0).length);
 });
 
+test('M3 — case Souffle non jouée : « Appliquer les effets (MJ) » pose bien « un seul dé »', async () => {
+  const c = await partie();
+  await surface(c, 'tablette');
+  await ouvrirTourEnJeu(request, app, c);
+  const eleve = membres(c, 0)[0];
+  for (const m of membres(c, 0)) await setPlayerBourses(m.id, 3, 3);
+  await poser(c, 0, 1); // Question 1 → deux cases plus loin, Étape
+  await jet(c, 0, [1, 1]).expect(201);
+  const progression = await cast(c, eleve.token, {
+    spellCode: 'SL002',
+    teamId: c.teams[0].id,
+    effectParams: { delta: 1 },
+  });
+  assert.equal(progression.status, 200, JSON.stringify(progression.body));
+  assert.equal(await indexOf(c, c.teams[0].id), 4, 'posée sur Souffle 1');
+  const souffle = c.markers[4];
+  const unDe = async () =>
+    Number(
+      (
+        await queryOne('SELECT un_de_prochain_tour AS u FROM gl_teams WHERE id = ?', [
+          c.teams[0].id,
+        ])
+      ).u,
+    );
+  const vue = await request(app)
+    .post(api(c, `/markers/${souffle.id}/present-arrival`))
+    .set(auth(c.adminToken))
+    .send({ teamId: c.teams[0].id });
+  assert.equal(vue.status, 200, JSON.stringify(vue.body));
+  assert.equal(vue.body.sansEffet, true);
+  assert.ok(vue.body.effetPossible, JSON.stringify(vue.body));
+  assert.equal(await unDe(), 0, 'rien de posé tant que le prof n’a pas choisi');
+  const applique = await request(app)
+    .post(api(c, `/markers/${souffle.id}/apply-effects`))
+    .set(auth(c.adminToken))
+    .send({ teamId: c.teams[0].id });
+  assert.equal(applique.status, 200, JSON.stringify(applique.body));
+  assert.equal(await unDe(), 1, 'un seul dé au prochain tour');
+});
+
 test('M3 — le vent pose la dernière équipe sur une Trame : la présenter ne donne rien', async () => {
   const c = await partie();
   await surface(c, 'tablette');

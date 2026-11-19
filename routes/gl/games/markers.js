@@ -679,7 +679,7 @@ router.post(
     }
 
     const game = await queryOne(
-      'SELECT id, chapter_id, board_movement_mode, board_path_start_index, tenir_profil FROM gl_games WHERE id = ? LIMIT 1',
+      'SELECT id, chapter_id, board_movement_mode, board_path_start_index, tenir_profil, tenir_overrides_json, current_round_number FROM gl_games WHERE id = ? LIMIT 1',
       [gameId],
     );
     if (!game) return res.status(404).json({ error: 'Partie introuvable' });
@@ -751,13 +751,28 @@ router.post(
           throw err;
         }
 
-        if (!vitalityPayload?.resolvedEffect) {
+        // « Tenir à deux » : appliquer une case Souffle, c'est poser « un seul dé au prochain
+        // tour » — comme l'arrêt joué par le moteur. Sans cela, le prof qui choisit
+        // « Appliquer les effets (MJ) » sur une case non jouée n'appliquait rien.
+        let unDePose = false;
+        if (tenirCtx.tenir && vitalityPayload?.unDe && !vitalityPayload?.sentier) {
+          const poses = await require('../../../lib/glTour').poserUnDeTx(tx, {
+            gameId,
+            teamId,
+            roundNumber: Number(game.current_round_number) || 0,
+            marker,
+          });
+          if (poses.length) lastEvent = poses[poses.length - 1];
+          unDePose = true;
+        }
+
+        if (!vitalityPayload?.resolvedEffect && !unDePose) {
           const err = new Error('NO_MARKER_EFFECT');
           err.status = 409;
           throw err;
         }
 
-        if (vitalityPayload.vitalityRequired && !vitalityPayload.applied) {
+        if (vitalityPayload.vitalityRequired && !vitalityPayload.applied && !unDePose) {
           const hasMove =
             Number.isFinite(Number(vitalityPayload.moveDelta)) &&
             Number(vitalityPayload.moveDelta) !== 0;

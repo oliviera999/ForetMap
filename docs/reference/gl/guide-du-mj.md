@@ -358,7 +358,8 @@ s'applique tout de suite, comme avant.
 - Une **Relance** payée dont l'équipe n'a pas eu le temps de relancer les dés (vous lancez le
   souffle avant) lui est **rendue** au souffle : rien n'est retiré. Son premier jet, que la
   Relance avait annulé, est **réappliqué** : la mascotte retrouve la case de ce jet et la case
-  se joue. Aucun nouveau jet n'est tiré.
+  se joue. Aucun nouveau jet n'est tiré. Si c'est une case question, présentez-la depuis votre
+  écran : le temps de jeu est fini pour les tablettes.
 - En **hybride**, le bouton « Fouiller » de l'équipe s'allume bien quand vous ouvrez la fenêtre
   de fouille.
 - Dans une partie en pause ou terminée, une case ne se présente plus.
