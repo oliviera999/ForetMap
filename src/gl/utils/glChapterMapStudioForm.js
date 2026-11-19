@@ -102,7 +102,13 @@ export function markerDuplicatePayloadFromMarker(marker, { offset } = {}) {
   form.label = duplicateMapLabel(form.label);
   form.xPct = offsetPctCoordinate(form.xPct, offset);
   form.yPct = offsetPctCoordinate(form.yPct, offset);
-  return toMarkerPayload(form, eventDraftFromMarker(marker), appearanceFormFromMarker(marker));
+  // La copie reprend la configuration du repère telle que l'API l'a rendue, sans passer par le
+  // formulaire : rien à reconstruire, donc rien à perdre.
+  const eventDraft = {
+    eventType: marker.event_type ?? marker.eventType ?? 'question',
+    eventConfig: marker.event_config ?? marker.eventConfig ?? null,
+  };
+  return toMarkerPayload(form, eventDraft, appearanceFormFromMarker(marker));
 }
 
 /** Construit le payload API à partir du formulaire, du brouillon d'événement et de l'apparence. */

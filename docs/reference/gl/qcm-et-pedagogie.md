@@ -112,6 +112,9 @@ tutoriel, feuillet…) comme apprise.
   le type et la référence de la ressource puis choisir le mode (y compris « un nombre minimum »
   avec le champ **N**). Une ressource peut aussi être **dispensée** (« aucune question exigée »).
   La politique propre l'emporte sur le réglage général. L'interrupteur global reste **maître**.
+  Le formulaire n'apparaît qu'une fois la politique de cette ressource **chargée** (« Chargement
+  de la politique… » entre-temps) : il affiche donc toujours ce qui est enregistré, jamais
+  « Hériter » par défaut.
 - **Ce que vit l'élève** : **avant même de cliquer**, le bouton « marquer appris » porte une
   pastille annonçant ce qui l'attend (« 1 question », « 🔒 ») — G&L n'avait aucune annonce
   jusqu'au lot 28, alors que ForetMap en avait une. Au clic, un **petit panneau surgit
