@@ -423,4 +423,55 @@ describe('TaskTileCard — React.memo (pas de re-rendu quand l’état parent no
     // L'inscrit remonté en tête est bien celui qui est coché.
     expect(screen.getAllByRole('checkbox')[0]).toBeChecked();
   });
+
+  test('tâche de projet : carte teintée + bandeau « projet · étape »', () => {
+    const t = {
+      ...makeProps().t,
+      id: 'p-2',
+      title: '2 semer',
+      project_id: 'proj-1',
+      project_title: 'Récupérer la terre du compost',
+    };
+    const { container } = render(
+      <TaskTileCard
+        {...makeProps({
+          t,
+          stepInfoByTaskId: new Map([['p-2', { step: 2, sub: '', parallel: true }]]),
+        })}
+      />,
+    );
+    expect(container.querySelector('.task-card')).toHaveClass('task-card--project');
+    // Une teinte par projet : classe `project-color-N`.
+    expect(container.querySelector('.task-card').className).toMatch(/\bproject-color-\d\b/);
+    const ribbon = screen.getByTestId('task-project-ribbon');
+    expect(ribbon).toHaveTextContent('Récupérer la terre du compost');
+    expect(ribbon).toHaveTextContent('Étape 2 · en parallèle');
+    // Le nom du projet n'est pas répété dans la rangée de puces.
+    expect(screen.getAllByText('Récupérer la terre du compost')).toHaveLength(1);
+  });
+
+  test('tâche hors projet : ni teinte ni bandeau', () => {
+    const { container } = render(<TaskTileCard {...makeProps()} />);
+    expect(container.querySelector('.task-card')).not.toHaveClass('task-card--project');
+    expect(screen.queryByTestId('task-project-ribbon')).toBeNull();
+  });
+
+  test('dans la carte du projet : bandeau réduit à l’étape (nom du projet non répété)', () => {
+    const t = {
+      ...makeProps().t,
+      id: 'p-1',
+      title: '1 préparer',
+      project_id: 'proj-1',
+      project_title: 'Compost',
+    };
+    const step = new Map([['p-1', { step: 1, sub: '', parallel: false }]]);
+    const { rerender } = render(
+      <TaskTileCard {...makeProps({ t, stepInfoByTaskId: step, insideProjectBlock: true })} />,
+    );
+    expect(screen.getByTestId('task-project-ribbon')).toHaveTextContent('Étape 1');
+    expect(screen.queryByText('Compost')).toBeNull();
+    // Sans étape : pas de bandeau du tout, la teinte suffit.
+    rerender(<TaskTileCard {...makeProps({ t, insideProjectBlock: true })} />);
+    expect(screen.queryByTestId('task-project-ribbon')).toBeNull();
+  });
 });
