@@ -258,6 +258,9 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
             contextType: place.kind === 'zone' ? 'zone' : 'marker',
             contextId: String(place.id),
             body,
+            // Carte réellement servie : le serveur ne cherchait le lieu que sur la carte par
+            // défaut, d'où un 404 sur toute autre carte sélectionnable (audit du 19/11, C6).
+            mapId: String(map?.id || ''),
           },
           variant,
         );
@@ -267,7 +270,7 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
         reportPlanUsage('place_suggest', String(place.id), variant);
       };
     },
-    [addMyReport, canSuggest, variant],
+    [addMyReport, canSuggest, map, variant],
   );
 
   /** Mes signalements déjà déposés sur le lieu ouvert, avec leur état de traitement. */
