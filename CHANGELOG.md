@@ -9,6 +9,32 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — G&L : imports de contenu qui perdaient des données (audit du 19 novembre 2026, lot 8)
+
+- **Glossaire du lore (C5)** : l'export laissait la colonne `termes_lies` vide, et l'import
+  supprimait les relations de chaque terme avant de les relire dans cette colonne — exporter
+  puis ré-importer effaçait donc toutes les relations. L'export remplit désormais la colonne
+  (libellé du terme lié, ou son code si le libellé contient une virgule), et à l'import une
+  cellule **vide ne touche plus** aux relations du terme. Une liste les remplace ; un tiret
+  (`-`) les vide volontairement.
+- **Import de QCM, biomes et lore (C6)** : les liens glossaire d'origine « import » étaient
+  supprimés sur **tout le jeu**, puis recréés pour les seules lignes du fichier, toujours non
+  bloquants. Importer quelques questions effaçait les liens de toutes les autres, et un lien
+  rendu bloquant par le MJ perdait son conditionnement à chaque import. Le recalcul est borné
+  aux questions du fichier ; un lien qui correspond toujours reste en place tel quel
+  (`is_gating` compris). L'import des QCM lore passe en transaction, comme celui des biomes.
+- **Imports du lore et de la charte (C11)** : une ligne de feuillet sans code était ignorée sans
+  figurer au rapport — elle y est désormais (`report.feuillets.errors`, `skipped`). Les imports
+  des feuillets, du glossaire du lore et de la charte des chapitres écrivent en transaction :
+  une ligne en échec n'en laisse plus une partie en base. Un téléchargement XLSX en échec
+  renvoie un message neutre, l'erreur réelle part au journal.
+- **Catalogues de la Trame (C12)** : les cartes et liens d'un biome ou d'un plateau étaient
+  supprimés puis réinsérés un par un hors transaction (au démarrage et depuis « Catalogues
+  Tenir à deux », possible en pleine séance). Chaque fichier s'écrit maintenant dans une seule
+  transaction : un défi lu pendant la synchronisation voit l'ancien réseau, jamais un réseau
+  vide, et un échec ne laisse plus un biome amputé.
+
+Tests : `tests/gl-imports-pertes.test.js`, `tests/gl-xlsx-attachment.test.js`.
 ### Documentation — G&L : audit des bugs (19 novembre 2026)
 
 `docs/AUDIT_BUGS_GL_2026-11-19.md` : relecture de tout le sous-produit Gnomes & Licornes par
