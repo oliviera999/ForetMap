@@ -20,6 +20,8 @@ const { snapshotSetting, restoreSetting } = require('./helpers/settingsSnapshot'
 
 /** État de `ui.plan.map_id` avant la suite : restauré tel quel en `after()`. */
 let planMapSettingSnapshot = null;
+/** État de `ui.map.default_map_visit` avant la suite : restauré tel quel en `after()`. */
+let visitDefaultMapSnapshot = null;
 const fx = require('./helpers/fmFixtures');
 const { planContentCache } = require('../routes/plan');
 const {
@@ -66,6 +68,12 @@ test.before(async () => {
   marker = await fx.createMarker({ mapId: map.id, label: 'Infirmerie' });
   planMapSettingSnapshot = await snapshotSetting('ui.plan.map_id');
   await setSetting('ui.plan.map_id', map.id, { userType: 'teacher', userId: 'test' });
+  // La carte du plan ne fait pas partie de la Visite par défaut (`allowedVisitMapIds`), et le
+  // catalogue des parcours croise désormais les cartes de la surface (audit du 19/11/2026,
+  // C1). Les scénarios ci-dessous lisent la même carte sur `plan` et sur `visit` : elle est
+  // donc aussi déclarée carte de visite par défaut, choix explicite d'un administrateur.
+  visitDefaultMapSnapshot = await snapshotSetting('ui.map.default_map_visit');
+  await setSetting('ui.map.default_map_visit', map.id, { userType: 'teacher', userId: 'test' });
   invalidateSettingsCache();
 });
 
@@ -81,6 +89,7 @@ test.after(async () => {
   await execute('DELETE FROM map_markers WHERE map_id = ?', [map.id]);
   await execute('DELETE FROM maps WHERE id = ?', [map.id]);
   await restoreSetting(planMapSettingSnapshot);
+  await restoreSetting(visitDefaultMapSnapshot);
 });
 
 test('helpers purs : slug, étapes, lien profond', () => {

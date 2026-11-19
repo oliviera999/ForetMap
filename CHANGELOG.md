@@ -17,6 +17,279 @@ portent la mention « traité » et leur numéro de PR. Nouveau § 13 : vérific
 de contenu, scénarios de l'audit rejoués par requêtes et dans un navigateur), choix faits par les
 lots à relire et décisions déjà livrées par #687, #688 et #690, restes (39 constats ouverts, quatre
 décisions à trancher). Aucun code modifié.
+### Documentation — audit des bugs de ForetMap hors G&L (19 novembre 2026)
+
+- Nouveau `docs/AUDIT_BUGS_FORETMAP_2026-11-19.md` : 69 constats sur toute l'application hors
+  Gnomes & Licornes, dont 48 rejoués sur une base à part ou dans un navigateur. Sept constats
+  gênants : arrêt du serveur sur une coupure MySQL pendant une connexion temps réel (S1), deux
+  escalades de droits sur les comptes (A1, A2), progression faussée par les homonymes (T1),
+  inscription sur une tâche proposée ou faite (T2), parcours d'un plan fermé lisibles sans code
+  (C1), question `strict` résolue sans compte (P1). Lots de correction et décisions à trancher
+  en § 10 et § 11. Aucun code modifié.
+- Constaté en chemin : `tests/gl-tenir-jets-paralleles.test.js` échoue sur `main` depuis la
+  PR #688 (§ 1.1 de l'audit) ; la PR #690 annonce sa réparation.
+- Index `docs/audits/README.md` mis à jour.
+### Corrigé — audit ForetMap du 19/11, lot 6 (vie sociale : forum, commentaires, observations, carnet)
+
+Constats de `docs/AUDIT_BUGS_FORETMAP_2026-11-19.md` § 4 ; tests `tests/audit-fm-lot6-social.test.js`.
+
+- **T6** — Une réaction emoji envoyée deux fois au même instant ne répond plus 500
+  (`ER_DUP_ENTRY`) : la bascule passe par un `INSERT IGNORE` tranché par la clé primaire (ajout
+  si une ligne est insérée, retrait sinon), au lieu d'un SELECT puis d'un INSERT non atomiques.
+  Corrigé dans les cœurs partagés `lib/shared/forumCore.js` (forum ForetMap **et** G&L) et
+  `lib/shared/contextCommentsCore.js`.
+- **T9** — `GET /api/context-comments/counts` ne révèle plus le nombre de commentaires d'un
+  contexte que le lecteur ne voit pas (repère réservé à la surface `staff`, tâche hors de son
+  périmètre de cartes) : ces identifiants répondent `{ total: 0, newestId: '' }`, comme un
+  contexte vide. Seuls les identifiants qui ont des commentaires sont contrôlés.
+- **T10 (photos)** — Les plafonds de photos par observation et d'illustrations par article du
+  carnet tiennent face à des envois simultanés : décompte et insertion se font dans une
+  transaction, sous verrou de la ligne parente (`SELECT … FOR UPDATE`). Le fichier d'un envoi
+  refusé est supprimé. Les noms de fichier des illustrations portent un suffixe aléatoire (deux
+  envois de la même milliseconde pouvaient viser le même fichier).
+
+### Corrigé — audit ForetMap du 19/11, lot 8 (médiathèque, médias de Visite, fiches espèces)
+
+- **C2 — médiathèque, clés stables** : un envoi ForetMap n'est plus indexé dans `_keys.json`
+  par une clé tirée de son nom d'origine, mais par une clé propre au fichier
+  (`foretmap:<chemin>`) qui porte l'étiquette `app`. Deux envois « photo.jpg » restent tous
+  deux dans ForetMap et supprimables ; un envoi nommé comme une ressource du jeu ne détourne
+  plus `resolveMediaByStableKey`, et les médias ForetMap sont exclus des manifestes G&L. Une
+  entrée ForetMap héritée (clé tirée du nom) est re-rangée sous sa clé par fichier si une
+  ressource du jeu prend la même clé, au lieu de perdre son étiquette. Un fichier sans
+  étiquette reste lu comme hérité G&L.
+- **C3 — appartenance d'un média** : le chemin est normalisé (`/media-library/…`, `//`,
+  `./`, antislashs) avant la recherche ; un admin G&L ne supprime plus un média ForetMap.
+- **C5 — Visite** : `PUT /api/visit/media/:id` écrit la nouvelle image sous un nom temporaire,
+  la renomme une fois valide et ne supprime l'ancienne qu'après succès (un contenu invalide
+  laissait le média cassé).
+- **C7 — fiches espèces** : téléverser une photo incrémente `edit_revision` dans la
+  transaction et renvoie la nouvelle révision (`edit_revision`) ; le formulaire espèce passe
+  l'envoi dans la file de sa session d'édition et adopte cette révision.
+- **C10 (espèces)** : l'import d'espèces répond 400 avec un message (URL de tableur invalide
+  ou inaccessible, fichier vide ou trop gros, source absente) au lieu de 500.
+- **C8 (uploads)** : `saveBase64ToDisk` refuse une valeur non textuelle en 400 au lieu d'un
+  `TypeError` (500).
+- Tests : `tests/audit-fm-lot8-medias.test.js`,
+  `tests-ui/audit-fm-lot8-plant-photo-upload.test.js`.
+
+### Corrigé — audit ForetMap du 19/11, lot 7 (terrain : lieux, catégories, parcours, plans, gestes de carte)
+
+- **C1** — `GET /api/map-routes` croise les cartes autorisées sur la surface (`allowedMapIdsForSurface`) avec le périmètre du compte, comme les lieux : un anonyme sur la Visite ne lit plus les parcours de la carte d'un plan fermé par code. Le détail `/:idOrSlug` exige aussi qu'une surface publique du parcours serve sa carte (404 sinon).
+- **C12** — `?surface=staff` : le filtre des étapes reçoit le lecteur synthétique du porteur de code, et non plus `req.auth` (null).
+- **C11** — supprimer un lieu, ou le changer de carte, retire ses étapes de parcours (même transaction) : le parcours reste enregistrable.
+- **C4** — une catégorie désactivée n'est plus retirée d'une zone ou d'un repère par un PUT qui ne la concerne pas ; le filtre `is_active` ne vaut que pour les ajouts.
+- **C8 / C9** — lieux : nom ou libellé non textuel, champ texte objet, `x_pct` / `y_pct` non numériques ou hors 0–100 en modification → **400** avant toute écriture (auparavant 500, ou repère hors carte). Photo : `image_data` non textuelle → 400, aucune ligne créée.
+- **C10** — image de carte au-delà de la borne d'upload → **413** « Fichier trop volumineux » au lieu d'un 500.
+- **C6** — plan des personnels : « Signaler un problème » transmet la carte affichée (`mapId`, validée par `allowedPlanMapIds`) ; un lieu d'une carte sélectionnable n'est plus « introuvable ».
+- **C13** — exposition publique des photos de lieux conservée par décision, documentée dans `docs/API.md`.
+- **F4** — carte : un déplacement de repère refusé ou hors ligne affiche un message et remet le repère à sa place ; « Enregistrer le contour » gère l'erreur (session conservée) et se désactive pendant l'envoi.
+
+### Corrigé — audit ForetMap du 19/11, lot 2 (connecteur MCP)
+
+- **S2** — `foretmap_sql_select` / `foretmap_export` : un nom de CTE déclaré dans une
+  sous-requête (`… WHERE EXISTS (WITH users AS (…) SELECT … FROM users)`) masquait la vraie
+  table dans toute la requête et laissait lire une table refusée. Les noms de CTE sont
+  désormais rattachés à leur portée (`lib/mcp/sqlAst.js`), ne peuvent plus reprendre le nom
+  d'une table connue, et un `WITH` entre parenthèses suivi d'un `UNION` (portée ambiguë) est
+  refusé.
+- **S3** — `POST /MCP` (casse différente) échappait à la garde d'hôte et à `MCP_ENABLED=false`.
+  La garde est insensible à la casse (`/mcp/…`, `/oauth/`, `/.well-known/` compris) et le point
+  d'entrée revérifie activation et produit.
+- **S5** — le bypass RGPD suit la permission `mcp.privacy_bypass` de l'appelant, plus seulement
+  le réglage global (SQL de lecture, export, statistiques d'usage, échantillons du SQL
+  d'écriture, instructions du serveur).
+- **S9** — l'empreinte de confirmation par code couvre le contenu des objets imbriqués
+  (sérialisation canonique récursive).
+- **S11** — `foretmap_sql_execute` rétablit `innodb_lock_wait_timeout` avant de rendre la
+  connexion au pool (MySQL et MariaDB).
+
+Tests : `tests/audit-fm-lot2-mcp.test.js`. Doc : `docs/MCP.md`, `docs/MCP_REGISTRE_TRAITEMENT.md`.
+
+### Corrigé — audit ForetMap du 19/11, lot 1 (socle serveur)
+
+Constats S1, S4, S6, S7, S8, S10, S12 et S13 de `docs/AUDIT_BUGS_FORETMAP_2026-11-19.md` (§ 7).
+
+- **S1 — Le serveur ne tombe plus sur une coupure MySQL pendant une (dé)connexion Socket.IO.**
+  La lecture du délai de regroupement de la présence a son `.catch` (repli : 500 ms), et les
+  tâches lancées depuis les gestionnaires de socket (inscription et désinscription de présence,
+  abonnement carte, main G&L rendue) passent par `runDetached`, qui journalise au lieu de
+  laisser filer un rejet (`lib/realtime.js`).
+- **S4 — La santé répond sans base.** Le middleware CSP n'attend plus indéfiniment la lecture
+  de `privacy.external_assets_mode` : elle est attendue 50 ms au plus (cache mémoire de
+  `lib/settings.js` dans le cas courant, un changement de réglage s'applique donc aussitôt),
+  sinon la dernière valeur connue est servie (`local`, la plus stricte, avant la première
+  lecture). Une seule lecture à la fois, abandonnée après 5 s (`lib/cspAssetsModeCache.js`).
+- **S10 — Le journal fatal `unhandledRejection` garde la cause** (`{ err: reason }`).
+- **S6 — Fichier absent : 404 franc.** Sous `/assets`, `/uploads`, `/tutos`, `/fonts` et
+  `/gl/intro`, un chemin avec extension qui arrive au fallback SPA répond `404` (`no-store`) au
+  lieu de l'index HTML ; les routes SPA sans extension gardent l'index (`lib/spaFallback.js`).
+- **S7 — `X-Foretmap-Product` n'est plus honoré en production** pour le HTML, le manifest,
+  `/sw.js`, la page hors ligne et le favicon (`resolveSecureProductId` partout ; le résolveur
+  `lib/productResolver.js` applique la même règle). Hors production, ces réponses portent
+  `Vary: X-Foretmap-Product`.
+- **S8 — `db:migrate` ne recrée plus la catégorie « Infrastructure »** supprimée par un prof :
+  elle n'est semée que sur une table `location_categories` vide, comme les tutoriels.
+- **S12 — `FORETMAP_TX_MAX_MS`** : après un abandon, la connexion est détruite (jamais rendue
+  au pool) et le `commit()` tardif du travail abandonné est refusé.
+- **S13 — Migration ignorée signalée.** Nouveau registre `schema_migration_files` (déclaré dans
+  `sql/schema_foretmap.sql`, sans migration numérotée) : un fichier de numéro inférieur à
+  `schema_version` jamais vu par le runner produit un avertissement au démarrage, `db:status`
+  sort en code `4` (« pas à jour », sans déclencher le rattrapage du cron), `check:runtime` le
+  détaille et `GET /api/admin/diagnostics` l'expose (`schema.skipped`). Signalement seulement :
+  la migration n'est pas rejouée d'office, il faut la renuméroter.
+
+Tests : `tests/audit-fm-lot1-*.test.js`.
+
+### Corrigé — audit ForetMap du 19/11, lot 9 (quiz, liens d'apprentissage, verrouillage)
+
+- **P1 — Contrôle de compréhension sans compte** : la présentation et la réponse « avec
+  contexte » (`/api/quiz/questions/:code/present?resourceType=&resourceRef=`, `…/answer`)
+  exigent un compte (`401` `LOGIN_REQUIRED`). Le jeton de présentation porte l'identifiant du
+  compte (claim `uid`) : un autre compte qui y répond reçoit `403`. Le panneau du contrôle
+  (`LearningGatingQuestionPanel`) affiche « Connecte-toi pour débloquer cette fiche » au lieu
+  d'une erreur. Avant : on écartait les mauvais choix un à un sans compte, sans verrou.
+- **P2 — Emplacement de question écrasé** : créer, déplacer ou importer une question sur un
+  couple (catégorie, numéro) déjà pris est refusé (`409` à la fiche, erreur de ligne à
+  l'import) au lieu d'écraser l'autre question. Contrôle générique dans
+  `lib/shared/questionCrudCore.js`, appliqué aussi aux QCM biomes et lore de G&L (mêmes clés
+  uniques d'emplacement).
+- **P3 — Lien glossaire bloquant perdu** : modifier une question ne purge plus que ses liens
+  `keyword` **non bloquants** ; un lien rendu bloquant par un prof est conservé.
+- **P4 — Import partiel** : la purge des liens `keyword` est limitée aux questions du fichier.
+- **P10 — Verrou décalé du fuseau** : l'échéance `locked_until` est calculée en UTC par Node
+  (et non par `NOW()` de la base), et la liste des verrous en cours compare à l'heure UTC.
+- **F7 — Catalogue QCM** : recherche avec anti-rebond (300 ms) et garde « dernière réponse
+  gagne » (`useLatestRequest`).
+- Tests : `tests/audit-fm-lot9-*.test.js`, `tests-ui/audit-fm-lot9-*.test.jsx` ;
+  `tests/learning-gating-cooldown.test.js` et `tests/learning-links-sheet.test.js` mis à jour
+  (ils figeaient l'ancien SQL du verrou et la purge globale de P4).
+
+### Corrigé — audit ForetMap du 19/11, lot 10 (séances, individus, calendrier, clades, clés)
+
+- **Séances pédagogiques (P5).** Un prérequis en brouillon, dépublié ou supprimé ne verrouille
+  plus la séance dépendante ; un prérequis qui créerait un cycle (A ↔ B ou plus long) est refusé
+  à l'écriture (`400`, code `PREREQUISITE_CYCLE`).
+- **Individus suivis (P6).** Date impossible (`2026-02-31`), mesure hors des bornes des colonnes,
+  mesure nulle ou négative, densité ≥ 10, groupe inconnu : `400` explicite au lieu de `500` ou
+  d'une valeur acceptée. En modification, la zone ou le repère doit exister sur la carte de
+  l'individu, comme en création.
+- **Calendrier scolaire (P7).** `parseISODateOnly` vérifie la date par aller-retour `Date.UTC` :
+  `2031-09-31` donne `400` au lieu de `500`.
+- **Activité clades (P8).** `POST /api/clades/activity/check` écarte les placements qui ne sont
+  pas des objets (`[null]` → `400` au lieu de `500`).
+- **Clés d'identification (P9).** Sur une clé publiée, supprimer le couplet de départ ou un
+  couplet encore visé par une proposition renvoie `409` : plus de proposition sans issue.
+- **Vue « Individus suivis » (F8, F9).** Deux clics rapides n'affichent plus la fiche du premier
+  individu pendant que la mesure part sur le second ; la date de mesure par défaut est la date
+  locale (et non UTC).
+
+### Corrigé — audit ForetMap du 19/11, lot 4 (profils RBAC, groupes, import et fusion de comptes)
+
+- **A1** — L'import de comptes ne réécrit plus un compte existant de rang égal ou supérieur à
+  celui de l'importateur (le plus haut des profils effectif et attribué : un compte élève
+  porteur d'un profil `admin` ou `prof` compris) ; la ligne passe en erreur. Un changement
+  d'e-mail par import révoque les sessions, consomme les liens « mot de passe oublié » et
+  avertit l'ancienne adresse (`applyEmailChangeEffects`).
+- **A2** — `PATCH /api/rbac/profiles/:id` : hors administrateur, refus (403) sur un profil de
+  rang actuel égal ou supérieur à celui de l'acteur, comme `PUT …/permissions`.
+- **A4** — Un simple membre d'un groupe (sans `groups.read` / `groups.manage`) ne voit plus,
+  dans `GET /api/groups` et `GET /api/groups/:id/members`, que les **prénoms** des membres de
+  son propre groupe — ni nom, ni id, ni profil, ni état, rien des sous-groupes.
+- **Retrait d'un membre de groupe** (décision du 19/11) : `PUT /api/groups/:id/members` et
+  `DELETE /api/groups/:id/members/:userId` refusent (403), hors administrateur, de retirer un
+  compte de rang égal ou supérieur à celui de l'acteur.
+- **A6** — Un administrateur désactivé se rétrograde et se supprime : la garde « dernier
+  administrateur actif » ne joue plus que pour une cible active.
+- **A8** — `POST /api/rbac/users/bulk-role` : une entrée sans `id` donne une ligne
+  `ok: false` « id requis » au lieu d'un 500 sur tout le lot.
+- **A11** — Supprimer un sous-groupe rattache ses enfants au parent du groupe supprimé au lieu
+  d'en faire des racines.
+- **A12** — Fusion de comptes : les profils du compte absorbé sont abandonnés avant la
+  réattribution (plus de double profil principal), puis le profil effectif du compte gardé est
+  recalculé.
+- **A13** — `PATCH /api/rbac/users/:userType/:userId` : le rang de la cible est le plus haut des
+  profils effectif et attribué, et le compte doit être dans le périmètre de groupe de l'acteur
+  (comme `reset-password-link`).
+
+Tests : `tests/audit-fm-lot4-rbac-groupes.test.js`.
+
+### Corrigé — audit ForetMap du 19/11, lot 11 (front : session multi-onglets, service worker, sauvegarde automatique, dates)
+
+Constats F1, F2, F3, F5, F6, F9 (hors individus) et F10 de `docs/AUDIT_BUGS_FORETMAP_2026-11-19.md`, § 8.
+
+- **F1 — Session changée dans un autre onglet.** `useSessionWindowSync` écoute `storage` sur
+  `foretmap_session` : compte disparu → l'onglet ferme sa session (toast « Vous avez été
+  déconnecté depuis un autre onglet. ») sans toucher au stockage ; autre compte → rechargement de
+  la page, qui reconstruit droits, onglets et données sur le bon compte. Un jeton renouvelé (même
+  compte) ne fait rien. Filet : un 401 reçu **sans jeton** par une fenêtre qui en avait un ferme
+  aussi sa session (`api()`), une seule fois.
+- **F2 — `/api/auth/me` tardif.** `mergeAuthMeResponse` ignore une réponse quand plus aucun jeton
+  n'est stocké ou que le jeton désigne un autre compte (`isAuthMeResponseForCurrentSession`) :
+  ni droits reposés, ni jeton réécrit. `useAppDataSync` et `useAuthMeHydration` mémorisent en
+  plus le compte au départ de la requête.
+- **F3 — Service worker.** Plus de `skipWaiting()` à l'installation (`swTemplate.js`,
+  `public/sw.js`) : la nouvelle version attend le clic sur « une mise à jour est prête »
+  (message `SKIP_WAITING`) ; un onglet ouvert ne perd plus ses bundles. La première
+  installation s'active toujours seule.
+- **F5 — Sauvegarde automatique.** La sauvegarde « de démontage » de `useDebouncedAutoSave` ne
+  part plus quand `enabled` passe à faux (titre effacé d'une tâche ou d'un tutoriel → plus de
+  `PUT` au titre vide) ; elle reste au vrai démontage.
+- **F6 — Boutons « Modèle CSV / XLSX ».** Clé React stable (`importTemplateButtonKey`) même avec
+  un libellé JSX : fin des clés `[object Object]` dupliquées.
+- **F9 — Dates locales.** Filtre de période du carnet (`journalPeriod.js`) et plages par défaut
+  de l'audit, de l'usage et du suivi (`utils/localDateInput.js`) en heure locale, non plus UTC.
+- **F10 — Visite.** `useVisitContent` revérifie la carte juste avant d'appliquer le contenu, et
+  seul le dernier chargement baisse `loading`.
+
+### Corrigé — audit ForetMap du 19/11, lot 3 (authentification, mots de passe, LTI)
+
+- **A3 — première pose d'un mot de passe** : un compte sans mot de passe (Google) ne s'en
+  donne plus un par la session seule. `POST /api/auth/me/password` n'écrit rien, envoie un
+  lien de définition (jeton « mot de passe oublié ») à l'adresse **en place** et répond
+  **202** `{ linkSent: true, message }` ; sans e-mail → 409 `PASSWORD_SETUP_NO_EMAIL`. Une
+  session volée ne peut donc plus poser un mot de passe puis changer l'e-mail avec (garde
+  AC3). « Mon profil » affiche « Un lien pour définir votre mot de passe vous a été envoyé ».
+- **A5 — LTI** : un compte de type élève au profil `prof` / `admin` (ou tout profil soumis à
+  la double authentification ou portant `teacher.access`) n'entre plus par un lancement
+  « Learner » : le rôle Instructor est exigé, comme pour un compte enseignant (403
+  `LTI_TEACHER_ROLE_REQUIRED`).
+- **A7 — connexion Google élève coupée** : le réglage `ui.auth.allow_google_student` est relu
+  sur la voie élève ; `start?mode=teacher` puis un rappel sans cookie de mode ne donne plus de
+  session élève (`oauth_student_google_disabled`).
+- **A9 — réinitialisation** : un mot de passe non textuel est refusé (400) **avant** de
+  consommer le jeton (élève et enseignant) ; le jeton reste utilisable.
+- **A10** : la réinitialisation par e-mail d'un mot de passe enseignant remet
+  `password_must_reset` à 0, comme la voie élève.
+- **A13 (inscription)** : `POST /api/auth/register` avec un prénom ou un nom non textuel → 400
+  au lieu de 500.
+
+### Corrigé — audit ForetMap du 19/11, lot 5 (tâches, progression, stats)
+
+- **T1 — homonymes** : la progression n3beur (`countValidatedAssignmentsForStudent`,
+  `syncProgressionForValidatedTask`) et les statistiques (`fetchAssignmentStatusCountsByStudent`,
+  `listStudentTaskAssignments`) appliquent la règle `assignmentIdentityMatch` : une inscription
+  rattachée à un compte ne compte plus pour son homonyme (palier, `GET /api/stats/me/:id`,
+  vue prof, export). Nouvelle forme jointure `assignmentIdentityJoin`.
+- **T2** : plus d'inscription sur une tâche `proposed` ou `done` (en tête de route et sous le
+  verrou de `claimAssignmentSeat`, codes `task_proposed` / `task_done`, messages du front) ; le
+  « fait » ne fait plus avancer une proposition (`task_proposed`) — le badge « Semeur d'idées »
+  ne s'obtient plus ainsi.
+- **T3** : un prof de classe (`stats.read.group`) ne voit plus, dans le détail et le journal
+  d'une tâche, les inscrits et comptes rendus d'élèves hors de ses groupes ; la lecture sans
+  filtre est réservée à `tasks.manage`, `tasks.validate`, `stats.read.all`.
+- **T4** : le proposant non visible est masqué aussi en liste (`proposed_by_student_id` et ligne
+  « Proposition n3beur : … » de la description).
+- **T5** : `POST /api/tasks/:id/done` exige un commentaire texte de 5 000 caractères au plus
+  (codes `comment_invalid`, `comment_too_long`) au lieu d'un 500.
+- **T7** : double validation simultanée → une seule passe (UPDATE conditionnel en transaction),
+  les autres 400 sans notification, audit ni badges en double.
+- **T8** : `PUT /api/tasks/:id` contrôle droits et existence avant de réserver `edit_revision`.
+- **T10 (tâches)** : le plafond de tâches actives est recompté sous verrou (ligne `users` de
+  l'élève, puis tâche).
+- **Comptes rendus** (décision du 19/11) : en mode `tasks.logs_visibility = group`, un compte
+  rendu de l'encadrement (sans élève rattaché) est visible de tous ceux qui lisent le journal.
+
 ### Modifié — G&L : en hybride, les dés aussi sur la tablette (19 novembre 2026)
 
 Sur décision du prof : en surface hybride, un membre de l'équipe lance les dés depuis sa
@@ -102,6 +375,7 @@ test dans `tests/gl-tenir-droits-serveur.test.js`, écrit avant la correction.
   ouverte par le prof, pour tous ou pour l'équipe de celui qui regarde.
 - **P3 — présenter exige une partie en cours.** `present-question` et `present-arrival`
   répondent 409 « La partie doit être en cours » hors statut `live`, comme `qcm/answer`.
+
 ### Corrigé — G&L : éditeurs d'administration qui enregistraient une valeur fausse (19 novembre 2026)
 
 Lot 3 de l'audit des bugs G&L du 19 novembre 2026 (constats E1 à E5 et E12). Chaque défaut est
@@ -136,6 +410,7 @@ d'abord reproduit par un test qui monte le composant réel, avec son chargement 
 Tests : `tests-ui/gl/GLSettingsViewAsyncLoad`, `GLChapterMapStudioAutoSave`,
 `GLLearningLinksPanelPolicyLoad`, `GLRichTextEditorUnresolvedImages`, `GLAutoSaveInFlightTyping`,
 `GLGatingSettingsFreeDelay`.
+
 ### Corrigé — G&L : les écrans qui ne se relisaient pas (audit du 19 novembre 2026, lot 1)
 
 Six constats du front de jeu (`docs/AUDIT_BUGS_GL_2026-11-19.md`, § 3). Aucune règle du jeu ne
@@ -163,6 +438,7 @@ change, aucune route, aucune migration.
 Tests : `tests-ui/gl/glProjectionSession.test.js`, `useGLSessionRelecture.test.jsx`,
 `GLProjectionView.test.jsx`, `GLTourScreen.test.jsx`, `GLTenirEquipeView.test.jsx` ; e2e
 `e2e/gl-tenir-ecrans-relus.spec.js` (console et projection dans deux onglets du même navigateur).
+
 ### Corrigé — G&L : comptes, classes et import de joueurs (audit du 19 novembre 2026, lot 6)
 
 - **Import de joueurs** (A1) : une ligne sans pseudo est refusée dès l'analyse à blanc
@@ -186,6 +462,7 @@ Tests : `tests-ui/gl/glProjectionSession.test.js`, `useGLSessionRelecture.test.j
 
 Tests : `tests/gl-audit-lot6-comptes.test.js`, `tests/gl-profile.test.js`,
 `tests/gl-auth-forgot-password.test.js`, `tests/gl-demo-game.test.js`.
+
 ### Modifié — Prof : les propositions des élèves en tête de l'écran Tâches (19 novembre 2026)
 
 Côté prof, la section « Propositions » passe **en tête** des sections de l'écran Tâches
@@ -239,6 +516,7 @@ doc : `taches-tutoriels-et-validation.md`.
   le relayait pas) ; coupé, il laissait l'ancien popover s'ouvrir.
 - **Zones feuillets en « Tenir »** : la réponse annonçait le gain de cœurs du catalogue ; la
   route lit maintenant le profil de la partie et renvoie `gainCoeur: 0`.
+
 ### Corrigé — G&L : carnet du joueur et récompenses (audit du 19 novembre 2026, lot 7)
 
 - **C8 — « Lu » et « tenu » atteignent le carnet personnel.** Le statut de
@@ -263,6 +541,7 @@ doc : `taches-tutoriels-et-validation.md`.
   Test : `tests-ui/gl/GLLearnAndImport.test.jsx`.
 - **C4 (complément) — `POST /api/gl/learning/tutorials/:id`** répond 404 pour un tutoriel non
   publié, sauf permission `gl.content.manage`.
+
 ### Corrigé — G&L : pots de sorts (audit du 19 novembre 2026, lot 5)
 
 - **Un pot repris est bien celui qu'on demande** (S1). Le pot d'un sort resté en collecte était
@@ -280,6 +559,7 @@ doc : `taches-tutoriels-et-validation.md`.
   au lieu de s'afficher prêt puis d'être refusé au lancement.
 
 Tests : `tests/gl-spell-pot-repris.test.js`.
+
 ### Corrigé — G&L : imports de contenu qui perdaient des données (audit du 19 novembre 2026, lot 8)
 
 - **Glossaire du lore (C5)** : l'export laissait la colonne `termes_lies` vide, et l'import
@@ -306,6 +586,7 @@ Tests : `tests/gl-spell-pot-repris.test.js`.
   vide, et un échec ne laisse plus un biome amputé.
 
 Tests : `tests/gl-imports-pertes.test.js`, `tests/gl-xlsx-attachment.test.js`.
+
 ### Documentation — G&L : audit des bugs (19 novembre 2026)
 
 `docs/AUDIT_BUGS_GL_2026-11-19.md` : relecture de tout le sous-produit Gnomes & Licornes par
@@ -316,6 +597,7 @@ réglages numériques « Tenir à deux » affichent leur minimum et l'enregistre
 de chapitre tourne en boucle sans enregistrer, l'escalier met chaque jet en suspens pour une
 Relance encore fermée. Aucun code modifié : lots de correction et décisions à trancher en fin de
 document.
+
 ### Modifié — Pôle Suivi : l'onglet Tâches passe en premier (19 novembre 2026)
 
 Côté prof, cliquer le pôle **Suivi** ouvre désormais l'onglet **Tâches** (et non plus
@@ -505,6 +787,7 @@ tests d'interface (`tests-ui/gl/`), e2e « trois appareils dans une équipe »
 geste envoyé au même instant : 0 doublon, 0 invariant ; ajouté à la fumée `npm run test:sim`).
 Le scénario e2e des quatre tablettes ne dépend plus du tirage des dés (une équipe arrêtée par
 hasard sur la case marquée « Défi » le faisait échouer une fois sur dix-huit).
+
 ### Ajouté — Séances guidées et tâches : lever ce qui bloque (parcours d'apprentissage, lot 5, 17 novembre 2026)
 
 Rejeu élève sur téléphone (375 × 667) : la séance se perdait d'un onglet à l'autre, le bouton
@@ -594,6 +877,7 @@ Suite de la PR 1b de l'ensemble unifié (#664).
   chaque côté, 0 échec) : aucune mesure du § 6.12 ne s'écarte de plus de 1,3 erreur type. Un seul
   effet réel, attendu : au plateau 2, la zone `cz-p2-08` activée porte le carnet à 8 pages (comme
   au plateau 1), et le carnet complet y devient plus rare (45 % → 15 % des chapitres simulés).
+
 ### Ajouté — G&L : ensemble unifié, PR 2 — apprendre en jouant (17 novembre 2026)
 
 Prompt `docs/GL_ENSEMBLE_UNIFIE_PROMPT.md` (§ 7, étapes 2.1 à 2.5). Au chapitre 1, la classe
@@ -642,6 +926,7 @@ rencontre les règles une à une au lieu de les entendre d'un bloc.
 - **Docs** : `docs/GL_TENIR_A_DEUX_REGLES.md`, `docs/API.md`, `docs/GL_DEFIS.md`,
   `docs/GL_TENIR_A_DEUX.md`, `docs/reference/gl/`, `data/gl/tenir/README.md`, skills
   `.claude/skills/gl-*`.
+
 ### Ajouté — Clés d'identification : issues groupe, grand groupe et renvoi vers une autre clé (17 novembre 2026)
 
 Les clés de la production aboutissaient déjà à des groupes d'espèces, à des grands groupes
@@ -731,6 +1016,7 @@ Oliv. Contenu seulement, aucune règle touchée.
   lande, plus le merle ni le sous-bois ; « Un fil lâche » (taïga) passe par l'ours brun et les
   saumons, deux espèces du catalogue de la taïga.
 - **Olu** : olu-34 « {equipe} est sous le voile. » (le voile n'agit plus : « a rejoint »).
+
 ### Modifié — G&L : ensemble unifié, PR 1a — les règles du tour simplifiées (17 novembre 2026)
 
 Prompt `docs/GL_ENSEMBLE_UNIFIE_PROMPT.md` (§ 6, étapes 1.1 à 1.7 et 1.12), décisions d'Oliv des
@@ -1140,6 +1426,7 @@ Prompt `docs/GL_ENSEMBLE_UNIFIE_PROMPT.md` (§ 6, étapes 1.1 à 1.7 et 1.12), d
   suffisaient à trouver ou tenir la page (feuillet, cœurs, ressource du peuple) sans nouvelle
   fouille ni nouvelle carte. Rejeu → 409 `JETON_DEJA_UTILISE`. La carte jointe à un
   « Pas encore » de lecture reste jouable.
+
 ### Modifié — G&L « Tenir à deux » : Relance annule le jet
 
 Relance « rejouait » les dés par-dessus un jet dont la case s'était déjà appliquée : au dé du
@@ -1160,6 +1447,7 @@ serveur, les deux déplacements s'additionnaient. Il sert désormais à effacer 
 - Tests : `tests/gl-tenir-relance-suspens.test.js`, scénario Relance de `gl-grimoire-v2`. Doc :
   `docs/API.md`, `docs/GL_TENIR_A_DEUX_REGLES.md`, `docs/reference/gl/economie-marche-sorts.md`,
   `guide-du-mj.md`.
+
 ### Ajouté — Connecteur : scripts d'exploitation lançables depuis Claude
 
 - **`foretmap_ops`** gagne trois actions : `scripts` (catalogue), `script_dry_run` (simulation ou
@@ -1262,6 +1550,7 @@ gl-marker-promises`) : aucune promesse affichée non tenue, aucun « sinon / si 
   sur La place et légende lisible ; e2e `gl-market` / `gl-seuil` à jour ; workflow nocturne
   `e2e-gl-nightly.yml` ; journal de démarrage avec RSS maximale avant arrêt brutal, lignes de
   crontab attendues dans le rapport de santé, doc « Resource Usage » (`docs/EXPLOITATION.md`).
+
 ### Ajouté — G&L : modes de démonstration (parents, borne, partie de démo)
 
 Trois façons de montrer Gnomes & Licornes sans toucher à une classe réelle
@@ -1723,6 +2012,7 @@ une clé. Non négociable : aucun secret ne sort, tout est tracé (`via: 'mcp'`)
 
 - Règle Cursor **`foretmap-pr-workflow`** : tout lot de code passe par une branche + PR vers
   `main` ; alignement `foretmap-conventions`, `CLAUDE.md`, skills release/versioning.
+
 ### Corrigé — connecteur MCP : un WHERE toujours vrai ne saute plus la confirmation
 
 - `foretmap_sql_execute` demandait un code e-mail pour un `UPDATE` / `DELETE` sans `WHERE`,
@@ -1769,6 +2059,7 @@ une clé. Non négociable : aucun secret ne sort, tout est tracé (`via: 'mcp'`)
   permissions `mcp.sql_execute` / `mcp.privacy_bypass`). Secrets jamais renvoyés au modèle.
 - Docs : `docs/MCP.md` § 13, `docs/MCP_REGISTRE_TRAITEMENT.md`, `docs/API.md`, doc de référence
   connecteur Claude, `docs/reference/exploitation/modele-de-securite.md`, `.env.example`.
+
 ### Ajouté — tuto d’activation MCP + script `mcp:activate-check`
 
 - Guide simple tous assistants :
@@ -1776,6 +2067,7 @@ une clé. Non négociable : aucun secret ne sort, tout est tracé (`via: 'mcp'`)
   Gemini CLI).
 - Script `npm run mcp:activate-check` : contrôle `/mcp` (401), métadonnées OAuth, well-known,
   rappel des étapes client ; option `--print-env` / `--local-env`.
+
 ### Corrigé — connecteur Claude : migration qui perd la seconde correction d'un même champ
 
 - Un plan qui corrige deux fois la même cellule (même fiche, même champ) produisait une
@@ -1783,6 +2075,7 @@ une clé. Non négociable : aucun secret ne sort, tout est tracé (`via: 'mcp'`)
   base neuve, cette seconde correction ne modifiait aucune ligne : le texte livré n'était
   pas celui appliqué en direct. La garde et le diff s'enchaînent désormais sur le résultat
   de la correction précédente ; un autre champ du même plan n'est pas concerné.
+
 ### Corrigé — pré-saisie : un crédit nettoyé ne revient pas avec les photos
 
 - Intégrer des photos de pré-saisie réécrivait le miroir public depuis les seules lignes
@@ -1790,6 +2083,7 @@ une clé. Non négociable : aucun secret ne sort, tout est tracé (`via: 'mcp'`)
   migration 313) ou portaient un lien absent de la table, cette intégration republiait
   l’ancienne attribution ou faisait disparaître le lien. Le miroir repart maintenant des
   photos affichées, comme le téléversement.
+
 ### Modifié — plan e-nov : deux niveaux de lieux, plan imprimé aligné sur le dossier N3
 
 - **Deux niveaux de mise en avant** : les espaces **retenus** par le dossier (jaune du label,
@@ -1992,12 +2286,14 @@ une clé. Non négociable : aucun secret ne sort, tout est tracé (`via: 'mcp'`)
   `--pct-highlight-pulses`, `--pct-highlight-ring-inset`, en plus de `--pct-highlight-color`.
 - Garde-fou `tests/map-highlight-motion.test.js` : aucune animation de mise en avant infinie,
   chacune coupée sous « réduire les animations ». Doc de référence `plan-enov.md` à jour.
+
 ### Corrigé — Zone-feuillet non consommée si la mascotte n'y est pas encore
 
 - Pendant un jet de dés, la traversée d'une zone-feuillet partait avant l'enregistrement du
   déplacement. Le refus « pas dans cette zone » était traité comme « déjà vue » : le feuillet,
   les cœurs et les gemmes ne se proposaient plus pour cette équipe.
 - Ce refus ne marque plus la zone. La découverte se refait à l'entrée réelle.
+
 ### Corrigé — fresque : un geste posé pendant l'enregistrement n'est plus perdu
 
 - Un second geste (carte, flèche, post-it) dont l'envoi tombait pendant qu'un enregistrement
@@ -2009,6 +2305,7 @@ une clé. Non négociable : aucun secret ne sort, tout est tracé (`via: 'mcp'`)
   numéro de révision). L'autre élève restait sur l'ancienne table : tout ce qu'il posait
   ensuite était refusé, puis perdu en rouvrant la fresque. L'écran ouvre la nouvelle table.
   Un enregistrement refusé parce que la table est archivée fait de même.
+
 ### Corrigé — photos de pré-saisie jamais enregistrées, confirmation sans effet
 
 - Le formulaire d’édition n’envoyait pas l’identifiant de la fiche au pré-remplissage
@@ -2019,6 +2316,7 @@ une clé. Non négociable : aucun secret ne sort, tout est tracé (`via: 'mcp'`)
   ne peut plus effacer les photos ajoutées (ni retirer une confirmation) sans le dialogue
   habituel « fiche modifiée entre-temps ». L’enregistrement automatique de la même fenêtre
   attend la fin de l’intégration et relit la liste à jour.
+
 ### Corrigé — tests rouges sur `main` après les photos de pré-saisie ; suites du plan imprimable
 
 - **Tests UI `plant*`** (`plantFormValues`, `plantPhotos`, `plantPrefillApply`,
@@ -2357,6 +2655,7 @@ une clé. Non négociable : aucun secret ne sort, tout est tracé (`via: 'mcp'`)
 - **Migration `320_user_totp.sql`** : tables `user_totp` et `user_totp_backup_codes`, vue `v_user_totp_status` (`SQL SECURITY INVOKER`, sans secret) ; idempotente (gardes `INFORMATION_SCHEMA`), utf8mb4.
 - Tests : `tests/totp-*.test.js`, `tests/auth-totp-*.test.js`, `tests/migration-320-user-totp.test.js` ; `tests-ui/components/auth/Totp*.test.jsx`, `AuthScreenTotp`, `UserTotpAdminPanel`, `AppShellWiring` (retour `mfa`). Jeton d'administrateur des tests marqué « second facteur validé » (`tests/helpers/adminAuth.js`).
 - Docs : `docs/API.md` (§ Double authentification), `docs/EXPLOITATION.md` (clé, sauvegarde hors serveur, mise en service, script), `docs/reference/foretmap/double-authentification.md` (nouveau), `docs/reference/exploitation/modele-de-securite.md`, `comptes-roles-et-groupes.md`, `guide-du-prof.md`, `.env.example`.
+
 ### Ajouté — Durées de conservation : purge planifiée, journal de purge, alerte
 
 - **Purge planifiée** (`scripts/retention-purge.js`, tâche `scripts/retention-purge-cron.sh`, ligne 5 de `docs/CRONTAB.md`, chaque nuit) : comptes **élèves** supprimés un an après la fin de la scolarité, comptes **personnels** un an après le départ, **journaux** 12 mois au plus, **adresses IP** tronquées à 3 mois. Catégories `desactivations`, `eleves`, `personnels`, `journaux`, `ip` (`--only=`).
@@ -2368,6 +2667,7 @@ une clé. Non négociable : aucun secret ne sort, tout est tracé (`via: 'mcp'`)
 - **Journaux** : toute durée de journal au-delà de 365 jours est refusée ; ouvertures des applications 12 mois (au lieu de 13) ; **compteurs d'usage** (`usage_counters`) purgés à 12 mois (auparavant sans limite) ; suppression en lots bornés (`DELETE … LIMIT`). IP tronquée à **3 mois** (au lieu de 6), y compris l'IP des données complémentaires (`payload_json.ip`) de `security_events` et d'`audit_log`. L'outil manuel `npm run logs:purge` (et l'ancienne ligne de crontab) applique ces durées dès le déploiement.
 - Notice « Vos données » : durée du compte (scolarité + 1 an, départ + 1 an), IP raccourcie à 3 mois, compteurs anonymes 1 an.
 - Tests : `tests/retention-purge-journal.test.js`, `-journaux`, `-ip`, `-eleves`, `-personnels`, `-cron`. Docs : `docs/CRONTAB.md`, `docs/EXPLOITATION.md`, `docs/SCRIPTS.md`, `docs/reference/exploitation/durees-de-conservation.md` (nouveau), `vos-donnees.md`, `foretmap/comptes-roles-et-groupes.md`, `foretmap/rentree-moodle.md`.
+
 ### Amélioré — Codes d'accès des plans (plan public, plan des personnels, plan e-nov)
 
 - **Générateur de code** dans Réglages → Plan (trois panneaux, champ commun `AccessCodeField`) : bouton « Générer un code », 14 caractères tirés dans le navigateur (`crypto.getRandomValues`, tirage sans biais) parmi minuscules et chiffres sans caractère ambigu, affichés en clair jusqu'à l'enregistrement (`src/utils/accessCodeGenerator.js`).
@@ -2382,6 +2682,7 @@ une clé. Non négociable : aucun secret ne sort, tout est tracé (`via: 'mcp'`)
 
 - Routes de la Visite (`POST` / `PUT /api/visit/zones(:id)`, `/api/visit/markers(:id)`) : envoyer `notes` exige `zones.manage` (zone) ou `map.manage_markers` (repère) — **403** sinon, avant toute écriture ; la réponse ne porte tous les compléments, audiences comprises, qu'à qui gère ce type de lieu, et aux autres seulement ceux que leur audience leur ouvre (`canManageLocationNotes`, option `kind` de `canViewLocationNote` / `projectLocationNotesForViewer`, `lib/visitNotesWrite.js`). Les lecteurs par audience (rôle, groupe) ne changent pas ; les profils livrés portent les trois permissions.
 - Test : `tests/location-notes-visit-permission.test.js`. Docs : `docs/API.md`, `docs/reference/foretmap/carte-et-zones.md`.
+
 ### Modifié — Avatars par défaut générés localement, plus aucun appel à un service tiers
 
 - **Serveur** : nouvelle route `GET /api/users/:id/default-avatar?exp=…&sig=…` (`routes/users.js`, `lib/defaultAvatar.js`) qui dessine l'avatar d'un compte sans photo avec la bibliothèque [DiceBear](https://github.com/dicebear/dicebear) (MIT), style « Adventurer Neutral » de Lisa Wischofsky ([source](https://www.figma.com/community/file/1184595184137881796), [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)). Paquets `@dicebear/core` et `@dicebear/adventurer-neutral` épinglés en 9.4.3 : **même dessin qu'avant** pour un même compte (vérifié octet pour octet).
@@ -2394,6 +2695,7 @@ une clé. Non négociable : aucun secret ne sort, tout est tracé (`via: 'mcp'`)
 - **Attribution** (licence CC BY 4.0 de l'œuvre) : carte « Crédits graphiques » dans « À propos » et mention courte sous l'avatar dans « Mon profil » (`src/components/DefaultAvatarCredit.jsx`). Test : `tests-ui/AboutView.test.jsx`.
 - **CSP** : aucune variante ne nommait le service d'avatars (couvert jusqu'ici par `img-src https:`), la garde ci-dessus l'interdit désormais ; `https:` reste nécessaire (photos d'espèces externes, avatars par défaut de G&L, politique commune aux produits) — justification dans `lib/csp.js`.
 - Docs : `docs/reference/exploitation/modele-de-securite.md` (avatars dans « rien ne part chez un tiers », point d'attention G&L), `docs/reference/foretmap/comptes-roles-et-groupes.md`, `docs/reference/foretmap/guide-du-prof.md`.
+
 ### Sécurité — Comptes en attente : e-mail retiré de la liste
 
 - `GET /api/groups/pending-visitors` ne renvoie plus l'adresse e-mail des inscrits (champ `email` retiré de la réponse, pour tout acteur) : prénom, nom, pseudo et date d'inscription suffisent au rattachement. L'écran « Comptes en attente » n'affichait pas l'adresse : aucun changement d'interface.
@@ -2420,6 +2722,7 @@ une clé. Non négociable : aucun secret ne sort, tout est tracé (`via: 'mcp'`)
 - **Rattacher à un groupe, c'est conférer son profil par défaut** : `addUserToGroup(userId, groupId, { actor })` refuse, hors administrateur, un groupe dont le profil par défaut est de rang égal ou supérieur à celui de l'acteur — rattachement unitaire, en lot, liste des membres (`PUT /api/groups/:id/members`, seulement s'il ajoute un membre), création ou duplication d'un compte avec `group_id` (vérifié avant toute écriture), import. La génération d'un **code de classe** (`POST /api/groups/:id/class-code`) suit la même garde.
 - Interface : la création unitaire ne propose plus « n3boss » qu'à l'administrateur.
 - Tests : `tests/rbac-rank-guards.test.js`, `tests-ui/utils/createUserRoleOptions.test.js`, `tests-ui/components/profiles/CreateUserPanel.test.jsx` ; `tests/rbac-account-lifecycle.test.js` et `tests/students-import.test.js` alignés sur la règle. Docs : `docs/API.md`, `docs/reference/foretmap/comptes-roles-et-groupes.md`, `docs/reference/foretmap/guide-du-prof.md`.
+
 ### Sécurité — Duplication de compte : même garde de profil que la création
 
 - `POST /api/students/:id/duplicate` recopiait le profil attribué de la source **sans** `checkRoleGrantAllowed`, contrairement à la création (`POST /api/rbac/users`) et à l'import. La création RBAC laissant choisir le type de compte, un n3boss pouvait dupliquer un compte de type élève portant le profil administrateur et obtenir un nouvel administrateur.
@@ -2455,6 +2758,7 @@ une clé. Non négociable : aucun secret ne sort, tout est tracé (`via: 'mcp'`)
 - `GET /api/zones/:id/photos`, `GET /api/map/markers/:id/photos` et les routes `…/photos/:pid/data` servaient photos et légendes de **n'importe quel lieu, sans session ni code** : lieu retiré du plan public, réservé aux personnels, ou porté par un plan fermé par code (sonde locale du 10/10/2026).
 - Une photo se lit désormais aux conditions de son lieu : le lieu doit figurer dans la liste servie au lecteur (`checkLocationReadable`, `lib/terrain/locationService.js`, qui réutilise `listLocations` — surface, laissez-passer, périmètre, masquage, audience). Sinon `404`, `401` (plan fermé) ou `403` (hors périmètre).
 - Tests : `tests/security-access-controls.test.js`. Docs : `docs/API.md`, `docs/reference/exploitation/modele-de-securite.md` (les fichiers sous `/uploads/zones/` restent joignables par adresse directe : ne pas photographier de lieu sensible).
+
 ### Corrigé — Cron de déploiement : un `git fetch` refusé ne passe plus inaperçu
 
 - `scripts/auto-deploy-cron.sh` : un `git fetch` en échec (dépôt passé en privé alors que le
@@ -2476,6 +2780,7 @@ une clé. Non négociable : aucun secret ne sort, tout est tracé (`via: 'mcp'`)
 - `.gitignore` : dumps compressés ou au format `.dump`, clés et certificats, `.env.*`.
 - Rejoué sur un export complet de production : refusé sous son nom, renommé en `.txt`, ou
   substitué à un jeu déclaré.
+
 ### Sécurité — Mot de passe provisoire ou compromis : changement imposé avant tout usage
 
 - Le drapeau `users.password_must_reset` n'était qu'un bandeau dans « Mon profil » : un compte marqué pouvait tout faire sans changer son mot de passe. Il est désormais **appliqué** par le serveur, relu en base à chaque requête (`hydrateAuthFromTokenClaims` → `auth.passwordMustReset`).
@@ -2668,6 +2973,7 @@ une clé. Non négociable : aucun secret ne sort, tout est tracé (`via: 'mcp'`)
 - **`frontend-dist.yml`** : sauté sur PR brouillon et sur changement de pure documentation.
 - **Dependabot** : plus de rebase automatique (chaque fusion relançait la CI de ses PR), npm en mensuel.
 - Doc : `docs/EXPLOITATION.md` § 11.2 (diagnostic chiffré, conséquences pour le travail courant), `CLAUDE.md`, skill `foretmap-testing`.
+
 ### Modifié — G&L : fusion des chapitres 4 et 5, le plateau des Grands Froids
 
 Décision éditoriale de l'auteur : les chapitres 4 (Taïga & désert froid) et 5 (Toundra arctique) ne font plus qu'un chapitre 4 « Eurasie continentale ». Il se joue sur **un seul plateau peint** (clé médiathèque `plateau-4_fond`, prioritaire sans code) : taïga → limite des arbres → toundra en été polaire → nuit polaire. L'année passe de 5 à **4 plateaux**. Le Livre de Sélène garde ses 5 pays (`gl_lore_plateaux` et `lib/glBiomePays.js` inchangés).
@@ -2708,6 +3014,7 @@ Décision éditoriale de l'auteur : les chapitres 4 (Taïga & désert froid) et 
 - **Console** : Réglages → Plan Lyautey → « Plan e-nov (enov) » (`EnovPlanSettingsPanel`) : catégories mises en avant, couleur, pastille, intitulé, textes, cartes proposées, filtres, accès.
 - **Migration `315_enov_plan.sql`** : `enov` ajouté **en fin** des `SET` ; continuité avec le plan public (catégories visibles sur `plan` → aussi sur `enov` ; lieux masqués sur `plan` → aussi sur `enov`) ; colonnes `is_distinction` et `enov_description` ; catégorie `cat-enov`.
 - Tests : `tests/enov-plan-content.test.js`, `tests-ui/plan/EnovPlanMount.test.jsx`, règle label dans `tests/location-surfaces.test.js` et `tests-ui/plan/locationSurfaceVisibility.test.js`, priorités / regroupement (`clusterMarkers`, `pctMapLabels`). Docs : `docs/API.md` (section « Plan e-nov », réglages, surfaces), `docs/reference/plan/plan-enov.md`, `docs/EXPLOITATION.md` (ouverture du sous-domaine).
+
 ### Corrigé — plan des personnels (recette stafflyautey du 30/09)
 
 Recette des profils sur `stafflyautey` / `proflyautey` : connexion, contenu, signalement, code partagé et déconnexion conformes pour Administrateur, n3boss, Prof de classe et Personnel ; refus nommé pour les autres profils. Trois écarts corrigés :
@@ -2770,6 +3077,7 @@ Audit [`docs/AUDIT_SECURITE_RGPD_2026-09-30.md`](docs/AUDIT_SECURITE_RGPD_2026-0
   - **Portée** : comptes et sessions, G&L, routes ForetMap, RGPD, secrets, historique Git et CI.
   - **Constats** : 40 au total, dont 1 critique hors code (dump encore joignable par les `refs/pull/*`, déjà connu) et 10 importants. Parmi les importants : trois voies de prise de compte par l'e-mail (LTI → admin G&L, pont GL → compte ForetMap, e-mail d'un pair modifiable), `engine.io` vulnérable au déni de service sans compte, photos et productions d'élèves servies sans authentification sous `/uploads`, notice d'information absente, conservation et effacement incomplets.
   - **Suite** : plan en sept lots et actions du propriétaire. Aucune modification de code dans ce lot.
+
 ### Corrigé — Visite sans compte « Carte introuvable » ; échecs de connexion Google nommés
 
 - **Visite sans compte** : en production, `GET /api/visit/content` répondait « Carte introuvable » et la Visite restait vide. La liste blanche publique (`allowedVisitMapIds`, `lib/surfaceAccess.js`) retirait toute carte **proposée au changement** sur un plan gardé (`ui.plan.selectable_map_ids`, `ui.staff_plan.selectable_map_ids`) : n³ — carte de visite par défaut — et la forêt comestible en sortaient. Seule la carte des plans (`ui.plan.map_id`, `lyautey`) reste réservée, et la carte de visite par défaut est toujours servie. Sans `map_id`, la route ouvre la première carte servie plutôt que de refuser (`lib/visitRouteShared.js`). Une carte demandée hors liste reste « Carte introuvable ».
@@ -2837,6 +3145,7 @@ Seconde passe de l'audit [`docs/AUDIT_ETIQUETTES_ZONES_2026-09-29.md`](docs/AUDI
 - **Simulation sur les données du plan** (écran 390 × 463 px) : 21 noms sur 35 affichés à l'ouverture, contre 16 ; plus aucun emoji des bâtiments I, T, S et G sous un repère.
 
 Doc de référence `carte-et-zones.md` mise à jour. Tests : `pctMapLabels`, `pctPolylabel`, `mapOverlayLabelCollision`, `PctLayers`, `ZonePolygonsLayer`, `tests/migration-311-duplicate-emoji-names.test.js`.
+
 ### Corrigé — affichage des photos : carnet, visionneuse, médiathèque, suppression RGPD, poids et cache
 
 Audit [`docs/AUDIT_AFFICHAGE_PHOTOS_2026-09-29.md`](docs/AUDIT_AFFICHAGE_PHOTOS_2026-09-29.md) (4 bloquants, 9 moyens, constats faibles et duplications — tous traités).
@@ -2890,6 +3199,7 @@ Ouvrir le mode « Contour » d'une zone, tracer une zone, poser un repère ou al
 ### Maintenance — vérification d'accès au dépôt privé
 
 - Bump de version (`1.195.2`) pour valider la chaîne commit / push / PR après le passage du dépôt en privé.
+
 ### Corrigé — réglages du plan : « Texte trop long » en cochant beaucoup de catégories
 
 Les listes de catégories cochées par défaut ou masquées (plan, plan des personnels, carte, Visite) étaient plafonnées à 512 caractères : une quinzaine de catégories suffisait à faire refuser l'enregistrement. Plafond porté à 8192 caractères (constante `CATEGORY_IDS_SETTING_MAX_LENGTH`, `lib/categoryIdsSetting.js`), test de non-régression dans `tests/settings.test.js`.
@@ -4114,6 +4424,7 @@ université), niveau de question (collège / lycée) et difficulté (1–5), pro
   correctement.
 - **Tests** : `tests/uploads-exif.test.js` (7 cas), dont un passe par la route réelle
   `POST /api/zones/:id/photos` jusqu'au fichier servi publiquement.
+
 ### Corrigé — la CI de `main` était rouge, et plus aucune branche n'exécutait ses tests e2e
 
 Les lots « structure biodiversité » (groupes emboîtés, individus, dangers d'une fiche) ont été
@@ -4186,6 +4497,7 @@ qui a son propre budget de temps : il n'est plus emporté par un test qui expire
 de test porte un titre unique, comme son slug l'était déjà, de sorte qu'une fuite résiduelle ne
 puisse plus faire échouer la tentative suivante. Le test échoue désormais sur ce qui ne va pas,
 au lieu de se saborder.
+
 ### Ajouté — retour navigateur entre onglets
 
 - Sur **ForetMap** et **Gnomes & Licornes**, le bouton Retour du navigateur ou du
@@ -4259,7 +4571,9 @@ Les tâches pour comptes enseignants restent **hors de ce lot** : `prof_classe` 
 `task_assignments` est centrée sur l'élève (`student_id`, lectures filtrées sur
 `user_type = 'student'`) — ces droits sont donc inertes, et l'onglet Tâches reste masqué pour
 ce profil.
+
 ### Corrigé — LTI : clé privée lisible depuis cPanel
+
 ### Corrigé — compteur de commentaires sur les tâches (badge + non lus)
 
 - Le badge à côté de « Commentaires de la tâche » restait à **0** tant que la section
@@ -4302,6 +4616,7 @@ ce profil.
 - **Sans changement volontaire** : la Visite publique et les terrains d'apprentissage restent
   ouverts sans compte, le géoréférencement reste servi à la Visite (elle s'en sert pour
   localiser le lecteur), et le périmètre de groupe des comptes est inchangé — il s'ajoute.
+
 ### Ajouté — Biodiversité structure : suivi d'individus arbres et mesures (lot 7)
 
 - Migration **276** : tables **`tracked_individuals`** et **`individual_measurements`**.
@@ -4506,6 +4821,7 @@ ce profil.
   contrôlée restait valable, et « Revenir à mon compte » pouvait même réémettre un jeton
   admin/MJ frais. On snapshot désormais l'époque de l'acteur (`actorTokenEpoch`) à
   l'ouverture et on la revérifie à chaque requête (ForetMap et Gnomes & Licornes).
+
 ### Documentation — audit de sécurité d'accès aux données (22 sept. 2026)
 
 - **`docs/AUDIT_SECURITE_2026-09-22.md`** : état des lieux de la politique d'accès côté serveur
@@ -4613,6 +4929,7 @@ ce profil.
 - Nouveau helper `getAccountN3beurStatus` (`lib/n3beurStudents.js`) ; tests
   `tests/stats-me-n3beur-visibility.test.js` et
   `tests-ui/components/StudentStatsN3beurVisibility.test.jsx`.
+
 ### Corrigé — proflyautey : un personnel rattaché à un groupe était refusé à sa porte
 
 - La garde du plan des personnels ne regardait que le profil **effectif**
@@ -4715,6 +5032,7 @@ Solde des constats de [`docs/AUDIT_COMPTES_DROITS_GROUPES_2026-09-18.md`](docs/A
 - **LTI.** Les nonces sont persistés (`lti_nonces`, migration 268) : plus de rejeu possible
   sur une autre instance ; le réglage `unknown_user` ne propose que `refuse`, seule valeur
   lue. Les e-mails passent par `lib/brand.js` (plus de marque en dur).
+
 ### Corrigé — carte de travail : la mascotte ne disparaît plus au zoom sur un lieu de tâche
 
 - Sur la carte associée aux tâches (vue scindée carte/tâches ou onglet Carte), un focus sur
@@ -4731,6 +5049,7 @@ Solde des constats de [`docs/AUDIT_COMPTES_DROITS_GROUPES_2026-09-18.md`](docs/A
   mémorisés reste dans le domaine JSON (`JSON_CONTAINS` + collation explicite), et la
   table temporaire déclare sa collation. Limite arbitraire de dix lieux par tâche
   retirée avec la table de rangs.
+
 ### Modifié — comptes, profils et groupes : « le plus élevé l'emporte »
 
 Lot issu de l'audit [`docs/AUDIT_COMPTES_DROITS_GROUPES_2026-09-18.md`](docs/AUDIT_COMPTES_DROITS_GROUPES_2026-09-18.md)
@@ -4828,6 +5147,7 @@ Lot issu de l'audit [`docs/AUDIT_COMPTES_DROITS_GROUPES_2026-09-18.md`](docs/AUD
 - Un lieu supprimé entre-temps, ou passé sur une autre carte, est simplement laissé de côté :
   rendre un lieu est un confort de reprise, jamais une raison de refuser le changement de
   statut demandé.
+
 ### Corrigé — carte : le plan ouvert à l'arrivée suit enfin les réglages, puis le dernier plan consulté
 
 - **Le réglage « plan ouvert par défaut » ne s'appliquait plus jamais sur un appareil déjà
@@ -4866,6 +5186,7 @@ Lot issu de l'audit [`docs/AUDIT_COMPTES_DROITS_GROUPES_2026-09-18.md`](docs/AUD
   de l'application (carte et tâches ensemble), et la liste montre les tâches de cette carte.
 - **L'entrée « Toutes cartes » est retirée** : elle promettait un périmètre que les données
   chargées ne couvraient jamais — elle n'affichait que la carte du moment.
+
 ### Corrigé — un compte « Personnel » ne redevient plus « Visiteur »
 
 - **La règle automatique de profil écrasait un choix explicite.** `visiteur` et `personnel`
@@ -4946,6 +5267,7 @@ Lot issu de l'audit [`docs/AUDIT_COMPTES_DROITS_GROUPES_2026-09-18.md`](docs/AUD
   `npm run templates:users` (vérification de synchronisation jouée par `npm test`).
 - Nouveau guide [docs/IMPORT_COMPTES.md](docs/IMPORT_COMPTES.md) : colonnes et en-têtes
   acceptés, valeurs acceptées pour chaque profil, garde-fous.
+
 ### Ajouté — un groupe peut imposer son profil, la montée automatique ne le défait plus
 
 - Le profil par défaut d'un groupe n'était qu'un **plancher** : la montée par tâches validées
@@ -5000,6 +5322,7 @@ Lot issu de l'audit [`docs/AUDIT_COMPTES_DROITS_GROUPES_2026-09-18.md`](docs/AUD
   réécrit pour figer qu'aucun champ de complément ne traverse plus la liste blanche, et
   `tests-ui/LocationLinksFields.test.jsx` pour l'éditeur multi-compléments. Doc : `docs/API.md`,
   `docs/reference/foretmap/carte-et-zones.md`.
+
 ### Ajouté — un signalement de lieu se clôt, et son auteur l'apprend
 
 - **Statut de traitement** sur un message reçu sur un lieu (migration `264`, trois colonnes sur
@@ -5283,6 +5606,7 @@ une règle qui avaient changé — et que rien ne rattrapait, faute de lancer la
   fusionnées en une seule — le cron s'exécute depuis le script qu'elle modifie.
 - Tests : `tests/fetch-dist-artifact.test.js` (validation de `BUILD_INFO`, arbitrage
   `apply`/`defer`/`stale`, intégrité du build, garde de recouvrement, rollback).
+
 ### Ajouté — audience des lieux par groupes, et héritage depuis la catégorie
 
 Suite des deux réglages restés marqués « 🔧 À implémenter » dans
@@ -5334,6 +5658,7 @@ pouvant masquer d'un coup tous les lieux d'une famille.
 Documentation : `docs/API.md` et `docs/reference/foretmap/carte-et-zones.md` (« Restreindre à
 une classe ou à un club », « Audience héritée d'une catégorie »). Il ne reste qu'un point
 ouvert sur l'audience : plusieurs compléments de **texte** par lieu, un par public.
+
 ### Ajouté — licence propriétaire et découplage de la marque
 
 - **`LICENSE` à la racine** (absent jusqu'ici) : logiciel **propriétaire**, tous droits
@@ -5379,6 +5704,7 @@ ouvert sur l'audience : plusieurs compléments de **texte** par lieu, un par pub
 - Documentation : `docs/reference/exploitation/marque-et-domaines.md` (guide non technique
   pour administrateurs, avec le tableau de ce qui reste à traiter), `.env.example` et
   `docs/EXPLOITATION.md` § variables d'environnement.
+
 ### Sécurité — préparation du passage du dépôt en privé
 
 - **`.cursorignore`** à la racine : `.gitignore` ne protège que git, un fichier ignoré reste
@@ -5407,6 +5733,7 @@ ouvert sur l'audience : plusieurs compléments de **texte** par lieu, un par pub
   déploiement en lecture seule — `scripts/auto-deploy-cron.sh` tire aujourd'hui en HTTPS
   **anonyme** et s'arrêterait en silence dès la bascule —, quota Actions, et rappel de ce que
   la bascule ne répare pas (elle ferme l'accès futur, elle n'efface pas le passé).
+
 ### Corrigé — « Reprendre le parcours » redémarrait à l'étape 1
 
 - Sur les trois surfaces (Plan Lyautey, plan des personnels, Visite, carte de travail), quitter
@@ -5505,6 +5832,7 @@ ouvert sur l'audience : plusieurs compléments de **texte** par lieu, un par pub
   champ (§2.3), et le mode parcours existe en deux exemplaires — `useMapRouteMode` pour la
   Visite et la carte, une copie propre dans `AppPlan.jsx` (§2.5).
 - Indexé dans `docs/audits/README.md`.
+
 ### Corrigé — Prof de classe : l'application ne reste plus figée au chargement
 
 - Un compte enseignant **sans** la permission « Accès interface n3boss » (profil dérivé,
@@ -5561,6 +5889,7 @@ ouvert sur l'audience : plusieurs compléments de **texte** par lieu, un par pub
 Documentation : `docs/API.md` (liens d'un lieu + tableau de la politique de lien) et
 `docs/reference/foretmap/carte-et-zones.md` (« Liens dans les descriptions », « Liens du
 lieu », avec l'avertissement qu'un lien n'est confidentiel que si sa cible l'est).
+
 ### Ajouté — « Y aller » dans la Visite, et la distance sur la barre de parcours
 
 - **La fiche d'un lieu de la Visite porte un bouton « Y aller »**, comme celle du Plan Lyautey :
@@ -5656,6 +5985,7 @@ lieu », avec l'avertissement qu'un lien n'est confidentiel que si sa cible l'es
   cache HTTP. `lib/staticCacheHeaders.js` pose désormais 30 jours sur `dist/fonts/` — sans
   `immutable`, le nom du fichier n'étant pas haché (il change à chaque
   `npm run fonts:sync-noto-emoji`). Test : `tests/static-cache-headers.test.js`.
+
 ### Corrigé — « Reprendre le parcours » redémarrait à l'étape 1
 
 - Sur les trois surfaces (Visite, carte de travail, Plan Lyautey), le bouton **« Reprendre le
@@ -5690,6 +6020,7 @@ lieu », avec l'avertissement qu'un lien n'est confidentiel que si sa cible l'es
   `src/shared/` à zéro import remontant et gardée par ESLint, kit d'interface commun, échappement
   du glossaire lore) — l'audit le mesure pour éviter de les reprogrammer.
 - Index des audits (`docs/audits/README.md`) complété.
+
 ### Ajouté — Base à volumétrie réelle disponible dans chaque session (fixture anonymisé versionné)
 
 - `sql/fixtures/foretmap-anonymise.sql.gz` (~1,4 Mo) : copie **anonymisée** de la base, seule
@@ -5760,6 +6091,7 @@ lieu », avec l'avertissement qu'un lien n'est confidentiel que si sa cible l'es
 - Le script affichait son message puis restait suspendu : le pool `mysql2` gardait la boucle
   d'évènements ouverte. Il fallait l'interrompre à la main — et il bloquait tout script
   d'amorçage qui l'enchaînait. Sortie explicite, comme le fait déjà `db:init`.
+
 ### Ajouté — proflyautey : un plan des personnels, à côté du plan public
 
 - **Nouveau sous-produit `staff`** servi sur `proflyautey.*` : la **même** carte et le **même**
@@ -5843,6 +6175,7 @@ lieu », avec l'avertissement qu'un lien n'est confidentiel que si sa cible l'es
 - Le **calage GPS de production est vérifié bon** (0,5 % d'écart entre paires d'ancres, nord à
   0,17°) : les difficultés de repérage ne viennent pas de la géométrie.
 - Index des audits mis à jour. Aucun code produit modifié.
+
 ### Corrigé — Échap, focus et tabulation revenus dans les fenêtres qui restaient montées
 
 - **Symptôme** : sur une quinzaine de fenêtres (confirmation de suppression d'une tâche,
@@ -5889,6 +6222,7 @@ lieu », avec l'avertissement qu'un lien n'est confidentiel que si sa cible l'es
   couleurs distinctes en dur face à 17 tokens, 1 288 styles inline, 217 états vides ad hoc),
   ce qui est sain et n'a pas à être réaudité, et un plan en quatre lots. Indexé dans
   [`docs/audits/README.md`](docs/audits/README.md).
+
 ### Ajouté — Réseau trophique : isolement utile, sélection d'espèces, niveaux de consommateurs
 
 Mise en œuvre des lots F1–F5 de
@@ -5981,6 +6315,7 @@ Aucune migration, aucune route touchée : tout est calculé côté client.
 - Tests : montage d'`App` avec une session prof de classe **sans** `teacher.access`
   (`tests-ui/AppShellWiring.test.jsx`), garde pure `teacherAccessLockError` et gel de
   la liste des profils verrouillés contre `ROLE_PERMISSION_MATRIX`.
+
 ### Corrigé — Suite e2e : trois défauts qui la faisaient échouer sans cause applicative
 
 - `e2e/fixtures/auth.fixture.js` : `waitForTeacherMapReady` était **défini mais pas exporté**
@@ -6111,6 +6446,7 @@ Aucune migration, aucune route touchée : tout est calculé côté client.
   liste les trois tests à ajouter avec le correctif. **Aucun code produit modifié.**
 - Index `docs/audits/README.md` mis à jour (nouvel audit en point d'entrée ; ajout du relevé
   d'affichage du 13 septembre qui manquait à l'historique).
+
 ### Ajouté — La règle de récurrence est visible dans l'application
 
 - `GET /api/tasks/recurring-preview` (`tasks.manage`) : prochaine occurrence **prévue** de
@@ -6237,6 +6573,7 @@ Trois défauts relevés par `docs/AUDIT_ECHEANCES_2026-09.md` (§5 et §7) et la
 - Documentation : `docs/API.md` (section récurrence) et
   `docs/reference/foretmap/taches-tutoriels-et-validation.md` (« Sur quelle date se cale le
   rythme ? », dérive calendaire et non-reprise des inscriptions).
+
 ### Modifié — Affectation rapide : les inscrits en haut de la liste
 
 - Le panneau « Affectation rapide » d'une tâche affiche désormais les utilisateurs **déjà
@@ -6248,6 +6585,7 @@ Trois défauts relevés par `docs/AUDIT_ECHEANCES_2026-09.md` (§5 et §7) et la
 - Helper pur `sortStudentsForQuickAssign` (`src/utils/taskQuickAssign.js`), couvert par
   `tests-ui/utils/taskQuickAssign.test.js` et par un test de rendu du panneau ouvert dans
   `tests-ui/components/TaskTileCard.test.jsx`.
+
 ### Modifié — Le cadre « Séries récurrentes » arrive replié, sans filtre actif
 
 - Onglet Tâches (encadrement) : le cadre « Séries récurrentes » n'occupe plus le haut de la
@@ -6262,6 +6600,7 @@ Trois défauts relevés par `docs/AUDIT_ECHEANCES_2026-09.md` (§5 et §7) et la
   premier dépliage : replié, le cadre n'en affiche rien.
 - Test `tests-ui/components/RecurringSeriesOverview.test.jsx` : replié à l'arrivée, dépliage
   et repliage au clic, filtre jamais déclenché tout seul et réversible.
+
 ### Corrigé — Gestion des tâches : seuls les n3beurs sont proposés à l'affectation
 
 - Les listes d'utilisateurs de la gestion des tâches (affectation à la création, affectation
@@ -6283,6 +6622,7 @@ Trois défauts relevés par `docs/AUDIT_ECHEANCES_2026-09.md` (§5 et §7) et la
   de rang inférieur à l'encadrement, jamais `admin` / `prof` / `prof_classe` / `visiteur` /
   `personnel` / `gl_*`. Le statut reste acquis aussi bien à la main que par rattachement à
   un groupe n3beur, celui-ci synchronisant déjà le profil principal.
+
 ### Ajouté — L'onglet Comptes devient utilisable à l'échelle d'un établissement
 
 Mise en œuvre des dix-huit propositions de `docs/AUDIT_UX_GESTION_UTILISATEURS_2026-09.md`,
@@ -6381,6 +6721,7 @@ ouvertes par l'audit du même jour puis arbitrées.
   des utilisateurs et de la fiche utilisateur — 5 constats traités par ce lot, 18 propositions
   (P1–P18) **ouvertes et non arbitrées**, classées par impact et regroupées en quatre lots.
   Indexé dans `docs/audits/README.md`.
+
 ### Corrigé — Le palier n3beur ne repart plus de zéro au rattachement à un groupe
 
 - **Le profil par défaut d'un groupe n3beur n'est plus qu'un plancher.** Chaque passage de
@@ -6432,6 +6773,7 @@ ouvertes par l'audit du même jour puis arbitrées.
   les restaurait pas, ce qui rendait le palier de départ des fichiers suivants dépendant de
   l'ordre d'exécution. Nouveau helper `tests/helpers/progressionThresholds.js`, appelé en
   sortie du fichier fautif et en entrée des fichiers qui raisonnent sur les paliers.
+
 ### Corrigé — Plus de déconnexion toutes les 1 h 30, plus de rechargement d'autorité
 
 Deux symptômes distincts, souvent confondus parce qu'ils se produisaient ensemble : le
@@ -6501,6 +6843,7 @@ séparés.
   photo que là où il n'y en a pas, n'écrase jamais une illustration choisie par un
   enseignant, et la rejouer ne fait rien. 30 fiches concernées sur le dump de production,
   16 sur une base neuve.
+
 ### Corrigé — Carte : retour des pastilles colorées d’état des tâches
 
 - Les **points colorés d’état des tâches** (rouge « à faire », orange « en cours », vert
@@ -6519,6 +6862,7 @@ séparés.
 - Filet de régression : `tests-ui/components/MapViewMount.test.jsx` (montage réel de `MapView`)
   et `tests-ui/shared/pct-map/PctStatusDots.test.jsx`.
 - Doc de référence `carte-et-zones.md` : section « Pastilles colorées des tâches ».
+
 ### Modifié — Complément réservé : l'encadrement le voit par défaut
 
 - Le **complément réservé** d'une zone ou d'un repère laissé **sans aucun rôle coché** est
@@ -6686,6 +7030,7 @@ séparés.
   les flux trophiques, `from_to` pour les apports minéraux, `none` pour les services. **Pas
   de colonne SQL** — ce serait une troisième copie à synchroniser ; un test tient l'invariant
   et la parité entre les deux fichiers.
+
 ### Modifié — Visite : vu / non-vu sans pastilles, halo d’accueil ciblé
 
 - Sur le plan de visite, les lieux **vus** sont plus atténués et les **non vus** ont un
@@ -7465,6 +7810,7 @@ séparés.
   sélecteurs de couleur et de fichier.
 
 Audit et décisions : [`docs/AUDIT_UI_FORMULAIRES_ONGLETS_2026-09.md`](docs/AUDIT_UI_FORMULAIRES_ONGLETS_2026-09.md).
+
 ### Ajouté — Plan Lyautey : navigation lissée et repère directionnel
 
 - **Le repère de position indique la direction.** Un disque ne dit pas de quel côté on part :

@@ -47,6 +47,20 @@ test('remainingCooldownDays — arrondi superieur', () => {
   assert.equal(cooldown.remainingCooldownDays(3 * DAY), 3);
 });
 
+/**
+ * Requête qui pose un VRAI verrou (date de déblocage future), par opposition à la ligne de
+ * comptage (sentinelle 1970). Depuis P10 (audit ForetMap du 19/11/2026), l'échéance est
+ * calculée en UTC par Node et passée en paramètre, et non plus par `DATE_ADD(NOW(), …)`.
+ */
+const isLockSql = (sql) => /INSERT INTO/.test(sql) && !/1970-01-01/.test(sql);
+const UTC_SQL_DATETIME = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/;
+/** Échéance (ms) passée en paramètre d'une pose de verrou. */
+function lockedUntilParamMs(params) {
+  const raw = params.find((p) => typeof p === 'string' && UTC_SQL_DATETIME.test(p));
+  assert.ok(raw, `échéance UTC attendue dans ${JSON.stringify(params)}`);
+  return Date.parse(`${raw.replace(' ', 'T')}Z`);
+}
+
 /** Colonnes d'un INSERT vs expressions de VALUES — échoue si un `?` a été oublié. */
 function assertInsertArity(sql, expectedColumns) {
   const colPart = sql.match(/INSERT INTO \S+\s*\(([^)]+)\)/)?.[1];
@@ -153,13 +167,17 @@ test('maybeRegisterCooldownOnWrong — pose le verrou FM sur erreur liee', async
   assert.equal(db.calls.execute.length, 1);
   const inserted = db.calls.execute[0];
   assert.match(inserted.sql, /INSERT INTO resource_gating_cooldowns/);
-  assert.match(inserted.sql, /INTERVAL \? HOUR/);
+  assert.ok(isLockSql(inserted.sql));
   assertInsertArity(inserted.sql, 7);
   assert.deepEqual(inserted.params.slice(0, 3), ['7', 'tutorial', '12']);
   // La clé porte désormais le code de question ('' = verrou de portée ressource) ;
   // on vérifie la présence des valeurs plutôt que leur position, qui bougera encore.
   assert.equal(inserted.params[3], '', 'portée ressource par défaut');
-  assert.ok(inserted.params.includes(72), 'le délai en heures est bien transmis');
+  const untilMs = lockedUntilParamMs(inserted.params);
+  assert.ok(
+    Math.abs(untilMs - (Date.now() + 72 * HOUR)) < 60 * 1000,
+    'le délai en heures est bien appliqué (échéance UTC calculée par Node)',
+  );
   // res reflete l'etat relu (cooldownRow=null ici => non verrouille, mais l'INSERT a bien eu lieu)
   assert.ok(res === null || typeof res === 'object');
 });
@@ -181,21 +199,13 @@ test('maybeRegisterCooldownOnWrong — pose le verrou GL avec le reader', async 
   // 8 colonnes (dont question_code) : sans le ? de la clé, MariaDB refuse
   // ER_WRONG_VALUE_COUNT_ON_ROW et le verrou n'est jamais posé (try/catch silencieux).
   assertInsertArity(inserted.sql, 8);
-  assert.match(
-    inserted.sql,
-    /VALUES \(\?, \?, \?, \?, \?, DATE_ADD\(NOW\(\), INTERVAL \? HOUR\), \?, \?\)/,
+  assert.match(inserted.sql, /VALUES \(\?, \?, \?, \?, \?, \?, \?, \?\)/);
+  const untilMs = lockedUntilParamMs(inserted.params);
+  assert.ok(Math.abs(untilMs - (Date.now() + 72 * HOUR)) < 60 * 1000);
+  assert.deepEqual(
+    inserted.params.map((p, i) => (i === 5 ? '<échéance>' : p)),
+    ['gl_player', '42', 'species', 'SP001', '', '<échéance>', 'GQCM0001', 1],
   );
-  assert.deepEqual(inserted.params, [
-    'gl_player',
-    '42',
-    'species',
-    'SP001',
-    '',
-    72,
-    'GQCM0001',
-    1,
-    72,
-  ]);
   assert.ok(res === null || typeof res === 'object');
 });
 
@@ -252,7 +262,7 @@ test('tolérance 0 — le verrou tombe dès la première erreur (comportement hi
     allowedWrongAttempts: 0,
   });
   assert.equal(db.calls.execute.length, 1);
-  assert.match(db.calls.execute[0].sql, /INTERVAL \? HOUR/, 'la date de déblocage est posée');
+  assert.ok(isLockSql(db.calls.execute[0].sql), 'la date de déblocage est posée');
 });
 
 test('sous la tolérance — la faute est comptée, la ressource reste ouverte', async () => {
@@ -272,7 +282,7 @@ test('sous la tolérance — la faute est comptée, la ressource reste ouverte',
   assert.equal(res.attempts_left, 1);
   assert.equal(db.calls.execute.length, 1);
   assert.ok(
-    !/INTERVAL \? HOUR/.test(db.calls.execute[0].sql),
+    !isLockSql(db.calls.execute[0].sql),
     'aucune date de déblocage future ne doit être posée tant que la tolérance tient',
   );
   assert.match(
@@ -300,7 +310,7 @@ test('tolérance épuisée — le verrou tombe', async () => {
     retryHours: 72,
     allowedWrongAttempts: 2,
   });
-  assert.match(db.calls.execute[0].sql, /INTERVAL \? HOUR/);
+  assert.ok(isLockSql(db.calls.execute[0].sql));
   assert.equal(res?.attempts_left, 0);
 });
 
@@ -353,10 +363,10 @@ test('tolérance 2 — deux fautes successives s’accumulent, la troisième ver
     },
     async execute(sql, params) {
       this.calls.execute.push({ sql, params });
-      if (/INTERVAL \? HOUR/.test(sql)) {
+      if (isLockSql(sql)) {
         stored = {
-          wrong_attempts: params[params.length - 2],
-          locked_until: new Date(Date.now() + Number(params[params.length - 1]) * HOUR),
+          wrong_attempts: params[params.length - 1],
+          locked_until: new Date(lockedUntilParamMs(params)),
         };
       } else {
         stored = {
@@ -384,7 +394,7 @@ test('tolérance 2 — deux fautes successives s’accumulent, la troisième ver
   assert.equal(second.locked, false, 'deuxième faute encore tolérée');
   assert.equal(second.wrong_attempts, 2);
   const third = await cooldown.maybeRegisterCooldownOnWrong(db, payload);
-  assert.match(db.calls.execute[2].sql, /INTERVAL \? HOUR/, 'la troisième faute pose le verrou');
+  assert.ok(isLockSql(db.calls.execute[2].sql), 'la troisième faute pose le verrou');
   assert.equal(third?.attempts_left, 0);
 });
 

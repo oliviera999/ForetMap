@@ -41,7 +41,11 @@ const {
   requirePlanAccess,
 } = require('../lib/planAccess');
 const { resolveStaffPlanViewer } = require('../lib/staffPlanAccess');
-const { resolveSurfaceForRequest } = require('../lib/surfaceAccess');
+const {
+  resolveSurfaceForRequest,
+  allowedMapIdsForSurface,
+  intersectSurfaceMapScope,
+} = require('../lib/surfaceAccess');
 const {
   ROUTE_AUDIENCE_MAX,
   ROUTE_TITLE_MAX,
@@ -224,38 +228,42 @@ async function checkStepTargets(mapId, steps) {
  * réservés aux personnels, quand `GET /api/staff-plan/content` répond 401 sur le même contenu
  * (`docs/AUDIT_PARCOURS_2026-09-17.md` §2.1).
  *
- * @returns {Promise<boolean>} vrai si la lecture est autorisée ; sinon la réponse est déjà écrite.
+ * @returns {Promise<{ auth: object|null }|null>} le lecteur à passer au filtre des étapes si la
+ *   lecture est autorisée ; sinon `null`, la réponse est déjà écrite.
  */
 async function guardSurfaceRead(req, res, surface) {
   if (!surface || surface === 'plan') {
-    if (await isPlanAccessGranted(req)) return true;
+    if (await isPlanAccessGranted(req)) return { auth: req.auth || null };
     res.status(401).json({ error: 'Code d’accès requis', access_required: true });
-    return false;
+    return null;
   }
   if (surface === 'enov') {
     // Plan e-nov : même garde que sa charge (`/api/enov/content`).
-    if (await isEnovPlanAccessGranted(req)) return true;
+    if (await isEnovPlanAccessGranted(req)) return { auth: req.auth || null };
     res.status(401).json({ error: 'Code d’accès requis', access_required: true });
-    return false;
+    return null;
   }
   if (surface === 'staff') {
     const viewer = await resolveStaffPlanViewer(req);
-    if (viewer.ok) return true;
+    // Le porteur du code du plan des personnels n'a pas de compte : son lecteur est
+    // **synthétique** (un rôle, aucune permission). C'est lui qui décide de l'audience des
+    // étapes — `req.auth` (null) retirait des étapes légitimes (audit du 19/11/2026, C12).
+    if (viewer.ok) return { auth: viewer.auth || req.auth || null };
     res.status(401).json({
       error: 'Connexion requise',
       auth_required: true,
       code_available: viewer.codeAvailable,
     });
-    return false;
+    return null;
   }
   if (surface === 'map') {
     // La carte de travail est un écran interne : un compte suffit (c'est ce qu'exige déjà
     // l'application qui l'affiche), aucune permission particulière n'est demandée ici.
-    if (req.auth?.userId) return true;
+    if (req.auth?.userId) return { auth: req.auth };
     res.status(401).json({ error: 'Connexion requise', auth_required: true });
-    return false;
+    return null;
   }
-  return true;
+  return { auth: req.auth || null };
 }
 
 /**
@@ -286,21 +294,33 @@ router.get(
     // le porteur du code du plan — recevait les parcours réservés aux personnels et à la
     // carte de travail.
     const surface = surfaceQuery.value || resolveSurfaceForRequest(req);
-    if (!(await guardSurfaceRead(req, res, surface))) return;
+    const viewer = await guardSurfaceRead(req, res, surface);
+    if (!viewer) return;
 
     const where = ['is_published = 1'];
     const params = [];
     // Périmètre cartes du compte : sans `map_id`, la liste est ramenée aux cartes autorisées.
     const scope = await resolveScopedMapFilter(req.auth || null, mapId);
     if (scope.forbidden) return res.status(403).json(MAP_OUT_OF_SCOPE);
-    if (scope.mapIds) {
-      where.push(`map_id IN (${scope.mapIds.map(() => '?').join(',')})`);
-      params.push(...scope.mapIds);
+    // …croisé avec les cartes que la **surface** a le droit de servir, comme les lieux
+    // (`listLocations`). Sans ce croisement, un anonyme sur la Visite (ouverte) lisait les
+    // parcours de la carte d'un plan fermé par code, textes d'étape compris (audit du
+    // 19/11/2026, C1).
+    const surfaceScope = intersectSurfaceMapScope(
+      { allowedMapIds: await allowedMapIdsForSurface(surface) },
+      scope.mapIds,
+      mapId,
+    );
+    if (surfaceScope.notFound) return res.status(400).json({ error: 'Carte introuvable' });
+    if (surfaceScope.mapIds) {
+      if (surfaceScope.mapIds.length === 0) return res.json([]);
+      where.push(`map_id IN (${surfaceScope.mapIds.map(() => '?').join(',')})`);
+      params.push(...surfaceScope.mapIds);
     }
     where.push('FIND_IN_SET(?, surfaces) > 0');
     params.push(surface);
     const routes = await loadRoutes(where.join(' AND '), params);
-    res.json(await filterPublicRouteSteps(routes, req.auth, { surface }));
+    res.json(await filterPublicRouteSteps(routes, viewer.auth, { surface }));
   }),
 );
 
@@ -362,6 +382,21 @@ router.get(
  */
 const DETAIL_SURFACES = Object.freeze(['visit', 'plan']);
 
+/**
+ * Surface publique (parmi `DETAIL_SURFACES`) par laquelle ce parcours peut sortir : publiée
+ * sur le parcours **et** autorisée à servir sa carte. Le plan d'abord (sa garde est déjà
+ * passée par `requirePlanAccess`), puis la Visite. `null` si aucune.
+ */
+async function resolveDetailSurface(route) {
+  const published = new Set(Array.isArray(route?.surfaces) ? route.surfaces : []);
+  for (const surface of ['plan', 'visit']) {
+    if (!published.has(surface)) continue;
+    const allowed = await allowedMapIdsForSurface(surface);
+    if (allowed == null || allowed.includes(String(route.map_id))) return surface;
+  }
+  return null;
+}
+
 router.get(
   '/:idOrSlug',
   authenticate,
@@ -381,11 +416,16 @@ router.get(
     }
     const [route] = await loadRoutes(where.join(' AND '), params);
     if (!route) return res.status(404).json({ error: 'Parcours introuvable' });
+    // La carte du parcours doit être servie par l'une des surfaces publiques sur lesquelles
+    // il est publié (audit du 19/11/2026, C1) : un parcours « visit » posé sur la carte
+    // réservée au plan ne sort pas par la Visite. Sinon 404, comme un parcours inexistant.
+    const surfaceServed = await resolveDetailSurface(route);
+    if (!surfaceServed) return res.status(404).json({ error: 'Parcours introuvable' });
     // Lien profond par slug : la carte du parcours est relue en base, pas déduite de l'URL.
     if (!(await canAccessMapId(req.auth || null, route.map_id))) {
       return res.status(403).json(MAP_OUT_OF_SCOPE);
     }
-    const [filtered] = await filterPublicRouteSteps([route], req.auth, { surface: 'plan' });
+    const [filtered] = await filterPublicRouteSteps([route], req.auth, { surface: surfaceServed });
     res.json(filtered);
   }),
 );

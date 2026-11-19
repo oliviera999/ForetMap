@@ -1,7 +1,8 @@
 'use strict';
 
 const express = require('express');
-const { queryOne, queryAll, execute } = require('../database');
+const crypto = require('node:crypto');
+const { queryOne, queryAll, execute, withTransaction } = require('../database');
 const { requireAuth } = require('../middleware/requireTeacher');
 const { writeBufferToDisk, deleteFile, getAbsolutePath } = require('../lib/uploads');
 const { sendFilePrivateImageOptions } = require('../lib/httpImageCache');
@@ -355,18 +356,50 @@ router.post(
     if (decoded.error) return res.status(400).json({ error: decoded.error });
 
     const prefix = userJournalUploadPrefix(userId);
-    const rel = `${prefix}/${articleId}-${Date.now()}-${current}.${decoded.ext}`;
+    // Suffixe aléatoire : deux envois simultanés lisaient le même `current` et pouvaient, dans
+    // la même milliseconde, viser le même fichier (l'un écrasait l'autre).
+    const rel = `${prefix}/${articleId}-${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${decoded.ext}`;
     await writeBufferToDisk(rel, decoded.buffer);
 
     const mimeType = decoded.ext === 'jpg' ? 'image/jpeg' : `image/${decoded.ext}`;
-    const result = await execute(
-      `INSERT INTO user_journal_article_assets (article_id, user_id, asset_path, mime_type, byte_size, created_at)
-       VALUES (?, ?, ?, ?, ?, NOW())`,
-      [articleId, userId, rel, mimeType, decoded.buffer.length],
-    );
+    // T10 (audit du 19/11/2026) : le plafond était compté hors verrou — des envois simultanés
+    // le dépassaient. Décompte décisif et insertion sous verrou de l'article parent
+    // (`SELECT … FOR UPDATE`), qui sérialise les ajouts d'illustrations d'un même article.
+    let outcome;
+    try {
+      outcome = await withTransaction(async (tx) => {
+        const parent = await tx.queryOne(
+          'SELECT id FROM user_journal_articles WHERE id = ? AND user_id = ? FOR UPDATE',
+          [articleId, userId],
+        );
+        if (!parent) return { notFound: true };
+        const countRow = await tx.queryOne(
+          'SELECT COUNT(*) AS n FROM user_journal_article_assets WHERE article_id = ?',
+          [articleId],
+        );
+        const lockedCount = Number(countRow?.n) || 0;
+        if (limits.maxAssets > 0 && lockedCount >= limits.maxAssets) return { limit: true };
+        const inserted = await tx.execute(
+          `INSERT INTO user_journal_article_assets (article_id, user_id, asset_path, mime_type, byte_size, created_at)
+           VALUES (?, ?, ?, ?, ?, NOW())`,
+          [articleId, userId, rel, mimeType, decoded.buffer.length],
+        );
+        return { insertId: inserted.insertId, assetCount: lockedCount + 1 };
+      });
+    } catch (err) {
+      deleteFile(rel);
+      throw err;
+    }
+    if (outcome.notFound || outcome.limit) {
+      deleteFile(rel);
+      if (outcome.notFound) return res.status(404).json({ error: 'Article introuvable' });
+      return res.status(400).json({
+        error: `Nombre maximum d’illustrations atteint (${limits.maxAssets})`,
+      });
+    }
     const asset = await queryOne(
       'SELECT id, asset_path, mime_type, byte_size, created_at FROM user_journal_article_assets WHERE id = ? LIMIT 1',
-      [result.insertId],
+      [outcome.insertId],
     );
     emitObservationsChanged({ reason: 'journal_asset_added', articleId, userId });
     return res.status(201).json({
@@ -378,7 +411,7 @@ router.post(
         createdAt: asset.created_at,
       },
       usage: {
-        assetCount: current + 1,
+        assetCount: outcome.assetCount,
         maxAssets: limits.maxAssets,
       },
     });

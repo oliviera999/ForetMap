@@ -222,6 +222,13 @@ laisser **activée la confirmation de changement d'adresse e-mail** (réglage
 `emailchangeconfirmation`) : sans elle, un élève pourrait donner à son compte Moodle l'adresse
 d'un camarade et entrer dans son compte ForetMap s'il n'a encore jamais été relié.
 
+**Comptes à responsabilités (depuis le 19 novembre 2026).** Un compte qui porte un profil
+d'encadrement (administrateur, n3boss / prof, ou tout profil donnant accès à l'interface
+enseignant) n'entre depuis un cours que si Moodle l'y présente comme **enseignant**, même si
+c'est, dans l'application, un compte de type élève promu. Présenté comme simple élève, il voit
+le refus « Ce compte enseignant n'est pas enseignant dans ce cours Moodle ». Avant, un tel
+compte de type élève entrait avec toutes ses permissions par un clic « élève ».
+
 **Côté enseignant (Gnomes & Licornes).** Le bouton « MJ » n'ouvre une session maître du jeu
 que pour un compte **enseignant** qui a accès à l'interface enseignant, **et** dont l'accès
 maître du jeu est déjà **relié** à ce compte (première connexion directe à Gnomes & Licornes,
