@@ -870,7 +870,10 @@ router.post(
       return res.status(400).json({ error: 'Fichier import vide ou sans lignes exploitables' });
     }
     try {
-      const report = await applyChapterCharteImport({ queryAll, execute }, rows, { dryRun });
+      // Audit du 19/11/2026 (C11) : écriture en transaction, comme l'import des chapitres.
+      const report = await withTransaction((tx) =>
+        applyChapterCharteImport({ queryAll: tx.queryAll, execute: tx.execute }, rows, { dryRun }),
+      );
       return res.json({ report });
     } catch (err) {
       return sendSafeError(res, err, {
