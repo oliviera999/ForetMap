@@ -726,6 +726,11 @@ glossaire) :
 | Afficher les pastilles d'état                   | **Oui par défaut.** Une petite marque à côté du bouton : **✓** contrôle réussi, **?** questions restantes, **🔒** bloqué. Rien ne s'affiche là où rien n'est conditionné.                                                                                                                                                                                                                                                                                                                                           |
 | Tutoriels liés avant tâche « faite »            | **Non par défaut.** Si activé, l'élève doit avoir **lu** (validé) tous les tutoriels rattachés à la tâche avant de pouvoir la marquer comme faite.                                                                                                                                                                                                                                                                                                                                                                  |
 
+Le délai de blocage dure exactement la durée choisie. Jusqu'en novembre 2026, il pouvait
+être décalé d'une heure ou deux (selon le fuseau horaire du serveur de base de données).
+Le contrôle de compréhension se passe **connecté** : un visiteur sans compte qui l'ouvre
+depuis une fiche est invité à se connecter (« Connecte-toi pour débloquer cette fiche »).
+
 **Où s'appliquent ces réglages (cascade)** — du plus général au plus précis :
 
 | Niveau        | Où le configurer                               | Ce qu'il couvre                                                                                                                                                                                                                                                                                                |
