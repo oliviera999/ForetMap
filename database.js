@@ -429,8 +429,9 @@ async function execute(sql, params = []) {
  * assez pour diagnostiquer un pool qui s'assèche. Pas d'abandon d'office par défaut :
  * tuer une transaction en vol (un import, typiquement) recréerait l'incohérence que la
  * transaction existe à prévenir (G4). Un plafond dur optionnel reste disponible via
- * FORETMAP_TX_MAX_MS (0 = désactivé) : au-delà, le travail est rejeté et la transaction
- * annulée par le flux d'erreur normal.
+ * FORETMAP_TX_MAX_MS (0 = désactivé) : au-delà, le travail est rejeté, sa connexion
+ * détruite (jamais rendue au pool : MySQL annule la transaction) et tout `commit()` ou
+ * requête tardif du travail abandonné refusé (audit du 19/11/2026, S12).
  */
 const TX_SLOW_WARN_MS = readPositiveIntEnv('FORETMAP_TX_SLOW_WARN_MS', 10000);
 const TX_MAX_MS = readPositiveIntEnv('FORETMAP_TX_MAX_MS', 0);
@@ -550,8 +551,8 @@ async function runTransactionOnce(work) {
     if (GROUP_SCOPE_WRITE_RE.test(sql)) scopeDirty = true;
     collectSyncDomainsForWriteSql(sql, txSyncAcc);
   };
-  // Levé par le plafond dur (FORETMAP_TX_MAX_MS) : la connexion va être rendue au pool,
-  // un travail « zombie » qui continuerait à requêter toucherait une connexion réattribuée.
+  // Levé par le plafond dur (FORETMAP_TX_MAX_MS) : la connexion est détruite, et un travail
+  // « zombie » qui continuerait à requêter ou à committer est refusé.
   let abortedByGuard = false;
   const assertNotAborted = () => {
     if (abortedByGuard) {
@@ -587,6 +588,10 @@ async function runTransactionOnce(work) {
     const result = await runWithTxDurationGuard(
       async () => {
         const value = await work(tx);
+        // Audit 19/11/2026 (S12) : un travail abandonné par le plafond dur ne committe jamais —
+        // sa connexion a déjà été détruite (voir `finally`), et un `commit()` tardif aurait pu
+        // valider la transaction d'un autre appelant sur une connexion réattribuée.
+        assertNotAborted();
         await conn.commit();
         return value;
       },
@@ -602,14 +607,29 @@ async function runTransactionOnce(work) {
     if (dataDirty) applySyncDomainBumps(txSyncAcc);
     return result;
   } catch (err) {
-    try {
-      await conn.rollback();
-    } catch (_) {
-      // Ignore rollback errors and propagate root cause.
+    // Après abandon par le garde-fou, le travail « zombie » peut encore avoir une requête en
+    // vol sur cette connexion : un ROLLBACK attendrait derrière elle, et l'appelant avec. La
+    // connexion est détruite à la place — MySQL annule alors la transaction ouverte.
+    if (!abortedByGuard) {
+      try {
+        await conn.rollback();
+      } catch (_) {
+        // Ignore rollback errors and propagate root cause.
+      }
     }
     throw err;
   } finally {
-    conn.release();
+    if (abortedByGuard) {
+      // Jamais rendue au pool (S12) : le travail abandonné continue et ne doit pas toucher
+      // une connexion réattribuée. Le pool en ouvrira une neuve.
+      try {
+        conn.destroy();
+      } catch (_) {
+        /* connexion déjà fermée */
+      }
+    } else {
+      conn.release();
+    }
   }
 }
 
@@ -965,6 +985,7 @@ async function runMigrations(conn) {
     await conn.query('UPDATE schema_version SET version = ?', [parseInt(first.slice(0, 3), 10)]);
     current = parseInt(first.slice(0, 3), 10);
   }
+  const cursorBeforeRun = current;
   for (const file of files) {
     const num = parseInt(file.slice(0, 3), 10);
     // Saut des migrations déjà passées. Cas limite : à numéro ÉGAL à la version
@@ -981,6 +1002,48 @@ async function runMigrations(conn) {
   // 217/218 (moteur d'équipes) ont pu arriver après qu'une base ait déjà 219 (Moodle) :
   // le curseur unique `schema_version` ne les rejoue alors jamais. Idempotentes.
   await replayMissedTeamCompositionMigrations(conn, migrationsDir);
+  await recordMigrationFilesAndReportSkipped(conn, files, cursorBeforeRun);
+}
+
+/**
+ * Audit ForetMap du 19/11/2026 (S13) : un fichier de numéro INFÉRIEUR au curseur
+ * `schema_version` (arrivé après un numéro supérieur, typiquement deux PR parallèles) n'est
+ * jamais appliqué — sans un mot. Le registre `schema_migration_files` liste les fichiers déjà
+ * vus ; un fichier sous le curseur absent du registre est signalé (avertissement ici, `late`
+ * dans `lib/migrationStatus.js`) et n'est PAS enregistré, pour le rester tant qu'il n'est pas
+ * renuméroté au-dessus du curseur. Le premier passage (registre vide) enregistre tout : il ne
+ * peut pas distinguer un fichier ancien d'un fichier en retard.
+ *
+ * Signalement seulement : rejouer d'office une migration hors de son ordre n'est pas décidé.
+ * @returns {Promise<string[]>} fichiers ignorés
+ */
+async function recordMigrationFilesAndReportSkipped(conn, files, cursorBeforeRun) {
+  let known;
+  try {
+    const [rows] = await conn.query('SELECT file_name FROM schema_migration_files');
+    known = new Set((rows || []).map((r) => String(r.file_name)));
+  } catch (err) {
+    logger.warn({ err }, 'Registre des fichiers de migration illisible : contrôle S13 ignoré');
+    return [];
+  }
+  const { findSkippedMigrationFiles } = require('./lib/migrationStatus');
+  const skipped = findSkippedMigrationFiles(files, cursorBeforeRun, known);
+  if (skipped.length > 0) {
+    logger.warn(
+      { skipped, schemaVersion: cursorBeforeRun },
+      'Migrations jamais appliquées : numéro inférieur à schema_version — renuméroter au-dessus ' +
+        'de la version courante',
+    );
+  }
+  const skippedSet = new Set(skipped);
+  const toRecord = files.filter((f) => !known.has(f) && !skippedSet.has(f));
+  if (toRecord.length > 0) {
+    await conn.query(
+      `INSERT IGNORE INTO schema_migration_files (file_name) VALUES ${toRecord.map(() => '(?)').join(', ')}`,
+      toRecord,
+    );
+  }
+  return skipped;
 }
 
 async function applyOneMigration(conn, migrationsDir, file) {

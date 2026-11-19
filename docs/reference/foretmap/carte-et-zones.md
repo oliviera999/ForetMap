@@ -189,7 +189,9 @@ automatiquement reprises dans une catégorie **Infrastructure**.
 
 Une catégorie peut être **désactivée** plutôt que supprimée : elle reste posée sur les
 lieux mais disparaît des filtres et des formulaires. La supprimer la retire en revanche
-de toutes les zones et de tous les repères qui la portaient.
+de toutes les zones et de tous les repères qui la portaient. La suppression est
+définitive, y compris pour **Infrastructure** : une mise à jour du site ne la recrée plus
+(elle n'est créée d'office que sur une installation neuve).
 
 **Où les créer** : Paramètres → Cartographie → Catégories de lieux. Il faut la
 permission « Gestion zones ». Un n3boss qui a cette permission (sans être
