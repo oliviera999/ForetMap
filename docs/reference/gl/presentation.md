@@ -200,6 +200,17 @@ personnel.
 Introduction animée, règles du jeu, lexique du lore (le vocabulaire de l'univers,
 distinct du glossaire scientifique) et tutoriels.
 
+- **Tutoriels** : un tutoriel dont la case **Publié** est décochée reste un brouillon —
+  les joueurs ne le voient ni dans la liste ni par un lien direct, et ne peuvent pas le
+  marquer comme appris. Dans l'éditeur, l'enregistrement est automatique et **l'éditeur
+  reste ouvert** : il ne se ferme que par le bouton « Fermer l'éditeur ». Un nouveau
+  tutoriel est créé dès les premiers mots, **publié par défaut** : décochez « Publié »
+  avant de rédiger si vous voulez travailler à l'abri des regards.
+- **Lexique du lore** : les termes de niveau « Secret » sont réservés au MJ, et le réglage
+  de divulgâchage fixe le niveau le plus avancé que les joueurs peuvent lire. Cette limite
+  vaut partout : liste, fiche, « termes liés », mots soulignés dans les textes et termes
+  rappelés sous une question.
+
 ### Les joueurs (la vie sociale)
 
 - **Forum** : discussions entre joueurs, avec le **même fonctionnement que le forum
@@ -339,9 +350,9 @@ Points résolus le 2026-07-08 (détail dans le [registre](../INCOHERENCES.md)) :
 - ✅ **Vocabulaire harmonisé** : l'interface dit Écosystèmes/Biodiversité ; les termes
   scientifiques biotope/biocénose restent dans les contenus pédagogiques, définis au
   glossaire scientifique.
-- ✅ **Mots de passe renforcés** : 8 caractères minimum pour les comptes MJ/Admin, et
-  désormais aussi pour les joueurs (passés de 4 à 8 caractères le 30/09/2026 ; les mots de
-  passe déjà en place continuent de fonctionner).
+- ✅ **Mots de passe renforcés** : 12 caractères minimum pour les comptes MJ/Admin (comme
+  un compte professeur dans ForetMap), 8 pour les joueurs (passés de 4 à 8 caractères le
+  30/09/2026 ; les mots de passe déjà en place continuent de fonctionner).
 - ✅ **Scories internes nettoyées** (réglage en double, listes désynchronisées).
 
 ## Pour aller plus loin

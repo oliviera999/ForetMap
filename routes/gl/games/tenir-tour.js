@@ -771,10 +771,11 @@ router.post(
           });
     const configuredMode = resolveDesMode(resolved);
     // Un élève ne transforme pas un tirage `serveur` en faces choisies : des dés « physiques »
-    // hors du mode de la surface ne passent que par la file de validation du prof (tablette,
-    // `des_physiques_validation` ≠ auto). Le prof, lui, saisit ou avance comme il l'entend.
+    // hors du mode de la surface ne passent que par la file de validation du prof (tablette et,
+    // depuis que l'équipe y lance ses dés, hybride ; `des_physiques_validation` ≠ auto). Le
+    // prof, lui, saisit ou avance comme il l'entend.
     const validationProf =
-      ctx.surface === 'tablette' && resolved.des_physiques_validation !== 'auto';
+      ctx.surface !== 'tableau' && resolved.des_physiques_validation !== 'auto';
     const horsMode = wantedMode && wantedMode !== configuredMode && !isMj(req);
     if (horsMode && !(wantedMode === 'physique' && validationProf)) {
       return res.status(403).json({

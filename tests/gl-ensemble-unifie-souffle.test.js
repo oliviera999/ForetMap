@@ -261,3 +261,63 @@ test('l’état s’efface au camp et à la clôture de la partie', async () => 
   await withTransaction(async (tx) => tour.effacerUnDeTx(tx, { gameId: ctx.game.id }));
   assert.equal(Number((await etat(licornes.id)).un_de_prochain_tour), 0);
 });
+
+test('Sentier : la case Souffle présentée après l’arrêt ne pose pas « un seul dé »', async () => {
+  const ctx = await nouvellePartie('sentier');
+  const gnomes = ctx.teams[0];
+  await ouvrirTourEnJeu(request, app, ctx);
+  // Un Sentier posé pour l'équipe (sort gnome), pas encore consommé.
+  await execute(
+    `INSERT INTO gl_game_tenir_effets (game_id, round_number, kind, team_id, created_at)
+     VALUES (?, 1, 'sentier', ?, NOW())`,
+    [ctx.game.id, gnomes.id],
+  );
+  const res = await arreterSurSouffle(ctx, gnomes);
+  assert.match(String(res.body.arrival?.effectSummary || ''), /^Sentier/);
+  assert.equal(Number((await etat(gnomes.id)).un_de_prochain_tour), 0, 'Sentier l’empêche');
+  // L'écran d'équipe présente la case après le jet : le Sentier, déjà consommé à l'arrêt,
+  // protège toujours — rien ne se pose, et le texte reste celui de l'effet appliqué.
+  const presente = await request(app)
+    .post(api(ctx, `/markers/${ctx.markers[4].id}/present-arrival`))
+    .set(auth(ctx.adminToken))
+    .send({ teamId: gnomes.id });
+  assert.equal(presente.status, 200, JSON.stringify(presente.body));
+  assert.match(JSON.stringify(presente.body), /Sentier : la case Souffle n’a aucun effet/);
+  assert.equal(Number((await etat(gnomes.id)).un_de_prochain_tour), 0, 'toujours protégée');
+  const poses = await queryOne(
+    "SELECT COUNT(*) AS n FROM gl_game_events WHERE game_id = ? AND team_id = ? AND event_type = 'un_de_pose'",
+    [ctx.game.id, gnomes.id],
+  );
+  assert.equal(Number(poses.n), 0);
+});
+
+test('« un seul dé » ne dure qu’un tour : présenté deux fois il ne glisse pas, non joué il s’efface', async () => {
+  const ctx = await nouvellePartie('un-tour');
+  const licornes = ctx.teams[2];
+  await ouvrirTourEnJeu(request, app, ctx);
+  await arreterSurSouffle(ctx, licornes);
+  assert.equal(Number((await etat(licornes.id)).un_de_round), 1);
+  await tourSuivant(ctx);
+  // Tour 2, avant le lancer : la case est présentée de nouveau (écran rechargé, autre
+  // appareil). Le tour de pose ne bouge pas : le dé unique reste dû à ce tour-ci.
+  const presente = await request(app)
+    .post(api(ctx, `/markers/${ctx.markers[4].id}/present-arrival`))
+    .set(auth(ctx.adminToken))
+    .send({ teamId: licornes.id });
+  assert.equal(presente.status, 200, JSON.stringify(presente.body));
+  await withTransaction((tx) =>
+    tour.poserUnDeTx(tx, {
+      gameId: ctx.game.id,
+      teamId: licornes.id,
+      roundNumber: 2,
+      marker: ctx.markers[4],
+    }),
+  );
+  assert.equal(Number((await etat(licornes.id)).un_de_round), 1, 'tour de pose inchangé');
+  assert.equal((await vueEquipe(ctx, licornes.id)).desProchainJet, 1);
+  // L'équipe ne lance pas au tour 2 : au tour 3, elle retrouve ses deux dés.
+  await tourSuivant(ctx);
+  assert.equal(Number((await etat(licornes.id)).un_de_prochain_tour), 0, 'effacé après un tour');
+  const vue = await vueEquipe(ctx, licornes.id);
+  assert.deepEqual({ u: vue.unDe, d: vue.desProchainJet }, { u: false, d: 2 });
+});

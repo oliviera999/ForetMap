@@ -148,6 +148,29 @@ test('M22 : un terme de glossaire relié à la zone passe avant la fiche ; une r
   await execute("UPDATE gl_glossary_terms SET statut = 'actif' WHERE glossary_code = ?", [GL]);
 });
 
+test('M22 : la piste ne suit que la question de la zone — après une question de secours, aucune piste', async () => {
+  // La question de cz-p1-02 a été posée plus haut : la fouille suivante tire une question de
+  // secours, à laquelle la fiche et le mot reliés à la zone ne répondent pas.
+  const zone = await queryOne(
+    "SELECT question_code FROM gl_chasse_zones WHERE zone_key = 'cz-p1-02'",
+  );
+  const joueur = membre(1);
+  const f = await request(app).post(api('/chasse/fouiller')).set(auth(joueur.token)).send(Z2);
+  assert.equal(f.status, 201, JSON.stringify(f.body));
+  assert.ok(f.body.question, 'la fouille tombe dans la zone');
+  assert.notEqual(f.body.question.questionCode, zone.question_code, 'question de secours');
+  const choix = await mauvaiseReponse(f.body.question);
+  const res = await request(app).post(api('/chasse/repondre')).set(auth(joueur.token)).send({
+    presentationToken: f.body.question.presentationToken,
+    questionCode: f.body.question.questionCode,
+    choiceId: choix.id,
+  });
+  assert.equal(res.status, 200, JSON.stringify(res.body));
+  assert.equal(res.body.correct, false);
+  assert.match(res.body.feedback, /^Pas encore/);
+  assert.equal(res.body.piste, null, 'pas de piste hors de la question de la zone');
+});
+
 test('une bonne réponse ne porte pas de piste', async () => {
   // Les Licornes B fouillent la zone 1 (révélée plus haut) et répondent juste.
   const joueur = membre(3);

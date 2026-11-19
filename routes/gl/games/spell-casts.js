@@ -103,7 +103,11 @@ async function equipeDuBrouillon(req) {
 // pas par la garde, pour qu'un élève le fasse de son compte pendant qu'un autre appareil
 // prépare le sort.
 const gardeSortPrepare = gardeDEquipe({ prend: 'sort' });
-const gardeSortFini = gardeDEquipe({ rend: true, equipeDuProf: equipeDuBrouillon });
+const gardeSortFini = gardeDEquipe({
+  rend: true,
+  finit: 'sort',
+  equipeDuProf: equipeDuBrouillon,
+});
 
 async function handleSpellCastRoute(req, res, handler) {
   try {
@@ -135,7 +139,7 @@ async function handleSpellCastRoute(req, res, handler) {
     if (err?.status && err?.code && typeof err.message === 'string') {
       return res.status(err.status).json({ error: err.message, code: err.code });
     }
-    logRouteError(req, err, 'gl.spell_cast');
+    logRouteError(err, req, 'gl.spell_cast');
     return res.status(500).json({ error: 'Erreur lors du sortilège collaboratif' });
   }
 }
@@ -187,6 +191,10 @@ router.post(...routeBrouillon, gardeSortPrepare, async (req, res) => {
         playerId: req.body?.playerId,
       },
     });
+    // Pot laissé là pour une autre équipe, une autre partenaire ou un autre élève : annulé.
+    if (draft.replacedDraftId) {
+      emitDraftChanged(gameId, { draftId: draft.replacedDraftId, type: 'draft_cancelled' });
+    }
     emitDraftChanged(gameId, { draftId: draft.id, type: 'draft_updated', draft });
     return res.status(201).json({ draft });
   });

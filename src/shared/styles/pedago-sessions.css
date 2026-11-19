@@ -453,6 +453,11 @@
   z-index: var(--fm-z-popover);
   box-shadow: var(--shadow-panel-floating);
   border-radius: 14px;
+  /* Ancrée en bas : sans borne, une longue liste poussait le haut (et Olu) hors de l'écran. */
+  max-height: calc(100vh - 84px - 16px);
+  max-height: calc(100dvh - env(safe-area-inset-bottom, 0px) - 84px - 16px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 .reward-celebration-host .reward-celebration {
   margin: 0;

@@ -19,6 +19,7 @@ export function GLPlayerJournalArticleCard({
   editing = false,
   onStartEdit = null,
   onStopEdit = null,
+  onArticleChange = null,
   onDelete,
   onTogglePin,
 }) {
@@ -43,6 +44,7 @@ export function GLPlayerJournalArticleCard({
       onDelete={onDelete}
       onTogglePin={onTogglePin}
       onStopEdit={onStopEdit}
+      onArticleChange={onArticleChange}
     />
   );
 }
@@ -54,11 +56,13 @@ function GLPlayerJournalArticleEditor({
   onDelete,
   onTogglePin,
   onStopEdit = null,
+  onArticleChange = null,
 }) {
   const ed = useJournalArticleEditor({
     article,
     limits,
     adapter: playerJournalAdapter,
+    onArticleChange,
     onDelete,
     onTogglePin,
   });

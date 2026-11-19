@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useGlTenirTour } from '../../hooks/useGlTenirTour.js';
 import { useGlTenirOlu } from '../../hooks/useGlTenirOlu.js';
 import { useGlQuestionDeCase } from '../../hooks/useGlQuestionDeCase.js';
@@ -178,7 +178,25 @@ export function GLTenirEquipeView({
     );
     return () => clearTimeout(timer);
   }, [resteMain, cleMain, onReloadGame]);
-  const round = tourApi.tour?.round || tenir?.round || null;
+  // L'état de la partie (`tenir.round`, rechargé à chaque évènement temps réel) fait foi : le
+  // prof change de phase ou règle le sablier sans que cet écran ait rien demandé. L'instantané
+  // du tour, relu ci-dessous, ne fait que le compléter — et seulement s'il parle du même tour.
+  const cleTour = `${events.length}:${tenir?.round?.number || 0}:${tenir?.round?.phase || ''}`;
+  const cleTourLue = useRef(cleTour);
+  useEffect(() => {
+    if (cleTourLue.current === cleTour) return;
+    cleTourLue.current = cleTour;
+    rafraichirTour();
+  }, [cleTour, rafraichirTour]);
+  const roundServi = Number(tenir?.round?.number) > 0 ? tenir.round : null;
+  const roundLu = tourApi.tour?.round || null;
+  const round = useMemo(() => {
+    if (!roundServi) return roundLu;
+    return roundLu && Number(roundLu.number) === Number(roundServi.number)
+      ? { ...roundLu, ...roundServi }
+      : roundServi;
+  }, [roundServi, roundLu]);
+  const sablier = tenir?.sablier || tourApi.tour?.sablier || null;
   const team = useMemo(
     () => (gameState?.teams || []).find((t) => Number(t.id) === Number(teamId)) || null,
     [gameState, teamId],
@@ -279,6 +297,9 @@ export function GLTenirEquipeView({
   const jetEnSuspens =
     (round?.arriveesEnSuspens || []).find((a) => Number(a.teamId) === Number(teamId)) || null;
   const numeroJet = jetEnSuspens ? numeroCase(jetEnSuspens.index) : null;
+  // Jet saisi (dés physiques) que le prof n'a pas encore validé ni refusé : lu dans le tour, pour
+  // que la mention parte avec la saisie — et s'affiche sur tous les appareils de l'équipe.
+  const jetEnAttente = (round?.desEnAttente || []).some((s) => Number(s.teamId) === Number(teamId));
 
   return (
     <section
@@ -307,12 +328,12 @@ export function GLTenirEquipeView({
         </GLButton>
       </header>
       {/* Sablier du tour : même état que la console du prof ; l'équipe le voit sans le régler. */}
-      {(tourApi.tour?.sablier || tenir.sablier)?.phase && round?.phase === 'jeu' ? (
+      {sablier?.phase && round?.phase === 'jeu' ? (
         <GLSablier
           mode="phase"
-          secondes={(tourApi.tour?.sablier || tenir.sablier).phase.secondes}
-          restantSecondes={(tourApi.tour?.sablier || tenir.sablier).phase.restantSecondes}
-          enPause={(tourApi.tour?.sablier || tenir.sablier).phase.enPause}
+          secondes={sablier.phase.secondes}
+          restantSecondes={sablier.phase.restantSecondes}
+          enPause={sablier.phase.enPause}
           doneHint="le sablier a sonné : finissez votre geste"
           testId="gl-sablier-phase"
         />
@@ -473,15 +494,12 @@ export function GLTenirEquipeView({
           desMode={tenir.settings?.des_mode_effectif || 'serveur'}
           disabled={tourApi.busy}
           onLancer={async (body) => {
-            const result = await tourApi.lancer(body);
+            await tourApi.lancer(body);
             setPending(null);
-            if (result?.enAttente) {
-              setPending('attente');
-            }
           }}
         />
       ) : null}
-      {pending === 'attente' ? (
+      {jetEnAttente ? (
         <p className="gl-hint" role="status">
           Jet saisi : en attente du clic du prof.
         </p>

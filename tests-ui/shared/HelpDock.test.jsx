@@ -82,4 +82,22 @@ describe('HelpDock — dock d’aide partagé', () => {
     fireEvent.click(screen.getByRole('button', { name: /Ouvrir l'aide/ }));
     expect(onOpen).toHaveBeenCalledWith('tasks');
   });
+
+  test('l’aide ouverte repose sur le socle modal fixe et borné (jamais en bas de page)', () => {
+    render(
+      <HelpDock
+        helpKey="gl:tab"
+        title="Aide"
+        body={BODY}
+        overlayClassName="gl-help-dialog-overlay"
+        dialogClassName="gl-help-dialog fade-in"
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: /Ouvrir l'aide/ }));
+    const dialog = screen.getByRole('dialog');
+    expect(dialog.className).toContain('fm-help-dock-dialog');
+    expect(dialog.className).toContain('gl-help-dialog');
+    expect(dialog.parentElement.className).toContain('fm-modal-overlay');
+    expect(dialog.parentElement.className).toContain('gl-help-dialog-overlay');
+  });
 });

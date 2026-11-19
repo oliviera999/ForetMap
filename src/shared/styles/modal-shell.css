@@ -86,6 +86,23 @@
   }
 }
 
+/*
+ * Dialogue d'aide « ? » (`HelpDock`, G&L + Plan) : les classes produit ne posent que le
+ * thème (largeur, fond, rayon) ; la hauteur reste bornée à l'écran et le contenu défile,
+ * pour que « Fermer » soit toujours atteignable, même avec un long texte d'Olu.
+ */
+.fm-help-dock-dialog {
+  position: relative;
+  box-sizing: border-box;
+  min-height: 0;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 32px);
+  max-height: calc(100dvh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 32px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
 /* Dialogues applicatifs communs (AppDialogsProvider) — remplacent confirm/prompt natifs. */
 .app-dialog {
   max-width: 420px;

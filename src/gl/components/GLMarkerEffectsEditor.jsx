@@ -1,6 +1,12 @@
 import { useEffect, useState } from 'react';
 import { normalizeMarkerEffects } from '../utils/glMarkerEventConfig.js';
 
+/**
+ * `passTurn` (branche neutre) et `unDeAuProchainTour` (case Souffle : un seul dé au tour suivant)
+ * n'ont pas de contrôle dans ce formulaire : ils sont relus pour être réécrits tels quels. Sans
+ * eux, ouvrir une case Souffle puis l'enregistrer lui retirait « un seul dé »
+ * (audit des bugs G&L 2026-11-19, E2).
+ */
 function branchFromConfig(effects, key) {
   const src = effects?.[key] || {};
   return {
@@ -9,6 +15,18 @@ function branchFromConfig(effects, key) {
     deltaGems: Number(src.deltaGems) || 0,
     deltaMove: Number(src.deltaMove) || 0,
     passTurn: Boolean(src.passTurn),
+    unDeAuProchainTour: src.unDeAuProchainTour === true,
+  };
+}
+
+function branchToConfig(branch) {
+  return {
+    label: branch.label || null,
+    deltaPv: branch.deltaPv,
+    deltaGems: branch.deltaGems,
+    deltaMove: branch.deltaMove,
+    passTurn: branch.passTurn,
+    unDeAuProchainTour: branch.unDeAuProchainTour,
   };
 }
 
@@ -26,25 +44,9 @@ function formFromEventConfig(eventConfig) {
 
 function buildEffectsFromForm(form) {
   return normalizeMarkerEffects({
-    neutral: {
-      deltaPv: form.neutral.deltaPv,
-      deltaGems: form.neutral.deltaGems,
-      deltaMove: form.neutral.deltaMove,
-    },
-    gnome: {
-      label: form.gnome.label || null,
-      deltaPv: form.gnome.deltaPv,
-      deltaGems: form.gnome.deltaGems,
-      deltaMove: form.gnome.deltaMove,
-      passTurn: form.gnome.passTurn,
-    },
-    unicorn: {
-      label: form.unicorn.label || null,
-      deltaPv: form.unicorn.deltaPv,
-      deltaGems: form.unicorn.deltaGems,
-      deltaMove: form.unicorn.deltaMove,
-      passTurn: form.unicorn.passTurn,
-    },
+    neutral: branchToConfig(form.neutral),
+    gnome: branchToConfig(form.gnome),
+    unicorn: branchToConfig(form.unicorn),
   });
 }
 
@@ -112,9 +114,9 @@ function BranchFields({ title, branchKey, form, onPatch }) {
 export function GLMarkerEffectsEditor({ eventConfig, onChange }) {
   const [form, setForm] = useState(() => formFromEventConfig(eventConfig));
 
-  useEffect(() => {
-    setForm(formFromEventConfig(eventConfig));
-  }, [eventConfig]);
+  // Pas de recalage sur `eventConfig` : son identité change à chaque rechargement de la liste
+  // des repères (donc après chaque enregistrement), ce qui écrasait le texte en cours de
+  // frappe. L'appelant remonte l'éditeur (`key`) quand on change de repère.
 
   useEffect(() => {
     const effects = buildEffectsFromForm(form);

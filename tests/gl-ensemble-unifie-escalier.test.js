@@ -280,6 +280,24 @@ test('« Ouvrir la suite » : le prof monte une marche tout de suite — le voil
     modules: ['voile', 'page_temoin', 'sorts', 'lumiere'],
     sorts: ['SL002', 'SL037', 'SL039', 'SL042', 'SL044'],
   });
+  // Double appui (ou deux onglets) : la même demande, partie de la séance 2, est déjà servie —
+  // elle ne monte pas une seconde marche, sur laquelle on ne pourrait pas revenir.
+  const marchesAvant = (await evenements('escalier_pas')).length;
+  const rejouee = await request(app)
+    .post(api('/tenir/escalier/suite'))
+    .set(prof())
+    .send({ pas: 2 });
+  assert.equal(rejouee.status, 200, JSON.stringify(rejouee.body));
+  assert.deepEqual(
+    { deja: rejouee.body.deja, pas: rejouee.body.escalier.pas, ouvert: rejouee.body.ouvert },
+    { deja: true, pas: 3, ouvert: null },
+  );
+  assert.equal((await evenements('escalier_pas')).length, marchesAvant);
+  const invalide = await request(app)
+    .post(api('/tenir/escalier/suite'))
+    .set(prof())
+    .send({ pas: 'deux' });
+  assert.equal(invalide.status, 400);
   // La page témoin : la zone encore endormie la plus proche du départ pâlit, une seule fois.
   const temoins = await evenements('page_temoin');
   assert.equal(temoins.length, 1);
@@ -408,6 +426,10 @@ test('séance 4 et après : le Marché et les trois derniers sorts ; l’escalie
   const recul = await profil({ surface: 'tablette', escalier: true, escalier_pas: 1 });
   assert.equal(recul.status, 200, JSON.stringify(recul.body));
   assert.equal(recul.body.settings.escalier_pas, 4);
+  // Un profil renvoyé sans parler de l'escalier ne le fait pas reculer non plus (le pas est
+  // relu sous le verrou de la partie au moment d'écrire).
+  const garde = await profil({ surface: 'tablette', escalier: true, chapardeur: false });
+  assert.equal(garde.body.settings.escalier_pas, 4);
   // Coupé : tout est ouvert, « Ouvrir la suite » n'a plus d'objet.
   const coupe = await profil({ surface: 'tablette', escalier: false });
   assert.equal(coupe.body.settings.escalier, false);

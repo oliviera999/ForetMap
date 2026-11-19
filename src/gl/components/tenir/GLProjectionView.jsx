@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { apiGL } from '../../services/apiGL.js';
+import { acquireGlSocket, subscribeGlGame } from '../../realtime/glSocketClient.js';
 import { GLTourJournal } from '../mj/GLTourJournal.jsx';
 import { GLGameBoard } from '../GLGameBoard.jsx';
 import { numeroCase } from '../../../shared/glCaseNumeroCore.js';
@@ -23,19 +24,57 @@ export function pageEtatLabel(etat) {
 }
 
 const NOOP = () => {};
+/** Rechargement après un évènement temps réel : les rafales (jet, case, voile) sont regroupées. */
+const RELOAD_DELAY_MS = 250;
+const RELOAD_JITTER_MS = 500;
 
 /**
  * Projection (vidéoprojecteur) : vue lecture seule d'une partie « Tenir à deux » — le plateau
  * (même composant que l'onglet Cartes : pions, voile gris, empreintes, contours révélés, oiseau
  * témoin, mascottes ; aucun polygone de zone endormie, aucune bourse), le tour, le carnet de la
- * classe, le journal. Aucun bouton d'action. Rechargement à chaque événement temps réel et
- * bouton « Actualiser » discret pour le long-polling.
+ * classe, le journal. Aucun bouton d'action.
+ *
+ * Une projection est une session invitée : le runtime de l'application ne charge ni n'écoute rien
+ * pour elle. La vue s'abonne donc elle-même aux évènements de la partie (`gl:game:event`,
+ * `gl:game:equipe` — même patron que `GLTeamSessionView`) et se recharge à chacun.
  */
 export function GLProjectionView({ gameId, token, refreshKey = 0 }) {
   const [state, setState] = useState(null);
   const [tour, setTour] = useState(null);
   const [carnet, setCarnet] = useState(null);
   const [error, setError] = useState('');
+  // Avance à chaque évènement temps réel de la partie (rafales regroupées).
+  const [evenements, setEvenements] = useState(0);
+
+  useEffect(() => {
+    if (!token || !gameId) return undefined;
+    const { socket, release } = acquireGlSocket(token);
+    if (!socket) return undefined;
+    const unsubscribe = subscribeGlGame(token, gameId);
+    let timer = null;
+    const onEvent = (evt) => {
+      if (Number(evt?.gameId) !== Number(gameId)) return;
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(
+        () => {
+          timer = null;
+          setEvenements((n) => n + 1);
+        },
+        RELOAD_DELAY_MS + Math.floor(Math.random() * RELOAD_JITTER_MS),
+      );
+    };
+    socket.on('gl:game:event', onEvent);
+    socket.on('gl:game:equipe', onEvent);
+    return () => {
+      if (timer) clearTimeout(timer);
+      socket.off('gl:game:event', onEvent);
+      socket.off('gl:game:equipe', onEvent);
+      unsubscribe();
+      release();
+    };
+  }, [token, gameId]);
+  // Les panneaux enfants (défis, journal) se relisent sur la même clé que la vue.
+  const cleRelecture = `${refreshKey}:${evenements}`;
 
   useEffect(() => {
     let cancelled = false;
@@ -59,7 +98,7 @@ export function GLProjectionView({ gameId, token, refreshKey = 0 }) {
     return () => {
       cancelled = true;
     };
-  }, [gameId, refreshKey]);
+  }, [gameId, cleRelecture]);
 
   const round = tour?.round || null;
   const voile = state?.tenir?.state?.voilePosition ?? -1;
@@ -156,7 +195,12 @@ export function GLProjectionView({ gameId, token, refreshKey = 0 }) {
             <strong>{t.name}</strong> — case {numeroCase(t.pathIndex) ?? '—'}
             {t.auCamp ? ' · au camp' : ''}
             {voile >= 0 && t.pathIndex != null && t.pathIndex <= voile ? ' · sous le voile' : ''}
-            {t.unDe ? ' · au prochain tour : un seul dé' : ''}
+            {/* Le tour où le seul dé est dû, la projection le dit au présent, comme l'écran d'équipe. */}
+            {t.unDe
+              ? t.desProchainJet === 1
+                ? ' · ce tour-ci : un seul dé'
+                : ' · au prochain tour : un seul dé'
+              : ''}
           </li>
         ))}
       </ol>
@@ -182,7 +226,7 @@ export function GLProjectionView({ gameId, token, refreshKey = 0 }) {
       ) : null}
       {/* À la clôture du tour : les défis à préparer pour la semaine (jamais le critère). */}
       {round?.phase === 'clos' ? (
-        <GLDefisCasePanel gameId={gameId} refreshKey={refreshKey} teams={teams} avecEquipe />
+        <GLDefisCasePanel gameId={gameId} refreshKey={cleRelecture} teams={teams} avecEquipe />
       ) : null}
       {round?.passeur && !accroche ? (
         <blockquote className="gl-tour-passeur">
@@ -190,7 +234,7 @@ export function GLProjectionView({ gameId, token, refreshKey = 0 }) {
           <p>{round.passeur.texte}</p>
         </blockquote>
       ) : null}
-      <GLTourJournal gameId={gameId} token={token} refreshKey={refreshKey} limit={25} />
+      <GLTourJournal gameId={gameId} token={token} refreshKey={cleRelecture} limit={25} />
     </div>
   );
 }

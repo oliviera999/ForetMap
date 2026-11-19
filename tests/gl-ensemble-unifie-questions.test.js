@@ -107,6 +107,10 @@ test('réglages : plafond {1: 2, 2: 3, 3: 3, 4: 3}, spirale 20 % (une question s
   assert.equal(resolvePlafondDifficulte({ questions_difficulte_max_par_plateau: { 1: 4 } }, 1), 4);
   assert.equal(resolveSpirale({ questions_spirale: 20 }), 0.2);
   assert.equal(resolveSpirale({ questions_spirale: 0.5 }), 0.5);
+  // Le réglage est un entier en pour cent : 1 vaut 1 %, 100 vaut toujours.
+  assert.equal(resolveSpirale({ questions_spirale: 1 }), 0.01);
+  assert.equal(resolveSpirale({ questions_spirale: 100 }), 1);
+  assert.equal(resolveSpirale({ questions_spirale: 0 }), 0);
   assert.equal(resolveSpirale({}), 0.2);
   assert.deepEqual(biomesDesPlateauxTraverses(1), []);
   assert.deepEqual(biomesDesPlateauxTraverses(2).sort(), ['jungle_afc', 'savane']);

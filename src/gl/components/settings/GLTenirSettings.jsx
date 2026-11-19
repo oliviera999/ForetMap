@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { readGameplayFlag, readSelectSetting } from '../../utils/glSettingsForm.js';
 
 /**
@@ -132,6 +132,12 @@ export function readJsonSetting(settings, key, fallback) {
 function NumberRow({ settingsKey, label, min, max, settings, savingKey, onSaveSetting }) {
   const current = readNumberSetting(settings, settingsKey, min);
   const [value, setValue] = useState(String(current));
+  // Le bloc est monté avec `settings = {}` avant la réponse du chargement : sans cette
+  // resynchronisation, le champ gardait le minimum du premier rendu et un simple passage
+  // (clic puis Tab) l'écrivait en base (audit des bugs G&L 2026-11-19, E1).
+  useEffect(() => {
+    setValue(String(current));
+  }, [current]);
   const disabled = savingKey === settingsKey;
   return (
     <label className="gl-tenir-settings__row">
@@ -144,6 +150,11 @@ function NumberRow({ settingsKey, label, min, max, settings, savingKey, onSaveSe
         disabled={disabled}
         onChange={(event) => setValue(event.target.value)}
         onBlur={() => {
+          // `Number('')` vaut 0 : un champ vidé ne doit pas enregistrer 0.
+          if (String(value).trim() === '') {
+            setValue(String(current));
+            return;
+          }
           const n = Number(value);
           if (Number.isInteger(n) && n !== current) onSaveSetting(settingsKey, n);
         }}
@@ -154,9 +165,15 @@ function NumberRow({ settingsKey, label, min, max, settings, savingKey, onSaveSe
 
 function JsonMapRow({ settingsKey, label, keys, settings, savingKey, onSaveSetting, step = 1 }) {
   const current = readJsonSetting(settings, settingsKey, {});
-  const [draft, setDraft] = useState(() =>
-    Object.fromEntries(keys.map(([k]) => [k, String(current?.[k] ?? '')])),
-  );
+  const toDraft = () => Object.fromEntries(keys.map(([k]) => [k, String(current?.[k] ?? '')]));
+  const [draft, setDraft] = useState(toDraft);
+  // Même resynchronisation que `NumberRow` (E1). `current` est un objet reparsé à chaque
+  // rendu : on compare sa forme sérialisée, pas son identité.
+  const currentSignature = keys.map(([k]) => String(current?.[k] ?? '')).join('|');
+  useEffect(() => {
+    setDraft(toDraft());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentSignature]);
   const disabled = savingKey === settingsKey;
   return (
     <fieldset className="gl-tenir-settings__map">
@@ -171,6 +188,9 @@ function JsonMapRow({ settingsKey, label, keys, settings, savingKey, onSaveSetti
             disabled={disabled}
             onChange={(event) => setDraft((prev) => ({ ...prev, [k]: event.target.value }))}
             onBlur={() => {
+              // `Number('')` vaut 0 : un champ vide (réglage pas encore chargé ou incomplet)
+              // n'est pas une valeur — on n'envoie rien tant que le groupe n'est pas complet.
+              if (keys.some(([key]) => String(draft[key] ?? '').trim() === '')) return;
               const next = Object.fromEntries(keys.map(([key]) => [key, Number(draft[key])]));
               if (keys.every(([key]) => Number.isFinite(next[key]))) {
                 const changed = keys.some(([key]) => Number(current?.[key]) !== next[key]);

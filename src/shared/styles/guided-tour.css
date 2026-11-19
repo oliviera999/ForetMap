@@ -39,7 +39,20 @@
   box-shadow: var(--shadow, 0 10px 30px rgba(0, 0, 0, 0.25));
   padding: 16px 18px;
   max-width: 92vw;
+  /*
+   * Jamais plus haute que l'écran (le composant pose aussi `max-height` en ligne) : seul le
+   * texte d'Olu défile, l'en-tête et les boutons Passer / Suivant restent toujours visibles.
+   */
+  max-height: calc(100vh - 24px);
+  max-height: calc(100dvh - 24px);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
   animation: fadeIn 0.18s ease;
+}
+.discovery-tour__card > * {
+  flex: 0 0 auto;
 }
 .discovery-tour__progress {
   font-size: var(--text-xs);
@@ -63,6 +76,13 @@
   align-items: flex-start;
   gap: 10px;
   margin-top: 6px;
+}
+.discovery-tour__card > .discovery-tour__scene {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 .discovery-tour__scene .discovery-tour__bubble {
   flex: 1 1 auto;
