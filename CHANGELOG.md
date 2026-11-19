@@ -27,6 +27,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Vue « Individus suivis » (F8, F9).** Deux clics rapides n'affichent plus la fiche du premier
   individu pendant que la mesure part sur le second ; la date de mesure par défaut est la date
   locale (et non UTC).
+
 ### Corrigé — audit ForetMap du 19/11, lot 4 (profils RBAC, groupes, import et fusion de comptes)
 
 - **A1** — L'import de comptes ne réécrit plus un compte existant de rang égal ou supérieur à
