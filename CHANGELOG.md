@@ -9,6 +9,25 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — audit ForetMap du 19/11, lot 10 (séances, individus, calendrier, clades, clés)
+
+- **Séances pédagogiques (P5).** Un prérequis en brouillon, dépublié ou supprimé ne verrouille
+  plus la séance dépendante ; un prérequis qui créerait un cycle (A ↔ B ou plus long) est refusé
+  à l'écriture (`400`, code `PREREQUISITE_CYCLE`).
+- **Individus suivis (P6).** Date impossible (`2026-02-31`), mesure hors des bornes des colonnes,
+  mesure nulle ou négative, densité ≥ 10, groupe inconnu : `400` explicite au lieu de `500` ou
+  d'une valeur acceptée. En modification, la zone ou le repère doit exister sur la carte de
+  l'individu, comme en création.
+- **Calendrier scolaire (P7).** `parseISODateOnly` vérifie la date par aller-retour `Date.UTC` :
+  `2031-09-31` donne `400` au lieu de `500`.
+- **Activité clades (P8).** `POST /api/clades/activity/check` écarte les placements qui ne sont
+  pas des objets (`[null]` → `400` au lieu de `500`).
+- **Clés d'identification (P9).** Sur une clé publiée, supprimer le couplet de départ ou un
+  couplet encore visé par une proposition renvoie `409` : plus de proposition sans issue.
+- **Vue « Individus suivis » (F8, F9).** Deux clics rapides n'affichent plus la fiche du premier
+  individu pendant que la mesure part sur le second ; la date de mesure par défaut est la date
+  locale (et non UTC).
+
 ### Corrigé — audit ForetMap du 19/11, lot 4 (profils RBAC, groupes, import et fusion de comptes)
 
 - **A1** — L'import de comptes ne réécrit plus un compte existant de rang égal ou supérieur à
