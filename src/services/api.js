@@ -107,6 +107,9 @@ export function compactStudentForStorage(student) {
   return compact;
 }
 
+/** Raison portée par `foretmap_teacher_expired` quand la session a été fermée dans un autre onglet. */
+export const SESSION_CLOSED_ELSEWHERE_REASON = 'session_closed_elsewhere';
+
 function dispatchSessionChanged() {
   if (typeof window === 'undefined') return;
   window.dispatchEvent(new CustomEvent('foretmap_session_changed'));
@@ -253,9 +256,58 @@ export function migrateLegacySessionStorage() {
   return true;
 }
 
+/**
+ * Cette fenêtre a déjà envoyé un jeton (audit ForetMap du 19/11, F1). Si le jeton disparaît
+ * sans déconnexion locale (déconnexion dans un autre onglet : le stockage est partagé), un
+ * 401 reçu sans jeton signifie que la session affichée ici n'existe plus.
+ */
+let windowHadSession = false;
+
+/** Oublie la session de cette fenêtre (déconnexion locale, ou fermeture constatée ailleurs). */
+export function markWindowSessionClosed() {
+  windowHadSession = false;
+}
+
 export function getAuthToken() {
   migrateLegacySessionStorage();
-  return pickStoredToken(readRawSession()?.token);
+  const token = pickStoredToken(readRawSession()?.token);
+  if (token) windowHadSession = true;
+  return token;
+}
+
+/** Clé `localStorage` de la session ForetMap (partagée entre onglets du même site). */
+export const SESSION_STORAGE_KEY = SESSION_KEY;
+
+/**
+ * Identité du compte porté par une session sérialisée (`foretmap_session`) :
+ * `userType:userId` lu dans le jeton, à défaut dans `user` ; chaîne vide sans compte.
+ * Un simple renouvellement de jeton garde la même identité (audit du 19/11, F1).
+ *
+ * @param {string|null|undefined} raw Valeur brute du stockage.
+ * @returns {string}
+ */
+export function sessionAccountKeyFromRaw(raw) {
+  let session = null;
+  try {
+    session = raw ? JSON.parse(raw) : null;
+  } catch (_) {
+    session = null;
+  }
+  if (!session || typeof session !== 'object') return '';
+  const token = pickStoredToken(session.token);
+  const claims = token ? decodeJwtPayload(token) : null;
+  if (claims && claims.userId != null) return `${claims.userType || ''}:${claims.userId}`;
+  const user = session.user;
+  if (user && typeof user === 'object' && user.id != null) {
+    return `${user.userType || ''}:${user.id}`;
+  }
+  return token ? `token:${token}` : '';
+}
+
+/** Identité du compte de la session actuellement stockée (cf. `sessionAccountKeyFromRaw`). */
+export function getStoredSessionAccountKey() {
+  migrateLegacySessionStorage();
+  return sessionAccountKeyFromRaw(safeLocalStorageGetItem(SESSION_KEY, null));
 }
 
 /**
@@ -346,6 +398,7 @@ export async function purgeCachedApiResponses() {
 }
 
 export function clearStoredSession() {
+  windowHadSession = false;
   safeLocalStorageRemoveItem(SESSION_KEY);
   removeLegacySessionKeys();
   void purgeCachedApiResponses();
@@ -530,6 +583,17 @@ export async function api(path, method = 'GET', body, requestOptions = {}) {
           window.dispatchEvent(
             new CustomEvent('foretmap_teacher_expired', {
               detail: { deleted, reason: errBody.reason || null },
+            }),
+          );
+        }
+        if (!token && windowHadSession) {
+          // Requête partie sans jeton alors que cette fenêtre avait une session : elle a été
+          // fermée dans un autre onglet (stockage partagé). Fermer aussi celle-ci — sans
+          // toucher au stockage, qui peut déjà porter la session d'un autre compte (F1).
+          windowHadSession = false;
+          window.dispatchEvent(
+            new CustomEvent('foretmap_teacher_expired', {
+              detail: { deleted, reason: SESSION_CLOSED_ELSEWHERE_REASON, keepStorage: true },
             }),
           );
         }

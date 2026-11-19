@@ -101,6 +101,17 @@ d'observation** pour l'écriture naturaliste libre.
   « statut » vaut `actif` ou `inactif` ; **laissée vide, elle ne change rien** : une question
   désactivée le reste (jusqu'en septembre 2026, un fichier sans statut réactivait toutes les
   questions désactivées). Une autre valeur est signalée comme erreur sur sa ligne.
+- **Le numéro d'une question est unique dans sa catégorie.** Créer une question, ou en
+  importer une, avec un numéro déjà pris dans la catégorie est refusé : la fiche affiche
+  « Ce numéro est déjà pris dans cette catégorie par la question … », l'import signale la
+  ligne en erreur. Jusqu'en novembre 2026, la nouvelle question **écrasait** l'ancienne
+  (énoncé et bonne réponse compris) sans prévenir. Pour échanger les numéros de deux
+  questions, passer par un numéro libre.
+- **Les rattachements automatiques au glossaire** (par mots-clés) d'une question ne sont
+  recalculés que pour les questions **présentes dans le fichier importé** ; un import
+  partiel ne touche plus aux autres. Et si vous avez rendu **bloquant** un rattachement
+  automatique, il le reste quand la question est modifiée ou réimportée (jusqu'en
+  novembre 2026, ce choix était perdu à chaque modification).
 - **La difficulté d'une question** va de 1 à 3 : « ⭐ Facile », « ⭐⭐ Moyen »,
   « ⭐⭐⭐ Difficile ». Le libellé suit **toujours** le chiffre : à l'import comme dans la
   fiche, il est recalculé à l'enregistrement, et ce qui est écrit dans la colonne ou le champ
@@ -142,6 +153,11 @@ d'observation** pour l'écriture naturaliste libre.
   fait qu’une bonne réponse soit enregistrée en premier n’aide pas à deviner.
 - Les questions du Quiz servent aussi de **contrôle de compréhension** avant de valider
   un tutoriel, une fiche espèce ou un terme de glossaire, si le dispositif est activé.
+  **Ce contrôle se passe avec un compte** : un visiteur non connecté qui ouvre la question
+  depuis la fiche voit « Connecte-toi pour débloquer cette fiche ». Jusqu'en novembre
+  2026, on pouvait y répondre sans compte, essai après essai, sans jamais être bloqué —
+  puis répondre juste du premier coup une fois connecté. Le Quiz libre, lui, reste ouvert
+  à tous.
   Les rattachements livrés ont été relus : une question n’est plus accrochée à une
   fiche qui ne l’enseigne pas (par exemple la photosynthèse n’est plus collée au
   tutoriel « Sol vivant »). L'écran « Rattacher des questions aux contenus », sous

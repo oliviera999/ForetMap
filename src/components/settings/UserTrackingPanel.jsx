@@ -5,6 +5,7 @@ import { api } from '../../services/api';
 import { Button } from '../../shared/ui/Button.jsx';
 import { DataList } from '../../shared/ui/DataList.jsx';
 import { UsagePanel } from './UsagePanel.jsx';
+import { localDateInput } from '../../utils/localDateInput.js';
 
 const PRODUCTS = Object.freeze([
   { id: '', label: 'Tous les produits' },
@@ -25,9 +26,9 @@ const ACTION_LABELS = Object.freeze({
   product_open: 'Ouverture produit',
 });
 
+/** Date locale `AAAA-MM-JJ` décalée de `offsetDays` jours (heure locale, audit du 19/11, F9). */
 function dayInput(offsetDays = 0) {
-  const date = new Date(Date.now() + offsetDays * 24 * 60 * 60 * 1000);
-  return date.toISOString().slice(0, 10);
+  return localDateInput(offsetDays);
 }
 
 function formatWhen(value) {

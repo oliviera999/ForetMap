@@ -29,7 +29,12 @@ const {
 const { verifyLaunchToken, toolPublicJwk, launchView } = require('../lib/lti/launch');
 const { resolveLtiUser, isN3beurUser } = require('../lib/lti/identity');
 const { resolveLaunchDestination } = require('../lib/lti/bindings');
-const { issueTicket, exchangeTicket, arrivalUrl } = require('../lib/lti/session');
+const {
+  issueTicket,
+  exchangeTicket,
+  arrivalUrl,
+  ltiLaunchRequiresInstructor,
+} = require('../lib/lti/session');
 
 const router = express.Router();
 
@@ -129,8 +134,10 @@ router.post(
     }
     // Un compte enseignant ne s'ouvre depuis le cours que si la plateforme y présente la
     // personne comme enseignante (rôle LTI Instructor / Administrator). L'e-mail déclaré par
-    // la plateforme ne suffit pas à ouvrir une session n3boss ou admin (CDG-05).
-    if (String(user.user_type) === 'teacher' && !destination.instructor) {
+    // la plateforme ne suffit pas à ouvrir une session n3boss ou admin (CDG-05). La garde
+    // regarde le profil effectif, pas seulement `user_type` : un compte de type élève au
+    // profil `prof` ou `admin` y est soumis aussi (A5, audit du 19/11/2026).
+    if (!destination.instructor && (await ltiLaunchRequiresInstructor(user))) {
       await logAudit(
         'lti_launch_refused',
         'user',
@@ -138,7 +145,7 @@ router.post(
         'teacher_without_instructor_role',
         {
           req,
-          payload: { courseId: destination.courseId, via },
+          payload: { courseId: destination.courseId, via, userType: String(user.user_type) },
           result: 'failure',
         },
       );

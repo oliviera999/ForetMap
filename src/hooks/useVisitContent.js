@@ -57,12 +57,19 @@ export function useVisitContent({ mapId, setMapId, onForceLogout, onProgressLoad
 
   const onProgressLoadedRef = useRef(onProgressLoaded);
   onProgressLoadedRef.current = onProgressLoaded;
+  /** Numéro du dernier chargement lancé : seul lui applique son contenu et baisse `loading`. */
+  const loadSeqRef = useRef(0);
 
   const loadData = useCallback(async () => {
     const requestedMapId = String(mapId).trim();
     const visitContentPath = requestedMapId
       ? `/api/visit/content?map_id=${encodeURIComponent(requestedMapId)}`
       : '/api/visit/content';
+    const seq = ++loadSeqRef.current;
+    // Requête encore d'actualité : dernier chargement lancé ET carte toujours affichée
+    // (audit ForetMap du 19/11, F10 — revérifiée après chaque attente réseau).
+    const isCurrentRequest = () =>
+      seq === loadSeqRef.current && requestedMapId === String(visitLoadMapIdLiveRef.current).trim();
     setLoading(true);
     try {
       // Le catalogue est appliqué même si le contenu échoue : une carte demandée qui n'est
@@ -75,7 +82,7 @@ export function useVisitContent({ mapId, setMapId, onForceLogout, onProgressLoad
           (error) => ({ ok: false, error }),
         ),
       ]);
-      if (requestedMapId !== String(visitLoadMapIdLiveRef.current).trim()) return;
+      if (!isCurrentRequest()) return;
 
       const fetchedMaps = Array.isArray(mapsRes) ? mapsRes : [];
       const activeMaps = fetchedMaps.filter((m) => m?.is_active !== false);
@@ -95,6 +102,9 @@ export function useVisitContent({ mapId, setMapId, onForceLogout, onProgressLoad
       } catch (_) {
         progressBody = null;
       }
+      // La carte a pu changer pendant la lecture de la progression : ne pas poser les lieux
+      // de l'ancienne carte sur la nouvelle.
+      if (!isCurrentRequest()) return;
       const visitPayload =
         visitRes && typeof visitRes === 'object' && !Array.isArray(visitRes)
           ? {
@@ -124,7 +134,7 @@ export function useVisitContent({ mapId, setMapId, onForceLogout, onProgressLoad
       // contenu plutôt que de laisser les zones et repères de la carte précédente posés sur
       // le fond de la nouvelle (et le cadrage calé sur eux). Un rechargement raté de la
       // même carte garde, lui, ce qui est affiché.
-      if (requestedMapId === String(visitLoadMapIdLiveRef.current).trim()) {
+      if (isCurrentRequest()) {
         setContent((prev) =>
           String(prev?.map_id ?? '').trim() === requestedMapId
             ? prev
@@ -140,8 +150,11 @@ export function useVisitContent({ mapId, setMapId, onForceLogout, onProgressLoad
         );
       }
     } finally {
-      setLoading(false);
-      setHasLoadedOnce(true);
+      // Un chargement périmé ne baisse pas `loading` : le chargement courant s'en charge.
+      if (seq === loadSeqRef.current) {
+        setLoading(false);
+        setHasLoadedOnce(true);
+      }
     }
   }, [mapId, setMapId, onForceLogout, notify]);
 

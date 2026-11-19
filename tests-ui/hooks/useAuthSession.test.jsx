@@ -21,6 +21,7 @@ const apiMocks = {
   pickNewestAuthToken: vi.fn((candidate, current) => candidate || current || null),
   saveStoredSession: vi.fn(),
   clearStoredSession: vi.fn(),
+  markWindowSessionClosed: vi.fn(),
   isElevatedJwt: vi.fn(() => false),
 };
 vi.mock('../../src/services/api', () => ({
@@ -32,6 +33,7 @@ vi.mock('../../src/services/api', () => ({
   pickNewestAuthToken: (...a) => apiMocks.pickNewestAuthToken(...a),
   saveStoredSession: (...a) => apiMocks.saveStoredSession(...a),
   clearStoredSession: (...a) => apiMocks.clearStoredSession(...a),
+  markWindowSessionClosed: (...a) => apiMocks.markWindowSessionClosed(...a),
   isElevatedJwt: (t) => apiMocks.isElevatedJwt(t),
 }));
 
@@ -228,6 +230,8 @@ describe('useAuthSession', () => {
   });
 
   it('mergeAuthMeResponse (enseignant) : mascotte, niveau et pseudo conservés ou relus', () => {
+    // Session prof toujours ouverte : sans jeton, la réponse serait ignorée (audit du 19/11, F2).
+    apiMocks.getAuthClaims.mockReturnValue({ userType: 'teacher', userId: 'T1' });
     const { params, result } = renderAuthSession();
     act(() =>
       result.current.mergeAuthMeResponse({
@@ -253,6 +257,7 @@ describe('useAuthSession', () => {
   });
 
   it('mergeAuthMeResponse : promotion et drapeaux participation fusionnés côté n3beur', () => {
+    apiMocks.getAuthClaims.mockReturnValue({ userType: 'student', userId: 'S1' });
     const { params, result } = renderAuthSession();
     act(() =>
       result.current.mergeAuthMeResponse(

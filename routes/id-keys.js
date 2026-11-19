@@ -310,6 +310,33 @@ router.delete(
       [coupletId, keyId],
     );
     if (!couplet) return res.status(404).json({ error: 'Couplet introuvable' });
+    // Clé publiée : la FK `next_couplet_id … ON DELETE SET NULL` laisserait des propositions
+    // sans issue devant les élèves, et `validateKeyGraph` ne tourne qu'à la publication
+    // (audit du 19/11/2026, P9). On refuse donc la suppression d'un couplet encore visé par
+    // une proposition d'un autre couplet, et celle du couplet de départ (n° 1).
+    const key = await queryOne('SELECT is_published FROM id_keys WHERE id = ?', [keyId]);
+    if (key?.is_published) {
+      if (Number(couplet.number) === 1) {
+        return res.status(409).json({
+          error: 'Le couplet de départ d’une clé publiée ne peut pas être supprimé',
+        });
+      }
+      const referrers = await queryAll(
+        `SELECT DISTINCT c.number
+           FROM id_key_leads l
+           JOIN id_key_couplets c ON c.id = l.couplet_id
+          WHERE l.next_couplet_id = ? AND l.couplet_id <> ?
+          ORDER BY c.number ASC`,
+        [coupletId, coupletId],
+      );
+      if (referrers.length) {
+        const numbers = referrers.map((r) => r.number).join(', ');
+        return res.status(409).json({
+          error: `Couplet encore visé par une proposition (couplet ${numbers}) : redirige-la d’abord`,
+          referencedBy: referrers.map((r) => Number(r.number)),
+        });
+      }
+    }
     if (Number(couplet.number) === 1) {
       const count = await queryOne('SELECT COUNT(*) AS c FROM id_key_couplets WHERE key_id = ?', [
         keyId,
