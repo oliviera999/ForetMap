@@ -9,6 +9,40 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — G&L : éditeurs d'administration qui enregistraient une valeur fausse (19 novembre 2026)
+
+Lot 3 de l'audit des bugs G&L du 19 novembre 2026 (constats E1 à E5 et E12). Chaque défaut est
+d'abord reproduit par un test qui monte le composant réel, avec son chargement asynchrone.
+
+- **Réglages « Tenir à deux »** (E1) : les nombres affichaient leur minimum (1 ou 0) et les
+  champs par plateau restaient vides, parce que le bloc est monté avant la réponse du
+  chargement ; un simple clic puis Tab écrivait ce minimum en base. Chaque ligne suit maintenant
+  la valeur chargée, et un champ vide n'est plus lu comme 0.
+- **Studio de carte de chapitre** (E2) : une boucle de rendu occupait le navigateur en continu
+  et empêchait tout enregistrement du formulaire d'un repère. Elle est supprimée — et, pour que
+  l'enregistrement qui repart ne détruise rien : `tenir.defi` (case « Défi d'équipe »), « un
+  seul dé » d'une case Souffle, le texte et « passe le tour » de l'effet neutre et la question
+  portée par un repère d'un autre type traversent désormais le formulaire ; un nouveau repère
+  n'hérite plus des effets du repère sélectionné juste avant ; un repère sans configuration ne
+  reçoit plus une question par défaut ; l'apparence par défaut ne s'applique qu'au changement
+  de type (l'emoji choisi n'est plus remplacé à la sélection). Sélectionner un repère sans le
+  modifier n'écrit rien.
+- **Politique de conditionnement par ressource** (E3) : l'éditeur s'affichait avant la réponse
+  du chargement, sur « Hériter », et « Enregistrer » effaçait la politique en base. Il n'est
+  rendu qu'une fois la politique de la référence saisie chargée.
+- **Éditeur riche** (E4) : une image `scene:N` non résolue disparaissait à la première frappe.
+  Un substitut (« 🖼 légende (scene:N) ») garde la référence, et l'image s'affiche dès que les
+  scènes sont chargées. La forme `<img src="scene:N">` que l'éditeur enregistre est relue.
+- **Saisie pendant l'enregistrement automatique** (E5) : chapitres, pages de contenu, fiches
+  espèces / glossaire / sorts, réglages, éditeurs d'un repère — ce qui est tapé pendant la
+  requête n'est plus écrasé par la réponse du serveur. Chapitres : un `PUT` partait à chaque
+  frappe du titre, hors délai.
+- **Champs numériques** (E12) : le délai libre du conditionnement suit la valeur enregistrée ;
+  PV / PP initiaux vidés ne sont plus enregistrés à 0.
+
+Tests : `tests-ui/gl/GLSettingsViewAsyncLoad`, `GLChapterMapStudioAutoSave`,
+`GLLearningLinksPanelPolicyLoad`, `GLRichTextEditorUnresolvedImages`, `GLAutoSaveInFlightTyping`,
+`GLGatingSettingsFreeDelay`.
 ### Corrigé — G&L : les écrans qui ne se relisaient pas (audit du 19 novembre 2026, lot 1)
 
 Six constats du front de jeu (`docs/AUDIT_BUGS_GL_2026-11-19.md`, § 3). Aucune règle du jeu ne
