@@ -9,6 +9,25 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — audit ForetMap du 19/11, lot 6 (vie sociale : forum, commentaires, observations, carnet)
+
+Constats de `docs/AUDIT_BUGS_FORETMAP_2026-11-19.md` § 4 ; tests `tests/audit-fm-lot6-social.test.js`.
+
+- **T6** — Une réaction emoji envoyée deux fois au même instant ne répond plus 500
+  (`ER_DUP_ENTRY`) : la bascule passe par un `INSERT IGNORE` tranché par la clé primaire (ajout
+  si une ligne est insérée, retrait sinon), au lieu d'un SELECT puis d'un INSERT non atomiques.
+  Corrigé dans les cœurs partagés `lib/shared/forumCore.js` (forum ForetMap **et** G&L) et
+  `lib/shared/contextCommentsCore.js`.
+- **T9** — `GET /api/context-comments/counts` ne révèle plus le nombre de commentaires d'un
+  contexte que le lecteur ne voit pas (repère réservé à la surface `staff`, tâche hors de son
+  périmètre de cartes) : ces identifiants répondent `{ total: 0, newestId: '' }`, comme un
+  contexte vide. Seuls les identifiants qui ont des commentaires sont contrôlés.
+- **T10 (photos)** — Les plafonds de photos par observation et d'illustrations par article du
+  carnet tiennent face à des envois simultanés : décompte et insertion se font dans une
+  transaction, sous verrou de la ligne parente (`SELECT … FOR UPDATE`). Le fichier d'un envoi
+  refusé est supprimé. Les noms de fichier des illustrations portent un suffixe aléatoire (deux
+  envois de la même milliseconde pouvaient viser le même fichier).
+
 ### Modifié — G&L : ensemble unifié, PR 4 — une seule monnaie, les gemmes (18 novembre 2026)
 
 Prompt `docs/GL_ENSEMBLE_UNIFIE_PROMPT.md` (§ 9, décisions M1 et M19). En « Tenir à deux », tout

@@ -283,9 +283,19 @@ router.get(
       });
     }
     const map = await countContextCommentsByContextIds(contextType, uniqueIds);
+    // T9 (audit du 19/11/2026) : les compteurs se lisent aux mêmes conditions que les
+    // commentaires (`GET /`, `POST`). Un contexte invisible pour ce lecteur (repère réservé à
+    // une autre surface, tâche hors de son périmètre de cartes…) répond 0 / '' — comme un
+    // contexte sans commentaire, pour ne rien révéler. Seuls les identifiants qui ont des
+    // commentaires sont contrôlés : les autres répondent déjà 0.
+    const withComments = [...map.keys()].filter((id) => uniqueIds.includes(id));
+    const accessFlags = await Promise.all(
+      withComments.map((id) => contextAccessible(req, contextType, id)),
+    );
+    const hidden = new Set(withComments.filter((_, idx) => !accessFlags[idx]));
     const counts = {};
     for (const id of uniqueIds) {
-      const row = map.get(String(id));
+      const row = hidden.has(String(id)) ? null : map.get(String(id));
       counts[String(id)] = {
         total: row?.total || 0,
         // Marqueur opaque du dernier commentaire (chaîne vide = aucun) : le client le compare
