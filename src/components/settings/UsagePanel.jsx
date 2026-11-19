@@ -4,6 +4,7 @@ import { useLatestRequest } from '../../shared/hooks/useLatestRequest.js';
 import { api } from '../../services/api';
 import { Button } from '../../shared/ui/Button.jsx';
 import { DataList } from '../../shared/ui/DataList.jsx';
+import { localDateInput } from '../../utils/localDateInput.js';
 
 /** Produits du monorepo (miroir de `lib/products.js`). */
 const PRODUCTS = Object.freeze([
@@ -30,9 +31,9 @@ const EVENT_LABELS = Object.freeze({
   offline_view: 'Consultations hors ligne',
 });
 
+/** Date locale `AAAA-MM-JJ` décalée de `offsetDays` jours (heure locale, audit du 19/11, F9). */
 function dayInput(offsetDays = 0) {
-  const date = new Date(Date.now() + offsetDays * 24 * 60 * 60 * 1000);
-  return date.toISOString().slice(0, 10);
+  return localDateInput(offsetDays);
 }
 
 /**

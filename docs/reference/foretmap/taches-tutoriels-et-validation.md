@@ -232,7 +232,9 @@ Une tâche passe par des états visibles de tous : **Disponible** → **En cours
 
 1. **Se positionner** : sur une tâche disponible, l'élève clique « ✋ Je m'en occupe ».
    La tâche passe « En cours ». L'inscription est refusée si la tâche est validée, en
-   attente, complète, si son projet est en attente/terminé/validé, si la date de départ
+   attente, complète, encore **proposée** (« Idée encore en discussion ») ou déjà
+   **terminée** (« C'est déjà plié pour celle-ci » — depuis le 19/11/2026, même par un
+   appel direct au serveur, et même si deux inscriptions arrivent en même temps), si son projet est en attente/terminé/validé, si la date de départ
    n'est pas atteinte — ou si l'élève a atteint son **plafond de tâches actives**
    (réglable par profil ; un message clair lui demande de se retirer d'une tâche ou
    d'attendre une validation).
@@ -240,7 +242,8 @@ Une tâche passe par des états visibles de tous : **Disponible** → **En cours
    ni validée — donc même une fois le travail commencé.
 3. **Marquer faite** : « ✅ Marquer terminée », avec un **commentaire et/ou une photo**
    en guise de preuve (les deux sont facultatifs, mais recommandés ; la fenêtre le dit, et
-   l'élève peut valider tout de suite). Sur téléphone, dans « Mes tâches », le bouton est
+   l'élève peut valider tout de suite). Le commentaire est limité à **5 000 caractères**
+   (au-delà, le marquage est refusé avec un message clair et rien n'est enregistré). Sur téléphone, dans « Mes tâches », le bouton est
    **visible sur la carte repliée** : plus besoin de la déplier ni de faire défiler sous la
    barre du bas (depuis le 17/11/2026). En mode collectif,
    chaque inscrit marque **sa** part ; la tâche n'est « Terminée » que quand tout le
@@ -300,17 +303,23 @@ de tous les inscrits ni tout le journal d'une tâche. Deux réglages de l'admini
 - **Journal de la tâche** (comptes rendus, commentaires, photos) : les entrées écrites par
   ses camarades de groupe et les siennes (réglage par défaut), le journal complet mais
   seulement pour les inscrits de la tâche, ou le journal complet pour tout élève connecté
-  (ancien comportement).
+  (ancien comportement). Les **comptes rendus écrits par l'encadrement** (sans élève
+  rattaché) sont visibles de tous ceux qui voient la tâche, y compris avec le réglage par
+  défaut (depuis le 19/11/2026).
 
 Dans tous les cas, l'élève voit **sa propre inscription** et le **nombre de places
 prises** reste exact : seuls les noms des autres sont masqués. Les professeurs et le
-personnel qui gèrent ou valident les tâches voient tout, selon leurs droits habituels.
-Un visiteur ne voit ni les noms des autres ni le journal.
+personnel qui gèrent ou valident les tâches, ou lisent les statistiques de tout
+l'établissement, voient tout. Un **prof de classe** ne voit, dans la liste, le détail et
+le journal d'une tâche, que les inscrits et comptes rendus des élèves de **ses groupes**
+(plus ceux de l'encadrement) — depuis le 19/11/2026, le détail et le journal suivent la
+même règle que la liste. Un visiteur ne voit ni les noms des autres ni le journal.
 
 ### Du point de vue du professeur
 
 - **Valider** : la validation est définitive et déclenche la progression des élèves
-  inscrits. Une inscription élève qui arrive **en même temps** qu'une validation ne
+  inscrits. Deux clics simultanés (ou deux professeurs en même temps) ne valident qu'une
+  fois : pas de notification ni de badge en double. Une inscription élève qui arrive **en même temps** qu'une validation ne
   peut plus « défaire » cette validation : l'inscription est refusée et le statut
   validé est conservé. Détail à connaître : une tâche validée est **détachée de ses zones et
   repères** (elle n'encombre plus la carte). Les lieux sont mémorisés — pour toutes les
@@ -403,7 +412,13 @@ désactivée globalement dans les réglages des profils.
 
 À partir du palier **avancé**, un élève peut proposer une idée de tâche : titre,
 description, lieux, dates, niveaux, places, image. Sa proposition apparaît avec le statut
-« **Proposée** » et porte son nom.
+« **Proposée** » et porte son nom — visible de l'élève lui-même, du personnel qui gère les
+tâches et des élèves qui voient ses inscriptions (ses camarades de groupe avec le réglage
+par défaut). Pour les autres, le nom est retiré de la proposition, en liste comme en
+détail (depuis le 19/11/2026).
+
+- Tant qu'elle est « Proposée », **personne ne peut s'y inscrire ni la marquer faite** :
+  elle ne devient une tâche ordinaire qu'une fois acceptée par un professeur.
 
 - Tant qu'elle est « Proposée », **l'élève peut la modifier** (« ✏️ Modifier ma
   proposition ») — sauf les champs réservés au professeur (statut, projet, tutoriels,
@@ -711,6 +726,11 @@ glossaire) :
 | Afficher les pastilles d'état                   | **Oui par défaut.** Une petite marque à côté du bouton : **✓** contrôle réussi, **?** questions restantes, **🔒** bloqué. Rien ne s'affiche là où rien n'est conditionné.                                                                                                                                                                                                                                                                                                                                           |
 | Tutoriels liés avant tâche « faite »            | **Non par défaut.** Si activé, l'élève doit avoir **lu** (validé) tous les tutoriels rattachés à la tâche avant de pouvoir la marquer comme faite.                                                                                                                                                                                                                                                                                                                                                                  |
 
+Le délai de blocage dure exactement la durée choisie. Jusqu'en novembre 2026, il pouvait
+être décalé d'une heure ou deux (selon le fuseau horaire du serveur de base de données).
+Le contrôle de compréhension se passe **connecté** : un visiteur sans compte qui l'ouvre
+depuis une fiche est invité à se connecter (« Connecte-toi pour débloquer cette fiche »).
+
 **Où s'appliquent ces réglages (cascade)** — du plus général au plus précis :
 
 | Niveau        | Où le configurer                               | Ce qu'il couvre                                                                                                                                                                                                                                                                                                |
@@ -965,9 +985,11 @@ qui conditionne une validation bloque toute une classe sans raison.
 > peut donc encore bloquer un élève de collège : c'est au moment du rattachement qu'il faut
 > prévoir au moins une question de collège.
 
-> ⚠️ **Point d'attention** — La progression des paliers reconnaît aussi les élèves par
-> **prénom + nom** (héritage des anciennes inscriptions sans compte) : deux homonymes
-> parfaits pourraient voir leurs validations confondues. En revanche, pour
+> ⚠️ **Point d'attention** — La progression des paliers et les statistiques reconnaissent
+> encore les élèves par **prénom + nom**, mais **uniquement** pour les anciennes inscriptions
+> faites sans compte. Depuis le 19/11/2026, deux homonymes parfaits ne voient plus leurs
+> validations confondues : une inscription rattachée à un compte ne compte que pour lui (ni
+> palier, ni statistiques, ni liste « mes tâches » de l'autre). En revanche, pour
 > s'inscrire / se retirer / marquer fait sur une tâche, l'identité de l'élève connecté
 > vient toujours de son compte : envoyer le nom d'un autre élève dans la requête ne
 > permet plus d'agir à sa place.
