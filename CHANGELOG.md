@@ -9,6 +9,18 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Documentation — audit des bugs de ForetMap hors G&L (19 novembre 2026)
+
+- Nouveau `docs/AUDIT_BUGS_FORETMAP_2026-11-19.md` : 69 constats sur toute l'application hors
+  Gnomes & Licornes, dont 48 rejoués sur une base à part ou dans un navigateur. Sept constats
+  gênants : arrêt du serveur sur une coupure MySQL pendant une connexion temps réel (S1), deux
+  escalades de droits sur les comptes (A1, A2), progression faussée par les homonymes (T1),
+  inscription sur une tâche proposée ou faite (T2), parcours d'un plan fermé lisibles sans code
+  (C1), question `strict` résolue sans compte (P1). Lots de correction et décisions à trancher
+  en § 10 et § 11. Aucun code modifié.
+- Constaté en chemin : `tests/gl-tenir-jets-paralleles.test.js` échoue sur `main` depuis la
+  PR #688 (§ 1.1 de l'audit) ; la PR #690 annonce sa réparation.
+- Index `docs/audits/README.md` mis à jour.
 ### Corrigé — audit ForetMap du 19/11, lot 6 (vie sociale : forum, commentaires, observations, carnet)
 
 Constats de `docs/AUDIT_BUGS_FORETMAP_2026-11-19.md` § 4 ; tests `tests/audit-fm-lot6-social.test.js`.
