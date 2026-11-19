@@ -5,7 +5,12 @@
  * Couvert par `tests-ui/gl/glChapterMapStudioForm.test.js`.
  */
 
-import { defaultEventConfigForQuestion } from './glMarkerEventConfig.js';
+import {
+  MARKER_QUESTION_EVENT_TYPES,
+  defaultEventConfigForQuestion,
+  normalizeEventConfig,
+} from './glMarkerEventConfig.js';
+import { buildEventConfigFromForm, formFromMarker } from './glMarkerEventEditorForm.js';
 import {
   appearanceFormFromMarker,
   appearanceToPayload,
@@ -65,14 +70,28 @@ export function toFormFromMarker(marker) {
   };
 }
 
-/** Brouillon d'événement à partir d'un marqueur API. */
+/** Brouillon d'effets (branches + méta) à partir d'un marqueur API, sous sa forme normalisée. */
+export function effectsDraftFromMarker(marker) {
+  const cfg = normalizeEventConfig(marker?.event_config ?? marker?.eventConfig);
+  return { effects: cfg?.effects || null, eventMeta: cfg?.eventMeta || null };
+}
+
+/**
+ * Brouillon d'événement à partir d'un marqueur API.
+ *
+ * Il passe par les MÊMES fonctions que l'éditeur d'évènement (`formFromMarker` puis
+ * `buildEventConfigFromForm`) : le brouillon posé à la sélection est donc identique à celui que
+ * l'éditeur émet pour un repère non modifié. Sélectionner un repère ne déclenche ainsi aucun
+ * enregistrement, et ne peut rien lui retirer (audit des bugs G&L 2026-11-19, E2).
+ */
 export function eventDraftFromMarker(marker) {
   if (!marker) {
     return { eventType: 'question', eventConfig: defaultEventConfigForQuestion() };
   }
+  const form = formFromMarker(marker);
   return {
-    eventType: marker.event_type ?? marker.eventType ?? 'question',
-    eventConfig: marker.event_config ?? marker.eventConfig ?? defaultEventConfigForQuestion(),
+    eventType: form.eventType,
+    eventConfig: buildEventConfigFromForm(form, effectsDraftFromMarker(marker)),
   };
 }
 
@@ -88,16 +107,23 @@ export function markerDuplicatePayloadFromMarker(marker, { offset } = {}) {
 
 /** Construit le payload API à partir du formulaire, du brouillon d'événement et de l'apparence. */
 export function toMarkerPayload(form, eventDraft, appearanceForm) {
+  const eventType = String(eventDraft?.eventType || 'question').trim();
+  // Configuration de question par défaut pour une case question seulement. L'appliquer à un
+  // repère d'un autre type (départ, histoire…) sans configuration en faisait une case à
+  // question : le jeu lit la configuration, pas le type (`isQuestionMarker`).
+  const fallbackConfig = MARKER_QUESTION_EVENT_TYPES.has(eventType.toLowerCase())
+    ? defaultEventConfigForQuestion()
+    : null;
   return {
     label: String(form.label || '').trim(),
     xPct: Number(form.xPct),
     yPct: Number(form.yPct),
-    eventType: String(eventDraft?.eventType || 'question').trim(),
+    eventType,
     description: String(form.description || '').trim(),
     orderIndex: Number(form.orderIndex) || 0,
     sousBiomeSlug: String(form.sousBiomeSlug || '').trim() || null,
     effetMecanique: String(form.effetMecanique || '').trim() || null,
-    eventConfig: eventDraft?.eventConfig || defaultEventConfigForQuestion(),
+    eventConfig: eventDraft?.eventConfig || fallbackConfig,
     ...appearanceToPayload(appearanceForm),
   };
 }
