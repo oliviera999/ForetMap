@@ -43,6 +43,7 @@ Constats S1, S4, S6, S7, S8, S10, S12 et S13 de `docs/AUDIT_BUGS_FORETMAP_2026-1
   la migration n'est pas rejouée d'office, il faut la renuméroter.
 
 Tests : `tests/audit-fm-lot1-*.test.js`.
+
 ### Corrigé — audit ForetMap du 19/11, lot 9 (quiz, liens d'apprentissage, verrouillage)
 
 - **P1 — Contrôle de compréhension sans compte** : la présentation et la réponse « avec
