@@ -249,7 +249,14 @@ router.put(
     const title = Object.prototype.hasOwnProperty.call(req.body || {}, 'title')
       ? normalizeArticleTitle(req.body.title)
       : owned.title;
-    const bodyMarkdown = req.body?.bodyMarkdown != null ? String(req.body.bodyMarkdown) : '';
+    // Champ absent = texte inchangé (comme `title` et `zoneId`) : un `PUT` partiel ne doit pas
+    // effacer l'article.
+    const bodyMarkdown =
+      req.body?.bodyMarkdown != null
+        ? String(req.body.bodyMarkdown)
+        : owned.body_markdown != null
+          ? String(owned.body_markdown)
+          : '';
     const validation = await validateArticleBody(bodyMarkdown, userId);
     if (validation.error) return res.status(400).json({ error: validation.error });
 
@@ -562,7 +569,12 @@ router.get(
   '/users/:userId',
   asyncHandler(async (req, res) => {
     if (!(await ensureJournalModuleEnabled(res))) return;
-    if (!canReadObservations(req.auth) && Number(req.auth?.userId) !== Number(req.params.userId)) {
+    // Identifiants `VARCHAR(64)` (UUID) : `Number()` donnait NaN des deux côtés, et un compte
+    // sans permission de lecture se voyait refuser la lecture de son propre carnet.
+    if (
+      !canReadObservations(req.auth) &&
+      String(req.auth?.userId || '') !== String(req.params.userId || '')
+    ) {
       return res.status(403).json({ error: 'Permission insuffisante' });
     }
     const access = await assertCanReadUserJournal(req.auth, req.params.userId);

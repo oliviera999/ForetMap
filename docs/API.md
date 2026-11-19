@@ -3591,7 +3591,7 @@ Module `ui.modules.observations_enabled` ; sinon **503**. Détail : `docs/FORETM
 | GET     | `/api/user-journal/me`                              | propriétaire                          | `{ limits, articles[], imports[] }`                                              |
 | GET     | `/api/user-journal/me/imports/refs`                 | propriétaire                          | refs déjà importées                                                              |
 | POST    | `/api/user-journal/me/articles`                     | propriétaire                          | `{ title?, bodyMarkdown?, zoneId?, client_uuid? }` — voir idempotence ci-dessous |
-| PUT     | `/api/user-journal/me/articles/:id`                 | propriétaire                          | mise à jour                                                                      |
+| PUT     | `/api/user-journal/me/articles/:id`                 | propriétaire                          | `{ title?, bodyMarkdown?, zoneId? }` — champ absent = inchangé                   |
 | PUT     | `/api/user-journal/me/articles/:id/pin`             | propriétaire                          | `{ pinned }`                                                                     |
 | DELETE  | `/api/user-journal/me/articles/:id`                 | propriétaire                          |                                                                                  |
 | POST    | `/api/user-journal/me/articles/:id/assets`          | propriétaire                          | `{ imageData }`                                                                  |

@@ -80,6 +80,22 @@ export function useJournalFeed(adapter, { onError } = {}) {
     [adapter],
   );
 
+  /**
+   * Reporte dans le fil ce que l'éditeur a écrit (saisie locale au moment de « Terminer »,
+   * puis article renvoyé par le serveur). Sans cela, la carte de lecture réaffichait l'article
+   * tel qu'il était au chargement ou à la création — vide : « Article sans titre » et
+   * « Article sans texte » juste après une publication.
+   * @param {string|number} articleId
+   * @param {object} patch champs à fusionner (l'identifiant n'est jamais remplacé)
+   */
+  const applyArticle = useCallback((articleId, patch) => {
+    if (articleId == null || !patch || typeof patch !== 'object') return;
+    const { id: _ignored, ...fields } = patch;
+    setArticles((prev) =>
+      prev.map((a) => (String(a.id) === String(articleId) ? { ...a, ...fields } : a)),
+    );
+  }, []);
+
   const deleteImport = useCallback(
     async (importId) => {
       await adapter.deleteImport(importId);
@@ -128,6 +144,7 @@ export function useJournalFeed(adapter, { onError } = {}) {
     editingId,
     setEditingId,
     createArticle,
+    applyArticle,
     deleteArticle,
     deleteImport,
     pinArticle,
