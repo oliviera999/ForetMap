@@ -138,8 +138,9 @@ démonstration** du [Guide du MJ](guide-du-mj.md#une-partie-de-démonstration-po
 
 - **Longueur minimale** : **8 caractères pour les joueurs** (relevable par le réglage
   « longueur minimale des mots de passe », le même que pour ForetMap, appliqué à la
-  création, à l'import et à la réinitialisation par le MJ), **8 caractères minimum pour
-  le staff** (MJ et Admin) — et davantage si le réglage global est plus strict. Le
+  création, à l'import et à la réinitialisation par le MJ), **12 caractères minimum pour
+  le staff** (MJ et Admin) — le même plancher que pour un compte professeur dans ForetMap,
+  puisque c'est le même mot de passe — et davantage si le réglage global est plus strict. Le
   minimum des joueurs est passé de 4 à 8 caractères le 30/09/2026 (recommandation de la
   CNIL) : les mots de passe déjà en place continuent de fonctionner, la règle ne
   s'applique qu'au prochain mot de passe créé ou changé.
@@ -250,7 +251,9 @@ Le staff peut créer les comptes d'une classe entière d'un coup : télécharger
 **gabarit** (tableur), le remplir (prénom, nom, pseudo, e-mail facultatif, nom de la
 classe — qui doit déjà exister —, mot de passe facultatif), puis l'importer. Une
 **analyse à blanc** permet de vérifier le fichier avant de créer quoi que ce soit ;
-le rapport signale ligne par ligne les erreurs (pseudo déjà pris, classe inconnue…).
+le rapport signale ligne par ligne les erreurs (pseudo manquant ou déjà pris, classe
+inconnue…). Une ligne en erreur n'empêche pas les autres d'être créées : elle figure dans
+le rapport, à côté de la liste des identifiants des joueurs créés.
 Les joueurs sont créés **sans équipe** (l'affectation se fait ensuite) et un compte
 ForetMap correspondant est automatiquement préparé pour chacun.
 
@@ -281,6 +284,13 @@ ForetMap correspondant est automatiquement préparé pour chacun.
   de passe généré doit être changé par l'élève à sa première connexion. **Cette liste
   n'est plus jamais affichée ensuite** — noter les identifiants tout de suite ; sinon,
   « Reset mdp » sur la fiche du joueur.
+- **Changer un joueur de classe** : impossible tant qu'il fait partie d'une équipe dans une
+  partie **non terminée** de sa classe actuelle (le jeu le dit) — le retirer de l'équipe ou
+  terminer la partie d'abord.
+- **Supprimer une classe** : refusé tant qu'il lui reste **un joueur, même désactivé**, ou
+  une partie non terminée. Supprimer les joueurs (ou les changer de classe) d'abord : c'est
+  la suppression d'un joueur qui efface proprement son compte et ses traces.
+- **Activer ou désactiver une classe** ne touche plus au nom de son établissement.
 - **Rentrée de plusieurs centaines d'élèves** : préférer des fichiers par classe (une
   centaine de lignes au plus), chacun précédé d'une analyse à blanc.
 
