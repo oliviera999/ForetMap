@@ -9,6 +9,30 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — audit ForetMap du 19/11, lot 9 (quiz, liens d'apprentissage, verrouillage)
+
+- **P1 — Contrôle de compréhension sans compte** : la présentation et la réponse « avec
+  contexte » (`/api/quiz/questions/:code/present?resourceType=&resourceRef=`, `…/answer`)
+  exigent un compte (`401` `LOGIN_REQUIRED`). Le jeton de présentation porte l'identifiant du
+  compte (claim `uid`) : un autre compte qui y répond reçoit `403`. Le panneau du contrôle
+  (`LearningGatingQuestionPanel`) affiche « Connecte-toi pour débloquer cette fiche » au lieu
+  d'une erreur. Avant : on écartait les mauvais choix un à un sans compte, sans verrou.
+- **P2 — Emplacement de question écrasé** : créer, déplacer ou importer une question sur un
+  couple (catégorie, numéro) déjà pris est refusé (`409` à la fiche, erreur de ligne à
+  l'import) au lieu d'écraser l'autre question. Contrôle générique dans
+  `lib/shared/questionCrudCore.js`, appliqué aussi aux QCM biomes et lore de G&L (mêmes clés
+  uniques d'emplacement).
+- **P3 — Lien glossaire bloquant perdu** : modifier une question ne purge plus que ses liens
+  `keyword` **non bloquants** ; un lien rendu bloquant par un prof est conservé.
+- **P4 — Import partiel** : la purge des liens `keyword` est limitée aux questions du fichier.
+- **P10 — Verrou décalé du fuseau** : l'échéance `locked_until` est calculée en UTC par Node
+  (et non par `NOW()` de la base), et la liste des verrous en cours compare à l'heure UTC.
+- **F7 — Catalogue QCM** : recherche avec anti-rebond (300 ms) et garde « dernière réponse
+  gagne » (`useLatestRequest`).
+- Tests : `tests/audit-fm-lot9-*.test.js`, `tests-ui/audit-fm-lot9-*.test.jsx` ;
+  `tests/learning-gating-cooldown.test.js` et `tests/learning-links-sheet.test.js` mis à jour
+  (ils figeaient l'ancien SQL du verrou et la purge globale de P4).
+
 ### Modifié — G&L : en hybride, les dés aussi sur la tablette (19 novembre 2026)
 
 Sur décision du prof : en surface hybride, un membre de l'équipe lance les dés depuis sa
