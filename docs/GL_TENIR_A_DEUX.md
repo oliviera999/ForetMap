@@ -284,7 +284,7 @@ encore. »), `defis-suivi-console.png` (onglet « Défis » de la console, 1920 
 | Surface  | Lancer / répondre                                                  | Fouiller                                       | Lire | Marché pendant `jeu` |
 | -------- | ------------------------------------------------------------------ | ---------------------------------------------- | ---- | -------------------- |
 | tableau  | prof seulement (écran du tour, équipe active, l'une après l'autre) | prof                                           | oui  | non                  |
-| hybride  | prof, pour chaque équipe, **sans ordre imposé**                    | chaque équipe, sur fenêtre ouverte par le prof | oui  | oui                  |
+| hybride  | chaque équipe, en phase `jeu` (depuis le 19 novembre 2026)         | chaque équipe, sur fenêtre ouverte par le prof | oui  | oui                  |
 | tablette | chaque équipe, en phase `jeu` (dés physiques validés prof)         | chaque équipe                                  | oui  | oui                  |
 
 Le serveur rejoue les permissions (`assertActionOuverte` pour lancer / répondre / fouiller,
