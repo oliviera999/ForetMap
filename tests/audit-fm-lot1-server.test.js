@@ -52,8 +52,7 @@ test('S4 — base qui ne répond plus : /api/health et /health répondent sans a
   }
 });
 
-test('S4 — cache du mode CSP : valeur immédiate, rafraîchie en arrière-plan', async () => {
-  let clock = 0;
+test('S4 — cache du mode CSP : lecture fraîche si rapide, dernière valeur sinon', async () => {
   let reads = 0;
   let nextValue = 'external';
   let behaviour = 'resolve';
@@ -64,33 +63,36 @@ test('S4 — cache du mode CSP : valeur immédiate, rafraîchie en arrière-plan
       if (behaviour === 'hang') return new Promise(() => {});
       return Promise.resolve(nextValue);
     },
-    refreshMs: 1000,
-    readTimeoutMs: 30,
-    now: () => clock,
+    waitMs: 20,
+    readTimeoutMs: 80,
   });
 
-  // Première lecture : la plus stricte tant que rien n'a abouti, sans attendre.
-  assert.strictEqual(cache.get(), 'local');
-  await cache.refresh();
-  assert.strictEqual(cache.get(), 'external');
-  assert.strictEqual(reads, 1, 'une valeur fraîche ne provoque pas de relecture');
+  // Lecture rapide (cache mémoire) : un changement de réglage s'applique aussitôt.
+  assert.strictEqual(cache.peek(), 'local', 'la plus stricte avant toute lecture');
+  assert.strictEqual(await cache.resolve(), 'external');
+  nextValue = 'local';
+  assert.strictEqual(await cache.resolve(), 'local');
+  nextValue = 'external';
+  assert.strictEqual(await cache.resolve(), 'external');
 
   // Erreur SQL : la dernière valeur connue reste servie.
-  clock = 2000;
   behaviour = 'reject';
-  assert.strictEqual(cache.get(), 'external');
-  await cache.refresh();
-  assert.strictEqual(cache.get(), 'external');
+  assert.strictEqual(await cache.resolve(), 'external');
 
-  // Lecture qui pend : abandonnée au délai, puis une nouvelle lecture redevient possible.
+  // Base qui ne répond plus : réponse bornée à `waitMs`, une seule lecture en vol.
   behaviour = 'hang';
-  const pending = cache.refresh();
-  assert.strictEqual(cache.refresh(), pending, 'une seule lecture à la fois');
-  assert.strictEqual(await pending, 'external');
+  const readsBefore = reads;
+  const started = Date.now();
+  assert.strictEqual(await cache.resolve(), 'external');
+  assert.strictEqual(await cache.resolve(), 'external');
+  assert.ok(Date.now() - started < 500, 'jamais d’attente au-delà du délai');
+  assert.strictEqual(reads, readsBefore + 1, 'une seule lecture à la fois');
+
+  // La lecture pendante est abandonnée : une nouvelle lecture redevient possible.
+  await new Promise((resolve) => setTimeout(resolve, 120));
   behaviour = 'resolve';
   nextValue = 'local';
-  await cache.refresh();
-  assert.strictEqual(cache.get(), 'local');
+  assert.strictEqual(await cache.resolve(), 'local');
 });
 
 test('S4 — base non prête : aucune lecture tentée', async () => {
@@ -102,8 +104,7 @@ test('S4 — base non prête : aucune lecture tentée', async () => {
     },
     isReady: () => false,
   });
-  assert.strictEqual(cache.get(), 'local');
-  await cache.refresh();
+  assert.strictEqual(await cache.resolve(), 'local');
   assert.strictEqual(reads, 0);
 });
 

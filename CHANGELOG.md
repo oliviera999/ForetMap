@@ -18,10 +18,11 @@ Constats S1, S4, S6, S7, S8, S10, S12 et S13 de `docs/AUDIT_BUGS_FORETMAP_2026-1
   tâches lancées depuis les gestionnaires de socket (inscription et désinscription de présence,
   abonnement carte, main G&L rendue) passent par `runDetached`, qui journalise au lieu de
   laisser filer un rejet (`lib/realtime.js`).
-- **S4 — La santé répond sans base.** Le middleware CSP n'attend plus la lecture SQL de
-  `privacy.external_assets_mode` : il sert la dernière valeur connue (`local`, la plus stricte,
-  avant la première lecture), rafraîchie en arrière-plan, une lecture à la fois, abandonnée
-  après 5 s (`lib/cspAssetsModeCache.js`).
+- **S4 — La santé répond sans base.** Le middleware CSP n'attend plus indéfiniment la lecture
+  de `privacy.external_assets_mode` : elle est attendue 50 ms au plus (cache mémoire de
+  `lib/settings.js` dans le cas courant, un changement de réglage s'applique donc aussitôt),
+  sinon la dernière valeur connue est servie (`local`, la plus stricte, avant la première
+  lecture). Une seule lecture à la fois, abandonnée après 5 s (`lib/cspAssetsModeCache.js`).
 - **S10 — Le journal fatal `unhandledRejection` garde la cause** (`{ err: reason }`).
 - **S6 — Fichier absent : 404 franc.** Sous `/assets`, `/uploads`, `/tutos`, `/fonts` et
   `/gl/intro`, un chemin avec extension qui arrive au fallback SPA répond `404` (`no-store`) au

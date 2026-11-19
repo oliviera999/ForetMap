@@ -340,8 +340,9 @@ app.use((err, req, res, next) => {
 const CSP_POLICIES = buildPolicyTable({ reportPath: CSP_REPORT_PATH });
 const { getSettingValue: getCspSettingValue } = require('./lib/settings');
 const { createCspAssetsModeCache } = require('./lib/cspAssetsModeCache');
-// Audit 19/11/2026 (S4) : ne jamais attendre la base ici. Ce middleware précède les statiques
-// et `/api/health` ; la dernière valeur connue est servie, relue en arrière-plan.
+// Audit 19/11/2026 (S4) : ne jamais attendre une base qui ne répond plus. Ce middleware précède
+// les statiques et `/api/health` : la lecture (cache mémoire de lib/settings, invalidé à
+// l'écriture) est attendue 50 ms au plus, sinon la dernière valeur connue est servie.
 const cspAssetsMode = createCspAssetsModeCache({
   readMode: () => getCspSettingValue('privacy.external_assets_mode', 'local'),
   isReady: isApplicationDatabaseReady,
@@ -350,10 +351,11 @@ const cspAssetsMode = createCspAssetsModeCache({
 app.use((req, res, next) => {
   const variant = resolveCspVariant(req.path);
   const productId = resolveSecureProductId(req);
-  const mode = cspAssetsMode.get();
-  const byProduct = CSP_POLICIES[productId] || CSP_POLICIES.foret;
-  res.setHeader('Content-Security-Policy', byProduct[mode][variant]);
-  next();
+  cspAssetsMode.resolve().then((mode) => {
+    const byProduct = CSP_POLICIES[productId] || CSP_POLICIES.foret;
+    res.setHeader('Content-Security-Policy', byProduct[mode][variant]);
+    next();
+  });
 });
 
 app.use(createHttpRequestLogMiddleware());
