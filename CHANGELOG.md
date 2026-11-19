@@ -9,6 +9,36 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — G&L : droits du tour rejoués par le serveur (audit du 19 novembre 2026, lot 2)
+
+Six constats de l'audit des bugs de Gnomes & Licornes, mouture « Tenir à deux ». Chacun a son
+test dans `tests/gl-tenir-droits-serveur.test.js`, écrit avant la correction.
+
+- **M1 — escalier : plus de jet en suspens pour une Relance fermée.** Aux trois premières
+  séances du chapitre 1, chaque jet restait « en suspens » pour un sort que le lancement
+  refusait (`SPELL_ESCALIER`). `relanceDisponibleTx` ignore un sort que l'escalier n'a pas
+  encore ouvert : la case s'applique aussitôt.
+- **M2 — « répondre » est rejoué.** `POST …/markers/:markerId/present-question` et
+  `POST …/qcm/answer` rejouent le droit pour un élève ou une tablette (409 `TENIR_PHASE`
+  hors phase « jeu », 403 `TENIR_PERMISSION` / `TENIR_EQUIPE_INACTIVE` selon la surface) ; le
+  prof garde la présentation à distance. Une question ne rapporte sa case **qu'une fois** par
+  équipe, repère et arrivée du tour, relue sous verrou d'équipe : un second jeton (le prof et
+  un élève qui présentent chacun la question) est corrigé sans faire avancer
+  (`tenir.bonusCase: false`). Deux cases question différentes dans le même tour s'enchaînent
+  toujours.
+- **M3 — `present-arrival` ne défait plus « sans appliquer la case ».** Une équipe posée sur une
+  case par Progression, Bourrasque, Relais, le vent de la caravane ou le retour d'une Relance
+  voit le texte de la case, sans effet (`sansEffet: true`, aucun `marker_effect`). Une équipe
+  posée à la main par le prof n'est pas concernée ; `apply-effects` reste le geste du prof.
+- **M4 — Relance payée et jamais rejouée : rendue au souffle.** Si la phase « jeu » se ferme
+  avant le second jet, le sort est rendu (remboursement exact, `spell_rembourse` avec
+  `motif: 'relance'`), comme la Cordée qui ne s'est pas faite ; filet au camp et à l'ouverture
+  du tour suivant. Aucun jet n'est tiré d'office et le jet annulé n'est pas réappliqué.
+- **M5 — hybride : le droit « fouiller » est enfin servi à l'élève.** Le bloc `tenir.permissions`
+  de `GET /api/gl/games/:id` lisait une propriété absente de la vue du tour ; il lit la fenêtre
+  ouverte par le prof, pour tous ou pour l'équipe de celui qui regarde.
+- **P3 — présenter exige une partie en cours.** `present-question` et `present-arrival`
+  répondent 409 « La partie doit être en cours » hors statut `live`, comme `qcm/answer`.
 ### Corrigé — G&L : éditeurs d'administration qui enregistraient une valeur fausse (19 novembre 2026)
 
 Lot 3 de l'audit des bugs G&L du 19 novembre 2026 (constats E1 à E5 et E12). Chaque défaut est
