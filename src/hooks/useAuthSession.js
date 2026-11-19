@@ -6,6 +6,7 @@ import {
   getAuthClaims,
   getAuthToken,
   getStoredSession,
+  markWindowSessionClosed,
   pickNewestAuthToken,
   saveStoredSession,
   clearStoredSession,
@@ -20,6 +21,35 @@ export const SESSION_EXPIRED_MESSAGE = 'Session expirée : veuillez vous reconne
 /** Session fermée parce que la double authentification est désormais exigée pour ce compte. */
 export const MFA_REQUIRED_MESSAGE =
   'La double authentification est désormais exigée pour votre compte : reconnectez-vous avec votre code.';
+/** Session fermée depuis un autre onglet du même navigateur (stockage partagé). */
+export const SESSION_CLOSED_ELSEWHERE_MESSAGE = 'Vous avez été déconnecté depuis un autre onglet.';
+
+/**
+ * La réponse `/api/auth/me` concerne-t-elle encore la session stockée ? (audit ForetMap du
+ * 19/11, F2.) Une réponse arrivée après une déconnexion (plus de jeton) ou un changement de
+ * compte (jeton d'un autre `userType:userId`) ne doit ni reposer droits et compte, ni
+ * réécrire le jeton : elle décrit le compte d'avant.
+ *
+ * @param {object} d Corps de `/api/auth/me` (porte `auth.userType` / `auth.userId`).
+ * @param {object|null} [claims] Revendications du jeton courant (défaut : `getAuthClaims()`).
+ */
+export function isAuthMeResponseForCurrentSession(d, claims = getAuthClaims()) {
+  if (!d || typeof d !== 'object' || !d.auth) return false;
+  // Plus de jeton : la session a été fermée pendant la requête.
+  if (!claims) return false;
+  const { auth } = d;
+  if (
+    auth.userId != null &&
+    claims.userId != null &&
+    String(auth.userId) !== String(claims.userId)
+  ) {
+    return false;
+  }
+  if (auth.userType != null && claims.userType != null && auth.userType !== claims.userType) {
+    return false;
+  }
+  return true;
+}
 
 /**
  * Cycle de vie de la session utilisateur (extrait de App.jsx, D3) : restauration
@@ -40,11 +70,11 @@ export const MFA_REQUIRED_MESSAGE =
  * @param {Function} params.setShowStats
  * @param {Function} params.setShowProfile
  * @returns {{
- *   forceLogout: (options?: { message?: string }) => void,
+ *   forceLogout: (options?: { message?: string, keepStorage?: boolean }) => void,
  *   updateStudentSession: (nextStudent: object|null) => void,
  *   handleAdminImpersonationApplied: (data: object) => void,
  *   stopAdminImpersonation: () => Promise<void>,
- *   mergeAuthMeResponse: (d: object, opts?: { studentIdForMatch?: string|number }) => void,
+ *   mergeAuthMeResponse: (d: object, opts?: { studentIdForMatch?: string|number }) => boolean,
  *   validateStudentSession: (savedStudent: object) => Promise<void>,
  * }}
  */
@@ -64,9 +94,12 @@ export function useAuthSession({
   // Appelé depuis n'importe où sur un 401 `deleted: true` — ou, via
   // `useSessionWindowSync`, sur une session expirée / révoquée (CDG-27) : même chemin,
   // seul le message change.
+  // `keepStorage` : la session a été fermée ou remplacée dans un autre onglet (F1) — le
+  // stockage partagé peut déjà porter un autre compte, on ne ferme que l'état de cet onglet.
   const forceLogout = useCallback(
     (options = {}) => {
-      clearStoredSession();
+      if (options?.keepStorage) markWindowSessionClosed();
+      else clearStoredSession();
       setStudent(null);
       setSessionUser(null);
       setAuthClaims(null);
@@ -227,7 +260,9 @@ export function useAuthSession({
   const mergeAuthMeResponse = useCallback(
     (d, opts = {}) => {
       const { studentIdForMatch } = opts;
-      if (!d || typeof d !== 'object' || !d.auth) return;
+      if (!d || typeof d !== 'object' || !d.auth) return false;
+      // Réponse tardive d'un compte qui n'est plus celui de la session (F2) : ignorée.
+      if (!isAuthMeResponseForCurrentSession(d)) return false;
       const { auth } = d;
       if (typeof d.refreshedToken === 'string' && d.refreshedToken.trim() !== '') {
         const trimmed = d.refreshedToken.trim();
@@ -309,6 +344,7 @@ export function useAuthSession({
           };
         });
       }
+      return true;
     },
     [setAuthClaims, setProfilePromotion, setSessionUser, setStudent, studentRef],
   );

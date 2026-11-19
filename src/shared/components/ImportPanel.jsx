@@ -18,6 +18,20 @@ import { useState } from 'react';
  *   rend son propre corps.
  */
 
+/**
+ * Clé React stable d'un bouton « Modèle » (audit ForetMap du 19/11, F6) : un libellé JSX
+ * (`<>Modèle <strong>CSV</strong></>`) se convertissait en `[object Object]`, la même clé pour
+ * tous les boutons. On prend `key` s'il est fourni, sinon la position (complétée du libellé
+ * quand il est textuel). Les appelants n'ont rien à changer.
+ */
+export function importTemplateButtonKey(button, index) {
+  const explicit = button?.key;
+  if (explicit != null && explicit !== '') return `k:${String(explicit)}`;
+  const label = button?.label;
+  if (typeof label === 'string' || typeof label === 'number') return `l:${index}:${label}`;
+  return `i:${index}`;
+}
+
 /** `accept` commun des imports CSV / XLSX. */
 export const SPREADSHEET_IMPORT_ACCEPT =
   '.csv,.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv';
@@ -136,9 +150,9 @@ export function ImportPanel({
     <>
       {intro}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, ...(templateRowStyle || {}) }}>
-        {templateButtons.map((b) => (
+        {templateButtons.map((b, index) => (
           <button
-            key={b.key ?? b.label}
+            key={importTemplateButtonKey(b, index)}
             className="btn btn-ghost btn-sm"
             onClick={b.onClick}
             disabled={templatesDisabledWhenBusy && importing}

@@ -55,6 +55,7 @@ const {
   STUDENT_ROLE_SLUG_RE,
   reservedRoleSlugError,
   rankChangeError,
+  existingProfileRankError,
   teacherAccessLockError,
   PROFILE_PATCH_KEYS,
   canConfigureStudentTierForumContext,
@@ -620,6 +621,12 @@ router.patch(
         .status(403)
         .json({ error: 'Seul un administrateur peut modifier le profil admin' });
     }
+    // Hors administrateur, le rang **actuel** du profil compte aussi, pas seulement le rang
+    // visé : un délégué ne descend pas un profil de rang égal ou supérieur au sien pour
+    // pouvoir ensuite l'attribuer (audit du 19/11/2026, A2 ; même garde que
+    // `PUT …/permissions`, AC4).
+    const profileGuard = existingProfileRankError(req.auth, existing.rank);
+    if (profileGuard) return res.status(profileGuard.status).json({ error: profileGuard.error });
     const b =
       req.body != null && typeof req.body === 'object' && !Array.isArray(req.body) ? req.body : {};
     const hasAnyPatchField = Object.keys(b).some((k) => PROFILE_PATCH_KEYS.has(k));
@@ -1039,6 +1046,12 @@ router.post(
     for (const entry of req.body.users) {
       const userType = String(entry?.user_type ?? entry?.userType ?? '').trim();
       const userId = entry?.id ?? entry?.user_id;
+      // Entrée sans identifiant : une ligne en erreur, pas un 500 sur tout le lot (mysql2
+      // refuse un paramètre `undefined`) — audit du 19/11/2026, A8.
+      if (userId == null || String(userId).trim() === '') {
+        results.push({ user_type: userType, id: '', ok: false, error: 'id requis' });
+        continue;
+      }
       const resolved = await resolveRbacSubjectForMutation(userType, userId);
       if (!resolved.ok) {
         results.push({
@@ -1080,12 +1093,32 @@ router.patch(
     const resolved = await resolveRbacSubjectForMutation(req.params.userType, req.params.userId);
     if (!resolved.ok) return res.status(resolved.status).json({ error: resolved.error });
     const { user, resolvedUserType, resolvedUserId } = resolved;
+    // Périmètre de groupe, comme `reset-password-link` (audit du 19/11/2026, A13) : sans vue
+    // globale, on ne modifie que les comptes de ses groupes.
+    const visibleIds = await visibleUserIdsForActor(req.auth);
+    if (visibleIds && !visibleIds.has(String(resolvedUserId))) {
+      return res.status(403).json({ error: 'Compte hors de votre périmètre' });
+    }
 
     const actorRoleSlug = String(req.auth?.roleSlug || '')
       .trim()
       .toLowerCase();
     const targetPrimary = await getPrimaryRoleForUser(resolvedUserType, resolvedUserId);
-    if (targetPrimary?.slug === 'admin' && actorRoleSlug !== 'admin') {
+    // Profil **attribué** aussi : un groupe qui impose un profil plus bas ne masque pas un
+    // profil attribué élevé — même lecture que `assignRole` (audit du 19/11/2026, A13).
+    const targetAssigned = user.assigned_role_id
+      ? await queryOne('SELECT slug, `rank` FROM roles WHERE id = ? LIMIT 1', [
+          user.assigned_role_id,
+        ])
+      : null;
+    const targetRank = Math.max(
+      Number(targetPrimary?.rank || 0) || 0,
+      Number(targetAssigned?.rank || 0) || 0,
+    );
+    if (
+      (targetPrimary?.slug === 'admin' || targetAssigned?.slug === 'admin') &&
+      actorRoleSlug !== 'admin'
+    ) {
       return res
         .status(403)
         .json({ error: 'Seul un administrateur peut modifier un autre administrateur' });
@@ -1133,10 +1166,7 @@ router.patch(
           .status(403)
           .json({ error: 'Utilisez votre profil pour modifier votre propre compte' });
       }
-      if (
-        actorRoleSlug !== 'admin' &&
-        Number(targetPrimary?.rank || 0) >= Number(req.auth?.roleRank || 0)
-      ) {
+      if (actorRoleSlug !== 'admin' && targetRank >= Number(req.auth?.roleRank || 0)) {
         return res.status(403).json({
           error: 'Réservé à un profil de rang supérieur à celui du compte visé',
         });
