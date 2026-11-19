@@ -148,6 +148,24 @@ function PlantManager({
     return run();
   }, []);
 
+  // Téléversement d'une photo (audit du 19/11/2026, C7) : le serveur incrémente la révision
+  // de la fiche ; l'envoi passe dans la file de la session et en adopte la révision, sinon
+  // le prochain enregistrement du formulaire serait pris pour un conflit.
+  const uploadPlantPhoto = useCallback(
+    async (plantId, body) => {
+      const session =
+        editId != null && String(editId) === String(plantId) ? plantEditSessionRef.current : null;
+      const run = async () => {
+        const saved = await api(`/api/plants/${plantId}/photo-upload`, 'POST', body);
+        if (session) session.noteRevision(saved?.edit_revision ?? saved?.plant?.edit_revision);
+        return saved;
+      };
+      if (session?.enqueue) return session.enqueue(run);
+      return run();
+    },
+    [editId],
+  );
+
   const cancelEdit = () => {
     setEditId(null);
     setShowAdd(false);
@@ -281,6 +299,7 @@ function PlantManager({
           onToast={setToast}
           maps={maps}
           onProposePhotos={proposePhotos}
+          onUploadPhoto={uploadPlantPhoto}
           onEnsurePlantId={async () => {
             if (!form.name.trim()) {
               setToast("Indique un nom pour la fiche avant d'importer une photo.");
@@ -397,6 +416,7 @@ function PlantManager({
               onToast={setToast}
               maps={maps}
               onProposePhotos={proposePhotos}
+              onUploadPhoto={uploadPlantPhoto}
               autoSaveStatus={autoSaveStatus}
               autoSaveError={autoSaveError}
             />

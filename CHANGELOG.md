@@ -9,6 +9,31 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — audit ForetMap du 19/11, lot 8 (médiathèque, médias de Visite, fiches espèces)
+
+- **C2 — médiathèque, clés stables** : un envoi ForetMap n'est plus indexé dans `_keys.json`
+  par une clé tirée de son nom d'origine, mais par une clé propre au fichier
+  (`foretmap:<chemin>`) qui porte l'étiquette `app`. Deux envois « photo.jpg » restent tous
+  deux dans ForetMap et supprimables ; un envoi nommé comme une ressource du jeu ne détourne
+  plus `resolveMediaByStableKey`, et les médias ForetMap sont exclus des manifestes G&L. Une
+  entrée ForetMap héritée (clé tirée du nom) est re-rangée sous sa clé par fichier si une
+  ressource du jeu prend la même clé, au lieu de perdre son étiquette. Un fichier sans
+  étiquette reste lu comme hérité G&L.
+- **C3 — appartenance d'un média** : le chemin est normalisé (`/media-library/…`, `//`,
+  `./`, antislashs) avant la recherche ; un admin G&L ne supprime plus un média ForetMap.
+- **C5 — Visite** : `PUT /api/visit/media/:id` écrit la nouvelle image sous un nom temporaire,
+  la renomme une fois valide et ne supprime l'ancienne qu'après succès (un contenu invalide
+  laissait le média cassé).
+- **C7 — fiches espèces** : téléverser une photo incrémente `edit_revision` dans la
+  transaction et renvoie la nouvelle révision (`edit_revision`) ; le formulaire espèce passe
+  l'envoi dans la file de sa session d'édition et adopte cette révision.
+- **C10 (espèces)** : l'import d'espèces répond 400 avec un message (URL de tableur invalide
+  ou inaccessible, fichier vide ou trop gros, source absente) au lieu de 500.
+- **C8 (uploads)** : `saveBase64ToDisk` refuse une valeur non textuelle en 400 au lieu d'un
+  `TypeError` (500).
+- Tests : `tests/audit-fm-lot8-medias.test.js`,
+  `tests-ui/audit-fm-lot8-plant-photo-upload.test.js`.
+
 ### Corrigé — audit ForetMap du 19/11, lot 7 (terrain : lieux, catégories, parcours, plans, gestes de carte)
 
 - **C1** — `GET /api/map-routes` croise les cartes autorisées sur la surface (`allowedMapIdsForSurface`) avec le périmètre du compte, comme les lieux : un anonyme sur la Visite ne lit plus les parcours de la carte d'un plan fermé par code. Le détail `/:idOrSlug` exige aussi qu'une surface publique du parcours serve sa carte (404 sinon).

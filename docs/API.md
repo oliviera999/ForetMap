@@ -2312,6 +2312,8 @@ L’étiquette d’origine est portée par `_keys.json` (champ `app` sur chaque 
 
 Chaque item listé expose notamment : `relativePath`, `url`, `filename`, `mediaType`, `stableKey` (slug / clé stable), `app` (médiathèque d’affichage : `foretmap` ou `gl`), `label`.
 
+Un envoi **ForetMap** n'a pas de clé stable tirée de son nom : il est indexé par une clé propre au fichier (`foretmap:<relativePath>`), jamais résolue par le jeu ni listée dans ses manifestes ; c'est elle que portent `stableKey` (liste et réponse d'upload), le `label` gardant le nom d'origine. Le contrôle d'appartenance d'une suppression normalise le chemin (`/media-library/…`, `//`, `./`, antislashs) — audit du 19/11/2026, C2/C3.
+
 Les routes ForetMap ci-dessous refusent les tokens produit GL sur l’API ForetMap standard.
 
 **Type MIME d’un upload** (`POST /api/media-library`, `POST /api/settings/admin/media-library`, `POST /api/gl/admin/media-library`) — le type déclaré par la data URL fait foi tant qu’il est exploitable ; les alias courants sont normalisés (`image/jpg` → `image/jpeg`, `audio/mp3` → `audio/mpeg`…). Quand la data URL annonce un type **générique** (`application/octet-stream`, `binary/octet-stream`, type vide) — cas fréquent des sélecteurs de fichiers **Android**, qui ne renseignent pas `File.type` — le serveur retombe sur la **signature binaire** puis sur l’**extension** de `original_name`. Un contenu non identifiable reste refusé en **400** (`Type MIME non autorisé`).
@@ -3117,7 +3119,7 @@ seuls les `map_id` encore présents dans `maps` sont réécrits, dans une transa
 - `imageData` doit être une Data URL image (png/jpg/webp/gif/bmp/avif)
 - `position` optionnel (`"prepend"` ou `"append"`) fusionne l'URL uploadée avec les liens déjà présents dans le champ au lieu de les remplacer (utilisé par le flux Pl@ntNet)
 - La photo devient une ligne de `plant_photos` (emplacement `field`, provenance `televersement`, **sans** auteur ni licence — à compléter par `PUT /api/plants/:id`) ; les colonnes photo sont recalculées en miroir. Une nouvelle photo principale (`prepend` sur `photo`) n'hérite **pas** du crédit de l'ancienne : `photo_credit` / `photo_licence` retombent à `null`.
-- Réponse: `{ field, url, value, plant, photos }` (`value` : colonne miroir du champ ; `plant` : ligne brute ; `photos` : photos de la fiche après l'ajout)
+- Réponse: `{ field, url, value, plant, photos, edit_revision }` (`value` : colonne miroir du champ ; `plant` : ligne brute ; `photos` : photos de la fiche après l'ajout ; `edit_revision` : nouvelle révision de la fiche — l'envoi l'incrémente, comme `photos/propose`, et un formulaire ouvert avant doit l'adopter sous peine de 409 `edit_conflict`)
 
 `POST /api/plants/import` (n3boss):
 
@@ -3127,6 +3129,8 @@ seuls les `map_id` encore présents dans `maps` sont réécrits, dans une transa
   - `{ sourceType: "gsheet", strategy, dryRun, gsheetUrl }`
 - Body (source standardisée optionnelle):
   - `{ sourceType: "rows", strategy, dryRun, rows: [...] }`
+
+Une source absente, une URL de tableur invalide ou inaccessible, un fichier vide ou de plus de 8 Mo répondent **400** avec un message (`{ error }`).
 
 Stratégies:
 
