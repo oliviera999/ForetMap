@@ -83,12 +83,13 @@ describe('C2 — clés de médiathèque : un envoi ForetMap a sa propre clé', (
     // ForetMap peut toujours supprimer son premier envoi.
     executeMediaLibraryDeleteRequest({ relative_path: first.relativePath }, { app: 'foretmap' });
     assert.ok(!exists(first.relativePath));
-    // Le libellé d'origine reste affiché, la clé interne n'est pas exposée comme slug.
+    // Le libellé d'origine reste affiché ; la clé est propre au fichier.
     const item = listMediaLibraryItems(800, { app: 'foretmap' }).find(
       (i) => i.relativePath === second.relativePath,
     );
     assert.equal(item.label, name);
-    assert.equal(item.stableKey, null);
+    assert.equal(item.stableKey, `foretmap:${second.relativePath}`);
+    assert.equal(second.stableKey, `foretmap:${second.relativePath}`);
   });
 
   test('un envoi ForetMap nommé comme une ressource du jeu ne détourne pas sa résolution', async () => {

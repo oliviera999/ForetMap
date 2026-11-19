@@ -2312,7 +2312,7 @@ L’étiquette d’origine est portée par `_keys.json` (champ `app` sur chaque 
 
 Chaque item listé expose notamment : `relativePath`, `url`, `filename`, `mediaType`, `stableKey` (slug / clé stable), `app` (médiathèque d’affichage : `foretmap` ou `gl`), `label`.
 
-Un envoi **ForetMap** n'a pas de clé stable tirée de son nom : il est indexé par une clé propre au fichier (`foretmap:<relativePath>`), jamais résolue par le jeu ni listée dans ses manifestes ; son `stableKey` vaut donc `null` (le `label` garde le nom d'origine) et la réponse d'upload renvoie `stableKey: null`. Le contrôle d'appartenance d'une suppression normalise le chemin (`/media-library/…`, `//`, `./`, antislashs) — audit du 19/11/2026, C2/C3.
+Un envoi **ForetMap** n'a pas de clé stable tirée de son nom : il est indexé par une clé propre au fichier (`foretmap:<relativePath>`), jamais résolue par le jeu ni listée dans ses manifestes ; c'est elle que portent `stableKey` (liste et réponse d'upload), le `label` gardant le nom d'origine. Le contrôle d'appartenance d'une suppression normalise le chemin (`/media-library/…`, `//`, `./`, antislashs) — audit du 19/11/2026, C2/C3.
 
 Les routes ForetMap ci-dessous refusent les tokens produit GL sur l’API ForetMap standard.
 
