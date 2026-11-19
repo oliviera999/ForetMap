@@ -9,6 +9,27 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — audit ForetMap du 19/11, lot 3 (authentification, mots de passe, LTI)
+
+- **A3 — première pose d'un mot de passe** : un compte sans mot de passe (Google) ne s'en
+  donne plus un par la session seule. `POST /api/auth/me/password` n'écrit rien, envoie un
+  lien de définition (jeton « mot de passe oublié ») à l'adresse **en place** et répond
+  **202** `{ linkSent: true, message }` ; sans e-mail → 409 `PASSWORD_SETUP_NO_EMAIL`. Une
+  session volée ne peut donc plus poser un mot de passe puis changer l'e-mail avec (garde
+  AC3). « Mon profil » affiche « Un lien pour définir votre mot de passe vous a été envoyé ».
+- **A5 — LTI** : un compte de type élève au profil `prof` / `admin` (ou tout profil soumis à
+  la double authentification ou portant `teacher.access`) n'entre plus par un lancement
+  « Learner » : le rôle Instructor est exigé, comme pour un compte enseignant (403
+  `LTI_TEACHER_ROLE_REQUIRED`).
+- **A7 — connexion Google élève coupée** : le réglage `ui.auth.allow_google_student` est relu
+  sur la voie élève ; `start?mode=teacher` puis un rappel sans cookie de mode ne donne plus de
+  session élève (`oauth_student_google_disabled`).
+- **A9 — réinitialisation** : un mot de passe non textuel est refusé (400) **avant** de
+  consommer le jeton (élève et enseignant) ; le jeton reste utilisable.
+- **A10** : la réinitialisation par e-mail d'un mot de passe enseignant remet
+  `password_must_reset` à 0, comme la voie élève.
+- **A13 (inscription)** : `POST /api/auth/register` avec un prénom ou un nom non textuel → 400
+  au lieu de 500.
 ### Corrigé — audit ForetMap du 19/11, lot 5 (tâches, progression, stats)
 
 - **T1 — homonymes** : la progression n3beur (`countValidatedAssignmentsForStudent`,
