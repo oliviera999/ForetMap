@@ -186,10 +186,13 @@ async function checkPrerequisite(req, row, userId) {
   const requiredId = config.requiresSessionId;
   if (!requiredId || hasPermission(req.auth, 'plants.manage')) return { ok: true };
   if (await hasCompletedSession(userId, requiredId)) return { ok: true };
-  const required = await queryOne('SELECT id, title FROM pedago_sessions WHERE id = ? LIMIT 1', [
-    requiredId,
-  ]);
-  if (!required) return { ok: true };
+  const required = await queryOne(
+    'SELECT id, title, is_published FROM pedago_sessions WHERE id = ? LIMIT 1',
+    [requiredId],
+  );
+  // Prérequis supprimé, en brouillon ou dépublié : l'élève ne peut pas le suivre (404), il
+  // ne doit donc pas bloquer la séance dépendante (audit du 19/11/2026, P5).
+  if (!required || !required.is_published) return { ok: true };
   return {
     ok: false,
     body: {
@@ -199,6 +202,26 @@ async function checkPrerequisite(req, row, userId) {
       requiresSessionTitle: required.title,
     },
   };
+}
+
+/**
+ * Vrai si la chaîne de prérequis partant de `startId` atteint `targetId` (cycle de n'importe
+ * quelle longueur si `targetId` reçoit `startId` comme prérequis). Chaque séance a au plus un
+ * prérequis : on suit la chaîne, avec un garde contre un cycle déjà présent en base.
+ */
+async function prerequisiteChainReaches(startId, targetId) {
+  const seen = new Set();
+  let current = startId;
+  while (current && !seen.has(current)) {
+    if (current === targetId) return true;
+    seen.add(current);
+    const next = await queryOne('SELECT config_json FROM pedago_sessions WHERE id = ? LIMIT 1', [
+      current,
+    ]);
+    if (!next) return false;
+    current = normalizeConfig(parseJsonField(next.config_json, {})).requiresSessionId || null;
+  }
+  return false;
 }
 
 /** Nombre d'étapes résolues d'une séance (borne de `current_step`). */
@@ -470,6 +493,13 @@ router.put(
         nextConfig.requiresSessionId,
       ]);
       if (!required) return res.status(400).json({ error: 'Séance prérequise introuvable' });
+      if (await prerequisiteChainReaches(nextConfig.requiresSessionId, row.id)) {
+        return res.status(400).json({
+          error:
+            'Prérequis refusé : il créerait un cycle entre séances (chacune attendrait l’autre)',
+          code: 'PREREQUISITE_CYCLE',
+        });
+      }
     }
 
     let stepsJson = row.steps_json;

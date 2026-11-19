@@ -55,8 +55,39 @@ function parsePositiveInt(raw) {
 function parseOptionalDate(raw) {
   const s = normalizeOptionalString(raw);
   if (!s) return null;
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+  if (!m) return null;
+  // Date réelle (aller-retour UTC) : `2026-02-31` passait la regex puis faisait échouer MySQL
+  // en 500 (audit du 19/11/2026, P6).
+  const [y, mo, d] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  const dt = new Date(Date.UTC(y, mo - 1, d));
+  if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== mo - 1 || dt.getUTCDate() !== d) {
+    return null;
+  }
   return s;
+}
+
+/**
+ * Bornes des mesures, calées sur les colonnes : `circumference_cm` DECIMAL(6,1),
+ * `height_m` / `crown_diameter_m` DECIMAL(5,2), `wood_density` DECIMAL(4,3). Une taille
+ * d'arbre est strictement positive (champ facultatif : l'omettre plutôt que saisir 0).
+ */
+const MEASURE_LIMITS = {
+  circumference: { max: 99999.9, label: 'Circonférence (cm)' },
+  height: { max: 999.99, label: 'Hauteur (m)' },
+  crown: { max: 999.99, label: 'Diamètre de couronne (m)' },
+};
+const WOOD_DENSITY_MAX = 9.999;
+
+/** Message d'erreur si `value` (non nul) sort de ]0, max], sinon null. */
+function outOfRange(value, { max, label }) {
+  if (value == null) return null;
+  if (!(value > 0) || value > max) return `${label} : valeur attendue entre 0 (exclu) et ${max}`;
+  return null;
+}
+
+function woodDensityError(value) {
+  return outOfRange(value, { max: WOOD_DENSITY_MAX, label: 'wood_density (g/cm³)' });
 }
 
 function parseOptionalNumber(raw) {
@@ -226,6 +257,13 @@ router.post(
     if (Number.isNaN(woodDensity)) {
       return res.status(400).json({ error: 'wood_density invalide' });
     }
+    if (woodDensityError(woodDensity)) {
+      return res.status(400).json({ error: woodDensityError(woodDensity) });
+    }
+    const rawPlantedAt = normalizeOptionalString(req.body?.planted_at ?? req.body?.plantedAt);
+    if (rawPlantedAt && !plantedAt) {
+      return res.status(400).json({ error: 'planted_at invalide (AAAA-MM-JJ)' });
+    }
 
     const plant = await queryOne('SELECT id FROM plants WHERE id = ?', [plantId]);
     if (!plant) return res.status(400).json({ error: 'Espèce introuvable' });
@@ -296,6 +334,9 @@ router.put(
       if (Number.isNaN(woodDensity)) {
         return res.status(400).json({ error: 'wood_density invalide' });
       }
+      if (woodDensityError(woodDensity)) {
+        return res.status(400).json({ error: woodDensityError(woodDensity) });
+      }
     }
     const notes =
       req.body?.notes === undefined
@@ -313,6 +354,22 @@ router.put(
       req.body?.marker_id !== undefined || req.body?.markerId !== undefined
         ? normalizeOptionalString(req.body?.marker_id ?? req.body?.markerId) || null
         : current.marker_id;
+    // Même contrôle qu'en création : la zone / le repère doit exister sur la carte de
+    // l'individu (sinon 500 sur la clé étrangère, ou rattachement à une autre carte — P6).
+    if (zoneId && zoneId !== current.zone_id) {
+      const zone = await queryOne('SELECT id FROM zones WHERE id = ? AND map_id = ?', [
+        zoneId,
+        current.map_id,
+      ]);
+      if (!zone) return res.status(400).json({ error: 'Zone introuvable sur cette carte' });
+    }
+    if (markerId && markerId !== current.marker_id) {
+      const marker = await queryOne('SELECT id FROM map_markers WHERE id = ? AND map_id = ?', [
+        markerId,
+        current.map_id,
+      ]);
+      if (!marker) return res.status(400).json({ error: 'Repère introuvable sur cette carte' });
+    }
 
     await execute(
       `UPDATE tracked_individuals
@@ -370,8 +427,17 @@ router.post(
         error: 'Renseigner au moins une mesure (circonférence, hauteur ou couronne)',
       });
     }
+    const rangeError =
+      outOfRange(circumference, MEASURE_LIMITS.circumference) ||
+      outOfRange(height, MEASURE_LIMITS.height) ||
+      outOfRange(crown, MEASURE_LIMITS.crown);
+    if (rangeError) return res.status(400).json({ error: rangeError });
     const notes = normalizeOptionalString(req.body?.notes) || null;
     const groupId = normalizeOptionalString(req.body?.group_id ?? req.body?.groupId) || null;
+    if (groupId) {
+      const group = await queryOne('SELECT id FROM `groups` WHERE id = ?', [groupId]);
+      if (!group) return res.status(400).json({ error: 'Groupe introuvable' });
+    }
 
     const result = await execute(
       `INSERT INTO individual_measurements

@@ -306,6 +306,10 @@ silence et apparaissent tous au rallumage.
   la première.
 - Les professeurs ne sont jamais bloqués par un prérequis, pour pouvoir préparer et
   montrer la séance.
+- Un prérequis encore en **brouillon** (ou retiré de la publication) ne bloque pas les
+  élèves : la séance dépendante reste ouverte tant que le prérequis n'est pas publié.
+- Deux séances ne peuvent pas s'attendre l'une l'autre (A après B et B après A, ou une
+  boucle plus longue) : l'application refuse un tel prérequis à l'enregistrement.
 - En terminant des séances, l’élève gagne des **badges** : première séance, trois séances
   différentes, séance refaite, séance de niveau lycée. Une séance n’est comptée
   « terminée » que si elle a été **lancée** auparavant (chaque fin suit un lancement) :

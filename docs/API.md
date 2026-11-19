@@ -4933,7 +4933,7 @@ pédagogiques activables »).
 | PUT | `/api/id-keys/:id` | `id_keys.manage` | Métadonnées / publication (graph validé si `is_published`) |
 | DELETE | `/api/id-keys/:id` | `id_keys.manage` | Supprimer la clé (cascade couplets/leads) |
 | POST | `/api/id-keys/:id/couplets` | `id_keys.manage` | Ajouter un couplet |
-| DELETE | `/api/id-keys/:id/couplets/:coupletId` | `id_keys.manage` | Supprimer un couplet |
+| DELETE | `/api/id-keys/:id/couplets/:coupletId` | `id_keys.manage` | Supprimer un couplet. Clé **publiée** : couplet n° 1 → **409** ; couplet encore visé par une proposition d'un autre couplet → **409** `{ error, referencedBy: [numéros] }` |
 | PUT | `/api/id-keys/:id/couplets/:coupletId/leads` | `id_keys.manage` | Remplacer les propositions (`leads[]`) |
 
 ### Séances pédagogiques (`/api/pedago-sessions`)
@@ -4971,7 +4971,10 @@ Actions d’étape (`action.type`) : `message`, `open_id_key`, `open_plant`, `op
 uniquement. Séance `custom` : chaque étape porte ses cibles (la config ne sert que de défaut) ;
 à la publication, les plantes, arbres suivis, parcours et clés référencés doivent exister,
 sinon 400 `Publication impossible : …`. Prérequis (`config.requiresSessionId`) : une autre
-séance existante, jamais elle-même ; les gestionnaires (`plants.manage`) ne sont jamais bloqués.
+séance existante, jamais elle-même, et jamais une séance qui en dépend déjà (cycle de toute
+longueur → **400** `{ error, code: 'PREREQUISITE_CYCLE' }`) ; les gestionnaires (`plants.manage`)
+ne sont jamais bloqués. Un prérequis non publié (brouillon, dépublié) ou supprimé est ignoré :
+il ne verrouille pas la séance dépendante (audit du 19/11/2026, P5).
 
 Lien direct : `/?seance=<slug>` ouvre l’application et démarre la séance (après connexion si
 besoin, le slug est gardé en `sessionStorage`).
@@ -5092,9 +5095,9 @@ sur toutes les routes ci-dessous (saisie de mesure comprise), sauf pour un appel
 | GET | `/api/individuals` | non | Liste (`?mapId=`, `?plantId=`, `?active=0` pour inclure les inactifs), ramenée aux cartes lisibles ; `?mapId=` hors périmètre du compte → **403** `MAP_OUT_OF_SCOPE`, hors surface → **404** |
 | GET | `/api/individuals/:id` | non | Détail + `measurements[]` (avec `estimate`) + `disclaimer` ; carte hors surface ou hors périmètre → **404** (comme un individu inexistant) |
 | POST | `/api/individuals` | `individuals.manage` | Créer (plant_id, map_id, label ; zone_id / marker_id optionnels) |
-| PUT | `/api/individuals/:id` | `individuals.manage` | Modifier libellé, densité, rattachements, actif |
+| PUT | `/api/individuals/:id` | `individuals.manage` | Modifier libellé, densité, rattachements, actif ; zone / repère absent de la carte de l'individu → **400** (comme en création) |
 | DELETE | `/api/individuals/:id` | `individuals.manage` | Supprimer (cascade mesures) |
-| POST | `/api/individuals/:id/measurements` | `individuals.measure` | Ajouter une mesure (measured_at + au moins une grandeur) ; carte de l'individu hors périmètre du compte → **403** `MAP_OUT_OF_SCOPE` |
+| POST | `/api/individuals/:id/measurements` | `individuals.measure` | Ajouter une mesure (measured_at, date réelle AAAA-MM-JJ, + au moins une grandeur strictement positive : circonférence ≤ 99 999,9 cm, hauteur et couronne ≤ 999,99 m ; `group_id` inconnu → **400**) ; carte de l'individu hors périmètre du compte → **403** `MAP_OUT_OF_SCOPE` |
 | DELETE | `/api/individuals/:id/measurements/:measurementId` | `individuals.manage` | Supprimer une mesure |
 
 ### Notions des programmes (`/api/curriculum`)
