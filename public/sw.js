@@ -129,7 +129,8 @@ self.addEventListener('install', (event) => {
           STATIC_ASSETS.map((url) => cache.add(url).catch(() => undefined))
         );
       }))
-      .then(() => self.skipWaiting())
+    // Pas de skipWaiting() à l'installation (audit ForetMap du 19/11, F3) : la nouvelle
+    // version attend le message SKIP_WAITING envoyé par le bandeau de mise à jour.
   );
 });
 

@@ -12,6 +12,13 @@ import {
 import { oluQuizIntroOpener } from '../utils/oluLearningVoice.js';
 
 /**
+ * Message affiché quand le serveur exige un compte pour valider une fiche (401, audit
+ * ForetMap du 19/11/2026, P1) : ce n'est pas une panne, on invite à se connecter.
+ */
+export const LEARNING_LOGIN_REQUIRED_MESSAGE =
+  'Connecte-toi pour débloquer cette fiche : la validation se fait avec ton compte.';
+
+/**
  * Panneau d'une question QCM dans le flux gating (présentation + réponse + feedback).
  */
 export function LearningGatingQuestionPanel({
@@ -46,11 +53,13 @@ export function LearningGatingQuestionPanel({
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const [loginRequired, setLoginRequired] = useState(false);
   const [eliminatedIds, setEliminatedIds] = useState(() => new Set());
 
   const loadPresentation = useCallback(async () => {
     setLoading(true);
     setError('');
+    setLoginRequired(false);
     setPresentation(null);
     setSelectedChoiceId(null);
     setResult(null);
@@ -65,6 +74,11 @@ export function LearningGatingQuestionPanel({
       const data = await presentQuestion(questionCode, questionDataset, resource);
       setPresentation(data);
     } catch (err) {
+      // 401 : pas de compte — on invite à se connecter au lieu d'afficher une erreur (P1).
+      if (err?.status === 401) {
+        setLoginRequired(true);
+        return;
+      }
       setError(err?.message || 'Chargement de la question impossible');
     } finally {
       setLoading(false);
@@ -103,6 +117,12 @@ export function LearningGatingQuestionPanel({
       // 403 avec verrou : la question (ou la fiche) s'est bloquée entre-temps.
       if (err?.status === 403 && err?.body?.cooldown) {
         setResult({ correct: false, cooldown: err.body.cooldown, feedback: err.body.error || '' });
+        return;
+      }
+      // 401 : session perdue entre la présentation et la réponse (P1).
+      if (err?.status === 401) {
+        setPresentation(null);
+        setLoginRequired(true);
         return;
       }
       setError(err?.message || 'Envoi de la réponse impossible');
@@ -162,6 +182,22 @@ export function LearningGatingQuestionPanel({
         </p>
       ) : null}
       {error ? <p className="tuto-read-ack-error">{error}</p> : null}
+      {loginRequired ? (
+        <p
+          className="tuto-read-ack-intro learning-gating-quiz__notice"
+          role="status"
+          data-testid="learning-gating-login-required"
+        >
+          {LEARNING_LOGIN_REQUIRED_MESSAGE}
+        </p>
+      ) : null}
+      {loginRequired && typeof onAbandon === 'function' ? (
+        <div className="tuto-read-ack-actions">
+          <button type="button" className={ghostBtnClassName} onClick={onAbandon}>
+            Fermer
+          </button>
+        </div>
+      ) : null}
       {!loading && !showAnswer && presentation ? (
         <>
           {questionCode ? (

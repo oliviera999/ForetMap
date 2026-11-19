@@ -1,6 +1,12 @@
 import { useEffect } from 'react';
 
-import { api, getStoredSession } from '../services/api';
+import { api, getAuthClaims, getStoredSession } from '../services/api';
+
+/** Compte désigné par le jeton courant (`userType:userId`), chaîne vide sans jeton. */
+function currentAccountKey() {
+  const claims = getAuthClaims();
+  return claims ? `${claims.userType || ''}:${claims.userId ?? ''}` : '';
+}
 
 /**
  * Hydratation de la session via `/api/auth/me` au montage (extrait de App.jsx, O5).
@@ -25,8 +31,12 @@ export function useAuthMeHydration({ mergeAuthMeResponse }) {
   useEffect(() => {
     const session = getStoredSession();
     if (!session?.token) return;
+    // Compte au départ de la requête : une déconnexion (ou un autre compte) entre-temps rend
+    // la réponse caduque — elle ne doit pas rouvrir la session (audit du 19/11, F2).
+    const accountAtStart = currentAccountKey();
     api('/api/auth/me')
       .then((d) => {
+        if (!accountAtStart || currentAccountKey() !== accountAtStart) return;
         mergeAuthMeResponse(d);
       })
       .catch(() => {

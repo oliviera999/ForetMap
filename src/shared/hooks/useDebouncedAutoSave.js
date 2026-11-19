@@ -203,27 +203,36 @@ export function useDebouncedAutoSave({
     };
   }, [value, enabled, debounceMs, equalsBaseline, executeSave]);
 
+  // Sauvegarde « de démontage » isolée dans un effet à dépendances vides (audit ForetMap du
+  // 19/11, F5) : quand ses dépendances incluaient `enabled`, son nettoyage partait aussi au
+  // passage d'`enabled` à faux — effacer le titre d'une tâche en édition envoyait aussitôt un
+  // PUT au titre vide. `enabled` et la comparaison sont relus par ref au vrai démontage.
+  const enabledRef = useRef(enabled);
+  const equalsBaselineRef = useRef(equalsBaseline);
+  enabledRef.current = enabled;
+  equalsBaselineRef.current = equalsBaseline;
+
   useEffect(() => {
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
       if (savedClearTimerRef.current) clearTimeout(savedClearTimerRef.current);
-      if (!enabled || baselineRef.current === null) return;
-      if (equalsBaseline(valueRef.current)) return;
-      const validation = canSaveRef.current?.();
-      if (validation === false) return;
-      if (typeof validation === 'string' && validation.trim()) return;
       if (timerRef.current) {
         clearTimeout(timerRef.current);
         timerRef.current = null;
       }
+      if (!enabledRef.current || baselineRef.current === null) return;
+      if (equalsBaselineRef.current(valueRef.current)) return;
+      const validation = canSaveRef.current?.();
+      if (validation === false) return;
+      if (typeof validation === 'string' && validation.trim()) return;
       // Best-effort après démontage : plus aucun état à mettre à jour, un échec
       // ne doit pas remonter en rejet non géré.
       Promise.resolve()
         .then(() => onSaveRef.current())
         .catch(() => {});
     };
-  }, [enabled, equalsBaseline]);
+  }, []);
 
   const isDirty = baselineRef.current !== null && !equalsBaseline(value);
 
