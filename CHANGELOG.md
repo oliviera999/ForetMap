@@ -9,6 +9,32 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — audit ForetMap du 19/11, lot 5 (tâches, progression, stats)
+
+- **T1 — homonymes** : la progression n3beur (`countValidatedAssignmentsForStudent`,
+  `syncProgressionForValidatedTask`) et les statistiques (`fetchAssignmentStatusCountsByStudent`,
+  `listStudentTaskAssignments`) appliquent la règle `assignmentIdentityMatch` : une inscription
+  rattachée à un compte ne compte plus pour son homonyme (palier, `GET /api/stats/me/:id`,
+  vue prof, export). Nouvelle forme jointure `assignmentIdentityJoin`.
+- **T2** : plus d'inscription sur une tâche `proposed` ou `done` (en tête de route et sous le
+  verrou de `claimAssignmentSeat`, codes `task_proposed` / `task_done`, messages du front) ; le
+  « fait » ne fait plus avancer une proposition (`task_proposed`) — le badge « Semeur d'idées »
+  ne s'obtient plus ainsi.
+- **T3** : un prof de classe (`stats.read.group`) ne voit plus, dans le détail et le journal
+  d'une tâche, les inscrits et comptes rendus d'élèves hors de ses groupes ; la lecture sans
+  filtre est réservée à `tasks.manage`, `tasks.validate`, `stats.read.all`.
+- **T4** : le proposant non visible est masqué aussi en liste (`proposed_by_student_id` et ligne
+  « Proposition n3beur : … » de la description).
+- **T5** : `POST /api/tasks/:id/done` exige un commentaire texte de 5 000 caractères au plus
+  (codes `comment_invalid`, `comment_too_long`) au lieu d'un 500.
+- **T7** : double validation simultanée → une seule passe (UPDATE conditionnel en transaction),
+  les autres 400 sans notification, audit ni badges en double.
+- **T8** : `PUT /api/tasks/:id` contrôle droits et existence avant de réserver `edit_revision`.
+- **T10 (tâches)** : le plafond de tâches actives est recompté sous verrou (ligne `users` de
+  l'élève, puis tâche).
+- **Comptes rendus** (décision du 19/11) : en mode `tasks.logs_visibility = group`, un compte
+  rendu de l'encadrement (sans élève rattaché) est visible de tous ceux qui lisent le journal.
+
 ### Modifié — G&L : en hybride, les dés aussi sur la tablette (19 novembre 2026)
 
 Sur décision du prof : en surface hybride, un membre de l'équipe lance les dés depuis sa
