@@ -56,6 +56,8 @@ Il faut trancher entre un défaut de la fixture (le plus probable) et un mouveme
 `rendreRelancesNonRejoueesTx` (`lib/glTour.js`). À traiter dans les lots G&L, en priorité : la
 CI ne tourne que sur les PR, donc toute PR ouverte depuis hérite de cet échec.
 
+**Suivi** : la PR #690 (brouillon, ouverte pendant l'audit) annonce la réparation de ce test.
+
 ## 2. Synthèse
 
 69 constats, dont 48 rejoués. Les sept premiers donnent une escalade de droits, exposent un
@@ -381,7 +383,7 @@ Le lot 0 passe avant tout le reste : sans lui, chaque PR hérite d'une CI rouge.
 
 | Lot | Contenu                                                                       | Constats                             |
 | --- | ----------------------------------------------------------------------------- | ------------------------------------ |
-| 0   | Remettre `main` au vert (test G&L, § 1.1) — dans un lot G&L                   | § 1.1                                |
+| 0   | Remettre `main` au vert (test G&L, § 1.1) — en cours, PR #690                 | § 1.1                                |
 | 1   | Le serveur ne tombe pas, la santé répond sans base                            | S1, S4, S10                          |
 | 2   | Escalades de droits sur les comptes                                           | A1, A2, A3, A5, A6, A13              |
 | 3   | Progression et tâches : homonymes, inscriptions interdites, double validation | T1, T2, T7, T5                       |

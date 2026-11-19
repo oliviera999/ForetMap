@@ -19,7 +19,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   (C1), question `strict` résolue sans compte (P1). Lots de correction et décisions à trancher
   en § 10 et § 11. Aucun code modifié.
 - Constaté en chemin : `tests/gl-tenir-jets-paralleles.test.js` échoue sur `main` depuis la
-  PR #688 (§ 1.1 de l'audit).
+  PR #688 (§ 1.1 de l'audit) ; la PR #690 annonce sa réparation.
 - Index `docs/audits/README.md` mis à jour.
 
 ### Modifié — G&L : trois décisions sur les droits du tour (19 novembre 2026)
