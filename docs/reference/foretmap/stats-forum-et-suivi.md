@@ -216,20 +216,53 @@ retenu : il s'ouvre juste après la connexion.
 
 ## L'audit et la médiathèque
 
-- **Journal d'audit** : les actions sensibles (créations, suppressions, validations,
-  prises de main sur un compte, tentatives de connexion douteuses…) sont consignées
-  avec leur auteur et leur date. Sa lecture est réservée aux profils disposant de la
-  permission dédiée. Les **créations et modifications** de zones, plantes, repères,
-  groupes, tutoriels, packs mascotte, questions QCM et liens du réseau trophique y
+- **Journal d'audit** (sous-onglet **Historique** de l'écran Audit) : les actions sensibles
+  (créations, suppressions, validations, prises de main sur un compte, changements de
+  droits…) sont consignées avec leur auteur et leur date. Sa lecture est réservée aux profils
+  disposant de la permission dédiée. Les **créations et modifications** de zones, plantes,
+  repères, groupes, tutoriels, packs mascotte, questions QCM et liens du réseau trophique y
   figurent aussi.
-- **Journal de sécurité (administrateurs)** : sous-onglet dédié dans Audit, réservé aux
-  administrateurs. Il reprend les mêmes événements avec l’**adresse IP** et le
-  **navigateur** utilisés (au-delà de **6 mois**, l’adresse IP est raccourcie et le
-  navigateur effacé ; au-delà d’un an, l’événement est supprimé — par la purge mensuelle,
-  que l’hébergeur doit avoir installée), des filtres (période, compte, action, IP) et un
-  export tableur ou JSON pour un incident. La déconnexion d’un compte **n’efface pas** cet
-  historique : on peut toujours remonter jusqu’à l’auteur via son compte, puis croiser
-  l’IP et le navigateur.
+  - **Chaque ligne se lit d'un coup d'œil** : ce qui s'est passé en clair (« Suppression
+    tâche », « Attribution d'un profil »…), **le nom de la personne** et son type de compte,
+    **ce qui a été touché** (nom de la tâche, de la zone, du compte…), l'heure et la
+    catégorie. Les lignes sont regroupées par jour (« Aujourd'hui », « Hier »…). Un clic sur
+    une ligne déplie tout le détail : date complète, résultat et motif d'un refus, compte
+    contrôlé pendant un « voir comme », action faite **via le connecteur Claude**,
+    identifiants, données techniques — et un bouton pour ouvrir la fiche de la personne.
+  - **Principaux / Vue étendue** : par défaut, seuls les **événements principaux** s'affichent
+    — la routine (connexions réussies, inscriptions aux tâches, réactions, réordonnancements,
+    petites retouches de contenu…) est masquée. **Un échec apparaît toujours**, même en vue
+    principale (une connexion refusée n'est pas de la routine). La **vue étendue** montre tout,
+    avec le code technique de chaque action.
+  - **Filtres** : période (raccourcis Aujourd'hui / 7 jours / 30 jours / 3 mois / 1 an, ou
+    dates libres, un an au plus), **catégorie** (connexions, droits et sécurité, comptes et
+    groupes, tâches, contenus, forum, paramètres, connecteur Claude, Gnomes & Licornes),
+    **résultat** (réussis / échecs), **utilisateur** (recherche par nom, prénom ou pseudo) et
+    recherche libre dans le détail. La liste se charge par 50, avec « Afficher plus ».
+- **Journal de sécurité (administrateurs)** : sous-onglet **Sécurité** dans Audit, réservé aux
+  administrateurs. Il reprend les mêmes événements, **connexions comprises** (réussies et
+  refusées, avec le motif traduit : « Mot de passe incorrect », « Compte introuvable »,
+  « Trop de tentatives »…), avec l'**adresse IP** et le **navigateur** utilisés (résumé du
+  type « Chrome · Windows », en-tête complet dans le détail). Au-delà de **6 mois**, l'adresse
+  IP est raccourcie et le navigateur effacé ; au-delà d'un an, l'événement est supprimé — par
+  la purge mensuelle, que l'hébergeur doit avoir installée. Mêmes filtres que l'historique,
+  plus l'**adresse IP** et le code d'action, et un export tableur ou JSON pour un incident
+  (l'export reprend les filtres affichés et ajoute le nom de l'auteur, le libellé de l'action
+  et le nom de la cible). L'identifiant tapé lors d'une connexion refusée n'est
+  volontairement **pas** conservé (un mot de passe saisi par erreur dans ce champ serait
+  lisible). La déconnexion d'un compte **n'efface pas** cet historique : on peut toujours
+  remonter jusqu'à l'auteur via son compte, puis croiser l'IP et le navigateur.
+- **Activité par utilisateur** : sous-onglet **Utilisateurs** dans Audit. Il répond à « qui a
+  fait quoi ? » : la liste des comptes actifs sur la période, avec pour chacun le nombre
+  d'actions, d'actions principales et d'échecs, la dernière activité, la dernière connexion
+  et ses trois actions les plus fréquentes. Tri par activité récente, par volume ou par
+  nombre d'échecs ; filtres par type de compte, catégorie, résultat et nom. Un clic ouvre la
+  **fiche du compte** : chiffres de la période, répartition par catégorie, actions les plus
+  fréquentes, **adresses IP et appareils utilisés** (administrateurs) et, en dessous, le
+  journal complet de ses actions — ou, au choix, des **actions qui le concernent** (faites
+  par quelqu'un d'autre sur ce compte : changement de droits, prise de contrôle…). Pour un
+  administrateur, les chiffres incluent les connexions ; pour les autres profils autorisés, ils
+  portent sur les actions de l'historique seulement, sans IP.
 - **Suivi utilisateurs (administrateur)** : dans les paramètres d’administration,
   un panneau dédié montre (1) qui est **en ligne** ou **vu récemment** (sans surcharger
   le serveur : pas de battement de cœur permanent), (2) le **passage** dans les
