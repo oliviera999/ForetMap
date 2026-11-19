@@ -200,6 +200,17 @@ personnel.
 Introduction animée, règles du jeu, lexique du lore (le vocabulaire de l'univers,
 distinct du glossaire scientifique) et tutoriels.
 
+- **Tutoriels** : un tutoriel dont la case **Publié** est décochée reste un brouillon —
+  les joueurs ne le voient ni dans la liste ni par un lien direct, et ne peuvent pas le
+  marquer comme appris. Dans l'éditeur, l'enregistrement est automatique et **l'éditeur
+  reste ouvert** : il ne se ferme que par le bouton « Fermer l'éditeur ». Un nouveau
+  tutoriel est créé dès les premiers mots, **publié par défaut** : décochez « Publié »
+  avant de rédiger si vous voulez travailler à l'abri des regards.
+- **Lexique du lore** : les termes de niveau « Secret » sont réservés au MJ, et le réglage
+  de divulgâchage fixe le niveau le plus avancé que les joueurs peuvent lire. Cette limite
+  vaut partout : liste, fiche, « termes liés », mots soulignés dans les textes et termes
+  rappelés sous une question.
+
 ### Les joueurs (la vie sociale)
 
 - **Forum** : discussions entre joueurs, avec le **même fonctionnement que le forum

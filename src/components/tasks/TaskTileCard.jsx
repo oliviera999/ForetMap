@@ -25,6 +25,8 @@ import { teacherStatusActionDisabled } from '../../utils/taskActionErrors.js';
 import { sortStudentsForQuickAssign } from '../../utils/taskQuickAssign.js';
 import { TEACHER_STATUS_ACTIONS } from './taskViewHelpers.js';
 import { TaskTileMeta } from './TaskTileMeta.jsx';
+import { taskStepLabel } from '../../utils/taskProjectSteps.js';
+import { projectColorClass } from '../../utils/projectColors.js';
 import { assignmentMatchesStudent, isStudentAssignedToTask } from '../../utils/task-assignments';
 import { ContextComments } from '../context-comments';
 import { MarkdownContent } from '../MarkdownContent.jsx';
@@ -41,6 +43,7 @@ import {
   IconDuplicate,
   IconEdit,
   IconFlame,
+  IconFolder,
   IconGroup,
   IconHand,
   IconIdea,
@@ -121,6 +124,12 @@ function TaskTileCardImpl({
   onTaskDragEnd = null,
   draggingTaskId = null,
   onStartPedagoSession = null,
+  /** `taskId → { step, sub, parallel }` des projets numérotés (`utils/taskProjectSteps.js`). */
+  stepInfoByTaskId = null,
+  /** `projectId → index de couleur` (`utils/projectColors.js`) : une teinte par projet. */
+  projectColorById = null,
+  /** Dans la carte d'un projet : le bandeau ne répète pas le nom du projet (étape seule). */
+  insideProjectBlock = false,
 }) {
   const [coverLightbox, setCoverLightbox] = useState(null);
   const [condensedExpanded, setCondensedExpanded] = useState(false);
@@ -207,9 +216,14 @@ function TaskTileCardImpl({
       }
     : { className: 'task-top' };
   const isTaskDraggingThis = !!draggingTaskId && String(draggingTaskId) === String(t.id || '');
+  /* Tâche de projet : carte teintée + bandeau « projet · étape » au-dessus du titre, pour
+     la repérer d'un coup d'œil parmi les autres (visible aussi en vue condensée). */
+  const isProjectTask = !!String(t.project_id || '').trim() && !!t.project_title;
+  const projectStepText = isProjectTask ? taskStepLabel(stepInfoByTaskId?.get(String(t.id))) : '';
+  const projectColorCls = isProjectTask ? projectColorClass(projectColorById, t.project_id) : '';
   return (
     <div
-      className={`task-card ${viewMode === 'tiles' ? 'task-card--tile' : ''}${isCondensed ? ` task-card--condensed${condensedExpanded ? ' task-card--condensed-open' : ''}` : ''} fade-in ${isMine ? 'mine' : ''} ${effectiveStatus === 'validated' ? 'done' : ''} ${effectiveStatus === 'proposed' ? 'proposed' : ''} ${isTaskDraggingThis ? 'task-card--dragging' : ''}`}
+      className={`task-card ${viewMode === 'tiles' ? 'task-card--tile' : ''}${isCondensed ? ` task-card--condensed${condensedExpanded ? ' task-card--condensed-open' : ''}` : ''} fade-in ${isMine ? 'mine' : ''} ${effectiveStatus === 'validated' ? 'done' : ''} ${effectiveStatus === 'proposed' ? 'proposed' : ''} ${isTaskDraggingThis ? 'task-card--dragging' : ''}${isProjectTask ? ` task-card--project ${projectColorCls}` : ''}`}
       style={{ animationDelay: `${Math.min(index * 60, 360)}ms` }}
       data-task-id={t.id != null ? String(t.id) : undefined}
       draggable={enableTaskDrag}
@@ -229,6 +243,17 @@ function TaskTileCardImpl({
     >
       {coverLightbox && (
         <Lightbox src={coverLightbox} caption="" onClose={() => setCoverLightbox(null)} />
+      )}
+      {isProjectTask && (!insideProjectBlock || projectStepText) && (
+        <div className="task-project-ribbon" data-testid="task-project-ribbon">
+          {!insideProjectBlock && (
+            <>
+              <IconFolder size={13} />
+              <span className="task-project-ribbon__title">{t.project_title}</span>
+            </>
+          )}
+          {projectStepText && <span className="task-project-ribbon__step">{projectStepText}</span>}
+        </div>
       )}
       <TopTag {...topTagProps}>
         <div className="task-title-row">

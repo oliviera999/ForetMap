@@ -191,6 +191,10 @@ router.post(...routeBrouillon, gardeSortPrepare, async (req, res) => {
         playerId: req.body?.playerId,
       },
     });
+    // Pot laissé là pour une autre équipe, une autre partenaire ou un autre élève : annulé.
+    if (draft.replacedDraftId) {
+      emitDraftChanged(gameId, { draftId: draft.replacedDraftId, type: 'draft_cancelled' });
+    }
     emitDraftChanged(gameId, { draftId: draft.id, type: 'draft_updated', draft });
     return res.status(201).json({ draft });
   });

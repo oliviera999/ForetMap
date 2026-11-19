@@ -66,7 +66,9 @@ export function TaskTileMeta({
           <IconMarker size={12} /> {t.marker_label}
         </span>
       )}
-      {t.project_title && (
+      {/* Nom du projet : affiché dans le bandeau coloré de la carte (`TaskTileCard`), sauf
+          pour une tâche sans `project_id` (donnée incomplète) où la puce reste le seul repère. */}
+      {t.project_title && !String(t.project_id || '').trim() && (
         <span className="task-chip">
           <IconFolder size={12} /> {t.project_title}
         </span>
