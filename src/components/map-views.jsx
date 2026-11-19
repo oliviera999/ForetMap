@@ -206,6 +206,7 @@ function MapViewImpl({
     activeMapId,
     mode,
     onRefresh,
+    onError: setToast,
     embedded,
     mapLayoutOuterRef,
     mapFullscreen,
@@ -334,6 +335,7 @@ function MapViewImpl({
     undoEditPoints,
     startEditPoints,
     saveEditPoints,
+    editPointsSaving,
     discardEditPointsSession,
     onTranslatePointerDown,
     onTranslatePointerMove,
@@ -906,6 +908,7 @@ function MapViewImpl({
           onApplyAlignPreview={applyAlignPreview}
           onUndoEditPoints={undoEditPoints}
           onSaveEditPoints={saveEditPoints}
+          editPointsSaving={editPointsSaving}
           onExitEditPoints={() => {
             setMode('view');
             discardEditPointsSession();

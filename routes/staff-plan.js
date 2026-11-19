@@ -336,7 +336,12 @@ router.post(
     }
 
     const settings = await loadStaffPlanSettings();
-    const resolved = await resolvePlanMap('', settings);
+    // Carte du lieu signalé : celle qu'affiche le lecteur. Sans elle, seul la carte par
+    // défaut était fouillée, et un lieu d'une autre carte sélectionnable répondait 404
+    // « Lieu introuvable » (audit du 19/11/2026, C6). `resolvePlanMap` n'accepte qu'une carte
+    // de la liste blanche du plan (`allowedPlanMapIds`) ; absente, la carte par défaut.
+    const requestedMapId = String(req.body?.mapId ?? req.body?.map_id ?? '').trim();
+    const resolved = await resolvePlanMap(requestedMapId, settings);
     if (!resolved.map)
       return res.status(404).json({ error: resolved.error || 'Carte introuvable' });
     const place = await findPlanPlace({

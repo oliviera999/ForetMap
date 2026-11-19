@@ -9,6 +9,18 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — audit ForetMap du 19/11, lot 7 (terrain : lieux, catégories, parcours, plans, gestes de carte)
+
+- **C1** — `GET /api/map-routes` croise les cartes autorisées sur la surface (`allowedMapIdsForSurface`) avec le périmètre du compte, comme les lieux : un anonyme sur la Visite ne lit plus les parcours de la carte d'un plan fermé par code. Le détail `/:idOrSlug` exige aussi qu'une surface publique du parcours serve sa carte (404 sinon).
+- **C12** — `?surface=staff` : le filtre des étapes reçoit le lecteur synthétique du porteur de code, et non plus `req.auth` (null).
+- **C11** — supprimer un lieu, ou le changer de carte, retire ses étapes de parcours (même transaction) : le parcours reste enregistrable.
+- **C4** — une catégorie désactivée n'est plus retirée d'une zone ou d'un repère par un PUT qui ne la concerne pas ; le filtre `is_active` ne vaut que pour les ajouts.
+- **C8 / C9** — lieux : nom ou libellé non textuel, champ texte objet, `x_pct` / `y_pct` non numériques ou hors 0–100 en modification → **400** avant toute écriture (auparavant 500, ou repère hors carte). Photo : `image_data` non textuelle → 400, aucune ligne créée.
+- **C10** — image de carte au-delà de la borne d'upload → **413** « Fichier trop volumineux » au lieu d'un 500.
+- **C6** — plan des personnels : « Signaler un problème » transmet la carte affichée (`mapId`, validée par `allowedPlanMapIds`) ; un lieu d'une carte sélectionnable n'est plus « introuvable ».
+- **C13** — exposition publique des photos de lieux conservée par décision, documentée dans `docs/API.md`.
+- **F4** — carte : un déplacement de repère refusé ou hors ligne affiche un message et remet le repère à sa place ; « Enregistrer le contour » gère l'erreur (session conservée) et se désactive pendant l'envoi.
+
 ### Modifié — G&L : en hybride, les dés aussi sur la tablette (19 novembre 2026)
 
 Sur décision du prof : en surface hybride, un membre de l'équipe lance les dés depuis sa
