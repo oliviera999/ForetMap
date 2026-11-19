@@ -1,6 +1,6 @@
 {
   "name": "foretmap",
-  "version": "1.250.13",
+  "version": "1.250.14",
   "description": "Application de gestion de la forêt comestible - Lycée Lyautey",
   "main": "server.js",
   "author": "Olivier ARNOULD-LAURENT",
