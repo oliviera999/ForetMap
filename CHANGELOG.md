@@ -9,6 +9,31 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — G&L : carnet du joueur et récompenses (audit du 19 novembre 2026, lot 7)
+
+- **C8 — « Lu » et « tenu » atteignent le carnet personnel.** Le statut de
+  `gl_player_feuillet_states` n'était remplacé que si le pourcentage d'effacement baissait ;
+  une lecture ou une page tenue, qui ne le changent pas, laissaient le feuillet « trouvé ».
+  Le statut monte désormais selon découvert < lu < tenu, indépendamment du pourcentage, et
+  ne redescend jamais (`mergePlayerFeuilletSnapshot` et le `ON DUPLICATE KEY UPDATE` de
+  `upsertPlayerFeuilletState`) ; le pourcentage garde le minimum ; « effacé » garde sa règle
+  d'avant. Le badge « Lecteur » (`pages_lues`) et le compteur `feuillets_lus` comptent donc
+  ces lectures. Les lectures passées ne sont pas reprises (aucune migration dans ce lot).
+  Test : `tests/gl-player-feuillet-statut-promotion.test.js`.
+- **C7 — « Première consultation » dite par l'écriture.** `routes/gl/learning.js` lisait
+  l'accusé puis l'écrivait : des requêtes parallèles sur la même ressource se croyaient
+  toutes premières et gagnaient chacune un feuillet (4 au lieu d'1 sur 6 requêtes). L'accusé
+  passe par `recordLearningAck` (`INSERT IGNORE`, `affectedRows`). La révélation par espèce
+  (`revealFeuilletForSpeciesStudy`) prend le verrou d'équipe et choisit le feuillet sous la
+  transaction ; elle ne joue plus hors d'une partie `live` ou `paused`.
+  Test : `tests/gl-learning-premiere-consultation.test.js`.
+- **E7 — Carnet de Sélène : « ✓ Étudié » ne déborde plus sur le feuillet suivant.**
+  `GLLearnAndImport` remet « appris » et « déjà importé » à faux quand la ressource change,
+  et le carnet le monte avec `key={active.feuilletCode}`.
+  Test : `tests-ui/gl/GLLearnAndImport.test.jsx`.
+- **C4 (complément) — `POST /api/gl/learning/tutorials/:id`** répond 404 pour un tutoriel non
+  publié, sauf permission `gl.content.manage`.
+
 ### Corrigé — Popups d'Olu tronquées en bas d'écran (18 novembre 2026)
 
 Les fenêtres où parle Olu pouvaient sortir de l'écran par le bas, sans moyen d'en sortir :

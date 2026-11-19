@@ -184,17 +184,23 @@ réinitialiser (voir [presentation.md](presentation.md)).
   (le canal principal), par le **récit** (prologue), à l'occasion de l'**étude d'une
   espèce**, ou en marquant appris **n'importe quel autre contenu conditionné** (terme
   de glossaire, écosystème, tutoriel, page) : chaque première consultation réussie
-  ouvre un feuillet du chapitre, tant qu'il en reste. L'étude d'une espèce sert
+  ouvre un feuillet du chapitre, tant qu'il en reste. « Première » vaut une seule fois par
+  élève et par contenu, même si la validation part deux fois au même instant (double clic,
+  deux onglets) : un seul feuillet est gagné. Un **tutoriel non publié** ne peut pas être
+  marqué lu par un élève. L'étude d'une espèce sert
   d'abord le feuillet dédié à cette espèce, puis ceux de son pays, puis **bascule sur
   le pool du chapitre** — étudier la biodiversité rapporte donc autant dans le premier
-  chapitre que dans le dernier. Une découverte peut **coûter des gemmes** et **rapporter des
+  chapitre que dans le dernier. Hors d'une partie **en cours ou en pause**, étudier une
+  espèce reste acquis à l'élève mais ne fait plus apparaître de feuillet. Une découverte peut **coûter des gemmes** et **rapporter des
   cœurs** (réglable) — une seule fois par équipe par défaut, même si deux
   camarades tapent en même temps. Un passage qui arrive trop tôt (la mascotte n'est pas
   encore enregistrée dans la zone, par exemple au milieu d'un jet de dés) ne compte pas :
   le feuillet se propose à nouveau dès que l'équipe y entre pour de vrai. Le texte peut être partiellement « mangé par le Souffle »
   (effacement progressif, réglable). L'équipe passe ensuite du feuillet « découvert »
   à « lu », voire « tenu » — cela ne restaure pas le texte déjà mangé : l'effacement
-  reste celui de la découverte. Le MJ, lui, voit tous les feuillets en texte intégral.
+  reste celui de la découverte. Le **carnet personnel** de chaque membre suit : un feuillet
+  lu ou tenu par l'équipe y est noté lu ou tenu (il restait « trouvé » jusqu'au 19 novembre
+  2026), et compte donc pour le badge « Lecteur ». Ce statut ne redescend jamais. Le MJ, lui, voit tous les feuillets en texte intégral.
   Les **termes du glossaire scientifique cités dans un feuillet** sont cliquables : leur
   fiche s'ouvre maintenant par-dessus le feuillet. Elle s'ouvrait derrière lui, donc
   invisible tant que le feuillet n'était pas refermé.
@@ -208,7 +214,9 @@ visuellement** :
 - le **marquage pédagogique personnel** s'appelle maintenant « **Marquer comme étudié** »
   (« ✓ Étudié »), et n'est **proposé que sur un feuillet effectivement accessible** :
   tant qu'un feuillet est verrouillé en partie, on ne peut pas le marquer étudié (on ne
-  peut pas étudier ce qu'on ne peut pas lire).
+  peut pas étudier ce qu'on ne peut pas lire). La mention « ✓ Étudié » vaut pour le
+  feuillet affiché : en passant au suivant, le bouton « Marquer comme étudié » revient
+  (il restait sur « ✓ Étudié » après un premier feuillet étudié).
 
 ### Les feuillets d'ouverture
 
