@@ -20,6 +20,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **C6** — plan des personnels : « Signaler un problème » transmet la carte affichée (`mapId`, validée par `allowedPlanMapIds`) ; un lieu d'une carte sélectionnable n'est plus « introuvable ».
 - **C13** — exposition publique des photos de lieux conservée par décision, documentée dans `docs/API.md`.
 - **F4** — carte : un déplacement de repère refusé ou hors ligne affiche un message et remet le repère à sa place ; « Enregistrer le contour » gère l'erreur (session conservée) et se désactive pendant l'envoi.
+
 ### Corrigé — audit ForetMap du 19/11, lot 2 (connecteur MCP)
 
 - **S2** — `foretmap_sql_select` / `foretmap_export` : un nom de CTE déclaré dans une
