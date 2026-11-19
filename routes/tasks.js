@@ -37,13 +37,14 @@ const {
 const {
   TaskRuleError,
   updateTask,
+  assertTaskEditable,
   normalizeTaskRecurrenceInput,
   validateTaskProject,
   validateReferentUserIds,
   validateTutorialIds,
   validatePedagoSessionId,
 } = require('../lib/tasks/taskService');
-const { withEditRevision } = require('../lib/editRevision');
+const { withEditRevision, withoutRevisionField } = require('../lib/editRevision');
 const {
   TaskActionError,
   deleteTaskAction,
@@ -93,6 +94,9 @@ const {
   filterAssignmentsForViewer,
   sanitizeTaskForViewer,
   redactTaskForAnonymous,
+  redactProposerForViewer,
+  createViewerContext,
+  getAssigneesVisibilityMode,
 } = require('../lib/tasks/assignmentVisibility');
 
 const router = express.Router();
@@ -348,7 +352,16 @@ router.get(
       }
     }
     // Sans compte : aucune identité d'élève ni de référent.
-    res.json(auth ? enriched : enriched.map(redactTaskForAnonymous));
+    if (!auth) return res.json(enriched.map(redactTaskForAnonymous));
+    // Proposant masqué comme dans le détail (identifiant et ligne « Proposition n3beur »)
+    // quand le lecteur ne le voit pas (audit du 19/11/2026, T4). Contexte partagé : le
+    // périmètre du lecteur n'est résolu qu'une fois pour toute la liste.
+    const viewerCtx = createViewerContext(auth);
+    const assigneesMode = await getAssigneesVisibilityMode();
+    for (const row of enriched) {
+      await redactProposerForViewer(auth, row, { ctx: viewerCtx, mode: assigneesMode });
+    }
+    res.json(enriched);
   }),
 );
 
@@ -807,6 +820,13 @@ router.put('/:id', async (req, res) => {
   let auth = null;
   try {
     auth = await parseOptionalAuth(req);
+    // Droits vérifiés AVANT de réserver la révision (T8) : un appel refusé ne doit pas faire
+    // recevoir un 409 à un enregistrement légitime simultané.
+    await assertTaskEditable({
+      taskId: req.params.id,
+      body: withoutRevisionField(req.body || {}),
+      auth,
+    });
     const result = await withEditRevision('tasks', req.params.id, req.body, async (body) => {
       const updated = await updateTask({ taskId: req.params.id, body, auth, auditReq: req });
       return { status: 200, body: await sanitizeTaskForViewer(auth, updated) };

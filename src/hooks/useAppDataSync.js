@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { api, AccountDeletedError } from '../services/api';
+import { api, AccountDeletedError, getStoredSessionAccountKey } from '../services/api';
 import {
   DATA_REFRESH_INTERVAL_MS,
   FETCH_ALL_AUTO_DEBOUNCE_MS,
@@ -331,9 +331,13 @@ export function useAppDataSync({
               const isStudentSession = sess?.id && !sess.preview_mode;
               if (isStudentSession || isTeacherSnap) {
                 const sid = isStudentSession ? sess.id : null;
+                // Compte au départ de la requête (élève comme prof, audit du 19/11, F2) : une
+                // réponse arrivée après une déconnexion ou un changement de compte est ignorée.
+                const accountAtStart = getStoredSessionAccountKey();
                 api('/api/auth/me')
                   .then((d) => {
                     if (sid && studentRef.current?.id !== sid) return;
+                    if (!accountAtStart || getStoredSessionAccountKey() !== accountAtStart) return;
                     const hasSideEffects =
                       d?.taskEnrollment != null ||
                       typeof d?.forumParticipate === 'boolean' ||
