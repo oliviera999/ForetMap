@@ -216,6 +216,42 @@ test('M2 — hybride : l’équipe présente et joue la question depuis sa table
   assert.equal(await indexOf(c, c.teams[0].id), 2);
 });
 
+test('hybride : un membre de l’équipe lance les dés depuis sa tablette ; au tableau, non', async () => {
+  // Dés tirés par l'app (réglage de la partie) : le jet s'applique aussitôt.
+  const c = await partie();
+  await surface(c, 'hybride', { des_mode: 'serveur' });
+  await ouvrirTourEnJeu(request, app, c);
+  for (const m of membres(c, 0)) await setPlayerBourses(m.id, 0, 0);
+  const r = await request(app)
+    .post(api(c, '/tenir/lancer'))
+    .set(auth(membres(c, 0)[0].token))
+    .send({});
+  assert.equal(r.status, 201, JSON.stringify(r.body));
+  assert.ok((await indexOf(c, c.teams[0].id)) > 0, 'la mascotte a avancé');
+
+  // Dés physiques (défaut de l'hybride) : les faces saisies attendent la validation du prof,
+  // comme sur tablette — un élève ne choisit pas son jet.
+  const p = await partie();
+  await surface(p, 'hybride');
+  await ouvrirTourEnJeu(request, app, p);
+  const saisie = await request(app)
+    .post(api(p, '/tenir/lancer'))
+    .set(auth(membres(p, 0)[0].token))
+    .send({ mode: 'physique', faces: [6, 6] });
+  assert.equal(saisie.status, 202, JSON.stringify(saisie.body));
+  assert.equal(saisie.body.enAttente, true);
+  assert.equal(await indexOf(p, p.teams[0].id), 0, 'rien ne bouge avant la validation');
+
+  const t = await partie();
+  await surface(t, 'tableau');
+  await ouvrirTourEnJeu(request, app, t);
+  const refus = await request(app)
+    .post(api(t, '/tenir/lancer'))
+    .set(auth(membres(t, 0)[0].token))
+    .send({ mode: 'physique', faces: [1, 1] });
+  assert.equal(refus.status, 403, JSON.stringify(refus.body));
+});
+
 test('M2 — tableau : un élève ne présente ni ne joue la question, le prof si', async () => {
   const c = await partie();
   await surface(c, 'tableau');

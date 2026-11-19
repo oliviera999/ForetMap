@@ -9,6 +9,16 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — G&L : en hybride, les dés aussi sur la tablette (19 novembre 2026)
+
+Sur décision du prof : en surface hybride, un membre de l'équipe lance les dés depuis sa
+tablette pendant la phase « jeu », comme sur tablette (`glTenirPermissionsCore`, droit
+`lancer`). Le prof peut toujours lancer pour une équipe. Seule la fouille attend encore la
+fenêtre ouverte par le prof. Avec des dés physiques (défaut de l'hybride), les faces saisies
+par l'équipe attendent la validation du prof, comme sur tablette : un élève ne choisit pas son
+jet. Tests : `tests/gl-tenir-permissions-pure.test.js`,
+`tests/gl-tenir-droits-serveur.test.js`.
+
 ### Modifié — G&L : trois décisions sur les droits du tour (19 novembre 2026)
 
 Suite du lot 2 de l'audit (PR #685), sur décision du prof.

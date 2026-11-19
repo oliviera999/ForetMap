@@ -40,7 +40,7 @@ test('tableau : aucun geste pour un élève, Marché en veillée seulement', () 
   assert.equal(clos.marche, true);
 });
 
-test('hybride : jeter et répondre pendant jeu, fouiller pendant la fenêtre du prof, lire toujours ; lancer au prof', () => {
+test('hybride : jeter, lancer et répondre pendant jeu, fouiller pendant la fenêtre du prof, lire toujours', () => {
   const sansFenetre = resolveTenirPermissions({
     surface: 'hybride',
     phase: 'jeu',
@@ -49,7 +49,11 @@ test('hybride : jeter et répondre pendant jeu, fouiller pendant la fenêtre du 
   assert.equal(sansFenetre.jeter, true);
   assert.equal(sansFenetre.fouiller, false);
   assert.equal(sansFenetre.lire, true);
-  assert.equal(sansFenetre.lancer, false);
+  assert.equal(sansFenetre.lancer, true);
+  assert.equal(
+    resolveTenirPermissions({ surface: 'hybride', phase: 'souffle', actorKind: 'player' }).lancer,
+    false,
+  );
   assert.equal(sansFenetre.repondre, true);
   assert.equal(
     resolveTenirPermissions({ surface: 'hybride', phase: 'souffle', actorKind: 'player' }).repondre,
