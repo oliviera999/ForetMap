@@ -1220,7 +1220,8 @@ router.post(
     const dryRun = !!req.body?.dryRun;
     try {
       const parsed = await resolveFeuilletsImportBody(req.body || {});
-      const report = await applyFeuilletsImport(db, parsed, { dryRun });
+      // Audit du 19/11/2026 (C11) : écriture en transaction, comme l'import des QCM.
+      const report = await withTransaction((tx) => applyFeuilletsImport(tx, parsed, { dryRun }));
       return res.json({ report });
     } catch (err) {
       return sendSafeError(res, err, {
@@ -1325,7 +1326,10 @@ router.post(
     const dryRun = !!req.body?.dryRun;
     try {
       const { glossaryRows } = await resolveLoreGlossaryImportBody(req.body || {});
-      const report = await applyLoreGlossaryImport(db, glossaryRows, { dryRun });
+      // Audit du 19/11/2026 (C11) : écriture en transaction, comme l'import des QCM.
+      const report = await withTransaction((tx) =>
+        applyLoreGlossaryImport(tx, glossaryRows, { dryRun }),
+      );
       return res.json({ report });
     } catch (err) {
       return sendSafeError(res, err, {
@@ -1729,12 +1733,16 @@ router.post(
       return res.status(400).json({ error: `Trop de lignes (max ${QCM_LORE_MAX_IMPORT_ROWS})` });
     }
     try {
-      const report = await applyQcmLoreImport(
-        { queryAll, execute },
-        scopeRows || [],
-        categoryRows || [],
-        questionRows,
-        { dryRun },
+      // Audit du 19/11/2026 (C6) : en transaction, comme l'import des QCM biomes — une
+      // interruption ne laisse ni catalogue partiel ni liens glossaire à moitié régénérés.
+      const report = await withTransaction((tx) =>
+        applyQcmLoreImport(
+          { queryAll: tx.queryAll, execute: tx.execute },
+          scopeRows || [],
+          categoryRows || [],
+          questionRows,
+          { dryRun },
+        ),
       );
       return res.json({ report });
     } catch (err) {
