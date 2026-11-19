@@ -32,6 +32,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - Tests : `tests/audit-fm-lot9-*.test.js`, `tests-ui/audit-fm-lot9-*.test.jsx` ;
   `tests/learning-gating-cooldown.test.js` et `tests/learning-links-sheet.test.js` mis à jour
   (ils figeaient l'ancien SQL du verrou et la purge globale de P4).
+
 ### Corrigé — audit ForetMap du 19/11, lot 10 (séances, individus, calendrier, clades, clés)
 
 - **Séances pédagogiques (P5).** Un prérequis en brouillon, dépublié ou supprimé ne verrouille
