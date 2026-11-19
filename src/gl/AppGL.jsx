@@ -923,11 +923,9 @@ export function AppGL() {
   if (session?.token && isProjection) {
     return (
       <div className="gl-app gl-app--guest gl-app--projection" style={glAppStyle}>
-        <GLProjectionView
-          gameId={Number(auth.projection.gameId)}
-          token={token}
-          refreshKey={gameState?.events?.length || 0}
-        />
+        {/* Session invitée : le runtime ne charge pas `gameState` pour elle — la vue s'abonne
+            elle-même aux évènements de la partie. */}
+        <GLProjectionView gameId={Number(auth.projection.gameId)} token={token} />
       </div>
     );
   }

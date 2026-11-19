@@ -52,6 +52,13 @@ const { resolveMarkerEventConfig } = require('../../../lib/glMarkerEventConfig')
 
 const router = express.Router();
 
+/** Présenter une case se fait dans une partie en cours — comme répondre, lancer ou avancer. */
+function refusHorsPartieEnCours(res, game) {
+  if (String(game?.status || '').toLowerCase() === 'live') return false;
+  res.status(409).json({ error: 'La partie doit être en cours' });
+  return true;
+}
+
 const {
   resolveTenirMarkerContext: resolveSentierContext,
   consumeSentier,
@@ -206,6 +213,7 @@ router.post(
       [gameId],
     );
     if (!game) return res.status(404).json({ error: 'Partie introuvable' });
+    if (refusHorsPartieEnCours(res, game)) return undefined;
 
     const chapterRow = await queryOne(
       'SELECT id, plateau_number FROM gl_chapters WHERE id = ? LIMIT 1',
@@ -242,6 +250,24 @@ router.post(
       [teamId, gameId],
     );
     if (!team) return res.status(404).json({ error: 'Équipe introuvable dans cette partie' });
+
+    // « Tenir à deux » : le droit « répondre » est rejoué (phase « jeu », surface, équipe active
+    // au tableau) pour un élève ou une tablette. Le prof garde la présentation à distance.
+    if (acteur.kind !== 'mj' && isTenirGame(settings, game)) {
+      try {
+        await require('../../../lib/glTour').assertRepondreOuvert(db, {
+          gameId,
+          settings,
+          teamId,
+          actorKind: acteur.actorKind,
+          enRetrait: acteur.enRetrait,
+        });
+      } catch (err) {
+        const message = require('../../../lib/glTour').REFUS_REPONDRE[err?.message];
+        if (!message || !err.status) throw err;
+        return res.status(err.status).json({ error: message, code: err.message });
+      }
+    }
 
     // Anti-farm : présenter la question d'un repère suppose d'y être posé. Sans cette garde,
     // un joueur pouvait re-présenter la même question à volonté (retrigger `every_arrival`) et
@@ -396,6 +422,7 @@ router.post(
       [gameId],
     );
     if (!game) return res.status(404).json({ error: 'Partie introuvable' });
+    if (refusHorsPartieEnCours(res, game)) return undefined;
 
     const markerRow = await queryOne(
       `SELECT ${MARKER_SELECT} FROM gl_chapter_markers WHERE id = ? LIMIT 1`,
@@ -450,7 +477,30 @@ router.post(
       ? await arriveeDejaAppliquee(db, { gameId, teamId, markerId })
       : null;
     if (dejaAppliquee?.sentier) arrivalCtx.sentierActif = true;
-    const arrival = buildMarkerArrivalPayload(marker, team, arrivalCtx);
+    // Équipe posée ici sans que la case se joue (Progression « sans appliquer la case »,
+    // Bourrasque, Relais, vent de la caravane) : la présentation montre le texte et n'applique
+    // rien — sinon elle défaisait la règle. Le prof garde `apply-effects` pour décider autrement.
+    const sansEffet =
+      arrivalCtx.tenir &&
+      !dejaAppliquee &&
+      (await require('../../../lib/glTour').poseeSansJouerLaCase(db, {
+        gameId,
+        teamId,
+        markerId,
+      }));
+    const arrivalJouee = buildMarkerArrivalPayload(marker, team, arrivalCtx);
+    // Sans effet : le texte de la case, jamais l'annonce d'un gain, d'un recul ou d'« un seul
+    // dé » qui ne s'applique pas.
+    const arrival = sansEffet
+      ? {
+          ...arrivalJouee,
+          effectSummary: null,
+          resolvedEffect: null,
+          hasEffects: false,
+          passTurn: false,
+          ...('unDe' in arrivalJouee ? { unDe: false } : {}),
+        }
+      : arrivalJouee;
     const actorType = acteur.actorType;
     const actorId = acteur.actorId;
     const reason = String(marker.label || 'Repère').trim();
@@ -474,6 +524,23 @@ router.post(
     try {
       await withTransaction(async (tx) => {
         const tenirCtx = await resolveTenirMarkerContext(tx, settings, game, teamId);
+        if (sansEffet) {
+          lastEvent = await insertGameEvent(tx, {
+            gameId,
+            teamId,
+            actorType,
+            actorId,
+            eventType: 'marker_arrival',
+            payload: {
+              markerId,
+              markerLabel: marker.label,
+              eventType: marker.event_type,
+              effectSummary: arrival.effectSummary,
+              sansEffet: true,
+            },
+          });
+          return;
+        }
         vitalityPayload = await applyMarkerVitalityEffects(tx, {
           gameId,
           teamId,
@@ -578,6 +645,8 @@ router.post(
       ...arrival,
       teamId: Number(teamId),
       teamType: team.type,
+      // Case présentée sans s'appliquer (l'équipe y a été posée par un sort ou par le vent).
+      ...(sansEffet ? { sansEffet: true } : {}),
       vitality: vitalityPayload
         ? {
             applied: vitalityPayload.applied === true,

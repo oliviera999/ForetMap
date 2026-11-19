@@ -19,7 +19,11 @@ import {
 } from '../../../shared/image-frame/glImageFrame.js';
 import { GLImageInlineInsertControls } from '../GLImageInlineInsertControls.jsx';
 import { useAppDialogs } from '../../../shared/components/AppDialogsProvider.jsx';
-import { annotateEditorHtmlWithOriginalSrc } from '../../utils/glMarkdownEditorDisplay.js';
+import {
+  GL_UNRESOLVED_IMAGE_CLASS,
+  annotateEditorHtmlWithOriginalSrc,
+  protectUnresolvedEditorImages,
+} from '../../utils/glMarkdownEditorDisplay.js';
 
 function normalizeResolveDisplayResult(markdown, resolveDisplayMarkdown) {
   if (typeof resolveDisplayMarkdown !== 'function') {
@@ -36,10 +40,28 @@ function normalizeResolveDisplayResult(markdown, resolveDisplayMarkdown) {
   return { displayMarkdown: String(result ?? markdown), originalSrcByResolved: new Map() };
 }
 
+function escapeHtmlAttr(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+/** Vrai si l'assainisseur partagé garde une image de cette source (sinon il la retire). */
+function isDisplayableImageSrc(src) {
+  const probe = `<img src="${escapeHtmlAttr(src)}" alt="" />`;
+  return /<img\b/i.test(sanitizeRichHtml(probe, { allowImages: true }));
+}
+
 function markdownToEditableHtml(markdown, resolveDisplayMarkdown) {
-  const { displayMarkdown, originalSrcByResolved } = normalizeResolveDisplayResult(
-    markdown,
-    resolveDisplayMarkdown,
+  const resolved = normalizeResolveDisplayResult(markdown, resolveDisplayMarkdown);
+  const { originalSrcByResolved } = resolved;
+  // Référence non résolue (`scene:N` avant le chargement des scènes…) : un substitut la garde
+  // dans le DOM éditable, sinon la première frappe l'effaçait du texte (audit 2026-11-19, E4).
+  const displayMarkdown = protectUnresolvedEditorImages(
+    resolved.displayMarkdown,
+    isDisplayableImageSrc,
   );
   const html = renderMarkdownToSafeHtml(displayMarkdown, { allowImages: true });
   if (!String(html || '').trim()) return '';
@@ -53,14 +75,6 @@ function styleObjectToString(style) {
       ([key, value]) => `${key.replace(/[A-Z]/g, (match) => `-${match.toLowerCase()}`)}:${value}`,
     )
     .join(';');
-}
-
-function escapeHtmlAttr(value) {
-  return String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/"/g, '&quot;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
 }
 
 // Instance GL : base commune, enrichie ci-dessous des règles d'images propres au produit.
@@ -104,6 +118,59 @@ turndownService.addRule('glImage', {
   },
 });
 
+// Substitut d'une image non résolue : on réécrit la référence d'origine, dans sa forme d'origine
+// (markdown `![…](scene:N)`, ou `<img>` cadré quand un `data-gl-frame` l'accompagne).
+turndownService.addRule('glUnresolvedImage', {
+  filter(node) {
+    return node.nodeName === 'A' && Boolean(node.getAttribute('data-gl-md-src'));
+  },
+  replacement(_content, node) {
+    const src = String(node.getAttribute('data-gl-md-src') || '').trim();
+    if (!src) return '';
+    const alt = String(node.getAttribute('title') || '');
+    if (node.hasAttribute('data-gl-frame')) {
+      const frame = String(node.getAttribute('data-gl-frame') || '').replace(/'/g, '&apos;');
+      return `\n\n<img src="${src}" alt="${alt.replace(/"/g, '&quot;')}" class="gl-content-image" data-gl-frame='${frame}' loading="lazy" />\n\n`;
+    }
+    return `![${alt}](${src})`;
+  },
+});
+
+/**
+ * Le résolveur vient de changer (médiathèque chargée) sans que le texte ait bougé : on remplace
+ * sur place les seuls nœuds concernés — substituts devenus affichables, images legacy devenues
+ * résolues — sans réécrire `innerHTML`, pour ne pas déplacer le curseur de l'auteur.
+ */
+function upgradeEditableImages(root, resolveDisplayMarkdown) {
+  if (!root || typeof resolveDisplayMarkdown !== 'function') return;
+  root.querySelectorAll(`a.${GL_UNRESOLVED_IMAGE_CLASS}[data-gl-md-src]`).forEach((node) => {
+    const src = String(node.getAttribute('data-gl-md-src') || '').trim();
+    const alt = String(node.getAttribute('title') || '');
+    const snippet = node.hasAttribute('data-gl-frame')
+      ? `<img src="${escapeHtmlAttr(src)}" alt="${escapeHtmlAttr(alt)}" class="gl-content-image" data-gl-frame='${String(node.getAttribute('data-gl-frame') || '').replace(/'/g, '&apos;')}' loading="lazy" />`
+      : `![${alt}](${src})`;
+    const template = document.createElement('template');
+    template.innerHTML = markdownToEditableHtml(snippet, resolveDisplayMarkdown);
+    const image = template.content.querySelector('figure.gl-content-image-wrap, img');
+    if (image) node.replaceWith(image);
+  });
+  root.querySelectorAll('img:not([data-gl-md-src])').forEach((img) => {
+    const src = String(img.getAttribute('src') || '').trim();
+    if (!src) return;
+    const { originalSrcByResolved } = normalizeResolveDisplayResult(
+      `![](${src})`,
+      resolveDisplayMarkdown,
+    );
+    for (const [resolved, original] of originalSrcByResolved) {
+      if (original === src && resolved && isDisplayableImageSrc(resolved)) {
+        img.setAttribute('src', resolved);
+        img.setAttribute('data-gl-md-src', original);
+        break;
+      }
+    }
+  });
+}
+
 function htmlToMarkdown(html) {
   return htmlToMarkdownWith(turndownService, html, { allowImages: true });
 }
@@ -123,6 +190,7 @@ export const GLRichTextEditor = React.forwardRef(function GLRichTextEditor(
   const { notify, prompt } = useAppDialogs();
   const editableRef = useRef(null);
   const lastMarkdownRef = useRef(null);
+  const lastResolverRef = useRef(resolveDisplayMarkdown);
   const [imageStatus, setImageStatus] = useState('');
   const [imageStatusError, setImageStatusError] = useState(false);
 
@@ -149,7 +217,13 @@ export const GLRichTextEditor = React.forwardRef(function GLRichTextEditor(
 
   useEffect(() => {
     const nextMarkdown = String(value ?? '');
-    if (nextMarkdown === lastMarkdownRef.current) return;
+    const resolverChanged = lastResolverRef.current !== resolveDisplayMarkdown;
+    lastResolverRef.current = resolveDisplayMarkdown;
+    if (nextMarkdown === lastMarkdownRef.current) {
+      // Texte inchangé mais résolveur devenu prêt : les images en attente s'affichent.
+      if (resolverChanged) upgradeEditableImages(editableRef.current, resolveDisplayMarkdown);
+      return;
+    }
     const el = editableRef.current;
     if (!el) {
       lastMarkdownRef.current = nextMarkdown;

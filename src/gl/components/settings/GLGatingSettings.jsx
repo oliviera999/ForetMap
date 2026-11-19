@@ -28,6 +28,8 @@ const TYPE_TABS = [
 // défaut) et sa sévérité en trois niveaux (lot 2 de l'audit validation quiz 2026-09).
 
 function clampInt(value, min, max, fallback) {
+  // `Number('')` vaut 0 : un champ vidé rend la valeur de repli, pas zéro (audit 2026-11-19, E12).
+  if (value == null || String(value).trim() === '') return fallback;
   const n = Number(value);
   if (!Number.isFinite(n)) return fallback;
   return Math.max(min, Math.min(max, Math.floor(n)));
@@ -244,6 +246,8 @@ export function GLGatingSettings() {
               type="number"
               min={0}
               max={10}
+              // Champ non contrôlé : remonté quand la valeur enregistrée change (E12).
+              key={allowedWrong}
               defaultValue={allowedWrong}
               disabled={savingKey === 'gating.allowed_wrong_attempts'}
               onBlur={(event) => {
@@ -285,6 +289,10 @@ export function GLGatingSettings() {
               min={0}
               max={8760}
               aria-label="Délai en heures (valeur libre)"
+              // Champ non contrôlé : sans remontage il gardait la valeur du premier rendu
+              // quand la liste voisine (ou le serveur) en posait une autre, et la réécrivait
+              // au premier passage dans le champ (audit 2026-11-19, E12).
+              key={retryHours}
               defaultValue={retryHours}
               disabled={savingKey === 'gating.retry_cooldown_hours'}
               onBlur={(event) => {
