@@ -27,6 +27,98 @@ Constats de `docs/AUDIT_BUGS_FORETMAP_2026-11-19.md` § 4 ; tests `tests/audit-f
   transaction, sous verrou de la ligne parente (`SELECT … FOR UPDATE`). Le fichier d'un envoi
   refusé est supprimé. Les noms de fichier des illustrations portent un suffixe aléatoire (deux
   envois de la même milliseconde pouvaient viser le même fichier).
+### Corrigé — audit ForetMap du 19/11, lot 8 (médiathèque, médias de Visite, fiches espèces)
+
+- **C2 — médiathèque, clés stables** : un envoi ForetMap n'est plus indexé dans `_keys.json`
+  par une clé tirée de son nom d'origine, mais par une clé propre au fichier
+  (`foretmap:<chemin>`) qui porte l'étiquette `app`. Deux envois « photo.jpg » restent tous
+  deux dans ForetMap et supprimables ; un envoi nommé comme une ressource du jeu ne détourne
+  plus `resolveMediaByStableKey`, et les médias ForetMap sont exclus des manifestes G&L. Une
+  entrée ForetMap héritée (clé tirée du nom) est re-rangée sous sa clé par fichier si une
+  ressource du jeu prend la même clé, au lieu de perdre son étiquette. Un fichier sans
+  étiquette reste lu comme hérité G&L.
+- **C3 — appartenance d'un média** : le chemin est normalisé (`/media-library/…`, `//`,
+  `./`, antislashs) avant la recherche ; un admin G&L ne supprime plus un média ForetMap.
+- **C5 — Visite** : `PUT /api/visit/media/:id` écrit la nouvelle image sous un nom temporaire,
+  la renomme une fois valide et ne supprime l'ancienne qu'après succès (un contenu invalide
+  laissait le média cassé).
+- **C7 — fiches espèces** : téléverser une photo incrémente `edit_revision` dans la
+  transaction et renvoie la nouvelle révision (`edit_revision`) ; le formulaire espèce passe
+  l'envoi dans la file de sa session d'édition et adopte cette révision.
+- **C10 (espèces)** : l'import d'espèces répond 400 avec un message (URL de tableur invalide
+  ou inaccessible, fichier vide ou trop gros, source absente) au lieu de 500.
+- **C8 (uploads)** : `saveBase64ToDisk` refuse une valeur non textuelle en 400 au lieu d'un
+  `TypeError` (500).
+- Tests : `tests/audit-fm-lot8-medias.test.js`,
+  `tests-ui/audit-fm-lot8-plant-photo-upload.test.js`.
+
+### Corrigé — audit ForetMap du 19/11, lot 7 (terrain : lieux, catégories, parcours, plans, gestes de carte)
+
+- **C1** — `GET /api/map-routes` croise les cartes autorisées sur la surface (`allowedMapIdsForSurface`) avec le périmètre du compte, comme les lieux : un anonyme sur la Visite ne lit plus les parcours de la carte d'un plan fermé par code. Le détail `/:idOrSlug` exige aussi qu'une surface publique du parcours serve sa carte (404 sinon).
+- **C12** — `?surface=staff` : le filtre des étapes reçoit le lecteur synthétique du porteur de code, et non plus `req.auth` (null).
+- **C11** — supprimer un lieu, ou le changer de carte, retire ses étapes de parcours (même transaction) : le parcours reste enregistrable.
+- **C4** — une catégorie désactivée n'est plus retirée d'une zone ou d'un repère par un PUT qui ne la concerne pas ; le filtre `is_active` ne vaut que pour les ajouts.
+- **C8 / C9** — lieux : nom ou libellé non textuel, champ texte objet, `x_pct` / `y_pct` non numériques ou hors 0–100 en modification → **400** avant toute écriture (auparavant 500, ou repère hors carte). Photo : `image_data` non textuelle → 400, aucune ligne créée.
+- **C10** — image de carte au-delà de la borne d'upload → **413** « Fichier trop volumineux » au lieu d'un 500.
+- **C6** — plan des personnels : « Signaler un problème » transmet la carte affichée (`mapId`, validée par `allowedPlanMapIds`) ; un lieu d'une carte sélectionnable n'est plus « introuvable ».
+- **C13** — exposition publique des photos de lieux conservée par décision, documentée dans `docs/API.md`.
+- **F4** — carte : un déplacement de repère refusé ou hors ligne affiche un message et remet le repère à sa place ; « Enregistrer le contour » gère l'erreur (session conservée) et se désactive pendant l'envoi.
+
+### Corrigé — audit ForetMap du 19/11, lot 2 (connecteur MCP)
+
+- **S2** — `foretmap_sql_select` / `foretmap_export` : un nom de CTE déclaré dans une
+  sous-requête (`… WHERE EXISTS (WITH users AS (…) SELECT … FROM users)`) masquait la vraie
+  table dans toute la requête et laissait lire une table refusée. Les noms de CTE sont
+  désormais rattachés à leur portée (`lib/mcp/sqlAst.js`), ne peuvent plus reprendre le nom
+  d'une table connue, et un `WITH` entre parenthèses suivi d'un `UNION` (portée ambiguë) est
+  refusé.
+- **S3** — `POST /MCP` (casse différente) échappait à la garde d'hôte et à `MCP_ENABLED=false`.
+  La garde est insensible à la casse (`/mcp/…`, `/oauth/`, `/.well-known/` compris) et le point
+  d'entrée revérifie activation et produit.
+- **S5** — le bypass RGPD suit la permission `mcp.privacy_bypass` de l'appelant, plus seulement
+  le réglage global (SQL de lecture, export, statistiques d'usage, échantillons du SQL
+  d'écriture, instructions du serveur).
+- **S9** — l'empreinte de confirmation par code couvre le contenu des objets imbriqués
+  (sérialisation canonique récursive).
+- **S11** — `foretmap_sql_execute` rétablit `innodb_lock_wait_timeout` avant de rendre la
+  connexion au pool (MySQL et MariaDB).
+
+Tests : `tests/audit-fm-lot2-mcp.test.js`. Doc : `docs/MCP.md`, `docs/MCP_REGISTRE_TRAITEMENT.md`.
+
+### Corrigé — audit ForetMap du 19/11, lot 1 (socle serveur)
+
+Constats S1, S4, S6, S7, S8, S10, S12 et S13 de `docs/AUDIT_BUGS_FORETMAP_2026-11-19.md` (§ 7).
+
+- **S1 — Le serveur ne tombe plus sur une coupure MySQL pendant une (dé)connexion Socket.IO.**
+  La lecture du délai de regroupement de la présence a son `.catch` (repli : 500 ms), et les
+  tâches lancées depuis les gestionnaires de socket (inscription et désinscription de présence,
+  abonnement carte, main G&L rendue) passent par `runDetached`, qui journalise au lieu de
+  laisser filer un rejet (`lib/realtime.js`).
+- **S4 — La santé répond sans base.** Le middleware CSP n'attend plus indéfiniment la lecture
+  de `privacy.external_assets_mode` : elle est attendue 50 ms au plus (cache mémoire de
+  `lib/settings.js` dans le cas courant, un changement de réglage s'applique donc aussitôt),
+  sinon la dernière valeur connue est servie (`local`, la plus stricte, avant la première
+  lecture). Une seule lecture à la fois, abandonnée après 5 s (`lib/cspAssetsModeCache.js`).
+- **S10 — Le journal fatal `unhandledRejection` garde la cause** (`{ err: reason }`).
+- **S6 — Fichier absent : 404 franc.** Sous `/assets`, `/uploads`, `/tutos`, `/fonts` et
+  `/gl/intro`, un chemin avec extension qui arrive au fallback SPA répond `404` (`no-store`) au
+  lieu de l'index HTML ; les routes SPA sans extension gardent l'index (`lib/spaFallback.js`).
+- **S7 — `X-Foretmap-Product` n'est plus honoré en production** pour le HTML, le manifest,
+  `/sw.js`, la page hors ligne et le favicon (`resolveSecureProductId` partout ; le résolveur
+  `lib/productResolver.js` applique la même règle). Hors production, ces réponses portent
+  `Vary: X-Foretmap-Product`.
+- **S8 — `db:migrate` ne recrée plus la catégorie « Infrastructure »** supprimée par un prof :
+  elle n'est semée que sur une table `location_categories` vide, comme les tutoriels.
+- **S12 — `FORETMAP_TX_MAX_MS`** : après un abandon, la connexion est détruite (jamais rendue
+  au pool) et le `commit()` tardif du travail abandonné est refusé.
+- **S13 — Migration ignorée signalée.** Nouveau registre `schema_migration_files` (déclaré dans
+  `sql/schema_foretmap.sql`, sans migration numérotée) : un fichier de numéro inférieur à
+  `schema_version` jamais vu par le runner produit un avertissement au démarrage, `db:status`
+  sort en code `4` (« pas à jour », sans déclencher le rattrapage du cron), `check:runtime` le
+  détaille et `GET /api/admin/diagnostics` l'expose (`schema.skipped`). Signalement seulement :
+  la migration n'est pas rejouée d'office, il faut la renuméroter.
+
+Tests : `tests/audit-fm-lot1-*.test.js`.
 
 ### Corrigé — audit ForetMap du 19/11, lot 9 (quiz, liens d'apprentissage, verrouillage)
 

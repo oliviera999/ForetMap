@@ -78,6 +78,9 @@ function useZoneEditPoints({
   onBackgroundPanEnd,
 }) {
   const [editZone, setEditZone] = useState(null);
+  /** Envoi du contour en cours : désactive « Enregistrer » (pas de double envoi). */
+  const [editPointsSaving, setEditPointsSaving] = useState(false);
+  const editPointsSavingRef = useRef(false);
   const [editPoints, setEditPoints] = useState([]);
   const [draggingPtIdx, setDraggingPtIdx] = useState(-1);
   const [editCanUndo, setEditCanUndo] = useState(false);
@@ -416,10 +419,31 @@ function useZoneEditPoints({
     [setMode],
   );
 
+  /**
+   * Enregistrement du contour. Audit du 19/11/2026, F4 : sans gestion d'erreur, un refus ou
+   * une coupure réseau ne donnait aucun message (rejet non géré), et rien n'empêchait un
+   * second envoi pendant le premier. En cas d'échec, la session d'édition est conservée —
+   * le tracé n'est pas perdu, on peut réessayer — et un message dit pourquoi.
+   */
   const saveEditPoints = useCallback(async () => {
-    if (!editZone) return;
-    await api(`/api/zones/${editZone.id}`, 'PUT', { points: editPoints });
-    await onRefresh();
+    if (!editZone || editPointsSavingRef.current) return;
+    editPointsSavingRef.current = true;
+    setEditPointsSaving(true);
+    try {
+      await api(`/api/zones/${editZone.id}`, 'PUT', { points: editPoints });
+    } catch (err) {
+      setToast(`Contour non enregistré : ${err?.message || 'erreur inconnue'}`);
+      return;
+    } finally {
+      editPointsSavingRef.current = false;
+      setEditPointsSaving(false);
+    }
+    // Le contour est enregistré : un rechargement en échec ne doit pas le faire croire perdu.
+    try {
+      await onRefresh?.();
+    } catch (_e) {
+      /* données rechargées au prochain passage */
+    }
     discardEditPointsSession();
     setMode('view');
     setToast('Contour sauvegardé ✓');
@@ -660,6 +684,7 @@ function useZoneEditPoints({
     undoEditPoints,
     startEditPoints,
     saveEditPoints,
+    editPointsSaving,
     discardEditPointsSession,
     onTranslatePointerDown,
     onTranslatePointerMove,

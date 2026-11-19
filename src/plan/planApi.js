@@ -104,9 +104,14 @@ export async function submitPlanLogout(variant = PLAN_VARIANT) {
  * `POST /api/context-comments` : ce dernier refuse les profils en lecture seule, dont
  * `personnel` — le profil même des agents à qui ce plan s'adresse.
  */
-export async function submitPlaceSuggestion({ contextType, contextId, body }, variant) {
+export async function submitPlaceSuggestion({ contextType, contextId, body, mapId }, variant) {
   const base = variant?.apiBase || STAFF_PLAN_VARIANT.apiBase;
-  return planApi(`${base}/report`, 'POST', { contextType, contextId, body }, variant?.getToken);
+  // `mapId` : carte affichée, sans quoi le serveur ne cherche le lieu que sur la carte par
+  // défaut (audit du 19/11/2026, C6). Omise si inconnue : le serveur prend alors la carte
+  // par défaut, comme avant.
+  const payload = { contextType, contextId, body };
+  if (mapId) payload.mapId = String(mapId);
+  return planApi(`${base}/report`, 'POST', payload, variant?.getToken);
 }
 
 /**
