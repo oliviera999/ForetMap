@@ -26,6 +26,11 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   au lieu de s'afficher prêt puis d'être refusé au lancement.
 
 Tests : `tests/gl-spell-pot-repris.test.js`.
+### Modifié — Pôle Suivi : l'onglet Tâches passe en premier (19 novembre 2026)
+
+Côté prof, cliquer le pôle **Suivi** ouvre désormais l'onglet **Tâches** (et non plus
+« Individus », placé juste après). Seul l'ordre des onglets change (`TeacherTopTabs.jsx`) ;
+test : `tests-ui/components/app/TeacherTopTabs.test.jsx`. Doc : `guide-du-prof.md`.
 
 ### Corrigé — Popups d'Olu tronquées en bas d'écran (18 novembre 2026)
 
