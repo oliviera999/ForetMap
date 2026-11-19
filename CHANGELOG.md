@@ -17,6 +17,29 @@ portent la mention « traité » et leur numéro de PR. Nouveau § 13 : vérific
 de contenu, scénarios de l'audit rejoués par requêtes et dans un navigateur), choix faits par les
 lots à relire et décisions déjà livrées par #687, #688 et #690, restes (39 constats ouverts, quatre
 décisions à trancher). Aucun code modifié.
+### Ajouté — journaux d'audit et de sécurité lisibles, filtres « principaux / étendus », onglet Utilisateurs
+
+- **Événements enrichis** : chaque ligne de l'historique et du journal de sécurité porte le
+  **nom de l'auteur** (et son type de compte), un **libellé clair** de l'action, sa
+  **catégorie**, le **nom de la cible** (compte, tâche, zone, plante, repère, profil, groupe…,
+  compte contrôlé pendant une prise de contrôle), le canal (connecteur Claude), le compte
+  « voir comme » et le **motif traduit** d'un échec. Détail dépliable (identifiants, IP,
+  navigateur résumé + complet, données techniques) ; regroupement par jour ; pagination.
+- **Filtres** : bascule **Principaux / Vue étendue** (la routine est masquée en vue
+  principale, les échecs jamais), période avec raccourcis, catégorie, résultat, recherche par
+  nom / prénom / pseudo de l'auteur, recherche libre ; l'export CSV de sécurité suit les
+  filtres et gagne les colonnes `actor_name`, `action_label`, `category_label`, `target_label`.
+- **Onglet « Utilisateurs »** : activité agrégée par compte (actions, principales, échecs,
+  dernière activité / connexion, actions fréquentes), puis fiche du compte (répartition par
+  catégorie, actions fréquentes, IP et appareils pour un admin, actions faites / le
+  concernant).
+- Back : `lib/auditJournal/` (catalogue unique des libellés, catégories et niveau
+  « principal » ; requêtes filtrées enrichies par lookup groupé), routes
+  `GET /api/audit/catalog|history|users|users/:userId` et filtres étendus sur
+  `/api/audit/security` (rétrocompatibles). Front : `src/components/audit/`. Tests
+  `tests/audit-journal.test.js`, `tests-ui/audit-journal.test.jsx`. Docs : `docs/API.md` § Audit,
+  `docs/reference/foretmap/stats-forum-et-suivi.md`.
+
 ### Documentation — audit des bugs de ForetMap hors G&L (19 novembre 2026)
 
 - Nouveau `docs/AUDIT_BUGS_FORETMAP_2026-11-19.md` : 69 constats sur toute l'application hors

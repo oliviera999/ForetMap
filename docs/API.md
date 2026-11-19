@@ -4761,7 +4761,48 @@ fm/gl/both, `gl_chapter_id`, `landing`, `label` ; `both` ⇒ `landing = aiguilla
 
 | Méthode | URL                   | n3boss             | Description                                                       |
 | ------- | --------------------- | ------------------ | ----------------------------------------------------------------- |
-| GET     | `/api/audit?limit=50` | oui (`audit.read`) | Journal d’audit (ordre décroissant, `limit` borné entre 1 et 200) |
+| GET     | `/api/audit?limit=50` | oui (`audit.read`) | Journal d’audit brut (ordre décroissant, `limit` borné entre 1 et 200) — conservé pour compatibilité ; l’écran utilise `/api/audit/history` |
+| GET     | `/api/audit/catalog`  | oui (`audit.read`) | Catalogue des filtres : `{ categories: [{ id, label }], actions: [{ action, label, category, major }] }` |
+| GET     | `/api/audit/history`  | oui (`audit.read`) | Historique filtré et **enrichi** (journal d’audit, sans IP ni navigateur) : `{ from, to, total, rows }` |
+| GET     | `/api/audit/users`    | oui (`audit.read`) | Activité agrégée par compte (onglet « Utilisateurs ») : `{ from, to, total, source, rows }` |
+| GET     | `/api/audit/users/:userId` | oui (`audit.read`) | Fiche d’activité d’un compte sur la période |
+
+**Filtres communs** (`/history`, `/security`, `/security/export`, `/users`, `/users/:userId`),
+tous tolérants (valeur invalide ignorée, jamais de 400) : `from` / `to` (`YYYY-MM-DD`, défaut
+30 derniers jours, plage max 365 j), `mode` (`main` = événements **principaux** : la routine —
+connexions réussies, inscriptions aux tâches, réactions, réordonnancements, modifications
+courantes de contenu… — est masquée, **les échecs restent toujours visibles** ; `all` = vue
+étendue, **défaut**), `category` (`auth`, `security`, `users`, `tasks`, `content`, `community`,
+`settings`, `mcp`, `gl`, `other`), `actorUserId`, `actorQuery` (recherche dans le nom affiché, le
+prénom, le nom et le pseudo de l’auteur), `actorType` (`student`, `teacher`, `admin`…), `action`
+(préfixe du code), `result` (`success`, `failure` = tout résultat autre que `success`, ou valeur
+exacte), `q` (texte dans le détail / le motif / l’identifiant de cible / le code d’action),
+`targetId`, `limit` 1–200 (défaut 100), `offset`.
+
+**Ligne enrichie** (`/history` et `/security`) : colonnes de la table plus `action_label`,
+`category`, `category_label`, `major`, `failure`, `reason_label` (motif traduit, ex.
+`password_invalid` → « Mot de passe incorrect »), `actor` (`{ id, name, pseudo, user_type,
+is_active }`, ou `{ id, deleted: true }` si le compte n’existe plus ; `null` sans compte),
+`target_label` (nom de la cible : compte, tâche, projet, zone, plante, repère, carte, catégorie,
+profil, groupe, tutoriel, sujet de forum, parcours ; pour une prise de contrôle, le compte
+contrôlé lu dans `payload.target_user_id`), `via` (`mcp`…), `on_behalf_of` (`{ id, user_type,
+name }` pendant un « voir comme ») et `payload` (charge JSON décodée). Libellés et catégories
+viennent de `lib/auditJournal/catalog.js` (source unique ; une action inconnue reçoit un libellé
+fabriqué et la catégorie `other`).
+
+**`/users`** — Source : journal de sécurité (connexions comprises) pour un porteur de
+`audit.security.read`, journal d’audit sinon ; `source=security|audit` force la source
+(`security` sans le droit → **403**). Query supplémentaire : `sort` (`recent` défaut, `count`,
+`failures`), `limit` 1–200 (défaut 50). Ligne : `{ actor, total, failures, major_count,
+first_at, last_at, last_login_at, top_actions: [{ action, action_label, count, … }] }` (trois
+actions les plus fréquentes).
+
+**`/users/:userId`** — `{ from, to, source, user: { id, name, pseudo, user_type, is_active,
+last_seen, created_at }, totals: { total, failures, major, targeted, last_at }, by_category:
+[{ category, category_label, count, failures }], top_actions: [{ action, action_label, count,
+failures, last_at, … }] (12 au plus), ips: [{ ip_address, count, last_at, user_agent }] }` —
+`ips` (10 au plus) n’est rempli qu’en source `security`. `targeted` compte les événements dont
+le compte est la cible, faits par quelqu’un d’autre.
 
 ### Journal de sécurité (IP / User-Agent)
 
@@ -4772,8 +4813,8 @@ compte **n’efface pas** ces lignes.
 
 | Méthode | URL                         | Description |
 | ------- | --------------------------- | ----------- |
-| GET     | `/api/audit/security`       | Liste filtrée `{ from, to, total, rows }` (`id`, `occurred_at`, `actor_user_id`, `actor_user_type`, `action`, `target_type`, `target_id`, `result`, `reason`, `ip_address`, `user_agent`, `payload_json`). Query : `from`/`to` (`YYYY-MM-DD`, défaut 30 j, plage max 365 j), `actorUserId`, `action` (préfixe), `ip` (préfixe), `result`, `limit` 1–200 (défaut 100), `offset`. |
-| GET     | `/api/audit/security/export` | Même filtres ; `format=csv` (défaut) ou `json` ; `limit` jusqu’à 5000 ; en-tête `Content-Disposition` (`foretmap-security-events-…`). CSV séparateur `;`. |
+| GET     | `/api/audit/security`       | Liste filtrée et enrichie `{ from, to, total, rows }` (`id`, `occurred_at`, `actor_user_id`, `actor_user_type`, `action`, `target_type`, `target_id`, `result`, `reason`, `ip_address`, `user_agent`, `payload_json` + champs enrichis ci-dessus). Query : filtres communs ci-dessus + `ip` (préfixe). |
+| GET     | `/api/audit/security/export` | Même filtres ; `format=csv` (défaut) ou `json` ; `limit` jusqu’à 5000 ; en-tête `Content-Disposition` (`foretmap-security-events-…`). CSV séparateur `;`, colonnes lisibles `actor_name`, `action_label`, `category_label`, `target_label` en plus des colonnes brutes. |
 
 ---
 
