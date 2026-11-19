@@ -3,6 +3,7 @@ import { apiGL } from '../../services/apiGL.js';
 import { AutoSaveStatus } from '../../../shared/components/AutoSaveStatus.jsx';
 import { useAppDialogs } from '../../../shared/components/AppDialogsProvider.jsx';
 import { useGlAdminCrud } from '../../hooks/useGlAdminCrud.js';
+import { mergeAutoSaveForm } from '../../utils/mergeAutoSaveForm.js';
 import { GLGlossaryTermList } from './GLGlossaryTermList.jsx';
 import { GLGlossaryTermForm } from './GLGlossaryTermForm.jsx';
 import {
@@ -57,6 +58,8 @@ export function GLGlossaryEditorPanel() {
       if (!f.categorie || !f.niveau) return 'Catégorie et niveau requis';
       return true;
     },
+    // Frappes saisies pendant l'enregistrement en vol : conservées (audit 2026-11-19, E5).
+    mergeServerForm: mergeAutoSaveForm,
     messages: {
       updated: 'Terme mis à jour.',
       created: 'Terme créé.',

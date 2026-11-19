@@ -338,6 +338,7 @@ export function GLSeleneCarnetView({
                 ) : null}
                 {active.feuilletCode && !activeLocked ? (
                   <GLLearnAndImport
+                    key={active.feuilletCode}
                     resourceType="feuillet"
                     resourceRef={active.feuilletCode}
                     title={active.titre || active.feuilletCode}

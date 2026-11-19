@@ -167,13 +167,21 @@ test('PATCH /api/gl/auth/me/profile met a jour le profil staff', async () => {
   staffToken = res.body.authToken;
 });
 
-test('POST /api/gl/auth/staff/change-password refuse un mot de passe staff < 8 caracteres (G7)', async () => {
+test('POST /api/gl/auth/staff/change-password refuse un mot de passe staff sous le plancher enseignant ForetMap (G7, audit 19/11 A4)', async () => {
+  // 11 caractères : passait l'ancien plancher G&L (8), pas celui des comptes à privilèges (12).
+  const tooShort = `${'Ab1!'.repeat(2)}xyz`;
+  assert.strictEqual(tooShort.length, 11);
   const res = await request(app)
     .post('/api/gl/auth/staff/change-password')
     .set('Authorization', `Bearer ${staffToken}`)
-    .send({ currentPassword: staffPassword, newPassword: 'court77' })
+    .send({ currentPassword: staffPassword, newPassword: tooShort })
     .expect(400);
-  assert.match(String(res.body?.error || ''), /min 8/);
+  assert.match(String(res.body?.error || ''), /min 12/);
+  // L'ancien mot de passe reste valable.
+  await request(app)
+    .post('/api/gl/auth/staff/login')
+    .send({ identifier: staffEmail, password: staffPassword })
+    .expect(200);
 });
 
 test('POST /api/gl/auth/staff/change-password met a jour le mot de passe staff', async () => {

@@ -47,6 +47,10 @@ export function GLLearnAndImport({
 
   useEffect(() => {
     let cancelled = false;
+    // La même instance peut servir une autre ressource (carnet de Sélène : feuillet suivant) :
+    // sans ce retour à faux, « appris » et « déjà importé » de la précédente restaient affichés.
+    setLearned(false);
+    setAlreadyImported(false);
     if (!resourceType || resourceRef == null || resourceRef === '') return undefined;
     const ref = String(resourceRef);
     // Défensif : tolère un apiGL qui lève ou renvoie une valeur non-promesse (tests isolés).

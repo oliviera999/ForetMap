@@ -3,6 +3,7 @@ import { apiGL } from '../../services/apiGL.js';
 import { AutoSaveStatus } from '../../../shared/components/AutoSaveStatus.jsx';
 import { useAppDialogs } from '../../../shared/components/AppDialogsProvider.jsx';
 import { useGlAdminCrud } from '../../hooks/useGlAdminCrud.js';
+import { mergeAutoSaveForm } from '../../utils/mergeAutoSaveForm.js';
 import { GL_SPECIES_DETAIL_SECTIONS } from '../../utils/glSpeciesFieldLabels.js';
 import {
   EMPTY_FORM,
@@ -62,6 +63,8 @@ export function GLSpeciesEditorPanel() {
       if (species?.biome_slug) setBiomeSlug(species.biome_slug);
     },
     isAutoSaveReady: (f) => Boolean(biomeSlug) && String(f.nom_commun || '').trim().length > 0,
+    // Frappes saisies pendant l'enregistrement en vol : conservées (audit 2026-11-19, E5).
+    mergeServerForm: mergeAutoSaveForm,
     messages: {
       updated: 'Espèce mise à jour.',
       created: 'Espèce créée.',

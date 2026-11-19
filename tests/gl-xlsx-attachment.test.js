@@ -107,15 +107,17 @@ describe('wrapXlsxRoute', () => {
     assert.equal(res.getResult().ended, false);
   });
 
-  it('mappe une exception en 500 JSON tant que la réponse n’est pas partie', async () => {
+  it('mappe une exception en 500 JSON neutre tant que la réponse n’est pas partie', async () => {
+    // Audit du 19/11/2026 (C11) : le message brut (SQL, chemin de fichier…) ne sort pas.
     const handler = wrapXlsxRoute(async () => {
-      throw new Error('génération impossible');
+      throw new Error("Table 'foretmap.gl_secret' doesn't exist");
     });
     const res = mockRes();
-    await handler({}, res);
+    await handler({ path: '/admin/glossary/export', method: 'GET' }, res);
     const out = res.getResult();
     assert.equal(out.statusCode, 500);
-    assert.equal(out.body.error, 'génération impossible');
+    assert.equal(out.body.error, 'Génération du fichier XLSX impossible');
+    assert.doesNotMatch(JSON.stringify(out.body), /gl_secret/);
   });
 
   it('laisse remonter l’erreur si la réponse est déjà partie', async () => {

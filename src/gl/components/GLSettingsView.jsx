@@ -35,6 +35,11 @@ import {
 import { useGlMapOverlaySettings } from '../context/GlMapOverlaySettingsContext.jsx';
 import { readPlateauMarkerSizePercent } from '../../shared/mapOverlayScale.js';
 
+/** Vrai si les deux champs PV / PP portent une saisie (un champ vide n'est pas 0). */
+function isVitalityInputFilled(health, power) {
+  return String(health ?? '').trim() !== '' && String(power ?? '').trim() !== '';
+}
+
 export function GLSettingsView() {
   const { confirm } = useAppDialogs();
   const [settings, setSettings] = useState({});
@@ -69,6 +74,26 @@ export function GLSettingsView() {
     }
   }
 
+  /**
+   * Relit les réglages après une écriture SANS toucher aux champs en cours de saisie (titre,
+   * sous-titre, charte, PV / PP) ni à la référence des enregistrements automatiques. `load()`
+   * réécrivait tout le formulaire avec la réponse du serveur : une frappe saisie pendant la
+   * requête — ou un interrupteur basculé pendant une saisie — était perdue, et tenue pour
+   * enregistrée (audit des bugs G&L 2026-11-19, E5).
+   */
+  async function refreshSettings() {
+    try {
+      const data = await apiGL('/api/gl/admin/settings');
+      const next = data?.settings || {};
+      setSettings(next);
+      setError('');
+      return next;
+    } catch (err) {
+      setError(err.message || 'Chargement impossible');
+      return null;
+    }
+  }
+
   useEffect(() => {
     load();
   }, []);
@@ -90,7 +115,10 @@ export function GLSettingsView() {
     if (!titleTrim) throw new Error('Le titre plateforme est obligatoire.');
     await apiGL('/api/gl/admin/settings/platform.title', 'PUT', { value: titleTrim });
     await apiGL('/api/gl/admin/settings/platform.subtitle', 'PUT', { value: subtitleTrim });
-    await load();
+    await refreshSettings();
+    // Valeur normalisée reposée seulement si le champ n'a pas bougé depuis l'envoi.
+    setTitle((current) => (current === title ? titleTrim : current));
+    setSubtitle((current) => (current === subtitle ? subtitleTrim : current));
     setSuccessMessage('Identité plateforme enregistrée.');
     return { title: titleTrim, subtitle: subtitleTrim };
   }, [title, subtitle]);
@@ -98,7 +126,12 @@ export function GLSettingsView() {
   const persistBrand = useCallback(async () => {
     const normalized = normalizeBrand(brandDraft);
     await apiGL('/api/gl/admin/settings/platform.brand', 'PUT', { value: normalized });
-    await load();
+    const next = await refreshSettings();
+    if (next) {
+      setBrandDraft((current) =>
+        current === brandDraft ? normalizeBrand(next['platform.brand'] || {}) : current,
+      );
+    }
     setSuccessMessage('Charte visuelle enregistrée.');
     return normalized;
   }, [brandDraft]);
@@ -117,6 +150,10 @@ export function GLSettingsView() {
   const vitalityDefaults = { defaultHealthPoints, defaultPowerPoints };
 
   const persistVitalityDefaults = useCallback(async () => {
+    // `Number('')` vaut 0 : un champ vidé n'est pas « zéro point » (audit 2026-11-19, E12).
+    if (!isVitalityInputFilled(defaultHealthPoints, defaultPowerPoints)) {
+      throw new Error('Les valeurs initiales doivent être des entiers entre 0 et 99.');
+    }
     const health = Number(defaultHealthPoints);
     const power = Number(defaultPowerPoints);
     if (!areVitalityValuesValid(health, power)) {
@@ -124,7 +161,11 @@ export function GLSettingsView() {
     }
     await apiGL('/api/gl/admin/settings/gameplay.default_health_points', 'PUT', { value: health });
     await apiGL('/api/gl/admin/settings/gameplay.default_power_points', 'PUT', { value: power });
-    await load();
+    await refreshSettings();
+    setDefaultHealthPoints((current) =>
+      current === defaultHealthPoints ? String(health) : current,
+    );
+    setDefaultPowerPoints((current) => (current === defaultPowerPoints ? String(power) : current));
     setSuccessMessage('Valeurs initiales enregistrées.');
     return { defaultHealthPoints: String(health), defaultPowerPoints: String(power) };
   }, [defaultHealthPoints, defaultPowerPoints]);
@@ -154,6 +195,8 @@ export function GLSettingsView() {
   const vitalitySave = useDebouncedAutoSave({
     value: vitalityDefaults,
     resetKey: settingsLoadRevision,
+    // Champ vidé : on attend une vraie valeur, sans rien envoyer.
+    canSave: () => isVitalityInputFilled(defaultHealthPoints, defaultPowerPoints),
     onSave: persistVitalityDefaults,
     enabled: settingsReady,
   });
@@ -164,7 +207,7 @@ export function GLSettingsView() {
     setSettings((prev) => ({ ...prev, [toggleKey]: nextValue }));
     try {
       await apiGL(`/api/gl/admin/settings/${toggleKey}`, 'PUT', { value: nextValue });
-      await load();
+      await refreshSettings();
     } catch (err) {
       setSettings(previous);
       setError(err.message || 'Enregistrement impossible');
@@ -177,7 +220,7 @@ export function GLSettingsView() {
     setSavingKey(key);
     try {
       await apiGL(`/api/gl/admin/settings/${key}`, 'PUT', { value });
-      await load();
+      await refreshSettings();
     } catch (err) {
       setError(err.message || 'Enregistrement impossible');
     } finally {
@@ -206,7 +249,7 @@ export function GLSettingsView() {
       for (const [key, value] of Object.entries(preset.settings)) {
         await apiGL(`/api/gl/admin/settings/${key}`, 'PUT', { value });
       }
-      await load();
+      await refreshSettings();
       setSuccessMessage(`Profil « ${preset.label} » appliqué.`);
     } catch (err) {
       setError(err.message || 'Application du profil impossible');

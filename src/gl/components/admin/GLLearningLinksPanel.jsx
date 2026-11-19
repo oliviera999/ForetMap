@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   readRetryHours,
   retryHoursLabel,
@@ -36,6 +36,10 @@ const EMPTY_CREATE_FORM = {
   note: '',
 };
 
+function policyKeyOf(type, ref) {
+  return `${type}\u0000${ref}`;
+}
+
 export function GLLearningLinksPanel() {
   const [gating, setGating] = useState(null);
   const [resourceTypes, setResourceTypes] = useState(Object.keys(RESOURCE_TYPE_LABELS));
@@ -48,6 +52,11 @@ export function GLLearningLinksPanel() {
   const [policyRef, setPolicyRef] = useState('');
   const [policyType, setPolicyType] = useState('species');
   const [policyState, setPolicyState] = useState(null);
+  // Clé (type + référence) pour laquelle `policyState` a été chargé. Tant qu'elle ne vaut pas
+  // la clé du champ, la politique de cette ressource est inconnue : l'éditeur n'est pas rendu
+  // (audit des bugs G&L 2026-11-19, E3).
+  const [policyLoadedKey, setPolicyLoadedKey] = useState('');
+  const policyRequestRef = useRef('');
   const [policyBusy, setPolicyBusy] = useState(false);
   const { confirm } = useAppDialogs();
 
@@ -87,19 +96,29 @@ export function GLLearningLinksPanel() {
   }, [loadLinks]);
 
   const loadPolicy = useCallback(async () => {
-    if (!policyRef.trim()) {
+    const ref = policyRef.trim();
+    const requestKey = ref ? policyKeyOf(policyType, ref) : '';
+    policyRequestRef.current = requestKey;
+    if (!ref) {
       setPolicyState(null);
+      setPolicyLoadedKey('');
       return;
     }
     try {
       const params = new URLSearchParams({
         resourceType: policyType,
-        resourceRef: policyRef.trim(),
+        resourceRef: ref,
       });
       const res = await apiGL(`/api/gl/learning-links/policy?${params.toString()}`);
+      // Réponse d'une référence qui n'est plus celle du champ (frappe suivante) : ignorée.
+      if (policyRequestRef.current !== requestKey) return;
       setPolicyState(res || null);
+      setPolicyLoadedKey(requestKey);
     } catch (_) {
+      if (policyRequestRef.current !== requestKey) return;
       setPolicyState(null);
+      setPolicyLoadedKey('');
+      setError('Chargement de la politique impossible');
     }
   }, [policyRef, policyType]);
 
@@ -291,9 +310,16 @@ export function GLLearningLinksPanel() {
             <strong>{describeSiteGatingMode(gating) || policyState?.site?.defaultMode}</strong>
           </p>
         ) : null}
-        {policyRef.trim() ? (
+        {!policyRef.trim() ? (
+          <p className="gl-hint">Indiquez une référence pour éditer la politique.</p>
+        ) : policyLoadedKey !== policyKeyOf(policyType, policyRef.trim()) ? (
+          // L'éditeur fige son état au montage : monté avant la réponse, il affichait
+          // « Hériter » et « Enregistrer » l'écrivait par-dessus la politique en base.
+          <p className="gl-hint">Chargement de la politique…</p>
+        ) : (
           <GatingPolicyEditor
-            key={`${policyType}-${policyRef.trim()}`}
+            // Remonté quand la politique chargée change (audit validation quiz 2026-09, D2).
+            key={`${policyType}-${policyRef.trim()}:${JSON.stringify(policyState?.policy || null)}`}
             product="gl"
             layer="resource"
             site={policyState?.site || gating}
@@ -306,8 +332,6 @@ export function GLLearningLinksPanel() {
             busy={policyBusy || busy}
             onSave={savePolicy}
           />
-        ) : (
-          <p className="gl-hint">Indiquez une référence pour éditer la politique.</p>
         )}
         {policyRef.trim() && policyApprovedNonGating.length > 0 ? (
           <p className="gl-hint">
