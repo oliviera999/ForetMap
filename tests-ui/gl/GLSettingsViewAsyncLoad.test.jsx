@@ -151,7 +151,10 @@ describe('GLSettingsView — chargement asynchrone (audit 19/11, lot 3)', () => 
     vi.useFakeTimers({ shouldAdvanceTime: true });
     try {
       render(<GLSettingsView />);
-      await waitFor(() => expect(screen.getByLabelText('PV initiaux (❤️)')).toHaveValue(3));
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(100);
+      });
+      expect(screen.getByLabelText('PV initiaux (❤️)')).toHaveValue(3);
       fireEvent.change(screen.getByLabelText('PV initiaux (❤️)'), { target: { value: '' } });
       await act(async () => {
         await vi.advanceTimersByTimeAsync(2000);
@@ -177,9 +180,10 @@ describe('GLSettingsView — chargement asynchrone (audit 19/11, lot 3)', () => 
     vi.useFakeTimers({ shouldAdvanceTime: true });
     try {
       render(<GLSettingsView />);
-      await waitFor(() =>
-        expect(screen.getByLabelText('Sous-titre plateforme')).toHaveValue('Sous-titre en base'),
-      );
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(100);
+      });
+      expect(screen.getByLabelText('Sous-titre plateforme')).toHaveValue('Sous-titre en base');
       const title = screen.getByLabelText('Titre plateforme');
       fireEvent.change(title, { target: { value: 'Royaume' } });
       await act(async () => {
