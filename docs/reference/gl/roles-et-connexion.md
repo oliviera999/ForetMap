@@ -371,6 +371,14 @@ la journée (douze heures). Ouvert sur le vidéoprojecteur, il montre le tour, l
 le carnet de la classe et le journal — **en lecture seule**, sans aucun bouton, sans aucune bourse,
 sans le motif d'un retrait. Le lien s'éteint à la clôture du chapitre ou quand le MJ le révoque.
 
+L'écran projeté **suit le tour tout seul** : ouverture, phase, jets, carnet — rien à recharger.
+Le lien peut s'ouvrir **dans un autre onglet du poste du MJ** (poste unique relié au
+vidéoprojecteur) : la projection ne vit que dans son onglet, le MJ reste connecté dans le sien
+et ses gestes continuent de passer. Fermer l'onglet de projection suffit à la quitter.
+
+De même, quand une session a expiré (ordinateur resté ouvert d'une séance à l'autre), l'écran
+revient de lui-même à la **page de connexion** au lieu de rester sur une application vide.
+
 ## Pour aller plus loin
 
 - Vue d'ensemble du jeu : [presentation.md](presentation.md)

@@ -149,6 +149,18 @@ export function GLTourScreen({
   const [projectionUrl, setProjectionUrl] = useState('');
   const view = tourApi.tour;
   const round = view?.round || null;
+  // Une équipe joue depuis son appareil, un autre poste du prof change de phase : l'état de la
+  // partie se recharge (temps réel), pas cet instantané du tour. On le relit, et avec lui la file
+  // « Demandes », le lien de classe et le journal (`refreshKey`).
+  const relireTour = tourApi.refresh;
+  const clePartie = `${events.length}:${tenir?.round?.number || 0}:${tenir?.round?.phase || ''}`;
+  const clePartieLue = useRef(clePartie);
+  useEffect(() => {
+    if (clePartieLue.current === clePartie) return;
+    clePartieLue.current = clePartie;
+    relireTour();
+    setRefreshKey((k) => k + 1);
+  }, [clePartie, relireTour]);
   // Les équipes disent elles-mêmes qui manque (lot 2) : la liste du prof suit le serveur, pour
   // qu'« Enregistrer les absences » corrige sans effacer ce que les équipes ont confirmé.
   const absencesServeur = Array.isArray(round?.absences) ? round.absences.join(',') : null;
