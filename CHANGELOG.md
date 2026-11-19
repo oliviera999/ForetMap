@@ -9,6 +9,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Documentation — G&L : audit des bugs, suite donnée (19 novembre 2026)
+
+`docs/AUDIT_BUGS_GL_2026-11-19.md` : les 42 constats corrigés par les huit lots (#677 à #685)
+portent la mention « traité » et leur numéro de PR. Nouveau § 13 : vérifications rejouées sur
+`main` après la fusion (lint, format, build, 6 153 tests d'écran, 6 401 tests backend, 147 tests
+de contenu, scénarios de l'audit rejoués par requêtes et dans un navigateur), choix faits par les
+lots à relire et décisions déjà livrées par #687, #688 et #690, restes (39 constats ouverts, quatre
+décisions à trancher). Aucun code modifié.
 ### Ajouté — journaux d'audit et de sécurité lisibles, filtres « principaux / étendus », onglet Utilisateurs
 
 - **Événements enrichis** : chaque ligne de l'historique et du journal de sécurité porte le

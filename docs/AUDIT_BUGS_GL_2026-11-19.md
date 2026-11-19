@@ -9,6 +9,10 @@ Ce document ne corrige rien : il liste, classe et dit comment chaque constat a �
 points déjà relevés dans [`AUDIT_GL_ENSEMBLE_UNIFIE_2026-11-18.md`](AUDIT_GL_ENSEMBLE_UNIFIE_2026-11-18.md)
 (§ 2 à 4) ne sont pas repris.
 
+> **Suite donnée le jour même.** 42 des 81 constats sont traités, chacun avec son test, par huit
+> PR fusionnées le 19 novembre (#677 à #685), suivies de #687, #688 et #690. Ils portent la mention « traité » et le numéro de la
+> PR ; le constat d'origine est laissé tel quel. Bilan, vérifications après fusion et restes : § 13.
+
 ## 1. Méthode et niveau de preuve
 
 Sept relectures indépendantes, une par domaine (accès, moteur du tour, sorts et marché, parties
@@ -42,14 +46,14 @@ avec un corps complet).
 81 constats, dont 18 rejoués. Les six premiers gênent directement une séance ou
 l'administration ; ils sont tous rejoués.
 
-| N°  | Constat                                                                                     | Preuve |
-| --- | ------------------------------------------------------------------------------------------- | ------ |
-| J1  | La projection ne se met jamais à jour (tour, pions, voile, carnet) sans F5                  | Rejoué |
-| J2  | L'écran « Jouer le tour » du prof ne se relit pas quand une équipe joue                     | Rejoué |
-| J3  | Ouvrir le lien de projection dans le navigateur du prof remplace sa session                 | Rejoué |
-| E1  | Réglages « Tenir à deux » : les nombres affichent leur minimum, un clic-sortie l'enregistre | Rejoué |
-| E2  | Studio de carte de chapitre : boucle de rendu, le formulaire de repère n'enregistre jamais  | Rejoué |
-| M1  | Escalier, séances 1 à 3 : chaque jet est mis en suspens pour une Relance encore fermée      | Rejoué |
+| N°  | Constat                                                                                     | Preuve                 |
+| --- | ------------------------------------------------------------------------------------------- | ---------------------- |
+| J1  | La projection ne se met jamais à jour (tour, pions, voile, carnet) sans F5                  | Rejoué · traité (#683) |
+| J2  | L'écran « Jouer le tour » du prof ne se relit pas quand une équipe joue                     | Rejoué · traité (#683) |
+| J3  | Ouvrir le lien de projection dans le navigateur du prof remplace sa session                 | Rejoué · traité (#683) |
+| E1  | Réglages « Tenir à deux » : les nombres affichent leur minimum, un clic-sortie l'enregistre | Rejoué · traité (#684) |
+| E2  | Studio de carte de chapitre : boucle de rendu, le formulaire de repère n'enregistre jamais  | Rejoué · traité (#684) |
+| M1  | Escalier, séances 1 à 3 : chaque jet est mis en suspens pour une Relance encore fermée      | Rejoué · traité (#685) |
 
 Viennent ensuite 29 constats importants (droits de jeu non rejoués par le serveur, contenu servi
 avant d'être acquis, pertes de données à l'import ou à l'édition) et 46 mineurs.
@@ -62,7 +66,7 @@ transaction), aucun état du tour sans sortie. Le détail de ce qui a été relu
 
 ## 3. Front de jeu
 
-### J1 — La projection ne se met jamais à jour — Rejoué
+### J1 — La projection ne se met jamais à jour — Rejoué — Traité (#683)
 
 - **Où** : `src/gl/AppGL.jsx:929` (`refreshKey={gameState?.events?.length || 0}`),
   `src/gl/hooks/useGlGameRuntime.js:209` et `:232`,
@@ -78,7 +82,7 @@ transaction), aucun état du tour sans sortie. Le détail de ce qui a été relu
 - **Correction** : abonner la vue à `gl:game:event` et `gl:game:equipe` (patron de
   `GLTeamSessionView.jsx:62-89`) et recharger.
 
-### J2 — « Jouer le tour » ne se relit pas quand une équipe joue — Rejoué
+### J2 — « Jouer le tour » ne se relit pas quand une équipe joue — Rejoué — Traité (#683)
 
 - **Où** : `src/gl/components/mj/GLTourScreen.jsx:138-151`, `src/gl/hooks/useGlTenirTour.js:27-29`,
   `src/gl/components/mj/GLDemandesPanel.jsx:42-48`.
@@ -94,7 +98,7 @@ transaction), aucun état du tour sans sortie. Le détail de ce qui a été relu
 - **Correction** : dans `GLTourScreen`, relire le tour et incrémenter `refreshKey` quand
   `events.length` ou `tenir.round.number` / `phase` changent.
 
-### J3 — Le lien de projection remplace la session du prof — Rejoué
+### J3 — Le lien de projection remplace la session du prof — Rejoué — Traité (#683)
 
 - **Où** : `src/gl/AppGL.jsx:162-174`, `src/gl/services/apiGL.js:53-68`.
 - **Défaut** : seule une session d'équipe va en `sessionStorage`. La session de projection est
@@ -110,20 +114,20 @@ transaction), aucun état du tour sans sortie. Le détail de ce qui a été relu
 
 ### Autres constats du front de jeu
 
-- **J4 — L'écran d'équipe préfère un instantané du tour périmé** (important, signalé).
+- **J4 — L'écran d'équipe préfère un instantané du tour périmé** — _traité (#683)_ (important, signalé).
   `GLTenirEquipeView.jsx:181` : `tourApi.tour?.round || tenir?.round`. L'instantané n'est relu
   qu'après un geste de l'équipe ; un geste du prof (phase, sablier) n'avance pas la version
   d'équipe. En-tête « Tour N — ouverture » alors que la phase est « jeu », sablier masqué. Même
   racine que J1 et J2.
-- **J5 — Le réglage « traversée des zones feuillets » est perdu en route** (important, lu).
+- **J5 — Le réglage « traversée des zones feuillets » est perdu en route** — _traité (#680)_ (important, lu).
   `AppGL.jsx:1224` passe `feuilletZoneTraversalEnabled` à `GLMapView`, qui ne la relaie pas ;
   `GLGameBoard.jsx:108` garde son défaut `true`. La migration 330 coupe ce réglage en
   « Tenir » : il est sans effet, l'ancien popover de feuillet peut s'ouvrir.
-- **J6 — Session expirée : le stockage est vidé, l'écran reste dans l'application** (important,
+- **J6 — Session expirée : le stockage est vidé, l'écran reste dans l'application** — _traité (#683)_ (important,
   lu). Sur un 401, `apiGL` vide la session et émet `gl_session_changed`, que `useGLSession.js`
   n'écoute pas. L'élève voit une application vide au lieu de l'écran de connexion, jusqu'au
   rechargement.
-- **J7 — « Jet saisi : en attente du clic du prof » ne s'efface jamais** (mineur à important,
+- **J7 — « Jet saisi : en attente du clic du prof » ne s'efface jamais** — _traité (#683)_ (mineur à important,
   signalé). `GLTenirEquipeView.jsx:475-488` : état local, non dérivé de `round.desEnAttente` ;
   reste affiché après validation ou refus.
 - **J8 — Dés virtuels : tirage perdu si le lanceur se ferme pendant l'animation** (mineur,
@@ -135,12 +139,12 @@ transaction), aucun état du tour sans sortie. Le détail de ce qui a été relu
   signalé). `GLTeamSpiritPanel.jsx:12-15` repart de « 6/6 » ; réenregistrer écrase les retraits.
 - **J11 — Défi de la Trame : dernier geste perdu si l'on quitte dans les 350 ms** (mineur,
   signalé). `useGlTrameDefi.js:65-68`.
-- **J12 — « Appliquer les effets » d'un repère : échec avalé** (mineur, signalé).
+- **J12 — « Appliquer les effets » d'un repère : échec avalé** — _échec affiché depuis #688_ (mineur, signalé).
   `GLMarkerEffectPopover.jsx:66-78` ferme le popover sur erreur comme sur succès.
 
 ## 4. Moteur du tour « Tenir à deux »
 
-### M1 — Escalier : jets en suspens pour une Relance fermée — Rejoué
+### M1 — Escalier : jets en suspens pour une Relance fermée — Rejoué — Traité (#685)
 
 - **Où** : `lib/glArriveeSuspendue.js:104-166` (`relanceDisponibleTx`), appelé par
   `lib/glTour.js:1680-1689`.
@@ -153,7 +157,7 @@ true` ; la liste des sorts servie à l'équipe ne contient pas Relance ; ouvrir 
   sort qui sera refusé, à chaque jet des trois premières séances.
 - **Correction** : dans `relanceDisponibleTx`, ignorer un candidat quand `sortOuvert` est faux.
 
-### M2 — « Répondre » n'est pas rejoué par le serveur — Rejoué
+### M2 — « Répondre » n'est pas rejoué par le serveur — Rejoué — Traité (#685)
 
 - **Où** : `routes/gl/games/markers.js:189-290` (`present-question`),
   `routes/gl/games/qcm.js:286-318`, `lib/glTour.js:1872` (`bonneReponseDeCaseTx`).
@@ -166,7 +170,7 @@ true` ; la liste des sorts servie à l'équipe ne contient pas Relance ; ouvrir 
 - **Correction** : `assertActionOuverte({ geste: 'repondre' })` dans les deux routes, et
   `questionDeCaseDue` relu sous verrou d'équipe avant `bonneReponseDeCaseTx`.
 
-### M5 — En hybride, le droit « fouiller » n'est jamais servi à l'élève — Rejoué
+### M5 — En hybride, le droit « fouiller » n'est jamais servi à l'élève — Rejoué — Traité (#685)
 
 - **Où** : `lib/glTenirView.js:193` : `fouilleFenetreOuverte: round?.fouilleFenetreOuverte ===
 true`. La vue du tour n'a pas cette propriété, elle sert `fenetresFouille`
@@ -179,12 +183,12 @@ true`. La vue du tour n'a pas cette propriété, elle sert `fenetresFouille`
 
 ### Autres constats du moteur
 
-- **M3 — Progression « sans appliquer la case » défaite par `present-arrival`** (important,
+- **M3 — Progression « sans appliquer la case » défaite par `present-arrival`** — _traité (#685)_ (important,
   signalé). Le moteur ne joue pas la case d'arrivée (`lib/glSpellEffectsApply.js:180-216`) mais
   n'émet aucun déplacement marqué `skipDestinationEffects` ; l'écran détecte le changement de
   position et appelle `present-arrival` (`routes/gl/games/markers.js:434-436`), qui applique
   l'effet. Même mécanique après le vent.
-- **M4 — Relance payée et jamais rejouée si la phase « jeu » se ferme** (important, signalé).
+- **M4 — Relance payée et jamais rejouée si la phase « jeu » se ferme** — _traité (#685)_ (important, signalé).
   Rien ne solde l'effet `relance` au souffle ni à la clôture, alors que la Cordée incomplète est
   rendue : jet annulé, deux gemmes payées, équipe immobile pour la séance.
 - **M6 — Le vent peut poser une équipe au camp sans « arrivée au camp »** (mineur, signalé).
@@ -205,7 +209,7 @@ true`. La vue du tour n'a pas cette propriété, elle sert `fenetresFouille`
 
 ## 5. Sorts, marché, voyageur
 
-### S1 — Un pot repris ne vérifie ni l'équipe, ni la partenaire, ni l'élève — Rejoué
+### S1 — Un pot repris ne vérifie ni l'équipe, ni la partenaire, ni l'élève — Rejoué — Traité (#678)
 
 - **Où** : `lib/glSpellCast.js:1006-1024` (`findCollectingDraft` : en portée `game`, aucun filtre
   d'équipe ; en portée `team`, aucun filtre d'élève), `:1224-1234` (seuls les paramètres d'effet
@@ -221,7 +225,7 @@ true`. La vue du tour n'a pas cette propriété, elle sert `fenetresFouille`
 
 ### Autres constats
 
-- **S2 — Deux « pas moi » simultanés : l'un est perdu** (important, lu).
+- **S2 — Deux « pas moi » simultanés : l'un est perdu** — _traité (#678)_ (important, lu).
   `lib/glSpellCast.js:1428-1465` calcule `exclus_json` et les parts avant le verrou, puis les
   écrit tels quels. L'élève dont l'exclusion est écrasée est débité au lancement.
 - **S3 — Relais peut faire reculer une équipe** (important, lu, à trancher).
@@ -246,12 +250,12 @@ true`. La vue du tour n'a pas cette propriété, elle sert `fenetresFouille`
   `lib/glSpellCast.js:936-937`.
 - **S11 — Geste du prof sur une bourse : l'évènement émis est « le dernier de la partie »**
   (mineur, signalé). `routes/gl/games/vitality.js:110-119`.
-- **S12 — Pot du même tour jamais recalculé quand un solde change** (mineur, signalé).
+- **S12 — Pot du même tour jamais recalculé quand un solde change** — _traité (#678)_ (mineur, signalé).
   `lib/glSpellCast.js:965-978`.
 
 ## 6. Parties, plateau, équipes
 
-- **P1 — Une partie « Tenir » annonce un gain de cœurs à la traversée d'une zone feuillet**
+- **P1 — Une partie « Tenir » annonce un gain de cœurs à la traversée d'une zone feuillet** — _traité (#680)_
   (important, lu). `routes/gl/games/feuillet-zones.js:79` : le `SELECT` de la partie ne lit pas
   `tenir_profil` ; `isTenirGame` vaut donc toujours faux dans
   `lib/glFeuilletZonePresent.js:186` et `gainCoeur` n'est jamais remis à 0. Avec J5, l'ancien
@@ -260,14 +264,15 @@ true`. La vue du tour n'a pas cette propriété, elle sert `fenetresFouille`
   (mineur, rejoué). `routes/gl/games/teams.js:236` : `mascot_id = ?` sans `COALESCE`.
   `PUT { name }` : la mascotte passe à `NULL`. La console envoie toujours les quatre champs ; un
   appel partiel (connecteur, script) est touché.
-- **P3 — `present-arrival` et `present-question` ne contrôlent pas le statut de la partie**
+- **P3 — `present-arrival` et `present-question` ne contrôlent pas le statut de la partie** — _traité (#685)_
   (mineur, lu). `routes/gl/games/markers.js:205` et `:395` : le statut est lu, jamais testé.
 - **P4 — Changer le chapitre d'une partie en pause laisse les équipes sur l'ancien plateau**
   (mineur, signalé). `routes/gl/games.js:472-484`.
 - **P5 — Score QCM du jeu classique : trois écarts à « un point par arrivée »** (mineur,
   signalé ; score éteint par défaut). `lib/glGameQcmScoring.js:96-102`.
 - **P6 — `POST /games/:id/turn/start` : pas de contrôle de statut, compteur lu hors
-  transaction** (mineur, lu ; tours éteints par défaut). `routes/gl/games.js:702-757`.
+  transaction** (mineur, lu ; tours éteints par défaut). `routes/gl/games.js:702-757`. Rejoué le 19/11 au soir, tours activés : sur une partie
+  terminée, la route répond 200 et passe du tour 0 au tour 1.
 - **P7 — `POST /games/:id/events` : ni la partie ni l'appartenance de l'équipe ne sont
   vérifiées** (mineur, rejoué). Partie inexistante : 500 au lieu de 404. `routes/gl/games.js:608-694`.
 - **P8 — Défis de la Trame : deux réussites simultanées reçoivent la même page de veillée**
@@ -284,7 +289,7 @@ true`. La vue du tour n'a pas cette propriété, elle sert `fenetresFouille`
 
 ## 7. Contenus, carnet, récompenses, imports
 
-### C1 — Le texte de feuillets non trouvés est servi aux joueurs — Rejoué
+### C1 — Le texte de feuillets non trouvés est servi aux joueurs — Rejoué — Traité (#680)
 
 - **Où** : `routes/gl/lore.js:663-709` : `GET /api/gl/lore/games/:id/zones/:zoneId/feuillets`
   renvoie `formatFeuilletRow` sans `maskLockedFeuillet`.
@@ -293,7 +298,7 @@ true`. La vue du tour n'a pas cette propriété, elle sert `fenetresFouille`
   (`lib/glLoreFeuillets.js:167`) sert tous les feuillets actifs des biomes du chapitre.
 - **Correction** : masquer les candidats non trouvés, ou ne renvoyer que code et titre.
 
-### C2 — « Faire apparaître » un feuillet : ni l'état de la partie ni le lieu — Rejoué
+### C2 — « Faire apparaître » un feuillet : ni l'état de la partie ni le lieu — Rejoué — Traité (#680)
 
 - **Où** : `routes/gl/lore.js:387-547`. Le statut est sélectionné, jamais testé ; la seule garde
   joueur est l'appartenance du feuillet au chapitre. La route jumelle des zones feuillets exige
@@ -302,7 +307,7 @@ true`. La vue du tour n'a pas cette propriété, elle sert `fenetresFouille`
   chapitre en quatre requêtes (200), avec leurs effets sur les bourses.
 - **Correction** : refuser hors `live` / `paused` ; exiger une zone ou un canal vérifiable.
 
-### C4 — Tutoriels : « publié » n'est appliqué nulle part — Rejoué
+### C4 — Tutoriels : « publié » n'est appliqué nulle part — Rejoué — Traité (#680)
 
 - **Où** : `routes/gl/tutorials.js:38-85` (liste et détail sans filtre),
   `src/gl/components/GLTutorialsView.jsx:119` (`is_published !== false` est toujours vrai : la
@@ -313,7 +318,7 @@ true`. La vue du tour n'a pas cette propriété, elle sert `fenetresFouille`
 - **Correction** : filtrer `is_published = 1` hors `gl.content.manage` ; lire
   `Number(data.is_published) === 1` à l'écran.
 
-### C8 — « Lu » et « tenu » n'atteignent jamais le carnet du joueur — Rejoué
+### C8 — « Lu » et « tenu » n'atteignent jamais le carnet du joueur — Rejoué — Traité (#679)
 
 - **Où** : `lib/glLoreFeuillets.js:336-353` et `:391` : le statut du carnet personnel n'est
   remplacé que si le pourcentage d'effacement **baisse**.
@@ -326,17 +331,17 @@ true`. La vue du tour n'a pas cette propriété, elle sert `fenetresFouille`
 
 ### Autres constats
 
-- **C3 — Glossaire du lore : niveau « secret » et plafond de divulgâchage contournés**
+- **C3 — Glossaire du lore : niveau « secret » et plafond de divulgâchage contournés** — _traité (#680)_
   (important, signalé). `routes/gl/lore.js:751-798`, `:1361-1378`, `:1482-1489` : l'index des
   liens liste les termes secrets ; la fiche par code ignore `loreSpoilerMaxLevel` ; les termes
   liés ne sont pas filtrés.
-- **C5 — Exporter puis importer le glossaire du lore efface les « termes liés »** (important,
+- **C5 — Exporter puis importer le glossaire du lore efface les « termes liés »** — _traité (#677)_ (important,
   signalé). `lib/glLoreGlossaryImport.js:318` exporte la colonne vide, `:141-142` supprime puis
   réinsère depuis elle.
-- **C6 — Import de QCM : les liens glossaire des questions absentes du fichier sont supprimés**
+- **C6 — Import de QCM : les liens glossaire des questions absentes du fichier sont supprimés** — _traité (#677)_
   (important, signalé). `lib/glQcmImport.js:467-476`, `lib/glQcmLoreImport.js:473-478` ; l'import
   lore n'est pas en transaction.
-- **C7 — « Première consultation » décidée par une lecture préalable** (important, signalé).
+- **C7 — « Première consultation » décidée par une lecture préalable** — _traité (#679)_ (important, signalé).
   `routes/gl/learning.js:309/334` : des requêtes parallèles se croient toutes premières et
   gagnent chacune un feuillet ; `lib/glLoreFeuilletSpeciesReveal.js:160-185` sans verrou
   d'équipe.
@@ -344,38 +349,38 @@ true`. La vue du tour n'a pas cette propriété, elle sert `fenetresFouille`
   `routes/gl/food-web.js:88-105`.
 - **C10 — Mises à jour qui ne peuvent pas vider un champ** (mineur, signalé). Description de
   zone, chapitre d'un tutoriel ou d'une mascotte (`COALESCE`).
-- **C11 — Imports du lore : lignes rejetées passées sous silence, écritures hors transaction**
+- **C11 — Imports du lore : lignes rejetées passées sous silence, écritures hors transaction** — _traité (#677)_
   (mineur, signalé). `lib/glLoreFeuilletsImport.js:344-359`.
-- **C12 — Catalogues de la Trame remplacés sans transaction** (mineur, signalé).
+- **C12 — Catalogues de la Trame remplacés sans transaction** — _traité (#677)_ (mineur, signalé).
   `lib/glTrameImport.js:215-216` et suivants.
 
 ## 8. Comptes et accès
 
-- **A1 — Import de joueurs : une ligne sans pseudo fait tomber l'import en 500** (important,
+- **A1 — Import de joueurs : une ligne sans pseudo fait tomber l'import en 500** — _traité (#682)_ (important,
   rejoué). `lib/glPlayersImport.js:99-126` ne réclame pas le pseudo ; `gl_players.pseudo` est
   `NOT NULL`. Fichier de trois lignes dont la deuxième sans pseudo : l'analyse à blanc annonce
   trois lignes valides ; l'import réel crée le premier joueur puis répond 500. Le rapport des
   identifiants n'est jamais renvoyé : le mot de passe généré du premier est perdu, et un
   réimport le rejette en « pseudo déjà utilisé ».
-- **A2 — Supprimer une classe emporte ses joueurs inactifs sans purge** (important, lu).
+- **A2 — Supprimer une classe emporte ses joueurs inactifs sans purge** — _traité (#682)_ (important, lu).
   `routes/gl/admin.js:345-374` : seuls les joueurs actifs bloquent ; les autres partent par la
   cascade SQL, sans `purgeGlPlayerAccount`. Les comptes miroirs `users` restent actifs.
-- **A3 — Changer un joueur de classe laisse ses appartenances aux parties de l'ancienne**
+- **A3 — Changer un joueur de classe laisse ses appartenances aux parties de l'ancienne** — _traité (#682)_
   (important, signalé). `routes/gl/admin.js:604-701` ne touche pas `gl_team_members`.
-- **A4 — Plancher de mot de passe enseignant (12) contournable par les routes G&L (8)**
+- **A4 — Plancher de mot de passe enseignant (12) contournable par les routes G&L (8)** — _traité (#682)_
   (important, lu). `routes/gl/auth.js:617` et `:1294` : `Math.max(8, …)` au lieu de
   `getPasswordMinLengthFor('teacher')` (`lib/passwordReset.js:110-118`).
-- **A5 — Activer ou désactiver une classe efface son établissement** (mineur, rejoué).
+- **A5 — Activer ou désactiver une classe efface son établissement** — _traité (#682)_ (mineur, rejoué).
   `routes/gl/admin.js:332` : `school = ?` sans `COALESCE` ; `GLClassesPanel.jsx:121` envoie
   `{ isActive }` seul. « Ecole Test » devient `NULL`.
 - **A6 — Un pseudo de jeu peut masquer l'identifiant de connexion d'un autre joueur** (mineur,
   signalé). `lib/glPlayerIdentity.js:46-56`.
-- **A7 — `PATCH /api/gl/auth/me/profile` avec pseudo vide : 500** (mineur, rejoué, avec le mot
+- **A7 — `PATCH /api/gl/auth/me/profile` avec pseudo vide : 500** — _traité (#682)_ (mineur, rejoué, avec le mot
   de passe actuel fourni : « Column 'pseudo' cannot be null »). `routes/gl/auth.js:1110`.
 - **A8 — `DELETE /api/gl/auth/link-foretmap` n'est pas atomique** (mineur, signalé).
 - **A9 — Connexion staff : une ligne `gl_admins` liée peut être reprise par un autre enseignant
   de même adresse** (mineur, signalé). `lib/glStaffAuth.js:138-151`.
-- **A10 — `logRouteError` appelé avec les arguments inversés** (mineur, lu).
+- **A10 — `logRouteError` appelé avec les arguments inversés** — _traité (#682)_ (mineur, lu).
   `routes/gl/auth.js:426` et `routes/gl/admin-demo.js:38` : l'erreur réelle n'est pas
   journalisée.
 - **A11 — Couper le « mode découverte » ne vaut que pour les nouveaux jetons** (mineur, signalé,
@@ -383,7 +388,7 @@ true`. La vue du tour n'a pas cette propriété, elle sert `fenetresFouille`
 
 ## 9. Administration et éditeurs
 
-### E1 — Réglages « Tenir à deux » : les nombres affichent leur minimum — Rejoué
+### E1 — Réglages « Tenir à deux » : les nombres affichent leur minimum — Rejoué — Traité (#684)
 
 - **Où** : `src/gl/components/settings/GLTenirSettings.jsx:132-153` (`NumberRow`) et `:155-185`
   (`JsonMapRow`) ; parent `src/gl/components/GLSettingsView.jsx:40`.
@@ -398,7 +403,7 @@ true`. La vue du tour n'a pas cette propriété, elle sert `fenetresFouille`
 - **Correction** : ne rendre le bloc qu'après le chargement, ou remonter chaque ligne quand la
   valeur chargée change.
 
-### E2 — Studio de carte de chapitre : boucle de rendu — Rejoué
+### E2 — Studio de carte de chapitre : boucle de rendu — Rejoué — Traité (#684)
 
 - **Où** : `src/gl/components/GLMarkerEventEditor.jsx:49-54` (effet dépendant de `onChange`) et
   `src/gl/components/GLChapterMapStudio.jsx:251` (`handleEventDraftChange`, recréée à chaque
@@ -421,25 +426,25 @@ true`. La vue du tour n'a pas cette propriété, elle sert `fenetresFouille`
 
 ### Autres constats
 
-- **E3 — Politique de conditionnement par ressource : « Enregistrer » efface la politique**
+- **E3 — Politique de conditionnement par ressource : « Enregistrer » efface la politique** — _traité (#684)_
   (important, reproduit sous Vitest par la relecture). `GLLearningLinksPanel.jsx:296` : l'éditeur
   se remonte à chaque caractère de la référence, avant la réponse du chargement, et affiche
   « Hériter ». Défaut D2 de `AUDIT_VALIDATION_QUIZ_2026-09.md`, corrigé pour les préréglages par
   type mais pas ici.
-- **E4 — Éditeur riche : une référence d'image non résolue disparaît à la première frappe**
+- **E4 — Éditeur riche : une référence d'image non résolue disparaît à la première frappe** — _traité (#684)_
   (important, reproduit sur les fonctions par la relecture). `GLRichTextEditor.jsx:139-162` :
   `![…](scene:3)` ou une clé `gl-*` non résolue au premier rendu est retirée par l'assainisseur,
   puis l'enregistrement automatique écrit le texte sans l'image.
-- **E5 — Frappes saisies pendant l'enregistrement automatique écrasées par la réponse**
+- **E5 — Frappes saisies pendant l'enregistrement automatique écrasées par la réponse** — _traité (#684)_
   (important, signalé). Chapitres, pages de contenu, espèces, glossaire, sorts, réglages : le
   correctif `mergeAutoSaveForm` des éditeurs de QCM n'y a pas été reporté.
-- **E6 — Tutoriels : chaque enregistrement automatique vide le brouillon et ferme l'éditeur**
+- **E6 — Tutoriels : chaque enregistrement automatique vide le brouillon et ferme l'éditeur** — _traité (#680)_
   (important, lu). `GLTutorialsView.jsx:76-97`. Le tutoriel est créé après quelques mots,
   publié par défaut — et, avec C4, visible des joueurs quel que soit ce réglage.
-- **E7 — Carnet de Sélène : après un feuillet « étudié », les suivants s'affichent « ✓ Étudié »**
+- **E7 — Carnet de Sélène : après un feuillet « étudié », les suivants s'affichent « ✓ Étudié »** — _traité (#679)_
   (important, lu). `GLLearnAndImport.jsx:47-73` ne remet jamais l'état à faux ;
   `GLSeleneCarnetView.jsx:340` le monte sans `key`.
-- **E8 — voir A5** (classe : établissement effacé).
+- **E8 — voir A5** (classe : établissement effacé) — _traité (#682)_.
 - **E9 — Dialogue d'édition d'un feuillet : trois écrasements** (mineur, signalé). `legacy_id`
   remis à `NULL` à chaque enregistrement ; ordre de liasse annulé ; saisie perdue à
   « Archiver ». `GLFeuilletEditorDialog.jsx`.
@@ -448,7 +453,7 @@ true`. La vue du tour n'a pas cette propriété, elle sert `fenetresFouille`
   envoie `relativePath` là où la route lit `relative_path`.
 - **E11 — Éditeurs de sorts et d'espèces : catégorie du formulaire ignorée, fiche non rechargée
   après une édition en masse** (mineur, signalé). `GLSpellsEditorPanel.jsx:60`.
-- **E12 — Deux champs numériques de réglages** (mineur, signalé). Délai libre du
+- **E12 — Deux champs numériques de réglages** — _traité (#684)_ (mineur, signalé). Délai libre du
   conditionnement (`GLGatingSettings.jsx:288`, non contrôlé) ; PV / PP initiaux : champ vidé =
   0 enregistré (`GLSettingsView.jsx:120-126`).
 
@@ -508,3 +513,118 @@ Chaque lot porte ses tests ; ceux des constats rejoués s'écrivent à partir du
 - [ ] **A11 — Mode découverte coupé** : invalider aussi les jetons invités déjà émis.
 - [ ] **J5 et P1 — Zones feuillets en « Tenir »** : confirmer que la traversée doit rester coupée
       (migration 330), auquel cas la route doit aussi refuser.
+
+## 13. Suite donnée (19 novembre 2026)
+
+Huit sessions ont corrigé les lots en parallèle, une par lot, sans migration. Les lots du § 11
+ont été redécoupés pour qu'aucun fichier ne soit touché par deux sessions (le moteur du tour
+dans le lot 2, les tutoriels dans le lot 4). Chaque constat a d'abord reçu un test qui échouait
+sur `main` ; les quatorze constats seulement « signalés » ont tous été reproduits avant d'être
+corrigés.
+
+| Lot | PR   | Constats traités            |
+| --- | ---- | --------------------------- |
+| 1   | #683 | J1, J2, J3, J4, J6, J7      |
+| 2   | #685 | M1, M2, M3, M4, M5, P3      |
+| 3   | #684 | E1, E2, E3, E4, E5, E12     |
+| 4   | #680 | C1, C2, C3, C4, E6, J5, P1  |
+| 5   | #678 | S1, S2, S12                 |
+| 6   | #682 | A1, A2, A3, A4, A5, A7, A10 |
+| 7   | #679 | C7, C8, E7                  |
+| 8   | #677 | C5, C6, C11, C12            |
+
+### Vérifications après fusion
+
+Les huit PR ont été fusionnées à quelques minutes d'intervalle, avant que la CI ait tourné sur
+l'état combiné. Tout a donc été rejoué sur `main` en v1.250.4 (`cbed186`) :
+
+| Vérification           | Résultat                         |
+| ---------------------- | -------------------------------- |
+| `npm run lint`         | 0 erreur                         |
+| `npm run format:check` | passe                            |
+| `npm run build`        | passe, aucun miroir modifié      |
+| `npm run test:ui`      | 6 153 passés (799 fichiers)      |
+| `npm test`             | 6 401 passés, 0 échec, 2 ignorés |
+| `npm run test:content` | 147 passés                       |
+
+Les scénarios de l'audit ont été rejoués sur ce `main`, indépendamment des tests des lots :
+
+- dans un navigateur, sur le build de production : la projection affiche « Tour 1 — jeu » sans
+  rechargement (J1) ; la carte d'équipe du prof passe à « case 8 · dés lancés » sans clic (J2) ;
+  la session du prof reste la sienne après l'ouverture de la projection dans un autre onglet
+  (J3) ; le studio de carte est au repos (0,08 s de travail sur 3) et le label modifié est
+  enregistré (E2) ; les réglages affichent les valeurs de la base, et un clic-sortie n'envoie
+  rien (E1) ;
+- par requêtes : le jet n'est plus mis en suspens sous l'escalier (M1) ; la seconde bonne
+  réponse ne donne pas de case et la réponse en souffle est refusée (M2) ; le droit « fouiller »
+  est servi en hybride (M5) ; le pot demandé pour une autre équipe est un pot neuf (S1) ; le
+  texte d'un feuillet non trouvé n'est plus servi (C1) ; l'apparition sur une partie terminée
+  répond 409 (C2) ; le tutoriel non publié répond 404 (C4) ; l'import avec une ligne sans pseudo
+  répond 200 avec son rapport (A1) ; l'établissement est conservé (A5) ; le pseudo vide répond
+  400 (A7).
+
+Les e2e complets et le banc n'ont pas été relancés sur l'état combiné.
+
+### Après #688 : un test rouge, réparé par #690
+
+Les vérifications ci-dessus portent sur la v1.250.4. La PR #688, fusionnée ensuite, a laissé
+`main` rouge sur `tests/gl-tenir-jets-paralleles.test.js` (invariant `LIVRE_SOLDE`), ce que
+l'audit ForetMap du même jour a relevé (`AUDIT_BUGS_FORETMAP_2026-11-19.md`, § 1.1) ; les tests
+ciblés relancés ici après #688 ne couvraient pas ce fichier. La PR #690 l'a réparé.
+
+Suites complètes rejouées sur `main` en v1.250.14 (`9638d1e`), après les lots des deux audits :
+
+| Vérification      | Résultat                                                  |
+| ----------------- | --------------------------------------------------------- |
+| `npm test`        | 6 545 passés, 0 échec, 2 ignorés                          |
+| `npm run test:ui` | 6 190 passés, 1 échec de délai hors G&L (voir ci-dessous) |
+
+L'échec d'écran est `tests-ui/settings/MoodleAdminPanel.test.jsx` (« éditeur de politiques… »),
+5 044 ms pour un délai de 5 000 ms dans la suite complète ; relancé seul, le fichier passe
+(10 sur 10). C'est le test sensible au temps déjà signalé dans l'audit du 18 novembre.
+
+### Choix faits par les lots, à relire
+
+- **M4 (lot 2)** — tranché par le prof et livré dans #688 : la Relance non rejouée est rendue
+  au passage au souffle et l'équipe retrouve la case de son premier jet, qui se joue. Aucun
+  nouveau jet n'est tiré ; une équipe déplacée entre-temps garde sa place.
+- **M2 (lot 2)** — tranché et livré dans #688 puis #690 : en hybride, l'équipe répond et lance
+  ses dés depuis sa tablette pendant la phase « jeu ». Au tableau, rien ne change.
+- **M3 (lot 2)** — tranché et livré dans #688 : quand un sort ou le vent a posé l'équipe, la
+  fenêtre dit que la case ne se joue pas ; le prof voit ce qu'elle ferait et choisit
+  « Appliquer les effets (MJ) » ou « Ne pas appliquer ».
+- **E2 (lot 3)** — au-delà des trois défauts annoncés : un repère sans configuration devenait
+  une case à question à l'enregistrement, l'emoji choisi était remplacé à la sélection, et
+  `tenir.defi`, « un seul dé » et « passe le tour » traversent désormais le formulaire sans y
+  être modifiables.
+- **S1 (lot 5)** — limité aux parties « Tenir ». Pour un sort personnel, le pot du premier élève
+  est annulé quand un coéquipier ouvre le même sort.
+- **A10 (lot 6)** — l'échec de préparation de la démonstration ne dit plus sa cause au MJ.
+- **A4 (lot 6)** — un mot de passe enseignant de 8 à 11 caractères consomme le lien de
+  réinitialisation avant d'être refusé (c'était déjà le cas sous 8).
+- **C8 (lot 7)** — un feuillet effacé à 100 % que l'équipe « lit » reste « effacé » dans le
+  carnet personnel.
+- **C6 (lot 8)** — un lien glossaire encore valable n'est plus recréé à l'import : son statut,
+  son poids et sa note sont conservés, pas seulement son caractère bloquant.
+
+### Restes
+
+- **A10** — le troisième appel inversé, `routes/gl/games/spell-casts.js:142`, est corrigé par
+  #687 (fusionnée) : il n'en reste aucun dans `routes/` ni `lib/`.
+- **Reprise de données (C8)** — les lectures passées ne sont pas promues dans les carnets. La
+  requête de reprise est dans la description de #679 (4 lignes, 2 joueurs en production au
+  19/11) ; aucune migration n'a été ajoutée.
+- **Écrans, après le lot 2** — #688 (fusionnée) affiche pourquoi une case ne se joue pas et
+  donne son libellé à la Relance rendue dans le journal. Reste : fermer la question et recharger
+  sur un refus `TENIR_PHASE` (`useGlQuestionDeCase.js`).
+- **Imports en ligne de commande (lot 8)** — `gl:import:lore-glossary` et consorts appellent les
+  mêmes bibliothèques sans transaction.
+- **Session de projection déjà stockée (J3)** — une session écrite dans `localStorage` par
+  l'ancienne version y reste jusqu'à la prochaine connexion du prof.
+- **39 constats non traités** — les mineurs du § 11 (lot 9) et les constats importants hors
+  lots : S3 et S4 (à trancher), M6 à M11, S5 à S11, P2, P4 à P12, C9, C10, A6, A8, A9, A11,
+  E9 à E11, J8 à J12. Pour J12, l'échec est désormais affiché (#688) ; la garde de double clic
+  manque toujours.
+- **Décisions du § 12** — S3, S4, M10 et A11 restent entières. Pour C2, J5 et P1, seule la
+  partie non discutable est faite : refus hors partie en cours, réglage relayé à l'écran,
+  `tenir_profil` lu par la route ; ni restriction au MJ, ni refus de la route côté serveur.
