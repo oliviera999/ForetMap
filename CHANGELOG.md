@@ -33,6 +33,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   `TypeError` (500).
 - Tests : `tests/audit-fm-lot8-medias.test.js`,
   `tests-ui/audit-fm-lot8-plant-photo-upload.test.js`.
+
 ### Corrigé — audit ForetMap du 19/11, lot 7 (terrain : lieux, catégories, parcours, plans, gestes de carte)
 
 - **C1** — `GET /api/map-routes` croise les cartes autorisées sur la surface (`allowedMapIdsForSurface`) avec le périmètre du compte, comme les lieux : un anonyme sur la Visite ne lit plus les parcours de la carte d'un plan fermé par code. Le détail `/:idOrSlug` exige aussi qu'une surface publique du parcours serve sa carte (404 sinon).
