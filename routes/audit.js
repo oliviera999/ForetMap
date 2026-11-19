@@ -1,6 +1,6 @@
 const express = require('express');
 const { queryAll } = require('../database');
-const { requirePermission } = require('../middleware/requireTeacher');
+const { requirePermission, hasPermission } = require('../middleware/requireTeacher');
 const asyncHandler = require('../lib/asyncHandler');
 const { z, validate } = require('../lib/validate');
 // Journal d'audit : `logAudit` / `logSecurityEvent` vivent dans `lib/auditLog.js` (lot 1) ;
@@ -12,6 +12,12 @@ const {
   listSecurityEvents,
   securityEventsToCsv,
 } = require('../lib/securityEventsQuery');
+const { CATEGORY_IDS, catalogPayload } = require('../lib/auditJournal/catalog');
+const {
+  listJournalEvents,
+  listJournalActors,
+  getJournalActorSummary,
+} = require('../lib/auditJournal/query');
 
 const router = express.Router();
 
@@ -29,27 +35,54 @@ const optionalDay = z.preprocess(
   z.string().optional(),
 );
 
-const securityQuerySchema = z.object({
+/** Chaîne optionnelle rognée et tronquée (vide → absent ; jamais de 400). */
+function optionalText(max) {
+  return z.preprocess((v) => {
+    const s = String(v ?? '').trim();
+    return s ? s.slice(0, max) : undefined;
+  }, z.string().optional());
+}
+
+/** Liste fermée tolérante : valeur hors liste → absent. */
+function optionalEnum(values) {
+  return z.preprocess((v) => {
+    const s = String(v ?? '')
+      .trim()
+      .toLowerCase();
+    return values.includes(s) ? s : undefined;
+  }, z.string().optional());
+}
+
+/**
+ * Filtres communs des journaux (historique, sécurité, utilisateurs). `mode` : `main`
+ * (événements principaux : hors routine, échecs toujours inclus) ou `all` (vue étendue,
+ * défaut — compatibilité des appels existants).
+ */
+const journalFilterFields = {
   from: optionalDay,
   to: optionalDay,
-  actorUserId: z.preprocess((v) => {
-    const s = String(v || '').trim();
-    return s ? s.slice(0, 64) : undefined;
-  }, z.string().optional()),
-  action: z.preprocess((v) => {
-    const s = String(v || '').trim();
-    return s ? s.slice(0, 96) : undefined;
-  }, z.string().optional()),
-  ip: z.preprocess((v) => {
-    const s = String(v || '').trim();
-    return s ? s.slice(0, 64) : undefined;
-  }, z.string().optional()),
+  actorUserId: optionalText(64),
+  actorQuery: optionalText(80),
+  actorType: optionalEnum(['student', 'teacher', 'admin', 'staff', 'gl_player', 'visitor']),
+  action: optionalText(96),
+  category: optionalEnum(CATEGORY_IDS),
+  mode: z.preprocess(
+    (v) =>
+      String(v ?? '')
+        .trim()
+        .toLowerCase() === 'main'
+        ? 'main'
+        : 'all',
+    z.enum(['main', 'all']),
+  ),
   result: z.preprocess((v) => {
     const s = String(v || '')
       .trim()
       .toLowerCase();
     return s ? s.slice(0, 16) : undefined;
   }, z.string().optional()),
+  q: optionalText(120),
+  targetId: optionalText(64),
   limit: z.preprocess(
     (v) => parseInt(v, 10) || 100,
     z.number().transform((n) => Math.max(1, Math.min(n, 200))),
@@ -58,7 +91,64 @@ const securityQuerySchema = z.object({
     (v) => Math.max(0, parseInt(v, 10) || 0),
     z.number().transform((n) => Math.min(n, 100000)),
   ),
+};
+
+const historyQuerySchema = z.object(journalFilterFields);
+
+const securityQuerySchema = z.object({
+  ...journalFilterFields,
+  ip: optionalText(64),
 });
+
+const usersQuerySchema = z.object({
+  ...journalFilterFields,
+  source: optionalEnum(['audit', 'security']),
+  sort: optionalEnum(['recent', 'count', 'failures']),
+  limit: z.preprocess(
+    (v) => parseInt(v, 10) || 50,
+    z.number().transform((n) => Math.max(1, Math.min(n, 200))),
+  ),
+});
+
+const userIdParamsSchema = z.object({
+  userId: z.string().trim().min(1).max(64),
+});
+
+/** Filtres normalisés passés au module `lib/auditJournal`. */
+function journalFilters(q) {
+  const { from, to } = resolveSecurityDayRange(q);
+  return {
+    from,
+    to,
+    actorUserId: q.actorUserId || null,
+    actorQuery: q.actorQuery || null,
+    actorType: q.actorType || null,
+    action: q.action || null,
+    category: q.category || null,
+    mode: q.mode || 'all',
+    result: q.result || null,
+    q: q.q || null,
+    targetId: q.targetId || null,
+    ip: q.ip || null,
+    sort: q.sort || null,
+    limit: q.limit,
+    offset: q.offset,
+  };
+}
+
+/**
+ * Source de l'onglet « Utilisateurs » : le journal de sécurité (connexions comprises) pour
+ * qui peut le lire, sinon le journal d'audit. Demander `security` sans le droit → 403.
+ */
+function resolveUsersSource(req, res) {
+  const canSecurity = hasPermission(req.auth, 'audit.security.read');
+  const asked = req.validatedQuery.source;
+  if (asked === 'security' && !canSecurity) {
+    res.status(403).json({ error: 'Journal de sécurité réservé aux administrateurs' });
+    return null;
+  }
+  return asked || (canSecurity ? 'security' : 'audit');
+}
 
 const securityExportQuerySchema = securityQuerySchema.extend({
   format: z.preprocess(
@@ -92,24 +182,65 @@ router.get(
   }),
 );
 
+/** Catalogue des catégories et libellés d'actions (filtres du front). */
+router.get(
+  '/catalog',
+  requirePermission('audit.read'),
+  asyncHandler(async (_req, res) => {
+    res.json(catalogPayload());
+  }),
+);
+
+/**
+ * Historique filtré et enrichi (journal d'audit) : nom de l'acteur, libellé de l'action,
+ * catégorie, cible lisible, pagination. Sans IP ni navigateur (réservés à `/security`).
+ */
+router.get(
+  '/history',
+  requirePermission('audit.read'),
+  validate({ query: historyQuerySchema }),
+  asyncHandler(async (req, res) => {
+    const filters = journalFilters(req.validatedQuery);
+    filters.ip = null;
+    res.json(await listJournalEvents('audit', filters));
+  }),
+);
+
+/** Activité agrégée par utilisateur (onglet « Utilisateurs »). */
+router.get(
+  '/users',
+  requirePermission('audit.read'),
+  validate({ query: usersQuerySchema }),
+  asyncHandler(async (req, res) => {
+    const source = resolveUsersSource(req, res);
+    if (!source) return;
+    const filters = journalFilters(req.validatedQuery);
+    if (source !== 'security') filters.ip = null;
+    const payload = await listJournalActors(source, filters);
+    res.json({ ...payload, source });
+  }),
+);
+
+/** Fiche d'activité d'un utilisateur sur la période. */
+router.get(
+  '/users/:userId',
+  requirePermission('audit.read'),
+  validate({ params: userIdParamsSchema, query: usersQuerySchema }),
+  asyncHandler(async (req, res) => {
+    const source = resolveUsersSource(req, res);
+    if (!source) return;
+    const filters = journalFilters(req.validatedQuery);
+    res.json(await getJournalActorSummary(source, req.validatedParams.userId, filters));
+  }),
+);
+
 /** Journal de sécurité (IP / UA) — administrateurs uniquement. */
 router.get(
   '/security',
   requirePermission('audit.security.read'),
   validate({ query: securityQuerySchema }),
   asyncHandler(async (req, res) => {
-    const q = req.validatedQuery;
-    const { from, to } = resolveSecurityDayRange(q);
-    const payload = await listSecurityEvents({
-      from,
-      to,
-      actorUserId: q.actorUserId || null,
-      action: q.action || null,
-      ip: q.ip || null,
-      result: q.result || null,
-      limit: q.limit,
-      offset: q.offset,
-    });
+    const payload = await listSecurityEvents(journalFilters(req.validatedQuery));
     res.json(payload);
   }),
 );
@@ -121,17 +252,8 @@ router.get(
   validate({ query: securityExportQuerySchema }),
   asyncHandler(async (req, res) => {
     const q = req.validatedQuery;
-    const { from, to } = resolveSecurityDayRange(q);
-    const payload = await listSecurityEvents({
-      from,
-      to,
-      actorUserId: q.actorUserId || null,
-      action: q.action || null,
-      ip: q.ip || null,
-      result: q.result || null,
-      limit: q.limit,
-      offset: 0,
-    });
+    const payload = await listSecurityEvents({ ...journalFilters(q), offset: 0 });
+    const { from, to } = payload;
     const stamp = `${from}_${to}`.replace(/[^0-9_-]/g, '');
     if (q.format === 'json') {
       res.setHeader('Content-Type', 'application/json; charset=utf-8');
@@ -157,3 +279,5 @@ module.exports.logSecurityEvent = logSecurityEvent;
 module.exports.auditQuerySchema = auditQuerySchema; // exporté pour test no-DB du contrat O7
 module.exports.securityQuerySchema = securityQuerySchema;
 module.exports.securityExportQuerySchema = securityExportQuerySchema;
+module.exports.historyQuerySchema = historyQuerySchema;
+module.exports.usersQuerySchema = usersQuerySchema;
