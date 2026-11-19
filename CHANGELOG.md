@@ -9,6 +9,29 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — G&L : comptes, classes et import de joueurs (audit du 19 novembre 2026, lot 6)
+
+- **Import de joueurs** (A1) : une ligne sans pseudo est refusée dès l'analyse à blanc
+  (« Pseudo requis ») au lieu de faire tomber l'import réel en 500. Une erreur d'écriture
+  sur une ligne devient une entrée du rapport (`errors[]`) : le rapport des identifiants des
+  joueurs déjà créés est toujours renvoyé.
+- **Suppression d'une classe** (A2) : refusée (`409`) tant qu'il reste un joueur, actif **ou
+  inactif** — les inactifs partaient par la cascade SQL sans purge de leur compte miroir.
+- **Changement de classe d'un joueur** (A3) : refusé (`409 GL_PLAYER_IN_OPEN_GAME`) tant qu'il
+  est membre d'une équipe d'une partie non terminée de sa classe actuelle.
+- **Mot de passe MJ/Admin** (A4) : `POST /api/gl/auth/reset-password` (jeton enseignant) et
+  `POST /api/gl/auth/staff/change-password` appliquent le plancher enseignant de ForetMap
+  (12 caractères) au lieu de 8.
+- **Activer / désactiver une classe** (A5) : n'efface plus son établissement (`school` n'est
+  réécrit que s'il est envoyé).
+- **Profil joueur** (A7) : un pseudo vide répond `400` au lieu de `500`.
+- **Journal** (A10) : `logRouteError` appelé dans le bon ordre dans `routes/gl/auth.js` (mode
+  découverte) et `routes/gl/admin-demo.js` ; la remise à zéro de la démonstration ne renvoie
+  plus le message d'erreur brut au client.
+
+Tests : `tests/gl-audit-lot6-comptes.test.js`, `tests/gl-profile.test.js`,
+`tests/gl-auth-forgot-password.test.js`, `tests/gl-demo-game.test.js`.
+
 ### Corrigé — Popups d'Olu tronquées en bas d'écran (18 novembre 2026)
 
 Les fenêtres où parle Olu pouvaient sortir de l'écran par le bas, sans moyen d'en sortir :
