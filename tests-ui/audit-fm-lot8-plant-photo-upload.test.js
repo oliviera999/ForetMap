@@ -35,7 +35,7 @@ describe('uploadPlantPhotoRequest', () => {
   it('la révision adoptée après envoi est celle du prochain enregistrement', async () => {
     const session = createEditRevisionSession(3);
     // Ce que fait le parent (`foretmap-views.jsx`) : envoi en file, révision adoptée.
-    const onUploadPhoto = (plantId, body) =>
+    const onUploadPhoto = () =>
       session.enqueue(async () => {
         const saved = { url: '/uploads/z.jpg', edit_revision: 4 };
         session.noteRevision(saved.edit_revision);
