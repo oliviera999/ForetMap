@@ -149,4 +149,56 @@
   --shadow-card-flat: 0 2px 6px rgba(0, 0, 0, 0.25);
   --shadow-card-lifted: 0 6px 16px rgba(0, 0, 0, 0.35);
   --shadow-panel-floating: 0 8px 24px rgba(0, 0, 0, 0.22);
+
+  /*
+   * Teintes des PROJETS de tâches (ForetMap, novembre 2026) : une couleur par projet, attribuée
+   * par src/utils/projectColors.js et appliquée par les classes `.project-color-N` de
+   * src/index.css. Quatre rôles par teinte : filet (accent, ≥ 3,7:1 sur blanc), fond de carte
+   * (tint), pastille (chip) et encre du bandeau (ink, ≥ 7,6:1 sur la pastille).
+   * `--project-*` sans numéro = teinte 0 par défaut.
+   */
+  --project-0-accent: #2f6fb0; /* bleu lac */
+  --project-0-tint: #e9f1fb;
+  --project-0-chip: #dce9f8;
+  --project-0-ink: #1d4677;
+  --project-1-accent: #c26f1e; /* orange */
+  --project-1-tint: #fdf1e4;
+  --project-1-chip: #fbe1c4;
+  --project-1-ink: #6b370a;
+  --project-2-accent: #c2417a; /* rose */
+  --project-2-tint: #fcebf2;
+  --project-2-chip: #f8d5e4;
+  --project-2-ink: #6e1c40;
+  --project-3-accent: #1a9a9a; /* turquoise */
+  --project-3-tint: #e5f6f6;
+  --project-3-chip: #c9eded;
+  --project-3-ink: #0b4c4c;
+  --project-4-accent: #a2800a; /* moutarde */
+  --project-4-tint: #fbf5dd;
+  --project-4-chip: #f3e6ae;
+  --project-4-ink: #544204;
+  --project-5-accent: #b5452f; /* brique */
+  --project-5-tint: #fbeae6;
+  --project-5-chip: #f5d3cb;
+  --project-5-ink: #651f13;
+  --project-6-accent: #4c5bc4; /* indigo */
+  --project-6-tint: #eceefb;
+  --project-6-chip: #d8dcf6;
+  --project-6-ink: #262f6e;
+  --project-7-accent: #6f8f2a; /* olive */
+  --project-7-tint: #f1f6e6;
+  --project-7-chip: #e0ebc6;
+  --project-7-ink: #344512;
+  --project-8-accent: #8a5a3c; /* brun */
+  --project-8-tint: #f6eee8;
+  --project-8-chip: #ead9cc;
+  --project-8-ink: #47291a;
+  --project-9-accent: #7d4fc4; /* violet */
+  --project-9-tint: #f2ecfb;
+  --project-9-chip: #e4d8f6;
+  --project-9-ink: #3d2075;
+  --project-accent: var(--project-0-accent);
+  --project-tint: var(--project-0-tint);
+  --project-chip: var(--project-0-chip);
+  --project-ink: var(--project-0-ink);
 }

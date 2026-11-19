@@ -5,6 +5,7 @@ import { MascotSpeaker } from '../components/MascotSpeaker.jsx';
 import { Tooltip } from '../components/Tooltip.jsx';
 import { Button } from '../ui/Button.jsx';
 import { safeLocalStorageGetItem, safeLocalStorageSetItem } from '../platform/browserStorage.js';
+import { joinClassNames } from '../utils/classNames.js';
 
 /**
  * Dock d'aide partagé (lot 7 du plan de convergence,
@@ -100,8 +101,11 @@ export function HelpDock({
         <DialogShell
           open={open}
           onClose={() => setOpen(false)}
-          overlayClassName={overlayClassName}
-          dialogClassName={dialogClassName}
+          // Socle partagé (`modal-shell.css`) : overlay fixe et défilable, dialogue borné à
+          // l'écran. Les classes produit ne portent que le thème — sans ce socle, l'aide
+          // G&L et Plan s'ajoutait en bas de page, tronquée et sans issue visible.
+          overlayClassName={joinClassNames('fm-modal-overlay', overlayClassName)}
+          dialogClassName={joinClassNames('fm-help-dock-dialog', dialogClassName)}
           ariaLabel={title}
           showCloseButton
           closeButtonLabel="Fermer"

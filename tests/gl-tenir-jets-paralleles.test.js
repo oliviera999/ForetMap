@@ -270,6 +270,15 @@ test('« Nommer » sans objet : la page est réparée entre-temps, la ligne se r
     [ctx.game.id, zone.id],
   );
   for (const i of [0, 1]) for (const p of membres(i)) await setPlayerBourses(p.id, 4, 4);
+  // Les bourses viennent d'être posées à la main, hors du grand livre : le livre de ces élèves
+  // repart d'ici. Sans cela, un mouvement antérieur (la Relance rendue au souffle et son jet
+  // réappliqué, qui donne une gemme sur une Trame) ne tombe plus sur le solde posé.
+  for (const i of [0, 1])
+    for (const p of membres(i))
+      await db.execute('DELETE FROM gl_resource_ledger WHERE game_id = ? AND player_id = ?', [
+        ctx.game.id,
+        p.id,
+      ]);
   const lance = [];
   for (const i of [0, 1]) {
     const res = await cast(membres(i)[0].token, {

@@ -36,6 +36,7 @@ const {
   createPasswordResetToken,
   consumePasswordResetToken,
   getPasswordMinLength,
+  getPasswordMinLengthFor,
   makeResetUrl,
   forgotPasswordAllowed,
 } = require('../../lib/passwordReset');
@@ -423,7 +424,7 @@ router.post(
       const session = await issueGlGuestSession();
       return res.json({ ok: true, authToken: session.authToken, auth: session.auth });
     } catch (err) {
-      logRouteError(req, err, 'gl.auth.guest');
+      logRouteError(err, req, 'gl.auth.guest');
       return res.status(500).json({ error: 'Impossible d’ouvrir le mode découverte' });
     }
   }),
@@ -613,8 +614,9 @@ router.post(
 
     const teacherId = await consumePasswordResetToken('teacher', token);
     if (teacherId) {
-      // G7 : le token appartient à un enseignant → minimum staff renforcé.
-      const staffMinLen = Math.max(8, minPasswordLen);
+      // G7 : le token appartient à un enseignant → même plancher que ForetMap (même
+      // `users.password_hash`), jamais inférieur à celui des comptes à privilèges.
+      const staffMinLen = await getPasswordMinLengthFor('teacher');
       if (String(password).length < staffMinLen) {
         return res
           .status(400)
@@ -1108,6 +1110,8 @@ router.patch(
       }
 
       const pseudo = hasPseudo ? normalizeOptionalString(body.pseudo) : account.pseudo;
+      // `gl_players.pseudo` est NOT NULL : un pseudo fourni mais vide est une saisie invalide.
+      if (hasPseudo && !pseudo) return res.status(400).json({ error: 'Pseudo requis' });
       const email = hasEmail ? normalizeEmail(body.email) : account.email;
       const description = hasDescription
         ? normalizeOptionalString(body.description)
@@ -1290,8 +1294,9 @@ router.post(
     if (!currentPassword || !nextPassword) {
       return res.status(400).json({ error: 'Mot de passe actuel et nouveau requis' });
     }
-    // G7 : comptes staff (MJ/Admin) — minimum renforcé (8, ou le réglage global s'il est plus strict).
-    const staffMinLen = Math.max(8, await getPasswordMinLength());
+    // G7 : comptes staff (MJ/Admin) — plancher des comptes à privilèges de ForetMap (le mot
+    // de passe écrit est celui du compte enseignant lié).
+    const staffMinLen = await getPasswordMinLengthFor('teacher');
     if (nextPassword.length < staffMinLen) {
       return res
         .status(400)

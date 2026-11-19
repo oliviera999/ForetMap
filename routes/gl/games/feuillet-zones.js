@@ -76,7 +76,7 @@ router.post(
     if (!allowed) return res.status(403).json({ error: 'Accès partie refusé' });
 
     const game = await queryOne(
-      `SELECT g.id, g.chapter_id, g.status,
+      `SELECT g.id, g.chapter_id, g.status, g.tenir_profil,
             g.lore_gemme_costs_enabled, g.lore_heart_rewards_enabled,
             g.lore_effacement_enabled, g.lore_feuillet_retrigger,
             ch.plateau_number AS chapter_plateau_number

@@ -369,3 +369,49 @@ test('remboursement d’un sort : bourses et réserve à l’identique, livre é
     .send({ spellCode: 'SL037', teamId: team.id });
   assert.equal(d2.status, 201, JSON.stringify(d2.body));
 });
+
+test('remboursement d’un sort : une bourse remplie entre-temps ne dépasse pas le plafond, le surplus va à la réserve', async () => {
+  const team = equipe(3); // l'autre équipe licorne : sa Lanterne du tour est encore libre
+  const joueurs = membres(team.id);
+  const plafond = Number((await getGameplaySettings()).maxPowerPoints) || 0;
+  assert.ok(plafond > 0, 'la partie a un plafond de gemmes');
+  const d = await request(app)
+    .post(api('/spell-casts/drafts'))
+    .set(auth(joueurs[0].token))
+    .send({ spellCode: 'SL037', teamId: team.id });
+  assert.equal(d.status, 201, JSON.stringify(d.body));
+  const l = await request(app)
+    .post(api(`/spell-casts/drafts/${d.body.draft.id}/launch`))
+    .set(auth(joueurs[0].token));
+  assert.equal(l.status, 200, JSON.stringify(l.body));
+  const verse = await db.queryAll(
+    'SELECT player_id, gems FROM gl_spell_cast_contributions WHERE draft_id = ? AND gems > 0',
+    [d.body.draft.id],
+  );
+  const total = verse.reduce((a, c) => a + Number(c.gems), 0);
+  assert.ok(total > 0, 'le pot a payé en gemmes');
+  // Entre le paiement et le refus du prof, les bourses des payeurs se sont remplies.
+  for (const c of verse) {
+    await db.execute('UPDATE gl_players SET power_points = ? WHERE id = ?', [plafond, c.player_id]);
+  }
+  const reserveAvant = await db.queryOne(
+    'SELECT reserve_power FROM gl_game_team_reserves WHERE game_id = ? AND team_id = ?',
+    [ctx.game.id, team.id],
+  );
+  await db.withTransaction((tx) =>
+    rembourserCastTx(tx, { gameId: ctx.game.id, draftId: d.body.draft.id }),
+  );
+  for (const c of verse) {
+    const p = await db.queryOne('SELECT power_points FROM gl_players WHERE id = ?', [c.player_id]);
+    assert.equal(Number(p.power_points), plafond, 'jamais au-dessus du plafond');
+  }
+  const reserveApres = await db.queryOne(
+    'SELECT reserve_power FROM gl_game_team_reserves WHERE game_id = ? AND team_id = ?',
+    [ctx.game.id, team.id],
+  );
+  assert.equal(
+    Number(reserveApres?.reserve_power) || 0,
+    (Number(reserveAvant?.reserve_power) || 0) + total,
+    'le surplus du remboursement va à la réserve de l’équipe',
+  );
+});

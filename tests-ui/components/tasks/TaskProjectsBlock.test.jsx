@@ -19,6 +19,7 @@ vi.mock('../../../src/components/TutorialPreviewModal', () => ({
 }));
 
 import { TaskProjectsBlock } from '../../../src/components/tasks/TaskProjectsBlock.jsx';
+import { computeProjectStepInfo } from '../../../src/utils/taskProjectSteps.js';
 
 const PROJECTS = [
   { id: 'p1', title: 'Semis de printemps', status: 'active', map_id: 'foret', map_label: 'Forêt' },
@@ -103,5 +104,39 @@ describe('TaskProjectsBlock', () => {
     await user.click(toggle);
     expect(toggle).toHaveAttribute('aria-expanded', 'false');
     expect(screen.queryByTestId('task-tile-t1')).not.toBeInTheDocument();
+  });
+
+  test('flèches ↑↓ (prof gestionnaire) : bornées par les étapes du titre', async () => {
+    const user = userEvent.setup();
+    const onMoveProjectTask = vi.fn();
+    const tasks = [
+      { id: 'a', title: '1 préparer' },
+      { id: 'b', title: '2 semer A' },
+      { id: 'c', title: '2 semer B' },
+    ];
+    renderBlock({
+      isTeacher: true,
+      canReorderProjectTasks: true,
+      onMoveProjectTask,
+      projectTasksById: new Map([['p1', tasks]]),
+      stepInfoByTaskId: computeProjectStepInfo(tasks),
+    });
+    await user.click(screen.getByRole('button', { name: /Semis de printemps/i }));
+    // « 1 » ne monte ni ne descend (l'étape suivante est « 2 »).
+    expect(screen.getByRole('button', { name: 'Monter « 1 préparer »' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Descendre « 1 préparer »' })).toBeDisabled();
+    // Les deux tâches parallèles « 2 » s'échangent.
+    expect(screen.getByRole('button', { name: 'Monter « 2 semer A »' })).toBeDisabled();
+    await user.click(screen.getByRole('button', { name: 'Descendre « 2 semer A »' }));
+    expect(onMoveProjectTask).toHaveBeenLastCalledWith('c', 'p1', 'b');
+    await user.click(screen.getByRole('button', { name: 'Monter « 2 semer B »' }));
+    expect(onMoveProjectTask).toHaveBeenLastCalledWith('c', 'p1', 'b');
+  });
+
+  test('pas de flèches sans le droit de réordonner', async () => {
+    const user = userEvent.setup();
+    renderBlock({ isTeacher: true, canReorderProjectTasks: false });
+    await user.click(screen.getByRole('button', { name: /Semis de printemps/i }));
+    expect(screen.queryByRole('button', { name: /^Monter/ })).toBeNull();
   });
 });

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAppDialogs } from '../components/AppDialogsProvider.jsx';
 import { useDebouncedAutoSave } from '../hooks/useDebouncedAutoSave.js';
 import {
@@ -21,6 +21,10 @@ import { compressImageWithPreset, isLikelyImageFile } from '../platform/image.js
  * @param {import('./journalAdapter.js').JournalAdapter} params.adapter
  * @param {object} [params.extraValue] champs produit joints à l'auto-save et au `PUT` (ex. `{ zoneId }`)
  * @param {(saved: object) => void} [params.onSaved] reçoit l'article renvoyé par le serveur
+ * @param {(articleId: string|number, patch: object) => void} [params.onArticleChange] reporte
+ *   l'article dans le fil (`useJournalFeed().applyArticle`) : à chaque enregistrement, et à la
+ *   fermeture de l'éditeur avec la saisie du moment (la carte de lecture qui prend le relais
+ *   montre ce qui vient d'être écrit, même si le dernier enregistrement est encore en vol)
  * @param {(err: Error) => void} [params.onApiError] hook d'erreur produit (compte supprimé…)
  * @param {object} [params.embedOptions] options d'`applyJournalEmbed` (ex. `{ variant: 'fm' }`)
  * @param {(articleId: string|number) => Promise<unknown>} [params.onDelete]
@@ -32,6 +36,7 @@ export function useJournalArticleEditor({
   adapter,
   extraValue = null,
   onSaved,
+  onArticleChange,
   onApiError,
   embedOptions,
   onDelete,
@@ -67,28 +72,67 @@ export function useJournalArticleEditor({
   const extraKey = JSON.stringify(extraValue ?? null);
   const extraFields = useMemo(() => (extraValue ? { ...extraValue } : {}), [extraKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Dernière saisie connue, lue à la réponse du serveur et à la fermeture de l'éditeur.
+  const latestRef = useRef({ title, body, assets, usage, updatedAt, extraFields });
+  latestRef.current = { title, body, assets, usage, updatedAt, extraFields };
+  const onArticleChangeRef = useRef(onArticleChange);
+  onArticleChangeRef.current = onArticleChange;
+
   const persist = useCallback(async () => {
+    const sentTitle = title;
+    const sentBody = body;
     try {
       const data = await adapter.updateArticle(article.id, {
-        title,
-        bodyMarkdown: body,
+        title: sentTitle,
+        bodyMarkdown: sentBody,
         ...extraFields,
       });
       const saved = data?.article;
-      const nextTitle = saved?.title ?? title;
-      const nextBody = typeof saved?.bodyMarkdown === 'string' ? saved.bodyMarkdown : body;
-      setTitle(nextTitle);
-      setBody(nextBody);
+      // La saisie a pu continuer pendant la requête : ne pas l'écraser par la réponse. Le titre
+      // local reste affiché tel quel (le serveur ne fait que le rogner — le remplacer mangeait
+      // l'espace qu'on venait de taper) ; le corps renvoyé (URL d'illustrations réécrites,
+      // images refusées retirées) n'est repris que si rien n'a bougé depuis l'envoi.
+      const bodyUnchanged = latestRef.current.body === sentBody;
+      const nextBody =
+        bodyUnchanged && typeof saved?.bodyMarkdown === 'string' ? saved.bodyMarkdown : sentBody;
+      if (bodyUnchanged && nextBody !== sentBody) setBody(nextBody);
       if (saved?.usage) setUsage(saved.usage);
       if (Array.isArray(saved?.assets)) setAssets(saved.assets);
       if (saved?.updatedAt) setUpdatedAt(saved.updatedAt);
-      if (saved) onSaved?.(saved);
-      return { title: nextTitle, body: nextBody, ...extraFields };
+      if (saved) {
+        onSaved?.(saved);
+        // Réponse d'un envoi dépassé (saisie poursuivie, ou éditeur fermé entre-temps) : le
+        // fil garde la saisie la plus récente, l'envoi suivant la portera au serveur.
+        const latest = latestRef.current;
+        onArticleChangeRef.current?.(article.id, {
+          ...saved,
+          title: latest.title === sentTitle ? (saved.title ?? sentTitle) : latest.title,
+          bodyMarkdown: bodyUnchanged ? nextBody : latest.body,
+        });
+      }
+      return { title: sentTitle, body: nextBody, ...extraFields };
     } catch (err) {
       onApiError?.(err);
       throw err;
     }
   }, [adapter, article.id, title, body, extraFields, onSaved, onApiError]);
+
+  // Fermeture de l'éditeur (« Terminer », autre article ouvert) : la carte de lecture affiche
+  // la saisie du moment ; la réponse de l'enregistrement de sortie la remplacera ensuite.
+  useEffect(() => {
+    const articleId = article.id;
+    return () => {
+      const last = latestRef.current;
+      onArticleChangeRef.current?.(articleId, {
+        title: last.title,
+        bodyMarkdown: last.body,
+        assets: last.assets,
+        usage: { ...last.usage, charCount: [...last.body].length },
+        ...(last.updatedAt ? { updatedAt: last.updatedAt } : {}),
+        ...last.extraFields,
+      });
+    };
+  }, [article.id]);
 
   const autoSaveValue = useMemo(
     () => ({ title, body, ...extraFields }),

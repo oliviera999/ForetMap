@@ -136,7 +136,10 @@ masse, et programmer des **tâches récurrentes** (générées automatiquement l
   professeurs selon leur périmètre. Les illustrations d'un article — photos jointes comme
   images insérées dans le texte — s'affichent dans toutes les vues de lecture (carte, livre,
   fenêtre de lecture) ; elles restent privées et ne sont visibles que des personnes autorisées
-  à lire le carnet.
+  à lire le carnet. Une image insérée dans le texte n'est montrée qu'une fois (les vignettes
+  sous le texte ne reprennent que les illustrations absentes du texte). Un article s'écrit
+  sans bouton « Publier » : il s'enregistre tout seul pendant la frappe, et « Terminer »
+  affiche aussitôt le titre et le texte qui viennent d'être écrits.
 
 ### La Visite (le mode grand public)
 

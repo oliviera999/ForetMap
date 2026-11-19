@@ -58,7 +58,7 @@ describe('GLTenirEquipeView', () => {
     expect(screen.queryByText(/joueur-b/)).toBeNull();
   });
 
-  test('hybride hors fenêtre : fouiller grisé, lancer/répondre grisés, lire ouvert', async () => {
+  test('droits fermés : fouiller, lancer et répondre grisés, lire ouvert', async () => {
     render(
       <GLTenirEquipeView
         gameState={gameState}
@@ -412,5 +412,155 @@ describe('GLTenirEquipeView', () => {
     );
     await waitFor(() => expect(screen.getByTestId('gl-tenir-equipe')).toBeInTheDocument());
     expect(screen.queryByTestId('gl-tenir-jet-suspens')).toBeNull();
+  });
+
+  /**
+   * Audit du 19/11/2026, J4 — le prof change la phase ou règle le sablier : l'état de la partie
+   * (`tenir.round`, `tenir.sablier`) se recharge par le temps réel, pas l'instantané du tour de
+   * cet écran, relu seulement après un geste de l'équipe.
+   */
+  describe('J4 : l’écran suit le tour servi par l’état de la partie', () => {
+    const permissions = { jeter: true, lancer: true, repondre: true, fouiller: true, lire: true };
+    const sablier = { actif: true, phase: { secondes: 300, restantSecondes: 280, enPause: false } };
+    function lectures() {
+      return apiGlMock.mock.calls.filter(([p]) => String(p).endsWith('/tenir/tour')).length;
+    }
+
+    test('la phase passée par le prof s’affiche, sablier compris, même si l’instantané date', async () => {
+      // L'instantané du tour reste celui de l'ouverture (pire cas : la relecture échoue ou tarde).
+      apiGlMock.mockResolvedValue({ round: { number: 1, phase: 'ouverture' }, sablier: null });
+      const ouverture = tenirWith(permissions, { round: { number: 1, phase: 'ouverture' } });
+      const { rerender } = render(
+        <GLTenirEquipeView
+          gameState={gameState}
+          tenir={ouverture}
+          teamId={2}
+          onReloadGame={vi.fn()}
+        />,
+      );
+      await waitFor(() => expect(screen.getByText(/Tour 1 — ouverture/)).toBeInTheDocument());
+      await waitFor(() => expect(lectures()).toBe(1));
+
+      rerender(
+        <GLTenirEquipeView
+          gameState={{ ...gameState, events: [{ id: 5, eventType: 'tour_phase' }] }}
+          tenir={tenirWith(permissions, { round: { number: 1, phase: 'jeu' }, sablier })}
+          teamId={2}
+          onReloadGame={vi.fn()}
+        />,
+      );
+      expect(screen.getByText(/Tour 1 — jeu/)).toBeInTheDocument();
+      expect(screen.getByTestId('gl-sablier-phase')).toBeInTheDocument();
+      // Et l'instantané (cases à venir, présences) est relu sans geste de l'équipe.
+      await waitFor(() => expect(lectures()).toBe(2));
+    });
+
+    test('un tour suivant ouvert par le prof remplace l’instantané du tour précédent', async () => {
+      apiGlMock.mockResolvedValue({
+        round: { number: 1, phase: 'clos', questionsEnAttente: [{ teamId: 2, markerId: 31 }] },
+      });
+      const { rerender } = render(
+        <GLTenirEquipeView
+          gameState={gameState}
+          tenir={tenirWith(permissions, { round: { number: 1, phase: 'clos' } })}
+          teamId={2}
+          onReloadGame={vi.fn()}
+        />,
+      );
+      await waitFor(() => expect(screen.getByText(/Tour 1 — tour clos/)).toBeInTheDocument());
+      await waitFor(() =>
+        expect(screen.getByRole('button', { name: 'Répondre à la question' })).toBeInTheDocument(),
+      );
+      rerender(
+        <GLTenirEquipeView
+          gameState={gameState}
+          tenir={tenirWith(permissions, { round: { number: 2, phase: 'ouverture' } })}
+          teamId={2}
+          onReloadGame={vi.fn()}
+        />,
+      );
+      expect(screen.getByText(/Tour 2 — ouverture/)).toBeInTheDocument();
+      // La question due au tour précédent n'est pas reportée sur le nouveau tour.
+      expect(screen.queryByRole('button', { name: 'Répondre à la question' })).toBeNull();
+      expect(screen.getByRole('button', { name: 'Répondre' }).disabled).toBe(true);
+    });
+
+    test('aucun tour ouvert : le message d’attente reste', async () => {
+      apiGlMock.mockResolvedValue({ round: null });
+      render(
+        <GLTenirEquipeView
+          gameState={gameState}
+          tenir={tenirWith(permissions, { round: { number: 0, phase: null } })}
+          teamId={2}
+          onReloadGame={vi.fn()}
+        />,
+      );
+      await waitFor(() => expect(screen.getByTestId('gl-tenir-equipe')).toBeInTheDocument());
+      await waitFor(() => expect(lectures()).toBe(1));
+      expect(screen.getByText(/Aucun tour ouvert : attends le prof/)).toBeInTheDocument();
+    });
+  });
+
+  /**
+   * Audit du 19/11/2026, J7 — « Jet saisi : en attente du clic du prof » était un état local posé
+   * après le 202 et jamais retiré : il restait après la validation ou le refus du prof.
+   */
+  describe('J7 : l’attente du clic du prof suit les dés en attente du tour', () => {
+    const permissions = { jeter: true, lancer: true, repondre: true, fouiller: true, lire: true };
+    const physique = { settings: { des_count: 2, des_mode_effectif: 'physique' } };
+    const enAttente = [{ id: 4, teamId: 2, mode: 'physique', faces: [1, 1], total: 2 }];
+
+    test('le message disparaît quand le prof a validé (ou refusé) le jet', async () => {
+      let round = { number: 1, phase: 'jeu', desEnAttente: [] };
+      apiGlMock.mockImplementation(async (path, method) => {
+        if (method === 'POST' && String(path).endsWith('/tenir/lancer')) {
+          round = { ...round, desEnAttente: enAttente };
+          return { enAttente: true };
+        }
+        return { round };
+      });
+      const vue = (r) => (
+        <GLTenirEquipeView
+          gameState={gameState}
+          tenir={tenirWith(permissions, { ...physique, round: r })}
+          teamId={2}
+          onReloadGame={vi.fn()}
+        />
+      );
+      const { rerender } = render(vue(round));
+      await waitFor(() => expect(screen.getByTestId('gl-tenir-equipe')).toBeInTheDocument());
+      fireEvent.click(screen.getByRole('button', { name: 'Lancer' }));
+      fireEvent.click(await screen.findByRole('button', { name: /Saisir le jet/ }));
+      // Le geste recharge l'état de la partie : la saisie y figure, en attente.
+      await waitFor(() => expect(round.desEnAttente).toHaveLength(1));
+      rerender(vue(round));
+      expect(await screen.findByText(/Jet saisi : en attente du clic du prof/)).toBeInTheDocument();
+
+      // Le prof valide : la saisie quitte la file, l'état de la partie se recharge.
+      round = { number: 1, phase: 'jeu', desEnAttente: [] };
+      rerender(vue(round));
+      await waitFor(() =>
+        expect(screen.queryByText(/Jet saisi : en attente du clic du prof/)).toBeNull(),
+      );
+    });
+
+    test('le message s’affiche aussi sur un second appareil de l’équipe, pas pour une autre équipe', async () => {
+      apiGlMock.mockResolvedValue({ round: { number: 1, phase: 'jeu' } });
+      const vue = (desEnAttente) => (
+        <GLTenirEquipeView
+          gameState={gameState}
+          tenir={tenirWith(permissions, {
+            ...physique,
+            round: { number: 1, phase: 'jeu', desEnAttente },
+          })}
+          teamId={2}
+          onReloadGame={vi.fn()}
+        />
+      );
+      const { rerender } = render(vue(enAttente));
+      expect(await screen.findByText(/Jet saisi : en attente du clic du prof/)).toBeInTheDocument();
+      rerender(vue([{ ...enAttente[0], teamId: 9 }]));
+      expect(screen.queryByText(/Jet saisi : en attente du clic du prof/)).toBeNull();
+    });
   });
 });

@@ -7,7 +7,7 @@
  */
 
 require('./helpers/setup');
-const { test, before } = require('node:test');
+const { test, before, mock } = require('node:test');
 const assert = require('node:assert');
 const request = require('supertest');
 const { app } = require('../server');
@@ -243,11 +243,28 @@ test('un pseudo de démo pris par une autre classe fait échouer la préparation
     'demo-gnome-1',
   ]);
   try {
-    const res = await request(app)
-      .post('/api/gl/admin/demo/reset')
-      .set('Authorization', `Bearer ${adminToken}`)
-      .expect(409);
-    assert.match(res.body.error, /demo-gnome-1/);
+    // Audit 19/11 A10 : l'erreur réelle part au journal (arguments dans le bon ordre), le
+    // client ne reçoit qu'un message générique.
+    const logger = require('../lib/logger');
+    const spy = mock.method(logger, 'error', () => {});
+    let res;
+    try {
+      res = await request(app)
+        .post('/api/gl/admin/demo/reset')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(409);
+    } finally {
+      spy.mock.restore();
+    }
+    assert.strictEqual(res.body.error, 'Préparation de la démonstration impossible');
+    const logged = spy.mock.calls
+      .map((call) => call.arguments)
+      .find((args) => args[1] === 'gl.admin.demo.reset');
+    assert.ok(logged, 'erreur journalisée sous gl.admin.demo.reset');
+    assert.ok(logged[0].err instanceof Error);
+    assert.match(logged[0].err.message, /demo-gnome-1/);
+    assert.strictEqual(logged[0].path, '/demo/reset');
+    assert.strictEqual(logged[0].method, 'POST');
   } finally {
     await execute('UPDATE gl_players SET class_id = ? WHERE pseudo = ?', [
       summary.classId,

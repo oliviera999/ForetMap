@@ -8,7 +8,7 @@ import { buildJournalExport } from './journalExport.js';
 import { buildJournalTimeline } from './journalFeed.js';
 import { useJournalEmbedTitles } from './useJournalEmbedTitles.js';
 import { JournalBookView } from './JournalBookView.jsx';
-import { useHtmlAsIs } from './journalImages.js';
+import { useHtmlAsIs, assetsNotInBody } from './journalImages.js';
 
 function ReadArticle({
   article,
@@ -36,7 +36,7 @@ function ReadArticle({
   const p = ui.classPrefix;
   const extra = typeof articleExtraLine === 'function' ? articleExtraLine(article) : null;
   const usage = article.usage && typeof article.usage === 'object' ? article.usage : null;
-  const assets = Array.isArray(article.assets) ? article.assets : [];
+  const assets = assetsNotInBody(article.assets, article.bodyMarkdown);
   return (
     <article className={`${p}-read-article`}>
       <header>
@@ -47,8 +47,8 @@ function ReadArticle({
           {usage ? (
             <>
               {' · '}
-              {usage.charCount ?? 0} caractères · {usage.assetCount ?? assets.length}{' '}
-              illustration(s)
+              {usage.charCount ?? 0} caractères ·{' '}
+              {usage.assetCount ?? (article.assets?.length || 0)} illustration(s)
             </>
           ) : null}
         </p>

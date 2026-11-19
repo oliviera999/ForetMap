@@ -194,19 +194,6 @@ export function TeacherTopTabs({
       visible: fresqueEnabled && (canPlants || canStats),
     },
     {
-      id: 'individuals',
-      pole: 'tracking',
-      Icon: IconBiodiv,
-      label: 'Individus',
-      // Deux conditions cumulées : le niveau pédagogique (masqué au collège) ET l'interrupteur.
-      visible:
-        individualsEnabled &&
-        (hasPermission('individuals.manage') ||
-          hasPermission('individuals.measure') ||
-          canPlants) &&
-        canShow('individuals_tab'),
-    },
-    {
       id: 'tuto',
       pole: 'contents',
       Icon: IconTuto,
@@ -241,6 +228,20 @@ export function TeacherTopTabs({
       label: tasksText,
       badge: true,
       visible: canTasks,
+    },
+    /* Après « Tâches » : le pôle Suivi s'ouvre sur les tâches (premier onglet visible). */
+    {
+      id: 'individuals',
+      pole: 'tracking',
+      Icon: IconBiodiv,
+      label: 'Individus',
+      // Deux conditions cumulées : le niveau pédagogique (masqué au collège) ET l'interrupteur.
+      visible:
+        individualsEnabled &&
+        (hasPermission('individuals.manage') ||
+          hasPermission('individuals.measure') ||
+          canPlants) &&
+        canShow('individuals_tab'),
     },
     { id: 'stats', pole: 'tracking', Icon: IconStats, label: 'Stats', visible: canStats },
     {

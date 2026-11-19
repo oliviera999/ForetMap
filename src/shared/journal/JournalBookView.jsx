@@ -6,7 +6,7 @@ import { buildJournalTimeline } from './journalFeed.js';
 import { filterRowsByLocalPeriod } from './journalPeriod.js';
 import { useJournalEmbedTitles } from './useJournalEmbedTitles.js';
 import { getBrandOrgName } from '../brand/brandNames.js';
-import { useHtmlAsIs } from './journalImages.js';
+import { useHtmlAsIs, assetsNotInBody } from './journalImages.js';
 
 function BookArticlePage({
   article,
@@ -31,7 +31,7 @@ function BookArticlePage({
   const Img = ImageComponent;
   const p = ui.classPrefix;
   const extra = typeof articleExtraLine === 'function' ? articleExtraLine(article) : null;
-  const assets = Array.isArray(article.assets) ? article.assets : [];
+  const assets = assetsNotInBody(article.assets, article.bodyMarkdown);
   const title = String(article.title || '').trim() || 'Article sans titre';
   return (
     <section className={`${p}-book__page`} id={`journal-book-a-${article.id}`}>

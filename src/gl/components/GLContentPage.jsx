@@ -57,8 +57,14 @@ export function GLContentPage({
       bodyMarkdown: draftBody,
     });
     setContent(data);
-    setDraftTitle(String(data?.title || titleTrim));
-    setDraftBody(String(data?.bodyMarkdown || draftBody));
+    // La version du serveur ne remplace un champ que s'il n'a pas bougé depuis l'envoi : une
+    // frappe saisie pendant la requête n'est plus écrasée (audit des bugs G&L 2026-11-19, E5).
+    setDraftTitle((current) =>
+      current === draftTitle ? String(data?.title || titleTrim) : current,
+    );
+    setDraftBody((current) =>
+      current === draftBody ? String(data?.bodyMarkdown || draftBody) : current,
+    );
     setSavedMessage('Contenu enregistré.');
     if (typeof onSaved === 'function') onSaved(data);
     return {
