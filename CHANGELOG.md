@@ -27,6 +27,7 @@ Constats de `docs/AUDIT_BUGS_FORETMAP_2026-11-19.md` § 4 ; tests `tests/audit-f
   transaction, sous verrou de la ligne parente (`SELECT … FOR UPDATE`). Le fichier d'un envoi
   refusé est supprimé. Les noms de fichier des illustrations portent un suffixe aléatoire (deux
   envois de la même milliseconde pouvaient viser le même fichier).
+
 ### Corrigé — audit ForetMap du 19/11, lot 9 (quiz, liens d'apprentissage, verrouillage)
 
 - **P1 — Contrôle de compréhension sans compte** : la présentation et la réponse « avec
