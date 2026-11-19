@@ -9,6 +9,36 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — audit ForetMap du 19/11, lot 4 (profils RBAC, groupes, import et fusion de comptes)
+
+- **A1** — L'import de comptes ne réécrit plus un compte existant de rang égal ou supérieur à
+  celui de l'importateur (le plus haut des profils effectif et attribué : un compte élève
+  porteur d'un profil `admin` ou `prof` compris) ; la ligne passe en erreur. Un changement
+  d'e-mail par import révoque les sessions, consomme les liens « mot de passe oublié » et
+  avertit l'ancienne adresse (`applyEmailChangeEffects`).
+- **A2** — `PATCH /api/rbac/profiles/:id` : hors administrateur, refus (403) sur un profil de
+  rang actuel égal ou supérieur à celui de l'acteur, comme `PUT …/permissions`.
+- **A4** — Un simple membre d'un groupe (sans `groups.read` / `groups.manage`) ne voit plus,
+  dans `GET /api/groups` et `GET /api/groups/:id/members`, que les **prénoms** des membres de
+  son propre groupe — ni nom, ni id, ni profil, ni état, rien des sous-groupes.
+- **Retrait d'un membre de groupe** (décision du 19/11) : `PUT /api/groups/:id/members` et
+  `DELETE /api/groups/:id/members/:userId` refusent (403), hors administrateur, de retirer un
+  compte de rang égal ou supérieur à celui de l'acteur.
+- **A6** — Un administrateur désactivé se rétrograde et se supprime : la garde « dernier
+  administrateur actif » ne joue plus que pour une cible active.
+- **A8** — `POST /api/rbac/users/bulk-role` : une entrée sans `id` donne une ligne
+  `ok: false` « id requis » au lieu d'un 500 sur tout le lot.
+- **A11** — Supprimer un sous-groupe rattache ses enfants au parent du groupe supprimé au lieu
+  d'en faire des racines.
+- **A12** — Fusion de comptes : les profils du compte absorbé sont abandonnés avant la
+  réattribution (plus de double profil principal), puis le profil effectif du compte gardé est
+  recalculé.
+- **A13** — `PATCH /api/rbac/users/:userType/:userId` : le rang de la cible est le plus haut des
+  profils effectif et attribué, et le compte doit être dans le périmètre de groupe de l'acteur
+  (comme `reset-password-link`).
+
+Tests : `tests/audit-fm-lot4-rbac-groupes.test.js`.
+
 ### Modifié — G&L : en hybride, les dés aussi sur la tablette (19 novembre 2026)
 
 Sur décision du prof : en surface hybride, un membre de l'équipe lance les dés depuis sa

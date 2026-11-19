@@ -344,11 +344,17 @@ Les groupes structurent la vie pédagogique :
   Un prof de classe ne peut ajouter à ses groupes que des comptes déjà présents dans son
   périmètre, ou des élèves qui n'ont encore **aucune** classe ; l'élève d'une autre classe
   est refusé (« Utilisateur hors périmètre »). L'administrateur et le n3boss ne sont pas
-  limités.
+  limités. Pour **retirer** quelqu'un d'un groupe, il faut un rang **strictement
+  supérieur** au sien : un prof de classe retire ses élèves, pas un autre prof de classe ni
+  un n3boss. Seul l'administrateur retire n'importe qui.
+- **Ce que voit un élève** : un élève membre d'un groupe n'en voit que les **prénoms** des
+  membres, pour son propre groupe seulement — ni nom de famille, ni profil, ni les
+  sous-groupes. La liste complète reste réservée aux comptes qui ont la lecture des groupes.
 - **Parent** : dans le panneau de réglages, un groupe peut être **rattaché à un groupe
   parent** (une équipe sous sa classe) ou **détaché** (« Aucun parent »). Un groupe ne peut
   pas devenir son propre descendant, et un prof de classe ne rattache qu'à un parent de
-  son périmètre.
+  son périmètre. Quand on **supprime** un sous-groupe, ses propres sous-groupes remontent
+  d'un cran, sous le parent du groupe supprimé : ils restent dans la classe.
 - **Classes racines** : sans la vue globale, un prof de classe ne crée pas de classe de
   premier niveau. Par cohérence, il ne peut pas non plus en fabriquer ou en faire
   disparaître autrement : il ne **détache** pas un sous-groupe de sa classe, ne
@@ -543,10 +549,12 @@ sous-onglet consulté qui est rouvert.
     seul un administrateur attribue ou retire `administrateur`, hors administrateur on
     n'attribue qu'un profil de rang **strictement inférieur** au sien (un n3boss ne nomme
     pas d'autre n3boss, y compris en dupliquant un compte), et le **dernier administrateur actif** ne peut
-    être ni rétrogradé, ni désactivé, ni supprimé. Hors administrateur, on ne change pas
+    être ni rétrogradé, ni désactivé, ni supprimé (un administrateur **déjà désactivé**, lui,
+    se rétrograde ou se supprime librement). Hors administrateur, on ne change pas
     non plus le profil d'un compte **déjà** de rang égal ou supérieur au sien (un délégué
     ne rétrograde pas un supérieur), et on ne modifie pas les permissions d'un profil de
-    rang égal ou supérieur au sien (depuis le 30 septembre 2026).
+    rang égal ou supérieur au sien (depuis le 30 septembre 2026), ni ses autres réglages (rang,
+    nom…) — depuis le 19 novembre 2026.
   - **Le résultat s'affiche sur la ligne concernée** (« Profil enregistré », ou le
     motif du refus) plutôt qu'en haut de page, où il était invisible dès qu'on avait
     fait défiler. Une seule ligne se met en attente pendant son enregistrement : les
@@ -608,7 +616,12 @@ sous-onglet consulté qui est rouvert.
   l'adresse ou le pseudo déjà en place. Un n3boss **ne peut pas** modifier un
   compte administrateur par ce fichier (mot de passe, profil, coordonnées) — seul
   un administrateur le peut ; le dernier administrateur ne peut pas être
-  rétrogradé. Un administrateur peut aussi autoriser des **mots de passe plus courts**
+  rétrogradé. Plus largement, l'import ne modifie **aucun** compte existant dont le profil
+  (actuel ou attribué) est de rang égal ou supérieur à celui de la personne qui importe —
+  y compris un compte élève à qui l'on a donné un profil de prof ou d'administrateur : la
+  ligne est signalée en erreur. Quand l'import change l'adresse e-mail d'un compte, les
+  sessions ouvertes sont coupées et l'ancienne adresse reçoit un courriel d'avertissement.
+  Un administrateur peut aussi autoriser des **mots de passe plus courts**
   que le plancher habituel — dans **Réglages → Imports de comptes**. Le modèle
   téléchargeable contient **un exemple par profil et par situation** (profil écrit en
   slug ou en toutes lettres, une ou plusieurs classes, sous-groupe « classe >
