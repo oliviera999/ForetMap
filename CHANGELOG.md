@@ -9,6 +9,32 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — Carnet : article publié affiché « sans titre » et vide (19 novembre 2026)
+
+Après « + Nouvel article », saisie puis « Terminer », la carte de lecture affichait
+**« Article sans titre »** et **« Article sans texte »** : l'article était bien enregistré
+au serveur, mais le fil (`useJournalFeed`) gardait l'article tel qu'il avait été créé — vide —
+jusqu'au rechargement de la page. Le même défaut touchait le journal G&L (hooks partagés).
+
+- **Fil** : nouvelle action `applyArticle(id, patch)` ; l'éditeur (`useJournalArticleEditor`,
+  option `onArticleChange`) y reporte chaque enregistrement et, à la fermeture, la saisie du
+  moment — la carte de lecture montre ce qui vient d'être écrit même si le dernier envoi est
+  encore en vol. Branché dans `UserJournalView` et `GLPlayerJournalView`.
+- **Frappe perdue** : la réponse d'un enregistrement remplaçait le titre et le texte par ce qui
+  avait été envoyé — les caractères tapés pendant la requête disparaissaient, et l'espace en
+  fin de titre était mangé (le serveur rogne le titre). La saisie locale fait désormais foi.
+- **Images en double** : une image insérée dans le texte réapparaissait en vignette sous
+  l'article (carte, livre, fenêtre de lecture). Les vignettes ne gardent que les illustrations
+  absentes du texte (`assetsNotInBody`).
+- **API** : `PUT /api/user-journal/me/articles/:id` sans `bodyMarkdown` effaçait le texte ; un
+  champ absent le laisse inchangé (comme `title` et `zoneId`). `GET /api/user-journal/users/:id`
+  comparait les identifiants (UUID) avec `Number()` : un compte sans permission de lecture se
+  voyait refuser son propre carnet.
+
+Tests : `tests-ui/components/journal/UserJournalPublish.test.jsx`,
+`tests-ui/shared/journal/journalImages.test.js`, `tests/user-journal.test.js`. Doc :
+`docs/API.md`, `docs/reference/foretmap/presentation.md`.
+
 ### Corrigé — G&L : droits du tour rejoués par le serveur (audit du 19 novembre 2026, lot 2)
 
 Six constats de l'audit des bugs de Gnomes & Licornes, mouture « Tenir à deux ». Chacun a son
