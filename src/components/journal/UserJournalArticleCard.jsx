@@ -36,6 +36,7 @@ export function UserJournalArticleCard({
   editing = false,
   onStartEdit = null,
   onStopEdit = null,
+  onArticleChange = null,
   onDelete,
   onTogglePin,
   onForceLogout,
@@ -70,6 +71,7 @@ export function UserJournalArticleCard({
       onTogglePin={togglePin}
       onForceLogout={onForceLogout}
       onStopEdit={onStopEdit}
+      onArticleChange={onArticleChange}
       adapter={adapter}
     />
   );
@@ -83,13 +85,13 @@ function UserJournalArticleEditor({
   onTogglePin,
   onForceLogout,
   onStopEdit = null,
+  onArticleChange = null,
   adapter = userJournalAdapter,
 }) {
   const [zoneId, setZoneId] = useState(article.zoneId || '');
   const extraValue = useMemo(() => ({ zoneId: zoneId || null }), [zoneId]);
-  const onSaved = useCallback((saved) => {
-    if (saved?.zoneId !== undefined) setZoneId(saved.zoneId || '');
-  }, []);
+  // Pas de reprise de la zone renvoyée par le serveur : elle est celle envoyée, et la reprendre
+  // annulait un changement de zone fait pendant l'enregistrement.
   const onApiError = useCallback(
     (err) => {
       if (err instanceof AccountDeletedError) onForceLogout?.();
@@ -102,7 +104,7 @@ function UserJournalArticleEditor({
     limits,
     adapter,
     extraValue,
-    onSaved,
+    onArticleChange,
     onApiError,
     embedOptions: EMBED_OPTIONS,
     onDelete,

@@ -9,6 +9,123 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — Carnet : article publié affiché « sans titre » et vide (19 novembre 2026)
+
+Après « + Nouvel article », saisie puis « Terminer », la carte de lecture affichait
+**« Article sans titre »** et **« Article sans texte »** : l'article était bien enregistré
+au serveur, mais le fil (`useJournalFeed`) gardait l'article tel qu'il avait été créé — vide —
+jusqu'au rechargement de la page. Le même défaut touchait le journal G&L (hooks partagés).
+
+- **Fil** : nouvelle action `applyArticle(id, patch)` ; l'éditeur (`useJournalArticleEditor`,
+  option `onArticleChange`) y reporte chaque enregistrement et, à la fermeture, la saisie du
+  moment — la carte de lecture montre ce qui vient d'être écrit même si le dernier envoi est
+  encore en vol. Branché dans `UserJournalView` et `GLPlayerJournalView`.
+- **Frappe perdue** : la réponse d'un enregistrement remplaçait le titre et le texte par ce qui
+  avait été envoyé — les caractères tapés pendant la requête disparaissaient, et l'espace en
+  fin de titre était mangé (le serveur rogne le titre). La saisie locale fait désormais foi.
+- **Images en double** : une image insérée dans le texte réapparaissait en vignette sous
+  l'article (carte, livre, fenêtre de lecture). Les vignettes ne gardent que les illustrations
+  absentes du texte (`assetsNotInBody`).
+- **API** : `PUT /api/user-journal/me/articles/:id` sans `bodyMarkdown` effaçait le texte ; un
+  champ absent le laisse inchangé (comme `title` et `zoneId`). `GET /api/user-journal/users/:id`
+  comparait les identifiants (UUID) avec `Number()` : un compte sans permission de lecture se
+  voyait refuser son propre carnet.
+
+Tests : `tests-ui/components/journal/UserJournalPublish.test.jsx`,
+`tests-ui/shared/journal/journalImages.test.js`, `tests/user-journal.test.js`. Doc :
+`docs/API.md`, `docs/reference/foretmap/presentation.md`.
+
+### Corrigé — G&L : droits du tour rejoués par le serveur (audit du 19 novembre 2026, lot 2)
+
+Six constats de l'audit des bugs de Gnomes & Licornes, mouture « Tenir à deux ». Chacun a son
+test dans `tests/gl-tenir-droits-serveur.test.js`, écrit avant la correction.
+
+- **M1 — escalier : plus de jet en suspens pour une Relance fermée.** Aux trois premières
+  séances du chapitre 1, chaque jet restait « en suspens » pour un sort que le lancement
+  refusait (`SPELL_ESCALIER`). `relanceDisponibleTx` ignore un sort que l'escalier n'a pas
+  encore ouvert : la case s'applique aussitôt.
+- **M2 — « répondre » est rejoué.** `POST …/markers/:markerId/present-question` et
+  `POST …/qcm/answer` rejouent le droit pour un élève ou une tablette (409 `TENIR_PHASE`
+  hors phase « jeu », 403 `TENIR_PERMISSION` / `TENIR_EQUIPE_INACTIVE` selon la surface) ; le
+  prof garde la présentation à distance. Une question ne rapporte sa case **qu'une fois** par
+  équipe, repère et arrivée du tour, relue sous verrou d'équipe : un second jeton (le prof et
+  un élève qui présentent chacun la question) est corrigé sans faire avancer
+  (`tenir.bonusCase: false`). Deux cases question différentes dans le même tour s'enchaînent
+  toujours.
+- **M3 — `present-arrival` ne défait plus « sans appliquer la case ».** Une équipe posée sur une
+  case par Progression, Bourrasque, Relais, le vent de la caravane ou le retour d'une Relance
+  voit le texte de la case, sans effet (`sansEffet: true`, aucun `marker_effect`). Une équipe
+  posée à la main par le prof n'est pas concernée ; `apply-effects` reste le geste du prof.
+- **M4 — Relance payée et jamais rejouée : rendue au souffle.** Si la phase « jeu » se ferme
+  avant le second jet, le sort est rendu (remboursement exact, `spell_rembourse` avec
+  `motif: 'relance'`), comme la Cordée qui ne s'est pas faite ; filet au camp et à l'ouverture
+  du tour suivant. Aucun jet n'est tiré d'office et le jet annulé n'est pas réappliqué.
+- **M5 — hybride : le droit « fouiller » est enfin servi à l'élève.** Le bloc `tenir.permissions`
+  de `GET /api/gl/games/:id` lisait une propriété absente de la vue du tour ; il lit la fenêtre
+  ouverte par le prof, pour tous ou pour l'équipe de celui qui regarde.
+- **P3 — présenter exige une partie en cours.** `present-question` et `present-arrival`
+  répondent 409 « La partie doit être en cours » hors statut `live`, comme `qcm/answer`.
+### Corrigé — G&L : éditeurs d'administration qui enregistraient une valeur fausse (19 novembre 2026)
+
+Lot 3 de l'audit des bugs G&L du 19 novembre 2026 (constats E1 à E5 et E12). Chaque défaut est
+d'abord reproduit par un test qui monte le composant réel, avec son chargement asynchrone.
+
+- **Réglages « Tenir à deux »** (E1) : les nombres affichaient leur minimum (1 ou 0) et les
+  champs par plateau restaient vides, parce que le bloc est monté avant la réponse du
+  chargement ; un simple clic puis Tab écrivait ce minimum en base. Chaque ligne suit maintenant
+  la valeur chargée, et un champ vide n'est plus lu comme 0.
+- **Studio de carte de chapitre** (E2) : une boucle de rendu occupait le navigateur en continu
+  et empêchait tout enregistrement du formulaire d'un repère. Elle est supprimée — et, pour que
+  l'enregistrement qui repart ne détruise rien : `tenir.defi` (case « Défi d'équipe »), « un
+  seul dé » d'une case Souffle, le texte et « passe le tour » de l'effet neutre et la question
+  portée par un repère d'un autre type traversent désormais le formulaire ; un nouveau repère
+  n'hérite plus des effets du repère sélectionné juste avant ; un repère sans configuration ne
+  reçoit plus une question par défaut ; l'apparence par défaut ne s'applique qu'au changement
+  de type (l'emoji choisi n'est plus remplacé à la sélection). Sélectionner un repère sans le
+  modifier n'écrit rien.
+- **Politique de conditionnement par ressource** (E3) : l'éditeur s'affichait avant la réponse
+  du chargement, sur « Hériter », et « Enregistrer » effaçait la politique en base. Il n'est
+  rendu qu'une fois la politique de la référence saisie chargée.
+- **Éditeur riche** (E4) : une image `scene:N` non résolue disparaissait à la première frappe.
+  Un substitut (« 🖼 légende (scene:N) ») garde la référence, et l'image s'affiche dès que les
+  scènes sont chargées. La forme `<img src="scene:N">` que l'éditeur enregistre est relue.
+- **Saisie pendant l'enregistrement automatique** (E5) : chapitres, pages de contenu, fiches
+  espèces / glossaire / sorts, réglages, éditeurs d'un repère — ce qui est tapé pendant la
+  requête n'est plus écrasé par la réponse du serveur. Chapitres : un `PUT` partait à chaque
+  frappe du titre, hors délai.
+- **Champs numériques** (E12) : le délai libre du conditionnement suit la valeur enregistrée ;
+  PV / PP initiaux vidés ne sont plus enregistrés à 0.
+
+Tests : `tests-ui/gl/GLSettingsViewAsyncLoad`, `GLChapterMapStudioAutoSave`,
+`GLLearningLinksPanelPolicyLoad`, `GLRichTextEditorUnresolvedImages`, `GLAutoSaveInFlightTyping`,
+`GLGatingSettingsFreeDelay`.
+### Corrigé — G&L : les écrans qui ne se relisaient pas (audit du 19 novembre 2026, lot 1)
+
+Six constats du front de jeu (`docs/AUDIT_BUGS_GL_2026-11-19.md`, § 3). Aucune règle du jeu ne
+change, aucune route, aucune migration.
+
+- **J1 — la projection suit le tour.** `GLProjectionView` s'abonne elle-même aux évènements de
+  la partie (`gl:game:event`, `gl:game:equipe`, rafales regroupées) : une projection est une
+  session invitée, le runtime de l'app ne rechargeait rien pour elle et l'écran restait sur
+  « En attente du tour » jusqu'au F5.
+- **J2 — « Jouer le tour » suit les équipes.** `GLTourScreen` relit le tour, la file
+  « Demandes », le lien de classe et le journal dès que l'état de la partie avance (nouvel
+  évènement, tour ou phase) : un jet lancé depuis une tablette n'attend plus « Actualiser ».
+- **J3 — le lien de projection ne déconnecte plus le prof.** La session de projection va dans
+  `sessionStorage` (comme la session d'équipe) : elle survit à un F5 de son onglet et ne touche
+  plus `localStorage.gl_session`, partagé avec la console ouverte à côté.
+- **J4 — l'écran d'équipe suit la phase et le sablier du prof.** `tenir.round` et
+  `tenir.sablier` (état de la partie, rechargé en temps réel) passent devant l'instantané du
+  tour, qui est relu au même moment. Au passage, « Aucun tour ouvert : attends le prof. »
+  s'affiche vraiment tant qu'aucun tour n'existe (l'écran disait « Tour 0 — »).
+- **J6 — session expirée : retour à la connexion.** `useGLSession` écoute `gl_session_changed`
+  et `storage` : quand `apiGL` vide la session sur un 401, l'état React suit.
+- **J7 — « Jet saisi : en attente du clic du prof »** se lit dans `round.desEnAttente` : la
+  mention part quand le prof valide ou refuse, et paraît sur tous les appareils de l'équipe.
+
+Tests : `tests-ui/gl/glProjectionSession.test.js`, `useGLSessionRelecture.test.jsx`,
+`GLProjectionView.test.jsx`, `GLTourScreen.test.jsx`, `GLTenirEquipeView.test.jsx` ; e2e
+`e2e/gl-tenir-ecrans-relus.spec.js` (console et projection dans deux onglets du même navigateur).
 ### Corrigé — G&L : comptes, classes et import de joueurs (audit du 19 novembre 2026, lot 6)
 
 - **Import de joueurs** (A1) : une ligne sans pseudo est refusée dès l'analyse à blanc
@@ -27,6 +144,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Profil joueur** (A7) : un pseudo vide répond `400` au lieu de `500`.
 - **Journal** (A10) : `logRouteError` appelé dans le bon ordre dans `routes/gl/auth.js` (mode
   découverte), `routes/gl/admin-demo.js` et `routes/gl/games/spell-casts.js` ; la remise à zéro de la démonstration ne renvoie
+  découverte) et `routes/gl/admin-demo.js` ; la remise à zéro de la démonstration ne renvoie
   plus le message d'erreur brut au client.
 
 Tests : `tests/gl-audit-lot6-comptes.test.js`, `tests/gl-profile.test.js`,

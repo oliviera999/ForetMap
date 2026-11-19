@@ -97,6 +97,38 @@ test('POST /me/articles — crée un article puis mise à jour', async () => {
   assert.strictEqual(updated.body.article.title, 'Note terrain 2');
 });
 
+test('PUT /me/articles/:id — un PUT partiel (titre seul) garde le texte', async () => {
+  const created = await request(app)
+    .post('/api/user-journal/me/articles')
+    .set('Authorization', `Bearer ${studentToken}`)
+    .send({ bodyMarkdown: 'Texte à garder.' })
+    .expect(201);
+  const id = created.body.article.id;
+  const updated = await request(app)
+    .put(`/api/user-journal/me/articles/${id}`)
+    .set('Authorization', `Bearer ${studentToken}`)
+    .send({ title: 'Titre seul' })
+    .expect(200);
+  assert.strictEqual(updated.body.article.title, 'Titre seul');
+  assert.strictEqual(updated.body.article.bodyMarkdown, 'Texte à garder.');
+  const listed = await request(app)
+    .get('/api/user-journal/me')
+    .set('Authorization', `Bearer ${studentToken}`)
+    .expect(200);
+  const row = listed.body.articles.find((a) => a.id === id);
+  assert.strictEqual(row.title, 'Titre seul');
+  assert.strictEqual(row.bodyMarkdown, 'Texte à garder.');
+});
+
+test('GET /users/:id — un élève lit son propre carnet (identifiant texte)', async () => {
+  const res = await request(app)
+    .get(`/api/user-journal/users/${encodeURIComponent(studentId)}`)
+    .set('Authorization', `Bearer ${studentToken}`)
+    .expect(200);
+  assert.ok(Array.isArray(res.body.articles));
+  assert.strictEqual(String(res.body.user?.id), String(studentId));
+});
+
 test('POST assets — ajoute une illustration', async () => {
   const created = await request(app)
     .post('/api/user-journal/me/articles')

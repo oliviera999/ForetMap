@@ -341,11 +341,34 @@ Dans **« Jouer le tour »**, le bloc « Jets en attente » liste ces équipes a
 **« Appliquer la case »**. Une équipe qui ne peut pas payer Relance ne voit rien changer : sa case
 s'applique tout de suite, comme avant.
 
+**Depuis le 19 novembre 2026 — ce que l'app vérifie elle-même pendant le tour.**
+
+- Au **chapitre 1**, tant que l'escalier n'a pas ouvert Relance (séance 4), un jet s'applique
+  tout de suite : plus de « Gardez ce jet, ou lancez Relance » pour un sort pas encore ouvert.
+- La **question d'une case** se présente et se joue pendant la phase « jeu ». Une fois le
+  souffle lancé, une question restée à l'écran d'une équipe ne se joue plus ; depuis votre
+  écran, vous pouvez toujours la présenter. Au tableau et en hybride, c'est vous qui la
+  présentez et qui validez la réponse.
+- Une question ne fait avancer **qu'une fois** : si vous la présentez de votre côté pendant que
+  l'équipe l'a aussi à l'écran, la seconde bonne réponse est corrigée, sans case de plus.
+- Une équipe qu'un sort (**Progression**, **Bourrasque**, **Relais**) ou le **vent de la
+  caravane** pose sur une case en voit le texte, sans son effet : la case ne se joue pas. Pour
+  la faire jouer quand même, utilisez « Appliquer les effets (MJ) » sur la case, depuis le plateau de votre écran.
+- Une **Relance** payée dont l'équipe n'a pas eu le temps de relancer les dés (vous lancez le
+  souffle avant) lui est **rendue** au souffle : rien n'est retiré. L'équipe ne rejoue pas ce
+  tour-là et reste sur sa case de départ.
+- En **hybride**, le bouton « Fouiller » de l'équipe s'allume bien quand vous ouvrez la fenêtre
+  de fouille.
+- Dans une partie en pause ou terminée, une case ne se présente plus.
+
 À la **clôture** du chapitre (bouton « Clore »), la caravane porte les retardataires au camp, les
 honneurs, sceaux et titres s'attribuent, les badges se calculent. Les parures ne reviennent plus
 au comptoir : chaque élève garde les siennes et les repose, au chapitre suivant, sur la mascotte
 de sa nouvelle équipe. La **projection** (bouton « Projeter ») donne un lien à ouvrir sur le vidéoprojecteur :
-rien n'y est cliquable, aucune bourse ne s'y affiche. Les **exports** (Team Spirit, badges) se
+rien n'y est cliquable, aucune bourse ne s'y affiche ; elle suit le tour sans rechargement et peut
+s'ouvrir dans un second onglet de votre poste sans vous déconnecter. L'écran « Jouer le tour » se
+relit lui aussi quand une équipe joue depuis son appareil : cartes d'équipe et file « Demandes »
+se mettent à jour sans « Actualiser » (le bouton reste là en secours). Les **exports** (Team Spirit, badges) se
 téléchargent depuis le panneau « Tenir à deux » de la console ; la mission réussie, le badge à la
 main, la relecture des pages écrites et des chimères s'y saisissent aussi.
 

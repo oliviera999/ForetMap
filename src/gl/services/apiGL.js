@@ -10,11 +10,20 @@ import { fetchJsonWithRetry } from '../../shared/fetchJsonWithRetry.js';
 
 const GL_SESSION_KEY = 'gl_session';
 /**
- * Session d'équipe d'une tablette de classe (« Tenir à deux », lot 2) : gardée dans
- * `sessionStorage`, elle disparaît à la fermeture de l'onglet et ne recouvre jamais la session
- * d'un compte (`localStorage`) — elle passe seulement devant, le temps de l'onglet.
+ * Session d'onglet : gardée dans `sessionStorage`, elle disparaît à la fermeture de l'onglet et
+ * ne recouvre jamais la session d'un compte (`localStorage`, partagé entre onglets) — elle passe
+ * seulement devant, le temps de l'onglet. Deux sessions vivent ainsi :
+ * - la session d'équipe d'une tablette de classe (« Tenir à deux », lot 2) ;
+ * - la session de projection (lien du vidéoprojecteur), souvent ouverte sur le poste même du
+ *   prof : rangée avec son compte, elle le remplaçait dans tous ses onglets.
+ * La clé garde son nom d'origine pour ne pas perdre les sessions d'équipe en cours.
  */
 const GL_TEAM_SESSION_KEY = 'gl_team_session';
+
+/** Session qui ne vaut que pour l'onglet (équipe ou projection), jamais pour le navigateur. */
+function isTabSession(next) {
+  return !!(next?.auth?.teamSession || next?.auth?.projection);
+}
 
 function readFrom(storage, key) {
   try {
@@ -53,13 +62,13 @@ export function getGlToken() {
 export function saveGlSession(next) {
   const team = readTeamSession();
   const storage = tabStorage();
-  // Une session d'équipe (nouvelle, ou en cours et simplement complétée) reste dans l'onglet.
-  if (storage && (next?.auth?.teamSession || (team && !next?.token))) {
+  // Une session d'onglet (nouvelle, ou en cours et simplement complétée) reste dans l'onglet.
+  if (storage && (isTabSession(next) || (team && !next?.token))) {
     storage.setItem(GL_TEAM_SESSION_KEY, JSON.stringify({ ...(team || {}), ...(next || {}) }));
     dispatchGlSessionChanged();
     return;
   }
-  // Une connexion avec un compte remplace la session d'équipe de l'onglet.
+  // Une connexion avec un compte remplace la session d'onglet (équipe ou projection).
   if (team && storage) storage.removeItem(GL_TEAM_SESSION_KEY);
   const current = readFrom(localStorage, GL_SESSION_KEY) || {};
   const merged = { ...current, ...(next || {}) };
@@ -69,7 +78,8 @@ export function saveGlSession(next) {
 
 export function clearGlSession() {
   const storage = tabStorage();
-  // Quitter une session d'équipe ne déconnecte pas le compte éventuellement ouvert derrière.
+  // Quitter une session d'onglet (équipe, projection) ne déconnecte pas le compte éventuellement
+  // ouvert derrière.
   if (storage && readTeamSession()) storage.removeItem(GL_TEAM_SESSION_KEY);
   else localStorage.removeItem(GL_SESSION_KEY);
   dispatchGlSessionChanged();

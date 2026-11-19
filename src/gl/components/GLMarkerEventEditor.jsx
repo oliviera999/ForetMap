@@ -31,6 +31,18 @@ export function GLMarkerEventEditor({
   onEffectsDraftChange,
 }) {
   const [form, setForm] = useState(() => formFromMarker(marker));
+  // Formulaire recalé quand on change de REPÈRE (identifiant), pas à chaque rechargement : après
+  // un enregistrement, la liste est relue et `marker` change d'identité — recaler alors le
+  // formulaire écrasait ce qui avait été modifié pendant la requête. Le recalage se fait
+  // PENDANT le rendu (et non dans un effet) pour que l'effet d'émission ne voie jamais le
+  // formulaire de l'ancien repère avec les effets du nouveau.
+  // https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes
+  const markerKey = marker?.id ?? null;
+  const [formMarkerKey, setFormMarkerKey] = useState(markerKey);
+  if (formMarkerKey !== markerKey) {
+    setFormMarkerKey(markerKey);
+    setForm(formFromMarker(marker));
+  }
   const [allBiomes, setAllBiomes] = useState([]);
   const [loreScopes, setLoreScopes] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -41,10 +53,6 @@ export function GLMarkerEventEditor({
   const isLoreSet = form.questionSet === 'lore';
 
   const chapterBiomeSlugs = useMemo(() => chapterBiomeSlugsFrom(chapterBiomes), [chapterBiomes]);
-
-  useEffect(() => {
-    setForm(formFromMarker(marker));
-  }, [marker]);
 
   useEffect(() => {
     onChange?.({
@@ -228,7 +236,9 @@ export function GLMarkerEventEditor({
         Type d&apos;événement
         <select
           value={form.eventType}
-          onChange={(event) => patchForm({ eventType: event.target.value })}
+          // Changer le type est un geste de l'admin : la question qu'un repère d'un autre type
+          // portait jusque-là n'est plus reconduite d'office.
+          onChange={(event) => patchForm({ eventType: event.target.value, keepQuestion: false })}
         >
           {EVENT_TYPE_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value} disabled={!opt.enabled}>
@@ -328,7 +338,13 @@ export function GLMarkerEventEditor({
           />
         </>
       ) : (
-        <GLMarkerEffectsEditor eventConfig={marker?.event_config} onChange={onEffectsDraftChange} />
+        <GLMarkerEffectsEditor
+          // Un éditeur par repère : son état est posé au montage et n'est plus recalé à chaque
+          // rechargement de la liste (frappes en cours préservées).
+          key={markerKey ?? 'nouveau'}
+          eventConfig={marker?.event_config}
+          onChange={onEffectsDraftChange}
+        />
       )}
     </div>
   );

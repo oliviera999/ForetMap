@@ -51,23 +51,38 @@ export function emptyQuestionForm() {
     questionMode: base.question.mode,
     fixedQuestionCode: base.question.fixedQuestionCode || '',
     pool: { ...base.question.pool },
+    keepQuestion: false,
+    tenir: null,
   };
 }
 
-/** Dérive l'état du formulaire depuis un repère existant (ou vierge si absent). */
+/**
+ * Dérive l'état du formulaire depuis un repère existant (ou vierge si absent).
+ *
+ * Deux champs n'ont pas de contrôle à l'écran et ne font que traverser le formulaire, pour que
+ * relire puis réécrire un repère ne lui retire rien (audit des bugs G&L 2026-11-19, E2) :
+ * - `tenir` : marque d'une case « Défi d'équipe » (`tenir.defi`), lue par le moteur du tour ;
+ * - `keepQuestion` : le repère porte une question alors que son type n'est pas « question »
+ *   (le jeu la pose quand même, cf. `isQuestionMarker`). Elle est gardée tant que l'admin ne
+ *   change pas le type lui-même.
+ */
 export function formFromMarker(marker) {
   if (!marker) return emptyQuestionForm();
-  const eventType = String(marker.event_type || '')
+  const rawType = String(marker.event_type ?? marker.eventType ?? '')
     .trim()
     .toLowerCase();
-  const cfg = normalizeEventConfig(marker.event_config) || defaultEventConfigForQuestion();
+  const eventType = rawType === 'quiz' ? 'question' : rawType || 'question';
+  const stored = normalizeEventConfig(marker.event_config ?? marker.eventConfig);
+  const cfg = stored || defaultEventConfigForQuestion();
   const question = cfg.question || defaultEventConfigForQuestion().question;
   return {
-    eventType: eventType === 'quiz' ? 'question' : eventType || 'question',
+    eventType,
     questionSet: question.set || 'biome',
     questionMode: question.mode,
     fixedQuestionCode: question.fixedQuestionCode || '',
     pool: { ...question.pool },
+    keepQuestion: eventType !== 'question' && Boolean(stored?.question),
+    tenir: stored?.tenir || null,
   };
 }
 
@@ -77,24 +92,22 @@ export function buildEventConfigFromForm(form, effectsDraft = null) {
     form.questionSet === 'lore'
       ? normalizeLoreQuestionPool(form.pool)
       : normalizeQuestionPool(form.pool);
-  const base =
-    form.eventType === 'question'
-      ? normalizeEventConfig({
-          version: 2,
+  const withQuestion = form.eventType === 'question' || form.keepQuestion === true;
+  return normalizeEventConfig({
+    version: 2,
+    ...(withQuestion
+      ? {
           question: {
             set: form.questionSet || 'biome',
             mode: form.questionMode,
             fixedQuestionCode: form.fixedQuestionCode || null,
             pool,
           },
-        })
-      : null;
-  if (!effectsDraft?.effects && !effectsDraft?.eventMeta) return base;
-  return normalizeEventConfig({
-    version: 2,
-    ...(base?.question ? { question: base.question } : {}),
-    ...(effectsDraft.effects ? { effects: effectsDraft.effects } : {}),
-    ...(effectsDraft.eventMeta ? { eventMeta: effectsDraft.eventMeta } : {}),
+        }
+      : {}),
+    ...(effectsDraft?.effects ? { effects: effectsDraft.effects } : {}),
+    ...(effectsDraft?.eventMeta ? { eventMeta: effectsDraft.eventMeta } : {}),
+    ...(form.tenir ? { tenir: form.tenir } : {}),
   });
 }
 
