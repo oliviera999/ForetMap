@@ -10,7 +10,7 @@ points déjà relevés dans [`AUDIT_GL_ENSEMBLE_UNIFIE_2026-11-18.md`](AUDIT_GL_
 (§ 2 à 4) ne sont pas repris.
 
 > **Suite donnée le jour même.** 42 des 81 constats sont traités, chacun avec son test, par huit
-> PR fusionnées le 19 novembre (#677 à #685), suivies de #687 et #688. Ils portent la mention « traité » et le numéro de la
+> PR fusionnées le 19 novembre (#677 à #685), suivies de #687, #688 et #690. Ils portent la mention « traité » et le numéro de la
 > PR ; le constat d'origine est laissé tel quel. Bilan, vérifications après fusion et restes : § 13.
 
 ## 1. Méthode et niveau de preuve
@@ -570,8 +570,8 @@ Les e2e complets et le banc n'ont pas été relancés sur l'état combiné.
 - **M4 (lot 2)** — tranché par le prof et livré dans #688 : la Relance non rejouée est rendue
   au passage au souffle et l'équipe retrouve la case de son premier jet, qui se joue. Aucun
   nouveau jet n'est tiré ; une équipe déplacée entre-temps garde sa place.
-- **M2 (lot 2)** — tranché et livré dans #688 : en hybride, l'équipe répond depuis sa tablette
-  pendant la phase « jeu » ; les dés restent au prof. Au tableau, rien ne change.
+- **M2 (lot 2)** — tranché et livré dans #688 puis #690 : en hybride, l'équipe répond et lance
+  ses dés depuis sa tablette pendant la phase « jeu ». Au tableau, rien ne change.
 - **M3 (lot 2)** — tranché et livré dans #688 : quand un sort ou le vent a posé l'équipe, la
   fenêtre dit que la case ne se joue pas ; le prof voit ce qu'elle ferait et choisit
   « Appliquer les effets (MJ) » ou « Ne pas appliquer ».
