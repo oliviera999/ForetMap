@@ -565,6 +565,24 @@ Les scénarios de l'audit ont été rejoués sur ce `main`, indépendamment des 
 
 Les e2e complets et le banc n'ont pas été relancés sur l'état combiné.
 
+### Après #688 : un test rouge, réparé par #690
+
+Les vérifications ci-dessus portent sur la v1.250.4. La PR #688, fusionnée ensuite, a laissé
+`main` rouge sur `tests/gl-tenir-jets-paralleles.test.js` (invariant `LIVRE_SOLDE`), ce que
+l'audit ForetMap du même jour a relevé (`AUDIT_BUGS_FORETMAP_2026-11-19.md`, § 1.1) ; les tests
+ciblés relancés ici après #688 ne couvraient pas ce fichier. La PR #690 l'a réparé.
+
+Suites complètes rejouées sur `main` en v1.250.14 (`9638d1e`), après les lots des deux audits :
+
+| Vérification      | Résultat                                                  |
+| ----------------- | --------------------------------------------------------- |
+| `npm test`        | 6 545 passés, 0 échec, 2 ignorés                          |
+| `npm run test:ui` | 6 190 passés, 1 échec de délai hors G&L (voir ci-dessous) |
+
+L'échec d'écran est `tests-ui/settings/MoodleAdminPanel.test.jsx` (« éditeur de politiques… »),
+5 044 ms pour un délai de 5 000 ms dans la suite complète ; relancé seul, le fichier passe
+(10 sur 10). C'est le test sensible au temps déjà signalé dans l'audit du 18 novembre.
+
 ### Choix faits par les lots, à relire
 
 - **M4 (lot 2)** — tranché par le prof et livré dans #688 : la Relance non rejouée est rendue
