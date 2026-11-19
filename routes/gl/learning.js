@@ -2,7 +2,12 @@
 
 const express = require('express');
 const { queryOne, queryAll, execute } = require('../../database');
-const { requireGlAuth, isMj, actorTypeOf } = require('../../middleware/requireGlAuth');
+const {
+  requireGlAuth,
+  isMj,
+  actorTypeOf,
+  hasGlPermission,
+} = require('../../middleware/requireGlAuth');
 const { canAccessGlGame } = require('../../lib/glGameAccess');
 const { getGlModulesSettings, getGameplaySettings } = require('../../lib/glSettings');
 const { parseGlId, resolveTeamContext } = require('../../lib/glTeamContext');
@@ -12,7 +17,7 @@ const {
   parseConfirmBody,
   normalizeTargetCode,
   buildReaderKey,
-  upsertLearningAck,
+  recordLearningAck,
   listLearningAcks,
   groupLearningAcksByType,
 } = require('../../lib/shared/learningAckCore');
@@ -216,10 +221,11 @@ async function handleAcknowledge(req, res, { targetType, resolveTarget, skipGati
     });
   }
 
-  await upsertLearningAck(db, reader, targetType, code);
+  // « Première consultation » : dite par l'écriture, pas par la lecture préalable (qui ne
+  // sert qu'à dispenser du contrôle). Des requêtes parallèles ne gagnent ainsi qu'une page.
+  const { first } = await recordLearningAck(db, reader, targetType, code);
   const response = { success: true, target_type: targetType, target_code: code };
-  // Première consultation seulement (skipGating == déjà acquitté).
-  if (!skipGating) {
+  if (first) {
     const feuilletRevealed = await maybeAwardFeuilletFromConsultation(req, {
       source: targetType,
       sourceRef: code,
@@ -323,7 +329,8 @@ router.post(
       });
     }
 
-    await upsertLearningAck(db, reader, 'species', code);
+    // « Première étude » dite par l'écriture elle-même (cf. handleAcknowledge).
+    const { first } = await recordLearningAck(db, reader, 'species', code);
 
     const response = {
       success: true,
@@ -331,7 +338,7 @@ router.post(
       target_code: code,
     };
 
-    if (!alreadyStudied) {
+    if (first) {
       const gameId = parseGlId(req.body?.gameId ?? req.glAuth.gameId);
       if (gameId) {
         const modules = await getGlModulesSettings();
@@ -414,8 +421,14 @@ router.post(
       resolveTarget: async (targetCode) => {
         const tid = Number(targetCode);
         if (!Number.isFinite(tid) || tid <= 0) return false;
-        const row = await queryOne('SELECT id FROM gl_tutorials WHERE id = ? LIMIT 1', [tid]);
-        return !!row;
+        // Un tutoriel non publié n'existe que pour qui gère les contenus (même règle que
+        // la liste et le détail de routes/gl/tutorials.js).
+        const row = await queryOne(
+          'SELECT id, is_published FROM gl_tutorials WHERE id = ? LIMIT 1',
+          [tid],
+        );
+        if (!row) return false;
+        return Number(row.is_published) === 1 || hasGlPermission(req.glAuth, 'gl.content.manage');
       },
     });
   },
@@ -463,9 +476,9 @@ router.post(
       });
     }
 
-    await upsertLearningAck(db, reader, resourceType, ref);
+    const { first } = await recordLearningAck(db, reader, resourceType, ref);
     const response = { success: true, target_type: resourceType, target_code: ref };
-    if (!alreadyAcked) {
+    if (first) {
       const feuilletRevealed = await maybeAwardFeuilletFromConsultation(req, {
         source: resourceType,
         sourceRef: ref,

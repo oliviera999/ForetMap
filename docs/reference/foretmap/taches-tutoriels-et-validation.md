@@ -33,13 +33,44 @@ ses tâches).
 
 Les tâches d'un projet apparaissent **à deux endroits** dans l'écran Tâches :
 
-- dans la **section de leur statut** (« À faire », « En cours », « Mes tâches »…), comme
-  n'importe quelle autre tâche — avec le nom du projet en étiquette sur la carte ;
-- dans la **case du projet**, dans le bloc « Projets ».
+- dans la **section de leur statut** (« À faire », « En cours », « Mes tâches »…), parmi les
+  autres tâches — mais avec une **carte à la couleur de leur projet** (filet coloré à gauche,
+  fond teinté) et un **bandeau** au-dessus du titre qui donne le nom du projet et, s'il y a
+  lieu, l'étape ;
+- dans la **case du projet**, dans le bloc « Projets », qui porte le même filet coloré.
+
+**Une couleur par projet** : chaque projet reçoit automatiquement l'une de dix couleurs
+(bleu, orange, rose, turquoise, moutarde, brique, indigo, olive, brun, violet). Elle ne dépend
+pas des filtres et reste la même d'une séance à l'autre (elle peut seulement changer quand un
+projet plus ancien de même couleur est supprimé ou archivé). Deux projets n'ont jamais la même couleur tant
+qu'il y en a dix ou moins ; au-delà, des couleurs se répètent. La couleur n'est pas encore
+modifiable à la main.
 
 Les cases de projets sont **repliées par défaut** : on voit le titre, les lieux liés et le
 nombre de tâches. Un appui sur le titre **déploie** la case et montre toutes les tâches du
 projet regroupées (comme l'affichage ouvert d'auparavant). Un nouvel appui la replie.
+
+### Numéroter les étapes et réordonner les tâches
+
+**Numéroter** : pour imposer un ordre, commencez le titre des tâches par un numéro
+(« 1 Récupérer la terre… », « 2. Tamiser… », « Étape 3 : … »). Dans la case du projet, les
+tâches s'affichent alors **dans l'ordre des numéros**, et chaque carte porte « Étape 1 »,
+« Étape 2 »… Les tâches sans numéro viennent après.
+
+**Tâches en parallèle** : donnez le **même numéro** à des tâches qui peuvent se faire en même
+temps (deux tâches « 2 … », ou « 2a … » et « 2b … »). Elles se suivent dans la liste et portent
+la mention « **Étape 2 · en parallèle** ».
+
+La numérotation n'est prise en compte que si **au moins deux** tâches du projet sont
+numérotées : une tâche isolée comme « 3 graines par godet » ne déclenche rien. Un nombre à
+quatre chiffres (une année) n'est jamais lu comme une étape.
+
+**Réordonner** : le professeur peut changer l'ordre des tâches d'un projet en les
+**glissant-déposant** (souris), ou avec les **flèches ↑ ↓** à gauche de chaque carte (tablette,
+téléphone, clavier). Dans un projet numéroté, on ne réordonne qu'**à l'intérieur d'une même
+étape** (par exemple entre deux tâches « 2 ») : pour faire changer une tâche d'étape, modifiez
+le numéro au début de son titre. Les tâches restent aussi regroupées par phase quand le projet
+en utilise.
 
 Le statut « **terminé** » d'un projet est **automatique** : dès que toutes ses tâches sont
 faites ou validées, le projet passe terminé — et il redevient actif si une nouvelle tâche
@@ -137,11 +168,12 @@ pédagogique.
 Pour toute personne **autorisée à valider les tâches** (en général les professeurs, et tout
 rôle à qui ce droit a été donné), l'écran Tâches met en avant ce qui attend sa décision :
 
-- la section **« ⏳ En attente de validation »** s'affiche **en tête**, avant « En cours » et
-  « À faire » ;
+- la section **« ⏳ En attente de validation »** s'affiche **en tête**, juste après les
+  « Propositions » des élèves et avant « En cours » et « À faire » ;
 - dans les autres regroupements qui mélangent plusieurs statuts — l'encart « 🚨 Urgent ! »,
   les blocs de projets, « Mes tâches » et les résultats filtrés — les tâches terminées en
-  attente de validation sont **placées en haut**, le reste gardant son ordre habituel.
+  attente de validation sont **placées en haut**, le reste gardant son ordre habituel. Seule
+  exception : dans un projet aux étapes numérotées, l'ordre des numéros l'emporte.
 
 Les personnes sans ce droit voient l'ordre habituel : « En attente de validation » reste
 plus bas, après les tâches sur lesquelles elles peuvent agir.
@@ -379,6 +411,9 @@ description, lieux, dates, niveaux, places, image. Sa proposition apparaît avec
 - **Le professeur l'examine** : pour l'accepter, il la passe « Disponible » (en la
   complétant au besoin : projet, tutoriels, référents, récurrence) — elle devient alors
   une tâche ordinaire. Pour la refuser, il la supprime.
+- Côté professeur, la section **« Propositions »** est la **première** de l'écran Tâches
+  (seul l'encart « 🚨 Urgent ! », quand il existe, passe avant) : les idées des élèves ne se
+  perdent plus sous les tâches en cours.
 
 ## Qui peut être inscrit sur une tâche
 

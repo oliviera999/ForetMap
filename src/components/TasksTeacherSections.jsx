@@ -12,10 +12,10 @@ import {
 /**
  * Sections de la vue Tâches côté n3boss (prof/admin) — extrait de `tasks-views.jsx` (O6).
  *
- * Rend, dans l'ordre, les sections « En cours », « À faire », le bloc des projets
- * actifs, puis « Propositions », « En attente de validation », « En attente » et
+ * Rend, dans l'ordre, « Propositions » (toujours en tête), « En cours », « À faire », le
+ * bloc des projets actifs, puis « En attente de validation », « En attente » et
  * « Validées ». Avec `validationFirst` (droit de valider les tâches), la section
- * « En attente de validation » passe en tête. Présentation pure : ne fait que composer
+ * « En attente de validation » remonte juste après les propositions. Présentation pure : ne fait que composer
  * `TaskTileSection` et `TaskProjectsBlock`.
  *
  * @param {object} props
@@ -60,6 +60,18 @@ export function TasksTeacherSections({
   );
   return (
     <>
+      {/* Propositions des élèves EN TÊTE : elles attendent une décision du prof (accepter,
+          modifier ou refuser) et se perdaient sous les tâches en cours. */}
+      <TaskTileSection
+        title={
+          <>
+            <IconIdea size={16} /> {`Propositions ${roleTerms.studentPlural} (${proposed.length})`}
+          </>
+        }
+        tasks={proposed}
+        sectionListClass={sectionListClass}
+        taskTileProps={taskTileProps}
+      />
       {validationFirst && awaitingValidationSection}
       <TaskTileSection
         title={
@@ -82,16 +94,6 @@ export function TasksTeacherSections({
         taskTileProps={taskTileProps}
       />
       <TaskProjectsBlock {...taskProjectsBlockProps} visibleProjects={activeProjects} />
-      <TaskTileSection
-        title={
-          <>
-            <IconIdea size={16} /> {`Propositions ${roleTerms.studentPlural} (${proposed.length})`}
-          </>
-        }
-        tasks={proposed}
-        sectionListClass={sectionListClass}
-        taskTileProps={taskTileProps}
-      />
       {!validationFirst && awaitingValidationSection}
       <TaskTileSection
         title={
