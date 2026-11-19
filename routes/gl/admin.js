@@ -295,6 +295,10 @@ router.put(
     if (!existing) return res.status(404).json({ error: 'Classe introuvable' });
 
     const name = req.body?.name == null ? null : normalizeOptionalString(req.body?.name);
+    // `school` n'est réécrit que si la clé est présente : `{ isActive }` seul (bouton
+    // activer/désactiver) ne doit pas l'effacer ; une chaîne vide explicite le vide.
+    const schoolProvided =
+      req.body != null && Object.prototype.hasOwnProperty.call(req.body, 'school');
     const school = req.body?.school == null ? null : normalizeOptionalString(req.body?.school);
     const isActive = parseOptionalBoolean(req.body?.isActive);
     if (name != null && !name) return res.status(400).json({ error: 'Nom de classe invalide' });
@@ -318,7 +322,7 @@ router.put(
     }
     if (
       name == null &&
-      school == null &&
+      !schoolProvided &&
       isActive == null &&
       teamPolicy == null &&
       teamSizeDefault == null
@@ -329,13 +333,21 @@ router.put(
     await execute(
       `UPDATE gl_classes
         SET name = COALESCE(?, name),
-            school = ?,
+            school = IF(?, ?, school),
             is_active = COALESCE(?, is_active),
             team_policy = COALESCE(?, team_policy),
             team_size_default = COALESCE(?, team_size_default),
             updated_at = NOW()
       WHERE id = ?`,
-      [name, school, isActive == null ? null : isActive ? 1 : 0, teamPolicy, teamSizeDefault, id],
+      [
+        name,
+        schoolProvided ? 1 : 0,
+        school,
+        isActive == null ? null : isActive ? 1 : 0,
+        teamPolicy,
+        teamSizeDefault,
+        id,
+      ],
     );
     const updated = await queryOne('SELECT * FROM gl_classes WHERE id = ? LIMIT 1', [id]);
     return res.json(updated);
@@ -351,14 +363,16 @@ router.delete(
     const existing = await queryOne('SELECT id FROM gl_classes WHERE id = ? LIMIT 1', [id]);
     if (!existing) return res.status(404).json({ error: 'Classe introuvable' });
 
-    const playersRow = await queryOne(
-      'SELECT COUNT(*) AS c FROM gl_players WHERE class_id = ? AND is_active = 1',
-      [id],
-    );
+    const playersRow = await queryOne('SELECT COUNT(*) AS c FROM gl_players WHERE class_id = ?', [
+      id,
+    ]);
+    // Actifs OU inactifs : la cascade SQL (`fk_gl_players_class`) emporterait les joueurs sans
+    // `purgeGlPlayerAccount` (comptes miroirs, traces et fichiers orphelins).
     if (Number(playersRow?.c || 0) > 0) {
-      return res
-        .status(409)
-        .json({ error: 'Suppression refusée : des joueurs actifs sont rattachés à cette classe' });
+      return res.status(409).json({
+        error:
+          'Suppression refusée : des joueurs (actifs ou inactifs) sont encore rattachés à cette classe. Supprimez-les ou changez-les de classe d’abord',
+      });
     }
     const gamesRow = await queryOne(
       "SELECT COUNT(*) AS c FROM gl_games WHERE class_id = ? AND status <> 'ended'",
@@ -642,6 +656,26 @@ router.put(
     if (Number.isFinite(classId)) {
       const cls = await ensureClassExists(classId);
       if (!cls) return res.status(404).json({ error: 'Classe introuvable' });
+      // L'appartenance aux parties (`gl_team_members`) ne suit pas la classe : changer de
+      // classe en cours de partie laisserait le joueur dans les parties de l'ancienne tout
+      // en le faisant disparaître de leur effectif. Refus tant qu'une partie n'est pas finie.
+      if (classId !== Number(existing.class_id)) {
+        const openGame = await queryOne(
+          `SELECT g.id
+             FROM gl_team_members tm
+             INNER JOIN gl_games g ON g.id = tm.game_id
+            WHERE tm.player_id = ? AND g.class_id = ? AND g.status <> 'ended'
+            LIMIT 1`,
+          [id, existing.class_id],
+        );
+        if (openGame) {
+          return res.status(409).json({
+            error:
+              'Changement de classe refusé : ce joueur est dans une équipe d’une partie non terminée de sa classe actuelle. Retirez-le de l’équipe ou terminez la partie d’abord',
+            code: 'GL_PLAYER_IN_OPEN_GAME',
+          });
+        }
+      }
     }
     if (pseudo != null) {
       const pseudoAvailable = await ensurePseudoAvailable(pseudo, id);
