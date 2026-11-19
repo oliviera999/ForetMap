@@ -52,13 +52,6 @@ const { resolveMarkerEventConfig } = require('../../../lib/glMarkerEventConfig')
 
 const router = express.Router();
 
-/** Refus des droits du tour : mêmes codes et mêmes libellés que les gestes de `tenir-tour.js`. */
-const REFUS_DU_TOUR = {
-  TENIR_PHASE: 'Ce geste n’est possible qu’en phase « jeu »',
-  TENIR_EQUIPE_INACTIVE: 'Ce n’est pas le tour de cette équipe',
-  TENIR_PERMISSION: 'Ce geste est réservé au prof sur cette surface',
-};
-
 /** Présenter une case se fait dans une partie en cours — comme répondre, lancer ou avancer. */
 function refusHorsPartieEnCours(res, game) {
   if (String(game?.status || '').toLowerCase() === 'live') return false;
@@ -270,7 +263,7 @@ router.post(
           enRetrait: acteur.enRetrait,
         });
       } catch (err) {
-        const message = REFUS_DU_TOUR[err?.message];
+        const message = require('../../../lib/glTour').REFUS_REPONDRE[err?.message];
         if (!message || !err.status) throw err;
         return res.status(err.status).json({ error: message, code: err.message });
       }
@@ -495,7 +488,19 @@ router.post(
         teamId,
         markerId,
       }));
-    const arrival = buildMarkerArrivalPayload(marker, team, arrivalCtx);
+    const arrivalJouee = buildMarkerArrivalPayload(marker, team, arrivalCtx);
+    // Sans effet : le texte de la case, jamais l'annonce d'un gain, d'un recul ou d'« un seul
+    // dé » qui ne s'applique pas.
+    const arrival = sansEffet
+      ? {
+          ...arrivalJouee,
+          effectSummary: null,
+          resolvedEffect: null,
+          hasEffects: false,
+          passTurn: false,
+          ...('unDe' in arrivalJouee ? { unDe: false } : {}),
+        }
+      : arrivalJouee;
     const actorType = acteur.actorType;
     const actorId = acteur.actorId;
     const reason = String(marker.label || 'Repère').trim();

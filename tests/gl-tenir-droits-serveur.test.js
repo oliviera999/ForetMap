@@ -211,6 +211,7 @@ test('M2 — hybride : un élève ne présente ni ne joue la question, le prof s
   const refus = await presenter(c, eleve.token, quiz.id);
   assert.equal(refus.status, 403, JSON.stringify(refus.body));
   assert.equal(refus.body.code, 'TENIR_PERMISSION');
+  assert.match(refus.body.error, /Demandez-lui/);
   const pProf = await presenter(c, c.adminToken, quiz.id, { teamId: c.teams[0].id });
   assert.equal(pProf.status, 200, JSON.stringify(pProf.body));
   // Le jeton du prof, rejoué par un élève : refusé, rien ne bouge.
@@ -317,6 +318,8 @@ test('M3 — Progression pose l’équipe sur une Trame sans la jouer : la prés
     assert.equal(res.status, 200, JSON.stringify(res.body));
     assert.notEqual(res.body.vitality?.applied, true, JSON.stringify(res.body.vitality));
     assert.equal(res.body.sansEffet, true);
+    assert.equal(res.body.effectSummary, null, 'aucun gain annoncé');
+    assert.equal(res.body.hasEffects, false);
   }
   assert.equal(await gemmes(c, 0), avant, 'aucune gemme : la case n’a pas été jouée');
   const effets = await queryAll(

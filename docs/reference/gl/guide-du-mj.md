@@ -354,7 +354,7 @@ s'applique tout de suite, comme avant.
 - Une équipe qu'un sort (**Progression**, **Bourrasque**, **Relais**) ou le **vent de la
   caravane** pose sur une case en voit le texte, sans son effet : la case ne se joue pas. Pour
   la faire jouer quand même, utilisez « Appliquer les effets (MJ) » sur la case, depuis le plateau de votre écran.
-- Une **Relance** payée dont l'équipe n'a pas eu le temps de rejeter les dés (vous lancez le
+- Une **Relance** payée dont l'équipe n'a pas eu le temps de relancer les dés (vous lancez le
   souffle avant) lui est **rendue** au souffle : rien n'est retiré. L'équipe ne rejoue pas ce
   tour-là et reste sur sa case de départ.
 - En **hybride**, le bouton « Fouiller » de l'équipe s'allume bien quand vous ouvrez la fenêtre

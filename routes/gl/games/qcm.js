@@ -35,15 +35,9 @@ const {
   bonneReponseDeCaseTx,
   prendreQuestionDeCaseTx,
   assertRepondreOuvert,
+  REFUS_REPONDRE,
   gesteDEquipeTx,
 } = require('../../../lib/glTour');
-
-/** Refus des droits du tour : mêmes codes et mêmes libellés que les gestes de `tenir-tour.js`. */
-const REFUS_DU_TOUR = {
-  TENIR_PHASE: 'Ce geste n’est possible qu’en phase « jeu »',
-  TENIR_EQUIPE_INACTIVE: 'Ce n’est pas le tour de cette équipe',
-  TENIR_PERMISSION: 'Ce geste est réservé au prof sur cette surface',
-};
 
 const router = express.Router();
 
@@ -235,7 +229,7 @@ router.post('/games/:id/qcm/answer', requireGlAuthOrTeam, gardeReponse, async (r
         { gameId, settings, teamId: teamIdForGame, actorKind: 'player' },
       );
     } catch (err) {
-      const message = REFUS_DU_TOUR[err?.message];
+      const message = REFUS_REPONDRE[err?.message];
       if (!message || !err.status) throw err;
       return res.status(err.status).json({ error: message, code: err.message });
     }

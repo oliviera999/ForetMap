@@ -616,7 +616,8 @@ Au tableau, rien ne change. En `hybride` et sur `tablette`, les équipes jouent 
   - `POST …/markers/:markerId/present-arrival`, partie « Tenir » : quand le dernier déplacement
     de l'équipe l'a posée sur ce repère sans jouer la case (Progression sans
     `tenir_progression_applique_case`, Bourrasque, Relais, vent de la caravane, retour d'une
-    Relance), la réponse porte `sansEffet: true` et `vitality: null` ; seul `marker_arrival`
+    Relance), la réponse porte `sansEffet: true`, `vitality: null`, `effectSummary: null`,
+    `resolvedEffect: null`, `hasEffects: false`, `passTurn: false` (le texte de la case reste) ; seul `marker_arrival`
     est journalisé (`sansEffet: true`), jamais `marker_effect`. `apply-effects` (prof) n'est
     pas concerné.
   - `POST …/tenir/tour/phase` vers `souffle` : une Relance lancée dont le dé n'a pas été rejoué
