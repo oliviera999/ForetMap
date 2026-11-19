@@ -29,6 +29,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   connexion au pool (MySQL et MariaDB).
 
 Tests : `tests/audit-fm-lot2-mcp.test.js`. Doc : `docs/MCP.md`, `docs/MCP_REGISTRE_TRAITEMENT.md`.
+
 ### Corrigé — audit ForetMap du 19/11, lot 1 (socle serveur)
 
 Constats S1, S4, S6, S7, S8, S10, S12 et S13 de `docs/AUDIT_BUGS_FORETMAP_2026-11-19.md` (§ 7).
