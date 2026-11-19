@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useBodyScrollLock } from '../../shared/platform/bodyScrollLock.js';
 import { useOverlayHistoryBack } from '../../shared/platform/useOverlayHistoryBack.js';
 import { createPortal } from 'react-dom';
@@ -48,6 +48,11 @@ export function GLMarkerEffectPopover({
   }, [open, onClose]);
 
   useBodyScrollLock(open);
+  // Refus de « Appliquer les effets (MJ) » : dit au prof, la fenêtre reste ouverte.
+  const [applyError, setApplyError] = useState('');
+  useEffect(() => {
+    setApplyError('');
+  }, [open, marker?.id, teamId]);
 
   if (!open) return null;
 
@@ -61,6 +66,11 @@ export function GLMarkerEffectPopover({
     !vitalityAlreadyApplied &&
     (Number(vitality?.healthDelta) !== 0 || Number(vitality?.powerDelta) !== 0);
 
+  // « Tenir à deux » : un sort ou le vent a posé l'équipe ici, la case ne s'est pas jouée. Le
+  // prof (lui seul reçoit `effetPossible`) choisit de l'appliquer ou non.
+  const sansEffet = arrival?.sansEffet === true;
+  const choixDuProf = sansEffet && canApplyEffects && arrival?.effetPossible !== undefined;
+
   async function applyEffects() {
     if (!gameId || !marker?.id || teamId == null) return;
     try {
@@ -70,8 +80,8 @@ export function GLMarkerEffectPopover({
       });
       onApplied?.();
       onClose?.();
-    } catch (_) {
-      onClose?.();
+    } catch (err) {
+      setApplyError(err?.message || 'La case n’a pas pu être appliquée.');
     }
   }
 
@@ -110,6 +120,16 @@ export function GLMarkerEffectPopover({
               </p>
             ) : null}
             {arrival.effectSummary ? <p>{arrival.effectSummary}</p> : null}
+            {sansEffet ? (
+              <p className="gl-hint">
+                Un sort ou le vent a posé l’équipe ici : la case ne se joue pas.
+              </p>
+            ) : null}
+            {choixDuProf && arrival.effetPossible ? (
+              <p>
+                <strong>Si vous l’appliquez :</strong> {arrival.effetPossible}
+              </p>
+            ) : null}
             {vitalitySummary ? (
               <p className="gl-feuillet-popover__mechanics" aria-label="Effets vitalité">
                 {vitalityApplied ? (
@@ -140,14 +160,19 @@ export function GLMarkerEffectPopover({
             ) : null}
           </div>
         ) : null}
+        {applyError ? (
+          <p className="gl-error" role="alert">
+            {applyError}
+          </p>
+        ) : null}
         <footer className="gl-marker-effect-popover__footer">
-          {showManualApply ? (
+          {showManualApply || choixDuProf ? (
             <GLButton type="button" onClick={applyEffects}>
               Appliquer les effets (MJ)
             </GLButton>
           ) : null}
           <GLButton type="button" variant="secondary" onClick={onClose}>
-            Fermer
+            {choixDuProf ? 'Ne pas appliquer' : 'Fermer'}
           </GLButton>
         </footer>
       </div>

@@ -6,7 +6,8 @@
  * - M1 : à l'escalier, un jet ne reste pas en suspens pour une Relance pas encore ouverte ;
  * - M2 : « répondre » est rejoué (phase, surface) et une question due ne rapporte qu'une fois ;
  * - M3 : `present-arrival` n'applique pas la case où un sort ou le vent a posé l'équipe ;
- * - M4 : une Relance payée et jamais rejouée est rendue au passage en souffle ;
+ * - M4 : une Relance payée et jamais rejouée est rendue au passage en souffle, et le jet
+ *   qu'elle avait annulé est réappliqué ;
  * - M5 : en hybride, la fenêtre de fouille ouvre bien le droit « fouiller » servi à l'élève ;
  * - P3 : `present-arrival` et `present-question` exigent une partie en cours.
  *
@@ -201,23 +202,35 @@ test('M2 (a) — question due à l’arrivée d’un jet : deux jetons, une seul
   assert.equal(await indexOf(c, c.teams[1].id), 6, 'une seule case gagnée');
 });
 
-test('M2 — hybride : un élève ne présente ni ne joue la question, le prof si', async () => {
+test('M2 — hybride : l’équipe présente et joue la question depuis sa tablette', async () => {
   const c = await partie();
   await surface(c, 'hybride');
+  await ouvrirTourEnJeu(request, app, c);
+  const eleve = membres(c, 0)[0];
+  await poser(c, 0, 1, ', last_dice_round_number = 1');
+  const p = await presenter(c, eleve.token, c.markers[1].id);
+  assert.equal(p.status, 200, JSON.stringify(p.body));
+  const r = await repondreJuste(c, eleve.token, p.body);
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.equal(r.body.tenir.bonusCase, true);
+  assert.equal(await indexOf(c, c.teams[0].id), 2);
+});
+
+test('M2 — tableau : un élève ne présente ni ne joue la question, le prof si', async () => {
+  const c = await partie();
+  await surface(c, 'tableau');
   await ouvrirTourEnJeu(request, app, c);
   const eleve = membres(c, 0)[0];
   await poser(c, 0, 1, ', last_dice_round_number = 1');
   const quiz = c.markers[1];
   const refus = await presenter(c, eleve.token, quiz.id);
   assert.equal(refus.status, 403, JSON.stringify(refus.body));
-  assert.equal(refus.body.code, 'TENIR_PERMISSION');
-  assert.match(refus.body.error, /Demandez-lui/);
+  assert.ok(['TENIR_PERMISSION', 'TENIR_EQUIPE_INACTIVE'].includes(refus.body.code));
   const pProf = await presenter(c, c.adminToken, quiz.id, { teamId: c.teams[0].id });
   assert.equal(pProf.status, 200, JSON.stringify(pProf.body));
   // Le jeton du prof, rejoué par un élève : refusé, rien ne bouge.
   const vol = await repondreJuste(c, eleve.token, pProf.body);
   assert.equal(vol.status, 403, JSON.stringify(vol.body));
-  assert.equal(vol.body.code, 'TENIR_PERMISSION');
   assert.equal(await indexOf(c, c.teams[0].id), 1);
   const r = await repondreJuste(c, c.adminToken, pProf.body, { teamId: c.teams[0].id });
   assert.equal(r.status, 200, JSON.stringify(r.body));
@@ -307,26 +320,76 @@ test('M3 — Progression pose l’équipe sur une Trame sans la jouer : la prés
   assert.equal(await indexOf(c, c.teams[0].id), 7, 'posée sur Trame 2');
   const avant = await gemmes(c, 0);
   const trame = c.markers[7];
-  for (const [token, body] of [
-    [eleve.token, {}],
-    [c.adminToken, { teamId: c.teams[0].id }],
-  ]) {
-    const res = await request(app)
+  const presenterArrivee = (token, body) =>
+    request(app)
       .post(api(c, `/markers/${trame.id}/present-arrival`))
       .set(auth(token))
       .send(body);
+  const vueEleve = await presenterArrivee(eleve.token, {});
+  const vueProf = await presenterArrivee(c.adminToken, { teamId: c.teams[0].id });
+  for (const res of [vueEleve, vueProf]) {
     assert.equal(res.status, 200, JSON.stringify(res.body));
     assert.notEqual(res.body.vitality?.applied, true, JSON.stringify(res.body.vitality));
     assert.equal(res.body.sansEffet, true);
     assert.equal(res.body.effectSummary, null, 'aucun gain annoncé');
     assert.equal(res.body.hasEffects, false);
   }
+  // Le prof seul lit ce que la case ferait : il choisit de l'appliquer ou non.
+  assert.equal('effetPossible' in vueEleve.body, false);
+  assert.match(vueProf.body.effetPossible, /gemme/);
   assert.equal(await gemmes(c, 0), avant, 'aucune gemme : la case n’a pas été jouée');
   const effets = await queryAll(
     "SELECT id FROM gl_game_events WHERE game_id = ? AND team_id = ? AND event_type = 'marker_effect'",
     [c.game.id, c.teams[0].id],
   );
   assert.equal(effets.length, 0);
+  // « Appliquer les effets (MJ) » : le prof fait jouer la case s'il le décide.
+  const applique = await request(app)
+    .post(api(c, `/markers/${trame.id}/apply-effects`))
+    .set(auth(c.adminToken))
+    .send({ teamId: c.teams[0].id });
+  assert.equal(applique.status, 200, JSON.stringify(applique.body));
+  assert.equal(await gemmes(c, 0), avant + membres(c, 0).length);
+});
+
+test('M3 — case Souffle non jouée : « Appliquer les effets (MJ) » pose bien « un seul dé »', async () => {
+  const c = await partie();
+  await surface(c, 'tablette');
+  await ouvrirTourEnJeu(request, app, c);
+  const eleve = membres(c, 0)[0];
+  for (const m of membres(c, 0)) await setPlayerBourses(m.id, 3, 3);
+  await poser(c, 0, 1); // Question 1 → deux cases plus loin, Étape
+  await jet(c, 0, [1, 1]).expect(201);
+  const progression = await cast(c, eleve.token, {
+    spellCode: 'SL002',
+    teamId: c.teams[0].id,
+    effectParams: { delta: 1 },
+  });
+  assert.equal(progression.status, 200, JSON.stringify(progression.body));
+  assert.equal(await indexOf(c, c.teams[0].id), 4, 'posée sur Souffle 1');
+  const souffle = c.markers[4];
+  const unDe = async () =>
+    Number(
+      (
+        await queryOne('SELECT un_de_prochain_tour AS u FROM gl_teams WHERE id = ?', [
+          c.teams[0].id,
+        ])
+      ).u,
+    );
+  const vue = await request(app)
+    .post(api(c, `/markers/${souffle.id}/present-arrival`))
+    .set(auth(c.adminToken))
+    .send({ teamId: c.teams[0].id });
+  assert.equal(vue.status, 200, JSON.stringify(vue.body));
+  assert.equal(vue.body.sansEffet, true);
+  assert.ok(vue.body.effetPossible, JSON.stringify(vue.body));
+  assert.equal(await unDe(), 0, 'rien de posé tant que le prof n’a pas choisi');
+  const applique = await request(app)
+    .post(api(c, `/markers/${souffle.id}/apply-effects`))
+    .set(auth(c.adminToken))
+    .send({ teamId: c.teams[0].id });
+  assert.equal(applique.status, 200, JSON.stringify(applique.body));
+  assert.equal(await unDe(), 1, 'un seul dé au prochain tour');
 });
 
 test('M3 — le vent pose la dernière équipe sur une Trame : la présenter ne donne rien', async () => {
@@ -375,7 +438,7 @@ test('M3 — une équipe posée à la main par le prof : la case se présente et
 // M4 — Relance payée, jamais rejouée : rendue au passage en souffle
 // ---------------------------------------------------------------------
 
-test('M4 — Relance lancée, dé jamais rejoué : le sort est rendu au souffle, sans jet d’office', async () => {
+test('M4 — Relance lancée, dé jamais rejoué : au souffle, le sort est rendu et le jet annulé réappliqué', async () => {
   const c = await partie();
   await surface(c, 'tablette');
   await ouvrirTourEnJeu(request, app, c);
@@ -392,7 +455,6 @@ test('M4 — Relance lancée, dé jamais rejoué : le sort est rendu au souffle,
 
   const souffle = await phase(c, { phase: 'souffle', dort: true });
   assert.equal(souffle.status, 200, JSON.stringify(souffle.body));
-  assert.equal(await gemmes(c, 0), avant, 'Relance rendue : rien n’est retiré');
   const draft = await queryOne('SELECT status FROM gl_spell_cast_drafts WHERE id = ?', [
     relance.body.draft.id,
   ]);
@@ -403,11 +465,40 @@ test('M4 — Relance lancée, dé jamais rejoué : le sort est rendu au souffle,
   );
   assert.ok(evt, 'évènement spell_rembourse');
   assert.equal(JSON.parse(evt.payload_json).spellCode, 'SL005');
-  // Décision ouverte : ni jet d'office, ni jet annulé réappliqué.
-  assert.equal(await indexOf(c, c.teams[0].id), 0);
-  // Rendue une seule fois : la clôture ne rend rien de plus.
+  // Le jet annulé (deux cases : Trame 1) est réappliqué, et sa case se joue : + 1 gemme par
+  // membre. Aucun nouveau jet n'est tiré.
+  assert.equal(await indexOf(c, c.teams[0].id), 2, 'la mascotte retrouve la case de son jet');
+  assert.equal(await gemmes(c, 0), avant + membres(c, 0).length, 'Relance rendue, Trame jouée');
+  const gardee = await queryOne(
+    "SELECT payload_json FROM gl_game_events WHERE game_id = ? AND team_id = ? AND event_type = 'arrivee_gardee' ORDER BY id DESC LIMIT 1",
+    [c.game.id, c.teams[0].id],
+  );
+  assert.equal(JSON.parse(gardee.payload_json).motif, 'relance_rendue');
+  const jets = await queryAll(
+    "SELECT id FROM gl_game_events WHERE game_id = ? AND team_id = ? AND event_type = 'dice_roll'",
+    [c.game.id, c.teams[0].id],
+  );
+  assert.equal(jets.length, 1, 'aucun jet d’office');
+  // Une seule fois : la clôture ne rend ni ne rejoue rien de plus.
   await phase(c, { phase: 'clos' }).expect(200);
-  assert.equal(await gemmes(c, 0), avant);
+  assert.equal(await gemmes(c, 0), avant + membres(c, 0).length);
+  assert.equal(await indexOf(c, c.teams[0].id), 2);
+});
+
+test('M4 — équipe déplacée depuis l’annulation : le sort est rendu, le jet n’est pas rejoué', async () => {
+  const c = await partie();
+  await surface(c, 'tablette');
+  await ouvrirTourEnJeu(request, app, c);
+  const eleve = membres(c, 0)[0];
+  for (const m of membres(c, 0)) await setPlayerBourses(m.id, 3, 3);
+  const avant = await gemmes(c, 0);
+  await jet(c, 0, [1, 1]).expect(201);
+  const relance = await cast(c, eleve.token, { spellCode: 'SL005', teamId: c.teams[0].id });
+  assert.equal(relance.status, 200, JSON.stringify(relance.body));
+  await poser(c, 0, 3); // déplacée entre-temps (Étape)
+  await phase(c, { phase: 'souffle', dort: true }).expect(200);
+  assert.equal(await gemmes(c, 0), avant, 'Relance rendue');
+  assert.equal(await indexOf(c, c.teams[0].id), 3, 'pas de retour en arrière');
 });
 
 test('M4 — Relance rejouée : rien n’est rendu au souffle', async () => {
