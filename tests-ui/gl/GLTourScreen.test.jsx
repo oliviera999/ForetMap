@@ -397,4 +397,79 @@ describe('GLTourScreen', () => {
       vi.useRealTimers();
     }
   });
+
+  /**
+   * Audit du 19/11/2026, J2 — un élève joue depuis un autre appareil : l'état de la partie se
+   * recharge (temps réel), mais l'instantané du tour n'était relu qu'au montage et après un
+   * geste du prof. La carte d'équipe et la file « Demandes » restaient figées.
+   */
+  describe('J2 : se relit quand la partie avance sans geste du prof', () => {
+    function lectures(suffixe) {
+      return apiGlMock.mock.calls.filter(([p]) => String(p).endsWith(suffixe)).length;
+    }
+    function ecran(props) {
+      return (
+        <GLTourScreen
+          game={{ id: 7 }}
+          teams={teams}
+          roster={[]}
+          tenir={{ ...tenir, round: { number: 1, phase: 'jeu' } }}
+          token="tok"
+          onReloadGame={vi.fn()}
+          events={[]}
+          {...props}
+        />
+      );
+    }
+
+    test('un évènement de la partie relit le tour et la file des demandes', async () => {
+      let vue = tourView();
+      apiGlMock.mockImplementation(async (path) => {
+        if (path.endsWith('/tenir/tour')) return vue;
+        if (path.endsWith('/tenir/demandes')) return { demandes: [] };
+        if (path.includes('/journal/')) return { events: [], teams: [] };
+        return { ok: true };
+      });
+      const { rerender } = render(ecran());
+      await waitFor(() => expect(screen.getByTestId('gl-tour-team-2')).toHaveTextContent('case 2'));
+      await waitFor(() => expect(lectures('/tenir/demandes')).toBeGreaterThan(0));
+      const tourLu = lectures('/tenir/tour');
+      const demandesLues = lectures('/tenir/demandes');
+
+      // Un élève de l'équipe lance depuis sa tablette : le serveur a avancé, l'état de la
+      // partie se recharge avec un évènement de plus.
+      vue = tourView({
+        teams: tourView().teams.map((t) =>
+          t.id === 2 ? { ...t, pathIndex: 6, hasRolledDiceThisRound: true } : t,
+        ),
+      });
+      rerender(ecran({ events: [{ id: 91, eventType: 'dice_roll', teamId: 2 }] }));
+
+      await waitFor(() =>
+        expect(screen.getByTestId('gl-tour-team-2')).toHaveTextContent('case 7 · dés lancés'),
+      );
+      expect(lectures('/tenir/tour')).toBe(tourLu + 1);
+      await waitFor(() => expect(lectures('/tenir/demandes')).toBeGreaterThan(demandesLues));
+    });
+
+    test('un changement de phase ou de tour vu dans l’état de la partie relit le tour', async () => {
+      const { rerender } = render(ecran());
+      await waitFor(() => expect(screen.getByText(/Tour 1 · Jeu/)).toBeInTheDocument());
+      const tourLu = lectures('/tenir/tour');
+      rerender(ecran({ tenir: { ...tenir, round: { number: 1, phase: 'souffle' } } }));
+      await waitFor(() => expect(lectures('/tenir/tour')).toBe(tourLu + 1));
+      rerender(ecran({ tenir: { ...tenir, round: { number: 2, phase: 'ouverture' } } }));
+      await waitFor(() => expect(lectures('/tenir/tour')).toBe(tourLu + 2));
+    });
+
+    test('un nouveau rendu sans rien de neuf ne relit rien', async () => {
+      const { rerender } = render(ecran());
+      await waitFor(() => expect(screen.getByText(/Tour 1 · Jeu/)).toBeInTheDocument());
+      const tourLu = lectures('/tenir/tour');
+      rerender(ecran({ events: [] }));
+      rerender(ecran({ tenir: { ...tenir, round: { number: 1, phase: 'jeu' } } }));
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      expect(lectures('/tenir/tour')).toBe(tourLu);
+    });
+  });
 });
