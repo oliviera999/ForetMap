@@ -437,6 +437,12 @@ Au-delà de la pastille, l'application protège ce qui est déjà affiché :
   aussi les actions en attente d'envoi de cet élève et les photos gardées hors ligne, après
   un avertissement s'il reste des actions non envoyées (réglage « Effacer de l'appareil, à la
   déconnexion… », section Confidentialité — voir le modèle de sécurité).
+- **Plusieurs onglets ouverts : ils suivent le même compte** (depuis novembre 2026). Se
+  déconnecter dans un onglet déconnecte aussi les autres, avec le message « Vous avez été
+  déconnecté depuis un autre onglet. ». Si quelqu'un d'autre se connecte dans un onglet,
+  les autres onglets se rechargent sur ce nouveau compte. Auparavant, un onglet resté ouvert
+  continuait d'afficher l'ancien compte (nom, onglets d'administration) tout en agissant
+  avec la connexion du nouveau.
 - **Réseau trop lent : on n'attend plus indéfiniment.** Sur le terrain, un réseau « présent
   mais inutilisable » (une seule barre, Wi-Fi saturé par toute une classe) ne coupe pas la
   connexion : l'appareil attendait parfois plus d'une minute. Désormais, au bout de
@@ -568,6 +574,10 @@ L'application est mise à jour plusieurs fois par jour. Ce qu'un utilisateur en 
   arrange.
 - **Après le rechargement**, le message « Nouvelle version installée. » confirme le
   passage à la nouvelle version.
+- **Tant qu'on n'a pas cliqué, l'onglet garde la version qu'il a chargée** (depuis novembre
+  2026). Auparavant, la nouvelle version prenait la main en arrière-plan sans attendre le
+  clic : le bandeau n'apparaissait en pratique jamais, et un onglet ouvert pouvait perdre des
+  morceaux de l'application (rechargement subit, ou écran qui ne s'ouvrait plus hors ligne).
 - **Auparavant**, la page se rechargeait d'elle-même dès la publication — parfois une
   vingtaine de fois par jour — et le message apparaissait aussi à la toute première visite
   dans un navigateur neuf, alors qu'aucune version n'avait été remplacée. Les deux

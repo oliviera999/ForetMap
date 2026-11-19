@@ -3,6 +3,7 @@ import { Button } from '../ui/Button.jsx';
 import { renderMarkdownToSafeHtml } from '../platform/markdown.js';
 import { formatDateTime } from '../utils/formatDateTime.js';
 import { buildJournalTimeline } from './journalFeed.js';
+import { filterRowsByLocalPeriod } from './journalPeriod.js';
 import { useJournalEmbedTitles } from './useJournalEmbedTitles.js';
 import { getBrandOrgName } from '../brand/brandNames.js';
 import { useHtmlAsIs } from './journalImages.js';
@@ -111,41 +112,13 @@ export function JournalBookView({
   const filteredArticles = useMemo(() => {
     let rows = Array.isArray(articles) ? [...articles] : [];
     if (pinnedOnly) rows = rows.filter((a) => a.pinned);
-    if (periodStart) {
-      const t0 = new Date(periodStart).getTime();
-      rows = rows.filter((a) => {
-        const t = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-        return Number.isFinite(t) && t >= t0;
-      });
-    }
-    if (periodEnd) {
-      const t1 = new Date(periodEnd).getTime() + 86400000 - 1;
-      rows = rows.filter((a) => {
-        const t = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-        return Number.isFinite(t) && t <= t1;
-      });
-    }
-    return rows;
+    return filterRowsByLocalPeriod(rows, periodStart, periodEnd);
   }, [articles, pinnedOnly, periodStart, periodEnd]);
 
   const filteredImports = useMemo(() => {
     let rows = Array.isArray(imports) ? [...imports] : [];
     if (pinnedOnly) rows = rows.filter((i) => i.pinned);
-    if (periodStart) {
-      const t0 = new Date(periodStart).getTime();
-      rows = rows.filter((i) => {
-        const t = i.createdAt ? new Date(i.createdAt).getTime() : 0;
-        return Number.isFinite(t) && t >= t0;
-      });
-    }
-    if (periodEnd) {
-      const t1 = new Date(periodEnd).getTime() + 86400000 - 1;
-      rows = rows.filter((i) => {
-        const t = i.createdAt ? new Date(i.createdAt).getTime() : 0;
-        return Number.isFinite(t) && t <= t1;
-      });
-    }
-    return rows;
+    return filterRowsByLocalPeriod(rows, periodStart, periodEnd);
   }, [imports, pinnedOnly, periodStart, periodEnd]);
 
   const tocArticles = useMemo(

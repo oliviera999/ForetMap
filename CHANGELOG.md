@@ -9,6 +9,34 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — audit ForetMap du 19/11, lot 11 (front : session multi-onglets, service worker, sauvegarde automatique, dates)
+
+Constats F1, F2, F3, F5, F6, F9 (hors individus) et F10 de `docs/AUDIT_BUGS_FORETMAP_2026-11-19.md`, § 8.
+
+- **F1 — Session changée dans un autre onglet.** `useSessionWindowSync` écoute `storage` sur
+  `foretmap_session` : compte disparu → l'onglet ferme sa session (toast « Vous avez été
+  déconnecté depuis un autre onglet. ») sans toucher au stockage ; autre compte → rechargement de
+  la page, qui reconstruit droits, onglets et données sur le bon compte. Un jeton renouvelé (même
+  compte) ne fait rien. Filet : un 401 reçu **sans jeton** par une fenêtre qui en avait un ferme
+  aussi sa session (`api()`), une seule fois.
+- **F2 — `/api/auth/me` tardif.** `mergeAuthMeResponse` ignore une réponse quand plus aucun jeton
+  n'est stocké ou que le jeton désigne un autre compte (`isAuthMeResponseForCurrentSession`) :
+  ni droits reposés, ni jeton réécrit. `useAppDataSync` et `useAuthMeHydration` mémorisent en
+  plus le compte au départ de la requête.
+- **F3 — Service worker.** Plus de `skipWaiting()` à l'installation (`swTemplate.js`,
+  `public/sw.js`) : la nouvelle version attend le clic sur « une mise à jour est prête »
+  (message `SKIP_WAITING`) ; un onglet ouvert ne perd plus ses bundles. La première
+  installation s'active toujours seule.
+- **F5 — Sauvegarde automatique.** La sauvegarde « de démontage » de `useDebouncedAutoSave` ne
+  part plus quand `enabled` passe à faux (titre effacé d'une tâche ou d'un tutoriel → plus de
+  `PUT` au titre vide) ; elle reste au vrai démontage.
+- **F6 — Boutons « Modèle CSV / XLSX ».** Clé React stable (`importTemplateButtonKey`) même avec
+  un libellé JSX : fin des clés `[object Object]` dupliquées.
+- **F9 — Dates locales.** Filtre de période du carnet (`journalPeriod.js`) et plages par défaut
+  de l'audit, de l'usage et du suivi (`utils/localDateInput.js`) en heure locale, non plus UTC.
+- **F10 — Visite.** `useVisitContent` revérifie la carte juste avant d'appliquer le contenu, et
+  seul le dernier chargement baisse `loading`.
+
 ### Modifié — G&L : ensemble unifié, PR 4 — une seule monnaie, les gemmes (18 novembre 2026)
 
 Prompt `docs/GL_ENSEMBLE_UNIFIE_PROMPT.md` (§ 9, décisions M1 et M19). En « Tenir à deux », tout
