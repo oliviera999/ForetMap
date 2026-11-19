@@ -9,6 +9,27 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — audit ForetMap du 19/11, lot 2 (connecteur MCP)
+
+- **S2** — `foretmap_sql_select` / `foretmap_export` : un nom de CTE déclaré dans une
+  sous-requête (`… WHERE EXISTS (WITH users AS (…) SELECT … FROM users)`) masquait la vraie
+  table dans toute la requête et laissait lire une table refusée. Les noms de CTE sont
+  désormais rattachés à leur portée (`lib/mcp/sqlAst.js`), ne peuvent plus reprendre le nom
+  d'une table connue, et un `WITH` entre parenthèses suivi d'un `UNION` (portée ambiguë) est
+  refusé.
+- **S3** — `POST /MCP` (casse différente) échappait à la garde d'hôte et à `MCP_ENABLED=false`.
+  La garde est insensible à la casse (`/mcp/…`, `/oauth/`, `/.well-known/` compris) et le point
+  d'entrée revérifie activation et produit.
+- **S5** — le bypass RGPD suit la permission `mcp.privacy_bypass` de l'appelant, plus seulement
+  le réglage global (SQL de lecture, export, statistiques d'usage, échantillons du SQL
+  d'écriture, instructions du serveur).
+- **S9** — l'empreinte de confirmation par code couvre le contenu des objets imbriqués
+  (sérialisation canonique récursive).
+- **S11** — `foretmap_sql_execute` rétablit `innodb_lock_wait_timeout` avant de rendre la
+  connexion au pool (MySQL et MariaDB).
+
+Tests : `tests/audit-fm-lot2-mcp.test.js`. Doc : `docs/MCP.md`, `docs/MCP_REGISTRE_TRAITEMENT.md`.
+
 ### Modifié — G&L : en hybride, les dés aussi sur la tablette (19 novembre 2026)
 
 Sur décision du prof : en surface hybride, un membre de l'équipe lance les dés depuis sa

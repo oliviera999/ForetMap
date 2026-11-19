@@ -59,6 +59,11 @@ Client ──▶ /.well-known/oauth-protected-resource[/mcp]   (RFC 9728)
   ces chemins répondent 404 : un seul `resource`, un seul `issuer`. Les outils G&L lisent la
   base directement.
 - **Désactivé par défaut** (`MCP_ENABLED`) : tout répond 404 et le SDK n'est pas chargé.
+- **Casse des chemins** : la garde d'hôte et d'activation est **insensible à la casse**, comme le
+  routage Express (`/MCP`, `/Mcp/…`, `/OAuth/…`, `/.Well-Known/…`), et le point d'entrée
+  `POST /mcp` revérifie lui-même activation et produit. Avant le 19/11/2026, `POST /MCP`
+  échappait à la garde : un jeton déjà émis restait utilisable après coupure, et sur `gl.*`
+  (audit du 19/11/2026, constat S3).
 
 ### Pourquoi un serveur d'autorisation fait main plutôt que `mcpAuthRouter` du SDK
 
@@ -366,7 +371,12 @@ présence (les cartes de test sont presque vides) et 9 photos sans crédit/licen
 > (`mcp.privacy_bypass`) pour les porteurs de la permission `mcp.privacy_bypass` (admin) — ils
 > lisent et modifient les données nominatives d'élèves (outils de domaine marqués « nominatif »,
 > `foretmap_api`, SQL hors secrets), chaque lecture nominative étant journalisée. Les garde-fous
-> ci-dessous restent ceux de **tous les autres comptes** et de la sortie sans bypass ; les
+> ci-dessous restent ceux de **tous les autres comptes** et de la sortie sans bypass ; le bypass
+> se calcule **par appelant** (réglage actif **et** permission `mcp.privacy_bypass` de son
+> profil) : un profil sur mesure doté de `mcp.sql` sans cette permission reste en mode contenu
+> (liste blanche, seuils « &lt;5 », nettoyage complet) — avant le 19/11/2026, le seul réglage
+> global suffisait pour `foretmap_sql_select`, `foretmap_export`, `foretmap_usage_overview` et
+> les échantillons de `foretmap_sql_execute` (audit du 19/11/2026, constat S5). Les
 > secrets ne sortent jamais. Sans `DB_MCP_USER`, `foretmap_sql_select` passe par le pool
 > principal en transaction READ ONLY (analyse syntaxique conservée, `SELECT *` refusé sur une
 > table à colonnes secrètes).
@@ -405,7 +415,12 @@ présence (les cartes de test sont presque vides) et 9 photos sans crédit/licen
      `mysql`, `performance_schema`…), d'`INTO`, des verrous, des variables, de toute fonction hors
      liste blanche de fonctions pures (`LOAD_FILE`, `CURRENT_USER`, `USER`, `DATABASE`,
      `VERSION`, `SLEEP`, `BENCHMARK`… refusées) et de tout ce que le parseur n'analyse pas
-     (fail-closed). L'ancienne analyse par expressions régulières laissait passer
+     (fail-closed). Un nom de CTE n'est reconnu que **dans sa portée** (la requête qui le
+     déclare, ses sous-requêtes, les branches de son `UNION`) et ne peut pas reprendre le nom
+     d'une table connue (liste blanche, agrégats, liste noire, tables secrètes) ; un `WITH`
+     entre parenthèses suivi d'un `UNION` (portée ambiguë) est refusé. Avant le 19/11/2026, un
+     `WITH users AS (…)` caché dans un `EXISTS (…)` masquait la vraie table `users` dans toute
+     la requête (audit du 19/11/2026, constat S2). L'ancienne analyse par expressions régulières laissait passer
      `SELECT * FROM (users)` (relecture de sécurité, constat B1). Les agrégations sont admises
      (`GROUP BY`, `HAVING`, `COUNT`, `SUM`, `AVG`, `MIN`, `MAX`, `GROUP_CONCAT`), avec le même
      plafond de lignes et de temps. Une erreur MySQL **de la requête elle-même** (colonne ou
@@ -1160,7 +1175,9 @@ dépassement du plafond de lignes) ne s'exécutent pas tant qu'un code à **6 ch
 été validé ; en `all_writes`, toute écriture d'un outil de domaine le demande aussi :
 
 1. Premier appel → code envoyé à l'**e-mail du compte**, ligne `mcp_confirmations` (10 min,
-   usage unique, ≤ 3 essais, liée au compte, à l'outil et à l'empreinte des arguments), réponse
+   usage unique, ≤ 3 essais, liée au compte, à l'outil et à l'empreinte des arguments —
+   sérialisation canonique **récursive**, objets imbriqués compris : avant le 19/11/2026, le
+   contenu d'un `data: { … }` n'entrait pas dans l'empreinte, audit constat S9), réponse
    `{ confirmation_required: true, confirmation_id, summary }`.
 2. Second appel avec les **mêmes** arguments + `confirmation_id` + `confirmation_code`.
 
@@ -1171,7 +1188,10 @@ sensibles).
 
 - **Une seule instruction**, sans `;` final ; texte contrôlé (`classify.js`) : pas de
   `LOAD DATA`, `INTO OUTFILE`, `SHUTDOWN`, `SET PASSWORD`, etc.
-- **DML** : transaction applicative ; **`dry_run=true`** exécute puis **rollback**.
+- **DML** : transaction applicative ; **`dry_run=true`** exécute puis **rollback**. L'attente
+  de verrou est bornée à 5 s (`innodb_lock_wait_timeout` de session), puis la valeur d'origine
+  est **rétablie** avant que la connexion ne retourne au pool (MySQL et MariaDB ; avant le
+  19/11/2026, la borne restait sur la connexion, audit constat S11).
 - **DDL / DCL** : **hors transaction** (commit implicite) ; `dry_run=true` ne lance pas
   l'instruction.
 - Réponse avec une **`migration_sql`** idempotente à verser par PR pour le corpus semé.
