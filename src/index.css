@@ -1659,10 +1659,52 @@
       min-width:0;
       flex:1;
     }
+    /* Tâche rattachée à un projet : filet gauche + fond à la teinte du projet. Après .mine
+       (l'emporte sur son fond), avant .proposed (qui garde le sien). */
+    .task-card.task-card--project {
+      border-left:5px solid var(--project-accent);
+      background:var(--project-tint);
+    }
     .task-card.proposed {
       border-color:#c4b5fd;
       background:#faf5ff;
       box-shadow:0 2px 10px rgba(124,58,237,.12);
+    }
+    /* Une proposition rattachée à un projet garde son fond violet (règle .proposed, plus
+       bas à spécificité égale) mais reprend le filet de son projet. */
+    .task-card.task-card--project.proposed { border-left-color:var(--project-accent); }
+    /* Case d'un projet : même filet que ses tâches, pour relier l'une aux autres. */
+    .task-card.task-project-card--colored { border-left:5px solid var(--project-accent); }
+    .task-project-card--colored .task-project-toggle .task-title { color:var(--project-ink); }
+    /* Une teinte par projet (utils/projectColors.js) : chaque classe pointe les quatre jetons
+       génériques vers la teinte N, définie dans shared/styles/color-tokens.css. */
+    .project-color-0 { --project-accent:var(--project-0-accent); --project-tint:var(--project-0-tint); --project-chip:var(--project-0-chip); --project-ink:var(--project-0-ink); }
+    .project-color-1 { --project-accent:var(--project-1-accent); --project-tint:var(--project-1-tint); --project-chip:var(--project-1-chip); --project-ink:var(--project-1-ink); }
+    .project-color-2 { --project-accent:var(--project-2-accent); --project-tint:var(--project-2-tint); --project-chip:var(--project-2-chip); --project-ink:var(--project-2-ink); }
+    .project-color-3 { --project-accent:var(--project-3-accent); --project-tint:var(--project-3-tint); --project-chip:var(--project-3-chip); --project-ink:var(--project-3-ink); }
+    .project-color-4 { --project-accent:var(--project-4-accent); --project-tint:var(--project-4-tint); --project-chip:var(--project-4-chip); --project-ink:var(--project-4-ink); }
+    .project-color-5 { --project-accent:var(--project-5-accent); --project-tint:var(--project-5-tint); --project-chip:var(--project-5-chip); --project-ink:var(--project-5-ink); }
+    .project-color-6 { --project-accent:var(--project-6-accent); --project-tint:var(--project-6-tint); --project-chip:var(--project-6-chip); --project-ink:var(--project-6-ink); }
+    .project-color-7 { --project-accent:var(--project-7-accent); --project-tint:var(--project-7-tint); --project-chip:var(--project-7-chip); --project-ink:var(--project-7-ink); }
+    .project-color-8 { --project-accent:var(--project-8-accent); --project-tint:var(--project-8-tint); --project-chip:var(--project-8-chip); --project-ink:var(--project-8-ink); }
+    .project-color-9 { --project-accent:var(--project-9-accent); --project-tint:var(--project-9-tint); --project-chip:var(--project-9-chip); --project-ink:var(--project-9-ink); }
+    .task-project-ribbon {
+      display:flex; align-items:center; flex-wrap:wrap; gap:6px;
+      margin:-2px 0 8px;
+      font-size:var(--text-xs); font-weight:var(--fw-semibold); line-height:var(--lh-tight);
+      color:var(--project-ink);
+    }
+    .task-project-ribbon__title { min-width:0; overflow-wrap:anywhere; }
+    .task-project-ribbon__step {
+      background:var(--project-chip); border-radius:999px; padding:2px 8px; white-space:nowrap;
+    }
+    /* Flèches ↑↓ d'ordre dans un projet (tactile / clavier, en plus du glisser-déposer). */
+    .task-project-drop-slot--with-order { display:flex; align-items:flex-start; gap:6px; }
+    .task-project-drop-slot--with-order > .task-card { flex:1; min-width:0; }
+    .task-project-order-controls { display:flex; flex-direction:column; gap:4px; padding-top:4px; }
+    .btn.task-project-order-btn {
+      min-width:44px; min-height:44px; padding:0;
+      display:inline-flex; align-items:center; justify-content:center;
     }
     .task-top { display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-bottom:8px; }
     .task-title-row { display:flex; align-items:flex-start; gap:10px; min-width:0; flex:1; }
