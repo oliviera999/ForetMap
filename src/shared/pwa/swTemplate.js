@@ -19,7 +19,8 @@
  *   - images, icônes et fontes en cache-first, dans un cache à part borné (200 entrées, 7 jours),
  *     purgé d'une copie révoquée (401/403) ou supprimée (404) ; jamais de copie d'une réponse
  *     \`no-store\` ; clé sans la signature \`exp\`/\`sig\` des médias \`/uploads/\` signés ;
- *   - message `SKIP_WAITING`, purge des anciens caches à l'activation ;
+ *   - pas de `skipWaiting()` à l'installation : la nouvelle version attend le message
+ *     `SKIP_WAITING` (bandeau de mise à jour) ; purge des anciens caches à l'activation ;
  *   - une copie servie faute de réponse du réseau porte l'en-tête `X-Foretmap-SW-Cache: 1` :
  *     le client y lit un réseau inutilisable (`src/shared/networkStatus.js`) ;
  *   - cache « sortie terrain » (`<produit>-terrain`, nom stable, survit aux mises à jour) :
@@ -465,7 +466,11 @@ self.addEventListener('install', (event) => {
           PRECACHE_URLS.map((url) => cache.add(url).catch(() => undefined))
         );
       }))
-      .then(() => self.skipWaiting())
+    // Pas de skipWaiting() ici (audit ForetMap du 19/11, F3) : une nouvelle version attend
+    // (\`registration.waiting\`) que l'utilisateur l'applique par le bandeau (message
+    // \`SKIP_WAITING\`). Sinon l'activation purgeait l'ancien cache sous un onglet encore
+    // ouvert, qui perdait ses bundles chargés à la demande. La première installation, sans
+    // version à remplacer, s'active d'elle-même.
   );
 });
 

@@ -115,7 +115,7 @@ test('enseignant : plancher de 12 caractères', async () => {
     .expect(200);
 });
 
-test('compte Google sans mot de passe : édite son profil et se dote d’un mot de passe sans en redonner', async () => {
+test('compte Google sans mot de passe : édite son profil ; sa première pose passe par un lien envoyé par e-mail (A3)', async () => {
   const student = await createAccount({ userType: 'student', password: null, provider: 'google' });
   const token = await tokenFor('student', student.id);
   const edit = await request(app)
@@ -131,13 +131,21 @@ test('compte Google sans mot de passe : édite son profil et se dote d’un mot 
     .expect(200);
   assert.strictEqual(own.body.description, 'Compte Google, bis');
 
+  // Première pose (A3, audit du 19/11/2026) : rien n'est changé par la session seule, un lien
+  // de définition part vers l'adresse du compte.
+  const { createPasswordResetToken } = require('../lib/passwordReset');
   const res = await request(app)
     .post('/api/auth/me/password')
     .set('Authorization', `Bearer ${token}`)
     .send({ newPassword: 'premier1234' })
-    .expect(200);
-  assert.ok(res.body.authToken);
+    .expect(202);
+  assert.strictEqual(res.body.linkSent, true);
+  const resetToken = await createPasswordResetToken('student', student.id);
   await request(app)
+    .post('/api/auth/reset-password')
+    .send({ token: resetToken, password: 'premier1234' })
+    .expect(200);
+  const login = await request(app)
     .post('/api/auth/login')
     .send({ identifier: student.pseudo, password: 'premier1234' })
     .expect(200);
@@ -145,12 +153,12 @@ test('compte Google sans mot de passe : édite son profil et se dote d’un mot 
   // seul un nouveau changement de mot de passe le redemande.
   await request(app)
     .patch('/api/auth/me/profile')
-    .set('Authorization', `Bearer ${res.body.authToken}`)
+    .set('Authorization', `Bearer ${login.body.authToken}`)
     .send({ description: 'Sans mot de passe actuel' })
     .expect(200);
   await request(app)
     .post('/api/auth/me/password')
-    .set('Authorization', `Bearer ${res.body.authToken}`)
+    .set('Authorization', `Bearer ${login.body.authToken}`)
     .send({ newPassword: 'second12345' })
     .expect(400);
 });
