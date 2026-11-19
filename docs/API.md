@@ -548,6 +548,12 @@ tableau, rien ne change.
   exclus compris) et `exclus` (ceux qui ont touché « pas moi »). Les parts sont suggérées
   entre les présents non exclus : réserve de la caravane d'abord, parts égales, reste au plus
   riche, jamais au-delà d'un solde.
+- `POST /api/gl/games/:id/spell-casts/drafts` — **reprise d'un pot en collecte** (audit du
+  19/11/2026, S1 et S12) : le pot du même sort n'est repris que si son équipe, sa partenaire
+  (Cordée) et son élève (sort personnel) sont ceux de la demande. Sinon il passe en `cancelled`
+  (rien n'a été débité), le signal `draft_cancelled` part pour lui, et la réponse porte un pot
+  neuf. Un pot repris se recalcule aussi quand une part dépasse le solde de son élève ou que le
+  total ne correspond plus au reste dû (réserve de la caravane qui a bougé).
 - `POST /api/gl/games/:id/spell-casts/drafts/:draftId/exclure` `{ playerId, exclu }` — l'élève
   pour lui-même, depuis son propre compte (403 `QUI_AGIT_INVALIDE` sinon), ou le prof. Depuis
   la tablette de l'équipe : 403 `BOURSE_AU_PROPRIETAIRE` (ensemble unifié, M13). De même,

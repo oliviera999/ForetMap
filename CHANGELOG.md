@@ -9,6 +9,24 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — G&L : pots de sorts (audit du 19 novembre 2026, lot 5)
+
+- **Un pot repris est bien celui qu'on demande** (S1). Le pot d'un sort resté en collecte était
+  rendu tel quel à la demande suivante : le prof qui ouvrait Lanterne pour une équipe puis pour
+  une autre recevait le pot de la première (ses membres auraient payé) ; un sort personnel
+  (Lettre, Mentorat, Esquive) ouvert par un élève puis par son coéquipier restait au nom du
+  premier ; une Cordée rouverte avec une autre partenaire gardait l'ancienne. Désormais le pot
+  n'est repris que si l'équipe, la partenaire et l'élève correspondent ; sinon il est annulé
+  (rien n'a été débité) et un pot neuf s'ouvre. Le jeu classique n'est pas touché.
+- **Deux « pas moi » au même instant sont gardés tous les deux** (S2) : la liste des élèves
+  retirés et les parts sont relues et recalculées sous le verrou du pot (`setDraftExclusion`,
+  `realignerPotSurLesPresents`).
+- **Un pot rouvert dans le même tour suit les bourses et la réserve** (S12) : il se recalcule
+  quand une part dépasse le solde de son élève ou que le total ne correspond plus au reste dû,
+  au lieu de s'afficher prêt puis d'être refusé au lancement.
+
+Tests : `tests/gl-spell-pot-repris.test.js`.
+
 ### Corrigé — Popups d'Olu tronquées en bas d'écran (18 novembre 2026)
 
 Les fenêtres où parle Olu pouvaient sortir de l'écran par le bas, sans moyen d'en sortir :
