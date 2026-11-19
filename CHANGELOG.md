@@ -9,6 +9,34 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — G&L : les écrans qui ne se relisaient pas (audit du 19 novembre 2026, lot 1)
+
+Six constats du front de jeu (`docs/AUDIT_BUGS_GL_2026-11-19.md`, § 3). Aucune règle du jeu ne
+change, aucune route, aucune migration.
+
+- **J1 — la projection suit le tour.** `GLProjectionView` s'abonne elle-même aux évènements de
+  la partie (`gl:game:event`, `gl:game:equipe`, rafales regroupées) : une projection est une
+  session invitée, le runtime de l'app ne rechargeait rien pour elle et l'écran restait sur
+  « En attente du tour » jusqu'au F5.
+- **J2 — « Jouer le tour » suit les équipes.** `GLTourScreen` relit le tour, la file
+  « Demandes », le lien de classe et le journal dès que l'état de la partie avance (nouvel
+  évènement, tour ou phase) : un jet lancé depuis une tablette n'attend plus « Actualiser ».
+- **J3 — le lien de projection ne déconnecte plus le prof.** La session de projection va dans
+  `sessionStorage` (comme la session d'équipe) : elle survit à un F5 de son onglet et ne touche
+  plus `localStorage.gl_session`, partagé avec la console ouverte à côté.
+- **J4 — l'écran d'équipe suit la phase et le sablier du prof.** `tenir.round` et
+  `tenir.sablier` (état de la partie, rechargé en temps réel) passent devant l'instantané du
+  tour, qui est relu au même moment. Au passage, « Aucun tour ouvert : attends le prof. »
+  s'affiche vraiment tant qu'aucun tour n'existe (l'écran disait « Tour 0 — »).
+- **J6 — session expirée : retour à la connexion.** `useGLSession` écoute `gl_session_changed`
+  et `storage` : quand `apiGL` vide la session sur un 401, l'état React suit.
+- **J7 — « Jet saisi : en attente du clic du prof »** se lit dans `round.desEnAttente` : la
+  mention part quand le prof valide ou refuse, et paraît sur tous les appareils de l'équipe.
+
+Tests : `tests-ui/gl/glProjectionSession.test.js`, `useGLSessionRelecture.test.jsx`,
+`GLProjectionView.test.jsx`, `GLTourScreen.test.jsx`, `GLTenirEquipeView.test.jsx` ; e2e
+`e2e/gl-tenir-ecrans-relus.spec.js` (console et projection dans deux onglets du même navigateur).
+
 ### Corrigé — Popups d'Olu tronquées en bas d'écran (18 novembre 2026)
 
 Les fenêtres où parle Olu pouvaient sortir de l'écran par le bas, sans moyen d'en sortir :

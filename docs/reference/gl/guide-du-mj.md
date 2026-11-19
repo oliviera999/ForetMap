@@ -345,7 +345,10 @@ s'applique tout de suite, comme avant.
 honneurs, sceaux et titres s'attribuent, les badges se calculent. Les parures ne reviennent plus
 au comptoir : chaque élève garde les siennes et les repose, au chapitre suivant, sur la mascotte
 de sa nouvelle équipe. La **projection** (bouton « Projeter ») donne un lien à ouvrir sur le vidéoprojecteur :
-rien n'y est cliquable, aucune bourse ne s'y affiche. Les **exports** (Team Spirit, badges) se
+rien n'y est cliquable, aucune bourse ne s'y affiche ; elle suit le tour sans rechargement et peut
+s'ouvrir dans un second onglet de votre poste sans vous déconnecter. L'écran « Jouer le tour » se
+relit lui aussi quand une équipe joue depuis son appareil : cartes d'équipe et file « Demandes »
+se mettent à jour sans « Actualiser » (le bouton reste là en secours). Les **exports** (Team Spirit, badges) se
 téléchargent depuis le panneau « Tenir à deux » de la console ; la mission réussie, le badge à la
 main, la relecture des pages écrites et des chimères s'y saisissent aussi.
 
