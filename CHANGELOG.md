@@ -33,6 +33,11 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   Test : `tests-ui/gl/GLLearnAndImport.test.jsx`.
 - **C4 (complément) — `POST /api/gl/learning/tutorials/:id`** répond 404 pour un tutoriel non
   publié, sauf permission `gl.content.manage`.
+### Modifié — Pôle Suivi : l'onglet Tâches passe en premier (19 novembre 2026)
+
+Côté prof, cliquer le pôle **Suivi** ouvre désormais l'onglet **Tâches** (et non plus
+« Individus », placé juste après). Seul l'ordre des onglets change (`TeacherTopTabs.jsx`) ;
+test : `tests-ui/components/app/TeacherTopTabs.test.jsx`. Doc : `guide-du-prof.md`.
 
 ### Corrigé — Popups d'Olu tronquées en bas d'écran (18 novembre 2026)
 
