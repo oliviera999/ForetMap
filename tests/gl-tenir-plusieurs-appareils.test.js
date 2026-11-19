@@ -331,6 +331,37 @@ test('la main : un geste décisif la prend, les autres appareils attendent, elle
   assert.equal((await vue(ctx, lina.token)).equipe.main, null);
 });
 
+test('la main se rend quand le prof finit le geste à la place de l’équipe', async () => {
+  const ctx = await nouvellePartie();
+  const team = ctx.teams[2];
+  const [lina] = membres(ctx, 2);
+  const tablette = await ouvrirTablette({ gameId: ctx.game.id, teamId: team.id });
+  // Lina fouille dans une zone : la question s'ouvre, elle tient la main.
+  const fouille = await geste(ctx, lina.token, '/chasse/fouiller', DANS_LA_ZONE);
+  assert.equal(fouille.status, 201, JSON.stringify(fouille.body));
+  assert.ok(fouille.body.question?.presentationToken);
+  assert.equal((await vue(ctx, tablette.token)).equipe.main.geste, 'fouiller');
+  // Un geste du prof qui ne finit pas celui de l'équipe ne lui retire pas la main.
+  const jet = await geste(ctx, ctx.adminToken, '/tenir/lancer', {
+    mode: 'serveur',
+    teamId: team.id,
+  });
+  assert.equal(jet.status, 201, JSON.stringify(jet.body));
+  assert.equal((await vue(ctx, tablette.token)).equipe.main.geste, 'fouiller');
+  // Le prof répond pour l'équipe : le geste est fini, les autres écrans ne restent pas grisés
+  // jusqu'à l'échéance de la main.
+  const reponse = await geste(ctx, ctx.adminToken, '/chasse/repondre', {
+    teamId: team.id,
+    presentationToken: fouille.body.question.presentationToken,
+    questionCode: fouille.body.question.questionCode,
+    choiceId: fouille.body.question.choices[0].id,
+  });
+  assert.equal(reponse.status, 200, JSON.stringify(reponse.body));
+  assert.equal((await vue(ctx, tablette.token)).equipe.main, null);
+  const libre = await geste(ctx, tablette.token, '/chasse/fouiller', LOIN);
+  assert.equal(libre.status, 201, JSON.stringify(libre.body));
+});
+
 test('la main n’attend jamais sans sortie : échéance à 60 s, « rendre », changement de phase, déconnexion', async () => {
   const ctx = await nouvellePartie();
   const team = ctx.teams[3];

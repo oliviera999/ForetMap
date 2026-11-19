@@ -52,9 +52,17 @@ const { resolveMarkerEventConfig } = require('../../../lib/glMarkerEventConfig')
 
 const router = express.Router();
 
+/** Présenter une case se fait dans une partie en cours — comme répondre, lancer ou avancer. */
+function refusHorsPartieEnCours(res, game) {
+  if (String(game?.status || '').toLowerCase() === 'live') return false;
+  res.status(409).json({ error: 'La partie doit être en cours' });
+  return true;
+}
+
 const {
   resolveTenirMarkerContext: resolveSentierContext,
   consumeSentier,
+  arriveeDejaAppliquee,
 } = require('../../../lib/glTourArrivalHelpers');
 
 /** Contexte « Tenir à deux » d'une case : règles v2 actives ? Sentier posé pour l'équipe ? */
@@ -205,6 +213,7 @@ router.post(
       [gameId],
     );
     if (!game) return res.status(404).json({ error: 'Partie introuvable' });
+    if (refusHorsPartieEnCours(res, game)) return undefined;
 
     const chapterRow = await queryOne(
       'SELECT id, plateau_number FROM gl_chapters WHERE id = ? LIMIT 1',
@@ -241,6 +250,24 @@ router.post(
       [teamId, gameId],
     );
     if (!team) return res.status(404).json({ error: 'Équipe introuvable dans cette partie' });
+
+    // « Tenir à deux » : le droit « répondre » est rejoué (phase « jeu », surface, équipe active
+    // au tableau) pour un élève ou une tablette. Le prof garde la présentation à distance.
+    if (acteur.kind !== 'mj' && isTenirGame(settings, game)) {
+      try {
+        await require('../../../lib/glTour').assertRepondreOuvert(db, {
+          gameId,
+          settings,
+          teamId,
+          actorKind: acteur.actorKind,
+          enRetrait: acteur.enRetrait,
+        });
+      } catch (err) {
+        const message = require('../../../lib/glTour').REFUS_REPONDRE[err?.message];
+        if (!message || !err.status) throw err;
+        return res.status(err.status).json({ error: message, code: err.message });
+      }
+    }
 
     // Anti-farm : présenter la question d'un repère suppose d'y être posé. Sans cette garde,
     // un joueur pouvait re-présenter la même question à volonté (retrigger `every_arrival`) et
@@ -395,6 +422,7 @@ router.post(
       [gameId],
     );
     if (!game) return res.status(404).json({ error: 'Partie introuvable' });
+    if (refusHorsPartieEnCours(res, game)) return undefined;
 
     const markerRow = await queryOne(
       `SELECT ${MARKER_SELECT} FROM gl_chapter_markers WHERE id = ? LIMIT 1`,
@@ -442,7 +470,37 @@ router.post(
     // Mode « Tenir à deux » : le texte lu par l'élève est calculé depuis l'effet appliqué
     // (Sentier compris), jamais depuis le champ d'auteur `effet_mecanique`.
     const arrivalCtx = await resolveTenirMarkerContext(db, settings, game, teamId);
-    const arrival = buildMarkerArrivalPayload(marker, team, arrivalCtx);
+    // Arrêt déjà joué par le moteur du tour (jet, relance, +1 d'une question juste) : l'écran
+    // le présente après coup. Un Sentier consommé à l'arrêt reste vrai pour le texte, et
+    // cette présentation ne pose plus « un seul dé » (ensemble unifié, M3).
+    const dejaAppliquee = arrivalCtx.tenir
+      ? await arriveeDejaAppliquee(db, { gameId, teamId, markerId })
+      : null;
+    if (dejaAppliquee?.sentier) arrivalCtx.sentierActif = true;
+    // Équipe posée ici sans que la case se joue (Progression « sans appliquer la case »,
+    // Bourrasque, Relais, vent de la caravane) : la présentation montre le texte et n'applique
+    // rien — sinon elle défaisait la règle. Le prof garde `apply-effects` pour décider autrement.
+    const sansEffet =
+      arrivalCtx.tenir &&
+      !dejaAppliquee &&
+      (await require('../../../lib/glTour').poseeSansJouerLaCase(db, {
+        gameId,
+        teamId,
+        markerId,
+      }));
+    const arrivalJouee = buildMarkerArrivalPayload(marker, team, arrivalCtx);
+    // Sans effet : le texte de la case, jamais l'annonce d'un gain, d'un recul ou d'« un seul
+    // dé » qui ne s'applique pas.
+    const arrival = sansEffet
+      ? {
+          ...arrivalJouee,
+          effectSummary: null,
+          resolvedEffect: null,
+          hasEffects: false,
+          passTurn: false,
+          ...('unDe' in arrivalJouee ? { unDe: false } : {}),
+        }
+      : arrivalJouee;
     const actorType = acteur.actorType;
     const actorId = acteur.actorId;
     const reason = String(marker.label || 'Repère').trim();
@@ -466,6 +524,23 @@ router.post(
     try {
       await withTransaction(async (tx) => {
         const tenirCtx = await resolveTenirMarkerContext(tx, settings, game, teamId);
+        if (sansEffet) {
+          lastEvent = await insertGameEvent(tx, {
+            gameId,
+            teamId,
+            actorType,
+            actorId,
+            eventType: 'marker_arrival',
+            payload: {
+              markerId,
+              markerLabel: marker.label,
+              eventType: marker.event_type,
+              effectSummary: arrival.effectSummary,
+              sansEffet: true,
+            },
+          });
+          return;
+        }
         vitalityPayload = await applyMarkerVitalityEffects(tx, {
           gameId,
           teamId,
@@ -475,13 +550,19 @@ router.post(
           playerIds,
           skipIfAlreadyApplied: true,
           tenir: tenirCtx.tenir,
-          sentierActif: tenirCtx.sentierActif,
+          sentierActif: tenirCtx.sentierActif || dejaAppliquee?.sentier === true,
           casesPositives: tenirCtx.tenir ? tenirCtx.casesPositives : undefined,
           reserveTeamId: tenirCtx.tenir && tenirCtx.surplusReserve ? Number(teamId) : null,
         });
-        if (vitalityPayload?.sentier) await consumeSentier(tx, gameId, teamId);
-        // Ensemble unifié (M3) : une case Souffle pose « un seul dé au prochain tour ».
-        if (tenirCtx.tenir && vitalityPayload?.unDe && !vitalityPayload?.sentier) {
+        if (vitalityPayload?.sentier && !dejaAppliquee) await consumeSentier(tx, gameId, teamId);
+        // Ensemble unifié (M3) : une case Souffle pose « un seul dé au prochain tour » — sauf
+        // si le moteur du tour a déjà joué cet arrêt (il l'a posé, ou un Sentier l'a empêché).
+        if (
+          tenirCtx.tenir &&
+          vitalityPayload?.unDe &&
+          !vitalityPayload?.sentier &&
+          !dejaAppliquee
+        ) {
           const poses = await require('../../../lib/glTour').poserUnDeTx(tx, {
             gameId,
             teamId,
@@ -564,6 +645,12 @@ router.post(
       ...arrival,
       teamId: Number(teamId),
       teamType: team.type,
+      // Case présentée sans s'appliquer (l'équipe y a été posée par un sort ou par le vent).
+      ...(sansEffet ? { sansEffet: true } : {}),
+      // Le prof seul lit ce que la case ferait : il choisit de l'appliquer ou non.
+      ...(sansEffet && acteur.kind === 'mj' && arrivalJouee.hasEffects
+        ? { effetPossible: arrivalJouee.effectSummary || null }
+        : {}),
       vitality: vitalityPayload
         ? {
             applied: vitalityPayload.applied === true,
@@ -592,7 +679,7 @@ router.post(
     }
 
     const game = await queryOne(
-      'SELECT id, chapter_id, board_movement_mode, board_path_start_index, tenir_profil FROM gl_games WHERE id = ? LIMIT 1',
+      'SELECT id, chapter_id, board_movement_mode, board_path_start_index, tenir_profil, tenir_overrides_json, current_round_number FROM gl_games WHERE id = ? LIMIT 1',
       [gameId],
     );
     if (!game) return res.status(404).json({ error: 'Partie introuvable' });
@@ -664,13 +751,28 @@ router.post(
           throw err;
         }
 
-        if (!vitalityPayload?.resolvedEffect) {
+        // « Tenir à deux » : appliquer une case Souffle, c'est poser « un seul dé au prochain
+        // tour » — comme l'arrêt joué par le moteur. Sans cela, le prof qui choisit
+        // « Appliquer les effets (MJ) » sur une case non jouée n'appliquait rien.
+        let unDePose = false;
+        if (tenirCtx.tenir && vitalityPayload?.unDe && !vitalityPayload?.sentier) {
+          const poses = await require('../../../lib/glTour').poserUnDeTx(tx, {
+            gameId,
+            teamId,
+            roundNumber: Number(game.current_round_number) || 0,
+            marker,
+          });
+          if (poses.length) lastEvent = poses[poses.length - 1];
+          unDePose = true;
+        }
+
+        if (!vitalityPayload?.resolvedEffect && !unDePose) {
           const err = new Error('NO_MARKER_EFFECT');
           err.status = 409;
           throw err;
         }
 
-        if (vitalityPayload.vitalityRequired && !vitalityPayload.applied) {
+        if (vitalityPayload.vitalityRequired && !vitalityPayload.applied && !unDePose) {
           const hasMove =
             Number.isFinite(Number(vitalityPayload.moveDelta)) &&
             Number(vitalityPayload.moveDelta) !== 0;

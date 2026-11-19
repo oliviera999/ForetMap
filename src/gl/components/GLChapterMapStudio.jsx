@@ -25,12 +25,18 @@ import { GLChapterMarkerForm } from './GLChapterMarkerForm.jsx';
 import {
   EMPTY_MARKER_FORM,
   markerDuplicatePayloadFromMarker,
+  effectsDraftFromMarker,
   eventDraftFromMarker,
   toFormFromMarker,
   toMarkerPayload,
 } from '../utils/glChapterMapStudioForm.js';
 import { zoneDuplicateCreatePayloadFromZone } from '../hooks/useGLKingdomZoneEditor.js';
 import { buildMarkerPathNumberMap, sortMarkersByPath } from '../utils/glBoardPath.js';
+
+/** Deux brouillons (évènement ou effets) de même contenu : comparaison par sérialisation. */
+function sameDraft(a, b) {
+  return a === b || JSON.stringify(a) === JSON.stringify(b);
+}
 
 export function GLChapterMapStudio({
   chapterId,
@@ -55,6 +61,11 @@ export function GLChapterMapStudio({
     eventConfig: defaultEventConfigForQuestion(),
   });
   const [effectsDraft, setEffectsDraft] = useState({ effects: null, eventMeta: null });
+  // Dernier type d'évènement connu : les défauts d'apparence ne suivent qu'un CHANGEMENT de type.
+  const eventTypeRef = useRef('question');
+  // Incrémenté à chaque remise à zéro du formulaire : change l'identité des deux rappels
+  // ci-dessous, ce qui fait réémettre aux éditeurs (jamais démontés) ce qu'ils affichent.
+  const [draftEpoch, setDraftEpoch] = useState(0);
   const [editableMarkers, setEditableMarkers] = useState([]);
   const [dragState, setDragState] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -231,35 +242,66 @@ export function GLChapterMapStudio({
     setSelectedMarkerId(Number(marker.id));
     setMarkerForm(toFormFromMarker(marker));
     setAppearanceForm(appearanceFormFromMarker(marker));
-    setEventDraft(eventDraftFromMarker(marker));
-    setEffectsDraft({
-      effects: marker.event_config?.effects || null,
-      eventMeta: marker.event_config?.eventMeta || null,
-    });
+    const nextEventDraft = eventDraftFromMarker(marker);
+    eventTypeRef.current = nextEventDraft.eventType;
+    setEventDraft(nextEventDraft);
+    setEffectsDraft(effectsDraftFromMarker(marker));
+    // Même repère resélectionné : ses éditeurs ne sont pas recalés, ils réémettent leur état.
+    setDraftEpoch((value) => value + 1);
   }
 
   function resetForm() {
     setSelectedMarkerId(null);
     setMarkerForm(EMPTY_MARKER_FORM);
     setAppearanceForm({ ...EMPTY_APPEARANCE_FORM });
+    eventTypeRef.current = 'question';
     setEventDraft({
       eventType: 'question',
       eventConfig: defaultEventConfigForQuestion(),
     });
+    // Sans cette remise à zéro, un nouveau repère héritait des effets (cachés pour une case
+    // question) du repère sélectionné juste avant.
+    setEffectsDraft({ effects: null, eventMeta: null });
+    setDraftEpoch((value) => value + 1);
   }
 
-  function handleEventDraftChange(nextDraft) {
-    setEventDraft(nextDraft);
-    const defaults = appearanceDefaultsForEventType(nextDraft?.eventType, appearanceForm);
-    if (defaults) {
-      setAppearanceForm((prev) => ({
-        ...prev,
-        displayMode: defaults.displayMode,
-        emoji: defaults.emoji ?? prev.emoji,
-        iconUrl: defaults.iconUrl ?? '',
-      }));
-    }
-  }
+  /**
+   * Rappels STABLES, et sans effet quand le brouillon reçu est identique au précédent.
+   * Avant : `handleEventDraftChange` était recréée à chaque rendu et posait un nouvel objet ;
+   * l'éditeur d'évènement, dont l'effet dépend de ce rappel, réémettait aussitôt — boucle de
+   * rendu continue, et minuteur d'enregistrement automatique réarmé sans fin
+   * (audit des bugs G&L 2026-11-19, E2).
+   */
+  const handleEventDraftChange = useCallback(
+    (nextDraft) => {
+      setEventDraft((prev) => (sameDraft(prev, nextDraft) ? prev : nextDraft));
+      const nextType = nextDraft?.eventType;
+      if (eventTypeRef.current === nextType) return;
+      eventTypeRef.current = nextType;
+      // Les défauts d'apparence suivent le type seulement quand l'admin le change : appliqués
+      // à chaque émission, ils remplaçaient l'emoji d'un repère dès sa sélection.
+      setAppearanceForm((prev) => {
+        const defaults = appearanceDefaultsForEventType(nextType, prev);
+        if (!defaults) return prev;
+        return {
+          ...prev,
+          displayMode: defaults.displayMode,
+          emoji: defaults.emoji ?? prev.emoji,
+          iconUrl: defaults.iconUrl ?? '',
+        };
+      });
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [draftEpoch],
+  );
+
+  const handleEffectsDraftChange = useCallback(
+    (nextDraft) => {
+      setEffectsDraft((prev) => (sameDraft(prev, nextDraft) ? prev : nextDraft));
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [draftEpoch],
+  );
 
   async function submitMarker(event) {
     event?.preventDefault?.();
@@ -540,7 +582,7 @@ export function GLChapterMapStudio({
         onSubmit={submitMarker}
         onEventDraftChange={handleEventDraftChange}
         effectsDraft={effectsDraft}
-        onEffectsDraftChange={setEffectsDraft}
+        onEffectsDraftChange={handleEffectsDraftChange}
         appearanceForm={appearanceForm}
         onAppearanceFormChange={setAppearanceForm}
         eventDraft={eventDraft}

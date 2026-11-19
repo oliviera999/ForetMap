@@ -3,6 +3,7 @@ import { apiGL } from '../services/apiGL.js';
 import { AutoSaveStatus } from '../../shared/components/AutoSaveStatus.jsx';
 import { useAppDialogs } from '../../shared/components/AppDialogsProvider.jsx';
 import { useDebouncedAutoSave } from '../../shared/hooks/useDebouncedAutoSave.js';
+import { mergeAutoSaveForm } from '../utils/mergeAutoSaveForm.js';
 import { compressImageWithPreset, isLikelyImageFile } from '../../shared/platform/image.js';
 import { GLChapterMapStudio } from './GLChapterMapStudio.jsx';
 import { isModuleEnabled } from '../constants/modules.js';
@@ -164,13 +165,19 @@ export function GLChaptersAdminView() {
     setInfo('');
     const payload = chapterFormToPayload(chapterForm);
     let chapterId = selectedId;
+    // Réponse du serveur fusionnée champ par champ : ce qui a été saisi pendant la requête est
+    // gardé, et la référence de l'enregistrement automatique reste la version du serveur — la
+    // suite de la frappe repart donc d'elle-même. Avant, le formulaire entier était remplacé et
+    // la référence remise à zéro : la saisie était perdue et tenue pour enregistrée
+    // (audit des bugs G&L 2026-11-19, E5).
+    let savedForm = chapterForm;
     if (selectedId) {
       const data = await apiGL(`/api/gl/chapters/admin/${selectedId}`, 'PUT', payload);
       setDetail(data);
       setInfo('Chapitre mis à jour');
       if (data?.chapter) {
-        setChapterForm(chapterDetailToForm(data));
-        setChapterFormRevision((value) => value + 1);
+        savedForm = chapterDetailToForm(data);
+        setChapterForm((current) => mergeAutoSaveForm(current, chapterForm, savedForm));
       }
     } else {
       const data = await apiGL('/api/gl/chapters/admin', 'POST', payload);
@@ -179,21 +186,29 @@ export function GLChaptersAdminView() {
       setSelectedId(chapterId);
       setInfo('Chapitre créé');
       if (data?.chapter) {
-        setChapterForm(chapterDetailToForm(data));
-        setChapterFormRevision((value) => value + 1);
+        savedForm = chapterDetailToForm(data);
+        setChapterForm((current) => mergeAutoSaveForm(current, chapterForm, savedForm));
       }
     }
     if (pendingMapImageFile && chapterId) {
       await uploadChapterMapImage(pendingMapImageFile, chapterId);
     }
     await loadChapters();
-    return chapterForm;
+    return savedForm;
   }, [chapterForm, selectedId, pendingMapImageFile, loadChapters, uploadChapterMapImage]);
 
   const { status: saveStatus, error: saveError } = useDebouncedAutoSave({
     value: chapterForm,
-    resetKey: `${selectedId ?? 'new'}:${chapterFormRevision}`,
-    enabled: String(chapterForm.slug || '').trim() && String(chapterForm.title || '').trim(),
+    // La révision seule : elle change à chaque chargement ou remise à zéro du formulaire. Y
+    // mêler `selectedId` remettait la référence à zéro à la création (l'identifiant arrive avec
+    // la réponse), en avalant ce qui avait été tapé entre-temps.
+    resetKey: chapterFormRevision,
+    // Booléen strict : l'expression `a && b` rendait la chaîne du titre, donc une valeur qui
+    // changeait à chaque frappe — le hook relançait alors son effet de démontage et envoyait
+    // un PUT immédiat par caractère, hors délai.
+    enabled: Boolean(
+      String(chapterForm.slug || '').trim() && String(chapterForm.title || '').trim(),
+    ),
     onSave: persistChapter,
   });
 

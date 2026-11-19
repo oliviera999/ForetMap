@@ -4,7 +4,7 @@ import { Button } from '../ui/Button.jsx';
 import { renderMarkdownToSafeHtml } from '../platform/markdown.js';
 import { formatDateTime } from '../utils/formatDateTime.js';
 import { useJournalEmbedTitles } from './useJournalEmbedTitles.js';
-import { useHtmlAsIs } from './journalImages.js';
+import { useHtmlAsIs, assetsNotInBody } from './journalImages.js';
 
 /**
  * Carte lecture d’un article de carnet (mode feuilleter). Affiche le markdown enrichi,
@@ -33,7 +33,7 @@ export function JournalArticleReadCard({
   const btnProps = { type: 'button', variant: 'secondary', ...(ui.buttonProps || {}) };
   const pinned = !!article.pinned;
   const title = String(article.title || '').trim() || 'Article sans titre';
-  const assets = Array.isArray(article.assets) ? article.assets : [];
+  const assets = assetsNotInBody(article.assets, article.bodyMarkdown);
   const html = useMemo(
     () =>
       article?.bodyMarkdown

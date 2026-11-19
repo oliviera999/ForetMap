@@ -26,6 +26,7 @@ import {
   CloudUpload,
   ChevronDown,
   ChevronRight,
+  ChevronUp,
   Circle,
   ClipboardList,
   Compass,
@@ -193,6 +194,7 @@ export const IconTarget = ui(Circle);
 export const IconSlider = ui(SlidersHorizontal);
 export const IconFilter = ui(Filter);
 export const IconChevronDown = ui(ChevronDown);
+export const IconChevronUp = ui(ChevronUp);
 export const IconChevronRight = ui(ChevronRight);
 export const IconBell = ui(Bell);
 export const IconStudentView = ui(GraduationCap);

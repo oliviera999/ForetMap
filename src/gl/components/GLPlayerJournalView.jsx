@@ -121,6 +121,7 @@ export function GLPlayerJournalView({ gameState, onNavigateTab }) {
                 editing={String(feed.editingId) === String(entry.data.id)}
                 onStartEdit={(id) => feed.setEditingId(id)}
                 onStopEdit={() => feed.setEditingId(null)}
+                onArticleChange={feed.applyArticle}
                 onDelete={feed.deleteArticle}
                 onTogglePin={feed.pinArticle}
               />

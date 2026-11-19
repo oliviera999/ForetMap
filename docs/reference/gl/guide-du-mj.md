@@ -306,8 +306,8 @@ Olu glisse son erreur du jour), **jeu** (les équipes jettent, lancent, réponde
 semaine), **clos** (bilan Team Spirit : cartes gardées par équipe).
 
 Trois surfaces : au **tableau**, vous tenez tout (une équipe active à la fois, sablier) ; en
-**hybride**, chaque équipe lance et répond depuis sa tablette quand c'est son tour et fouille quand
-vous ouvrez la fenêtre ; sur **tablette**, chaque équipe agit seule en phase jeu et vous validez
+**hybride**, chaque équipe lance ses dés et répond depuis sa tablette, et fouille quand vous
+ouvrez la fenêtre ; sur **tablette**, chaque équipe agit seule en phase jeu et vous validez
 les dés physiques d'un clic. Les **absences** du jour retirent un élève du pot des sorts et du
 carnet personnel du tour. Le **retrait** (conduite) se décide élève par élève : il joue, fouille et
 lit, mais ne verse pas au pot et ne voit pas le Marché, jusqu'à la levée ; le motif reste pour vous.
@@ -341,11 +341,42 @@ Dans **« Jouer le tour »**, le bloc « Jets en attente » liste ces équipes a
 **« Appliquer la case »**. Une équipe qui ne peut pas payer Relance ne voit rien changer : sa case
 s'applique tout de suite, comme avant.
 
+**Depuis le 19 novembre 2026 — ce que l'app vérifie elle-même pendant le tour.**
+
+- Au **chapitre 1**, tant que l'escalier n'a pas ouvert Relance (séance 4), un jet s'applique
+  tout de suite : plus de « Gardez ce jet, ou lancez Relance » pour un sort pas encore ouvert.
+- La **question d'une case** se présente et se joue pendant la phase « jeu ». Une fois le
+  souffle lancé, une question restée à l'écran d'une équipe ne se joue plus ; depuis votre
+  écran, vous pouvez toujours la présenter. Au tableau, c'est vous qui la présentez et qui
+  validez la réponse ; en hybride et sur tablette, l'équipe répond depuis sa tablette.
+- En **hybride**, l'équipe lance aussi ses **dés** depuis sa tablette, pendant la phase « jeu »,
+  comme sur tablette ; vous pouvez toujours lancer pour elle depuis votre écran. Avec des dés
+  **physiques** (le réglage de départ en hybride), l'équipe saisit ses faces et vous les validez
+  d'un clic dans « Jouer le tour » ; pour que l'app tire les dés elle-même, passez le mode de
+  dés de la partie sur « tirés par l'app ».
+- Une question ne fait avancer **qu'une fois** : si vous la présentez de votre côté pendant que
+  l'équipe l'a aussi à l'écran, la seconde bonne réponse est corrigée, sans case de plus.
+- Une équipe qu'un sort (**Progression**, **Bourrasque**, **Relais**) ou le **vent de la
+  caravane** pose sur une case en voit le texte, sans son effet : la case ne se joue pas. Sur
+  votre écran, la fenêtre de la case vous montre ce qu'elle ferait et vous laisse le choix :
+  **« Appliquer les effets (MJ) »** pour la faire jouer quand même, ou **« Ne pas appliquer »**.
+- Une **Relance** payée dont l'équipe n'a pas eu le temps de relancer les dés (vous lancez le
+  souffle avant) lui est **rendue** au souffle : rien n'est retiré. Son premier jet, que la
+  Relance avait annulé, est **réappliqué** : la mascotte retrouve la case de ce jet et la case
+  se joue. Aucun nouveau jet n'est tiré. Si c'est une case question, présentez-la depuis votre
+  écran : le temps de jeu est fini pour les tablettes.
+- En **hybride**, le bouton « Fouiller » de l'équipe s'allume bien quand vous ouvrez la fenêtre
+  de fouille.
+- Dans une partie en pause ou terminée, une case ne se présente plus.
+
 À la **clôture** du chapitre (bouton « Clore »), la caravane porte les retardataires au camp, les
 honneurs, sceaux et titres s'attribuent, les badges se calculent. Les parures ne reviennent plus
 au comptoir : chaque élève garde les siennes et les repose, au chapitre suivant, sur la mascotte
 de sa nouvelle équipe. La **projection** (bouton « Projeter ») donne un lien à ouvrir sur le vidéoprojecteur :
-rien n'y est cliquable, aucune bourse ne s'y affiche. Les **exports** (Team Spirit, badges) se
+rien n'y est cliquable, aucune bourse ne s'y affiche ; elle suit le tour sans rechargement et peut
+s'ouvrir dans un second onglet de votre poste sans vous déconnecter. L'écran « Jouer le tour » se
+relit lui aussi quand une équipe joue depuis son appareil : cartes d'équipe et file « Demandes »
+se mettent à jour sans « Actualiser » (le bouton reste là en secours). Les **exports** (Team Spirit, badges) se
 téléchargent depuis le panneau « Tenir à deux » de la console ; la mission réussie, le badge à la
 main, la relecture des pages écrites et des chimères s'y saisissent aussi.
 
@@ -399,7 +430,11 @@ parallèle. Au tableau, rien ne change.
   les présents ; un élève qui ne veut pas verser touche « pas moi » sur sa ligne **depuis son
   propre compte** (ou vous le faites pour lui : depuis le 17 novembre 2026, la tablette de
   l'équipe ne le propose plus). La bourse de chacun reste la sienne : une équipe ne voit jamais
-  le pot d'une autre.
+  le pot d'une autre. Un pot laissé ouvert n'est repris que pour la même équipe (et, selon le sort,
+  la même équipe partenaire ou le même élève) : si vous préparez le même sort pour une autre
+  équipe, un pot neuf s'ouvre et l'ancien est annulé, sans rien coûter à personne. Un pot rouvert
+  se recalcule si une bourse ou la réserve de la caravane a changé entre-temps. _(Depuis le
+  19 novembre 2026.)_
 - **Tout ce qui attend votre geste est au même endroit.** Le panneau **« Demandes »** réunit
   les dés à valider, les jets en suspens, les sorts à honorer, les Lettres à relire, les
   Mentorats à écouter, les chimères à relire, les défis à juger. Une ligne par demande, la plus ancienne en haut, un
@@ -507,6 +542,8 @@ parallèle. Au tableau, rien ne change.
 - **Les zones de la carte : la réponse est sur le site.** Après un « Pas encore » à la question
   d'une zone, la tablette propose une **piste** : « La réponse se trouve dans la fiche … » (ou
   « au mot … du glossaire »), avec un bouton pour l'ouvrir. La piste ne donne jamais la réponse.
+  Elle ne suit que la question propre à la zone : quand la zone a déjà été tentée dans la partie,
+  la question posée est une question de secours du même thème, et aucune piste n'est proposée.
   Cinq questions de zone ont été réécrites, et la zone du Sahara qui attendait son feuillet est
   ouverte.
 
@@ -531,8 +568,10 @@ Au chapitre 1, on n'explique plus les règles : la classe les rencontre, une à 
 
 - **« Ouvrir la suite ».** Votre classe va vite ? Dans le panneau « Profil » de la console, la
   ligne « Escalier du chapitre 1 » dit la séance atteinte et ce qui s'ouvrira ensuite ; le bouton
-  **« Ouvrir la suite »** monte une marche tout de suite. On ne redescend jamais. La case à cocher
-  de la même ligne coupe l'escalier (tout s'ouvre) ou le remet.
+  **« Ouvrir la suite »** monte une marche tout de suite. On ne redescend jamais, et un double
+  appui n'ouvre pas deux marches. La case à cocher de la même ligne coupe l'escalier (tout
+  s'ouvre) ou le remet ; le bouton « Revenir aux réglages du profil », lui, n'y touche pas : il
+  n'efface que vos autres surcharges (vent, voile, Marché, chapardeur, péripéties, surface).
 - **La page témoin.** À l'ouverture de la séance 3, une zone qui dormait encore, près du départ,
   pâlit toute seule : les Gnomes découvrent la réparation sans que rien ne soit en jeu. Une
   seule fois par partie.

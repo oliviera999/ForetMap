@@ -3,6 +3,7 @@ import { apiGL } from '../../services/apiGL.js';
 import { AutoSaveStatus } from '../../../shared/components/AutoSaveStatus.jsx';
 import { useAppDialogs } from '../../../shared/components/AppDialogsProvider.jsx';
 import { useGlAdminCrud } from '../../hooks/useGlAdminCrud.js';
+import { mergeAutoSaveForm } from '../../utils/mergeAutoSaveForm.js';
 import {
   EMPTY_FORM,
   FORM_FIELDS,
@@ -63,6 +64,8 @@ export function GLSpellsEditorPanel() {
       if (spell?.category_slug) setCategorySlug(spell.category_slug);
     },
     isAutoSaveReady: (f) => Boolean(categorySlug) && String(f.nom || '').trim().length > 0,
+    // Frappes saisies pendant l'enregistrement en vol : conservées (audit 2026-11-19, E5).
+    mergeServerForm: mergeAutoSaveForm,
     messages: {
       updated: 'Sort mis à jour.',
       created: 'Sort créé.',

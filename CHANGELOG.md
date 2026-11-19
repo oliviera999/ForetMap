@@ -27,6 +27,367 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Vue « Individus suivis » (F8, F9).** Deux clics rapides n'affichent plus la fiche du premier
   individu pendant que la mesure part sur le second ; la date de mesure par défaut est la date
   locale (et non UTC).
+### Modifié — G&L : en hybride, les dés aussi sur la tablette (19 novembre 2026)
+
+Sur décision du prof : en surface hybride, un membre de l'équipe lance les dés depuis sa
+tablette pendant la phase « jeu », comme sur tablette (`glTenirPermissionsCore`, droit
+`lancer`). Le prof peut toujours lancer pour une équipe. Seule la fouille attend encore la
+fenêtre ouverte par le prof. Avec des dés physiques (défaut de l'hybride), les faces saisies
+par l'équipe attendent la validation du prof, comme sur tablette : un élève ne choisit pas son
+jet. Tests : `tests/gl-tenir-permissions-pure.test.js`,
+`tests/gl-tenir-droits-serveur.test.js`.
+
+### Modifié — G&L : trois décisions sur les droits du tour (19 novembre 2026)
+
+Suite du lot 2 de l'audit (PR #685), sur décision du prof.
+
+- **Relance rendue : le jet annulé est réappliqué.** Au passage en souffle, une Relance payée
+  dont le dé n'a pas été rejoué est rendue, et l'équipe retrouve la case de son premier jet,
+  qui se joue (`arrivee_gardee`, `motif: 'relance_rendue'`). Aucun nouveau jet n'est tiré. Une
+  équipe déplacée depuis l'annulation garde sa place : le sort est rendu, sans rejouer le jet.
+- **Hybride : l'équipe répond depuis sa tablette.** Le droit « répondre » s'ouvre aux membres
+  pendant la phase « jeu » en hybride (noyau `glTenirPermissionsCore`) ; les dés restent au
+  prof. Au tableau, rien ne change.
+- **Case non jouée : le prof choisit.** Quand un sort ou le vent a posé l'équipe sur une case,
+  la fenêtre de la case dit « la case ne se joue pas » ; sur l'écran du prof, elle montre ce
+  que la case ferait (`effetPossible`) avec deux boutons, « Appliquer les effets (MJ) » et
+  « Ne pas appliquer ».
+
+Tests : `tests/gl-tenir-droits-serveur.test.js`, `tests/gl-tenir-permissions-pure.test.js`,
+`tests-ui/gl/GLMarkerEffectPopover.test.jsx`.
+
+### Corrigé — Carnet : article publié affiché « sans titre » et vide (19 novembre 2026)
+
+Après « + Nouvel article », saisie puis « Terminer », la carte de lecture affichait
+**« Article sans titre »** et **« Article sans texte »** : l'article était bien enregistré
+au serveur, mais le fil (`useJournalFeed`) gardait l'article tel qu'il avait été créé — vide —
+jusqu'au rechargement de la page. Le même défaut touchait le journal G&L (hooks partagés).
+
+- **Fil** : nouvelle action `applyArticle(id, patch)` ; l'éditeur (`useJournalArticleEditor`,
+  option `onArticleChange`) y reporte chaque enregistrement et, à la fermeture, la saisie du
+  moment — la carte de lecture montre ce qui vient d'être écrit même si le dernier envoi est
+  encore en vol. Branché dans `UserJournalView` et `GLPlayerJournalView`.
+- **Frappe perdue** : la réponse d'un enregistrement remplaçait le titre et le texte par ce qui
+  avait été envoyé — les caractères tapés pendant la requête disparaissaient, et l'espace en
+  fin de titre était mangé (le serveur rogne le titre). La saisie locale fait désormais foi.
+- **Images en double** : une image insérée dans le texte réapparaissait en vignette sous
+  l'article (carte, livre, fenêtre de lecture). Les vignettes ne gardent que les illustrations
+  absentes du texte (`assetsNotInBody`).
+- **API** : `PUT /api/user-journal/me/articles/:id` sans `bodyMarkdown` effaçait le texte ; un
+  champ absent le laisse inchangé (comme `title` et `zoneId`). `GET /api/user-journal/users/:id`
+  comparait les identifiants (UUID) avec `Number()` : un compte sans permission de lecture se
+  voyait refuser son propre carnet.
+
+Tests : `tests-ui/components/journal/UserJournalPublish.test.jsx`,
+`tests-ui/shared/journal/journalImages.test.js`, `tests/user-journal.test.js`. Doc :
+`docs/API.md`, `docs/reference/foretmap/presentation.md`.
+
+### Corrigé — G&L : droits du tour rejoués par le serveur (audit du 19 novembre 2026, lot 2)
+
+Six constats de l'audit des bugs de Gnomes & Licornes, mouture « Tenir à deux ». Chacun a son
+test dans `tests/gl-tenir-droits-serveur.test.js`, écrit avant la correction.
+
+- **M1 — escalier : plus de jet en suspens pour une Relance fermée.** Aux trois premières
+  séances du chapitre 1, chaque jet restait « en suspens » pour un sort que le lancement
+  refusait (`SPELL_ESCALIER`). `relanceDisponibleTx` ignore un sort que l'escalier n'a pas
+  encore ouvert : la case s'applique aussitôt.
+- **M2 — « répondre » est rejoué.** `POST …/markers/:markerId/present-question` et
+  `POST …/qcm/answer` rejouent le droit pour un élève ou une tablette (409 `TENIR_PHASE`
+  hors phase « jeu », 403 `TENIR_PERMISSION` / `TENIR_EQUIPE_INACTIVE` selon la surface) ; le
+  prof garde la présentation à distance. Une question ne rapporte sa case **qu'une fois** par
+  équipe, repère et arrivée du tour, relue sous verrou d'équipe : un second jeton (le prof et
+  un élève qui présentent chacun la question) est corrigé sans faire avancer
+  (`tenir.bonusCase: false`). Deux cases question différentes dans le même tour s'enchaînent
+  toujours.
+- **M3 — `present-arrival` ne défait plus « sans appliquer la case ».** Une équipe posée sur une
+  case par Progression, Bourrasque, Relais, le vent de la caravane ou le retour d'une Relance
+  voit le texte de la case, sans effet (`sansEffet: true`, aucun `marker_effect`). Une équipe
+  posée à la main par le prof n'est pas concernée ; `apply-effects` reste le geste du prof.
+- **M4 — Relance payée et jamais rejouée : rendue au souffle.** Si la phase « jeu » se ferme
+  avant le second jet, le sort est rendu (remboursement exact, `spell_rembourse` avec
+  `motif: 'relance'`), comme la Cordée qui ne s'est pas faite ; filet au camp et à l'ouverture
+  du tour suivant. Aucun jet n'est tiré d'office et le jet annulé n'est pas réappliqué.
+- **M5 — hybride : le droit « fouiller » est enfin servi à l'élève.** Le bloc `tenir.permissions`
+  de `GET /api/gl/games/:id` lisait une propriété absente de la vue du tour ; il lit la fenêtre
+  ouverte par le prof, pour tous ou pour l'équipe de celui qui regarde.
+- **P3 — présenter exige une partie en cours.** `present-question` et `present-arrival`
+  répondent 409 « La partie doit être en cours » hors statut `live`, comme `qcm/answer`.
+### Corrigé — G&L : éditeurs d'administration qui enregistraient une valeur fausse (19 novembre 2026)
+
+Lot 3 de l'audit des bugs G&L du 19 novembre 2026 (constats E1 à E5 et E12). Chaque défaut est
+d'abord reproduit par un test qui monte le composant réel, avec son chargement asynchrone.
+
+- **Réglages « Tenir à deux »** (E1) : les nombres affichaient leur minimum (1 ou 0) et les
+  champs par plateau restaient vides, parce que le bloc est monté avant la réponse du
+  chargement ; un simple clic puis Tab écrivait ce minimum en base. Chaque ligne suit maintenant
+  la valeur chargée, et un champ vide n'est plus lu comme 0.
+- **Studio de carte de chapitre** (E2) : une boucle de rendu occupait le navigateur en continu
+  et empêchait tout enregistrement du formulaire d'un repère. Elle est supprimée — et, pour que
+  l'enregistrement qui repart ne détruise rien : `tenir.defi` (case « Défi d'équipe »), « un
+  seul dé » d'une case Souffle, le texte et « passe le tour » de l'effet neutre et la question
+  portée par un repère d'un autre type traversent désormais le formulaire ; un nouveau repère
+  n'hérite plus des effets du repère sélectionné juste avant ; un repère sans configuration ne
+  reçoit plus une question par défaut ; l'apparence par défaut ne s'applique qu'au changement
+  de type (l'emoji choisi n'est plus remplacé à la sélection). Sélectionner un repère sans le
+  modifier n'écrit rien.
+- **Politique de conditionnement par ressource** (E3) : l'éditeur s'affichait avant la réponse
+  du chargement, sur « Hériter », et « Enregistrer » effaçait la politique en base. Il n'est
+  rendu qu'une fois la politique de la référence saisie chargée.
+- **Éditeur riche** (E4) : une image `scene:N` non résolue disparaissait à la première frappe.
+  Un substitut (« 🖼 légende (scene:N) ») garde la référence, et l'image s'affiche dès que les
+  scènes sont chargées. La forme `<img src="scene:N">` que l'éditeur enregistre est relue.
+- **Saisie pendant l'enregistrement automatique** (E5) : chapitres, pages de contenu, fiches
+  espèces / glossaire / sorts, réglages, éditeurs d'un repère — ce qui est tapé pendant la
+  requête n'est plus écrasé par la réponse du serveur. Chapitres : un `PUT` partait à chaque
+  frappe du titre, hors délai.
+- **Champs numériques** (E12) : le délai libre du conditionnement suit la valeur enregistrée ;
+  PV / PP initiaux vidés ne sont plus enregistrés à 0.
+
+Tests : `tests-ui/gl/GLSettingsViewAsyncLoad`, `GLChapterMapStudioAutoSave`,
+`GLLearningLinksPanelPolicyLoad`, `GLRichTextEditorUnresolvedImages`, `GLAutoSaveInFlightTyping`,
+`GLGatingSettingsFreeDelay`.
+### Corrigé — G&L : les écrans qui ne se relisaient pas (audit du 19 novembre 2026, lot 1)
+
+Six constats du front de jeu (`docs/AUDIT_BUGS_GL_2026-11-19.md`, § 3). Aucune règle du jeu ne
+change, aucune route, aucune migration.
+
+- **J1 — la projection suit le tour.** `GLProjectionView` s'abonne elle-même aux évènements de
+  la partie (`gl:game:event`, `gl:game:equipe`, rafales regroupées) : une projection est une
+  session invitée, le runtime de l'app ne rechargeait rien pour elle et l'écran restait sur
+  « En attente du tour » jusqu'au F5.
+- **J2 — « Jouer le tour » suit les équipes.** `GLTourScreen` relit le tour, la file
+  « Demandes », le lien de classe et le journal dès que l'état de la partie avance (nouvel
+  évènement, tour ou phase) : un jet lancé depuis une tablette n'attend plus « Actualiser ».
+- **J3 — le lien de projection ne déconnecte plus le prof.** La session de projection va dans
+  `sessionStorage` (comme la session d'équipe) : elle survit à un F5 de son onglet et ne touche
+  plus `localStorage.gl_session`, partagé avec la console ouverte à côté.
+- **J4 — l'écran d'équipe suit la phase et le sablier du prof.** `tenir.round` et
+  `tenir.sablier` (état de la partie, rechargé en temps réel) passent devant l'instantané du
+  tour, qui est relu au même moment. Au passage, « Aucun tour ouvert : attends le prof. »
+  s'affiche vraiment tant qu'aucun tour n'existe (l'écran disait « Tour 0 — »).
+- **J6 — session expirée : retour à la connexion.** `useGLSession` écoute `gl_session_changed`
+  et `storage` : quand `apiGL` vide la session sur un 401, l'état React suit.
+- **J7 — « Jet saisi : en attente du clic du prof »** se lit dans `round.desEnAttente` : la
+  mention part quand le prof valide ou refuse, et paraît sur tous les appareils de l'équipe.
+
+Tests : `tests-ui/gl/glProjectionSession.test.js`, `useGLSessionRelecture.test.jsx`,
+`GLProjectionView.test.jsx`, `GLTourScreen.test.jsx`, `GLTenirEquipeView.test.jsx` ; e2e
+`e2e/gl-tenir-ecrans-relus.spec.js` (console et projection dans deux onglets du même navigateur).
+### Corrigé — G&L : comptes, classes et import de joueurs (audit du 19 novembre 2026, lot 6)
+
+- **Import de joueurs** (A1) : une ligne sans pseudo est refusée dès l'analyse à blanc
+  (« Pseudo requis ») au lieu de faire tomber l'import réel en 500. Une erreur d'écriture
+  sur une ligne devient une entrée du rapport (`errors[]`) : le rapport des identifiants des
+  joueurs déjà créés est toujours renvoyé.
+- **Suppression d'une classe** (A2) : refusée (`409`) tant qu'il reste un joueur, actif **ou
+  inactif** — les inactifs partaient par la cascade SQL sans purge de leur compte miroir.
+- **Changement de classe d'un joueur** (A3) : refusé (`409 GL_PLAYER_IN_OPEN_GAME`) tant qu'il
+  est membre d'une équipe d'une partie non terminée de sa classe actuelle.
+- **Mot de passe MJ/Admin** (A4) : `POST /api/gl/auth/reset-password` (jeton enseignant) et
+  `POST /api/gl/auth/staff/change-password` appliquent le plancher enseignant de ForetMap
+  (12 caractères) au lieu de 8.
+- **Activer / désactiver une classe** (A5) : n'efface plus son établissement (`school` n'est
+  réécrit que s'il est envoyé).
+- **Profil joueur** (A7) : un pseudo vide répond `400` au lieu de `500`.
+- **Journal** (A10) : `logRouteError` appelé dans le bon ordre dans `routes/gl/auth.js` (mode
+  découverte), `routes/gl/admin-demo.js` et `routes/gl/games/spell-casts.js` (ce dernier
+  après la fusion du lot 5) ; la remise à zéro de la démonstration ne renvoie plus le message
+  d'erreur brut au client.
+
+Tests : `tests/gl-audit-lot6-comptes.test.js`, `tests/gl-profile.test.js`,
+`tests/gl-auth-forgot-password.test.js`, `tests/gl-demo-game.test.js`.
+### Modifié — Prof : les propositions des élèves en tête de l'écran Tâches (19 novembre 2026)
+
+Côté prof, la section « Propositions » passe **en tête** des sections de l'écran Tâches
+(avant « En attente de validation », « En cours », « À faire »…), seul l'encart « Urgent ! »
+restant au-dessus. `TasksTeacherSections.jsx` ; test : `tests-ui/components/TasksTeacherSections.test.jsx` ;
+doc : `taches-tutoriels-et-validation.md`.
+
+### Ajouté — Tâches de projet : une couleur par projet, étapes numérotées, flèches ↑↓ (19 novembre 2026)
+
+- **Repérage, une couleur par projet** : toute tâche rattachée à un projet a une carte à la
+  couleur de son projet (filet à gauche, fond teinté) et un bandeau « projet · étape »
+  au-dessus du titre, visible aussi en vue condensée (`TaskTileCard`) ; la case du projet
+  porte le même filet. Dix teintes (`.project-color-0…9` dans `src/index.css`, texte ≥ 7:1)
+  attribuées sans donnée en base par `src/utils/projectColors.js` : couleur préférée tirée de
+  l'id, stable entre sessions et filtres, sans doublon jusqu'à dix projets (collision → le
+  plus récent prend la couleur libre suivante). Dans la case du projet, le bandeau ne garde
+  que l'étape.
+- **Étapes numérotées** (`src/utils/taskProjectSteps.js`) : un numéro en tête de titre
+  (« 1 … », « 2. … », « Étape 3 : … », « 2a … ») fixe l'étape ; même numéro = tâches en
+  parallèle (« Étape 2 · en parallèle »). Pris en compte dès deux tâches numérotées dans le
+  projet. Dans la case du projet, l'ordre des étapes l'emporte, puis l'ordre manuel. Rien
+  n'est écrit en base : le titre reste la seule source de vérité.
+- **Réordonner** : flèches ↑↓ (tactile, clavier, droit `tasks.manage`) en plus du
+  glisser-déposer ; un dépôt qui franchirait une étape numérotée est refusé avec un message
+  (`useTaskDragReorder`). Corrigé au passage : déposer une tâche sur elle-même l'envoyait en
+  fin de liste. Aucune route modifiée (`POST /api/tasks/reorder-project` inchangée).
+- Tests : `tests-ui/utils/taskProjectSteps.test.js`, `projectColors.test.js`, `useTaskDragReorder`, `TaskProjectsBlock`,
+  `TaskTileCard`. Doc : `taches-tutoriels-et-validation.md`.
+
+### Corrigé — G&L : du contenu servi avant d'être acquis ou publié (audit du 19 novembre 2026, lot 4)
+
+- **Pages de Sélène d'une zone** (`GET /api/gl/lore/games/:id/zones/:zoneId/feuillets`) : un
+  joueur recevait le texte complet des pages candidates, y compris celles que son équipe
+  n'avait pas trouvées — et, sans page liée à la zone, de toutes les pages actives des biomes
+  du chapitre. Les candidats non trouvés partent désormais masqués, comme dans le carnet ; le
+  texte vient à l'apparition de la page. Le MJ garde tout.
+- **Apparition d'une page par son code** (`POST …/feuillets/:code/present`) : un joueur
+  pouvait faire apparaître les pages du chapitre sur une partie terminée, effets de bourse
+  compris. Refus `409` hors partie en cours ou en pause (le MJ n'y est pas soumis).
+- **Lexique du lore** : les termes « secret » sortaient par l'index des liens, par les
+  « termes liés » d'une fiche et par les termes joints aux questions ; la fiche ignorait le
+  plafond de divulgâchage. Une seule règle désormais (`isLoreTermVisibleToAudience`), appliquée
+  à la liste, la fiche, les termes liés, l'index et les questions.
+- **Tutoriels** : « Publié » n'était appliqué nulle part. Un brouillon n'est plus listé ni
+  lisible par un joueur (`404`), ni marquable comme appris. À l'écran, un brouillon se rouvre
+  case décochée (elle revenait cochée et l'enregistrement automatique republiait).
+- **Éditeur de tutoriels** : chaque enregistrement automatique vidait le brouillon et fermait
+  l'éditeur ; ce qui était tapé pendant la création était perdu. L'éditeur reste ouvert, garde
+  l'identifiant créé et ne se ferme que par « Fermer l'éditeur » (ancien « Annuler »).
+- **Traversée des zones feuillets** : le réglage n'atteignait pas le plateau (`GLMapView` ne
+  le relayait pas) ; coupé, il laissait l'ancien popover s'ouvrir.
+- **Zones feuillets en « Tenir »** : la réponse annonçait le gain de cœurs du catalogue ; la
+  route lit maintenant le profil de la partie et renvoie `gainCoeur: 0`.
+### Corrigé — G&L : carnet du joueur et récompenses (audit du 19 novembre 2026, lot 7)
+
+- **C8 — « Lu » et « tenu » atteignent le carnet personnel.** Le statut de
+  `gl_player_feuillet_states` n'était remplacé que si le pourcentage d'effacement baissait ;
+  une lecture ou une page tenue, qui ne le changent pas, laissaient le feuillet « trouvé ».
+  Le statut monte désormais selon découvert < lu < tenu, indépendamment du pourcentage, et
+  ne redescend jamais (`mergePlayerFeuilletSnapshot` et le `ON DUPLICATE KEY UPDATE` de
+  `upsertPlayerFeuilletState`) ; le pourcentage garde le minimum ; « effacé » garde sa règle
+  d'avant. Le badge « Lecteur » (`pages_lues`) et le compteur `feuillets_lus` comptent donc
+  ces lectures. Les lectures passées ne sont pas reprises (aucune migration dans ce lot).
+  Test : `tests/gl-player-feuillet-statut-promotion.test.js`.
+- **C7 — « Première consultation » dite par l'écriture.** `routes/gl/learning.js` lisait
+  l'accusé puis l'écrivait : des requêtes parallèles sur la même ressource se croyaient
+  toutes premières et gagnaient chacune un feuillet (4 au lieu d'1 sur 6 requêtes). L'accusé
+  passe par `recordLearningAck` (`INSERT IGNORE`, `affectedRows`). La révélation par espèce
+  (`revealFeuilletForSpeciesStudy`) prend le verrou d'équipe et choisit le feuillet sous la
+  transaction ; elle ne joue plus hors d'une partie `live` ou `paused`.
+  Test : `tests/gl-learning-premiere-consultation.test.js`.
+- **E7 — Carnet de Sélène : « ✓ Étudié » ne déborde plus sur le feuillet suivant.**
+  `GLLearnAndImport` remet « appris » et « déjà importé » à faux quand la ressource change,
+  et le carnet le monte avec `key={active.feuilletCode}`.
+  Test : `tests-ui/gl/GLLearnAndImport.test.jsx`.
+- **C4 (complément) — `POST /api/gl/learning/tutorials/:id`** répond 404 pour un tutoriel non
+  publié, sauf permission `gl.content.manage`.
+### Corrigé — G&L : pots de sorts (audit du 19 novembre 2026, lot 5)
+
+- **Un pot repris est bien celui qu'on demande** (S1). Le pot d'un sort resté en collecte était
+  rendu tel quel à la demande suivante : le prof qui ouvrait Lanterne pour une équipe puis pour
+  une autre recevait le pot de la première (ses membres auraient payé) ; un sort personnel
+  (Lettre, Mentorat, Esquive) ouvert par un élève puis par son coéquipier restait au nom du
+  premier ; une Cordée rouverte avec une autre partenaire gardait l'ancienne. Désormais le pot
+  n'est repris que si l'équipe, la partenaire et l'élève correspondent ; sinon il est annulé
+  (rien n'a été débité) et un pot neuf s'ouvre. Le jeu classique n'est pas touché.
+- **Deux « pas moi » au même instant sont gardés tous les deux** (S2) : la liste des élèves
+  retirés et les parts sont relues et recalculées sous le verrou du pot (`setDraftExclusion`,
+  `realignerPotSurLesPresents`).
+- **Un pot rouvert dans le même tour suit les bourses et la réserve** (S12) : il se recalcule
+  quand une part dépasse le solde de son élève ou que le total ne correspond plus au reste dû,
+  au lieu de s'afficher prêt puis d'être refusé au lancement.
+
+Tests : `tests/gl-spell-pot-repris.test.js`.
+### Corrigé — G&L : imports de contenu qui perdaient des données (audit du 19 novembre 2026, lot 8)
+
+- **Glossaire du lore (C5)** : l'export laissait la colonne `termes_lies` vide, et l'import
+  supprimait les relations de chaque terme avant de les relire dans cette colonne — exporter
+  puis ré-importer effaçait donc toutes les relations. L'export remplit désormais la colonne
+  (libellé du terme lié, ou son code si le libellé contient une virgule), et à l'import une
+  cellule **vide ne touche plus** aux relations du terme. Une liste les remplace ; un tiret
+  (`-`) les vide volontairement.
+- **Import de QCM, biomes et lore (C6)** : les liens glossaire d'origine « import » étaient
+  supprimés sur **tout le jeu**, puis recréés pour les seules lignes du fichier, toujours non
+  bloquants. Importer quelques questions effaçait les liens de toutes les autres, et un lien
+  rendu bloquant par le MJ perdait son conditionnement à chaque import. Le recalcul est borné
+  aux questions du fichier ; un lien qui correspond toujours reste en place tel quel
+  (`is_gating` compris). L'import des QCM lore passe en transaction, comme celui des biomes.
+- **Imports du lore et de la charte (C11)** : une ligne de feuillet sans code était ignorée sans
+  figurer au rapport — elle y est désormais (`report.feuillets.errors`, `skipped`). Les imports
+  des feuillets, du glossaire du lore et de la charte des chapitres écrivent en transaction :
+  une ligne en échec n'en laisse plus une partie en base. Un téléchargement XLSX en échec
+  renvoie un message neutre, l'erreur réelle part au journal.
+- **Catalogues de la Trame (C12)** : les cartes et liens d'un biome ou d'un plateau étaient
+  supprimés puis réinsérés un par un hors transaction (au démarrage et depuis « Catalogues
+  Tenir à deux », possible en pleine séance). Chaque fichier s'écrit maintenant dans une seule
+  transaction : un défi lu pendant la synchronisation voit l'ancien réseau, jamais un réseau
+  vide, et un échec ne laisse plus un biome amputé.
+
+Tests : `tests/gl-imports-pertes.test.js`, `tests/gl-xlsx-attachment.test.js`.
+### Documentation — G&L : audit des bugs (19 novembre 2026)
+
+`docs/AUDIT_BUGS_GL_2026-11-19.md` : relecture de tout le sous-produit Gnomes & Licornes par
+domaine, 81 constats dont 18 rejoués à l'exécution (requêtes sur une base à part, navigateur sur
+le build de production). Six gênent une séance ou l'administration : la projection et l'écran
+« Jouer le tour » ne se relisent pas, le lien de projection remplace la session du prof, les
+réglages numériques « Tenir à deux » affichent leur minimum et l'enregistrent, le studio de carte
+de chapitre tourne en boucle sans enregistrer, l'escalier met chaque jet en suspens pour une
+Relance encore fermée. Aucun code modifié : lots de correction et décisions à trancher en fin de
+document.
+### Modifié — Pôle Suivi : l'onglet Tâches passe en premier (19 novembre 2026)
+
+Côté prof, cliquer le pôle **Suivi** ouvre désormais l'onglet **Tâches** (et non plus
+« Individus », placé juste après). Seul l'ordre des onglets change (`TeacherTopTabs.jsx`) ;
+test : `tests-ui/components/app/TeacherTopTabs.test.jsx`. Doc : `guide-du-prof.md`.
+
+### Corrigé — Popups d'Olu tronquées en bas d'écran (18 novembre 2026)
+
+Les fenêtres où parle Olu pouvaient sortir de l'écran par le bas, sans moyen d'en sortir :
+
+- **Visite guidée** (`GuidedTourOverlay`, ForetMap + G&L) : la carte était placée sous la cible
+  sans tenir compte de sa propre hauteur. Elle est désormais **mesurée**, retournée au-dessus
+  de la cible quand elle n'a pas la place dessous, puis recalée pour tenir entière dans la
+  fenêtre ; sa hauteur est bornée à l'écran et seul le texte d'Olu défile — les boutons
+  « Passer / Suivant » restent toujours visibles. Test : `tests-ui/shared/GuidedTourCardPosition.test.js`.
+- **Aide « ? » G&L et Plan** (`HelpDock`) : les classes d'overlay `gl-help-dialog-overlay` et
+  `plan-help-overlay` n'avaient aucune règle CSS, la fenêtre s'ajoutait donc en bas de page. Le
+  dock pose maintenant le socle partagé `fm-modal-overlay` (overlay fixe) et
+  `fm-help-dock-dialog` (hauteur bornée, contenu défilant, `modal-shell.css`).
+- **Célébration de récompense** : hauteur bornée et défilement, pour qu'une longue liste ne
+  pousse plus la bulle d'Olu hors de l'écran.
+
+### Corrigé — G&L : ensemble unifié, vérification des cinq PR (18 novembre 2026)
+
+Relecture des PR #662 (1a), #664 (1b), #667, #670 et #672 après fusion
+(`docs/AUDIT_GL_ENSEMBLE_UNIFIE_2026-11-18.md`). Aucun défaut bloquant ; neuf défauts corrigés,
+chacun avec son test.
+
+- **Sentier protège de nouveau de la case Souffle sur tablette (1a).** Après le jet, l'écran
+  présente la case (`present-arrival`) ; le Sentier étant déjà consommé à l'arrêt, la route
+  posait quand même « un seul dé ». Un arrêt déjà joué par le moteur du tour n'est plus rejoué
+  (`lib/glTourArrivalHelpers.js › arriveeDejaAppliquee`), et la case reste présentée « Sentier :
+  la case Souffle n'a aucun effet ».
+- **« Un seul dé » ne dure qu'un tour (1a).** Le tour de pose ne se réécrit plus quand l'état
+  attend déjà (une case présentée deux fois repoussait le dé unique d'un tour) ; une équipe qui
+  n'a pas lancé au tour suivant retrouve ses deux dés à l'ouverture du tour d'après, comme le dit
+  Olu (« Ça ne dure qu'un tour »). La projection et la console disent « ce tour-ci » le tour où le
+  dé unique est dû, comme l'écran d'équipe.
+- **Spirale des questions (1a).** Le réglage `tenir_questions_spirale` est un entier en pour
+  cent : réglé à 1, il valait 100 % (lu comme une fraction). 1 vaut maintenant 1 %.
+- **La piste d'une zone ne suit que sa question (1b).** Après un « pas encore » à une question du
+  thème de secours (zone déjà tentée dans la partie), l'écran disait encore « La réponse se trouve
+  dans la fiche … », alors que la fiche répond à la question fixe de la zone. `piste` vaut alors
+  `null`.
+- **Escalier du chapitre 1 (PR 2).** « Revenir aux réglages du profil » ne coupe plus l'escalier
+  (il ouvrait d'un coup le voile, le Marché et les sorts) : le bouton n'efface que les autres
+  surcharges et ne paraît plus quand il n'y en a pas. « Ouvrir la suite » envoie la séance
+  affichée (`{ pas }`) : un double appui ou deux onglets n'ouvrent plus deux marches (réponse
+  `{ deja: true }`). `PUT …/tenir/profil` relit et réécrit les surcharges sous le verrou de la
+  partie : un tour clos au même instant ne voit plus son pas remplacé par l'ancien.
+- **La main se rend quand le prof finit le geste (PR 3).** Le prof qui répondait, faisait tenir
+  ou lançait le sort à la place d'une équipe laissait ses autres appareils grisés sur
+  « … répond… » jusqu'à 60 s. La main prise pour ce geste se rend aussitôt (`gardeDEquipe`,
+  option `finit`) ; une main prise pour un autre geste n'est pas touchée.
+- **Remboursement d'un sort au plafond (PR 4, défaut antérieur).** `rembourserCastTx` créditait
+  sans plafond : une bourse remplie entre le paiement et le refus du prof passait de 8 à 10. Le
+  plafond s'applique, et le surplus va à la réserve de l'équipe, comme le disait déjà le
+  commentaire.
+
+Non corrigé, à trancher : voir « Décisions » dans l'audit (Retrait et gemme de la page tenue,
+reste de la jauge de Lumière au palier, trois zones dont la piste donne la réponse, ligne d'Olu
+`olu-pf-main` jamais dite, seuils du badge « Bon rangeur », ordre des cartes des « fils »).
 
 ### Modifié — G&L : ensemble unifié, PR 4 — une seule monnaie, les gemmes (18 novembre 2026)
 

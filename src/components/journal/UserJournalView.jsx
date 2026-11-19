@@ -220,6 +220,7 @@ export function UserJournalView({
                 editing={String(feed.editingId) === String(entry.data.id)}
                 onStartEdit={(id) => feed.setEditingId(id)}
                 onStopEdit={stopEdit}
+                onArticleChange={feed.applyArticle}
                 onDelete={feed.deleteArticle}
                 onTogglePin={feed.pinArticle}
                 onForceLogout={onForceLogout}

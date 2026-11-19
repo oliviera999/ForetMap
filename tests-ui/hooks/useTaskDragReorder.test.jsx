@@ -4,7 +4,10 @@ import { renderHook, act } from '@testing-library/react';
 vi.mock('../../src/services/api', () => ({ api: vi.fn() }));
 
 import { api } from '../../src/services/api';
-import { useTaskDragReorder } from '../../src/hooks/useTaskDragReorder.js';
+import {
+  STEP_MOVE_REFUSED_MESSAGE,
+  useTaskDragReorder,
+} from '../../src/hooks/useTaskDragReorder.js';
 
 const TASKS = [
   { id: 1, project_id: 'p1', project_task_order: 1 },
@@ -110,5 +113,60 @@ describe('useTaskDragReorder', () => {
     rerender({ isTeacher: true, tasks: TASKS.slice(1), withLoad, setToast });
     expect(result.current.taskDragPayload).toBeNull();
     expect(result.current.taskDropHint).toEqual({ projectId: '', beforeTaskId: '' });
+  });
+});
+
+describe('useTaskDragReorder — projets numérotés (étapes du titre)', () => {
+  const NUMBERED = [
+    { id: 'a', project_id: 'p', title: '1 préparer' },
+    { id: 'b', project_id: 'p', title: '2 semer les radis' },
+    { id: 'c', project_id: 'p', title: '2 semer les carottes' },
+    { id: 'd', project_id: 'p', title: '3 arroser' },
+  ];
+
+  beforeEach(() => {
+    api.mockReset();
+    api.mockResolvedValue({});
+  });
+
+  it('réordonne à l’intérieur d’une étape : ids envoyés dans l’ordre des étapes', async () => {
+    const { result } = setup({ tasks: NUMBERED });
+    await act(async () => {
+      expect(result.current.moveTaskInProject('c', 'p', 'b')).toBe(true);
+    });
+    expect(api).toHaveBeenCalledWith('/api/tasks/reorder-project', 'POST', {
+      project_id: 'p',
+      task_ids: ['a', 'c', 'b', 'd'],
+    });
+  });
+
+  it('refuse de franchir une étape : message, aucun appel API', async () => {
+    const { result, setToast, withLoad } = setup({ tasks: NUMBERED });
+    await act(async () => {
+      expect(result.current.moveTaskInProject('d', 'p', 'a')).toBe(false);
+    });
+    expect(withLoad).not.toHaveBeenCalled();
+    expect(api).not.toHaveBeenCalled();
+    expect(setToast).toHaveBeenCalledWith(STEP_MOVE_REFUSED_MESSAGE);
+  });
+
+  it('glisser-déposer refusé entre étapes : le drag est tout de même nettoyé', async () => {
+    const { result } = setup({ tasks: NUMBERED });
+    act(() => result.current.startTaskDrag(NUMBERED[3]));
+    await act(async () => {
+      result.current.dropTaskToProject('p', 'a');
+    });
+    expect(api).not.toHaveBeenCalled();
+    expect(result.current.taskDragPayload).toBeNull();
+  });
+
+  it('déposer une tâche sur elle-même ne l’envoie plus en fin de liste', async () => {
+    const { result } = setup({ tasks: NUMBERED });
+    act(() => result.current.startTaskDrag(NUMBERED[1]));
+    await act(async () => {
+      result.current.dropTaskToProject('p', 'b');
+    });
+    expect(api).not.toHaveBeenCalled();
+    expect(result.current.taskDragPayload).toBeNull();
   });
 });
