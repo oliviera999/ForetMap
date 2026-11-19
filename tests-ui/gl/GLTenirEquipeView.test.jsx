@@ -58,7 +58,7 @@ describe('GLTenirEquipeView', () => {
     expect(screen.queryByText(/joueur-b/)).toBeNull();
   });
 
-  test('hybride hors fenêtre : fouiller grisé, lancer/répondre grisés, lire ouvert', async () => {
+  test('droits fermés : fouiller, lancer et répondre grisés, lire ouvert', async () => {
     render(
       <GLTenirEquipeView
         gameState={gameState}

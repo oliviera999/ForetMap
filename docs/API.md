@@ -636,6 +636,11 @@ Au tableau, rien ne change. En `hybride` et sur `tablette`, les équipes jouent 
     `arrivee_gardee` (`motif: 'relance_rendue'`), puis les effets de la case. Aucun nouveau jet
     n'est tiré. Si l'équipe a été déplacée depuis l'annulation, le sort est rendu sans rejouer
     le jet.
+  - Surface hybride (décision du 19 novembre 2026) : `POST …/tenir/lancer` est ouvert à un membre
+    de l'équipe pendant la phase « jeu », comme sur tablette (`tenir.permissions.lancer`) ; plus de
+    403 `TENIR_PERMISSION` pour ce geste en hybride. Des faces saisies par un élève
+    (`mode: 'physique'`) attendent la validation du prof en hybride comme sur tablette (202
+    `enAttente`, sauf `des_physiques_validation: 'auto'`).
   - `GET /api/gl/games/:id`, surface hybride : `tenir.permissions.fouiller` suit la fenêtre de
     fouille ouverte par le prof (pour tous, ou pour l'équipe de celui qui regarde).
 - File du prof (`GET …/spell-casts/awaiting-effect`) : un sort qui visait une page pâlie

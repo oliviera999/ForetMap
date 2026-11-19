@@ -17,6 +17,16 @@ portent la mention « traité » et leur numéro de PR. Nouveau § 13 : vérific
 de contenu, scénarios de l'audit rejoués par requêtes et dans un navigateur), choix faits par les
 lots à relire et décisions déjà livrées par #687 et #688, restes (39 constats ouverts, quatre
 décisions à trancher). Aucun code modifié.
+### Modifié — G&L : en hybride, les dés aussi sur la tablette (19 novembre 2026)
+
+Sur décision du prof : en surface hybride, un membre de l'équipe lance les dés depuis sa
+tablette pendant la phase « jeu », comme sur tablette (`glTenirPermissionsCore`, droit
+`lancer`). Le prof peut toujours lancer pour une équipe. Seule la fouille attend encore la
+fenêtre ouverte par le prof. Avec des dés physiques (défaut de l'hybride), les faces saisies
+par l'équipe attendent la validation du prof, comme sur tablette : un élève ne choisit pas son
+jet. Tests : `tests/gl-tenir-permissions-pure.test.js`,
+`tests/gl-tenir-droits-serveur.test.js`.
+
 ### Modifié — G&L : trois décisions sur les droits du tour (19 novembre 2026)
 
 Suite du lot 2 de l'audit (PR #685), sur décision du prof.

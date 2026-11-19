@@ -306,8 +306,8 @@ Olu glisse son erreur du jour), **jeu** (les équipes jettent, lancent, réponde
 semaine), **clos** (bilan Team Spirit : cartes gardées par équipe).
 
 Trois surfaces : au **tableau**, vous tenez tout (une équipe active à la fois, sablier) ; en
-**hybride**, vous tenez les dés ; chaque équipe lance ses sorts et répond à la question de sa
-case depuis sa tablette, et fouille quand vous ouvrez la fenêtre ; sur **tablette**, chaque équipe agit seule en phase jeu et vous validez
+**hybride**, chaque équipe lance ses dés et répond depuis sa tablette, et fouille quand vous
+ouvrez la fenêtre ; sur **tablette**, chaque équipe agit seule en phase jeu et vous validez
 les dés physiques d'un clic. Les **absences** du jour retirent un élève du pot des sorts et du
 carnet personnel du tour. Le **retrait** (conduite) se décide élève par élève : il joue, fouille et
 lit, mais ne verse pas au pot et ne voit pas le Marché, jusqu'à la levée ; le motif reste pour vous.
@@ -349,6 +349,11 @@ s'applique tout de suite, comme avant.
   souffle lancé, une question restée à l'écran d'une équipe ne se joue plus ; depuis votre
   écran, vous pouvez toujours la présenter. Au tableau, c'est vous qui la présentez et qui
   validez la réponse ; en hybride et sur tablette, l'équipe répond depuis sa tablette.
+- En **hybride**, l'équipe lance aussi ses **dés** depuis sa tablette, pendant la phase « jeu »,
+  comme sur tablette ; vous pouvez toujours lancer pour elle depuis votre écran. Avec des dés
+  **physiques** (le réglage de départ en hybride), l'équipe saisit ses faces et vous les validez
+  d'un clic dans « Jouer le tour » ; pour que l'app tire les dés elle-même, passez le mode de
+  dés de la partie sur « tirés par l'app ».
 - Une question ne fait avancer **qu'une fois** : si vous la présentez de votre côté pendant que
   l'équipe l'a aussi à l'écran, la seconde bonne réponse est corrigée, sans case de plus.
 - Une équipe qu'un sort (**Progression**, **Bourrasque**, **Relais**) ou le **vent de la
