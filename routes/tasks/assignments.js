@@ -53,6 +53,23 @@ const router = express.Router();
  */
 const DONE_CLIENT_UUID_RE = /^[A-Za-z0-9-]{8,64}$/;
 
+/**
+ * Longueur maximale du commentaire d'un « fait », la même que `POST /:id/logs` (audit du
+ * 19/11/2026, T5) : au-delà de la colonne, l'INSERT échouait en 500 et une file hors ligne,
+ * qui rejoue sur 5xx, ne passait jamais.
+ */
+const DONE_COMMENT_MAX_LENGTH = 5000;
+
+/**
+ * Refus d'inscription sur une tâche « proposée » ou « faite » (audit du 19/11/2026, T2),
+ * mêmes messages que le front (`src/utils/taskQuickAssign.js`).
+ */
+const ASSIGN_REFUSAL_PROPOSED = {
+  error: 'Idée encore en discussion : inscriptions pas encore ouvertes',
+  code: 'task_proposed',
+};
+const ASSIGN_REFUSAL_DONE = { error: 'C’est déjà plié pour celle-ci', code: 'task_done' };
+
 /** Statuts qu'un « fait » ne peut pas faire reculer (garde SQL plus bas). */
 const CLOSED_TASK_STATUSES = new Set(['validated', 'on_hold']);
 
@@ -63,6 +80,16 @@ async function findDoneLogByClientUuid(taskId, studentId, clientUuid) {
     'SELECT id FROM task_logs WHERE task_id = ? AND student_id = ? AND client_uuid = ? LIMIT 1',
     [taskId, studentId, clientUuid],
   );
+}
+
+/** Corps du refus « plafond de tâches actives atteint » (contrôle rapide et contrôle sous verrou). */
+function enrollmentLimitBody(maxActive, current) {
+  return {
+    error: `Limite atteinte : tu as déjà ${maxActive} tâche(s) active(s) (non validées par un n3boss). Retire-toi d’une tâche ou attends une validation.`,
+    code: 'TASK_ENROLLMENT_LIMIT',
+    maxActiveAssignments: maxActive,
+    currentActiveAssignments: current,
+  };
 }
 
 /** Tâche renvoyée à l'acteur : inscriptions filtrées selon `tasks.assignees_visibility`. */
@@ -94,6 +121,10 @@ router.post(
     if (task.status === 'validated') return res.status(400).json({ error: 'Tâche déjà validée' });
     if (task.status === 'on_hold')
       return res.status(400).json({ error: 'Tâche en attente : inscription indisponible' });
+    // Une proposition n'est ouverte qu'une fois acceptée par un adulte ; une tâche « faite »
+    // attend sa validation : s'y inscrire créditait un élève qui n'avait rien fait.
+    if (task.status === 'proposed') return res.status(400).json(ASSIGN_REFUSAL_PROPOSED);
+    if (task.status === 'done') return res.status(400).json(ASSIGN_REFUSAL_DONE);
     if (task.project_status === 'on_hold') {
       return res.status(400).json({ error: 'Projet en attente : inscription indisponible' });
     }
@@ -142,12 +173,7 @@ router.post(
           action.lastName,
         );
         if (current >= maxActive) {
-          return res.status(400).json({
-            error: `Limite atteinte : tu as déjà ${maxActive} tâche(s) active(s) (non validées par un n3boss). Retire-toi d’une tâche ou attends une validation.`,
-            code: 'TASK_ENROLLMENT_LIMIT',
-            maxActiveAssignments: maxActive,
-            currentActiveAssignments: current,
-          });
+          return res.status(400).json(enrollmentLimitBody(maxActive, current));
         }
       }
     }
@@ -158,8 +184,14 @@ router.post(
 
     // Prise de place et recalcul de statut sous le verrou de la ligne `tasks`
     // (cf. lib/tasks/assignmentSeat.js pour le détail des deux courses couvertes).
+    // Le plafond de tâches actives est recompté sous le verrou (audit du 19/11/2026, T10) :
+    // le contrôle ci-dessus, hors verrou, laissait deux inscriptions simultanées le dépasser.
     let newStatus = normalizeTaskStatusForRead(task.status);
     try {
+      const enrollmentLimit =
+        action.actorUserType === 'student' && action.studentId
+          ? await getEffectiveMaxActiveTaskAssignments(action.studentId)
+          : 0;
       const outcome = await withTransaction((tx) =>
         claimAssignmentSeat(tx, {
           taskId: task.id,
@@ -167,11 +199,17 @@ router.post(
           firstName: action.firstName,
           lastName: action.lastName,
           assignedAt: nowDbTimestamp(),
+          maxActive: enrollmentLimit,
         }),
       );
       if (!outcome.ok) {
+        if (outcome.reason === 'limit') {
+          return res.status(400).json(enrollmentLimitBody(outcome.maxActive, outcome.current));
+        }
         const refusal = SEAT_REFUSAL[outcome.reason] || SEAT_REFUSAL.full;
-        return res.status(refusal.status).json({ error: refusal.error });
+        return res
+          .status(refusal.status)
+          .json({ error: refusal.error, ...(refusal.code ? { code: refusal.code } : {}) });
       }
       newStatus = outcome.status;
     } catch (err) {
@@ -316,9 +354,35 @@ router.post(
       return res
         .status(400)
         .json({ error: 'Tâche archivée : action indisponible', code: 'task_archived' });
+    // Une proposition non acceptée ne passe pas à « faite » par un élève (audit du 19/11/2026,
+    // T2) : elle sortait de « proposée » sans qu'un adulte l'accepte.
+    if (normalizeTaskStatusForRead(task.status) === 'proposed') {
+      return res.status(400).json({
+        error: 'Idée encore en discussion : la tâche n’est pas encore ouverte',
+        code: 'task_proposed',
+      });
+    }
     const completionMode = normalizeTaskCompletionMode(task.completion_mode) || 'single_done';
 
-    const { comment, imageData } = req.body || {};
+    const { comment: rawComment, imageData } = req.body || {};
+    // Commentaire : chaîne de 5 000 caractères au plus (T5). Un objet était enregistré
+    // illisible, une chaîne trop longue faisait échouer l'INSERT en 500.
+    let comment = '';
+    if (rawComment != null && rawComment !== '') {
+      if (typeof rawComment !== 'string') {
+        return res
+          .status(400)
+          .json({ error: 'Le commentaire doit être un texte', code: 'comment_invalid' });
+      }
+      if (rawComment.length > DONE_COMMENT_MAX_LENGTH) {
+        return res.status(400).json({
+          error: `Commentaire trop long (${DONE_COMMENT_MAX_LENGTH} caractères maximum)`,
+          code: 'comment_too_long',
+          max_length: DONE_COMMENT_MAX_LENGTH,
+        });
+      }
+      comment = rawComment;
+    }
     const rawClientUuid = req.body?.client_uuid;
     let clientUuid = null;
     if (rawClientUuid != null && rawClientUuid !== '') {
@@ -434,10 +498,11 @@ router.post(
         completion_mode: completionMode,
       });
     } else {
-      // Ne pas faire régresser une tâche validée ou en pause vers « done » (dévalidation).
+      // Ne pas faire régresser une tâche validée ou en pause vers « done » (dévalidation), ni
+      // faire avancer une proposition repassée « proposée » entre-temps (T2).
       // Garde SQL : le statut lu plus haut peut être périmé si un n3boss valide entre-temps.
       const marked = await execute(
-        "UPDATE tasks SET status = 'done' WHERE id = ? AND status NOT IN ('validated', 'on_hold', 'done')",
+        "UPDATE tasks SET status = 'done' WHERE id = ? AND status NOT IN ('validated', 'on_hold', 'done', 'proposed')",
         [task.id],
       );
       changed = Number(marked?.affectedRows) > 0;

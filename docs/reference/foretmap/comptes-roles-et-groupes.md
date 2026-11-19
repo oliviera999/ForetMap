@@ -76,9 +76,9 @@ chaque rôle a le droit de faire, comment les élèves sont organisés en groupe
   sert au « mot de passe oublié », le changer sans contrôle suffisait à s'approprier un
   compte laissé ouvert. Le changement **déconnecte les autres appareils**, annule un lien
   « mot de passe oublié » encore ouvert, et un courriel prévient l'**ancienne** adresse.
-  Un compte **Google sans mot de passe** doit d'abord s'en donner un (ou demander le
-  changement à un administrateur) ; pendant une **prise de contrôle**, l'e-mail ne se change
-  pas.
+  Un compte **Google sans mot de passe** doit d'abord s'en donner un, par le lien reçu par
+  e-mail (voir ci-dessous), ou demander le changement à un administrateur ; pendant une
+  **prise de contrôle**, l'e-mail ne se change pas.
 - **Avatar par défaut** : un compte sans photo reçoit un avatar dessiné à partir de son
   pseudo (à défaut, de son prénom et de son nom). Depuis octobre 2026, ce dessin est
   **produit par le serveur de l'application** : plus aucun service extérieur n'est contacté
@@ -90,8 +90,14 @@ chaque rôle a le droit de faire, comment les élèves sont organisés en groupe
   dans **À propos → Crédits graphiques**.
 - **Changer son mot de passe** : depuis « Mon profil », élève comme enseignant, en redonnant
   le mot de passe actuel (12 caractères minimum pour un enseignant). Les autres appareils
-  sont déconnectés. Un compte **Google** sans mot de passe peut se donner un mot de passe
-  sans rien redonner, ou passer par « mot de passe oublié ».
+  sont déconnectés. Un compte **Google** sans mot de passe ne s'en donne plus un directement
+  (depuis le 19 novembre 2026) : le bouton **Changer le mot de passe** affiche « Un lien pour
+  définir votre mot de passe vous a été envoyé par e-mail » et envoie ce lien à l'adresse du
+  compte ; c'est en l'ouvrant qu'on choisit son mot de passe (« mot de passe oublié » mène au
+  même lien). Être connecté ne suffit donc plus : sans cela, quelqu'un qui trouvait une
+  session ouverte posait un mot de passe, puis s'en servait pour changer l'e-mail et garder
+  le compte. Un compte qui n'a **ni mot de passe ni e-mail** reçoit un message lui demandant
+  de s'adresser à un administrateur (lien de réinitialisation depuis la fiche du compte).
 - **Mot de passe provisoire ou à renouveler** : quand un mot de passe est **provisoire** (posé
   par un responsable ou par le jeu) ou doit être remplacé par mesure de sécurité, la personne
   peut se connecter, mais l'application ouvre aussitôt « **Mon profil** » avec le message « Ton

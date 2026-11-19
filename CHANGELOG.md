@@ -36,6 +36,53 @@ Constats F1, F2, F3, F5, F6, F9 (hors individus) et F10 de `docs/AUDIT_BUGS_FORE
   de l'audit, de l'usage et du suivi (`utils/localDateInput.js`) en heure locale, non plus UTC.
 - **F10 — Visite.** `useVisitContent` revérifie la carte juste avant d'appliquer le contenu, et
   seul le dernier chargement baisse `loading`.
+### Corrigé — audit ForetMap du 19/11, lot 3 (authentification, mots de passe, LTI)
+
+- **A3 — première pose d'un mot de passe** : un compte sans mot de passe (Google) ne s'en
+  donne plus un par la session seule. `POST /api/auth/me/password` n'écrit rien, envoie un
+  lien de définition (jeton « mot de passe oublié ») à l'adresse **en place** et répond
+  **202** `{ linkSent: true, message }` ; sans e-mail → 409 `PASSWORD_SETUP_NO_EMAIL`. Une
+  session volée ne peut donc plus poser un mot de passe puis changer l'e-mail avec (garde
+  AC3). « Mon profil » affiche « Un lien pour définir votre mot de passe vous a été envoyé ».
+- **A5 — LTI** : un compte de type élève au profil `prof` / `admin` (ou tout profil soumis à
+  la double authentification ou portant `teacher.access`) n'entre plus par un lancement
+  « Learner » : le rôle Instructor est exigé, comme pour un compte enseignant (403
+  `LTI_TEACHER_ROLE_REQUIRED`).
+- **A7 — connexion Google élève coupée** : le réglage `ui.auth.allow_google_student` est relu
+  sur la voie élève ; `start?mode=teacher` puis un rappel sans cookie de mode ne donne plus de
+  session élève (`oauth_student_google_disabled`).
+- **A9 — réinitialisation** : un mot de passe non textuel est refusé (400) **avant** de
+  consommer le jeton (élève et enseignant) ; le jeton reste utilisable.
+- **A10** : la réinitialisation par e-mail d'un mot de passe enseignant remet
+  `password_must_reset` à 0, comme la voie élève.
+- **A13 (inscription)** : `POST /api/auth/register` avec un prénom ou un nom non textuel → 400
+  au lieu de 500.
+### Corrigé — audit ForetMap du 19/11, lot 5 (tâches, progression, stats)
+
+- **T1 — homonymes** : la progression n3beur (`countValidatedAssignmentsForStudent`,
+  `syncProgressionForValidatedTask`) et les statistiques (`fetchAssignmentStatusCountsByStudent`,
+  `listStudentTaskAssignments`) appliquent la règle `assignmentIdentityMatch` : une inscription
+  rattachée à un compte ne compte plus pour son homonyme (palier, `GET /api/stats/me/:id`,
+  vue prof, export). Nouvelle forme jointure `assignmentIdentityJoin`.
+- **T2** : plus d'inscription sur une tâche `proposed` ou `done` (en tête de route et sous le
+  verrou de `claimAssignmentSeat`, codes `task_proposed` / `task_done`, messages du front) ; le
+  « fait » ne fait plus avancer une proposition (`task_proposed`) — le badge « Semeur d'idées »
+  ne s'obtient plus ainsi.
+- **T3** : un prof de classe (`stats.read.group`) ne voit plus, dans le détail et le journal
+  d'une tâche, les inscrits et comptes rendus d'élèves hors de ses groupes ; la lecture sans
+  filtre est réservée à `tasks.manage`, `tasks.validate`, `stats.read.all`.
+- **T4** : le proposant non visible est masqué aussi en liste (`proposed_by_student_id` et ligne
+  « Proposition n3beur : … » de la description).
+- **T5** : `POST /api/tasks/:id/done` exige un commentaire texte de 5 000 caractères au plus
+  (codes `comment_invalid`, `comment_too_long`) au lieu d'un 500.
+- **T7** : double validation simultanée → une seule passe (UPDATE conditionnel en transaction),
+  les autres 400 sans notification, audit ni badges en double.
+- **T8** : `PUT /api/tasks/:id` contrôle droits et existence avant de réserver `edit_revision`.
+- **T10 (tâches)** : le plafond de tâches actives est recompté sous verrou (ligne `users` de
+  l'élève, puis tâche).
+- **Comptes rendus** (décision du 19/11) : en mode `tasks.logs_visibility = group`, un compte
+  rendu de l'encadrement (sans élève rattaché) est visible de tous ceux qui lisent le journal.
+
 ### Modifié — G&L : en hybride, les dés aussi sur la tablette (19 novembre 2026)
 
 Sur décision du prof : en surface hybride, un membre de l'équipe lance les dés depuis sa

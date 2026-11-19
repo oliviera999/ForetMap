@@ -517,11 +517,19 @@ function StudentProfileEditor({ student, onUpdated, onClose }) {
     setPasswordLoading(true);
     try {
       const res = await api('/api/auth/me/password', 'POST', { currentPassword, newPassword });
-      onUpdated({ authToken: res?.authToken, auth: res?.auth, passwordMustReset: false });
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
-      setPasswordOk('Mot de passe changé');
+      // Compte sans mot de passe (Google) : rien n'est changé, un lien de définition part vers
+      // l'adresse du compte (A3, audit du 19/11/2026). La session reste telle quelle.
+      if (res?.linkSent) {
+        setPasswordOk(
+          res.message || 'Un lien pour définir ton mot de passe t’a été envoyé par e-mail.',
+        );
+      } else {
+        onUpdated({ authToken: res?.authToken, auth: res?.auth, passwordMustReset: false });
+        setPasswordOk('Mot de passe changé');
+      }
     } catch (e) {
       setPasswordErr(e.message || 'Impossible de changer le mot de passe');
     }
@@ -742,8 +750,9 @@ function StudentProfileEditor({ student, onUpdated, onClose }) {
         Changer mon mot de passe
       </h3>
       <p className="section-sub">
-        Renseigne ton mot de passe actuel (sauf compte Google), puis le nouveau deux fois. Tes
-        autres appareils seront déconnectés.
+        Renseigne ton mot de passe actuel, puis le nouveau deux fois. Tes autres appareils seront
+        déconnectés. Compte Google sans mot de passe : un lien pour en définir un t’est envoyé par
+        mail.
         {isTeacherProfile &&
           ` Compte enseignant : ${TEACHER_PASSWORD_MIN_LENGTH} caractères minimum.`}
       </p>
