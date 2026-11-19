@@ -9,6 +9,28 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — Tâches de projet : une couleur par projet, étapes numérotées, flèches ↑↓ (19 novembre 2026)
+
+- **Repérage, une couleur par projet** : toute tâche rattachée à un projet a une carte à la
+  couleur de son projet (filet à gauche, fond teinté) et un bandeau « projet · étape »
+  au-dessus du titre, visible aussi en vue condensée (`TaskTileCard`) ; la case du projet
+  porte le même filet. Dix teintes (`.project-color-0…9` dans `src/index.css`, texte ≥ 7:1)
+  attribuées sans donnée en base par `src/utils/projectColors.js` : couleur préférée tirée de
+  l'id, stable entre sessions et filtres, sans doublon jusqu'à dix projets (collision → le
+  plus récent prend la couleur libre suivante). Dans la case du projet, le bandeau ne garde
+  que l'étape.
+- **Étapes numérotées** (`src/utils/taskProjectSteps.js`) : un numéro en tête de titre
+  (« 1 … », « 2. … », « Étape 3 : … », « 2a … ») fixe l'étape ; même numéro = tâches en
+  parallèle (« Étape 2 · en parallèle »). Pris en compte dès deux tâches numérotées dans le
+  projet. Dans la case du projet, l'ordre des étapes l'emporte, puis l'ordre manuel. Rien
+  n'est écrit en base : le titre reste la seule source de vérité.
+- **Réordonner** : flèches ↑↓ (tactile, clavier, droit `tasks.manage`) en plus du
+  glisser-déposer ; un dépôt qui franchirait une étape numérotée est refusé avec un message
+  (`useTaskDragReorder`). Corrigé au passage : déposer une tâche sur elle-même l'envoyait en
+  fin de liste. Aucune route modifiée (`POST /api/tasks/reorder-project` inchangée).
+- Tests : `tests-ui/utils/taskProjectSteps.test.js`, `projectColors.test.js`, `useTaskDragReorder`, `TaskProjectsBlock`,
+  `TaskTileCard`. Doc : `taches-tutoriels-et-validation.md`.
+
 ### Modifié — Pôle Suivi : l'onglet Tâches passe en premier (19 novembre 2026)
 
 Côté prof, cliquer le pôle **Suivi** ouvre désormais l'onglet **Tâches** (et non plus

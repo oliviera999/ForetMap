@@ -6,9 +6,13 @@ import { tutorialPreviewCanEmbed } from '../TutorialPreviewModal';
 import { TaskTileCard } from './TaskTileCard.jsx';
 import { TaskPhaseTimeline, groupTasksByPhase } from './TaskPhaseTimeline.jsx';
 import { projectTypeInfo } from '../../shared/taskTaxonomyCore.js';
+import { sameStepBucket } from '../../utils/taskProjectSteps.js';
+import { projectColorClass } from '../../utils/projectColors.js';
 import {
   IconArchive,
   IconCheck,
+  IconChevronDown,
+  IconChevronUp,
   IconDelete,
   IconDuplicate,
   IconEdit,
@@ -68,6 +72,14 @@ function TaskProjectsBlock({
   taskDropHint,
   onProjectTaskDragOver,
   onDropTaskToProject,
+  /** `taskId → { step, sub, parallel }` des projets numérotés (`utils/taskProjectSteps.js`). */
+  stepInfoByTaskId = null,
+  /** Flèches ↑↓ (tactile, clavier) : réservées à qui peut réordonner (`tasks.manage`). */
+  canReorderProjectTasks = false,
+  /** `(taskId, projectId, beforeTaskId)` — place la tâche avant `beforeTaskId`. */
+  onMoveProjectTask,
+  /** `projectId → index de couleur` : la case du projet porte la teinte de ses tâches. */
+  projectColorById = null,
 }) {
   // Props volatiles dérivées par tuile (P1) : ne pas les étaler sur toutes les cartes.
   const { getTaskTileVolatileProps, ...tileCardProps } = taskTileProps || {};
@@ -119,7 +131,7 @@ function TaskProjectsBlock({
             return (
               <div
                 key={p.id}
-                className={`task-card task-project-card ${expanded ? 'task-project-card--expanded' : 'task-project-card--collapsed'} ${projectCardDropActive ? 'task-card--drop-target' : ''}`}
+                className={`task-card task-project-card task-project-card--colored ${projectColorClass(projectColorById, p.id)} ${expanded ? 'task-project-card--expanded' : 'task-project-card--collapsed'} ${projectCardDropActive ? 'task-card--drop-target' : ''}`}
                 style={{ padding: 12 }}
                 onDragOver={(event) => {
                   if (!canReceiveTaskDrop) return;
@@ -485,34 +497,91 @@ function TaskProjectsBlock({
                               {group.label && (
                                 <h4 className="task-project-phase-heading">{group.label}</h4>
                               )}
-                              {group.tasks.map((t) => (
-                                <div
-                                  key={t.id}
-                                  className={`task-project-drop-slot ${canReceiveTaskDrop && taskDropHint?.projectId === projectDropId && taskDropHint?.beforeTaskId === String(t.id) ? 'task-project-drop-slot--active' : ''}`}
-                                  onDragOver={(event) => {
-                                    if (!canReceiveTaskDrop) return;
-                                    event.preventDefault();
-                                    event.stopPropagation();
-                                    event.dataTransfer.dropEffect = 'move';
-                                    onProjectTaskDragOver?.(projectDropId, String(t.id));
-                                  }}
-                                  onDrop={(event) => {
-                                    if (!canReceiveTaskDrop) return;
-                                    event.preventDefault();
-                                    event.stopPropagation();
-                                    onDropTaskToProject?.(projectDropId, String(t.id));
-                                  }}
-                                >
-                                  <TaskTileCard
-                                    {...tileCardProps}
-                                    {...(getTaskTileVolatileProps
-                                      ? getTaskTileVolatileProps(t)
-                                      : null)}
-                                    t={t}
-                                    index={projectTasks.indexOf(t)}
-                                  />
-                                </div>
-                              ))}
+                              {group.tasks.map((t, groupIndex) => {
+                                /* Voisins dans la liste affichée (même phase) ; une flèche ne
+                                   franchit jamais une étape numérotée du titre. */
+                                const prevTask = group.tasks[groupIndex - 1];
+                                const nextTask = group.tasks[groupIndex + 1];
+                                const canMoveUp =
+                                  !!prevTask && sameStepBucket(stepInfoByTaskId, t.id, prevTask.id);
+                                const canMoveDown =
+                                  !!nextTask && sameStepBucket(stepInfoByTaskId, t.id, nextTask.id);
+                                const showOrderControls =
+                                  isTeacher &&
+                                  canReorderProjectTasks &&
+                                  !isArchivedView &&
+                                  projectTasksCount > 1;
+                                return (
+                                  <div
+                                    key={t.id}
+                                    className={`task-project-drop-slot ${showOrderControls ? 'task-project-drop-slot--with-order' : ''} ${canReceiveTaskDrop && taskDropHint?.projectId === projectDropId && taskDropHint?.beforeTaskId === String(t.id) ? 'task-project-drop-slot--active' : ''}`}
+                                    onDragOver={(event) => {
+                                      if (!canReceiveTaskDrop) return;
+                                      event.preventDefault();
+                                      event.stopPropagation();
+                                      event.dataTransfer.dropEffect = 'move';
+                                      onProjectTaskDragOver?.(projectDropId, String(t.id));
+                                    }}
+                                    onDrop={(event) => {
+                                      if (!canReceiveTaskDrop) return;
+                                      event.preventDefault();
+                                      event.stopPropagation();
+                                      onDropTaskToProject?.(projectDropId, String(t.id));
+                                    }}
+                                  >
+                                    {showOrderControls && (
+                                      <div
+                                        className="task-project-order-controls"
+                                        role="group"
+                                        aria-label={`Ordre de « ${t.title} »`}
+                                      >
+                                        <button
+                                          type="button"
+                                          className="btn btn-ghost btn-sm task-project-order-btn"
+                                          disabled={!canMoveUp}
+                                          aria-label={`Monter « ${t.title} »`}
+                                          title="Monter"
+                                          onClick={() =>
+                                            onMoveProjectTask?.(
+                                              String(t.id),
+                                              projectDropId,
+                                              String(prevTask.id),
+                                            )
+                                          }
+                                        >
+                                          <IconChevronUp size={16} />
+                                        </button>
+                                        <button
+                                          type="button"
+                                          className="btn btn-ghost btn-sm task-project-order-btn"
+                                          disabled={!canMoveDown}
+                                          aria-label={`Descendre « ${t.title} »`}
+                                          title="Descendre"
+                                          onClick={() =>
+                                            // Descendre = faire passer la suivante devant.
+                                            onMoveProjectTask?.(
+                                              String(nextTask.id),
+                                              projectDropId,
+                                              String(t.id),
+                                            )
+                                          }
+                                        >
+                                          <IconChevronDown size={16} />
+                                        </button>
+                                      </div>
+                                    )}
+                                    <TaskTileCard
+                                      {...tileCardProps}
+                                      {...(getTaskTileVolatileProps
+                                        ? getTaskTileVolatileProps(t)
+                                        : null)}
+                                      t={t}
+                                      index={projectTasks.indexOf(t)}
+                                      insideProjectBlock
+                                    />
+                                  </div>
+                                );
+                              })}
                             </Fragment>
                           ))}
                         </div>
