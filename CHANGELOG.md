@@ -143,8 +143,9 @@ Tests : `tests-ui/gl/glProjectionSession.test.js`, `useGLSessionRelecture.test.j
   réécrit que s'il est envoyé).
 - **Profil joueur** (A7) : un pseudo vide répond `400` au lieu de `500`.
 - **Journal** (A10) : `logRouteError` appelé dans le bon ordre dans `routes/gl/auth.js` (mode
-  découverte) et `routes/gl/admin-demo.js` ; la remise à zéro de la démonstration ne renvoie
-  plus le message d'erreur brut au client.
+  découverte), `routes/gl/admin-demo.js` et `routes/gl/games/spell-casts.js` (ce dernier
+  après la fusion du lot 5) ; la remise à zéro de la démonstration ne renvoie plus le message
+  d'erreur brut au client.
 
 Tests : `tests/gl-audit-lot6-comptes.test.js`, `tests/gl-profile.test.js`,
 `tests/gl-auth-forgot-password.test.js`, `tests/gl-demo-game.test.js`.
