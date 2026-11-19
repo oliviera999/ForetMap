@@ -151,7 +151,7 @@ Depuis l’admin GL : **Contenus → QCM lore** (ou API `GET /api/gl/lore/admin/
 
 En partie, le pool repère lore résout les scopes via `gl_chapters.plateau_number` : mode `chapter` inclut toujours `tous` plus `ch{N}` (ex. plateau 3 → `ch3` + `tous`). Les questions `ch0` (accroche) ne sont pas auto-incluses : pool `custom` ou sélection explicite dans l’éditeur de repère.
 
-Liens auto vers le glossaire lore (`gl_lore_glossary_terms`) via `mots_cles` / `tags` — importer le glossaire lore avant le QCM lore pour maximiser les liens.
+Liens auto vers le glossaire lore (`gl_lore_glossary_terms`) via `mots_cles` / `tags` — importer le glossaire lore avant le QCM lore pour maximiser les liens. Comme pour les QCM biomes, un import ne recalcule ces liens que pour les **questions présentes dans le fichier** ; un lien qui correspond toujours reste en place, avec son réglage « bloquant ».
 
 ## Carnet de Sélène (feuillets lore)
 
@@ -215,3 +215,5 @@ npm run gl:import:lore-glossary -- --apply
 ```
 
 Depuis l’admin GL : **Contenus → Glossaire lore** — import XLSX (`GET /api/gl/lore/admin/glossary/import/template`, `GET /api/gl/lore/admin/glossary/export`). Onglet joueur **Lexique du lore** ; auto-liens dans les feuillets via `GET /api/gl/lore/glossary/link-index`.
+
+Colonne `termes_lies` : libellés (ou codes `LR####`) des termes liés, séparés par des virgules. L’export la remplit, si bien qu’un export ré-importé garde les relations. À l’import, une cellule **vide laisse les relations du terme telles quelles** ; une liste les **remplace** ; un tiret (`-`) les **vide**.

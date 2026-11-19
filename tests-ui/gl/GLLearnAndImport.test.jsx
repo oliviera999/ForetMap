@@ -1,5 +1,5 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 const feuilletRevealFixture = {
@@ -25,8 +25,13 @@ vi.mock('../../src/gl/components/GLLearningAcknowledgeButton.jsx', () => ({
   },
 }));
 
+let lastImportProps = null;
+
 vi.mock('../../src/gl/components/GLJournalImportButton.jsx', () => ({
-  GLJournalImportButton: () => null,
+  GLJournalImportButton(props) {
+    lastImportProps = props;
+    return null;
+  },
 }));
 
 vi.mock('../../src/gl/services/apiGL.js', () => ({
@@ -34,10 +39,37 @@ vi.mock('../../src/gl/services/apiGL.js', () => ({
 }));
 
 import { GLLearnAndImport } from '../../src/gl/components/GLLearnAndImport.jsx';
+import { apiGL } from '../../src/gl/services/apiGL.js';
 
 describe('GLLearnAndImport', () => {
   beforeEach(() => {
     lastAckProps = null;
+    lastImportProps = null;
+    apiGL.mockReset();
+    apiGL.mockResolvedValue({});
+  });
+
+  // Audit G&L du 19/11/2026, E7 : le carnet de Sélène réutilise la même instance d'un
+  // feuillet au suivant. « Étudié » et « déjà dans mon journal » ne revenaient jamais à faux.
+  test('changer de ressource remet « appris » et « déjà importé » à faux', async () => {
+    apiGL.mockImplementation((path) =>
+      Promise.resolve(
+        path === '/api/gl/learning/me'
+          ? { feuillet_codes: ['ep-I-01'] }
+          : { refs: [{ resourceType: 'feuillet', resourceRef: 'ep-I-01' }] },
+      ),
+    );
+    const { rerender } = render(
+      <GLLearnAndImport resourceType="feuillet" resourceRef="ep-I-01" title="Premier" />,
+    );
+    await waitFor(() => expect(lastAckProps?.isDone).toBe(true));
+    await waitFor(() => expect(lastImportProps?.alreadyImported).toBe(true));
+
+    rerender(<GLLearnAndImport resourceType="feuillet" resourceRef="ep-I-02" title="Second" />);
+    await waitFor(() => expect(lastAckProps?.resourceRef).toBe('ep-I-02'));
+    await waitFor(() => expect(lastAckProps?.isDone).toBe(false));
+    expect(lastImportProps?.learned).toBe(false);
+    expect(lastImportProps?.alreadyImported).toBe(false);
   });
 
   test('affiche le popover feuillet quand la réponse contient feuilletRevealed', async () => {

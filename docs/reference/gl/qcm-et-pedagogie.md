@@ -143,6 +143,10 @@ tutoriel, feuillet…) comme apprise.
   n'est jamais bloquant** (la case « Bloquant » du formulaire n'est plus précochée). Le bouton
   **« Rendre bloquantes les N question(s) approuvée(s) »**, sous la politique de la ressource,
   le fait d'un geste après une confirmation qui énonce ce que le joueur devra faire.
+- **Ré-importer un tableur de questions ne défait pas vos réglages** : l'import ne recalcule les
+  liens vers le glossaire que pour les questions présentes dans le fichier. Les liens des autres
+  questions restent en place, et un lien que vous avez rendu bloquant le reste tant que la
+  question porte toujours le mot-clé du terme.
 - **Un lien bloquant n'est plus accepté sur un type non validable** : le message dit lesquels
   le sont, et rappelle que le lien reste possible en non bloquant.
 - **Le glossaire n'est plus consultable pendant une question.** Les termes reconnus dans

@@ -35,10 +35,9 @@ router.post(
       const result = await ensureGlDemoGame({ actorId: req.glAuth.userId, reset: true });
       return res.status(201).json({ ok: true, ...result });
     } catch (err) {
-      logRouteError(req, err, 'gl.admin.demo.reset');
-      return res
-        .status(409)
-        .json({ error: err?.message || 'Préparation de la démonstration impossible' });
+      // Le détail part au journal ; le client ne reçoit jamais `err.message` brut.
+      logRouteError(err, req, 'gl.admin.demo.reset');
+      return res.status(409).json({ error: 'Préparation de la démonstration impossible' });
     }
   }),
 );

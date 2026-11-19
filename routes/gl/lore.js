@@ -76,6 +76,8 @@ const {
   LORE_GLOSSARY_CATEGORY_LABELS,
   LORE_NIVEAU_LABELS,
   filterLoreGlossaryList,
+  filterLoreGlossaryRowsForAudience,
+  isLoreTermVisibleToAudience,
   buildLoreGlossaryLookupMap,
 } = require('../../lib/glLoreGlossaryMatch');
 const {
@@ -407,6 +409,12 @@ router.post(
       [gameId],
     );
     if (!game) return res.status(404).json({ error: 'Partie introuvable' });
+    // Hors MJ, une page n'apparaît que dans une partie en cours ou en pause, comme sur la
+    // route jumelle des zones feuillets : sur une partie terminée, un joueur déroulait tout
+    // le chapitre en quelques requêtes, effets de bourse compris.
+    if (!isMj(req) && !['live', 'paused'].includes(String(game.status || '').toLowerCase())) {
+      return res.status(409).json({ error: 'Partie non active' });
+    }
 
     const feuillet = await queryOne(
       `SELECT ${FEUILLET_SELECT} FROM gl_lore_feuillets f WHERE f.feuillet_code = ? LIMIT 1`,
@@ -703,8 +711,34 @@ router.get(
           biomeSlugs,
         });
 
+    if (isMj(req)) {
+      return res.json({
+        items: candidates.map((row) => formatFeuilletRow(row, { isMj: true })),
+      });
+    }
+
+    // Hors MJ : même masque que le carnet (`GET /feuillets`). Une page que le joueur n'a pas
+    // trouvée ne part qu'en aperçu ; son texte complet vient de `present`, au moment où elle
+    // apparaît. Sans ce masque, entrer dans une zone suffisait à lire tous ses candidats —
+    // et, par le repli, toutes les pages actives des biomes du chapitre.
+    const [playerStates, gameplay] = await Promise.all([
+      req.glAuth.userType === 'gl_player'
+        ? loadPlayerFeuilletStates(db, req.glAuth.userId)
+        : Promise.resolve(new Map()),
+      getGameplaySettings(),
+    ]);
+    const previewFields = gameplay.loreFeuilletPreviewFields;
     return res.json({
-      items: candidates.map((row) => formatFeuilletRow(row, { isMj: isMj(req) })),
+      items: candidates.map((row) => {
+        const state = playerStates.get(String(row.feuillet_code));
+        const found = !!state && isFeuilletFound(state.status);
+        const formatted = formatFeuilletRow(row, {
+          isMj: false,
+          progressStatus: found ? state.status : 'locked',
+          effacementPct: found ? state.effacement_pct : 0,
+        });
+        return found ? formatted : maskLockedFeuillet(formatted, previewFields);
+      }),
     });
   }),
 );
@@ -751,9 +785,13 @@ router.get(
 router.get(
   '/glossary/link-index',
   requireGlAuth,
-  asyncHandler(async (_req, res) => {
-    const rows = await queryAll(
-      `SELECT lore_code, terme, variantes FROM gl_lore_glossary_terms WHERE statut = 'actif'`,
+  asyncHandler(async (req, res) => {
+    const gameplay = await getGameplaySettings();
+    const rows = filterLoreGlossaryRowsForAudience(
+      await queryAll(
+        `SELECT lore_code, terme, variantes, niveau FROM gl_lore_glossary_terms WHERE statut = 'actif'`,
+      ),
+      { isMj: isMj(req), maxSpoilerLevel: gameplay.loreSpoilerMaxLevel },
     );
     return res.json({
       items: rows.map((row) => ({
@@ -787,15 +825,28 @@ router.get(
       return res.status(404).json({ error: 'Terme introuvable' });
     if (!mj && term.niveau === 'secret')
       return res.status(403).json({ error: 'Terme secret — accès MJ' });
+    // Le plafond de divulgâchage vaut pour la fiche comme pour la liste.
+    const audience = { isMj: mj, maxSpoilerLevel: gameplay.loreSpoilerMaxLevel };
+    if (!isLoreTermVisibleToAudience(term, audience))
+      return res.status(403).json({ error: 'Terme non disponible pour l’instant' });
 
-    const related = await queryAll(
-      `SELECT t.lore_code, t.terme, t.niveau
+    const relatedRows = await queryAll(
+      `SELECT t.lore_code, t.terme, t.niveau, t.statut
        FROM gl_lore_glossary_relations r
        JOIN gl_lore_glossary_terms t ON t.lore_code = r.to_code
       WHERE r.from_code = ?
       ORDER BY t.terme ASC`,
       [code],
     );
+    // Termes liés : ni désactivés, ni secrets, ni au-dessus du plafond hors MJ.
+    const related = (
+      mj
+        ? relatedRows
+        : filterLoreGlossaryRowsForAudience(
+            relatedRows.filter((row) => row.statut === 'actif'),
+            audience,
+          )
+    ).map((row) => ({ lore_code: row.lore_code, terme: row.terme, niveau: row.niveau }));
 
     return res.json({
       term: {
@@ -1169,7 +1220,8 @@ router.post(
     const dryRun = !!req.body?.dryRun;
     try {
       const parsed = await resolveFeuilletsImportBody(req.body || {});
-      const report = await applyFeuilletsImport(db, parsed, { dryRun });
+      // Audit du 19/11/2026 (C11) : écriture en transaction, comme l'import des QCM.
+      const report = await withTransaction((tx) => applyFeuilletsImport(tx, parsed, { dryRun }));
       return res.json({ report });
     } catch (err) {
       return sendSafeError(res, err, {
@@ -1274,7 +1326,10 @@ router.post(
     const dryRun = !!req.body?.dryRun;
     try {
       const { glossaryRows } = await resolveLoreGlossaryImportBody(req.body || {});
-      const report = await applyLoreGlossaryImport(db, glossaryRows, { dryRun });
+      // Audit du 19/11/2026 (C11) : écriture en transaction, comme l'import des QCM.
+      const report = await withTransaction((tx) =>
+        applyLoreGlossaryImport(tx, glossaryRows, { dryRun }),
+      );
       return res.json({ report });
     } catch (err) {
       return sendSafeError(res, err, {
@@ -1286,12 +1341,22 @@ router.post(
   }),
 );
 
-async function loadLoreGlossaryLookupForQcm() {
+/**
+ * Index des termes joints aux questions (`loreGlossaryTerms`). Filtré comme la liste du
+ * glossaire : hors MJ, ni terme secret ni terme au-dessus du plafond de divulgâchage.
+ */
+async function loadLoreGlossaryLookupForQcm(req) {
+  const gameplay = await getGameplaySettings();
   const rows = await queryAll(
     `SELECT lore_code, terme, variantes, categorie, definition_courte, niveau
        FROM gl_lore_glossary_terms WHERE statut = 'actif'`,
   );
-  return buildLoreGlossaryLookupMap(rows);
+  return buildLoreGlossaryLookupMap(
+    filterLoreGlossaryRowsForAudience(rows, {
+      isMj: isMj(req),
+      maxSpoilerLevel: gameplay.loreSpoilerMaxLevel,
+    }),
+  );
 }
 
 async function loadActiveLoreQuestionRow(code) {
@@ -1358,7 +1423,7 @@ router.get(
       });
     }
 
-    const glossaryByKey = await loadLoreGlossaryLookupForQcm();
+    const glossaryByKey = await loadLoreGlossaryLookupForQcm(req);
     // La bonne réponse n'est exposée qu'au staff (gestion de contenu) : sinon un joueur
     // (gl.read) récupère la solution de toutes les questions lore et triche.
     const canSeeAnswers = hasGlPermission(req.glAuth, 'gl.content.manage');
@@ -1479,7 +1544,7 @@ router.get(
         return res.status(open.status).json({ error: open.error, cooldown: open.cooldown });
     }
 
-    const glossaryByKey = await loadLoreGlossaryLookupForQcm();
+    const glossaryByKey = await loadLoreGlossaryLookupForQcm(req);
     const loreGlossaryTerms = await enrichLoreQuestionWithGlossary(row, glossaryByKey);
 
     try {
@@ -1536,7 +1601,7 @@ router.post(
       if (consumption === 'already_used') {
         return res.status(409).json({ error: 'Présentation déjà utilisée' });
       }
-      const glossaryByKey = await loadLoreGlossaryLookupForQcm();
+      const glossaryByKey = await loadLoreGlossaryLookupForQcm(req);
       const loreGlossaryTerms = await enrichLoreQuestionWithGlossary(row, glossaryByKey);
       const dbHandle = { queryAll, queryOne, execute };
       const attempt = await recordGlQcmAttemptForReader(dbHandle, {
@@ -1668,12 +1733,16 @@ router.post(
       return res.status(400).json({ error: `Trop de lignes (max ${QCM_LORE_MAX_IMPORT_ROWS})` });
     }
     try {
-      const report = await applyQcmLoreImport(
-        { queryAll, execute },
-        scopeRows || [],
-        categoryRows || [],
-        questionRows,
-        { dryRun },
+      // Audit du 19/11/2026 (C6) : en transaction, comme l'import des QCM biomes — une
+      // interruption ne laisse ni catalogue partiel ni liens glossaire à moitié régénérés.
+      const report = await withTransaction((tx) =>
+        applyQcmLoreImport(
+          { queryAll: tx.queryAll, execute: tx.execute },
+          scopeRows || [],
+          categoryRows || [],
+          questionRows,
+          { dryRun },
+        ),
       );
       return res.json({ report });
     } catch (err) {
