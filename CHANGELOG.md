@@ -9,6 +9,25 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — G&L : trois décisions sur les droits du tour (19 novembre 2026)
+
+Suite du lot 2 de l'audit (PR #685), sur décision du prof.
+
+- **Relance rendue : le jet annulé est réappliqué.** Au passage en souffle, une Relance payée
+  dont le dé n'a pas été rejoué est rendue, et l'équipe retrouve la case de son premier jet,
+  qui se joue (`arrivee_gardee`, `motif: 'relance_rendue'`). Aucun nouveau jet n'est tiré. Une
+  équipe déplacée depuis l'annulation garde sa place : le sort est rendu, sans rejouer le jet.
+- **Hybride : l'équipe répond depuis sa tablette.** Le droit « répondre » s'ouvre aux membres
+  pendant la phase « jeu » en hybride (noyau `glTenirPermissionsCore`) ; les dés restent au
+  prof. Au tableau, rien ne change.
+- **Case non jouée : le prof choisit.** Quand un sort ou le vent a posé l'équipe sur une case,
+  la fenêtre de la case dit « la case ne se joue pas » ; sur l'écran du prof, elle montre ce
+  que la case ferait (`effetPossible`) avec deux boutons, « Appliquer les effets (MJ) » et
+  « Ne pas appliquer ».
+
+Tests : `tests/gl-tenir-droits-serveur.test.js`, `tests/gl-tenir-permissions-pure.test.js`,
+`tests-ui/gl/GLMarkerEffectPopover.test.jsx`.
+
 ### Corrigé — Carnet : article publié affiché « sans titre » et vide (19 novembre 2026)
 
 Après « + Nouvel article », saisie puis « Terminer », la carte de lecture affichait

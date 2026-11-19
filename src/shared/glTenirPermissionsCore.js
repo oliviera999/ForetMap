@@ -10,7 +10,7 @@ import { moduleOuvert } from './glTenirEscalierCore.js';
  * | Geste          | tableau                      | hybride                               | tablette              |
  * | Jeter (un sort)| prof (équipe active)         | membre, pendant `jeu`                 | membre, pendant `jeu` |
  * | Lancer         | prof                         | prof                                  | membre, pendant `jeu` |
- * | Répondre       | prof                         | prof                                  | membre                |
+ * | Répondre       | prof                         | membre, pendant `jeu`                 | membre, pendant `jeu` |
  * | Fouiller       | prof                         | membre, pendant la fenêtre du prof    | membre                |
  * | Lire / Tenir   | prof                         | membre                                | membre                |
  * | Souffle        | prof                         | prof                                  | prof                  |
@@ -112,6 +112,9 @@ export function resolveTenirPermissions(input = {}) {
   }
   if (surface === 'hybride') {
     out.jeter = enJeu;
+    // Décision du 19 novembre 2026 : en hybride, l'équipe répond à la question de sa case
+    // depuis sa tablette (le prof garde les dés).
+    out.repondre = enJeu;
     out.fouiller = enJeu && input.fouilleFenetreOuverte === true;
     out.lire = lecture;
     out.tenir = lecture && tenirOuvert;

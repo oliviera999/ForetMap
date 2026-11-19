@@ -306,8 +306,8 @@ Olu glisse son erreur du jour), **jeu** (les équipes jettent, lancent, réponde
 semaine), **clos** (bilan Team Spirit : cartes gardées par équipe).
 
 Trois surfaces : au **tableau**, vous tenez tout (une équipe active à la fois, sablier) ; en
-**hybride**, chaque équipe lance et répond depuis sa tablette quand c'est son tour et fouille quand
-vous ouvrez la fenêtre ; sur **tablette**, chaque équipe agit seule en phase jeu et vous validez
+**hybride**, vous tenez les dés ; chaque équipe lance ses sorts et répond à la question de sa
+case depuis sa tablette, et fouille quand vous ouvrez la fenêtre ; sur **tablette**, chaque équipe agit seule en phase jeu et vous validez
 les dés physiques d'un clic. Les **absences** du jour retirent un élève du pot des sorts et du
 carnet personnel du tour. Le **retrait** (conduite) se décide élève par élève : il joue, fouille et
 lit, mais ne verse pas au pot et ne voit pas le Marché, jusqu'à la levée ; le motif reste pour vous.
@@ -347,16 +347,18 @@ s'applique tout de suite, comme avant.
   tout de suite : plus de « Gardez ce jet, ou lancez Relance » pour un sort pas encore ouvert.
 - La **question d'une case** se présente et se joue pendant la phase « jeu ». Une fois le
   souffle lancé, une question restée à l'écran d'une équipe ne se joue plus ; depuis votre
-  écran, vous pouvez toujours la présenter. Au tableau et en hybride, c'est vous qui la
-  présentez et qui validez la réponse.
+  écran, vous pouvez toujours la présenter. Au tableau, c'est vous qui la présentez et qui
+  validez la réponse ; en hybride et sur tablette, l'équipe répond depuis sa tablette.
 - Une question ne fait avancer **qu'une fois** : si vous la présentez de votre côté pendant que
   l'équipe l'a aussi à l'écran, la seconde bonne réponse est corrigée, sans case de plus.
 - Une équipe qu'un sort (**Progression**, **Bourrasque**, **Relais**) ou le **vent de la
-  caravane** pose sur une case en voit le texte, sans son effet : la case ne se joue pas. Pour
-  la faire jouer quand même, utilisez « Appliquer les effets (MJ) » sur la case, depuis le plateau de votre écran.
+  caravane** pose sur une case en voit le texte, sans son effet : la case ne se joue pas. Sur
+  votre écran, la fenêtre de la case vous montre ce qu'elle ferait et vous laisse le choix :
+  **« Appliquer les effets (MJ) »** pour la faire jouer quand même, ou **« Ne pas appliquer »**.
 - Une **Relance** payée dont l'équipe n'a pas eu le temps de relancer les dés (vous lancez le
-  souffle avant) lui est **rendue** au souffle : rien n'est retiré. L'équipe ne rejoue pas ce
-  tour-là et reste sur sa case de départ.
+  souffle avant) lui est **rendue** au souffle : rien n'est retiré. Son premier jet, que la
+  Relance avait annulé, est **réappliqué** : la mascotte retrouve la case de ce jet et la case
+  se joue. Aucun nouveau jet n'est tiré.
 - En **hybride**, le bouton « Fouiller » de l'équipe s'allume bien quand vous ouvrez la fenêtre
   de fouille.
 - Dans une partie en pause ou terminée, une case ne se présente plus.

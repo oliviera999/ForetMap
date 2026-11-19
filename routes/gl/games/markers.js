@@ -647,6 +647,10 @@ router.post(
       teamType: team.type,
       // Case présentée sans s'appliquer (l'équipe y a été posée par un sort ou par le vent).
       ...(sansEffet ? { sansEffet: true } : {}),
+      // Le prof seul lit ce que la case ferait : il choisit de l'appliquer ou non.
+      ...(sansEffet && acteur.kind === 'mj' && arrivalJouee.hasEffects
+        ? { effetPossible: arrivalJouee.effectSummary || null }
+        : {}),
       vitality: vitalityPayload
         ? {
             applied: vitalityPayload.applied === true,
