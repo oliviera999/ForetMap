@@ -16,6 +16,24 @@ portent la mention « traité » et leur numéro de PR. Nouveau § 13 : vérific
 `main` après la fusion (lint, format, build, 6 153 tests d'écran, 6 401 tests backend, 147 tests
 de contenu, scénarios de l'audit rejoués par requêtes et dans un navigateur), choix faits par les
 lots à relire, restes (39 constats ouverts, quatre décisions à trancher). Aucun code modifié.
+### Modifié — G&L : trois décisions sur les droits du tour (19 novembre 2026)
+
+Suite du lot 2 de l'audit (PR #685), sur décision du prof.
+
+- **Relance rendue : le jet annulé est réappliqué.** Au passage en souffle, une Relance payée
+  dont le dé n'a pas été rejoué est rendue, et l'équipe retrouve la case de son premier jet,
+  qui se joue (`arrivee_gardee`, `motif: 'relance_rendue'`). Aucun nouveau jet n'est tiré. Une
+  équipe déplacée depuis l'annulation garde sa place : le sort est rendu, sans rejouer le jet.
+- **Hybride : l'équipe répond depuis sa tablette.** Le droit « répondre » s'ouvre aux membres
+  pendant la phase « jeu » en hybride (noyau `glTenirPermissionsCore`) ; les dés restent au
+  prof. Au tableau, rien ne change.
+- **Case non jouée : le prof choisit.** Quand un sort ou le vent a posé l'équipe sur une case,
+  la fenêtre de la case dit « la case ne se joue pas » ; sur l'écran du prof, elle montre ce
+  que la case ferait (`effetPossible`) avec deux boutons, « Appliquer les effets (MJ) » et
+  « Ne pas appliquer ».
+
+Tests : `tests/gl-tenir-droits-serveur.test.js`, `tests/gl-tenir-permissions-pure.test.js`,
+`tests-ui/gl/GLMarkerEffectPopover.test.jsx`.
 
 ### Corrigé — Carnet : article publié affiché « sans titre » et vide (19 novembre 2026)
 
@@ -151,8 +169,9 @@ Tests : `tests-ui/gl/glProjectionSession.test.js`, `useGLSessionRelecture.test.j
   réécrit que s'il est envoyé).
 - **Profil joueur** (A7) : un pseudo vide répond `400` au lieu de `500`.
 - **Journal** (A10) : `logRouteError` appelé dans le bon ordre dans `routes/gl/auth.js` (mode
-  découverte) et `routes/gl/admin-demo.js` ; la remise à zéro de la démonstration ne renvoie
-  plus le message d'erreur brut au client.
+  découverte), `routes/gl/admin-demo.js` et `routes/gl/games/spell-casts.js` (ce dernier
+  après la fusion du lot 5) ; la remise à zéro de la démonstration ne renvoie plus le message
+  d'erreur brut au client.
 
 Tests : `tests/gl-audit-lot6-comptes.test.js`, `tests/gl-profile.test.js`,
 `tests/gl-auth-forgot-password.test.js`, `tests/gl-demo-game.test.js`.

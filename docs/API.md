@@ -611,8 +611,9 @@ Au tableau, rien ne change. En `hybride` et sur `tablette`, les équipes jouent 
     409 « La partie doit être en cours » hors statut `live` (tout acteur).
   - `POST …/markers/:markerId/present-question` et `POST …/qcm/answer` (jeton d'une case), élève
     ou tablette d'une partie « Tenir » : le droit « répondre » est rejoué — 409 `TENIR_PHASE`
-    hors phase « jeu » (ou sans tour ouvert), 403 `TENIR_PERMISSION` sur une surface où le prof
-    porte ce geste (tableau, hybride), 403 `TENIR_EQUIPE_INACTIVE` au tableau. Corps
+    hors phase « jeu » (ou sans tour ouvert), 403 `TENIR_PERMISSION` au tableau, où le prof
+    porte ce geste (en hybride et sur tablette, l'équipe répond depuis son écran — décision du
+    19 novembre 2026), 403 `TENIR_EQUIPE_INACTIVE` au tableau. Corps
     `{ error, code }`. Le refus de `qcm/answer` ne consomme pas le jeton. Le prof n'est jamais
     retenu.
   - `POST …/qcm/answer` : une question ne rapporte sa case qu'une fois par équipe, repère et
@@ -623,12 +624,18 @@ Au tableau, rien ne change. En `hybride` et sur `tablette`, les équipes jouent 
     de l'équipe l'a posée sur ce repère sans jouer la case (Progression sans
     `tenir_progression_applique_case`, Bourrasque, Relais, vent de la caravane, retour d'une
     Relance), la réponse porte `sansEffet: true`, `vitality: null`, `effectSummary: null`,
-    `resolvedEffect: null`, `hasEffects: false`, `passTurn: false` (le texte de la case reste) ; seul `marker_arrival`
-    est journalisé (`sansEffet: true`), jamais `marker_effect`. `apply-effects` (prof) n'est
-    pas concerné.
+    `resolvedEffect: null`, `hasEffects: false`, `passTurn: false` (le texte de la case reste) ;
+    seul `marker_arrival` est journalisé (`sansEffet: true`), jamais `marker_effect`. Pour le
+    prof seul, la réponse porte aussi `effetPossible` (le résumé de ce que la case ferait) :
+    son écran propose « Appliquer les effets (MJ) » (`POST …/apply-effects`) ou « Ne pas
+    appliquer ». En partie « Tenir », `POST …/apply-effects` pose aussi « un seul dé au prochain
+    tour » pour une case Souffle (évènement `un_de_pose`), comme l'arrêt joué par le moteur.
   - `POST …/tenir/tour/phase` vers `souffle` : une Relance lancée dont le dé n'a pas été rejoué
-    est rendue (`spell_rembourse`, `motif: 'relance'`, brouillon `rembourse`). Aucun jet n'est
-    tiré.
+    est rendue (`spell_rembourse`, `motif: 'relance'`, brouillon `rembourse`) et le jet
+    qu'elle avait annulé est réappliqué : `move` (`fromDice: true`, `relanceRendue: true`),
+    `arrivee_gardee` (`motif: 'relance_rendue'`), puis les effets de la case. Aucun nouveau jet
+    n'est tiré. Si l'équipe a été déplacée depuis l'annulation, le sort est rendu sans rejouer
+    le jet.
   - `GET /api/gl/games/:id`, surface hybride : `tenir.permissions.fouiller` suit la fenêtre de
     fouille ouverte par le prof (pour tous, ou pour l'équipe de celui qui regarde).
 - File du prof (`GET …/spell-casts/awaiting-effect`) : un sort qui visait une page pâlie

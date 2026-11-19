@@ -139,7 +139,7 @@ async function handleSpellCastRoute(req, res, handler) {
     if (err?.status && err?.code && typeof err.message === 'string') {
       return res.status(err.status).json({ error: err.message, code: err.code });
     }
-    logRouteError(req, err, 'gl.spell_cast');
+    logRouteError(err, req, 'gl.spell_cast');
     return res.status(500).json({ error: 'Erreur lors du sortilège collaboratif' });
   }
 }
