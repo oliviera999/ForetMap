@@ -80,13 +80,18 @@ test.before(async () => {
       required_students: 3,
     })
     .expect(201);
+  const bodyOf = (s) => ({ firstName: s.firstName, lastName: s.lastName, studentId: s.id });
+  // Les deux inscriptions d'abord : une tâche déjà « faite » n'accepte plus d'inscription
+  // (audit du 19/11/2026, T2).
   for (const s of [alice, bob]) {
-    const body = { firstName: s.firstName, lastName: s.lastName, studentId: s.id };
     await request(app)
       .post(`/api/tasks/${task.body.id}/assign`)
       .set('Authorization', `Bearer ${adminToken}`)
-      .send(body)
+      .send(bodyOf(s))
       .expect(200);
+  }
+  for (const s of [alice, bob]) {
+    const body = bodyOf(s);
     await request(app)
       .post(`/api/tasks/${task.body.id}/done`)
       .set('Authorization', `Bearer ${adminToken}`)
