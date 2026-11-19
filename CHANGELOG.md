@@ -9,6 +9,30 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — G&L : du contenu servi avant d'être acquis ou publié (audit du 19 novembre 2026, lot 4)
+
+- **Pages de Sélène d'une zone** (`GET /api/gl/lore/games/:id/zones/:zoneId/feuillets`) : un
+  joueur recevait le texte complet des pages candidates, y compris celles que son équipe
+  n'avait pas trouvées — et, sans page liée à la zone, de toutes les pages actives des biomes
+  du chapitre. Les candidats non trouvés partent désormais masqués, comme dans le carnet ; le
+  texte vient à l'apparition de la page. Le MJ garde tout.
+- **Apparition d'une page par son code** (`POST …/feuillets/:code/present`) : un joueur
+  pouvait faire apparaître les pages du chapitre sur une partie terminée, effets de bourse
+  compris. Refus `409` hors partie en cours ou en pause (le MJ n'y est pas soumis).
+- **Lexique du lore** : les termes « secret » sortaient par l'index des liens, par les
+  « termes liés » d'une fiche et par les termes joints aux questions ; la fiche ignorait le
+  plafond de divulgâchage. Une seule règle désormais (`isLoreTermVisibleToAudience`), appliquée
+  à la liste, la fiche, les termes liés, l'index et les questions.
+- **Tutoriels** : « Publié » n'était appliqué nulle part. Un brouillon n'est plus listé ni
+  lisible par un joueur (`404`), ni marquable comme appris. À l'écran, un brouillon se rouvre
+  case décochée (elle revenait cochée et l'enregistrement automatique republiait).
+- **Éditeur de tutoriels** : chaque enregistrement automatique vidait le brouillon et fermait
+  l'éditeur ; ce qui était tapé pendant la création était perdu. L'éditeur reste ouvert, garde
+  l'identifiant créé et ne se ferme que par « Fermer l'éditeur » (ancien « Annuler »).
+- **Traversée des zones feuillets** : le réglage n'atteignait pas le plateau (`GLMapView` ne
+  le relayait pas) ; coupé, il laissait l'ancien popover s'ouvrir.
+- **Zones feuillets en « Tenir »** : la réponse annonçait le gain de cœurs du catalogue ; la
+  route lit maintenant le profil de la partie et renvoie `gainCoeur: 0`.
 ### Corrigé — G&L : carnet du joueur et récompenses (audit du 19 novembre 2026, lot 7)
 
 - **C8 — « Lu » et « tenu » atteignent le carnet personnel.** Le statut de
