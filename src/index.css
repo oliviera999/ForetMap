@@ -64,13 +64,6 @@
       --leaf:     #2d6a4f;
       --sage:     #52b788;
       --mint:     #b7e4c7;
-      /* Tâches de projet (cartes teintées, bandeau « projet · étape ») : un bleu « lac »,
-         distinct du vert des cartes, du violet des propositions et du rouge d'alerte.
-         --project-ink sur --project-chip ≈ 8:1. */
-      --project-accent: #2f6fb0;
-      --project-tint:   #e9f1fb;
-      --project-chip:   #dce9f8;
-      --project-ink:    #1d4677;
       /* Un SEUL ordre de pile emoji partout, dans le même ordre que --font-emoji-stack :
          'Apple Color Emoji' d'abord (seul dessin fiable sur WebKit), puis 'ForetMapColorEmoji'
          pour tout le reste du parc. Ce qui compte est que les DEUX piles — celle des emojis et
@@ -1666,33 +1659,35 @@
       min-width:0;
       flex:1;
     }
+    /* Tâche rattachée à un projet : filet gauche + fond à la teinte du projet. Après .mine
+       (l'emporte sur son fond), avant .proposed (qui garde le sien). */
+    .task-card.task-card--project {
+      border-left:5px solid var(--project-accent);
+      background:var(--project-tint);
+    }
     .task-card.proposed {
       border-color:#c4b5fd;
       background:#faf5ff;
       box-shadow:0 2px 10px rgba(124,58,237,.12);
     }
-    /* Tâche rattachée à un projet : filet gauche bleu + fond teinté (après .mine / .proposed
-       pour l'emporter à spécificité égale ; une proposition garde son fond violet). */
-    .task-card.task-card--project {
-      border-left:5px solid var(--project-accent);
-      background:var(--project-tint);
-    }
-    .task-card.task-card--project.proposed { background:#faf5ff; }
+    /* Une proposition rattachée à un projet garde son fond violet (règle .proposed, plus
+       bas à spécificité égale) mais reprend le filet de son projet. */
+    .task-card.task-card--project.proposed { border-left-color:var(--project-accent); }
     /* Case d'un projet : même filet que ses tâches, pour relier l'une aux autres. */
     .task-card.task-project-card--colored { border-left:5px solid var(--project-accent); }
     .task-project-card--colored .task-project-toggle .task-title { color:var(--project-ink); }
-    /* Une teinte par projet (utils/projectColors.js) : chaque classe redéfinit les quatre
-       jetons. Encre sur pastille ≥ 7:1 pour les dix teintes. */
-    .project-color-0 { --project-accent:#2f6fb0; --project-tint:#e9f1fb; --project-chip:#dce9f8; --project-ink:#1d4677; }
-    .project-color-1 { --project-accent:#c26f1e; --project-tint:#fdf1e4; --project-chip:#fbe1c4; --project-ink:#6b370a; }
-    .project-color-2 { --project-accent:#c2417a; --project-tint:#fcebf2; --project-chip:#f8d5e4; --project-ink:#6e1c40; }
-    .project-color-3 { --project-accent:#1a9a9a; --project-tint:#e5f6f6; --project-chip:#c9eded; --project-ink:#0b4c4c; }
-    .project-color-4 { --project-accent:#a2800a; --project-tint:#fbf5dd; --project-chip:#f3e6ae; --project-ink:#544204; }
-    .project-color-5 { --project-accent:#b5452f; --project-tint:#fbeae6; --project-chip:#f5d3cb; --project-ink:#651f13; }
-    .project-color-6 { --project-accent:#4c5bc4; --project-tint:#eceefb; --project-chip:#d8dcf6; --project-ink:#262f6e; }
-    .project-color-7 { --project-accent:#6f8f2a; --project-tint:#f1f6e6; --project-chip:#e0ebc6; --project-ink:#344512; }
-    .project-color-8 { --project-accent:#8a5a3c; --project-tint:#f6eee8; --project-chip:#ead9cc; --project-ink:#47291a; }
-    .project-color-9 { --project-accent:#7d4fc4; --project-tint:#f2ecfb; --project-chip:#e4d8f6; --project-ink:#3d2075; }
+    /* Une teinte par projet (utils/projectColors.js) : chaque classe pointe les quatre jetons
+       génériques vers la teinte N, définie dans shared/styles/color-tokens.css. */
+    .project-color-0 { --project-accent:var(--project-0-accent); --project-tint:var(--project-0-tint); --project-chip:var(--project-0-chip); --project-ink:var(--project-0-ink); }
+    .project-color-1 { --project-accent:var(--project-1-accent); --project-tint:var(--project-1-tint); --project-chip:var(--project-1-chip); --project-ink:var(--project-1-ink); }
+    .project-color-2 { --project-accent:var(--project-2-accent); --project-tint:var(--project-2-tint); --project-chip:var(--project-2-chip); --project-ink:var(--project-2-ink); }
+    .project-color-3 { --project-accent:var(--project-3-accent); --project-tint:var(--project-3-tint); --project-chip:var(--project-3-chip); --project-ink:var(--project-3-ink); }
+    .project-color-4 { --project-accent:var(--project-4-accent); --project-tint:var(--project-4-tint); --project-chip:var(--project-4-chip); --project-ink:var(--project-4-ink); }
+    .project-color-5 { --project-accent:var(--project-5-accent); --project-tint:var(--project-5-tint); --project-chip:var(--project-5-chip); --project-ink:var(--project-5-ink); }
+    .project-color-6 { --project-accent:var(--project-6-accent); --project-tint:var(--project-6-tint); --project-chip:var(--project-6-chip); --project-ink:var(--project-6-ink); }
+    .project-color-7 { --project-accent:var(--project-7-accent); --project-tint:var(--project-7-tint); --project-chip:var(--project-7-chip); --project-ink:var(--project-7-ink); }
+    .project-color-8 { --project-accent:var(--project-8-accent); --project-tint:var(--project-8-tint); --project-chip:var(--project-8-chip); --project-ink:var(--project-8-ink); }
+    .project-color-9 { --project-accent:var(--project-9-accent); --project-tint:var(--project-9-tint); --project-chip:var(--project-9-chip); --project-ink:var(--project-9-ink); }
     .task-project-ribbon {
       display:flex; align-items:center; flex-wrap:wrap; gap:6px;
       margin:-2px 0 8px;
