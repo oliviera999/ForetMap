@@ -33,9 +33,17 @@ const { sendSafeError } = require('../../../lib/safeErrorResponse');
 const { isTenirGame } = require('../../../lib/glTenir');
 const {
   bonneReponseDeCaseTx,
-  solderQuestionDeCaseTx,
+  prendreQuestionDeCaseTx,
+  assertRepondreOuvert,
   gesteDEquipeTx,
 } = require('../../../lib/glTour');
+
+/** Refus des droits du tour : mêmes codes et mêmes libellés que les gestes de `tenir-tour.js`. */
+const REFUS_DU_TOUR = {
+  TENIR_PHASE: 'Ce geste n’est possible qu’en phase « jeu »',
+  TENIR_EQUIPE_INACTIVE: 'Ce n’est pas le tour de cette équipe',
+  TENIR_PERMISSION: 'Ce geste est réservé au prof sur cette surface',
+};
 
 const router = express.Router();
 
@@ -217,6 +225,22 @@ router.post('/games/:id/qcm/answer', requireGlAuthOrTeam, gardeReponse, async (r
   // Repère lu dans le jeton (GL2) ; `req.body.markerId` n'est plus honoré.
   const markerId = tokenGame.markerId != null ? Number(tokenGame.markerId) : null;
 
+  // « Tenir à deux » : le droit « répondre » est rejoué pour un élève ou une tablette — une
+  // question présentée pendant le jeu ne se joue plus une fois la phase fermée, ni depuis une
+  // surface où le prof porte ce geste. Avant la transaction : le jeton n'est pas consommé.
+  if (tenirMode && markerId != null && answerCtx.actorType !== 'mj') {
+    try {
+      await assertRepondreOuvert(
+        { queryAll, queryOne },
+        { gameId, settings, teamId: teamIdForGame, actorKind: 'player' },
+      );
+    } catch (err) {
+      const message = REFUS_DU_TOUR[err?.message];
+      if (!message || !err.status) throw err;
+      return res.status(err.status).json({ error: message, code: err.message });
+    }
+  }
+
   let lastEvent = null;
   let tenirBonus = null;
   try {
@@ -294,16 +318,22 @@ router.post('/games/:id/qcm/answer', requireGlAuthOrTeam, gardeReponse, async (r
           actorType: answerCtx.actorType,
           actorId: answerCtx.actorId,
         });
-        if (verification.correct) {
-          await solderQuestionDeCaseTx(tx, {
-            gameId,
-            roundNumber,
-            teamId: teamIdForGame,
-            markerId,
-          });
-        }
       }
-      if (verification.correct && tenirMode && markerId != null) {
+      // Une question ne rapporte qu'une fois : relue et soldée sous verrou d'équipe, quel que
+      // soit le nombre de jetons présentés pour elle (le prof et un élève, deux appareils).
+      const rapporte =
+        verification.correct && tenirMode && markerId != null
+          ? await prendreQuestionDeCaseTx(tx, {
+              gameId,
+              roundNumber: Number(game.current_round_number) || 0,
+              teamId: teamIdForGame,
+              markerId,
+            })
+          : false;
+      if (verification.correct && tenirMode && markerId != null && !rapporte) {
+        tenirBonus = { applied: false, events: [] };
+      }
+      if (rapporte) {
         tenirBonus = await bonneReponseDeCaseTx(tx, {
           gameId,
           teamId: teamIdForGame,

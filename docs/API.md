@@ -600,6 +600,30 @@ Au tableau, rien ne change. En `hybride` et sur `tablette`, les équipes jouent 
 - `POST …/markers/:markerId/present-question` : la question est due à **l'arrivée du tour**, pas
   à la position — une équipe déplacée par un sort avant sa réponse garde sa question (plus de
   409 « Votre équipe n'est pas sur ce repère » dans ce cas). Une bonne réponse la solde.
+- **Droits rejoués sur la question et l'arrivée d'une case (audit du 19 novembre 2026)** :
+  - `POST …/markers/:markerId/present-question` et `POST …/markers/:markerId/present-arrival` :
+    409 « La partie doit être en cours » hors statut `live` (tout acteur).
+  - `POST …/markers/:markerId/present-question` et `POST …/qcm/answer` (jeton d'une case), élève
+    ou tablette d'une partie « Tenir » : le droit « répondre » est rejoué — 409 `TENIR_PHASE`
+    hors phase « jeu » (ou sans tour ouvert), 403 `TENIR_PERMISSION` sur une surface où le prof
+    porte ce geste (tableau, hybride), 403 `TENIR_EQUIPE_INACTIVE` au tableau. Corps
+    `{ error, code }`. Le refus de `qcm/answer` ne consomme pas le jeton. Le prof n'est jamais
+    retenu.
+  - `POST …/qcm/answer` : une question ne rapporte sa case qu'une fois par équipe, repère et
+    arrivée du tour. Une bonne réponse à un second jeton de la même question répond 200,
+    `correct: true`, `tenir: { bonusCase: false, bonus: null, target: null, arrival: null }` :
+    ni case, ni dé réarmé.
+  - `POST …/markers/:markerId/present-arrival`, partie « Tenir » : quand le dernier déplacement
+    de l'équipe l'a posée sur ce repère sans jouer la case (Progression sans
+    `tenir_progression_applique_case`, Bourrasque, Relais, vent de la caravane, retour d'une
+    Relance), la réponse porte `sansEffet: true` et `vitality: null` ; seul `marker_arrival`
+    est journalisé (`sansEffet: true`), jamais `marker_effect`. `apply-effects` (prof) n'est
+    pas concerné.
+  - `POST …/tenir/tour/phase` vers `souffle` : une Relance lancée dont le dé n'a pas été rejoué
+    est rendue (`spell_rembourse`, `motif: 'relance'`, brouillon `rembourse`). Aucun jet n'est
+    tiré.
+  - `GET /api/gl/games/:id`, surface hybride : `tenir.permissions.fouiller` suit la fenêtre de
+    fouille ouverte par le prof (pour tous, ou pour l'équipe de celui qui regarde).
 - File du prof (`GET …/spell-casts/awaiting-effect`) : un sort qui visait une page pâlie
   (« Nommer ») se retire seul quand la page est réparée entre-temps ; il est rendu à l'équipe
   (statut `rembourse`, cause `sort_rembourse`, évènement `spell_rembourse` avec
