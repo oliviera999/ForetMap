@@ -43,6 +43,64 @@ d'abord reproduit par un test qui monte le composant réel, avec son chargement 
 Tests : `tests-ui/gl/GLSettingsViewAsyncLoad`, `GLChapterMapStudioAutoSave`,
 `GLLearningLinksPanelPolicyLoad`, `GLRichTextEditorUnresolvedImages`, `GLAutoSaveInFlightTyping`,
 `GLGatingSettingsFreeDelay`.
+### Corrigé — G&L : pots de sorts (audit du 19 novembre 2026, lot 5)
+
+- **Un pot repris est bien celui qu'on demande** (S1). Le pot d'un sort resté en collecte était
+  rendu tel quel à la demande suivante : le prof qui ouvrait Lanterne pour une équipe puis pour
+  une autre recevait le pot de la première (ses membres auraient payé) ; un sort personnel
+  (Lettre, Mentorat, Esquive) ouvert par un élève puis par son coéquipier restait au nom du
+  premier ; une Cordée rouverte avec une autre partenaire gardait l'ancienne. Désormais le pot
+  n'est repris que si l'équipe, la partenaire et l'élève correspondent ; sinon il est annulé
+  (rien n'a été débité) et un pot neuf s'ouvre. Le jeu classique n'est pas touché.
+- **Deux « pas moi » au même instant sont gardés tous les deux** (S2) : la liste des élèves
+  retirés et les parts sont relues et recalculées sous le verrou du pot (`setDraftExclusion`,
+  `realignerPotSurLesPresents`).
+- **Un pot rouvert dans le même tour suit les bourses et la réserve** (S12) : il se recalcule
+  quand une part dépasse le solde de son élève ou que le total ne correspond plus au reste dû,
+  au lieu de s'afficher prêt puis d'être refusé au lancement.
+
+Tests : `tests/gl-spell-pot-repris.test.js`.
+### Corrigé — G&L : imports de contenu qui perdaient des données (audit du 19 novembre 2026, lot 8)
+
+- **Glossaire du lore (C5)** : l'export laissait la colonne `termes_lies` vide, et l'import
+  supprimait les relations de chaque terme avant de les relire dans cette colonne — exporter
+  puis ré-importer effaçait donc toutes les relations. L'export remplit désormais la colonne
+  (libellé du terme lié, ou son code si le libellé contient une virgule), et à l'import une
+  cellule **vide ne touche plus** aux relations du terme. Une liste les remplace ; un tiret
+  (`-`) les vide volontairement.
+- **Import de QCM, biomes et lore (C6)** : les liens glossaire d'origine « import » étaient
+  supprimés sur **tout le jeu**, puis recréés pour les seules lignes du fichier, toujours non
+  bloquants. Importer quelques questions effaçait les liens de toutes les autres, et un lien
+  rendu bloquant par le MJ perdait son conditionnement à chaque import. Le recalcul est borné
+  aux questions du fichier ; un lien qui correspond toujours reste en place tel quel
+  (`is_gating` compris). L'import des QCM lore passe en transaction, comme celui des biomes.
+- **Imports du lore et de la charte (C11)** : une ligne de feuillet sans code était ignorée sans
+  figurer au rapport — elle y est désormais (`report.feuillets.errors`, `skipped`). Les imports
+  des feuillets, du glossaire du lore et de la charte des chapitres écrivent en transaction :
+  une ligne en échec n'en laisse plus une partie en base. Un téléchargement XLSX en échec
+  renvoie un message neutre, l'erreur réelle part au journal.
+- **Catalogues de la Trame (C12)** : les cartes et liens d'un biome ou d'un plateau étaient
+  supprimés puis réinsérés un par un hors transaction (au démarrage et depuis « Catalogues
+  Tenir à deux », possible en pleine séance). Chaque fichier s'écrit maintenant dans une seule
+  transaction : un défi lu pendant la synchronisation voit l'ancien réseau, jamais un réseau
+  vide, et un échec ne laisse plus un biome amputé.
+
+Tests : `tests/gl-imports-pertes.test.js`, `tests/gl-xlsx-attachment.test.js`.
+### Documentation — G&L : audit des bugs (19 novembre 2026)
+
+`docs/AUDIT_BUGS_GL_2026-11-19.md` : relecture de tout le sous-produit Gnomes & Licornes par
+domaine, 81 constats dont 18 rejoués à l'exécution (requêtes sur une base à part, navigateur sur
+le build de production). Six gênent une séance ou l'administration : la projection et l'écran
+« Jouer le tour » ne se relisent pas, le lien de projection remplace la session du prof, les
+réglages numériques « Tenir à deux » affichent leur minimum et l'enregistrent, le studio de carte
+de chapitre tourne en boucle sans enregistrer, l'escalier met chaque jet en suspens pour une
+Relance encore fermée. Aucun code modifié : lots de correction et décisions à trancher en fin de
+document.
+### Modifié — Pôle Suivi : l'onglet Tâches passe en premier (19 novembre 2026)
+
+Côté prof, cliquer le pôle **Suivi** ouvre désormais l'onglet **Tâches** (et non plus
+« Individus », placé juste après). Seul l'ordre des onglets change (`TeacherTopTabs.jsx`) ;
+test : `tests-ui/components/app/TeacherTopTabs.test.jsx`. Doc : `guide-du-prof.md`.
 
 ### Corrigé — Popups d'Olu tronquées en bas d'écran (18 novembre 2026)
 

@@ -399,7 +399,11 @@ parallèle. Au tableau, rien ne change.
   les présents ; un élève qui ne veut pas verser touche « pas moi » sur sa ligne **depuis son
   propre compte** (ou vous le faites pour lui : depuis le 17 novembre 2026, la tablette de
   l'équipe ne le propose plus). La bourse de chacun reste la sienne : une équipe ne voit jamais
-  le pot d'une autre.
+  le pot d'une autre. Un pot laissé ouvert n'est repris que pour la même équipe (et, selon le sort,
+  la même équipe partenaire ou le même élève) : si vous préparez le même sort pour une autre
+  équipe, un pot neuf s'ouvre et l'ancien est annulé, sans rien coûter à personne. Un pot rouvert
+  se recalcule si une bourse ou la réserve de la caravane a changé entre-temps. _(Depuis le
+  19 novembre 2026.)_
 - **Tout ce qui attend votre geste est au même endroit.** Le panneau **« Demandes »** réunit
   les dés à valider, les jets en suspens, les sorts à honorer, les Lettres à relire, les
   Mentorats à écouter, les chimères à relire, les défis à juger. Une ligne par demande, la plus ancienne en haut, un
