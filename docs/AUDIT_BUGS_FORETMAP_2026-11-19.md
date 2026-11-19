@@ -1,5 +1,14 @@
 # Audit des bugs de ForetMap (hors G&L) — 19 novembre 2026
 
+> **Statut au 19 novembre 2026, 16 h 40 UTC : traité.** Les onze lots de correction (§ 10)
+> sont fusionnés dans `main` (PR #692 à #702), chacun avec ses tests. Le détail par constat
+> (corrigé, avec la correction retenue) est dans la description de chaque PR. Les constats
+> ci-dessous sont conservés tels qu'établis le 19/11, selon la convention des audits datés.
+>
+> Vérification de `main` après les onze fusions : `npm run lint` 0 erreur, `format:check`
+> vert, `test:ui` 6 191 tests passés, `npm run build` sans miroir modifié, `npm test` 6 545
+> tests (6 543 passés, 0 échec, 2 ignorés), `test:content` 147 passés.
+
 Instantané daté, sur `main` en v1.250.6 (`8e620f6`). Périmètre : toute l'application **hors
 Gnomes & Licornes** — `server.js`, `app.js`, `database.js`, `routes/**` (hors `routes/gl`),
 `lib/**` (hors `lib/gl*`), `middleware/requireTeacher.js`, `lib/mcp/**`, `src/**` (hors
@@ -385,19 +394,19 @@ marcher dessus : chaque lot possède ses fichiers, et seuls `CHANGELOG.md`, `doc
 partir des scénarios de rejeu, et ouvre sa propre PR. Ce document et l'index des audits ne
 sont mis à jour que par la session d'audit.
 
-| Lot | Contenu                                                            | Constats                                             |
-| --- | ------------------------------------------------------------------ | ---------------------------------------------------- |
-| 1   | Socle serveur : présence temps réel, CSP, SPA, produit, migrations | S1, S4, S6, S7, S8, S10, S12, S13                    |
-| 2   | Connecteur MCP                                                     | S2, S3, S5, S9, S11                                  |
-| 3   | Authentification, mots de passe, LTI                               | A3, A5, A7, A9, A10, A13 (inscription)               |
-| 4   | Profils RBAC, groupes, import et fusion de comptes                 | A1, A2, A4, A6, A8, A11, A12, A13 (RBAC), retrait    |
-| 5   | Tâches, progression, stats                                         | T1, T2, T3, T4, T5, T7, T8, T10 (tâches), CR         |
-| 6   | Forum, commentaires de contexte, observations, carnet              | T6, T9, T10 (photos)                                 |
-| 7   | Terrain : lieux, catégories, parcours, plans, gestes de carte      | C1, C4, C6, C8 (lieux), C9, C10 (carte), C11–C13, F4 |
-| 8   | Médiathèque, médias de Visite, fiches espèces                      | C2, C3, C5, C7, C8 (uploads), C10 (espèces)          |
-| 9   | Quiz, liens d'apprentissage, verrouillage                          | P1, P2, P3, P4, P10, F7                              |
-| 10  | Séances, individus, calendrier, clades, clés d'identification      | P5, P6, P7, P8, P9, F8, F9 (individus)               |
-| 11  | Front : session multi-onglets, PWA, sauvegarde automatique, dates  | F1, F2, F3, F5, F6, F9, F10                          |
+| Lot | Contenu                                                            | Constats                                             | Statut           |
+| --- | ------------------------------------------------------------------ | ---------------------------------------------------- | ---------------- |
+| 1   | Socle serveur : présence temps réel, CSP, SPA, produit, migrations | S1, S4, S6, S7, S8, S10, S12, S13                    | Traité — PR #701 |
+| 2   | Connecteur MCP                                                     | S2, S3, S5, S9, S11                                  | Traité — PR #695 |
+| 3   | Authentification, mots de passe, LTI                               | A3, A5, A7, A9, A10, A13 (inscription)               | Traité — PR #699 |
+| 4   | Profils RBAC, groupes, import et fusion de comptes                 | A1, A2, A4, A6, A8, A11, A12, A13 (RBAC), retrait    | Traité — PR #693 |
+| 5   | Tâches, progression, stats                                         | T1, T2, T3, T4, T5, T7, T8, T10 (tâches), CR         | Traité — PR #700 |
+| 6   | Forum, commentaires de contexte, observations, carnet              | T6, T9, T10 (photos)                                 | Traité — PR #696 |
+| 7   | Terrain : lieux, catégories, parcours, plans, gestes de carte      | C1, C4, C6, C8 (lieux), C9, C10 (carte), C11–C13, F4 | Traité — PR #698 |
+| 8   | Médiathèque, médias de Visite, fiches espèces                      | C2, C3, C5, C7, C8 (uploads), C10 (espèces)          | Traité — PR #694 |
+| 9   | Quiz, liens d'apprentissage, verrouillage                          | P1, P2, P3, P4, P10, F7                              | Traité — PR #702 |
+| 10  | Séances, individus, calendrier, clades, clés d'identification      | P5, P6, P7, P8, P9, F8, F9 (individus)               | Traité — PR #692 |
+| 11  | Front : session multi-onglets, PWA, sauvegarde automatique, dates  | F1, F2, F3, F5, F6, F9, F10                          | Traité — PR #697 |
 
 « Retrait » : garde de rang au retrait d'un membre de groupe. « CR » : comptes rendus en mode
 `group`. Voir § 11.
