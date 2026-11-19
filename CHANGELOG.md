@@ -9,6 +9,40 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — audit ForetMap du 19/11, lot 1 (socle serveur)
+
+Constats S1, S4, S6, S7, S8, S10, S12 et S13 de `docs/AUDIT_BUGS_FORETMAP_2026-11-19.md` (§ 7).
+
+- **S1 — Le serveur ne tombe plus sur une coupure MySQL pendant une (dé)connexion Socket.IO.**
+  La lecture du délai de regroupement de la présence a son `.catch` (repli : 500 ms), et les
+  tâches lancées depuis les gestionnaires de socket (inscription et désinscription de présence,
+  abonnement carte, main G&L rendue) passent par `runDetached`, qui journalise au lieu de
+  laisser filer un rejet (`lib/realtime.js`).
+- **S4 — La santé répond sans base.** Le middleware CSP n'attend plus la lecture SQL de
+  `privacy.external_assets_mode` : il sert la dernière valeur connue (`local`, la plus stricte,
+  avant la première lecture), rafraîchie en arrière-plan, une lecture à la fois, abandonnée
+  après 5 s (`lib/cspAssetsModeCache.js`).
+- **S10 — Le journal fatal `unhandledRejection` garde la cause** (`{ err: reason }`).
+- **S6 — Fichier absent : 404 franc.** Sous `/assets`, `/uploads`, `/tutos`, `/fonts` et
+  `/gl/intro`, un chemin avec extension qui arrive au fallback SPA répond `404` (`no-store`) au
+  lieu de l'index HTML ; les routes SPA sans extension gardent l'index (`lib/spaFallback.js`).
+- **S7 — `X-Foretmap-Product` n'est plus honoré en production** pour le HTML, le manifest,
+  `/sw.js`, la page hors ligne et le favicon (`resolveSecureProductId` partout ; le résolveur
+  `lib/productResolver.js` applique la même règle). Hors production, ces réponses portent
+  `Vary: X-Foretmap-Product`.
+- **S8 — `db:migrate` ne recrée plus la catégorie « Infrastructure »** supprimée par un prof :
+  elle n'est semée que sur une table `location_categories` vide, comme les tutoriels.
+- **S12 — `FORETMAP_TX_MAX_MS`** : après un abandon, la connexion est détruite (jamais rendue
+  au pool) et le `commit()` tardif du travail abandonné est refusé.
+- **S13 — Migration ignorée signalée.** Nouveau registre `schema_migration_files` (déclaré dans
+  `sql/schema_foretmap.sql`, sans migration numérotée) : un fichier de numéro inférieur à
+  `schema_version` jamais vu par le runner produit un avertissement au démarrage, `db:status`
+  sort en code `4` (« pas à jour », sans déclencher le rattrapage du cron), `check:runtime` le
+  détaille et `GET /api/admin/diagnostics` l'expose (`schema.skipped`). Signalement seulement :
+  la migration n'est pas rejouée d'office, il faut la renuméroter.
+
+Tests : `tests/audit-fm-lot1-*.test.js`.
+
 ### Modifié — G&L : en hybride, les dés aussi sur la tablette (19 novembre 2026)
 
 Sur décision du prof : en surface hybride, un membre de l'équipe lance les dés depuis sa

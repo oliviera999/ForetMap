@@ -38,7 +38,7 @@ const { assignRequestId } = require('./lib/requestId');
 const { createHttpRequestLogMiddleware } = require('./lib/httpRequestLog');
 const { parseBearerToken, JWT_SECRET, requirePermission } = require('./middleware/requireTeacher');
 const { verifyJwtToken } = require('./lib/auth/jwtPipeline');
-const { resolveProductFromRequest } = require('./lib/productResolver');
+const { varyOnProductOverride } = require('./lib/productResolver');
 const { resolveSecureProductId } = require('./lib/surfaceAccess');
 const { PRODUCT_IDS, getProduct, listAuthRateLimitPaths } = require('./lib/products');
 const usageRouters = require('./routes/usage');
@@ -339,20 +339,21 @@ app.use((err, req, res, next) => {
 // le réglage `privacy.external_assets_mode` (domaines Google Fonts seulement en mode externe).
 const CSP_POLICIES = buildPolicyTable({ reportPath: CSP_REPORT_PATH });
 const { getSettingValue: getCspSettingValue } = require('./lib/settings');
-function resolveExternalAssetsModeForCsp() {
-  if (!isApplicationDatabaseReady()) return Promise.resolve('local');
-  return getCspSettingValue('privacy.external_assets_mode', 'local')
-    .then((mode) => (mode === 'external' ? 'external' : 'local'))
-    .catch(() => 'local');
-}
+const { createCspAssetsModeCache } = require('./lib/cspAssetsModeCache');
+// Audit 19/11/2026 (S4) : ne jamais attendre la base ici. Ce middleware précède les statiques
+// et `/api/health` ; la dernière valeur connue est servie, relue en arrière-plan.
+const cspAssetsMode = createCspAssetsModeCache({
+  readMode: () => getCspSettingValue('privacy.external_assets_mode', 'local'),
+  isReady: isApplicationDatabaseReady,
+  onError: (err) => logger.debug({ err }, 'CSP : lecture du mode des ressources externes en échec'),
+});
 app.use((req, res, next) => {
   const variant = resolveCspVariant(req.path);
   const productId = resolveSecureProductId(req);
-  resolveExternalAssetsModeForCsp().then((mode) => {
-    const byProduct = CSP_POLICIES[productId] || CSP_POLICIES.foret;
-    res.setHeader('Content-Security-Policy', byProduct[mode][variant]);
-    next();
-  });
+  const mode = cspAssetsMode.get();
+  const byProduct = CSP_POLICIES[productId] || CSP_POLICIES.foret;
+  res.setHeader('Content-Security-Policy', byProduct[mode][variant]);
+  next();
 });
 
 app.use(createHttpRequestLogMiddleware());
@@ -384,11 +385,13 @@ const staticRoot = serveDist ? distDir : path.join(__dirname, 'public');
 // Service worker et manifest PWA par produit (lot 1) : `/sw.js` et `/manifest.json` servent
 // `dist/sw-<produit>.js` / `dist/manifest-<produit>.webmanifest` selon le host (générés par
 // `scripts/build-pwa.js`), voir `lib/pwaRoutes.js`.
+// Audit 19/11/2026 (S7) : produit résolu par `resolveSecureProductId` partout (HTML, manifest,
+// `/sw.js`, favicon) — l'en-tête `X-Foretmap-Product` n'est plus honoré en production.
 registerPwaRoutes(app, {
   staticRoot,
   distDir,
   serveDist,
-  resolveProductFromRequest,
+  resolveProductFromRequest: resolveSecureProductId,
   getProduct,
   logger,
 });
@@ -412,13 +415,14 @@ app.use((req, res, next) => {
   if (!basename || basename.includes('/')) return next();
   const owner = PRODUCT_IDS.find((id) => getProduct(id).htmlEntry === basename);
   if (!owner) return next();
-  if (resolveProductFromRequest(req) === owner) return next();
+  if (resolveSecureProductId(req) === owner) return next();
   return res.redirect(302, '/');
 });
 // Avant express.static : /favicon.ico sert l'icône du produit résolu (dossier `assetsDir`),
 // sauf si `shareFaviconWith` pointe vers un autre produit.
 app.get('/favicon.ico', (req, res) => {
-  const product = getProduct(resolveProductFromRequest(req));
+  const product = getProduct(resolveSecureProductId(req));
+  varyOnProductOverride(res);
   const faviconProduct = product.shareFaviconWith ? getProduct(product.shareFaviconWith) : product;
   if (faviconProduct.assetsDir) {
     const productFavicon = path.join(staticRoot, faviconProduct.assetsDir, 'favicon.ico');
@@ -737,7 +741,7 @@ registerSpaFallbackRoutes(
     distGlIndex,
     distIndexByProduct,
     deployHelpPath: path.resolve(__dirname, 'public', 'deploy-help.html'),
-    resolveProductFromRequest,
+    resolveProductFromRequest: resolveSecureProductId,
     logger,
   }),
 );
@@ -871,7 +875,7 @@ process.on('uncaughtException', (err) => {
 });
 process.on('unhandledRejection', (reason) => {
   recordCrash('unhandledRejection', reason);
-  logger.fatal({ reason }, 'Promesse rejetée non gérée — arrêt du process');
+  logger.fatal({ err: reason }, 'Promesse rejetée non gérée — arrêt du process');
   setTimeout(() => process.exit(1), 50);
 });
 
@@ -977,6 +981,8 @@ function boot() {
     onReady: ({ attempts }) => {
       fs.appendFileSync(diagPath, `initDatabase: OK (tentative ${attempts})\n`);
       logger.info({ attempts }, 'BDD initialisée');
+      // Première lecture du mode CSP dès que la base répond (sans bloquer : S4).
+      void cspAssetsMode.refresh();
       scheduleRecurringTaskSpawn();
       checkCriticalAdminAccount()
         .then((state) => {

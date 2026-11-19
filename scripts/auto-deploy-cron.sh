@@ -180,8 +180,9 @@ rollback_to() {
 }
 
 # Base en retard sur les fichiers de migrations/ ? (scripts/db-migration-status.js : 0 = à
-# jour, 3 = en attente, 1 = base injoignable). Renvoie 0 seulement si des migrations
-# attendent : une base injoignable n'est pas une raison de migrer à l'aveugle.
+# jour, 3 = en attente, 4 = migration ignorée à renuméroter, 1 = base injoignable). Renvoie 0
+# seulement si des migrations attendent : une base injoignable n'est pas une raison de migrer à
+# l'aveugle, et une migration ignorée (4) ne se rattrape pas par db:migrate.
 db_migrations_pending() {
   local rc=0
   node scripts/db-migration-status.js --quiet || rc=$?
