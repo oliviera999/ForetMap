@@ -64,8 +64,8 @@ describe('TeacherTopTabs — navigation en 3 pôles (audit D-4)', () => {
     const onTabChange = vi.fn();
     render(<TeacherTopTabs {...baseProps} onTabChange={onTabChange} />);
     fireEvent.click(screen.getByRole('button', { name: 'Suivi' }));
-    // Premier onglet visible du pôle Suivi : « Individus » depuis l'ajout de cette vue.
-    expect(onTabChange).toHaveBeenCalledWith('individuals');
+    // Premier onglet visible du pôle Suivi : « Tâches » (avant « Individus »).
+    expect(onTabChange).toHaveBeenCalledWith('tasks');
     fireEvent.click(screen.getByRole('button', { name: 'Administration' }));
     // Sans permissions admin, le premier onglet visible du pôle est « À propos ».
     expect(onTabChange).toHaveBeenCalledWith('about');
@@ -178,11 +178,18 @@ describe('TeacherTopTabs — navigation en 3 pôles (audit D-4)', () => {
     expect(screen.getByRole('button', { name: 'Stats' })).toBeInTheDocument();
   });
 
-  test('Individus éteint : le pôle Suivi s’ouvre sur son premier onglet restant', () => {
+  test('sans droit sur les tâches : le pôle Suivi s’ouvre sur son premier onglet restant', () => {
     const onTabChange = vi.fn();
-    render(<TeacherTopTabs {...baseProps} individualsEnabled={false} onTabChange={onTabChange} />);
+    const noTasks = new Set([...TEACHER_PERMISSIONS].filter((p) => !p.startsWith('tasks.')));
+    render(
+      <TeacherTopTabs
+        {...baseProps}
+        hasPermission={(perm) => noTasks.has(perm)}
+        onTabChange={onTabChange}
+      />,
+    );
     fireEvent.click(screen.getByRole('button', { name: 'Suivi' }));
-    expect(onTabChange).toHaveBeenCalledWith('tasks');
+    expect(onTabChange).toHaveBeenCalledWith('individuals');
   });
 
   test('Individus : niveau pédagogique ET interrupteur (masqué au collège même allumé)', () => {

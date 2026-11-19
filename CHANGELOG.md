@@ -35,6 +35,21 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   vide, et un échec ne laisse plus un biome amputé.
 
 Tests : `tests/gl-imports-pertes.test.js`, `tests/gl-xlsx-attachment.test.js`.
+### Documentation — G&L : audit des bugs (19 novembre 2026)
+
+`docs/AUDIT_BUGS_GL_2026-11-19.md` : relecture de tout le sous-produit Gnomes & Licornes par
+domaine, 81 constats dont 18 rejoués à l'exécution (requêtes sur une base à part, navigateur sur
+le build de production). Six gênent une séance ou l'administration : la projection et l'écran
+« Jouer le tour » ne se relisent pas, le lien de projection remplace la session du prof, les
+réglages numériques « Tenir à deux » affichent leur minimum et l'enregistrent, le studio de carte
+de chapitre tourne en boucle sans enregistrer, l'escalier met chaque jet en suspens pour une
+Relance encore fermée. Aucun code modifié : lots de correction et décisions à trancher en fin de
+document.
+### Modifié — Pôle Suivi : l'onglet Tâches passe en premier (19 novembre 2026)
+
+Côté prof, cliquer le pôle **Suivi** ouvre désormais l'onglet **Tâches** (et non plus
+« Individus », placé juste après). Seul l'ordre des onglets change (`TeacherTopTabs.jsx`) ;
+test : `tests-ui/components/app/TeacherTopTabs.test.jsx`. Doc : `guide-du-prof.md`.
 
 ### Corrigé — Popups d'Olu tronquées en bas d'écran (18 novembre 2026)
 
