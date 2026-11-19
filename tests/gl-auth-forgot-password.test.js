@@ -95,6 +95,29 @@ test('POST /api/gl/auth/reset-password réinitialise un joueur GL', async () => 
   assert.strictEqual(login.body?.auth?.userType, 'gl_player');
 });
 
+test('POST /api/gl/auth/reset-password refuse un mot de passe enseignant sous le plancher ForetMap (audit 19/11 A4)', async () => {
+  const teacher = await queryOne(
+    "SELECT id, password_hash FROM users WHERE user_type = 'teacher' AND LOWER(email)=LOWER(?) LIMIT 1",
+    [teacherEmail],
+  );
+  assert.ok(teacher?.id);
+  const rawToken = `gl-teacher-short-${stamp}`;
+  await execute(
+    `INSERT INTO password_reset_tokens (id, user_type, user_id, token_hash, expires_at, used_at)
+     VALUES (?, 'teacher', ?, ?, DATE_ADD(NOW(), INTERVAL 1 HOUR), NULL)`,
+    [`tok-gl-teacher-short-${stamp}`, teacher.id, hashResetToken(rawToken)],
+  );
+  // 11 caractères : au-dessus de l'ancien plancher G&L (8), sous celui de ForetMap (12).
+  const tooShort = `${'Ab1!'.repeat(2)}xyz`;
+  const res = await request(app)
+    .post('/api/gl/auth/reset-password')
+    .send({ token: rawToken, password: tooShort })
+    .expect(400);
+  assert.match(String(res.body?.error || ''), /min 12/);
+  const after = await queryOne('SELECT password_hash FROM users WHERE id = ?', [teacher.id]);
+  assert.strictEqual(after.password_hash, teacher.password_hash);
+});
+
 test('POST /api/gl/auth/reset-password réinitialise un enseignant MJ/Admin', async () => {
   const teacher = await queryOne(
     "SELECT id FROM users WHERE user_type = 'teacher' AND LOWER(email)=LOWER(?) LIMIT 1",

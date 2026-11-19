@@ -2,7 +2,11 @@
 
 const express = require('express');
 const { queryAll, queryOne, execute } = require('../../database');
-const { requireGlAuth, requireGlPermission } = require('../../middleware/requireGlAuth');
+const {
+  requireGlAuth,
+  requireGlPermission,
+  hasGlPermission,
+} = require('../../middleware/requireGlAuth');
 const { normalizeOptionalString } = require('../../lib/shared/httpHelpers');
 const { z, validate } = require('../../lib/validate');
 const asyncHandler = require('../../lib/asyncHandler');
@@ -30,6 +34,9 @@ const glTutorialsListQuerySchema = z.object({
   ),
 });
 
+/** Un brouillon (`is_published = 0`) n'est servi qu'à qui gère les contenus. */
+const canSeeUnpublished = (req) => hasGlPermission(req.glAuth, 'gl.content.manage');
+
 const MIN_TITLE = 3;
 const MAX_TITLE = 200;
 const MIN_BODY = 1;
@@ -41,17 +48,19 @@ router.get(
   validate({ query: glTutorialsListQuerySchema }),
   asyncHandler(async (req, res) => {
     const chapterId = req.validatedQuery?.chapterId;
+    const publishedOnly = canSeeUnpublished(req) ? '' : 'AND is_published = 1';
     const rows = Number.isFinite(chapterId)
       ? await queryAll(
           `SELECT id, slug, title, chapter_id, marker_id, order_index, is_published, updated_at
          FROM gl_tutorials
-        WHERE chapter_id = ?
+        WHERE chapter_id = ? ${publishedOnly}
         ORDER BY order_index ASC, id ASC`,
           [chapterId],
         )
       : await queryAll(
           `SELECT id, slug, title, chapter_id, marker_id, order_index, is_published, updated_at
          FROM gl_tutorials
+        WHERE 1 = 1 ${publishedOnly}
         ORDER BY order_index ASC, id ASC`,
         );
     return res.json({ tutorials: rows });
@@ -79,7 +88,9 @@ router.get(
     const row = Number.isFinite(numeric)
       ? await queryOne('SELECT * FROM gl_tutorials WHERE id = ? LIMIT 1', [numeric])
       : await queryOne('SELECT * FROM gl_tutorials WHERE slug = ? LIMIT 1', [idOrSlug]);
-    if (!row) return res.status(404).json({ error: 'Tutoriel introuvable' });
+    if (!row || (Number(row.is_published) !== 1 && !canSeeUnpublished(req))) {
+      return res.status(404).json({ error: 'Tutoriel introuvable' });
+    }
     return res.json(row);
   }),
 );

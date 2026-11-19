@@ -1,11 +1,27 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, act } from '@testing-library/react';
 
 const apiGlMock = vi.fn();
 const boardMock = vi.fn();
+// Faux socket : garde les écouteurs posés par la vue pour rejouer un évènement temps réel.
+const socketEcouteurs = new Map();
+const fauxSocket = {
+  on: (nom, fn) => socketEcouteurs.set(nom, fn),
+  off: (nom, fn) => {
+    if (socketEcouteurs.get(nom) === fn) socketEcouteurs.delete(nom);
+  },
+};
+const abonnements = [];
 
 vi.mock('../../src/gl/services/apiGL.js', () => ({
   apiGL: (...args) => apiGlMock(...args),
+}));
+vi.mock('../../src/gl/realtime/glSocketClient.js', () => ({
+  acquireGlSocket: (token) => ({ socket: token ? fauxSocket : null, release() {} }),
+  subscribeGlGame: (token, gameId) => {
+    abonnements.push(Number(gameId));
+    return () => {};
+  },
 }));
 vi.mock('../../src/gl/components/GLGameBoard.jsx', () => ({
   GLGameBoard: (props) => {
@@ -31,6 +47,8 @@ describe('GLProjectionView', () => {
   beforeEach(() => {
     apiGlMock.mockReset();
     boardMock.mockReset();
+    socketEcouteurs.clear();
+    abonnements.length = 0;
     apiGlMock.mockImplementation((path) => {
       if (path === '/api/gl/games/9') {
         return Promise.resolve({
@@ -87,6 +105,52 @@ describe('GLProjectionView', () => {
     expect(screen.getByText('pâlie')).toBeTruthy();
     expect(screen.getByText(/^tenue/)).toBeTruthy();
     expect(document.body.textContent).not.toMatch(/endormie|palie\b|revelee|trouvee|reparee/);
+  });
+
+  /**
+   * Audit du 19/11/2026, J1 — une projection est une session invitée : le runtime de l'app ne
+   * recharge rien pour elle. La vue s'abonne elle-même aux évènements de la partie.
+   */
+  test('J1 : se recharge sur un évènement temps réel de la partie, sans F5', async () => {
+    const tourDe = { round: null, teams: [] };
+    apiGlMock.mockImplementation((path) => {
+      if (path === '/api/gl/games/9') {
+        return Promise.resolve({ game: { id: 9, name: 'Classe' }, markers: [], teams: [] });
+      }
+      if (path === '/api/gl/games/9/tenir/tour') return Promise.resolve({ ...tourDe });
+      return Promise.resolve(null);
+    });
+    render(<GLProjectionView gameId={9} token="jeton-projection" refreshKey={0} />);
+    await waitFor(() => expect(screen.getByText('Classe')).toBeTruthy());
+    expect(screen.getByText(/En attente du tour/)).toBeTruthy();
+    expect(abonnements).toEqual([9]);
+    expect(typeof socketEcouteurs.get('gl:game:event')).toBe('function');
+    expect(typeof socketEcouteurs.get('gl:game:equipe')).toBe('function');
+
+    // Le prof ouvre le tour et passe en jeu, une équipe lance : trois évènements coup sur coup.
+    tourDe.round = { number: 1, phase: 'jeu', equipeActiveId: null };
+    const lectures = apiGlMock.mock.calls.filter(([p]) => p.endsWith('/tenir/tour')).length;
+    act(() => {
+      socketEcouteurs.get('gl:game:event')({ gameId: 9, eventType: 'tour_ouvert' });
+      socketEcouteurs.get('gl:game:event')({ gameId: 9, eventType: 'tour_phase' });
+      socketEcouteurs.get('gl:game:equipe')({ gameId: 9 });
+      // Un évènement d'une autre partie ne recharge rien.
+      socketEcouteurs.get('gl:game:event')({ gameId: 12, eventType: 'tour_phase' });
+    });
+    await waitFor(() => expect(screen.getByText(/Tour 1 — jeu/)).toBeTruthy(), { timeout: 3000 });
+    // La rafale est regroupée : une seule relecture.
+    expect(apiGlMock.mock.calls.filter(([p]) => p.endsWith('/tenir/tour')).length).toBe(
+      lectures + 1,
+    );
+  });
+
+  test('J1 : un évènement d’une autre partie seule ne recharge pas', async () => {
+    render(<GLProjectionView gameId={9} token="jeton-projection" />);
+    await waitFor(() => expect(screen.getByTestId('stub-board')).toBeTruthy());
+    const lectures = apiGlMock.mock.calls.length;
+    act(() => socketEcouteurs.get('gl:game:event')({ gameId: 12, eventType: 'tour_phase' }));
+    await new Promise((resolve) => setTimeout(resolve, 900));
+    expect(apiGlMock.mock.calls.length).toBe(lectures);
   });
 
   test('pageEtatLabel : tous les états ont un libellé', () => {

@@ -18,7 +18,7 @@ onglets.
 | Pôle               | Ce que vous y trouvez                                                                                                                                                                                                                                  |
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Contenus**       | « Cartes, tâches et tuto » (grand écran), « Carte & Zones », « Biodiversité », « Quiz », « Glossaire », « Réseau trophique », « Groupes emboîtés », « Clés d'identification », « Séances », « Tuto », « Visite », « Packs mascotte », « Médiathèque ». |
-| **Suivi**          | « Individus », « Tâches et tuto », « Stats », « Carnet », « Forum », « Audit ».                                                                                                                                                                        |
+| **Suivi**          | « Tâches et tuto » (ouvert d'office quand on clique le pôle), « Individus », « Stats », « Carnet », « Forum », « Audit ».                                                                                                                              |
 | **Administration** | « n3boss & utilisateurs » (ou « Profils & utilisateurs »), « Paramètres », « À propos ».                                                                                                                                                               |
 
 Trois repères visuels vous évitent de chercher :
