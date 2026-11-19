@@ -5,6 +5,16 @@
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
+-- schema_migration_files (registre des fichiers de migration connus — audit du 19/11/2026, S13)
+-- `schema_version` ne garde qu'un curseur : un fichier arrivé APRÈS qu'un numéro supérieur a
+-- été appliqué (deux PR parallèles) n'est jamais rejoué. Ce registre liste les fichiers déjà
+-- vus par le runner ; un fichier sous le curseur absent du registre est signalé (démarrage,
+-- `db:status`, `check:runtime`, diagnostics admin). Aucune donnée personnelle.
+CREATE TABLE IF NOT EXISTS schema_migration_files (
+  file_name VARCHAR(191) NOT NULL PRIMARY KEY,
+  recorded_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- maps (cartes de travail: foret, n3, ...)
 CREATE TABLE IF NOT EXISTS maps (
   id VARCHAR(32) PRIMARY KEY,
@@ -1121,12 +1131,15 @@ CREATE TABLE IF NOT EXISTS location_categories (
   INDEX idx_location_categories_slug (slug),
   CONSTRAINT fk_location_categories_map FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+-- Catégorie de démarrage — UNIQUEMENT sur une table encore vide (audit ForetMap du 19/11/2026,
+-- S8). Un `INSERT IGNORE` inconditionnel, rejoué par initSchema() à chaque `db:migrate`,
+-- recréait « Infrastructure » après sa suppression par un prof. Même garde que les tutoriels.
 INSERT IGNORE INTO location_categories
   (id, map_id, slug, label, emoji, color, description, applies_to, is_infrastructure, sort_order, is_active)
-VALUES
-  ('cat-infrastructure', NULL, 'infrastructure', 'Infrastructure', '🏗️', '#dbeafe90',
-   'Bâtiment ou aménagement (mare, ruches, compostage, cuve…) plutôt qu''une culture.',
-   'both', 1, 10, 1);
+SELECT 'cat-infrastructure', NULL, 'infrastructure', 'Infrastructure', '🏗️', '#dbeafe90',
+       'Bâtiment ou aménagement (mare, ruches, compostage, cuve…) plutôt qu''une culture.',
+       'both', 1, 10, 1
+ WHERE NOT EXISTS (SELECT 1 FROM location_categories);
 
 -- location_notes (compléments réservés MULTIPLES d'un lieu, migration 263)
 -- Remplace les colonnes `restricted_note*` des quatre tables de lieux : chaque note porte

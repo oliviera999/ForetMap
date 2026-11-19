@@ -17,7 +17,12 @@ const {
 } = require('../lib/groupScope');
 const { z, validate } = require('../lib/validate');
 const { recomputeGroupMembersRoles, recomputeUsersRoles } = require('../lib/effectiveRole');
-const { addUserToGroup, removeUserFromGroup } = require('../lib/groupMembers');
+const {
+  addUserToGroup,
+  removeUserFromGroup,
+  findUsersNotRemovableBy,
+  REMOVAL_RANK_REFUSED_ERROR,
+} = require('../lib/groupMembers');
 const {
   canManageGroupDefaultRole,
   validateGroupDefaultRole,
@@ -210,6 +215,30 @@ async function fetchGroupMembers(groupIds) {
   return byGroup;
 }
 
+/**
+ * Membres vus par un **simple membre** du groupe (audit du 19/11/2026, A4) : le prénom seul
+ * — ni nom, ni identifiant, ni profil, ni état. Comptes actifs uniquement.
+ */
+async function fetchGroupMemberFirstNames(groupIds) {
+  if (!groupIds.length) return new Map();
+  const rows = await queryAll(
+    `SELECT gm.group_id, COALESCE(NULLIF(TRIM(u.first_name), ''), NULLIF(TRIM(u.pseudo), '')) AS first_name
+       FROM group_members gm
+       INNER JOIN users u ON u.id = gm.user_id
+      WHERE gm.group_id IN (${groupIds.map(() => '?').join(',')})
+        AND u.is_active = 1
+      ORDER BY gm.group_id ASC, first_name ASC`,
+    groupIds,
+  );
+  const byGroup = new Map();
+  for (const row of rows) {
+    if (!row.first_name) continue;
+    if (!byGroup.has(row.group_id)) byGroup.set(row.group_id, []);
+    byGroup.get(row.group_id).push({ first_name: row.first_name });
+  }
+  return byGroup;
+}
+
 async function fetchGroupScopes(groupIds) {
   if (!groupIds.length) return new Map();
   const rows = await queryAll(
@@ -325,12 +354,19 @@ router.get(
     }
 
     const rows = await getAllGroups();
-    const visibleRows = bypass
-      ? rows
-      : rows.filter((row) => scopeGroupIds.includes(String(row.id)));
+    // Simple membre (ni `groups.read` ni `groups.manage`) : ses **propres** groupes seulement,
+    // sans les sous-groupes, et des membres réduits à leur prénom (audit du 19/11/2026, A4).
+    const memberOnly = !canRead;
+    const directGroupIds = memberOnly
+      ? await getUserAccessibleGroupIds(req.auth, { includeDescendants: false })
+      : null;
+    let visibleRows;
+    if (memberOnly) visibleRows = rows.filter((row) => directGroupIds.includes(String(row.id)));
+    else if (bypass) visibleRows = rows;
+    else visibleRows = rows.filter((row) => scopeGroupIds.includes(String(row.id)));
     const ids = visibleRows.map((row) => String(row.id));
     const [membersByGroup, scopesByGroup] = await Promise.all([
-      fetchGroupMembers(ids),
+      memberOnly ? fetchGroupMemberFirstNames(ids) : fetchGroupMembers(ids),
       fetchGroupScopes(ids),
     ]);
 
@@ -732,7 +768,11 @@ router.delete(
     const { runGroupDetachCleaners } = require('../lib/accounts/cleanerRegistry');
     await withTransaction(async (tx) => {
       await runGroupDetachCleaners(tx, id);
-      await tx.execute('UPDATE `groups` SET parent_group_id = NULL WHERE parent_group_id = ?', [
+      // Les sous-groupes remontent d'un cran, sous le parent du groupe supprimé (racines si
+      // le groupe supprimé l'était) : un acteur sans vue globale ne les perd plus de son
+      // périmètre (audit du 19/11/2026, A11).
+      await tx.execute('UPDATE `groups` SET parent_group_id = ? WHERE parent_group_id = ?', [
+        group.parent_group_id || null,
         id,
       ]);
       await tx.execute('DELETE FROM `groups` WHERE id = ?', [id]);
@@ -814,6 +854,16 @@ router.get(
   '/:id/members',
   asyncHandler(async (req, res) => {
     const groupId = normalizeId(req.params.id);
+    // Simple membre : son propre groupe seulement (pas les sous-groupes), prénoms seuls
+    // (audit du 19/11/2026, A4). Avec `groups.read` / `groups.manage`, rien ne change.
+    if (!canReadGroups(req.auth)) {
+      const directIds = await getUserAccessibleGroupIds(req.auth, { includeDescendants: false });
+      if (!groupId || !directIds.includes(groupId)) {
+        return res.status(403).json({ error: 'Groupe hors périmètre' });
+      }
+      const firstNames = await fetchGroupMemberFirstNames([groupId]);
+      return res.json({ members: firstNames.get(groupId) || [] });
+    }
     if (!(await isGroupInManageScope(req.auth, groupId))) {
       return res.status(403).json({ error: 'Groupe hors périmètre' });
     }
@@ -851,6 +901,16 @@ router.put(
     // Ajouter un membre lui fait conférer le profil par défaut du groupe : même garde de rang
     // que le rattachement unitaire. Réécrire la liste sans nouveau membre reste permis.
     const previousIds = new Set(previousMembers.map((row) => String(row.user_id)));
+    // Retirer un membre : hors administrateur, seulement un compte de rang strictement
+    // inférieur au sien (décision du 19/11/2026).
+    const nextIds = new Set(memberUserIds.map(String));
+    const removedIds = [...previousIds].filter((userId) => !nextIds.has(userId));
+    const notRemovable = await findUsersNotRemovableBy(req.auth, removedIds);
+    if (notRemovable.length > 0) {
+      return res
+        .status(403)
+        .json({ error: REMOVAL_RANK_REFUSED_ERROR, user_ids: notRemovable.slice(0, 20) });
+    }
     if (memberUserIds.some((userId) => !previousIds.has(String(userId)))) {
       const joinAllowed = checkGroupJoinAllowed(req.auth, group);
       if (!joinAllowed.ok) return res.status(joinAllowed.status).json({ error: joinAllowed.error });
@@ -1090,6 +1150,11 @@ router.delete(
     if (!groupId || !userId) return res.status(400).json({ error: 'Identifiants requis' });
     if (!(await isGroupInManageScope(req.auth, groupId))) {
       return res.status(403).json({ error: 'Groupe hors périmètre' });
+    }
+    // Hors administrateur, on ne retire qu'un compte de rang strictement inférieur au sien
+    // (décision du 19/11/2026).
+    if ((await findUsersNotRemovableBy(req.auth, [userId])).length > 0) {
+      return res.status(403).json({ error: REMOVAL_RANK_REFUSED_ERROR });
     }
     const removed = await removeUserFromGroup(userId, groupId);
     if (!removed.ok) return res.status(removed.status).json({ error: removed.error });

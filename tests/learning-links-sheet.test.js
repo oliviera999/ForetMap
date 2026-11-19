@@ -425,9 +425,9 @@ test('édition d’une question : seuls les liens par mots-clés sont remplacés
   );
 });
 
-test('import QCM : purge globale limitée à origin = keyword', async () => {
-  // Un lien par mots-clés d'une AUTRE question (hors fichier) est purgé par l'import : c'est
-  // la règle actuelle (le rapprochement est recalculé pour les seules lignes importées).
+test('import QCM : purge limitée aux questions du fichier et à origin = keyword', async () => {
+  // Un lien par mots-clés d'une AUTRE question (hors fichier) n'est plus purgé par l'import
+  // (P4, audit ForetMap du 19/11/2026) : seules les questions du fichier sont recalculées.
   const gOther = await insertTerm('Z', `autre${stamp}`);
   await insertRql('glossary', gOther, Q.B.code, { is_gating: 0, origin: 'keyword' });
   const before = await glossaryLinksOf(Q.X.code);
@@ -458,11 +458,14 @@ test('import QCM : purge globale limitée à origin = keyword', async () => {
   const xLinks = await glossaryLinksOf(Q.X.code);
   assert.deepEqual(
     xLinks.map((l) => l.origin).sort(),
-    ['import', 'manual'],
-    'la question hors fichier garde ses liens relus et manuels, perd ses liens par mots-clés',
+    ['import', 'keyword', 'manual'],
+    'la question hors fichier garde tous ses liens, y compris par mots-clés',
   );
   const bLinks = await glossaryLinksOf(Q.B.code);
-  assert.ok(!bLinks.some((l) => l.origin === 'keyword'), 'mots-clés hors fichier purgés');
+  assert.ok(
+    bLinks.some((l) => l.origin === 'keyword' && l.resource_ref === gOther),
+    'mots-clés hors fichier conservés',
+  );
   assert.ok(
     bLinks.some((l) => l.origin === 'manual' && l.resource_ref === glossaryCode),
     'lien manuel de B conservé',

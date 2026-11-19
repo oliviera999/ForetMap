@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../../services/api';
+import { currentLocalDateOnly } from '../../utils/taskListHelpers.js';
 import { useData } from '../../contexts/DataContext.jsx';
 import { useBiodivPedago } from '../../contexts/BiodivPedagoContext.jsx';
 import { IconAdd, IconBiodiv, IconDelete } from '../../shared/icons.jsx';
@@ -74,7 +75,9 @@ export function IndividualsView({
     wood_density: '',
   });
   const [measure, setMeasure] = useState({
-    measured_at: new Date().toISOString().slice(0, 10),
+    // Date locale (pas UTC) : entre 0 h et 1 h à UTC+1, `toISOString()` donnait la veille
+    // (audit du 19/11/2026, F9).
+    measured_at: currentLocalDateOnly(),
     circumference_cm: '',
     height_m: '',
     crown_diameter_m: '',
@@ -92,15 +95,23 @@ export function IndividualsView({
     loadList().catch(() => setItems([]));
   }, [loadList]);
 
+  // Génération de la dernière fiche demandée : deux clics rapides ne doivent pas afficher la
+  // fiche du premier individu pendant que la mesure part sur le second (audit 19/11, F8).
+  // `selectedId` n'est posé qu'avec la réponse retenue, il désigne donc la fiche affichée.
+  const detailRequestRef = useRef(0);
   const openDetail = useCallback(async (id) => {
+    const generation = ++detailRequestRef.current;
     setError('');
-    setSelectedId(id);
     try {
       const data = await api(`/api/individuals/${id}`);
+      if (generation !== detailRequestRef.current) return;
+      setSelectedId(id);
       setDetail(data);
       if (data?.disclaimer) setDisclaimer(data.disclaimer);
     } catch (err) {
+      if (generation !== detailRequestRef.current) return;
       setError(err?.message || 'Chargement impossible');
+      setSelectedId(null);
       setDetail(null);
     }
   }, []);
@@ -168,6 +179,7 @@ export function IndividualsView({
     try {
       await api(`/api/individuals/${id}`, 'DELETE');
       if (selectedId === id) {
+        detailRequestRef.current += 1;
         setSelectedId(null);
         setDetail(null);
       }
