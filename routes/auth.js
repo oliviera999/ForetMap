@@ -578,7 +578,14 @@ router.post(
     const pseudo = normalizeOptionalString(req.body?.pseudo);
     const email = normalizeEmail(req.body?.email ?? req.body?.mail);
     const description = normalizeOptionalString(req.body?.description);
-    if (!firstName?.trim() || !lastName?.trim())
+    // Un prénom ou un nom non textuel (nombre, objet) faisait tomber `.trim()` en 500 (A13,
+    // audit du 19/11/2026) : c'est une saisie invalide, donc un 400.
+    if (
+      typeof firstName !== 'string' ||
+      typeof lastName !== 'string' ||
+      !firstName.trim() ||
+      !lastName.trim()
+    )
       return res.status(400).json({ error: 'Prénom et nom requis' });
     // F2-A — code de classe optionnel : validé AVANT la création du compte pour
     // qu'une faute de frappe soit corrigeable (pas de compte visiteur orphelin).
@@ -986,10 +993,63 @@ router.get(
 
 /**
  * Changement de mot de passe authentifié (CDG-42) : tout compte connecté, élève ou
- * enseignant, hors prise de contrôle. Un compte sans mot de passe (Google) s'en dote sans
- * `currentPassword`. Les autres sessions sont révoquées (`token_epoch`) ; la réponse porte
- * un jeton neuf pour que la session courante survive.
+ * enseignant, hors prise de contrôle. Les autres sessions sont révoquées (`token_epoch`) ; la
+ * réponse porte un jeton neuf pour que la session courante survive.
+ *
+ * Première pose (compte sans mot de passe, connexion Google) : rien n'est changé ici. Un lien
+ * de définition est envoyé à l'adresse en place (A3, audit du 19/11/2026) — sinon une session
+ * volée posait un mot de passe, puis s'en servait pour remplacer l'e-mail (garde AC3).
  */
+const PASSWORD_SETUP_LINK_MESSAGE =
+  'Un lien pour définir votre mot de passe vous a été envoyé par e-mail. Ouvrez-le pour terminer.';
+
+/**
+ * Première pose d'un mot de passe en libre-service (A3) : un jeton de réinitialisation, le même
+ * que « mot de passe oublié », part vers l'adresse **en place**. Seul qui lit cette boîte
+ * définit le mot de passe ; la session seule n'y suffit plus. Plafond par adresse partagé avec
+ * « mot de passe oublié » (CDG-52).
+ */
+async function sendPasswordSetupLink(req, res, account) {
+  const userType = String(account.user_type) === 'teacher' ? 'teacher' : 'student';
+  const email = normalizeEmail(account.email);
+  if (!email || !EMAIL_RE.test(email)) {
+    return res.status(409).json({
+      error:
+        'Ce compte n’a ni mot de passe ni adresse e-mail : demandez à un administrateur de vous ' +
+        'envoyer un lien de définition du mot de passe.',
+      code: 'PASSWORD_SETUP_NO_EMAIL',
+    });
+  }
+  if (!forgotPasswordAllowed(email)) {
+    return res.status(429).json({
+      error: 'Trop de liens demandés pour cette adresse : réessayez dans quelques minutes.',
+      code: 'PASSWORD_SETUP_RATE_LIMITED',
+    });
+  }
+  const token = await createPasswordResetToken(userType, account.id);
+  const displayName =
+    normalizeOptionalString(account.display_name) ||
+    `${account.first_name || ''} ${account.last_name || ''}`.trim() ||
+    (userType === 'teacher' ? 'n3boss' : 'n3beur');
+  queuePasswordResetEmail(
+    {
+      to: email,
+      displayName,
+      resetUrl: makeResetUrl(userType, token),
+      roleLabel: userType === 'teacher' ? 'n3boss' : 'n3beur',
+    },
+    { requestId: req.requestId, userType },
+  );
+  await logSecurityEvent('auth.password_setup_link', {
+    req,
+    actorUserType: userType,
+    actorUserId: account.id,
+    targetType: userType,
+    targetId: account.id,
+  });
+  return res.status(202).json({ ok: true, linkSent: true, message: PASSWORD_SETUP_LINK_MESSAGE });
+}
+
 router.post(
   '/me/password',
   requireAuth,
@@ -999,13 +1059,15 @@ router.post(
         .status(403)
         .json({ error: 'Pas de changement de mot de passe en prise de contrôle' });
     }
-    const nextPassword = String(req.body?.newPassword ?? '');
-    if (!nextPassword.trim()) return res.status(400).json({ error: 'Nouveau mot de passe requis' });
     const account = await queryOne(
-      'SELECT id, user_type, password_hash, is_active FROM users WHERE id = ? LIMIT 1',
+      `SELECT id, user_type, email, first_name, last_name, display_name, password_hash, is_active
+         FROM users WHERE id = ? LIMIT 1`,
       [String(req.auth.userId)],
     );
     if (!account) return res.status(404).json({ error: 'Utilisateur introuvable' });
+    if (!account.password_hash) return sendPasswordSetupLink(req, res, account);
+    const nextPassword = String(req.body?.newPassword ?? '');
+    if (!nextPassword.trim()) return res.status(400).json({ error: 'Nouveau mot de passe requis' });
     const reauth = await verifyCurrentPassword(account, req.body);
     if (!reauth.ok) return res.status(reauth.status).json({ error: reauth.error });
     const minPasswordLen = await getPasswordMinLengthFor(account.user_type);
@@ -1089,9 +1151,13 @@ router.post(
   asyncHandler(async (req, res) => {
     const token = normalizeOptionalString(req.body?.token);
     const password = req.body?.password;
-    if (!token || !password) return res.status(400).json({ error: 'Champs requis' });
+    // Mot de passe textuel exigé AVANT de consommer le jeton : sinon `bcrypt.hash` échouait
+    // après coup (500) et le jeton était perdu (A9, audit du 19/11/2026).
+    if (!token || typeof password !== 'string' || !password) {
+      return res.status(400).json({ error: 'Champs requis' });
+    }
     const minPasswordLen = await getPasswordMinLength();
-    if (String(password).length < minPasswordLen) {
+    if (password.length < minPasswordLen) {
       return res
         .status(400)
         .json({ error: `Mot de passe trop court (min ${minPasswordLen} caractères)` });
@@ -1166,9 +1232,12 @@ router.post(
   asyncHandler(async (req, res) => {
     const token = normalizeOptionalString(req.body?.token);
     const password = req.body?.password;
-    if (!token || !password) return res.status(400).json({ error: 'Champs requis' });
+    // Même garde que la voie élève (A9, audit du 19/11/2026).
+    if (!token || typeof password !== 'string' || !password) {
+      return res.status(400).json({ error: 'Champs requis' });
+    }
     const minPasswordLen = await getPasswordMinLengthFor('teacher');
-    if (String(password).length < minPasswordLen) {
+    if (password.length < minPasswordLen) {
       return res
         .status(400)
         .json({ error: `Mot de passe trop court (min ${minPasswordLen} caractères)` });
@@ -1177,7 +1246,8 @@ router.post(
     if (!teacherId) return res.status(400).json({ error: 'Token invalide ou expiré' });
     const hash = await bcrypt.hash(password, 10);
     await execute(
-      "UPDATE users SET password_hash = ?, updated_at = NOW() WHERE id = ? AND user_type = 'teacher'",
+      // `password_must_reset` retombe, comme sur la voie élève (A10, audit du 19/11/2026).
+      "UPDATE users SET password_hash = ?, password_must_reset = 0, updated_at = NOW() WHERE id = ? AND user_type = 'teacher'",
       [hash, teacherId],
     );
     await bumpUserTokenEpoch(teacherId);

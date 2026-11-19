@@ -3,6 +3,8 @@
 // O10 — sous-routeur du sous-domaine « media » (photos de visite) de routes/visit.js.
 // Monté sans préfixe via router.use(...) côté visit.js : chemins inchangés.
 // N'importe AUCUN symbole de visit.js (zéro import circulaire) — uniquement lib/, database, middleware.
+const crypto = require('crypto');
+const fs = require('fs');
 const express = require('express');
 const { queryAll, queryOne, execute, withTransaction } = require('../../database');
 const { requirePermission } = require('../../middleware/requireTeacher');
@@ -187,11 +189,19 @@ router.put(
       imageDataRaw !== undefined && imageDataRaw !== null ? String(imageDataRaw).trim() : '';
 
     if (imageData) {
-      if (exists.image_path) deleteFile(exists.image_path);
+      // Audit du 19/11/2026, C5 : l'ancien fichier était supprimé **avant** l'écriture du
+      // nouveau ; un contenu invalide laissait le média cassé (404, `image_path` renseigné).
+      // Le nouveau est écrit sous un nom temporaire, renommé en place une fois valide, et
+      // l'ancien n'est retiré qu'après succès (et seulement s'il porte un autre nom).
       const relativePath = `visit_media/${mediaId}.jpg`;
+      const tmpRelativePath = `visit_media/${mediaId}.${Date.now()}-${crypto
+        .randomUUID()
+        .slice(0, 8)}.tmp.jpg`;
       try {
-        await saveBase64ToDisk(relativePath, imageData);
+        await saveBase64ToDisk(tmpRelativePath, imageData);
+        await fs.promises.rename(getAbsolutePath(tmpRelativePath), getAbsolutePath(relativePath));
       } catch (fileErr) {
+        deleteFile(tmpRelativePath);
         logRouteError(fileErr, req);
         return res.status(400).json({ error: 'Image invalide ou trop volumineuse' });
       }
@@ -202,6 +212,7 @@ router.put(
        WHERE id = ?`,
         [relativePath, publicUrl, caption, sortOrder, now, mediaId],
       );
+      if (exists.image_path && exists.image_path !== relativePath) deleteFile(exists.image_path);
     } else if (Object.prototype.hasOwnProperty.call(req.body, 'image_url')) {
       const imageUrl = String(req.body.image_url || '').trim();
       if (!imageUrl) return res.status(400).json({ error: 'image_url requis' });

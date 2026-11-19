@@ -6,8 +6,9 @@
  * un service commun (`lib/terrain/locationService.js`).
  *
  * Écrit AVANT l'extraction, sur le patron de la méthode § 3.4 : il fige les réponses
- * actuelles — **défauts compris** (un repère accepte `x_pct = 150` en modification, alors que
- * la création le refuse) — et doit passer à l'identique avant et après. Les mêmes cas sont
+ * actuelles — **défauts compris** (un repère acceptait `x_pct = 150` en modification, alors que
+ * la création le refusait ; corrigé depuis, audit du 19/11/2026, C9) — et doit passer à
+ * l'identique avant et après. Les mêmes cas sont
  * rejoués sur les deux types de lieu : champs, espèces, photos, droits, erreurs.
  */
 
@@ -493,11 +494,12 @@ test('zone — catégorie d’infrastructure : `special` en est le miroir', asyn
   assert.equal(plain.body.special, false);
 });
 
-test('repère — défaut figé : `x_pct` hors bornes accepté en modification (refusé en création)', async () => {
+// Ce défaut figé (`x_pct = 150` accepté en modification) est corrigé par l'audit du
+// 19/11/2026 (C9) : la modification borne désormais comme la création.
+test('repère — `x_pct` hors bornes refusé en modification comme en création (audit C9)', async () => {
   const loc = await createLocation('marker');
-  const res = await put('marker', loc.id, { x_pct: 150, y_pct: -5 }).expect(200);
-  assert.equal(res.body.x_pct, 150);
-  assert.equal(res.body.y_pct, -5);
+  const res = await put('marker', loc.id, { x_pct: 150, y_pct: -5 }).expect(400);
+  assert.deepEqual(res.body, { error: 'x_pct doit être un nombre entre 0 et 100' });
   const createRes = await asTeacher(request(app).post('/api/map/markers'))
     .send({ label: 'Hors bornes', map_id: 'foret', x_pct: 150, y_pct: 5 })
     .expect(400);

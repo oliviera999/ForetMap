@@ -184,7 +184,8 @@ un secret partagé : il ne dit pas qui est entré, et ne remplace pas un compte.
   un porteur de code n'a pas d'identité à associer au message.) Le profil « Personnel » en
   fait partie : c'est le public de ce plan. Ce bouton reste la bonne porte même depuis que le
   personnel participe au forum et aux commentaires, parce qu'il vérifie que le lieu visé est
-  bien un lieu **que vous voyez sur ce plan**.
+  bien un lieu **que vous voyez sur ce plan**. Il fonctionne sur **chacun des plans proposés**
+  dans « Réglages → Plan affiché », pas seulement sur le plan par défaut.
 
   **Où va le message, et qui le voit ?** Il n'est envoyé à personne par courriel : il devient
   un commentaire du lieu. Un administrateur le retrouve à deux endroits — sur la fiche du lieu

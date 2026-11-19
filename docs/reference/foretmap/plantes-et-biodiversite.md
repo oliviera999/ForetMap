@@ -210,12 +210,16 @@ menu **Mène à** choisit l’issue : couplet suivant, une espèce, un groupe d�
 groupe et espèces candidates) ou un grand groupe ; un résultat peut renvoyer vers une autre
 clé. La clé elle-même indique le matériel nécessaire et une consigne de sécurité. Une clé
 n’est publiable que si chaque branche aboutit.
+Sur une clé déjà publiée, on ne peut supprimer ni le couplet de départ (n° 1), ni un
+couplet vers lequel mène encore une proposition : il faut d'abord rediriger cette
+proposition, pour que les élèves ne tombent jamais sur une branche sans issue.
 
 ## Suivi d’individus (arbres)
 
 L’onglet **Individus** permet de suivre un arbre précis (rattaché à une espèce, une
 carte, éventuellement une zone ou un repère). Les élèves saisissent des **mesures**
-(circonférence à 1,30 m, hauteur, diamètre de couronne). L’application affiche une
+(circonférence à 1,30 m, hauteur, diamètre de couronne — des valeurs positives ; un champ
+inconnu se laisse vide plutôt que d'y mettre 0). L’application affiche une
 **courbe de croissance** et une estimation pédagogique de biomasse, de carbone et de
 CO₂ — clairement présentée comme un **ordre de grandeur** (formule établie pour des
 arbres tropicaux).

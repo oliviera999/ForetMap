@@ -83,6 +83,7 @@ function useMapGestures({
   activeMapId,
   mode,
   onRefresh,
+  onError,
   embedded = false,
   mapLayoutOuterRef = null,
   mapFullscreen = false,
@@ -205,13 +206,22 @@ function useMapGestures({
 
   const onRefreshRef = useRef(onRefresh);
   onRefreshRef.current = onRefresh;
+  const onErrorRef = useRef(onError);
+  onErrorRef.current = onError;
 
   /**
    * Glisser d'un repère (prof, position déverrouillée) : suit le pointeur en % image puis
    * persiste la position finale — la vue ne bouge pas pendant le glisser.
+   *
+   * Échec de l'enregistrement (refus, coupure réseau, hors ligne) : le repère revient à sa
+   * position d'origine et un message le dit. Avant, le `PUT` n'avait pas de `.catch` : aucun
+   * message, et le repère restait affiché à une place que le serveur ignorait (audit du
+   * 19/11/2026, F4).
    */
   const beginMarkerDrag = useCallback(
     (id, target, pointerId) => {
+      const startLeft = target.style.left;
+      const startTop = target.style.top;
       beginExternalDrag(target, pointerId, {
         onMove: (p) => {
           target.style.left = `${p.xp}%`;
@@ -219,8 +229,15 @@ function useMapGestures({
         },
         onEnd: (p) => {
           if (!p) return;
-          api(`/api/map/markers/${id}`, 'PUT', { x_pct: p.xp, y_pct: p.yp }).then(() =>
-            onRefreshRef.current?.(),
+          api(`/api/map/markers/${id}`, 'PUT', { x_pct: p.xp, y_pct: p.yp }).then(
+            () => onRefreshRef.current?.(),
+            (err) => {
+              target.style.left = startLeft;
+              target.style.top = startTop;
+              onErrorRef.current?.(
+                `Position du repère non enregistrée : ${err?.message || 'erreur inconnue'}`,
+              );
+            },
           );
         },
       });

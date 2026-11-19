@@ -152,7 +152,15 @@ zones) et, comme les zones, ses textes pour le mode Visite, ses tâches et tutor
 
 Pour éviter les déplacements accidentels, la position des repères est **verrouillée**
 par défaut : le professeur clique sur le cadenas « Repères » de la barre d'outils pour
-pouvoir les faire glisser, puis reverrouille.
+pouvoir les faire glisser, puis reverrouille. Si le nouvel emplacement ne peut pas être
+enregistré (connexion coupée, droit refusé), un message le dit et le repère **revient à sa
+place d'origine** : ce qui s'affiche est toujours ce que le serveur a gardé. De même, pendant
+l'enregistrement d'un contour retouché, le bouton affiche « Enregistrement… » et ne peut pas
+être cliqué deux fois ; en cas d'échec, un message l'explique et la retouche reste ouverte
+pour réessayer.
+
+Supprimer un lieu, ou le déplacer vers une autre carte, le **retire des parcours** de son
+ancienne carte : les autres étapes restent, et le parcours s'enregistre normalement.
 
 ## Catégories de lieux
 
@@ -188,8 +196,12 @@ continu sur la carte, comme celui de toutes les autres zones. Les zones qui éta
 automatiquement reprises dans une catégorie **Infrastructure**.
 
 Une catégorie peut être **désactivée** plutôt que supprimée : elle reste posée sur les
-lieux mais disparaît des filtres et des formulaires. La supprimer la retire en revanche
-de toutes les zones et de tous les repères qui la portaient.
+lieux — même quand on modifie ensuite le lieu — mais disparaît des filtres et des
+formulaires, et ne peut plus être ajoutée à un nouveau lieu. La réactiver la fait
+réapparaître là où elle était. La supprimer la retire en revanche
+de toutes les zones et de tous les repères qui la portaient. La suppression est
+définitive, y compris pour **Infrastructure** : une mise à jour du site ne la recrée plus
+(elle n'est créée d'office que sur une installation neuve).
 
 **Où les créer** : Paramètres → Cartographie → Catégories de lieux. Il faut la
 permission « Gestion zones ». Un n3boss qui a cette permission (sans être

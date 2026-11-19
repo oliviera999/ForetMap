@@ -154,7 +154,8 @@ export function useAppSession({
 
   const mergeAuthMeResponse = useCallback(
     (d, opts = {}) => {
-      mergeAuthMeResponseBase(d, opts);
+      // Réponse ignorée par la base (compte qui n'est plus celui de la session, F2) : rien.
+      if (mergeAuthMeResponseBase(d, opts) === false) return;
       if (!d || typeof d !== 'object' || !d.auth) return;
       const fromServer =
         d.discoveryTourSeen && typeof d.discoveryTourSeen === 'object' ? d.discoveryTourSeen : {};

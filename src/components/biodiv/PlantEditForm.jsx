@@ -1,6 +1,7 @@
 import { useId, useState } from 'react';
 import { AutoSaveStatus } from '../../shared/components/AutoSaveStatus.jsx';
 import { api } from '../../services/api';
+import { uploadPlantPhotoRequest } from './plantPhotoUpload.js';
 import { PLANT_EMOJIS } from '../../constants/emojis';
 import { compressImageWithPreset } from '../../shared/platform/image';
 import { MarkdownTextarea } from '../MarkdownTextarea.jsx';
@@ -49,6 +50,8 @@ import { IconSave } from '../../shared/icons.jsx';
  * @param {Array<{ id: string, label?: string }>} [props.maps] cartes actives pour le rattachement direct
  * @param {(plantId: string|number, body: object) => Promise<object>} [props.onProposePhotos]
  *   intégration des photos de pré-saisie, dans la file d’enregistrement de la fiche
+ * @param {(plantId: string|number, body: object) => Promise<object>} [props.onUploadPhoto]
+ *   téléversement d'une photo dans la file d’enregistrement ; adopte la révision renvoyée
  */
 function PlantEditForm({
   title,
@@ -64,6 +67,7 @@ function PlantEditForm({
   autoSaveError = '',
   maps = [],
   onProposePhotos = null,
+  onUploadPhoto = null,
 }) {
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
   // Chaque libellé est ASSOCIÉ à son champ (`htmlFor`/`id`) : au lecteur d'écran, un
@@ -143,11 +147,11 @@ function PlantEditForm({
     try {
       const imageData = await compressImageWithPreset(file, 'plant');
       const position = field === 'photo' ? 'prepend' : 'append';
-      const result = await api(`/api/plants/${targetId}/photo-upload`, 'POST', {
-        field,
-        imageData,
-        position,
-      });
+      const result = await uploadPlantPhotoRequest(
+        targetId,
+        { field, imageData, position },
+        onUploadPhoto,
+      );
       addUploadedPhoto(field, result?.url, position);
       onToast?.('Photo importée ✓ — pense à indiquer son auteur et sa licence.');
     } catch (e) {
@@ -179,11 +183,11 @@ function PlantEditForm({
       for (const { fileIndex, fieldKey, label } of plan.assignments) {
         try {
           const imageData = await compressImageWithPreset(files[fileIndex], 'plant');
-          const result = await api(`/api/plants/${targetId}/photo-upload`, 'POST', {
-            field: fieldKey,
-            imageData,
-            position: 'append',
-          });
+          const result = await uploadPlantPhotoRequest(
+            targetId,
+            { field: fieldKey, imageData, position: 'append' },
+            onUploadPhoto,
+          );
           addUploadedPhoto(fieldKey, result?.url, 'append');
           ok += 1;
         } catch (e) {
@@ -256,6 +260,7 @@ function PlantEditForm({
             onEnsurePlantId={onEnsurePlantId}
             setForm={setForm}
             onToast={onToast}
+            onUploadPhoto={onUploadPhoto}
           />
           <PlantPrefillPanel
             form={form}

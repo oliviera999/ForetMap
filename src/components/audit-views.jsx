@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '../services/api';
 import { downloadApiFile } from '../utils/downloadApiFile.js';
+import { localDateInput } from '../utils/localDateInput.js';
+import { currentLocalDateOnly } from '../utils/taskListHelpers.js';
 import { getRoleTerms } from '../utils/n3-terminology';
 import { useSession } from '../contexts/SessionContext.jsx';
 import {
@@ -50,11 +52,9 @@ function buildAuditActionLabels(roleTerms) {
   };
 }
 
+/** 30 derniers jours, bornes en date locale (et non UTC : audit du 19/11, F9). */
 function defaultSecurityDayRange() {
-  const to = new Date();
-  const from = new Date(Date.now() - 29 * 24 * 60 * 60 * 1000);
-  const fmt = (d) => d.toISOString().slice(0, 10);
-  return { from: fmt(from), to: fmt(to) };
+  return { from: localDateInput(-29), to: currentLocalDateOnly() };
 }
 
 function truncateUa(ua, max = 72) {
