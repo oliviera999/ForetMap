@@ -15,7 +15,8 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 portent la mention « traité » et leur numéro de PR. Nouveau § 13 : vérifications rejouées sur
 `main` après la fusion (lint, format, build, 6 153 tests d'écran, 6 401 tests backend, 147 tests
 de contenu, scénarios de l'audit rejoués par requêtes et dans un navigateur), choix faits par les
-lots à relire, restes (39 constats ouverts, quatre décisions à trancher). Aucun code modifié.
+lots à relire et décisions déjà livrées par #687 et #688, restes (39 constats ouverts, quatre
+décisions à trancher). Aucun code modifié.
 ### Modifié — G&L : trois décisions sur les droits du tour (19 novembre 2026)
 
 Suite du lot 2 de l'audit (PR #685), sur décision du prof.

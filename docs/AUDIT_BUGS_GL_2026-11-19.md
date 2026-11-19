@@ -10,7 +10,7 @@ points déjà relevés dans [`AUDIT_GL_ENSEMBLE_UNIFIE_2026-11-18.md`](AUDIT_GL_
 (§ 2 à 4) ne sont pas repris.
 
 > **Suite donnée le jour même.** 42 des 81 constats sont traités, chacun avec son test, par huit
-> PR fusionnées le 19 novembre (#677 à #685). Ils portent la mention « traité » et le numéro de la
+> PR fusionnées le 19 novembre (#677 à #685), suivies de #687 et #688. Ils portent la mention « traité » et le numéro de la
 > PR ; le constat d'origine est laissé tel quel. Bilan, vérifications après fusion et restes : § 13.
 
 ## 1. Méthode et niveau de preuve
@@ -139,7 +139,7 @@ transaction), aucun état du tour sans sortie. Le détail de ce qui a été relu
   signalé). `GLTeamSpiritPanel.jsx:12-15` repart de « 6/6 » ; réenregistrer écrase les retraits.
 - **J11 — Défi de la Trame : dernier geste perdu si l'on quitte dans les 350 ms** (mineur,
   signalé). `useGlTrameDefi.js:65-68`.
-- **J12 — « Appliquer les effets » d'un repère : échec avalé** (mineur, signalé).
+- **J12 — « Appliquer les effets » d'un repère : échec avalé** — _échec affiché depuis #688_ (mineur, signalé).
   `GLMarkerEffectPopover.jsx:66-78` ferme le popover sur erreur comme sur succès.
 
 ## 4. Moteur du tour « Tenir à deux »
@@ -567,12 +567,14 @@ Les e2e complets et le banc n'ont pas été relancés sur l'état combiné.
 
 ### Choix faits par les lots, à relire
 
-- **M4 (lot 2)** — la Relance non rejouée est remboursée au passage au souffle ; le jet annulé
-  n'est pas réappliqué et aucun jet n'est tiré d'office : l'équipe reste sur sa case pour ce
-  tour.
-- **M2 (lot 2)** — un élève ne présente ni ne joue la question de case au tableau ni en hybride
-  (le serveur suit `glTenirPermissionsCore`). Le guide du MJ disait l'inverse pour l'hybride ;
-  un paragraphe daté y a été ajouté.
+- **M4 (lot 2)** — tranché par le prof et livré dans #688 : la Relance non rejouée est rendue
+  au passage au souffle et l'équipe retrouve la case de son premier jet, qui se joue. Aucun
+  nouveau jet n'est tiré ; une équipe déplacée entre-temps garde sa place.
+- **M2 (lot 2)** — tranché et livré dans #688 : en hybride, l'équipe répond depuis sa tablette
+  pendant la phase « jeu » ; les dés restent au prof. Au tableau, rien ne change.
+- **M3 (lot 2)** — tranché et livré dans #688 : quand un sort ou le vent a posé l'équipe, la
+  fenêtre dit que la case ne se joue pas ; le prof voit ce qu'elle ferait et choisit
+  « Appliquer les effets (MJ) » ou « Ne pas appliquer ».
 - **E2 (lot 3)** — au-delà des trois défauts annoncés : un repère sans configuration devenait
   une case à question à l'enregistrement, l'emoji choisi était remplacé à la sélection, et
   `tenir.defi`, « un seul dé » et « passe le tour » traversent désormais le formulaire sans y
@@ -589,22 +591,22 @@ Les e2e complets et le banc n'ont pas été relancés sur l'état combiné.
 
 ### Restes
 
-- **A10** — un troisième appel inversé, `routes/gl/games/spell-casts.js:142`, n'est pas dans
-  `main` : PR #687 (brouillon).
+- **A10** — le troisième appel inversé, `routes/gl/games/spell-casts.js:142`, est corrigé par
+  #687 (fusionnée) : il n'en reste aucun dans `routes/` ni `lib/`.
 - **Reprise de données (C8)** — les lectures passées ne sont pas promues dans les carnets. La
   requête de reprise est dans la description de #679 (4 lignes, 2 joueurs en production au
   19/11) ; aucune migration n'a été ajoutée.
-- **Écrans, après le lot 2** — fermer la question et recharger sur un refus `TENIR_PHASE`
-  (`useGlQuestionDeCase.js`) ; dire pourquoi une case ne se joue pas (`sansEffet`,
-  `GLMarkerEffectPopover.jsx`) ; libellé du remboursement de Relance dans le journal
-  (`lib/glJournalPresentTenir.js`).
+- **Écrans, après le lot 2** — #688 (fusionnée) affiche pourquoi une case ne se joue pas et
+  donne son libellé à la Relance rendue dans le journal. Reste : fermer la question et recharger
+  sur un refus `TENIR_PHASE` (`useGlQuestionDeCase.js`).
 - **Imports en ligne de commande (lot 8)** — `gl:import:lore-glossary` et consorts appellent les
   mêmes bibliothèques sans transaction.
 - **Session de projection déjà stockée (J3)** — une session écrite dans `localStorage` par
   l'ancienne version y reste jusqu'à la prochaine connexion du prof.
 - **39 constats non traités** — les mineurs du § 11 (lot 9) et les constats importants hors
   lots : S3 et S4 (à trancher), M6 à M11, S5 à S11, P2, P4 à P12, C9, C10, A6, A8, A9, A11,
-  E9 à E11, J8 à J12.
+  E9 à E11, J8 à J12. Pour J12, l'échec est désormais affiché (#688) ; la garde de double clic
+  manque toujours.
 - **Décisions du § 12** — S3, S4, M10 et A11 restent entières. Pour C2, J5 et P1, seule la
   partie non discutable est faite : refus hors partie en cours, réglage relayé à l'écran,
   `tenir_profil` lu par la route ; ni restriction au MJ, ni refus de la route côté serveur.
