@@ -9,6 +9,13 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — Prof : les propositions des élèves en tête de l'écran Tâches (19 novembre 2026)
+
+Côté prof, la section « Propositions » passe **en tête** des sections de l'écran Tâches
+(avant « En attente de validation », « En cours », « À faire »…), seul l'encart « Urgent ! »
+restant au-dessus. `TasksTeacherSections.jsx` ; test : `tests-ui/components/TasksTeacherSections.test.jsx` ;
+doc : `taches-tutoriels-et-validation.md`.
+
 ### Ajouté — Tâches de projet : une couleur par projet, étapes numérotées, flèches ↑↓ (19 novembre 2026)
 
 - **Repérage, une couleur par projet** : toute tâche rattachée à un projet a une carte à la

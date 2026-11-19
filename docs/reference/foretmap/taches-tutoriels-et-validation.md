@@ -168,8 +168,8 @@ pédagogique.
 Pour toute personne **autorisée à valider les tâches** (en général les professeurs, et tout
 rôle à qui ce droit a été donné), l'écran Tâches met en avant ce qui attend sa décision :
 
-- la section **« ⏳ En attente de validation »** s'affiche **en tête**, avant « En cours » et
-  « À faire » ;
+- la section **« ⏳ En attente de validation »** s'affiche **en tête**, juste après les
+  « Propositions » des élèves et avant « En cours » et « À faire » ;
 - dans les autres regroupements qui mélangent plusieurs statuts — l'encart « 🚨 Urgent ! »,
   les blocs de projets, « Mes tâches » et les résultats filtrés — les tâches terminées en
   attente de validation sont **placées en haut**, le reste gardant son ordre habituel. Seule
@@ -411,6 +411,9 @@ description, lieux, dates, niveaux, places, image. Sa proposition apparaît avec
 - **Le professeur l'examine** : pour l'accepter, il la passe « Disponible » (en la
   complétant au besoin : projet, tutoriels, référents, récurrence) — elle devient alors
   une tâche ordinaire. Pour la refuser, il la supprime.
+- Côté professeur, la section **« Propositions »** est la **première** de l'écran Tâches
+  (seul l'encart « 🚨 Urgent ! », quand il existe, passe avant) : les idées des élèves ne se
+  perdent plus sous les tâches en cours.
 
 ## Qui peut être inscrit sur une tâche
 
