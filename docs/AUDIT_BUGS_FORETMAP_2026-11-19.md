@@ -376,41 +376,47 @@ du relais d'images) ; `lib/speciesAutofill*.js` ; `lib/contentLibrary*.js` ;
 `learningLinksBulk.js` ; `lib/fresqueDecks.js` ; `lib/idKeyBundle.js` ; `lib/mcp/health/**`,
 `audits/**`, `domains/**` ; `lib/rateLimit.js` ; le SQL de chaque migration.
 
-## 10. Lots proposés
+## 10. Lots de correction (lancés le 19 novembre 2026)
 
-Chaque lot porte ses tests ; ceux des constats rejoués s'écrivent à partir du scénario donné.
-Le lot 0 passe avant tout le reste : sans lui, chaque PR hérite d'une CI rouge.
+Le lot 0 (remettre `main` au vert) est fait : la PR #690 est fusionnée. Les onze lots suivants
+tournent **en parallèle**, une session chacun. Ils sont découpés **par fichiers** pour ne pas se
+marcher dessus : chaque lot possède ses fichiers, et seuls `CHANGELOG.md`, `docs/API.md` et
+`docs/reference/**` sont partagés, en ajout seulement. Chaque lot porte ses tests, écrits à
+partir des scénarios de rejeu, et ouvre sa propre PR. Ce document et l'index des audits ne
+sont mis à jour que par la session d'audit.
 
-| Lot | Contenu                                                                       | Constats                             |
-| --- | ----------------------------------------------------------------------------- | ------------------------------------ |
-| 0   | Remettre `main` au vert (test G&L, § 1.1) — en cours, PR #690                 | § 1.1                                |
-| 1   | Le serveur ne tombe pas, la santé répond sans base                            | S1, S4, S10                          |
-| 2   | Escalades de droits sur les comptes                                           | A1, A2, A3, A5, A6, A13              |
-| 3   | Progression et tâches : homonymes, inscriptions interdites, double validation | T1, T2, T7, T5                       |
-| 4   | Données d'élèves hors périmètre                                               | A4, T3, T4, T9, C1, C12              |
-| 5   | Connecteur MCP                                                                | S2, S3, S5, S9, S11                  |
-| 6   | Quiz et verrouillage                                                          | P1, P2, P3, P4, P5                   |
-| 7   | Médias et fichiers : médiathèque, Visite, photos d'espèce                     | C2, C3, C5, C7                       |
-| 8   | Session côté front : onglets multiples, déconnexion, service worker           | F1, F2, F3                           |
-| 9   | Terrain : catégories, repères, parcours, plan des personnels                  | C4, C6, C9, C11, F4                  |
-| 10  | Validation d'entrée (500 au lieu de 400) et mineurs restants, au fil de l'eau | A8, A9, C8, C10, P6–P8, T6, le reste |
+| Lot | Contenu                                                            | Constats                                             |
+| --- | ------------------------------------------------------------------ | ---------------------------------------------------- |
+| 1   | Socle serveur : présence temps réel, CSP, SPA, produit, migrations | S1, S4, S6, S7, S8, S10, S12, S13                    |
+| 2   | Connecteur MCP                                                     | S2, S3, S5, S9, S11                                  |
+| 3   | Authentification, mots de passe, LTI                               | A3, A5, A7, A9, A10, A13 (inscription)               |
+| 4   | Profils RBAC, groupes, import et fusion de comptes                 | A1, A2, A4, A6, A8, A11, A12, A13 (RBAC), retrait    |
+| 5   | Tâches, progression, stats                                         | T1, T2, T3, T4, T5, T7, T8, T10 (tâches), CR         |
+| 6   | Forum, commentaires de contexte, observations, carnet              | T6, T9, T10 (photos)                                 |
+| 7   | Terrain : lieux, catégories, parcours, plans, gestes de carte      | C1, C4, C6, C8 (lieux), C9, C10 (carte), C11–C13, F4 |
+| 8   | Médiathèque, médias de Visite, fiches espèces                      | C2, C3, C5, C7, C8 (uploads), C10 (espèces)          |
+| 9   | Quiz, liens d'apprentissage, verrouillage                          | P1, P2, P3, P4, P10, F7                              |
+| 10  | Séances, individus, calendrier, clades, clés d'identification      | P5, P6, P7, P8, P9, F8, F9 (individus)               |
+| 11  | Front : session multi-onglets, PWA, sauvegarde automatique, dates  | F1, F2, F3, F5, F6, F9, F10                          |
 
-## 11. À trancher avant de corriger
+« Retrait » : garde de rang au retrait d'un membre de groupe. « CR » : comptes rendus en mode
+`group`. Voir § 11.
 
-- [ ] **P1 — Quiz avec contexte sans compte** : répondre 401, ou garder la présentation
-      anonyme (Visite sans compte ?) en liant le jeton à une session anonyme et en posant le
-      verrou sur cette session.
-- [ ] **A3 — Première pose d'un mot de passe** sur un compte Google : la refuser en libre-service
-      (lien envoyé à l'adresse en place), ou exiger une reconnexion Google récente.
-- [ ] **A4 — Liste des membres d'un groupe** : réservée à `groups.read` / `groups.manage`, ou
-      laissée aux membres sous forme de prénoms seulement.
-- [ ] **C13 — Photos d'un lieu masqué ou réservé** : les servir par route gardée (et non par
-      `/uploads` public), ou accepter l'exposition actuelle.
-- [ ] **S6 — Fichiers absents** : passer `/assets`, `/uploads`, `/tutos`, `/fonts` en 404 franc
-      (`fallthrough: false`) ; vérifier avant l'effet sur le service worker et les anciens
-      liens.
-- [ ] **Groupes** : un prof de classe peut-il retirer un enseignant pair (ou supérieur) d'un
-      groupe de son périmètre ? Aujourd'hui oui, sans garde de rang.
-- [ ] **Comptes rendus de tâche** en mode `tasks.logs_visibility = group` : ceux ajoutés par la
-      gestion sans `student_id` sont invisibles des élèves, alors qu'ils le sont en mode
-      `assignees`. Voulu ?
+## 11. Décisions (tranchées le 19 novembre 2026)
+
+- [x] **P1 — Quiz avec contexte sans compte** : un compte est exigé (401 dès qu'un contexte
+      ressource est fourni sans compte) ; le jeton porte l'identifiant du compte.
+- [x] **A3 — Première pose d'un mot de passe** en libre-service : rien n'est changé directement,
+      un lien de définition est envoyé à l'adresse en place.
+- [x] **A4 — Liste des membres d'un groupe** : intacte avec `groups.read` / `groups.manage` ; un
+      simple membre ne voit que les **prénoms** des membres de **son propre groupe** (ni nom,
+      ni id, ni profil, rien des sous-groupes).
+- [x] **C13 — Photos d'un lieu masqué ou réservé** : exposition actuelle conservée (photos de
+      lieux publiques par choix), à documenter dans `docs/API.md`.
+- [x] **S6 — Fichiers absents** : 404 franc pour un chemin avec extension sous `/assets`,
+      `/uploads`, `/tutos`, `/fonts`, `/gl/intro` ; l'index reste servi aux routes SPA.
+- [x] **Groupes** : on ne retire d'un groupe qu'un compte de rang strictement inférieur au sien
+      (l'admin garde tout).
+- [x] **Comptes rendus de tâche** en mode `group` : un compte rendu sans élève rattaché (écrit
+      par l'encadrement) est visible de tous ceux qui voient la tâche, comme en mode
+      `assignees`.
