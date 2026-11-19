@@ -244,6 +244,12 @@
     },
     "tables": [
       {
+        "table": "user_roles",
+        "column": "user_id",
+        "moved": 0,
+        "dropped": 1
+      },
+      {
         "table": "group_members",
         "column": "user_id",
         "moved": 2,
@@ -264,12 +270,6 @@
       {
         "table": "task_logs",
         "column": "student_id",
-        "moved": 1,
-        "dropped": 0
-      },
-      {
-        "table": "user_roles",
-        "column": "user_id",
         "moved": 1,
         "dropped": 0
       },
@@ -356,6 +356,28 @@
       ]
     },
     {
+      "table": "user_roles",
+      "tx": true,
+      "affected": 1,
+      "sql": "DELETE FROM user_roles WHERE user_id = ?",
+      "params": ["absorbe"]
+    },
+    {
+      "table": "sync_actions",
+      "tx": true,
+      "affected": 1,
+      "sql": "INSERT INTO sync_actions (run_id, seq, kind, target_type, target_id, before_json, after_json) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      "params": [
+        "<run>",
+        2,
+        "account.merge.table",
+        "table",
+        "user_roles.user_id",
+        "{\"userId\":\"absorbe\"}",
+        "{\"dropped\":1}"
+      ]
+    },
+    {
       "table": "group_members",
       "tx": true,
       "affected": 2,
@@ -376,7 +398,7 @@
       "sql": "INSERT INTO sync_actions (run_id, seq, kind, target_type, target_id, before_json, after_json) VALUES (?, ?, ?, ?, ?, ?, ?)",
       "params": [
         "<run>",
-        2,
+        3,
         "account.merge.table",
         "table",
         "group_members.user_id",
@@ -398,7 +420,7 @@
       "sql": "INSERT INTO sync_actions (run_id, seq, kind, target_type, target_id, before_json, after_json) VALUES (?, ?, ?, ?, ?, ?, ?)",
       "params": [
         "<run>",
-        3,
+        4,
         "account.merge.table",
         "table",
         "observation_logs.student_id",
@@ -420,7 +442,7 @@
       "sql": "INSERT INTO sync_actions (run_id, seq, kind, target_type, target_id, before_json, after_json) VALUES (?, ?, ?, ?, ?, ?, ?)",
       "params": [
         "<run>",
-        4,
+        5,
         "account.merge.table",
         "table",
         "task_assignments.student_id",
@@ -442,32 +464,10 @@
       "sql": "INSERT INTO sync_actions (run_id, seq, kind, target_type, target_id, before_json, after_json) VALUES (?, ?, ?, ?, ?, ?, ?)",
       "params": [
         "<run>",
-        5,
-        "account.merge.table",
-        "table",
-        "task_logs.student_id",
-        "{\"userId\":\"absorbe\"}",
-        "{\"userId\":\"cible\",\"moved\":1,\"dropped\":0}"
-      ]
-    },
-    {
-      "table": "user_roles",
-      "tx": true,
-      "affected": 1,
-      "sql": "UPDATE IGNORE `user_roles` SET `user_id` = ? WHERE `user_id` = ?",
-      "params": ["cible", "absorbe"]
-    },
-    {
-      "table": "sync_actions",
-      "tx": true,
-      "affected": 1,
-      "sql": "INSERT INTO sync_actions (run_id, seq, kind, target_type, target_id, before_json, after_json) VALUES (?, ?, ?, ?, ?, ?, ?)",
-      "params": [
-        "<run>",
         6,
         "account.merge.table",
         "table",
-        "user_roles.user_id",
+        "task_logs.student_id",
         "{\"userId\":\"absorbe\"}",
         "{\"userId\":\"cible\",\"moved\":1,\"dropped\":0}"
       ]
@@ -689,7 +689,7 @@
       "tx": false,
       "affected": 1,
       "sql": "UPDATE sync_runs SET status = 'succeeded', finished_at = NOW(), totals_json = ? WHERE id = ?",
-      "params": ["{\"tables\":13,\"moved\":13,\"dropped\":2}", "<run>"]
+      "params": ["{\"tables\":13,\"moved\":12,\"dropped\":3}", "<run>"]
     }
   ],
   "merge.state": {
@@ -712,12 +712,6 @@
       }
     ],
     "user_roles": [
-      {
-        "user_type": "student",
-        "user_id": "cible",
-        "slug": "eleve_avance",
-        "is_primary": 1
-      },
       {
         "user_type": "student",
         "user_id": "cible",
@@ -876,8 +870,8 @@
       "table": "groups",
       "tx": true,
       "affected": 1,
-      "sql": "UPDATE `groups` SET parent_group_id = NULL WHERE parent_group_id = ?",
-      "params": ["groupe"]
+      "sql": "UPDATE `groups` SET parent_group_id = ? WHERE parent_group_id = ?",
+      "params": [null, "groupe"]
     },
     {
       "table": "groups",
