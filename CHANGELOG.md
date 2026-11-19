@@ -38,6 +38,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   (comme `reset-password-link`).
 
 Tests : `tests/audit-fm-lot4-rbac-groupes.test.js`.
+
 ### Corrigé — audit ForetMap du 19/11, lot 11 (front : session multi-onglets, service worker, sauvegarde automatique, dates)
 
 Constats F1, F2, F3, F5, F6, F9 (hors individus) et F10 de `docs/AUDIT_BUGS_FORETMAP_2026-11-19.md`, § 8.
