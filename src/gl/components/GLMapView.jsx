@@ -43,6 +43,7 @@ export function GLMapView({
   onRecordDiceRoll = null,
   feuilletZones = [],
   feuilletZoneEditMode = false,
+  feuilletZoneTraversalEnabled = true,
   showPlateauMarkers = true,
   showPlateauZones = false,
   showMarkerPathNumbers = false,
@@ -122,6 +123,7 @@ export function GLMapView({
       onRecordDiceRoll={onRecordDiceRoll}
       feuilletZones={feuilletZones}
       feuilletZoneEditMode={feuilletZoneEditMode}
+      feuilletZoneTraversalEnabled={feuilletZoneTraversalEnabled}
       showPlateauMarkers={showPlateauMarkers}
       showPlateauZones={showPlateauZones}
       showMarkerPathNumbers={showMarkerPathNumbers}

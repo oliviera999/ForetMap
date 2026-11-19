@@ -11,6 +11,14 @@ import { GLLearningAcknowledgeButton } from './GLLearningAcknowledgeButton.jsx';
 import { GLJournalImportButton } from './GLJournalImportButton.jsx';
 import { GLGlossaryMarkdown } from './GLGlossaryMarkdown.jsx';
 
+const EMPTY_DRAFT = Object.freeze({
+  id: null,
+  slug: '',
+  title: '',
+  bodyMarkdown: '',
+  isPublished: true,
+});
+
 export function GLTutorialsView({
   canManage,
   learningProgress,
@@ -23,14 +31,13 @@ export function GLTutorialsView({
   const [items, setItems] = useState([]);
   const [active, setActive] = useState(null);
   const [error, setError] = useState('');
-  const [draft, setDraft] = useState({
-    id: null,
-    slug: '',
-    title: '',
-    bodyMarkdown: '',
-    isPublished: true,
-  });
+  const [draft, setDraft] = useState(EMPTY_DRAFT);
   const [editing, setEditing] = useState(false);
+  // Une « séance d'édition » par ouverture de l'éditeur : c'est elle, et non l'id du
+  // tutoriel, qui réinitialise l'enregistrement automatique. Sinon la création (id null →
+  // id créé) passait pour un changement de document et la saisie en cours était tenue
+  // pour déjà enregistrée.
+  const [editSession, setEditSession] = useState(0);
 
   const reload = useCallback(async () => {
     try {
@@ -75,34 +82,55 @@ export function GLTutorialsView({
   const readIds = learningProgress?.tutorialIds ?? [];
   const isTutorialRead = (id) => learningProgress?.isTutorialRead?.(id) ?? false;
 
+  /**
+   * Enregistrement automatique : l'éditeur reste ouvert et le brouillon en place. Rend la
+   * valeur réellement envoyée (avec l'id créé), pour que ce qui a été tapé pendant la
+   * requête reste « à enregistrer » et parte au tour suivant.
+   */
   async function persistTutorial() {
-    if (draft.id) {
-      await apiGL(`/api/gl/tutorials/${draft.id}`, 'PUT', {
-        title: draft.title,
-        bodyMarkdown: draft.bodyMarkdown,
-        isPublished: !!draft.isPublished,
+    const sent = draft;
+    let saved = sent;
+    if (sent.id) {
+      await apiGL(`/api/gl/tutorials/${sent.id}`, 'PUT', {
+        title: sent.title,
+        bodyMarkdown: sent.bodyMarkdown,
+        isPublished: !!sent.isPublished,
       });
     } else {
-      await apiGL('/api/gl/tutorials', 'POST', {
-        slug: draft.slug || `tuto-${Date.now()}`,
-        title: draft.title,
-        bodyMarkdown: draft.bodyMarkdown,
-        isPublished: !!draft.isPublished,
+      const created = await apiGL('/api/gl/tutorials', 'POST', {
+        slug: sent.slug || `tuto-${Date.now()}`,
+        title: sent.title,
+        bodyMarkdown: sent.bodyMarkdown,
+        isPublished: !!sent.isPublished,
       });
+      const id = Number(created?.id) || null;
+      const slug = String(created?.slug || sent.slug || '');
+      saved = { ...sent, id, slug };
+      // Garde l'id créé : la suite de la saisie met à jour ce tutoriel au lieu d'en créer un
+      // second. Seuls l'id et le slug sont posés, le texte tapé entre-temps est conservé.
+      setDraft((d) => ({ ...d, id, slug }));
     }
-    const nextDraft = { id: null, slug: '', title: '', bodyMarkdown: '', isPublished: true };
-    setDraft(nextDraft);
-    setEditing(false);
     await reload();
-    return nextDraft;
+    return saved;
   }
 
-  const { status: saveStatus, error: saveError } = useDebouncedAutoSave({
+  const {
+    status: saveStatus,
+    error: saveError,
+    flush: flushSave,
+  } = useDebouncedAutoSave({
     value: draft,
-    resetKey: draft.id ?? (editing ? 'new' : 'idle'),
+    resetKey: editing ? `edit-${editSession}` : 'idle',
     enabled: editing && canManage && String(draft.title || '').trim().length > 0,
     onSave: persistTutorial,
   });
+
+  /** Fermeture explicite : la saisie en attente part d'abord. */
+  async function closeEditor() {
+    await flushSave();
+    setEditing(false);
+    setDraft(EMPTY_DRAFT);
+  }
 
   async function createDraft(event) {
     event.preventDefault();
@@ -110,14 +138,18 @@ export function GLTutorialsView({
 
   async function startEdit(id) {
     try {
+      if (editing) await flushSave();
       const data = await apiGL(`/api/gl/tutorials/${id}`);
       setDraft({
         id: Number(data?.id || id),
         slug: String(data?.slug || ''),
         title: String(data?.title || ''),
         bodyMarkdown: String(data?.body_markdown || ''),
-        isPublished: data?.is_published !== false,
+        // La base renvoie 0 ou 1 : `!== false` était toujours vrai, la case revenait cochée
+        // et l'enregistrement automatique republiait un brouillon.
+        isPublished: Number(data?.is_published) === 1,
       });
+      setEditSession((n) => n + 1);
       setEditing(true);
       setError('');
     } catch (err) {
@@ -130,8 +162,7 @@ export function GLTutorialsView({
     try {
       await apiGL(`/api/gl/tutorials/${id}`, 'DELETE');
       if (Number(active?.id) === Number(id)) setActive(null);
-      if (Number(draft?.id) === Number(id))
-        setDraft({ id: null, slug: '', title: '', bodyMarkdown: '', isPublished: true });
+      if (Number(draft?.id) === Number(id)) setDraft(EMPTY_DRAFT);
       await reload();
     } catch (err) {
       setError(err.message || 'Suppression impossible');
@@ -157,15 +188,15 @@ export function GLTutorialsView({
             type="button"
             onClick={() => {
               if (editing) {
-                setEditing(false);
-                setDraft({ id: null, slug: '', title: '', bodyMarkdown: '', isPublished: true });
+                closeEditor();
                 return;
               }
-              setDraft({ id: null, slug: '', title: '', bodyMarkdown: '', isPublished: true });
+              setDraft(EMPTY_DRAFT);
+              setEditSession((n) => n + 1);
               setEditing(true);
             }}
           >
-            {editing ? 'Annuler' : 'Nouveau tutoriel'}
+            {editing ? 'Fermer l’éditeur' : 'Nouveau tutoriel'}
           </GLButton>
         ) : null}
         <GLButton type="button" variant="secondary" onClick={reload}>

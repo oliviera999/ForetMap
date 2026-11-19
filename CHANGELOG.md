@@ -38,6 +38,97 @@ doc : `taches-tutoriels-et-validation.md`.
 - Tests : `tests-ui/utils/taskProjectSteps.test.js`, `projectColors.test.js`, `useTaskDragReorder`, `TaskProjectsBlock`,
   `TaskTileCard`. Doc : `taches-tutoriels-et-validation.md`.
 
+### Corrigé — G&L : du contenu servi avant d'être acquis ou publié (audit du 19 novembre 2026, lot 4)
+
+- **Pages de Sélène d'une zone** (`GET /api/gl/lore/games/:id/zones/:zoneId/feuillets`) : un
+  joueur recevait le texte complet des pages candidates, y compris celles que son équipe
+  n'avait pas trouvées — et, sans page liée à la zone, de toutes les pages actives des biomes
+  du chapitre. Les candidats non trouvés partent désormais masqués, comme dans le carnet ; le
+  texte vient à l'apparition de la page. Le MJ garde tout.
+- **Apparition d'une page par son code** (`POST …/feuillets/:code/present`) : un joueur
+  pouvait faire apparaître les pages du chapitre sur une partie terminée, effets de bourse
+  compris. Refus `409` hors partie en cours ou en pause (le MJ n'y est pas soumis).
+- **Lexique du lore** : les termes « secret » sortaient par l'index des liens, par les
+  « termes liés » d'une fiche et par les termes joints aux questions ; la fiche ignorait le
+  plafond de divulgâchage. Une seule règle désormais (`isLoreTermVisibleToAudience`), appliquée
+  à la liste, la fiche, les termes liés, l'index et les questions.
+- **Tutoriels** : « Publié » n'était appliqué nulle part. Un brouillon n'est plus listé ni
+  lisible par un joueur (`404`), ni marquable comme appris. À l'écran, un brouillon se rouvre
+  case décochée (elle revenait cochée et l'enregistrement automatique republiait).
+- **Éditeur de tutoriels** : chaque enregistrement automatique vidait le brouillon et fermait
+  l'éditeur ; ce qui était tapé pendant la création était perdu. L'éditeur reste ouvert, garde
+  l'identifiant créé et ne se ferme que par « Fermer l'éditeur » (ancien « Annuler »).
+- **Traversée des zones feuillets** : le réglage n'atteignait pas le plateau (`GLMapView` ne
+  le relayait pas) ; coupé, il laissait l'ancien popover s'ouvrir.
+- **Zones feuillets en « Tenir »** : la réponse annonçait le gain de cœurs du catalogue ; la
+  route lit maintenant le profil de la partie et renvoie `gainCoeur: 0`.
+### Corrigé — G&L : carnet du joueur et récompenses (audit du 19 novembre 2026, lot 7)
+
+- **C8 — « Lu » et « tenu » atteignent le carnet personnel.** Le statut de
+  `gl_player_feuillet_states` n'était remplacé que si le pourcentage d'effacement baissait ;
+  une lecture ou une page tenue, qui ne le changent pas, laissaient le feuillet « trouvé ».
+  Le statut monte désormais selon découvert < lu < tenu, indépendamment du pourcentage, et
+  ne redescend jamais (`mergePlayerFeuilletSnapshot` et le `ON DUPLICATE KEY UPDATE` de
+  `upsertPlayerFeuilletState`) ; le pourcentage garde le minimum ; « effacé » garde sa règle
+  d'avant. Le badge « Lecteur » (`pages_lues`) et le compteur `feuillets_lus` comptent donc
+  ces lectures. Les lectures passées ne sont pas reprises (aucune migration dans ce lot).
+  Test : `tests/gl-player-feuillet-statut-promotion.test.js`.
+- **C7 — « Première consultation » dite par l'écriture.** `routes/gl/learning.js` lisait
+  l'accusé puis l'écrivait : des requêtes parallèles sur la même ressource se croyaient
+  toutes premières et gagnaient chacune un feuillet (4 au lieu d'1 sur 6 requêtes). L'accusé
+  passe par `recordLearningAck` (`INSERT IGNORE`, `affectedRows`). La révélation par espèce
+  (`revealFeuilletForSpeciesStudy`) prend le verrou d'équipe et choisit le feuillet sous la
+  transaction ; elle ne joue plus hors d'une partie `live` ou `paused`.
+  Test : `tests/gl-learning-premiere-consultation.test.js`.
+- **E7 — Carnet de Sélène : « ✓ Étudié » ne déborde plus sur le feuillet suivant.**
+  `GLLearnAndImport` remet « appris » et « déjà importé » à faux quand la ressource change,
+  et le carnet le monte avec `key={active.feuilletCode}`.
+  Test : `tests-ui/gl/GLLearnAndImport.test.jsx`.
+- **C4 (complément) — `POST /api/gl/learning/tutorials/:id`** répond 404 pour un tutoriel non
+  publié, sauf permission `gl.content.manage`.
+### Corrigé — G&L : pots de sorts (audit du 19 novembre 2026, lot 5)
+
+- **Un pot repris est bien celui qu'on demande** (S1). Le pot d'un sort resté en collecte était
+  rendu tel quel à la demande suivante : le prof qui ouvrait Lanterne pour une équipe puis pour
+  une autre recevait le pot de la première (ses membres auraient payé) ; un sort personnel
+  (Lettre, Mentorat, Esquive) ouvert par un élève puis par son coéquipier restait au nom du
+  premier ; une Cordée rouverte avec une autre partenaire gardait l'ancienne. Désormais le pot
+  n'est repris que si l'équipe, la partenaire et l'élève correspondent ; sinon il est annulé
+  (rien n'a été débité) et un pot neuf s'ouvre. Le jeu classique n'est pas touché.
+- **Deux « pas moi » au même instant sont gardés tous les deux** (S2) : la liste des élèves
+  retirés et les parts sont relues et recalculées sous le verrou du pot (`setDraftExclusion`,
+  `realignerPotSurLesPresents`).
+- **Un pot rouvert dans le même tour suit les bourses et la réserve** (S12) : il se recalcule
+  quand une part dépasse le solde de son élève ou que le total ne correspond plus au reste dû,
+  au lieu de s'afficher prêt puis d'être refusé au lancement.
+
+Tests : `tests/gl-spell-pot-repris.test.js`.
+### Corrigé — G&L : imports de contenu qui perdaient des données (audit du 19 novembre 2026, lot 8)
+
+- **Glossaire du lore (C5)** : l'export laissait la colonne `termes_lies` vide, et l'import
+  supprimait les relations de chaque terme avant de les relire dans cette colonne — exporter
+  puis ré-importer effaçait donc toutes les relations. L'export remplit désormais la colonne
+  (libellé du terme lié, ou son code si le libellé contient une virgule), et à l'import une
+  cellule **vide ne touche plus** aux relations du terme. Une liste les remplace ; un tiret
+  (`-`) les vide volontairement.
+- **Import de QCM, biomes et lore (C6)** : les liens glossaire d'origine « import » étaient
+  supprimés sur **tout le jeu**, puis recréés pour les seules lignes du fichier, toujours non
+  bloquants. Importer quelques questions effaçait les liens de toutes les autres, et un lien
+  rendu bloquant par le MJ perdait son conditionnement à chaque import. Le recalcul est borné
+  aux questions du fichier ; un lien qui correspond toujours reste en place tel quel
+  (`is_gating` compris). L'import des QCM lore passe en transaction, comme celui des biomes.
+- **Imports du lore et de la charte (C11)** : une ligne de feuillet sans code était ignorée sans
+  figurer au rapport — elle y est désormais (`report.feuillets.errors`, `skipped`). Les imports
+  des feuillets, du glossaire du lore et de la charte des chapitres écrivent en transaction :
+  une ligne en échec n'en laisse plus une partie en base. Un téléchargement XLSX en échec
+  renvoie un message neutre, l'erreur réelle part au journal.
+- **Catalogues de la Trame (C12)** : les cartes et liens d'un biome ou d'un plateau étaient
+  supprimés puis réinsérés un par un hors transaction (au démarrage et depuis « Catalogues
+  Tenir à deux », possible en pleine séance). Chaque fichier s'écrit maintenant dans une seule
+  transaction : un défi lu pendant la synchronisation voit l'ancien réseau, jamais un réseau
+  vide, et un échec ne laisse plus un biome amputé.
+
+Tests : `tests/gl-imports-pertes.test.js`, `tests/gl-xlsx-attachment.test.js`.
 ### Documentation — G&L : audit des bugs (19 novembre 2026)
 
 `docs/AUDIT_BUGS_GL_2026-11-19.md` : relecture de tout le sous-produit Gnomes & Licornes par
