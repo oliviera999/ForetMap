@@ -172,7 +172,11 @@ router.post(
 router.post(
   '/activity/check',
   asyncHandler(async (req, res) => {
-    const placements = Array.isArray(req.body?.placements) ? req.body.placements : null;
+    // Entrées qui ne sont pas des objets (`null`, nombre, tableau…) écartées : `p.plantId` sur
+    // `null` levait un TypeError → 500 sur cette route publique (audit du 19/11/2026, P8).
+    const placements = Array.isArray(req.body?.placements)
+      ? req.body.placements.filter((p) => p && typeof p === 'object' && !Array.isArray(p))
+      : null;
     if (!placements || placements.length === 0) {
       return res.status(400).json({ error: 'placements requis' });
     }

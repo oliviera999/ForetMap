@@ -2,6 +2,13 @@ import { useCallback, useEffect, useState } from 'react';
 import { fileToDataUrl } from '../platform/fileToDataUrl.js';
 import { buildExportQuery, buildQuestionsListQuery } from './qcmCatalogPanelQuery.js';
 import { QcmPreviewModal } from './QcmPreviewModal.jsx';
+import { useLatestRequest } from '../hooks/useLatestRequest.js';
+
+/**
+ * Anti-rebond de la recherche du catalogue (audit ForetMap du 19/11/2026, F7) : une frappe
+ * relançait le chargement de la liste à chaque caractère.
+ */
+const QCM_CATALOG_SEARCH_DEBOUNCE_MS = 300;
 
 /**
  * Panneau catalogue QCM paramétrable (import XLSX, export, liste, aperçu).
@@ -63,6 +70,9 @@ export function QcmCatalogPanel({
   const [scopeSlug, setScopeSlug] = useState('');
   const [categorieSlug, setCategorieSlug] = useState('');
   const [search, setSearch] = useState('');
+  // Valeur de recherche réellement envoyée au serveur, après l'anti-rebond.
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const latestListRequest = useLatestRequest();
   const [items, setItems] = useState([]);
   const [previewCode, setPreviewCode] = useState(null);
   const [presentation, setPresentation] = useState(null);
@@ -115,29 +125,41 @@ export function QcmCatalogPanel({
     }
   }
 
+  useEffect(() => {
+    if (search === debouncedSearch) return undefined;
+    const timer = setTimeout(() => setDebouncedSearch(search), QCM_CATALOG_SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [search, debouncedSearch]);
+
   const loadList = useCallback(async () => {
     if (!showQuestionList) return;
+    // « Dernière réponse gagne » (F7) : une réponse plus ancienne arrivée après la plus
+    // récente ne doit pas remplacer la liste qui correspond au texte saisi.
+    const isCurrent = latestListRequest();
     try {
       const query = buildQuestionsListQuery({
         scopeQueryKey,
         scopeSlug,
         categorieSlug,
-        search,
+        search: debouncedSearch,
         statut: enableAdminFilters ? listStatut : undefined,
         niveau: enableAdminFilters ? listNiveau : undefined,
         sort: enableAdminFilters ? listSort : undefined,
       });
       const data = await request(`${questionsListPath}?${query}`);
+      if (!isCurrent()) return;
       setItems(Array.isArray(data?.items) ? data.items : []);
       setError('');
     } catch (err) {
+      if (!isCurrent()) return;
       setError(err.message || 'Chargement questions impossible');
       setItems([]);
     }
   }, [
+    latestListRequest,
     scopeSlug,
     categorieSlug,
-    search,
+    debouncedSearch,
     scopeQueryKey,
     questionsListPath,
     request,

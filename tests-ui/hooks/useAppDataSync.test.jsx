@@ -14,6 +14,7 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 
 vi.mock('../../src/services/api', () => ({
   api: vi.fn(),
+  getStoredSessionAccountKey: vi.fn(() => 'teacher:T1'),
   AccountDeletedError: class AccountDeletedError extends Error {
     constructor() {
       super('Compte supprimé');

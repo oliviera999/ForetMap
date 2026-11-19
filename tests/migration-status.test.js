@@ -45,12 +45,14 @@ test('compareSchemaVersion : à jour, en retard, base vierge', () => {
     current: 301,
     latest: 301,
     pending: [],
+    skipped: [],
     upToDate: true,
   });
   assert.deepEqual(compareSchemaVersion(297, [296, 297, 298, 299, 300, 301]), {
     current: 297,
     latest: 301,
     pending: [298, 299, 300, 301],
+    skipped: [],
     upToDate: false,
   });
   // Même règle que runMigrations : un numéro inférieur à la version courante n'est jamais

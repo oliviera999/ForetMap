@@ -69,13 +69,18 @@ async function checkSchema() {
       };
     }
     const current = status.current === null ? 'aucune' : status.current;
+    const skipped = Array.isArray(status.skipped) ? status.skipped : [];
+    // S13 (audit du 19/11/2026) : migration(s) sous le curseur, que db:migrate ne rejouera pas.
+    const skippedDetail = skipped.length
+      ? ` ; jamais appliquée(s), à renuméroter : ${skipped.join(', ')}`
+      : '';
     return {
       label: 'schéma BDD',
       ok: false,
       required: true,
       detail:
         `version ${current}, dernier fichier ${status.latest} : ${status.pending.length} migration(s) ` +
-        'en attente — lancer db:migrate après une sauvegarde',
+        `en attente — lancer db:migrate après une sauvegarde${skippedDetail}`,
     };
   } catch (err) {
     return {

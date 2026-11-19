@@ -78,6 +78,7 @@ export function MapViewToolbar({
   editCanUndo,
   onUndoEditPoints,
   onSaveEditPoints,
+  editPointsSaving = false,
   onExitEditPoints,
   editPointsCount = 0,
   selectedPointsCount = 0,
@@ -488,8 +489,13 @@ export function MapViewToolbar({
             >
               <IconUndo size={15} /> Annuler
             </button>
-            <button className="btn btn-primary btn-sm" onClick={onSaveEditPoints}>
-              <IconSave size={15} /> Enregistrer
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={onSaveEditPoints}
+              disabled={editPointsSaving}
+              aria-busy={editPointsSaving || undefined}
+            >
+              <IconSave size={15} /> {editPointsSaving ? 'Enregistrement…' : 'Enregistrer'}
             </button>
             <button
               className="btn btn-ghost btn-sm"

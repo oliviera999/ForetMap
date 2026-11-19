@@ -105,12 +105,14 @@ function createAdminOpsRouter({ gracefulShutdown, getDatabaseInitState = () => n
     let schema = { ok: false, error: null };
     if (database.ok) {
       try {
-        const status = await getMigrationStatus({ queryOne });
+        const status = await getMigrationStatus({ queryOne, queryAll });
         schema = {
           ok: status.upToDate,
           current: status.current,
           latest: status.latest,
           pending: status.pending,
+          // Migrations jamais appliquées, sous le curseur (audit du 19/11/2026, S13).
+          skipped: status.skipped,
         };
       } catch (err) {
         logger.warn({ err }, 'Diagnostics admin : lecture schema_version');
