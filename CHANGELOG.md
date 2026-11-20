@@ -9,6 +9,51 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — G&L : écrans de séance, lot 4 (l'écran d'équipe en trois choses, branché)
+
+Quatrième lot du chantier « écrans de séance » (`docs/prompts/GL_ECRANS_DE_SEANCE_PROMPT.md`,
+étape 4, seconde moitié ; suivi dans `docs/prompts/GL_ECRANS_DE_SEANCE_ETAT.md`). La tablette
+d'équipe et le compte d'un élève montrent désormais **le plateau, une seule carte du moment et
+Olu** : à 1024 × 768 le plateau commence sous un bandeau de 53 px (il commençait vers 760 px),
+et la page ne défile plus. Aucune règle, aucune route, aucun schéma, aucun réglage ne change :
+les gestes montrés sont toujours ceux que le serveur ouvre, et il les rejoue.
+
+- **Un seul écran, deux entrées** : `GLTenirEcranEquipe` (bandeau, plateau en présentation
+  `tenir`, `GLTenirMoment`, tiroir « L'équipe ») est monté par `GLTeamSessionView` (tablette,
+  tour ouvert ou non) et par `AppGL` (onglet du plateau d'un compte élève). Les deux points de
+  montage ne rendent plus l'écran d'équipe puis le plateau l'un sous l'autre.
+- **Mise en page** : deux colonnes à partir de 1 024 px, ou de 768 px en paysage (plateau
+  ≈ 62 %, action ≈ 38 %, 320 px au moins) ; sinon le plateau en haut et la carte du moment
+  dans une feuille en bas, au-dessus de la barre de navigation sur un compte. La page ne
+  défile pas ; seule la colonne d'action défile s'il le faut. Fenêtre trop basse (téléphone
+  couché) : la page défile, le plateau garde 240 px au moins.
+- **Supprimés de l'écran** : l'en-tête de session et le mot de surface, « Actualiser », la
+  liste « Maintenant, vous pouvez… », les boutons grisés (un geste fermé est **absent**), la
+  phrase « Le Marché et le Seuil s'ouvrent depuis le compte de chacun. » — devenue une ligne
+  d'Olu (`olu-pf-comptes`, catalogue `olu-lignes.json` : 101 lignes), que la tablette dit une
+  fois, quand un tour est ouvert et que le Marché l'est aussi.
+- **« Relire l'écran »** : l'icône du bandeau n'apparaît que si le temps réel est coupé depuis
+  plus de quatre secondes (`useGlTempsReelCoupe`) ou si l'état est périmé ; au retour de la
+  connexion, l'écran se relit seul.
+- **Ce qui est ouvert ne survit pas au tour** : au changement de tour ou de phase, la saisie
+  des dés et la liste des sorts se referment, une question périmée s'oublie, et le plateau
+  n'attend plus de fouille. Le mode fouille se désarme aussi dès que le droit se ferme (il
+  restait armé : chaque toucher partait au serveur, qui refusait).
+- **L'élève qui regarde le tour** (absent ou en retrait, sur son compte) ne voit plus « Garder
+  ce jet », « Accepter » une tablette ni les présences, que le serveur lui refusait.
+- **Surface « tableau » : rien ne change** (garde-fou 12). `GLTenirEquipeView`, l'ancien écran
+  empilé, reste monté tel quel quand la partie se joue au tableau ou que le prof a touché
+  « Tout au tableau ». La logique des deux écrans vit dans un seul hook, `useGlTenirEquipe`.
+- **Tests** : `GLTenirEcranEquipe.test.jsx` (32 scénarios, portés de l'ancien écran : un bouton
+  grisé est devenu un bouton absent), `useGlTempsReelCoupe.test.jsx`, `GLTeamSessionView`,
+  `GLDeuxEcrans`, `GLEscalier`, `GLUneMonnaie` et `tenir-chaines-interdites` portés sur le
+  nouvel écran ; e2e `gl-tenir-tablettes` et `gl-tenir-escalier` adaptés, avec les mesures
+  « le plateau commence à moins de 120 px, la carte du moment est entière à l'écran, rien ne
+  défile » à 1024 × 768 et « plateau et feuille d'action visibles » à 390 × 844. Captures
+  dans `docs/captures/ecrans-de-seance/apres/`.
+- **Docs** : `docs/reference/gl/guide-du-mj.md` (note « L'écran d'équipe en trois choses ») et
+  `roles-et-connexion.md` (§ La tablette d'équipe).
+
 ### Modifié — G&L : écrans de séance, lot 3 (le moteur de la carte du moment)
 
 Troisième lot du chantier « écrans de séance » (`docs/prompts/GL_ECRANS_DE_SEANCE_PROMPT.md`,

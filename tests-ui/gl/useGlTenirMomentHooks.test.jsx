@@ -100,4 +100,21 @@ describe('useGlTenirTiroir', () => {
     rerender({ empreinte: 'd' });
     expect(result.current.nouveau).toBe(true);
   });
+
+  test('tant que le contenu n’est pas lu, rien n’est nouveau ; la première empreinte connue est tenue pour vue', () => {
+    // Le carnet charge après l'ouverture de l'écran : son arrivée n'allume pas la pastille.
+    const { result, rerender } = renderHook((props) => useGlTenirTiroir(props), {
+      initialProps: { empreinte: null },
+    });
+    expect(result.current.nouveau).toBe(false);
+    rerender({ empreinte: 'a' });
+    expect(result.current.nouveau).toBe(false);
+    rerender({ empreinte: 'b' });
+    expect(result.current.nouveau).toBe(true);
+    // Le contenu redevient inconnu (rechargement) : la pastille s'éteint, sans rien oublier.
+    rerender({ empreinte: null });
+    expect(result.current.nouveau).toBe(false);
+    rerender({ empreinte: 'b' });
+    expect(result.current.nouveau).toBe(true);
+  });
 });

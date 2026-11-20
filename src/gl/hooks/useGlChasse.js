@@ -166,6 +166,8 @@ export function useGlChasse({ gameId, enabled = true, onChanged = null }) {
       setQuestion(null);
       rendreLaMain();
     },
+    // Le tour ou la phase a changé : la question n'a plus cours. On l'oublie, sans rien demander.
+    oublierQuestion: () => setQuestion(null),
     page,
     closePage: () => {
       setPage(null);

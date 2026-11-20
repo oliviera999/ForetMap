@@ -34,8 +34,9 @@ const EXPECTED = {
   missions: ['missions', 20],
   // 15 badges + « Bon rangeur » (ensemble unifié, M21).
   badges: ['badges', 16],
-  // 77 lignes de commentaire + 23 « première fois » (ensemble unifié, M8).
-  'olu-lignes': ['lignes', 100],
+  // 77 lignes de commentaire + 24 « première fois » (ensemble unifié, M8 ; « les comptes »,
+  // dite par la tablette d'équipe, depuis le chantier « écrans de séance »).
+  'olu-lignes': ['lignes', 101],
   parures: ['parures', 12],
   sorts: ['sorts', 25],
 };

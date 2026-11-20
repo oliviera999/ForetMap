@@ -451,7 +451,9 @@ parallèle. Au tableau, rien ne change.
 - **L'écran d'équipe guide le tour.** Les sorts y sont rangés par moment (« Avant de lancer »,
   « Après le jet », « Pendant le tour », « Au camp ou en veillée »), les six cases à venir sont affichées
   avant le jet, la distance au voile se lit sous chaque mascotte, et le carnet de la classe
-  signale les pages qui « attendent un lecteur ».
+  signale les pages qui « attendent un lecteur ». _(Depuis le 20 novembre 2026, les cases à
+  venir et le carnet sont dans le tiroir « L'équipe » : voir « L'écran d'équipe en trois
+  choses ».)_
 - **Le défi de case.** Les trois cases « Défi d'équipe » de chaque plateau confient à l'équipe
   qui s'y arrête un défi **à préparer pour la séance suivante** (titre, consigne, préparation
   sur son écran et à son Seuil). Le tour continue. Dans « Demandes », la ligne du défi vous
@@ -579,7 +581,10 @@ Au chapitre 1, on n'explique plus les règles : la classe les rencontre, une à 
 - **Olu dit le geste, une seule fois.** La première fois qu'un geste arrive dans la partie (le
   premier lancer, la première fouille, le premier dé gris, le premier sort…), Olu le dit en une
   phrase, puis n'y revient plus. Vous n'avez rien à lancer.
-- **« Maintenant, vous pouvez… ».** En tête de l'écran d'équipe, la liste des gestes possibles à
+- **« Maintenant, vous pouvez… ».** _(Depuis le 20 novembre 2026, cette liste est devenue la
+  carte du moment : un gros bouton pour le premier geste, les autres en petits boutons ; voir
+  « L'écran d'équipe en trois choses ». Elle reste telle quelle quand la partie se joue au
+  tableau.)_ En tête de l'écran d'équipe, la liste des gestes possibles à
   cet instant, chacun avec le rôle qu'il appelle : **Gestionnaire** (lancer les dés),
   **Éclaireuse ou Éclaireur** (la question de la case), **Opératrice ou Opérateur** (les
   fouilles), **Secrétaire** (lire et faire tenir une page), **Assistante ou Assistant** (les
@@ -643,6 +648,58 @@ salle (réglée pour un vidéoprojecteur en 1920 × 1080).
   marquants, en bas.
 - Sur une fenêtre étroite (moins de 1 024 points de large, un téléphone par exemple), les mêmes
   blocs s'empilent et la page défile.
+
+### Écrans de séance : l'écran d'équipe en trois choses (20 novembre 2026)
+
+L'écran d'une équipe — sur la tablette de la classe comme sur le compte d'un élève — ne montre
+plus tout ce que l'équipe pourrait faire : il montre **le plateau**, **une seule carte** (ce
+qu'elle a à faire maintenant) et **Olu**. Sur une tablette, tout tient à l'écran, sans défiler.
+
+- **En haut, un bandeau fin** : la mascotte et le nom de l'équipe, le tour et sa phase (« Tour
+  2 — À vous de jouer »), le sablier quand il tourne, **la bourse de chaque membre** (pseudo et
+  gemmes) et le bouton **« ☰ L'équipe »**. Hors tour, la tablette ne montre aucune bourse, comme
+  avant. Le nom de la classe et le mot « tablette » ont disparu.
+- **Le plateau, en grand**, à gauche (en haut sur un écran étroit ou un téléphone). Un seul
+  bouton : « Recentrer ». On zoome en écartant deux doigts.
+- **La carte du moment**, à droite (en bas sur un téléphone). Une seule chose à la fois, dans
+  cet ordre : une péripétie à lire ; « Lina prépare un sort… » quand un autre appareil de
+  l'équipe a la main ; une tablette qui demande à rejoindre l'équipe ; la question à laquelle
+  répondre ; le jet à garder (ou à relancer) ; la saisie des dés ; « Jet saisi : le prof
+  valide. » ; le retour d'une fouille ou d'une réponse ; **le geste à faire** ; « Votre tour est
+  joué. Regardez les autres équipes. » ; « Le voile avance. » ; « Le tour est terminé. » (avec
+  le défi à préparer) ; « Le prof ouvre bientôt le tour. »
+- **Le geste à faire, c'est un gros bouton** — « Répondre à la question », « Lancer les dés »,
+  « Fouiller », « Lire », « Jeter un sort », dans cet ordre de priorité — avec, au-dessus, le
+  rôle qu'il appelle (« GESTIONNAIRE »). Les autres gestes possibles sont de petits boutons
+  dessous, trois au plus. **Un geste fermé n'est plus grisé : il n'est pas là.** Les rôles
+  restent un conseil : n'importe qui peut toucher le bouton.
+- **Fouiller** : la carte dit « Touchez la carte · 2 fouilles », le plateau prend un bord doré,
+  et « Arrêter de fouiller » en sort. Après la fouille, la carte donne le retour (« Froid : la
+  page dort plus loin. », « Pas encore… » et où lire la réponse) ; l'équipe touche
+  **« Continuer »** pour revenir à ses gestes.
+- **Le tiroir « L'équipe »** s'ouvre par le bouton du bandeau, par-dessus le plateau, et se
+  referme par « Fermer ». Il garde le reste : les **six cases à venir** (en pastilles), la
+  réserve de la caravane, le défi à préparer, le **carnet de la classe** et le Bestiaire (le
+  bouton « Lire » l'ouvre directement sur le carnet), les présences une fois le tour commencé,
+  « Changer d'équipe » (tablette) ou « Mes badges » (compte d'un élève). Un point doré sur le
+  bouton signale du nouveau (une page trouvée, la réserve qui bouge).
+- **Plus de bouton « Actualiser ».** L'écran suit le tour tout seul. Si le Wi-Fi de la tablette
+  tombe, une flèche ronde **« Relire l'écran »** apparaît dans le bandeau ; elle apparaît aussi
+  quelques secondes après « L'équipe a déjà joué ce geste. Voici où vous en êtes. » Quand la
+  connexion revient, l'écran se relit de lui-même.
+- **Hors tour**, la tablette garde le même écran : le plateau, « Le prof ouvre bientôt le
+  tour. », et le bouton « Défis de la Trame ». « Changer d'équipe » est dans le tiroir.
+- **Olu dit une fois**, sur la tablette, « Le Marché et le Seuil s'ouvrent depuis le compte de
+  chacun. » (la phrase n'est plus affichée en permanence). Il ne le dit pas tant que le Marché
+  est fermé.
+- **Sur le compte d'un élève**, la barre de l'application reste en haut et l'écran d'équipe
+  prend le reste de la fenêtre ; sur un téléphone, la carte du moment est une feuille en bas,
+  au-dessus de la barre de navigation, et les bourses passent dans le tiroir.
+- **« Tout au tableau » et parties jouées au tableau : rien ne change.** Quand vous portez les
+  gestes (surface « tableau »), les écrans d'équipe gardent leur présentation d'avant : la
+  liste des boutons, grisés, au-dessus du plateau. Si vous touchez « Tout au tableau » en pleine
+  séance, les tablettes repassent donc à cet ancien écran, et reviennent au nouveau quand vous
+  rendez la main.
 
 ## Pour aller plus loin
 

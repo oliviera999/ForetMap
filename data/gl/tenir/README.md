@@ -51,7 +51,7 @@ montre comptes, écarts et dernier rapport, et permet de resynchroniser (`POST
 | `missions.json` | `id` | 20 |
 | `titres.json` | chemin `honneurs.<honneur>.<biome>` etc. | 16 + 8 + 20 |
 | `badges.json` | `code` | 16 |
-| `olu-lignes.json` | `id` (`actif: false` : la ligne reste au fichier, Olu ne la dit plus) | 100 (77 de commentaire, 23 « première fois ») |
+| `olu-lignes.json` | `id` (`actif: false` : la ligne reste au fichier, Olu ne la dit plus) | 101 (77 de commentaire, 24 « première fois ») |
 | `parures.json` | `code` | 12 |
 | `sorts.json` | `code` (table `gl_spells`) | 25 (19 actifs) + 5 voyageur |
 | `reglages-defaut.json` | clé de réglage `gameplay.tenir_*` | — |
@@ -185,7 +185,7 @@ l'adaptation (source `defis_trame_fils`), et `bon_rangeur` (« Bon rangeur », s
 
 - `id` : 48 caractères au plus.
 - `moment` ∈ `ouverture | jet | question | fouille | tenir | voile | sort | seuil | peripetie | bestiaire | oiseau | erreur | bourse_pleine | defi_case_recu | defi_case_releve | defi_case_pas_encore | defi_trame_reussi | premiere_fois` (`bourse_pleine` : E5, au moins trois membres d'une équipe au plafond, dit une fois par séance à l'écran d'équipe, jamais en projection).
-- `moment = premiere_fois` (ensemble unifié, M8) : ligne dite **une seule fois par partie** — par équipe quand elle porte `{equipe}` —, à la première occurrence de l'évènement `cle`. `cle` (obligatoire, une ligne par clé, liste `PREMIERE_FOIS_CLES` de `lib/glTenirOlu.js` : `avancer`, `question_pas_encore`, `chercher`, `chaud_froid`, `peripetie`, `defi_case`, `trame`, `role`, `tenir`, `erreur_du_jour`, `voile`, `sous_le_voile`, `page_temoin`, `palissement`, `sorts`, `lumiere`, `marche`, `un_de_pose`, `un_de_joue`, `main`, `camp`, `cordee_offerte`, `lettre`) ; `seance_escalier` (0 à 6) : séance du chapitre 1 où la nouveauté s'ouvre, 0 = hors escalier — dans une partie qui monte l'escalier, la ligne ne se dit pas avant cette séance. `cle` et `seance_escalier` sont refusées sur tout autre moment. Identifiants `olu-pf-<cle>`. Olu dit le geste, jamais de morale.
+- `moment = premiere_fois` (ensemble unifié, M8) : ligne dite **une seule fois par partie** — par équipe quand elle porte `{equipe}` —, à la première occurrence de l'évènement `cle`. `cle` (obligatoire, une ligne par clé, liste `PREMIERE_FOIS_CLES` de `lib/glTenirOlu.js` : `avancer`, `question_pas_encore`, `chercher`, `chaud_froid`, `peripetie`, `defi_case`, `trame`, `role`, `tenir`, `erreur_du_jour`, `voile`, `sous_le_voile`, `page_temoin`, `palissement`, `sorts`, `lumiere`, `marche`, `un_de_pose`, `un_de_joue`, `main`, `camp`, `cordee_offerte`, `lettre`, `comptes`) ; `seance_escalier` (0 à 6) : séance du chapitre 1 où la nouveauté s'ouvre, 0 = hors escalier — dans une partie qui monte l'escalier, la ligne ne se dit pas avant cette séance. `cle` et `seance_escalier` sont refusées sur tout autre moment. Identifiants `olu-pf-<cle>`. Olu dit le geste, jamais de morale. Deux clés n'ont aucun évènement : `main` (en attente) et `comptes` (« Le Marché et le Seuil s'ouvrent depuis le compte de chacun. »), que la tablette d'équipe dit elle-même, une fois par onglet, quand un tour est ouvert et que le Marché l'est aussi.
 - `expression` ∈ `neutre | joie | curieux | surpris | agace | pensif | explique | peur`.
 - `variables` : sous-ensemble de `equipe`, `n`, `biome`, calculé depuis les `{…}` du texte.
 - `moment = oiseau` : ligne dite **après** le passage de l'oiseau (Olu se fige pendant).

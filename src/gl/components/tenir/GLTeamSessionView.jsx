@@ -10,6 +10,7 @@ import { GLSpellCastWizard } from '../GLSpellCastWizard.jsx';
 import { GLMascotCatalogProvider } from '../../context/GLMascotCatalogContext.jsx';
 import { GLButton } from '../ui/GLButton.jsx';
 import { GLMapView } from '../GLMapView.jsx';
+import { GLTenirEcranEquipe } from './GLTenirEcranEquipe.jsx';
 import { GLTenirEquipeView } from './GLTenirEquipeView.jsx';
 import { GLCarnetClasseView } from './GLCarnetClasseView.jsx';
 import { GLDefisCasePanel } from './GLDefisCasePanel.jsx';
@@ -22,13 +23,20 @@ const RELOAD_JITTER_MS = 500;
 
 /**
  * Écran d'une tablette d'équipe (« Tenir à deux », lot 2) : session ouverte par le lien de
- * classe. Même écran d'équipe (`GLTenirEquipeView`) et même plateau que l'élève connecté avec
- * son compte ; la tablette n'affiche aucune bourse hors tour et ne garde rien après fermeture
- * de l'onglet. Le serveur rejoue chaque geste : ici, on ne fait que griser.
+ * classe. Même écran d'équipe et même plateau que l'élève connecté avec son compte : l'écran en
+ * trois choses (`GLTenirEcranEquipe` — bandeau, plateau, carte du moment, tiroir « L'équipe »),
+ * tour ouvert ou non. La tablette n'affiche aucune bourse hors tour (le serveur les tait) et ne
+ * garde rien après fermeture de l'onglet. Le serveur rejoue chaque geste : ici, on ne fait que
+ * montrer ce qu'il permet.
  *
  * Ensemble unifié (M13) : la tablette ne fait que les **gestes d'équipe** — le Marché et le
- * Seuil passent par le compte de chacun (« Qui agit ? » a disparu). Plusieurs appareils peuvent
- * servir la même équipe : la main et la version d'état règlent qui joue.
+ * Seuil passent par le compte de chacun (« Qui agit ? » a disparu ; Olu le dit une fois).
+ * Plusieurs appareils peuvent servir la même équipe : la main et la version d'état règlent qui
+ * joue.
+ *
+ * Surface « tableau » (« Tout au tableau », ou partie jouée au tableau) : l'ancien écran empilé
+ * reste tel quel (`GLTenirEquipeView` puis le plateau) — garde-fou 12, rien n'y change sans
+ * décision.
  *
  * `onEnded(message)` : la session ne vaut plus (déconnectée par le prof, lien régénéré, partie
  * close) → retour au code de la classe. `onQuit` : « Changer d'équipe ».
@@ -128,30 +136,78 @@ export function GLTeamSessionView({ auth, token, onQuit, onEnded }) {
     [gameState?.teams, teamId],
   );
 
+  const auTableau = tenir?.surface === 'tableau';
+  const ecranPret = !!gameState && !!tenir?.enabled && !!team;
+  const plateau = (presentation) => (
+    <GLMapView
+      gameState={gameState}
+      onMoveMascot={undefined}
+      onMoveMascotToPct={undefined}
+      onPlayerActionRequest={NOOP}
+      onSelectTeam={NOOP}
+      onQcmAnswered={reloadGame}
+      canMoveMascot={false}
+      boardMovement={boardMovement}
+      canRequestAction={false}
+      markerArrivalEnabled={tourOuvert && tenir?.permissions?.repondre === true}
+      selectedTeamId={teamId}
+      currentTeamId={round?.equipeActiveId ?? null}
+      playerTeamId={teamId}
+      canSpellCast={false}
+      canRollDice={false}
+      showPlateauMarkers
+      tenirLayers={tenirLayers}
+      fouilleMode={chasse.fouilleMode}
+      onFouille={chasse.fouiller}
+      presentation={presentation}
+    />
+  );
+  const ouvrirSort = (code) =>
+    setSort({ open: true, code: code ? String(code).toUpperCase() : null });
+
   return (
     <GLMascotCatalogProvider token={null}>
-      <div className="gl-team-session" data-testid="gl-team-session">
-        <header className="gl-team-session__head">
-          <div>
-            <strong>{team?.name || auth?.teamName || 'Équipe'}</strong>
-            {auth?.className ? <span className="gl-hint"> · {auth.className}</span> : null}
-          </div>
-          <GLButton type="button" variant="ghost" size="sm" onClick={onQuit}>
-            Changer d’équipe
-          </GLButton>
-        </header>
+      <div
+        className={`gl-team-session${ecranPret && !auTableau ? ' gl-team-session--ecran' : ''}`}
+        data-testid="gl-team-session"
+      >
+        {/* L'écran en trois choses porte son bandeau (et « Changer d'équipe » dans son tiroir) ;
+            tant qu'il n'est pas là — chargement, panne, surface « tableau » — cet en-tête reste. */}
+        {ecranPret && !auTableau ? null : (
+          <header className="gl-team-session__head">
+            <div>
+              <strong>{team?.name || auth?.teamName || 'Équipe'}</strong>
+              {auth?.className ? <span className="gl-hint"> · {auth.className}</span> : null}
+            </div>
+            <GLButton type="button" variant="ghost" size="sm" onClick={onQuit}>
+              Changer d’équipe
+            </GLButton>
+          </header>
+        )}
         {error ? <p className="gl-error-banner">{error}</p> : null}
-        {gameState && tenir?.enabled ? (
+        {ecranPret && !auTableau ? (
+          <GLTenirEcranEquipe
+            gameState={gameState}
+            tenir={tenir}
+            teamId={teamId}
+            onReloadGame={reloadGame}
+            onJeter={ouvrirSort}
+            chasse={chasse}
+            tablette
+            onChangerEquipe={onQuit}
+            token={token}
+            board={plateau('tenir')}
+          />
+        ) : gameState && tenir?.enabled ? (
           <>
+            {/* Surface « tableau » : l'écran d'avant, inchangé (garde-fou 12). */}
             {tourOuvert ? (
               <GLTenirEquipeView
                 gameState={gameState}
                 tenir={tenir}
                 teamId={teamId}
                 onReloadGame={reloadGame}
-                onJeter={(code) =>
-                  setSort({ open: true, code: code ? String(code).toUpperCase() : null })
-                }
+                onJeter={ouvrirSort}
                 chasse={chasse}
                 tablette
               />
@@ -176,27 +232,7 @@ export function GLTeamSessionView({ auth, token, onQuit, onEnded }) {
                 <GLDefisEntree gameId={gameId} />
               </section>
             )}
-            <GLMapView
-              gameState={gameState}
-              onMoveMascot={undefined}
-              onMoveMascotToPct={undefined}
-              onPlayerActionRequest={NOOP}
-              onSelectTeam={NOOP}
-              onQcmAnswered={reloadGame}
-              canMoveMascot={false}
-              boardMovement={boardMovement}
-              canRequestAction={false}
-              markerArrivalEnabled={tourOuvert && tenir?.permissions?.repondre === true}
-              selectedTeamId={teamId}
-              currentTeamId={round?.equipeActiveId ?? null}
-              playerTeamId={teamId}
-              canSpellCast={false}
-              canRollDice={false}
-              showPlateauMarkers
-              tenirLayers={tenirLayers}
-              fouilleMode={chasse.fouilleMode}
-              onFouille={chasse.fouiller}
-            />
+            {plateau('standard')}
             {!tourOuvert && chasse.carnet ? <GLCarnetClasseView chasse={chasse} readOnly /> : null}
           </>
         ) : !error ? (
