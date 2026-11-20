@@ -9,6 +9,29 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — G&L : écrans de séance, lot 1 (textes, adresse, phases, plateau)
+
+Premier lot du chantier « écrans de séance » (`docs/prompts/GL_ECRANS_DE_SEANCE_PROMPT.md`,
+suivi dans `docs/prompts/GL_ECRANS_DE_SEANCE_ETAT.md`). Aucune règle, aucune route, aucun
+schéma, aucun réglage ne change.
+
+- **Connexion**, au « tu » : « Quatre mondes, une année, un carnet à sauver. » (il y a quatre
+  plateaux) ; phrase d'appel et quatrième de couverture réécrites, le Souffle s'y dit par ses
+  effets (le carnet pâlit, le monde se dessèche).
+- **Adresse** : « vous » quand l'écran parle à l'équipe, « tu » quand il parle à un élève.
+  Écran d'équipe (« Le prof ouvre bientôt le tour. », « touchez le plateau », « répondez à sa
+  question »), carnet de la classe, bestiaire, lignes d'Olu `olu-pf-main` et `olu-pf-trame`.
+- **Phases en mots d'élève** : « Le tour s'ouvre », « À vous de jouer », « Le voile avance »,
+  « Tour terminé », depuis un seul module (`src/gl/constants/tenirPhases.js`) lu par l'écran
+  d'équipe, la projection et la console (terme du moteur en infobulle).
+- **Assistant de sort** : « Lancer : Sentier » (espace insécable), « Ne pas lancer ».
+- **Plateau** : `GLGameBoard` et `GLMapView` reçoivent `presentation` (`standard` par défaut,
+  `tenir`, `projection`). Aucun écran ne s'en sert encore : la projection et l'écran d'équipe
+  s'y brancheront dans les lots suivants.
+- Tests : `tests/content/gl-adresse-ecran-equipe.test.js` (ni tutoiement ni mot interdit dans
+  les sources des écrans de séance), `tests-ui/gl/tenirPhases.test.js`,
+  `tests-ui/gl/GLGameBoardPresentation.test.jsx`.
+
 ### Corrigé — enregistrement automatique : « Terminer » pendant un envoi ne perd plus la fin du texte
 
 Fermer l’éditeur (carnet, et tout écran qui passe par l’enregistrement automatique) pendant

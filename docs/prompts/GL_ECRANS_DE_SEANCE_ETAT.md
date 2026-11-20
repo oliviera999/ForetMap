@@ -2,29 +2,37 @@
 
 Mémoire entre les sessions du chantier décrit dans
 [`GL_ECRANS_DE_SEANCE_PROMPT.md`](./GL_ECRANS_DE_SEANCE_PROMPT.md) (à lire en premier, § 00).
-Branche `claude/gl-ecrans-de-seance`, PR en brouillon
-[#711](https://github.com/oliviera999/ForetMap/pull/711). **Rien ne se fusionne** avant la CI
-verte et la décision d'Oliv.
+**Changement de plan du 20/11 au soir (demande d'Oliv : « merge et continue »).** Le lot de S1
+est fusionné sur `main` par la PR [#711](https://github.com/oliviera999/ForetMap/pull/711), avec
+sa propre entrée de CHANGELOG et sa note dans `docs/reference/gl/guide-du-mj.md`. La suite
+(S2 à S6) continue sur la **même branche** `claude/gl-ecrans-de-seance`, repartie de `main`, et
+dans une **nouvelle PR en brouillon** :
 
-Chaque session met à jour le tableau « Avancement » de la description de la PR #711 (S6 la
-réécrit selon le § 9 du prompt). La session S1 est abonnée aux évènements de la PR : la CI, qui
-ne part qu'au passage en « prête », lui sera signalée.
+- **S2 l'ouvre** après son premier push (titre « feat(gl): écrans de séance — projection,
+  tablette, console, accueil »), note son numéro ici, et chaque session en met à jour le tableau
+  d'avancement ; S6 la réécrit selon le § 9 du prompt et la passe en « prête » ;
+- là où le prompt dit « la PR brouillon ouverte dès la session 1 », lire « la PR de la suite » ;
+- la description finale (§ 9) couvre tout le chantier : elle cite la PR #711 pour le lot de S1 ;
+- l'entrée de CHANGELOG de S6 s'ajoute à celle du lot 1, déjà sous `[Non publié]` (ou déjà
+  rangée sous une version par le bump automatique) : ne pas la réécrire ;
+- sauf nouvelle demande d'Oliv, **rien d'autre ne se fusionne** avant la CI verte de la PR de
+  la suite et sa décision.
 
 ## Sessions
 
-| Session | Lot                                       | État    | Commits                                                                             |
-| ------- | ----------------------------------------- | ------- | ----------------------------------------------------------------------------------- |
-| S1      | Préparation, textes, adresse, plateau     | faite   | `8272b2e08` (prompt, captures), `e898eff3c` (étape 1), `552754187` (étape 2) + état |
-| S2      | Projection (étape 3)                      | à faire | —                                                                                   |
-| S3      | Tablette 1 : moteur de la carte du moment | à faire | —                                                                                   |
-| S4      | Tablette 2 : branchement                  | à faire | —                                                                                   |
-| S5      | Console (étape 5)                         | à faire | —                                                                                   |
-| S6      | Accueil, docs, clôture (étapes 6 et 7)    | à faire | —                                                                                   |
+| Session | Lot                                       | État                    | Commits                                                                             |
+| ------- | ----------------------------------------- | ----------------------- | ----------------------------------------------------------------------------------- |
+| S1      | Préparation, textes, adresse, plateau     | faite, fusionnée (#711) | `8272b2e08` (prompt, captures), `e898eff3c` (étape 1), `552754187` (étape 2) + état |
+| S2      | Projection (étape 3)                      | à faire                 | —                                                                                   |
+| S3      | Tablette 1 : moteur de la carte du moment | à faire                 | —                                                                                   |
+| S4      | Tablette 2 : branchement                  | à faire                 | —                                                                                   |
+| S5      | Console (étape 5)                         | à faire                 | —                                                                                   |
+| S6      | Accueil, docs, clôture (étapes 6 et 7)    | à faire                 | —                                                                                   |
 
 Sessions `bis` : aucune. Sessions lancées : 1 sur 8 au plus.
 
-Relais : S1 a planifié S2 (tâche ponctuelle « G&L écrans de séance — S2 », créée le 20/11 à
-19 h 08 UTC pour 19 h 13).
+Relais : S1 a planifié S2 (tâche ponctuelle « G&L écrans de séance — S2 »), l'a suspendue le
+temps de la fusion de #711, puis l'a réarmée une fois la branche repartie de `main`.
 
 **Avertissement de l'outil de planification** : une tâche planifiée depuis une session ne porte
 ni dépôt source ni connecteur. La session lancée doit donc attacher le dépôt elle-même
@@ -250,4 +258,8 @@ S6 relance la même commande : les mêmes chiffres sont attendus.
   infobulle. Vérifier aussi `roles-et-connexion.md` et `presentation.md` pour la connexion.
 - `docs/AUDIT_GL_ENSEMBLE_UNIFIE_2026-11-18.md` cite les anciennes lignes d'Olu : c'est un
   audit daté, on n'y touche pas.
-- CHANGELOG : entrée directe sous `[Non publié]`, « Modifié — G&L : écrans de séance ».
+- CHANGELOG : entrée directe sous `[Non publié]`, « Modifié — G&L : écrans de séance », pour
+  les lots de S2 à S6 ; celle du lot 1 existe déjà (fusion de #711).
+- `docs/reference/gl/guide-du-mj.md` porte déjà la note « Écrans de séance : les mots à
+  l'écran (20 novembre 2026) » : la compléter (projection, tablette, console) plutôt que d'en
+  ouvrir une autre.
