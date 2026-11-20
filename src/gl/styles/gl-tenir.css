@@ -216,25 +216,6 @@
   animation: none !important;
 }
 
-/* Projection */
-.gl-projection__teams {
-  list-style: none;
-  padding: 0;
-}
-.gl-projection__carnet {
-  list-style: none;
-  padding: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
-  gap: 0.5rem;
-}
-/* En projection, l'indice prend toute la largeur de sa carte ; l'état passe dessous. */
-.gl-projection__carnet .gl-carnet-page {
-  flex-direction: column;
-  align-items: flex-start;
-  overflow-wrap: anywhere;
-}
-
 /* Olu commentateur */
 .gl-olu-bulle {
   margin: 0.25rem 0;
@@ -410,15 +391,6 @@
 }
 .gl-reglages-hors-tenir > summary {
   cursor: pointer;
-}
-
-/* Projection : le plateau en lecture seule occupe la largeur, sans débordement. */
-.gl-projection__board {
-  max-width: 100%;
-  margin: 0.5rem 0 0.75rem;
-}
-.gl-projection__board .gl-board {
-  pointer-events: none;
 }
 
 /* Sabliers (équipe active, phase, défis) : un rythme, jamais une sanction. */
@@ -1150,9 +1122,8 @@
   padding: 0;
   list-style: none;
 }
-/* « Ce qui change » (camp) et accroche de fin de séance (projection). */
-.gl-ce-qui-change,
-.gl-projection__accroche {
+/* « Ce qui change » (camp). */
+.gl-ce-qui-change {
   margin: var(--gl-space-2) 0;
   padding: var(--gl-space-2) var(--gl-space-3);
   border: 1px solid var(--gl-border);
@@ -1300,6 +1271,10 @@
   cursor: default;
 }
 
+.gl-board-marker--statique {
+  cursor: default;
+}
+
 /* Écran d'équipe : le seul bouton du plateau, avec son nom. */
 .gl-board-zoom-btn--nomme {
   display: inline-flex;
@@ -1307,4 +1282,401 @@
   gap: 6px;
   padding: 0 14px;
   font-size: var(--text-sm);
+}
+
+/*
+ * Projection, mode tableau (chantier « écrans de séance », étape 3) : une grille plein écran,
+ * lue du fond de la salle. Corps `clamp(20px, 1.4vw, 32px)`, titres au double ; tout le reste
+ * se règle en `em` de ce corps. À 1920×1080, rien ne défile : le plateau prend la place qui
+ * reste entre le bandeau et les faits marquants.
+ */
+.gl-projection {
+  display: grid;
+  grid-template-columns: minmax(0, 7fr) minmax(0, 3fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    'bandeau bandeau'
+    'plateau cote'
+    'faits faits';
+  gap: 0.45em 0.7em;
+  box-sizing: border-box;
+  height: 100vh;
+  height: 100dvh;
+  padding: 0.45em 0.7em;
+  overflow: hidden;
+  font-size: clamp(20px, 1.4vw, 32px);
+  line-height: 1.25;
+}
+.gl-projection--carte {
+  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-areas:
+    'bandeau bandeau'
+    'carte carte';
+}
+.gl-projection h1,
+.gl-projection h2,
+.gl-projection h4,
+.gl-projection p {
+  margin: 0;
+}
+.gl-projection .gl-hint,
+.gl-projection .gl-btn {
+  font-size: 0.75em;
+}
+
+/* Bandeau : la partie, le tour et sa phase, le sablier. */
+.gl-projection__banner {
+  grid-area: bandeau;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.1em 1em;
+}
+.gl-projection__banner h1 {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 2em;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gl-projection__tour {
+  flex: 1 1 auto;
+  font-size: 1.35em;
+}
+.gl-projection__voile {
+  font-size: 0.74em;
+  color: var(--gl-color-text-muted);
+  white-space: nowrap;
+}
+.gl-projection__outils {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  margin-inline-start: auto;
+}
+.gl-projection .gl-tour-sablier__time {
+  font-size: 1.35em;
+}
+.gl-projection__erreur {
+  flex-basis: 100%;
+}
+
+/* Le plateau : toute la hauteur de sa cellule, rien ne se touche. */
+.gl-projection__board {
+  grid-area: plateau;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: var(--gl-radius-lg);
+}
+.gl-projection__board .gl-board {
+  pointer-events: none;
+  /* Les pions se lisent du fond de la salle : mascottes et noms d'équipe agrandis. */
+  --gl-board-mascot-h: clamp(54px, 5vw, 112px);
+}
+.gl-projection__board .gl-board .gl-board-mascot .visit-map-mascot-rive-shell,
+.gl-projection__board .gl-board .gl-board-mascot .visit-map-mascot-spritesheet-shell,
+.gl-projection__board .gl-board .gl-board-mascot .visit-map-mascot-sprite-cut {
+  width: clamp(48px, 4.4vw, 100px);
+}
+.gl-projection__board .gl-board-mascot .visit-map-mascot-static,
+.gl-projection__board .gl-board-mascot .gl-mascot-avatar {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.gl-projection__board .gl-board-team-pin {
+  max-width: 14em;
+  font-size: 0.62em;
+}
+.gl-projection__board .gl-board-mascot__titre {
+  font-size: 0.56em;
+}
+
+/* Colonne de droite : les équipes, la Lumière, le carnet. */
+.gl-projection__cote {
+  grid-area: cote;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5em;
+  min-height: 0;
+  overflow-y: auto;
+}
+.gl-projection__teams {
+  display: grid;
+  gap: 0.3em;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.gl-projection__team {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  padding: 0.2em 0.5em;
+  border: 1px solid var(--gl-border);
+  border-inline-start: 0.3em solid var(--gl-team-color, var(--gl-color-primary));
+  border-radius: var(--gl-radius-lg);
+  background: var(--gl-surface);
+}
+.gl-projection__team.is-active {
+  outline: 0.12em solid var(--gl-color-accent);
+  outline-offset: -0.12em;
+}
+.gl-projection__team .gl-mascot-avatar {
+  flex: 0 0 auto;
+}
+.gl-projection__team-texte {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 0.5em;
+  min-width: 0;
+}
+.gl-projection__team-nom {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.gl-projection__team-case {
+  font-weight: var(--fw-semibold);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.gl-projection__team-mentions {
+  display: flex;
+  flex-basis: 100%;
+  flex-wrap: wrap;
+  gap: 0.25em;
+  font-size: 0.75em;
+}
+.gl-projection__mention {
+  padding: 0 0.5em;
+  border: 1px solid var(--gl-border);
+  border-radius: var(--gl-radius-pill);
+  background: var(--gl-surface-muted);
+}
+.gl-projection__lumiere {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 0.1em 0.5em;
+}
+.gl-projection__lumiere-titre {
+  font-weight: var(--fw-semibold);
+}
+.gl-projection__lumiere-compte {
+  font-variant-numeric: tabular-nums;
+}
+.gl-projection__lumiere progress {
+  grid-column: 1 / -1;
+  width: 100%;
+  height: 0.5em;
+}
+.gl-projection__chasse {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3em;
+}
+.gl-projection__chasse h2 {
+  font-size: 1em;
+}
+/* Le carnet en pages : une tuile par page, son état en mots (jamais l'indice, trop long ici). */
+.gl-projection__carnet {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.25em;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.75em;
+}
+.gl-projection__page {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 0.1em 0.5em;
+  border: 1px solid var(--gl-border);
+  border-inline-start: 0.3em solid var(--gl-border);
+  border-radius: var(--gl-radius-md);
+  background: var(--gl-surface);
+}
+/* Deux lignes par tuile, jamais plus : un titre ou un nom d'équipe trop long se coupe. */
+.gl-projection__page-titre,
+.gl-projection__page-etat {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gl-projection__page--endormie,
+.gl-projection__page--revelee {
+  border-style: dashed;
+  background: transparent;
+  color: var(--gl-color-text-muted);
+}
+.gl-projection__page--trouvee,
+.gl-projection__page--reparee {
+  border-inline-start-color: var(--accent-success-solid);
+}
+.gl-projection__page--tenue {
+  border-inline-start-color: var(--accent-info-solid);
+}
+.gl-projection__page--palie {
+  background: var(--gl-surface-muted);
+  color: var(--gl-color-text-muted);
+}
+
+/* En bas : les trois derniers faits marquants (au camp : « Ce qui change »). */
+.gl-projection__faits {
+  grid-area: faits;
+  min-height: 2.6em;
+}
+.gl-projection__faits .gl-tour-journal--marquants ul,
+.gl-projection__faits .gl-ce-qui-change ul {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.6em;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.gl-projection__faits .gl-tour-journal--marquants li,
+.gl-projection__faits .gl-ce-qui-change li {
+  padding: 0.2em 0.6em;
+  border: 1px solid var(--gl-border);
+  border-radius: var(--gl-radius-lg);
+  background: var(--gl-surface);
+}
+.gl-projection__faits .gl-tour-journal--marquants li p {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+}
+.gl-projection__faits .gl-ce-qui-change {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.gl-projection__faits .gl-ce-qui-change h4 {
+  margin-bottom: 0.2em;
+  font-size: 1em;
+}
+
+/* La carte plein écran : « À la prochaine séance » à la clôture, la page du jour à la demande. */
+.gl-projection__carte {
+  grid-area: carte;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5em;
+  min-height: 0;
+  padding: 0.6em 1em;
+  overflow-y: auto;
+  border: 1px solid var(--gl-border);
+  border-radius: var(--gl-radius-lg);
+  background: var(--gl-surface);
+}
+.gl-projection__carte > h2 {
+  font-size: 2em;
+  line-height: 1.1;
+}
+.gl-projection__carte-corps {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.6em 1.5em;
+}
+.gl-projection__carte .gl-tour-passeur {
+  flex: 3 1 24em;
+  max-width: 68ch;
+  margin: 0;
+  padding-inline-start: 0.8em;
+  border-inline-start: 0.2em solid var(--gl-color-accent);
+}
+.gl-projection__carte .gl-tour-passeur p {
+  white-space: pre-line;
+}
+.gl-projection__carte-suite {
+  display: grid;
+  flex: 2 1 16em;
+  gap: 0.5em;
+  min-width: 0;
+}
+.gl-projection__carte-suite:empty {
+  display: none;
+}
+.gl-projection__indice {
+  font-style: italic;
+}
+.gl-projection__carte .gl-defis-case {
+  margin: 0;
+}
+.gl-projection__retour {
+  align-self: flex-end;
+}
+
+/* Le voile au tableau : bande plus opaque, cernée d'un contour — toujours sans pictogramme. */
+.gl-voile-layer--projection .gl-voile-contour {
+  fill: none;
+  stroke: var(--ink-base);
+  stroke-opacity: 0.7;
+  stroke-width: 7.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.gl-voile-layer--projection .gl-voile-bande {
+  stroke-opacity: 0.8;
+  stroke-width: 6.2;
+}
+.gl-voile-layer--projection .gl-voile-case {
+  fill-opacity: 0.7;
+  stroke: var(--ink-base);
+  stroke-width: 0.3;
+}
+
+/* Vidéoprojecteur moins haut (720, 768 ou 800 points) : chaque page du carnet tient sur une
+   ligne, pour que la colonne de droite garde tout à l'écran. */
+@media (min-width: 1024px) and (max-height: 899px) {
+  .gl-projection__page {
+    flex-direction: row;
+    align-items: baseline;
+    gap: 0.4em;
+  }
+  .gl-projection__page-titre {
+    flex: 0 1 auto;
+    min-width: 3.6em;
+  }
+  .gl-projection__page-etat {
+    flex: 0 1 auto;
+    min-width: 0;
+  }
+}
+
+/* Fenêtre étroite (la projection ouverte sur un petit écran) : tout s'empile et défile. */
+@media (max-width: 1023px) {
+  .gl-projection,
+  .gl-projection--carte {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+    grid-template-areas: none;
+    height: auto;
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+  .gl-projection > * {
+    grid-area: auto;
+  }
+  .gl-projection__board {
+    height: 62vw;
+  }
+  .gl-projection__cote,
+  .gl-projection__carte {
+    overflow-y: visible;
+  }
 }

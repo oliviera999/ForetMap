@@ -156,7 +156,12 @@ test.describe('GL — escalier du chapitre 1', () => {
     const indice = ecran.page.getByTestId('gl-projection-accroche-indice');
     await expect(indice).toContainText('Une page dort encore');
     await expect(indice).not.toContainText(INTERDITS);
-    await accroche.scrollIntoViewIfNeeded();
+    // Mode tableau : la carte remplace l'écran, rien ne défile.
+    await expect(ecran.page.getByTestId('gl-projection')).toHaveAttribute('data-vue', 'carte');
+    await expect(ecran.page.getByTestId('gl-projection-board')).toHaveCount(0);
+    expect(
+      await ecran.page.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight),
+    ).toBe(true);
     await ecran.page.screenshot({
       path: 'docs/captures/tenir-v2/escalier-accroche-projection.png',
     });
