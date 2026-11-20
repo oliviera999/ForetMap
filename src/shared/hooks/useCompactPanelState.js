@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 
+import { MEDIA } from '../breakpoints.js';
 import { safeLocalStorageGetItem, safeLocalStorageSetItem } from '../platform/browserStorage.js';
 
 /**
  * En dessous de cette largeur, un panneau « compactable » passe en feuille basse (miroir
- * de la bascule desktop 1023/1024 px documentée dans `src/index.css`).
+ * de la bascule desktop 1023/1024 px, échelle `src/shared/breakpoints.js`).
  */
-export const COMPACT_PANEL_QUERY = '(max-width: 1023px)';
+export const COMPACT_PANEL_QUERY = MEDIA.belowDesktop;
 
 /** Lecture synchrone de la media query (évite un flash de panneau ouvert au montage mobile). */
 export function matchesCompactPanel(query = COMPACT_PANEL_QUERY) {
