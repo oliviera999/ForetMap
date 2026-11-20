@@ -21,6 +21,7 @@ export function GLTenirBandeau({
   team,
   round = null,
   sablier = null,
+  /** Membres de l'équipe : le roster de la partie, déjà filtré sur elle. */
   membres = [],
   tiroirOuvert = false,
   tiroirId = undefined,

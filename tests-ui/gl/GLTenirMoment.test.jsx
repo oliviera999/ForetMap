@@ -119,12 +119,12 @@ describe('GLTenirMoment', () => {
 
   test('main ailleurs : qui joue, et rien d’autre', () => {
     const moment = momentDeLEquipe({
-      mainAilleurs: { texte: 'Lina prépare un sort…' },
+      mainAilleurs: { texte: 'joueur-a prépare un sort…' },
       maintenant: gestes(),
       phase: 'jeu',
     });
     render(<GLTenirMoment moment={moment} gameId={7} />);
-    expect(screen.getByTestId('gl-tenir-main')).toHaveTextContent('Lina prépare un sort…');
+    expect(screen.getByTestId('gl-tenir-main')).toHaveTextContent('joueur-a prépare un sort…');
     expect(document.querySelectorAll('[data-geste]')).toHaveLength(0);
     expect(blocsVisibles()).toEqual(['gl-tenir-main']);
   });
@@ -142,7 +142,7 @@ describe('GLTenirMoment', () => {
         gameId={7}
         equipe={{
           version: 3,
-          main: { moi: false, texte: 'Lina répond…' },
+          main: { moi: false, texte: 'joueur-a répond…' },
           appareils: [{ id: 4, resteSecondes: 90 }],
         }}
         onRecharger={onRecharger}
@@ -373,10 +373,20 @@ describe('GLTenirMoment', () => {
 
   test('tour joué, voile qui avance, tour pas encore ouvert : un mot, rien à toucher', () => {
     const { rerender } = render(
-      <GLTenirMoment moment={momentDeLEquipe({ phase: 'jeu' })} gameId={7} />,
+      <GLTenirMoment moment={momentDeLEquipe({ phase: 'jeu', tourJoue: true })} gameId={7} />,
     );
     expect(screen.getByTestId('gl-tenir-moment-joue')).toHaveTextContent(
       'Votre tour est joué. Regardez les autres équipes.',
+    );
+    rerender(<GLTenirMoment moment={momentDeLEquipe({ phase: 'jeu' })} gameId={7} />);
+    expect(screen.getByTestId('gl-tenir-moment-joue')).toHaveTextContent(
+      'Pour l’instant, regardez le plateau.',
+    );
+    rerender(
+      <GLTenirMoment moment={momentDeLEquipe({ phase: 'jeu', surface: 'tableau' })} gameId={7} />,
+    );
+    expect(screen.getByTestId('gl-tenir-moment-joue')).toHaveTextContent(
+      'Le tour se joue au tableau.',
     );
     rerender(<GLTenirMoment moment={momentDeLEquipe({ phase: 'souffle' })} gameId={7} />);
     expect(screen.getByTestId('gl-tenir-moment-souffle')).toHaveTextContent('Le voile avance.');

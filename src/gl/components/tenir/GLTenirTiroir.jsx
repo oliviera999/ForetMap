@@ -33,14 +33,18 @@ export function GLTenirTiroir({
   reserve = null,
   /** Résultat de `useGlChasse` : le carnet de la classe. */
   chasse = null,
-  /** Carnet sans bouton « Lire » (hors tour sur la tablette). */
-  carnetLectureSeule = false,
+  /**
+   * Droit servi `perms.lire` : sans lui (défaut), le carnet se consulte sans bouton « Lire » ni
+   * appel du rôle. Le tiroir cache un geste fermé, il ne l'ouvre jamais.
+   */
+  peutLire = false,
   /** Tablette d'équipe : pas de badges ni de proposition de chimère ; « Changer d'équipe ». */
   tablette = false,
   onChangerEquipe = null,
   /** Modules G&L (`rewardsEnabled` conditionne « Mes badges ») ; `null` = tout allumé. */
   modules = null,
   presence = null,
+  /** Membres de l'équipe (roster déjà filtré sur elle). */
   membres = [],
   /** L'élève regarde ce tour sans jouer (absent ou en retrait). */
   spectateur = false,
@@ -163,10 +167,8 @@ export function GLTenirTiroir({
             aria-label="Carnet de la classe"
             data-testid="gl-tenir-tiroir-carnet"
           >
-            {carnetLectureSeule ? null : (
-              <p className="gl-hint gl-role-conseil">{ROLES_EN_CONSEIL.lire}</p>
-            )}
-            <GLCarnetClasseView chasse={chasse} readOnly={carnetLectureSeule} />
+            {peutLire ? <p className="gl-hint gl-role-conseil">{ROLES_EN_CONSEIL.lire}</p> : null}
+            <GLCarnetClasseView chasse={chasse} readOnly={!peutLire} />
             <GLBestiairePanel gameId={gameId} canPropose={!tablette} />
           </section>
         ) : null}

@@ -48,6 +48,10 @@ export const PUCES_MAX = 3;
 export const TEXTES_DU_MOMENT = Object.freeze({
   jet_attente: 'Jet saisi : le prof valide.',
   joue: 'Votre tour est joué. Regardez les autres équipes.',
+  /** Phase de jeu, rien d'ouvert, mais le tour de l'équipe n'est pas fini (fouille à venir…). */
+  patience: 'Pour l’instant, regardez le plateau.',
+  /** Surface « tableau » : le prof porte les gestes, l'écran de l'élève regarde. */
+  tableau: 'Le tour se joue au tableau.',
   souffle: 'Le voile avance.',
   camp: 'Vous êtes au camp : le chapitre est terminé.',
   clos: 'Le tour est terminé.',
@@ -106,14 +110,27 @@ export function aucunGesteDuTour({ aLance = false, fouilles = null } = {}) {
 }
 
 /**
+ * Le tour de l'équipe est-il joué ? Elle a lancé (ou elle est au camp) et il ne lui reste aucune
+ * fouille. Tant que ce n'est pas sûr, la carte ne dit pas « Votre tour est joué ».
+ * @param {{ aLance?: boolean, auCamp?: boolean,
+ *   fouilles?: { restantes?: number }|null }} p
+ */
+export function tourEstJoue({ aLance = false, auCamp = false, fouilles = null } = {}) {
+  if (!aLance && !auCamp) return false;
+  if (!fouilles || fouilles.restantes == null) return true;
+  return Number(fouilles.restantes) <= 0;
+}
+
+/**
  * La carte du moment : **un seul** état, le premier vrai de `ETATS_DU_MOMENT`.
  *
  * @param {object} p
  * @param {object|null} [p.peripetie] péripétie de l'équipe non encore passée
  * @param {{ texte?: string }|null} [p.mainAilleurs] un autre appareil de l'équipe tient la main
  * @param {number|Array} [p.appareils] tablettes qui demandent à rejoindre l'équipe
- * @param {boolean} [p.questionCase] une question de case est présentée
- * @param {boolean} [p.questionChasse] une question de page (fouille) est présentée
+ * @param {boolean} [p.questionCase] une question de case est présentée (montrée en phase de
+ *   jeu seulement : hors d'elle, le serveur ferme « répondre »)
+ * @param {boolean} [p.questionChasse] une question de page (fouille) est présentée (idem)
  * @param {object|null} [p.jetEnSuspens] jet dont la case ne s'est pas encore appliquée
  * @param {boolean} [p.saisieDes] l'équipe a touché « Lancer » : la saisie des dés est ouverte
  * @param {boolean} [p.jetEnAttente] jet saisi, que le prof n'a pas encore validé
@@ -127,6 +144,8 @@ export function aucunGesteDuTour({ aLance = false, fouilles = null } = {}) {
  * @param {string|null} [p.phase] phase du tour (`null` = aucun tour ouvert)
  * @param {boolean} [p.partieFinie] la partie est close (l'équipe est au camp)
  * @param {boolean} [p.spectateur] élève absent du tour ou en retrait : il voit, il ne joue pas
+ * @param {string|null} [p.surface] surface de la partie (`tableau` : le prof porte les gestes)
+ * @param {boolean} [p.tourJoue] le tour de l'équipe est joué (`tourEstJoue`)
  * @param {boolean} [p.presenceOuverte] l'équipe peut dire qui manque (présences du tour)
  * @param {boolean} [p.aucunGeste] aucun geste joué ce tour (`aucunGesteDuTour`)
  * @returns {{ etat: string, texte: string|null, geste: string|null, role: string|null,
@@ -153,6 +172,8 @@ export function momentDeLEquipe({
   phase = null,
   partieFinie = false,
   spectateur = false,
+  surface = null,
+  tourJoue = false,
   presenceOuverte = false,
   aucunGeste = false,
 } = {}) {
@@ -181,8 +202,11 @@ export function momentDeLEquipe({
   if (peripetie) return dire('peripetie');
   if (mainAilleurs) return dire('main_ailleurs', { texte: mainAilleurs.texte || '' });
   if (nbAppareils > 0) return dire('appareil');
-  if (questionCase) return dire('question', { origine: 'case' });
-  if (questionChasse) return dire('question', { origine: 'chasse' });
+  // Une question ouverte ne survit pas à la phase de jeu : le serveur a fermé « répondre », et
+  // la carte doit laisser voir « Le voile avance. » sans attendre un « Fermer ».
+  const enJeu = phase === 'jeu';
+  if (questionCase && enJeu) return dire('question', { origine: 'case' });
+  if (questionChasse && enJeu) return dire('question', { origine: 'chasse' });
   if (jetEnSuspens) return dire('jet_suspens');
   // La saisie ne reste ouverte que tant que le jet est encore permis : un autre appareil de
   // l'équipe a pu lancer entre-temps.
@@ -214,18 +238,20 @@ export function momentDeLEquipe({
       puces: autres,
     });
   }
-  if (phase === 'jeu') {
-    return spectateur
-      ? dire('joue', { texte: MESSAGE_SPECTATEUR, spectateur: true })
-      : dire('joue', { texte: TEXTES_DU_MOMENT.joue });
+  // L'élève qui regarde ce tour (absent ou en retrait) lit son message tant que le tour se joue.
+  const regarde = { texte: MESSAGE_SPECTATEUR, spectateur: true };
+  if (enJeu) {
+    if (spectateur) return dire('joue', regarde);
+    if (surface === 'tableau') return dire('joue', { texte: TEXTES_DU_MOMENT.tableau });
+    return dire('joue', { texte: tourJoue ? TEXTES_DU_MOMENT.joue : TEXTES_DU_MOMENT.patience });
   }
   if (phase === 'souffle') return dire('souffle', { texte: TEXTES_DU_MOMENT.souffle });
   if (partieFinie) return dire('camp', { texte: TEXTES_DU_MOMENT.camp, puces: pucesHorsTour });
   if (phase === 'clos') return dire('clos', { texte: TEXTES_DU_MOMENT.clos, puces: pucesHorsTour });
-  return dire('attente', {
-    texte: phase === 'ouverture' ? TEXTES_DU_MOMENT.ouverture : TEXTES_DU_MOMENT.attente,
-    puces: pucesHorsTour,
-  });
+  if (phase === 'ouverture') {
+    return dire('attente', spectateur ? regarde : { texte: TEXTES_DU_MOMENT.ouverture });
+  }
+  return dire('attente', { texte: TEXTES_DU_MOMENT.attente, puces: pucesHorsTour });
 }
 
 /**
@@ -409,7 +435,8 @@ export const PSEUDO_MAX = 12;
  * gemmes servies (`null` quand le serveur les tait : la pastille ne montre alors que le nom).
  *
  * @param {Array<{ playerId?: number, pseudo?: string, firstName?: string, lastName?: string,
- *   powerPoints?: number|null }>} membres membres de l'équipe (`gameState.roster`)
+ *   powerPoints?: number|null }>} membres membres de **l'équipe** : `gameState.roster` déjà
+ *   filtré sur elle (le roster brut d'un compte élève porte toute la classe)
  * @returns {Array<{ id: number|string, nom: string, complet: string, gemmes: number|null }>}
  */
 export function boursesDeLEquipe(membres = []) {

@@ -14,6 +14,7 @@ import {
   estSousVoile,
   momentDeLEquipe,
   retourDuMoment,
+  tourEstJoue,
 } from '../../src/gl/utils/glTenirMoment.js';
 import { maintenantVousPouvez } from '../../src/shared/glSortMomentsCore.js';
 import { PHASE_AUCUN_TOUR } from '../../src/gl/constants/tenirPhases.js';
@@ -45,7 +46,7 @@ function gestesOuverts(extra = {}) {
 function toutVrai() {
   return {
     peripetie: { id: 'per-1', texte: 'Un pont de lianes.' },
-    mainAilleurs: { texte: 'Lina prépare un sort…' },
+    mainAilleurs: { texte: 'joueur-a prépare un sort…' },
     appareils: [{ id: 4, resteSecondes: 90 }],
     questionCase: true,
     questionChasse: true,
@@ -73,7 +74,8 @@ describe('momentDeLEquipe — un seul état, le premier vrai', () => {
       ['jet_attente', (e) => ({ ...e, jetEnAttente: false })],
       ['retour', (e) => ({ ...e, retour: null })],
       ['geste', (e) => ({ ...e, maintenant: [] })],
-      ['joue', (e) => ({ ...e, phase: 'souffle' })],
+      // Hors de la phase de jeu, une question restée ouverte ne se montre plus.
+      ['joue', (e) => ({ ...e, phase: 'souffle', questionCase: true, questionChasse: true })],
       ['souffle', (e) => ({ ...e, phase: 'clos' })],
       ['camp', (e) => ({ ...e, partieFinie: false })],
       ['clos', (e) => ({ ...e, phase: null })],
@@ -104,19 +106,31 @@ describe('momentDeLEquipe — un seul état, le premier vrai', () => {
 
   test('main ailleurs : le texte du serveur, et aucun geste', () => {
     const moment = momentDeLEquipe({
-      mainAilleurs: { texte: 'Lina prépare un sort…', geste: 'sort' },
+      mainAilleurs: { texte: 'joueur-a prépare un sort…', geste: 'sort' },
       questionCase: true,
       maintenant: gestesOuverts(),
       phase: 'jeu',
     });
-    expect(moment).toMatchObject({ etat: 'main_ailleurs', texte: 'Lina prépare un sort…' });
+    expect(moment).toMatchObject({ etat: 'main_ailleurs', texte: 'joueur-a prépare un sort…' });
     expect(moment.geste).toBeNull();
     expect(moment.puces).toEqual([]);
   });
 
   test('question de case avant question de page', () => {
-    expect(momentDeLEquipe({ questionCase: true, questionChasse: true }).origine).toBe('case');
-    expect(momentDeLEquipe({ questionChasse: true }).origine).toBe('chasse');
+    const jeu = { phase: 'jeu' };
+    expect(momentDeLEquipe({ ...jeu, questionCase: true, questionChasse: true }).origine).toBe(
+      'case',
+    );
+    expect(momentDeLEquipe({ ...jeu, questionChasse: true }).origine).toBe('chasse');
+  });
+
+  test('une question ouverte ne survit pas à la phase de jeu', () => {
+    // Le prof passe au voile pendant que l'équipe réfléchit : la carte montre le voile.
+    for (const question of [{ questionCase: true }, { questionChasse: true }]) {
+      expect(momentDeLEquipe({ ...question, phase: 'souffle' }).etat).toBe('souffle');
+      expect(momentDeLEquipe({ ...question, phase: 'clos' }).etat).toBe('clos');
+      expect(momentDeLEquipe({ ...question, phase: null }).etat).toBe('attente');
+    }
   });
 
   test('une demande d’appareil compte, une liste vide non', () => {
@@ -282,13 +296,42 @@ describe('momentDeLEquipe — état « geste »', () => {
 
 describe('momentDeLEquipe — quand il n’y a rien à toucher', () => {
   test('tour joué, voile qui avance', () => {
-    expect(momentDeLEquipe({ phase: 'jeu' })).toMatchObject({
+    expect(momentDeLEquipe({ phase: 'jeu', tourJoue: true })).toMatchObject({
       etat: 'joue',
-      texte: TEXTES_DU_MOMENT.joue,
+      texte: 'Votre tour est joué. Regardez les autres équipes.',
     });
     expect(momentDeLEquipe({ phase: 'souffle' })).toMatchObject({
       etat: 'souffle',
       texte: 'Le voile avance.',
+    });
+  });
+
+  test('rien d’ouvert, mais le tour n’est pas fini : la carte ne dit pas qu’il est joué', () => {
+    // Hybride : l'équipe a lancé, la fenêtre de fouille du prof n'est pas encore ouverte.
+    expect(momentDeLEquipe({ phase: 'jeu', tourJoue: false })).toMatchObject({
+      etat: 'joue',
+      texte: 'Pour l’instant, regardez le plateau.',
+    });
+    expect(tourEstJoue()).toBe(false);
+    expect(tourEstJoue({ aLance: true })).toBe(true);
+    expect(tourEstJoue({ aLance: true, fouilles: { restantes: 2 } })).toBe(false);
+    expect(tourEstJoue({ aLance: true, fouilles: { restantes: 0 } })).toBe(true);
+    expect(tourEstJoue({ auCamp: true, fouilles: { restantes: 0 } })).toBe(true);
+    expect(tourEstJoue({ fouilles: { restantes: 0 } })).toBe(false);
+  });
+
+  test('surface « tableau » : le prof porte les gestes, l’écran le dit', () => {
+    expect(momentDeLEquipe({ phase: 'jeu', surface: 'tableau', tourJoue: true })).toMatchObject({
+      etat: 'joue',
+      texte: 'Le tour se joue au tableau.',
+    });
+  });
+
+  test('l’élève qui regarde ce tour le lit dès l’ouverture', () => {
+    expect(momentDeLEquipe({ phase: 'ouverture', spectateur: true })).toMatchObject({
+      etat: 'attente',
+      spectateur: true,
+      texte: MESSAGE_SPECTATEUR,
     });
   });
 

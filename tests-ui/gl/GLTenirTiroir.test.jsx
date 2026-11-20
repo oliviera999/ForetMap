@@ -46,6 +46,7 @@ function tiroir(props = {}) {
       chasse={chasse}
       presence={{ confirmee: false, absents: [] }}
       membres={membres}
+      peutLire
       onFermer={vi.fn()}
       {...props}
     />
@@ -136,8 +137,8 @@ describe('GLTenirTiroir', () => {
     expect(screen.getByTestId('gl-tenir-tiroir-carnet')).toHaveFocus();
   });
 
-  test('carnet en lecture seule (hors tour) : ni « Lire », ni appel du rôle', () => {
-    render(tiroir({ carnetLectureSeule: true }));
+  test('sans le droit de lire (défaut) : le carnet se consulte, ni « Lire » ni appel du rôle', () => {
+    render(tiroir({ peutLire: undefined }));
     const carnet = screen.getByTestId('gl-tenir-tiroir-carnet');
     expect(within(carnet).queryByRole('button', { name: 'Lire' })).toBeNull();
     expect(within(carnet).queryByText(/Secrétaire/)).toBeNull();
