@@ -55,6 +55,8 @@ export function GLMapView({
   tenirLayers = null,
   fouilleMode = false,
   onFouille = null,
+  /** Présentation du plateau, transmise telle quelle (`standard` | `tenir` | `projection`). */
+  presentation = 'standard',
 }) {
   const mjTeamSelection = canMoveMascot || boardMovement?.isNumberedPath;
   const watchTeamId = useMemo(() => {
@@ -135,6 +137,7 @@ export function GLMapView({
       tenirLayers={tenirLayers}
       fouilleMode={fouilleMode}
       onFouille={onFouille}
+      presentation={presentation}
     />
   );
 }

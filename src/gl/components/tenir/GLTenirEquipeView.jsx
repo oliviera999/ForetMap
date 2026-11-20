@@ -20,12 +20,13 @@ import { GL_EQUIPE_ETAT_EVENT } from '../../services/glEquipeEtatEvents.js';
 import { MESSAGE_ETAT_PERIME } from '../../../shared/glMainCore.js';
 import { ROLES_EN_CONSEIL, maintenantVousPouvez } from '../../../shared/glSortMomentsCore.js';
 import { numeroCase } from '../../../shared/glCaseNumeroCore.js';
+import { PHASE_AUCUN_TOUR, titreDuTour } from '../../constants/tenirPhases.js';
 
 const VERDICT_TEXTES = {
   froid: 'Froid : la page dort plus loin.',
   tiede: 'Tiède : on s’approche.',
   chaud: 'Chaud : la page est tout près.',
-  zone: 'Une page dort ici : réponds à sa question.',
+  zone: 'Une page dort ici : répondez à sa question.',
   deja_trouvee: 'Cette page est déjà trouvée.',
   palie: 'Cette zone a pâli : les Gnomes savent la réparer.',
   page_trouvee: 'Page trouvée ! Elle entre au carnet de la classe.',
@@ -34,13 +35,6 @@ const VERDICT_TEXTES = {
 
 /** Durée d'affichage de « L'équipe a déjà joué ce geste. Voici où vous en êtes. » (ms). */
 const AVIS_ETAT_PERIME_MS = 12000;
-
-const PHASE_LABELS = {
-  ouverture: 'ouverture',
-  jeu: 'jeu',
-  souffle: 'souffle',
-  clos: 'tour clos',
-};
 
 /**
  * Écran d'équipe (surfaces hybride et tablette) : les cinq gestes en boutons, grisés par
@@ -314,9 +308,7 @@ export function GLTenirEquipeView({
           </small>
         </h3>
         <p className="gl-hint">
-          {round
-            ? `Tour ${round.number} — ${PHASE_LABELS[round.phase] || round.phase}`
-            : 'Aucun tour ouvert : attends le prof.'}
+          {round ? titreDuTour(round) : PHASE_AUCUN_TOUR}
           {tenir.enRetrait ? ' · en retrait jusqu’à la fin du tour' : ''}
         </p>
         <GLButton
@@ -344,7 +336,7 @@ export function GLTenirEquipeView({
           vaut pour les deux.
         </p>
       ) : null}
-      {/* Au camp : trois lignes pour le chapitre suivant (ton peuple, tes sorts, le plateau). */}
+      {/* Au camp : trois lignes pour le chapitre suivant (le peuple, les sorts, le plateau). */}
       {gameState?.game?.status === 'ended' ? <GLCeQuiChange gameId={gameId} /> : null}
       {/* Quand un autre appareil tient la main, l'écran dit qui joue : rien d'autre à proposer. */}
       {maintenant.length && !mainAilleurs ? (
@@ -516,7 +508,7 @@ export function GLTenirEquipeView({
         <p className="gl-hint" data-testid="gl-tenir-fouilles">
           Fouilles ce tour : {fouilles.restantes}/{fouilles.quota}
           {fouilles.sousVoile ? ' · sous le voile' : ''}
-          {fouilleMode ? ' · touche le plateau pour fouiller' : ''}
+          {fouilleMode ? ' · touchez le plateau pour fouiller' : ''}
           {fouilleMode ? ` · ${ROLES_EN_CONSEIL.fouiller}` : ''}
         </p>
       ) : null}

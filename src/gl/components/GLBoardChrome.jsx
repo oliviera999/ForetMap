@@ -6,7 +6,7 @@ import { GLBoardTurnHud } from './GLBoardTurnHud.jsx';
 
 /**
  * Chrome superposé à la carte plateau : outils (coins), barre mobile (actions),
- * bouton fermer plein écran.
+ * bouton fermer plein écran. `masque` : rien ne se rend (plateau en scène épurée).
  */
 export function GLBoardChrome({
   mapFullscreen = false,
@@ -33,7 +33,10 @@ export function GLBoardChrome({
   disableDiceReroll = false,
   onRecordDiceRoll = null,
   arrivalPopoverOpen = false,
+  /** Scène épurée (`presentation` « tenir » ou « projection » du plateau) : aucun outil. */
+  masque = false,
 }) {
+  if (masque) return null;
   return (
     <>
       {mapFullscreen ? (

@@ -102,7 +102,9 @@ export function GLCarnetClasseView({ chasse, teamId = null, readOnly = false }) 
             </GLButton>
           </header>
           {page.palissementPct > 0 ? (
-            <p className="gl-hint">Cette page a pâli pour ton équipe ({page.palissementPct} %).</p>
+            <p className="gl-hint">
+              Cette page a pâli pour votre équipe ({page.palissementPct} %).
+            </p>
           ) : null}
           <div
             className="gl-carnet-page-ouverte__texte"

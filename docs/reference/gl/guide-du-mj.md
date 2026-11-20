@@ -595,6 +595,22 @@ Au chapitre 1, on n'explique plus les règles : la classe les rencontre, une à 
   piste par semaine. Son écran lui dit « Encore N pages à gagner cette semaine. » Passé la
   limite, il peut toujours lire, et ses réussites comptent toujours pour ses badges.
 
+### Écrans de séance : les mots à l'écran (20 novembre 2026)
+
+- **Les phases du tour se disent en mots d'élève**, les mêmes sur l'écran d'équipe, à la
+  projection et dans « Jouer le tour » : « Le tour s'ouvre », « À vous de jouer », « Le voile
+  avance », « Tour terminé ». Ce guide parle encore de la phase « jeu » ou du « souffle » : ce
+  sont les mêmes moments. Dans « Jouer le tour », laissez la souris sur le titre du tour pour
+  revoir le terme technique.
+- **L'écran dit « vous » à l'équipe, « tu » à un élève.** La tablette d'équipe, la projection et
+  les lignes d'Olu dites en séance vouvoient l'équipe (« touchez le plateau », « Le prof ouvre
+  bientôt le tour. »). La connexion, le Marché, la Lettre et une ligne qui appelle un rôle
+  (« Secrétaire, à toi ») tutoient.
+- **L'écran de connexion** annonce « Quatre mondes, une année, un carnet à sauver. » ; sa
+  quatrième de couverture tutoie l'élève et dit le Souffle par ce qu'il fait (le carnet pâlit,
+  le monde se dessèche).
+- **Dans l'assistant de sort**, le bouton qui renonce s'appelle « Ne pas lancer ».
+
 ## Pour aller plus loin
 
 [Présentation générale](presentation.md) · [Chapitres et progression](chapitres-et-progression.md) · [Économie du jeu](economie-marche-sorts.md) · [QCM et pédagogie](qcm-et-pedagogie.md) · [Sommaire](../README.md)

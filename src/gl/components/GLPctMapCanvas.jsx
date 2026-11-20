@@ -6,12 +6,30 @@ import { useMapOverlayTextSizePreference } from '../../hooks/useMapOverlayTextSi
 
 const EMPTY_FIT = { offsetX: 0, offsetY: 0, width: 0, height: 0 };
 
-/** Boutons zoom superposés au plateau (mêmes gestes que la Visite : +, −, recentrer). */
-function GLBoardZoomControls({ onZoomIn, onZoomOut, onReset }) {
+/**
+ * Boutons zoom superposés au plateau (mêmes gestes que la Visite : +, −, recentrer).
+ * `recentrerSeul` : un seul bouton « Recentrer », avec son nom (écran d'équipe : on zoome au
+ * pincement ou à la molette, le bouton ne sert qu'à revenir à la vue d'ensemble).
+ */
+function GLBoardZoomControls({ onZoomIn, onZoomOut, onReset, recentrerSeul = false }) {
   const stop = (event, fn) => {
     event.stopPropagation();
     fn?.();
   };
+  if (recentrerSeul) {
+    return (
+      <div className="gl-board-zoom-controls gl-board-zoom-controls--recentrer" data-pct-no-pan>
+        <button
+          type="button"
+          className="gl-board-zoom-btn gl-board-zoom-btn--nomme"
+          aria-label="Recentrer le plateau"
+          onClick={(e) => stop(e, onReset)}
+        >
+          <span aria-hidden="true">⊡</span> Recentrer
+        </button>
+      </div>
+    );
+  }
   return (
     <div className="gl-board-zoom-controls" data-pct-no-pan>
       <button
@@ -51,6 +69,8 @@ function GLBoardZoomControls({ onZoomIn, onZoomOut, onReset }) {
  *
  * `mapGestures` vient de `useGlPctMapGestures` ; un objet partiel (tests, aperçus) est toléré.
  * @param {boolean} [props.showZoomControls=false] boutons +/−/recentrer superposés.
+ * @param {'complet'|'recentrer'} [props.zoomControls='complet'] `recentrer` : le seul bouton
+ *   « Recentrer » (présentation `tenir` du plateau).
  */
 export function GLPctMapCanvas({
   imageUrl,
@@ -66,6 +86,7 @@ export function GLPctMapCanvas({
   cursor = 'default',
   markerSizePercent: markerSizePercentProp,
   showZoomControls = false,
+  zoomControls = 'complet',
   children,
 }) {
   const containerRef = mapGestures?.containerRef;
@@ -156,6 +177,7 @@ export function GLPctMapCanvas({
       </div>
       {showZoomControls && mapGestures?.zoomBy ? (
         <GLBoardZoomControls
+          recentrerSeul={zoomControls === 'recentrer'}
           onZoomIn={() => mapGestures.zoomBy(1.2)}
           onZoomOut={() => mapGestures.zoomBy(0.84)}
           onReset={() => mapGestures.fitMapAnimated?.()}

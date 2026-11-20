@@ -378,7 +378,7 @@ export function GLSpellCastWizard({
         <header className="gl-spell-cast-panel__header">
           <div>
             <h2 id={titleId}>
-              <span aria-hidden="true">{spellEmoji}</span> Lancer :{spellName}
+              <span aria-hidden="true">{spellEmoji}</span> Lancer&nbsp;: {spellName}
             </h2>
             {costLabel ? (
               <p className="gl-hint gl-spell-cast-panel__cost">Coût : {costLabel}</p>
