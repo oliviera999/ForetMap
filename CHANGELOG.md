@@ -9,6 +9,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — enregistrement automatique : « Terminer » pendant un envoi ne perd plus la fin du texte
+
+Fermer l’éditeur (carnet, et tout écran qui passe par l’enregistrement automatique) pendant
+qu’un enregistrement était encore en vol en envoyait un second en parallèle. Le serveur
+valide puis écrit : le premier envoi, plus ancien, pouvait s’enregistrer en dernier. La carte
+montrait le texte complet, le rechargement revenait à la version courte. Le second envoi part
+désormais seulement après la fin du premier.
+
 ### Modifié — UI/UX lot 2 : performance perçue et indisponibilité (U1, U2)
 
 - **Ouverture immédiate à cache chaud** : le service worker sert le HTML depuis la coquille
