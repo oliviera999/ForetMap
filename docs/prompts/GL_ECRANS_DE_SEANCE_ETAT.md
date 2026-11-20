@@ -51,7 +51,7 @@ dans une **nouvelle PR en brouillon** :
 | S2      | Projection (étape 3)                      | faite                   | `4416079` (étape 3) + commits d'état                                                         |
 | S3      | Tablette 1 : moteur de la carte du moment | faite                   | `c46fd3b` (lot), `9fe1eb9` (relecture garde-fous), `ae693b4` (CHANGELOG) + état              |
 | S4      | Tablette 2 : branchement                  | faite                   | `c9810be61` (lot), `0e471cbd3` (relecture garde-fous), `af1aa1f5c` (fusion de `main`) + état |
-| S5      | Console (étape 5)                         | à faire                 | —                                                                                            |
+| S5      | Console (étape 5)                         | en cours                | —                                                                                            |
 | S6      | Accueil, docs, clôture (étapes 6 et 7)    | à faire                 | —                                                                                            |
 
 Sessions `bis` : aucune. Sessions lancées : 4 sur 8 au plus (la tentative de S2 par tâche
