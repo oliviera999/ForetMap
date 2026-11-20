@@ -35,6 +35,7 @@ import { toMascotPackIssueLines } from '../../utils/mascotPackValidationUi.js';
  *   onLabelDraftChange: (value: string) => void,
  *   onSave: () => void,
  *   onTogglePublish: () => void,
+ *   visitListingSlot?: import('react').ReactNode,
  *   onDelete: () => void,
  *   onResetFromOrigin?: () => void,
  *   selectedValidation: { ok: boolean },
@@ -62,6 +63,7 @@ export default function MascotPackListAside({
   onLabelDraftChange,
   onSave,
   onTogglePublish,
+  visitListingSlot = null,
   onDelete,
   onResetFromOrigin = null,
   selectedValidation,
@@ -246,14 +248,16 @@ export default function MascotPackListAside({
             }
             onClick={onTogglePublish}
           >
-            {selectedRow?.is_published ? 'Retirer de la visite publique' : 'Publier sur la visite'}
+            {selectedRow?.is_published ? 'Dépublier' : 'Publier'}
           </button>
-          {selectedRow?.is_published ? (
-            <p className="section-sub" style={{ fontSize: 'var(--text-xs)', margin: 0 }}>
-              La retirer la masque du sélecteur des visiteurs. C’est réversible, et rien n’est
-              perdu.
-            </p>
-          ) : null}
+          {/* Publier sert la Visite ET les équipes du jeu ; la présence dans le sélecteur des
+              visiteurs se règle à part (« Proposé dans la Visite », migration 374). */}
+          <p className="section-sub" style={{ fontSize: 'var(--text-xs)', margin: 0 }}>
+            {selectedRow?.is_published
+              ? 'Publiée : disponible pour la Visite et pour les équipes du jeu. Dépublier est réversible, rien n’est perdu.'
+              : 'Brouillon : invisible des visiteurs et des équipes du jeu.'}
+          </p>
+          {visitListingSlot}
           {selectedValidation.ok ? (
             <p className="section-sub" style={{ fontSize: 'var(--text-sm)', margin: '2px 0 0' }}>
               Validation prête pour sauvegarde/publication.

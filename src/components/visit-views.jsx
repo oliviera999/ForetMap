@@ -35,7 +35,6 @@ import { VisitDetailPanel } from './visit/VisitDetailPanel.jsx';
 import { VisitTutorialsSection } from './visit/VisitTutorialsSection.jsx';
 import { VisitMapChrome } from './visit/VisitMapChrome.jsx';
 import { VisitProfToolsPanel } from './visit/VisitProfToolsPanel.jsx';
-import { VisitGuestMascotOnboarding } from './visit/VisitGuestMascotOnboarding.jsx';
 import { VisitMapStage } from './visit/VisitMapStage.jsx';
 import { VisitDrawZonePreview } from './VisitDrawZonePreview.jsx';
 import { MapRoutePicker } from '../shared/map-routes/MapRoutePicker.jsx';
@@ -109,6 +108,18 @@ const PlantCatalogPreviewModalLazy = lazy(() =>
     default: m.PlantCatalogPreviewModal,
   })),
 );
+
+/**
+ * Les identifiants cochés couvrent-ils toutes les catégories de la carte ? (puces U9)
+ * @param {string[]} ids
+ * @param {Array<{ id: string|number }>} catalog
+ */
+function coversAllCategories(ids, catalog) {
+  const list = Array.isArray(catalog) ? catalog : [];
+  if (list.length === 0) return false;
+  const set = new Set((ids || []).map(String));
+  return list.every((c) => set.has(String(c.id)));
+}
 
 function VisitViewImpl({
   student = null,
@@ -288,6 +299,17 @@ function VisitViewImpl({
   } = useHelp({ publicSettings, isTeacher });
   const isGuestPublicVisit = !student && typeof onBackToAuth === 'function';
 
+  /**
+   * Plus de fenêtre bloquante pour choisir la mascotte (audit UI/UX du 19/11/2026, U4) : le
+   * guide par défaut (`ui.visit.mascot.default_id`) est présélectionné et la carte s'affiche
+   * tout de suite ; le choix reste dans la barre (« Choisir la mascotte affichée sur le
+   * plan »). L'étape « choix confirmé » est validée d'emblée, ce qui laisse la visite
+   * découverte démarrer comme avant après l'ancienne fenêtre.
+   */
+  useEffect(() => {
+    if (isGuestPublicVisit && requireGuestMascotChoice) onGuestMascotChoiceDone?.();
+  }, [isGuestPublicVisit, requireGuestMascotChoice, onGuestMascotChoiceDone]);
+
   const VISIT_IMMERSION_LS_KEY = 'foretmap_visit_immersion';
   const VISIT_TEACHER_PREVIEW_LS_KEY = 'foretmap_visit_teacher_preview_student';
   const VISIT_COMFORTABLE_READING_LS_KEY = 'foretmap_visit_comfortable_reading';
@@ -431,7 +453,12 @@ function VisitViewImpl({
       publicSettings?.ui?.visit?.default_category_ids ??
       '';
     const ids = parseCategoryIdsSetting(raw).filter((id) => categoriesById.has(id));
-    if (ids.length) setSelectedCategoryIds(new Set(ids));
+    // Toutes les catégories de la carte cochées = aucun filtre : l'état « tout affiché » se lit
+    // « Tout » actif et puces non pleines (U9). En prod, le réglage liste les catégories de
+    // toutes les cartes : sans cette normalisation, chaque puce était pleine et « Tout » blanc.
+    if (ids.length && !coversAllCategories(ids, categoryCatalog)) {
+      setSelectedCategoryIds(new Set(ids));
+    }
     setCategoryDefaultsApplied(true);
   }, [categoryDefaultsApplied, categoryCatalog, categoriesById, publicSettings]);
 
@@ -475,15 +502,19 @@ function VisitViewImpl({
     if (!String(placeSearchQuery || '').trim()) return [];
     return searchPlaces(placeSearchIndex, placeSearchQuery, { limit: 12 });
   }, [placeSearchIndex, placeSearchQuery]);
-  const onToggleCategory = useCallback((id) => {
-    setSelectedCategoryIds((prev) => {
-      const next = new Set(prev);
-      const key = String(id);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
-  }, []);
+  const onToggleCategory = useCallback(
+    (id) => {
+      setSelectedCategoryIds((prev) => {
+        const next = new Set(prev);
+        const key = String(id);
+        if (next.has(key)) next.delete(key);
+        else next.add(key);
+        // Cocher la dernière catégorie manquante revient à tout afficher : retour à « Tout ».
+        return coversAllCategories([...next], categoryCatalog) ? new Set() : next;
+      });
+    },
+    [categoryCatalog],
+  );
   const onResetCategories = useCallback(() => setSelectedCategoryIds(new Set()), []);
 
   const routePlaces = useMemo(
@@ -658,6 +689,7 @@ function VisitViewImpl({
   const {
     visitMascotId,
     visitMascotOptions,
+    visitMascotVariantOfById,
     visitMascotAnimationState,
     onChangeVisitMascotId,
     visitMascotCatalogExtras,
@@ -1025,7 +1057,7 @@ function VisitViewImpl({
           <TutorialPreviewModal
             tutorial={visitTutorialPreview}
             onClose={() => setVisitTutorialPreview(null)}
-            addressing={isGuestPublicVisit ? 'vous' : 'tu'}
+            addressing="tu"
             readAcknowledge={{
               isRead: tutorialReadIds.has(Number(visitTutorialPreview.id)),
               onAcknowledged: (id) => setTutorialReadIds((prev) => new Set([...prev, id])),
@@ -1064,14 +1096,6 @@ function VisitViewImpl({
             </DataProvider>
           </Suspense>
         ) : null}
-        <VisitGuestMascotOnboarding
-          requested={isGuestPublicVisit && requireGuestMascotChoice}
-          mascotId={visitMascotId}
-          mascotOptions={visitMascotOptions}
-          onChangeMascotId={onChangeVisitMascotId}
-          extraCatalogEntries={visitMascotCatalogExtras}
-          onDone={onGuestMascotChoiceDone}
-        />
         <div className="visit-grid visit-grid--map-forward">
           <div className="visit-map-card">
             {!visitImmersion ? (
@@ -1095,6 +1119,7 @@ function VisitViewImpl({
                 onToggleTeacherPreview={() => setTeacherPreviewAsStudent((v) => !v)}
                 visitMascotId={visitMascotId}
                 visitMascotOptions={visitMascotOptions}
+                visitMascotVariantOfById={visitMascotVariantOfById}
                 onChangeVisitMascotId={onChangeVisitMascotId}
                 cartographyProgress={visitCartographyProgress}
                 showSeenProgress={showVisitSeenStatus}

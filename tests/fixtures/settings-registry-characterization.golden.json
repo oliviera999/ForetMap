@@ -88,7 +88,7 @@
       "scope": "public",
       "type": "string",
       "maxLength": 120,
-      "default": "Mohammed El Farrai"
+      "default": "Mohammed"
     },
     "content.auth.credit_contributor": {
       "scope": "public",
@@ -106,7 +106,7 @@
       "scope": "public",
       "type": "string",
       "maxLength": 70,
-      "default": "🧭 Visiter sans compte"
+      "default": "🧭 Découvrir le lieu"
     },
     "content.auth.login_tab": {
       "scope": "public",
@@ -124,7 +124,7 @@
       "scope": "public",
       "type": "string",
       "maxLength": 180,
-      "default": "{app} — Le terrain d’apprentissage vivant du lycée"
+      "default": "Le terrain d’apprentissage vivant du lycée"
     },
     "content.auth.title": {
       "scope": "public",
@@ -1526,11 +1526,11 @@
         },
         "auth": {
           "title": "{app}",
-          "subtitle": "{app} — Le terrain d’apprentissage vivant du lycée",
+          "subtitle": "Le terrain d’apprentissage vivant du lycée",
           "login_tab": "Connexion",
           "register_tab": "Créer un compte",
-          "guest_visit_cta": "🧭 Visiter sans compte",
-          "credit_author": "Mohammed El Farrai",
+          "guest_visit_cta": "🧭 Découvrir le lieu",
+          "credit_author": "Mohammed",
           "credit_contributor": "Olivier Arnould-Laurent",
           "credit_message": ""
         },
@@ -2189,8 +2189,8 @@
       "key": "content.auth.credit_author",
       "scope": "public",
       "type": "string",
-      "value": "Mohammed El Farrai",
-      "default_value": "Mohammed El Farrai",
+      "value": "Mohammed",
+      "default_value": "Mohammed",
       "constraints": {
         "min": null,
         "max": null,
@@ -2237,8 +2237,8 @@
       "key": "content.auth.guest_visit_cta",
       "scope": "public",
       "type": "string",
-      "value": "🧭 Visiter sans compte",
-      "default_value": "🧭 Visiter sans compte",
+      "value": "🧭 Découvrir le lieu",
+      "default_value": "🧭 Découvrir le lieu",
       "constraints": {
         "min": null,
         "max": null,
@@ -2285,8 +2285,8 @@
       "key": "content.auth.subtitle",
       "scope": "public",
       "type": "string",
-      "value": "{app} — Le terrain d’apprentissage vivant du lycée",
-      "default_value": "{app} — Le terrain d’apprentissage vivant du lycée",
+      "value": "Le terrain d’apprentissage vivant du lycée",
+      "default_value": "Le terrain d’apprentissage vivant du lycée",
       "constraints": {
         "min": null,
         "max": null,
@@ -6045,11 +6045,11 @@
         },
         "auth": {
           "title": "Titre de caractérisation",
-          "subtitle": "{app} — Le terrain d’apprentissage vivant du lycée",
+          "subtitle": "Le terrain d’apprentissage vivant du lycée",
           "login_tab": "Connexion",
           "register_tab": "Créer un compte",
-          "guest_visit_cta": "🧭 Visiter sans compte",
-          "credit_author": "Mohammed El Farrai",
+          "guest_visit_cta": "🧭 Découvrir le lieu",
+          "credit_author": "Mohammed",
           "credit_contributor": "Olivier Arnould-Laurent",
           "credit_message": ""
         },

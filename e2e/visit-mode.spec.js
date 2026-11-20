@@ -23,31 +23,28 @@ async function clickFirstVisitZone(stage) {
   await zoneHit.click({ force: true, timeout: 10_000 });
 }
 
-test('visite publique : choix mascotte obligatoire au premier lancement puis mémorisé', async ({
+test('visite publique : accueil → carte en un clic, sans fenêtre de mascotte (U3, U4)', async ({
   page,
 }) => {
   await page.goto('/');
-  const guestCta = page.getByRole('button', { name: /Visiter sans compte/i });
+  const guestCta = page.getByRole('button', { name: /Découvrir le lieu/i });
   await expect(guestCta).toBeVisible({ timeout: 30_000 });
+  // Visible sans défilement : la porte « Découvrir le lieu » est dans la fenêtre.
+  await expect(guestCta).toBeInViewport();
   await guestCta.click();
 
-  const onboarding = page.locator('.visit-mascot-onboarding');
-  await expect(onboarding).toBeVisible({ timeout: 30_000 });
-  await expect(
-    onboarding.getByRole('heading', { name: /Choisis ta mascotte guide/i }),
-  ).toBeVisible();
-  await onboarding.locator('.visit-mascot-onboarding__option').first().click();
-  await onboarding.getByRole('button', { name: /Commencer la visite/i }).click();
-  await expect(onboarding).toHaveCount(0);
-
   await expect(page.locator('.visit-view--guest-public')).toBeVisible({ timeout: 30_000 });
-  await expect(page.getByRole('button', { name: /Retour connexion/i })).toBeVisible();
-  await page.getByRole('button', { name: /Retour connexion/i }).click();
+  await expect(page.getByRole('dialog', { name: /Choix de la mascotte/i })).toHaveCount(0);
+  await expect(page.locator('.visit-map-stage img.visit-map-img')).toBeVisible({
+    timeout: 15_000,
+  });
+  // Le choix du guide reste accessible depuis la barre.
+  await expect(page.getByTestId('visit-mascot-picker')).toBeVisible();
+
+  const quit = page.getByRole('button', { name: /Quitter la visite/i });
+  await expect(quit).toBeVisible();
+  await quit.click();
   await expect(guestCta).toBeVisible({ timeout: 30_000 });
-
-  await guestCta.click();
-  await expect(page.locator('.visit-view--guest-public')).toBeVisible({ timeout: 30_000 });
-  await expect(page.locator('.visit-mascot-onboarding')).toHaveCount(0);
 });
 
 test('visite connectée : onglet Visite affiche la vue visite', async ({ page }) => {
@@ -202,15 +199,9 @@ test('visite prof : aperçu comme élève masque le panneau d’édition', async
 
 test('visite publique : marquage vu hors ligne puis synchronisation', async ({ page, context }) => {
   await page.goto('/');
-  const guestCta = page.getByRole('button', { name: /Visiter sans compte/i });
+  const guestCta = page.getByRole('button', { name: /Découvrir le lieu/i });
   await expect(guestCta).toBeVisible({ timeout: 30_000 });
   await guestCta.click();
-
-  const onboarding = page.locator('.visit-mascot-onboarding');
-  await expect(onboarding).toBeVisible({ timeout: 30_000 });
-  await onboarding.locator('.visit-mascot-onboarding__option').first().click();
-  await onboarding.getByRole('button', { name: /Commencer la visite/i }).click();
-  await expect(onboarding).toHaveCount(0);
 
   await expect(page.locator('.visit-view--guest-public')).toBeVisible({ timeout: 30_000 });
   const stage = page.locator('.visit-map-stage');

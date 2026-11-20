@@ -61,13 +61,13 @@ describe('Surfaces du shell App — fumée', () => {
   test('ForêtMap : l’écran d’accueil (connexion) se monte sans erreur', async () => {
     const { container } = render(<App />);
     await waitFor(() => expect(container.querySelector('.auth-screen, form, button')).toBeTruthy());
-    expect(screen.getByRole('button', { name: /Visiter sans compte/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Découvrir le lieu/ })).toBeTruthy();
     expect(renderErrors()).toEqual([]);
   });
 
   test('Visite : la visite publique invitée se monte sans erreur', async () => {
     const { container } = render(<App />);
-    const visitButton = await screen.findByRole('button', { name: /Visiter sans compte/ });
+    const visitButton = await screen.findByRole('button', { name: /Découvrir le lieu/ });
     fireEvent.click(visitButton);
     await waitFor(() => expect(container.querySelector('main.main--guest-visit')).toBeTruthy());
     // La vue est chargée à la demande : on attend qu'elle remplace le loader de l'onglet (un

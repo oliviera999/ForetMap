@@ -67,6 +67,7 @@ const {
 const {
   listVisitMascotRegistry,
   listStaticVisitMascotEntries,
+  listPublishedVisitMascotPacks,
   isVisitMascotOffered,
 } = require('../../lib/visitMascotRegistry');
 const {
@@ -454,6 +455,61 @@ const packExportQuerySchema = z.unknown().transform((query) => ({
   ),
 }));
 
+/** Case « Proposé dans la Visite » : 1 / true / "1" → 1, tout le reste → 0. */
+function parseVisitListedFlag(raw) {
+  return raw === true || Number(raw) === 1 ? 1 : 0;
+}
+
+/**
+ * Remplace le `label` du JSON de pack par le libellé de la ligne (source unique). Un JSON
+ * illisible est rendu tel quel : la validation du pack a déjà eu lieu en amont.
+ * @param {string} packJson
+ * @param {string} label
+ * @returns {string}
+ */
+function alignLabelInPackJson(packJson, label) {
+  try {
+    const pack = JSON.parse(packJson);
+    if (!pack || typeof pack !== 'object' || Array.isArray(pack)) return packJson;
+    if (pack.label === label) return packJson;
+    return JSON.stringify({ ...pack, label });
+  } catch (_) {
+    return packJson;
+  }
+}
+
+/**
+ * Valide `variant_of` (pack « de base » dont celui-ci est la version féminine) : vide → NULL ;
+ * sinon un `catalog_id` existant, différent du pack lui-même, et qui n'est pas lui-même une
+ * variante (un seul niveau, pas de chaîne ni de boucle).
+ * @returns {Promise<{ value: string|null, error?: string }>}
+ */
+async function resolveVariantOf(raw, selfCatalogId, selfPackId) {
+  const wanted = String(raw ?? '').trim();
+  if (!wanted) return { value: null };
+  if (wanted === selfCatalogId) {
+    return { value: null, error: 'Un pack ne peut pas être sa propre variante' };
+  }
+  const base = await queryOne(
+    'SELECT id, catalog_id, variant_of FROM visit_mascot_packs WHERE catalog_id = ? LIMIT 1',
+    [wanted],
+  );
+  if (!base) return { value: null, error: 'Pack de base introuvable' };
+  if (base.variant_of) {
+    return { value: null, error: 'Le pack de base est lui-même une variante' };
+  }
+  if (selfPackId) {
+    const child = await queryOne(
+      'SELECT id FROM visit_mascot_packs WHERE variant_of = ? AND id <> ? LIMIT 1',
+      [selfCatalogId, selfPackId],
+    );
+    if (child) {
+      return { value: null, error: 'Ce pack a déjà une variante : il ne peut pas en être une' };
+    }
+  }
+  return { value: base.catalog_id };
+}
+
 router.get(
   '/mascot-packs/:packId/assets/:filename',
   authenticate,
@@ -488,13 +544,56 @@ router.get(
   '/mascots',
   mascotRoute(ERRORS_PLAIN, async (req, res) => {
     const mascots = await listVisitMascotRegistry();
+    // `?light=1` : identifiants, libellés et variantes seulement, sans le JSON des packs
+    // (plus de 30 états par pack). La Visite charge ensuite le pack choisi à la demande
+    // (`GET /api/visit/mascots/:catalogId`) — audit UI/UX du 19/11/2026, lot 2 point 3.
+    const light = String(req.query?.light || '') === '1';
     res.json({
-      mascots: mascots.map((entry) => ({
-        ...entry,
-        // Alias de compatibilité : le front construit ses entrées catalogue depuis
-        // `catalog_id`/`label`/`pack` (même forme que `mascot_packs` de /api/visit/content).
-        catalog_id: entry.id,
-      })),
+      mascots: mascots.map((entry) => {
+        const base = {
+          ...entry,
+          // Alias de compatibilité : le front construit ses entrées catalogue depuis
+          // `catalog_id`/`label`/`pack` (même forme que `mascot_packs` de /api/visit/content).
+          catalog_id: entry.id,
+          variant_of: entry.variant_of || null,
+        };
+        if (!light) return base;
+        const { pack, ...rest } = base;
+        return { ...rest, has_pack: !!pack };
+      }),
+    });
+  }),
+);
+
+/**
+ * Un pack proposé dans la Visite, complet (`{ catalog_id, label, variant_of, pack }`) :
+ * chargement à la demande quand un visiteur change de guide. Public, comme le registre
+ * (les assets d'un pack publié le sont déjà). 404 pour un pack inconnu, non publié ou retiré
+ * de la Visite (G&L lit ses packs par une autre voie).
+ */
+router.get(
+  '/mascots/:catalogId',
+  validate({
+    params: z.object({
+      catalogId: z
+        .string()
+        .trim()
+        .min(1)
+        .max(80)
+        .regex(/^[A-Za-z0-9_.:-]+$/),
+    }),
+  }),
+  mascotRoute(ERRORS_PLAIN, async (req, res) => {
+    const wanted = req.validatedParams.catalogId;
+    const packs = await listPublishedVisitMascotPacks({ visitListedOnly: true });
+    const found = packs.find((entry) => entry.id === wanted);
+    if (!found) return res.status(404).json({ error: 'Mascotte introuvable' });
+    res.set('Cache-Control', 'public, max-age=300');
+    res.json({
+      catalog_id: found.id,
+      label: found.label,
+      variant_of: found.variant_of || null,
+      pack: found.pack,
     });
   }),
 );
@@ -552,7 +651,7 @@ router.get(
   requirePermission('visit.manage'),
   mascotRoute(ERRORS_PACK, async (req, res) => {
     const rows = await queryAll(
-      `SELECT id, catalog_id, label, pack_json, is_published, origin, created_at, updated_at, created_by
+      `SELECT id, catalog_id, label, pack_json, is_published, visit_listed, variant_of, origin, created_at, updated_at, created_by
        FROM visit_mascot_packs
        ORDER BY origin = 'builtin' ASC, updated_at DESC, id ASC`,
     );
@@ -570,7 +669,7 @@ router.get(
   mascotRoute(ERRORS_PACK, async (req, res) => {
     const packId = req.validatedParams.id;
     const row = await queryOne(
-      `SELECT id, catalog_id, label, pack_json, is_published, origin, created_at, updated_at, created_by
+      `SELECT id, catalog_id, label, pack_json, is_published, visit_listed, variant_of, origin, created_at, updated_at, created_by
        FROM visit_mascot_packs WHERE id = ? LIMIT 1`,
       [packId],
     );
@@ -653,17 +752,25 @@ router.post(
       .trim()
       .slice(0, 120);
     const isPublished = Number(req.body.is_published) === 1 ? 1 : 0;
+    // « Proposé dans la Visite » : oui par défaut (migration 374) ; distinct de la publication.
+    const visitListed =
+      req.body.visit_listed === undefined ? 1 : parseVisitListedFlag(req.body.visit_listed);
+    const variantCheck = await resolveVariantOf(req.body.variant_of, catalogId, null);
+    if (variantCheck.error) return res.status(400).json({ error: variantCheck.error });
     const now = nowIso();
     const createdBy = await resolveVisitMascotPackCreatedBy(req.auth);
     await execute(
-      `INSERT INTO visit_mascot_packs (id, catalog_id, label, pack_json, is_published, created_at, updated_at, created_by)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO visit_mascot_packs (id, catalog_id, label, pack_json, is_published, visit_listed, variant_of, created_at, updated_at, created_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         packUuid,
         catalogId,
         label,
-        JSON.stringify(validated.pack),
+        // Source unique du nom affiché : la colonne `label` (cf. alignLabelInPackJson).
+        alignLabelInPackJson(JSON.stringify(validated.pack), label),
         isPublished,
+        visitListed,
+        variantCheck.value,
         now,
         now,
         createdBy,
@@ -727,15 +834,35 @@ router.put(
       }
       packJson = JSON.stringify(validated.pack);
     }
+    // Le nom affiché a une source unique, la colonne `label` : le `label` interne du JSON est
+    // réaligné à chaque enregistrement (un pack renommé au studio — « Oiseau noir » — ne
+    // garde pas l'ancien nom dans son JSON, d'où il pourrait ressortir à l'export ou en repli).
+    packJson = alignLabelInPackJson(packJson, label);
+    const visitListed =
+      req.body.visit_listed !== undefined
+        ? parseVisitListedFlag(req.body.visit_listed)
+        : exists.visit_listed === undefined || exists.visit_listed === null
+          ? 1
+          : Number(exists.visit_listed)
+            ? 1
+            : 0;
+    let variantOf = exists.variant_of || null;
+    if (req.body.variant_of !== undefined) {
+      const variantCheck = await resolveVariantOf(req.body.variant_of, exists.catalog_id, packId);
+      if (variantCheck.error) return res.status(400).json({ error: variantCheck.error });
+      variantOf = variantCheck.value;
+    }
     const now = nowIso();
     await execute(
-      `UPDATE visit_mascot_packs SET label = ?, pack_json = ?, is_published = ?, updated_at = ? WHERE id = ?`,
-      [label, packJson, isPublished, now, packId],
+      `UPDATE visit_mascot_packs
+          SET label = ?, pack_json = ?, is_published = ?, visit_listed = ?, variant_of = ?, updated_at = ?
+        WHERE id = ?`,
+      [label, packJson, isPublished, visitListed, variantOf, now, packId],
     );
     const row = await queryOne('SELECT * FROM visit_mascot_packs WHERE id = ? LIMIT 1', [packId]);
     await logAudit('visit_mascot_pack_update', 'visit_mascot_pack', packId, label, {
       req,
-      payload: { is_published: isPublished },
+      payload: { is_published: isPublished, visit_listed: visitListed, variant_of: variantOf },
     });
     res.json(serializeVisitMascotPackRow(row));
   }),

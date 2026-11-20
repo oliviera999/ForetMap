@@ -1314,6 +1314,8 @@ CREATE TABLE IF NOT EXISTS visit_mascot_packs (
   label VARCHAR(120) NOT NULL,
   pack_json LONGTEXT NOT NULL,
   is_published TINYINT(1) NOT NULL DEFAULT 0,
+  visit_listed TINYINT(1) NOT NULL DEFAULT 1,
+  variant_of VARCHAR(80) DEFAULT NULL,
   created_at VARCHAR(32) DEFAULT NULL,
   updated_at VARCHAR(32) DEFAULT NULL,
   created_by VARCHAR(64) DEFAULT NULL,

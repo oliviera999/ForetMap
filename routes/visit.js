@@ -1,6 +1,9 @@
 const express = require('express');
 const { queryAll, queryOne, execute, getDataWriteVersion } = require('../database');
 const { createVisitContentCache } = require('../lib/visitContentCache');
+const { listPublishedVisitMascotPacks } = require('../lib/visitMascotRegistry');
+const { getVisitMascotSettings } = require('../lib/settings');
+const { FULL_PACKS_KEY, withVisitContentMascots } = require('../lib/visitContentMascots');
 const { createSignedCookieGate, resolveCookieSecret } = require('../lib/accessGate');
 const { requirePermission, JWT_SECRET, authenticate } = require('../middleware/requireTeacher');
 const { logRouteError } = require('../lib/routeLog');
@@ -268,6 +271,17 @@ function projectVisitContentForViewer(payload, auth) {
   };
 }
 
+/** Projection par lecteur, puis mascottes allégées (guide par défaut relu à chaque réponse). */
+async function respondVisitContent(payload, auth) {
+  let defaultId = '';
+  try {
+    defaultId = (await getVisitMascotSettings()).defaultId;
+  } catch (_) {
+    defaultId = '';
+  }
+  return withVisitContentMascots(projectVisitContentForViewer(payload, auth), defaultId);
+}
+
 router.get(
   '/content',
   authenticate,
@@ -280,7 +294,7 @@ router.get(
     if (visitMap.error) return res.status(400).json({ error: visitMap.error });
     const mapId = visitMap.mapId;
     const cached = visitContentCache.get(mapId);
-    if (cached) return res.json(projectVisitContentForViewer(cached, req.auth));
+    if (cached) return res.json(await respondVisitContent(cached, req.auth));
     if (!(await mapExists(mapId))) return res.status(400).json({ error: 'Carte introuvable' });
 
     // Requêtes indépendantes : lancées ensemble plutôt qu'en file (huit allers-retours
@@ -412,15 +426,14 @@ router.get(
     // à une carte (migration `176_visit_mascot_packs_drop_map.sql`), et le registre
     // public `GET /api/visit/mascots` les expose déjà ainsi. Un échec de cette seule
     // requête ne doit pas priver le visiteur du reste du contenu (comportement d'origine).
-    const packRowsPromise = queryAll(
-      `SELECT catalog_id, label, pack_json
-       FROM visit_mascot_packs
-       WHERE is_published = 1
-       ORDER BY updated_at DESC, id ASC`,
-    ).catch((packErr) => {
-      logRouteError(packErr, req);
-      return null;
-    });
+    // Seuls les packs **proposés dans la Visite** (`visit_listed`, migration 374) : la
+    // publication sert aussi G&L, qui ne lit pas cette case.
+    const packRowsPromise = listPublishedVisitMascotPacks({ visitListedOnly: true }).catch(
+      (packErr) => {
+        logRouteError(packErr, req);
+        return null;
+      },
+    );
 
     /** Parcours publiés sur la surface Visite (mêmes tables que le Plan / la carte). */
     const routeRowsPromise = queryAll(
@@ -550,17 +563,9 @@ router.get(
     }, {});
     const zoneMapLeadById = pickNewestMapPhotoByTarget(zoneMapPhotoRows);
     const markerMapLeadById = pickNewestMapPhotoByTarget(markerMapPhotoRows);
-    const mascotPacks = (packRows || [])
-      .map((r) => {
-        let pack = {};
-        try {
-          pack = JSON.parse(r.pack_json);
-        } catch (_) {
-          pack = {};
-        }
-        return { catalog_id: r.catalog_id, label: r.label, pack };
-      })
-      .filter((x) => x.catalog_id && x.pack && typeof x.pack === 'object');
+    // Packs complets gardés dans le cache seulement : la réponse n'en sert qu'un (le guide par
+    // défaut) et une liste légère (`lib/visitContentMascots.js`).
+    const mascotPacksFull = Array.isArray(packRows) ? packRows : [];
 
     const publicZones = zones
       .filter((z) => visitContentRowIsPublicActive(z))
@@ -621,7 +626,7 @@ router.get(
 
     const payload = {
       map_id: mapId,
-      mascot_packs: mascotPacks,
+      [FULL_PACKS_KEY]: mascotPacksFull,
       categories: categoryCatalog || [],
       zones: publicZones,
       markers: publicMarkers,
@@ -631,7 +636,7 @@ router.get(
       site_species_summary: summarizePresence(siteSpecies || []),
     };
     visitContentCache.set(mapId, payload);
-    res.json(projectVisitContentForViewer(payload, req.auth));
+    res.json(await respondVisitContent(payload, req.auth));
   }),
 );
 

@@ -59,14 +59,50 @@ function VisitProgressDonut({ progress }) {
 }
 
 /**
- * Sélecteur de mascotte discret : bouton icône + menu compact (remplace le grand `<select>`).
- * `data-testid="visit-mascot-picker"` reste sur le contrôle pour les e2e.
+ * Regroupe les guides par personnage : une variante féminine (`variantOfById`, migration 374)
+ * n'a pas sa propre ligne, elle devient l'option « version féminine » de son pack de base.
+ * @param {Array<{ id: string, label: string }>} options
+ * @param {Map<string, string>|null|undefined} variantOfById variante → base
+ * @returns {{ bases: Array<{ id: string, label: string }>, variantByBase: Map<string, string> }}
  */
-function VisitMascotPickerPopover({ visitMascotId, visitMascotOptions, onChangeVisitMascotId }) {
+export function groupVisitMascotVariants(options, variantOfById) {
+  const list = Array.isArray(options) ? options : [];
+  const ids = new Set(list.map((m) => m.id));
+  const variantByBase = new Map();
+  const isVariant = new Set();
+  if (variantOfById && typeof variantOfById.forEach === 'function') {
+    variantOfById.forEach((baseId, variantId) => {
+      if (!ids.has(baseId) || !ids.has(variantId) || variantByBase.has(baseId)) return;
+      variantByBase.set(baseId, variantId);
+      isVariant.add(variantId);
+    });
+  }
+  return { bases: list.filter((m) => !isVariant.has(m.id)), variantByBase };
+}
+
+/**
+ * Sélecteur de guide discret : bouton + menu compact (remplace le grand `<select>`).
+ * `data-testid="visit-mascot-picker"` reste sur le contrôle pour les e2e. Un personnage
+ * décliné en deux packs (« Gnome néon » / « Gnome néon (femme) ») n'occupe qu'une ligne,
+ * avec une case « Version féminine » (audit UI/UX du 19/11/2026, U4).
+ */
+function VisitMascotPickerPopover({
+  visitMascotId,
+  visitMascotOptions,
+  visitMascotVariantOfById = null,
+  onChangeVisitMascotId,
+}) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
   const current = visitMascotOptions.find((m) => m.id === visitMascotId);
-  const triggerLabel = current?.label || 'Mascotte';
+  const triggerLabel = current?.label || 'Guide';
+  const { bases, variantByBase } = groupVisitMascotVariants(
+    visitMascotOptions,
+    visitMascotVariantOfById,
+  );
+  const isFeminine = !!(visitMascotVariantOfById && visitMascotVariantOfById.has(visitMascotId));
+  const currentBaseId = isFeminine ? visitMascotVariantOfById.get(visitMascotId) : visitMascotId;
+  const currentVariantId = variantByBase.get(currentBaseId) || null;
 
   useEffect(() => {
     if (!open) return undefined;
@@ -97,14 +133,17 @@ function VisitMascotPickerPopover({ visitMascotId, visitMascotOptions, onChangeV
         onClick={() => setOpen((v) => !v)}
       >
         <span aria-hidden>🐾</span>
+        <span className="visit-display-group__label" aria-hidden="true">
+          Guide
+        </span>
       </button>
       {/* `div` plutôt que `ul` : un menu ARIA n'est pas une liste de contenu, et
           `role="menu"` sur une liste est refusé par jsx-a11y (le lecteur d'écran annonce
           « liste » là où il faut « menu »). */}
       {open ? (
         <div className="visit-mascot-picker__menu" role="menu" aria-label="Mascottes disponibles">
-          {visitMascotOptions.map((m) => {
-            const selected = m.id === visitMascotId;
+          {bases.map((m) => {
+            const selected = m.id === currentBaseId;
             return (
               <div key={m.id} role="none">
                 <button
@@ -113,7 +152,9 @@ function VisitMascotPickerPopover({ visitMascotId, visitMascotOptions, onChangeV
                   aria-checked={selected}
                   className={`visit-mascot-picker__option${selected ? ' is-selected' : ''}`}
                   onClick={() => {
-                    onChangeVisitMascotId(m.id);
+                    // La préférence « version féminine » suit d'un personnage à l'autre.
+                    const variant = variantByBase.get(m.id);
+                    onChangeVisitMascotId(isFeminine && variant ? variant : m.id);
                     setOpen(false);
                   }}
                 >
@@ -122,6 +163,22 @@ function VisitMascotPickerPopover({ visitMascotId, visitMascotOptions, onChangeV
               </div>
             );
           })}
+          {currentVariantId ? (
+            <div role="none" className="visit-mascot-picker__variant">
+              <button
+                type="button"
+                role="menuitemcheckbox"
+                aria-checked={isFeminine}
+                data-testid="visit-mascot-variant-toggle"
+                className={`visit-mascot-picker__option visit-mascot-picker__option--variant${isFeminine ? ' is-selected' : ''}`}
+                onClick={() => {
+                  onChangeVisitMascotId(isFeminine ? currentBaseId : currentVariantId);
+                }}
+              >
+                <span aria-hidden="true">{isFeminine ? '☑' : '☐'}</span> Version féminine
+              </button>
+            </div>
+          ) : null}
         </div>
       ) : null}
     </div>
@@ -137,7 +194,7 @@ function VisitMascotPickerPopover({ visitMascotId, visitMascotOptions, onChangeV
  *  1. *identité et progression* — titre, donut, « Présentation du lieu », sélecteur de carte ;
  *  2. *affichage du plan* — plein écran, taille du texte, mascotte, réunis dans un groupe
  *     visuel unique (`.visit-display-group`) qui rime avec les commandes de zoom du plan ;
- *  3. *contexte et rôle* — état réseau, aperçu élève, aide, retour connexion.
+ *  3. *contexte et rôle* — état réseau, aperçu élève, aide, « Quitter la visite ».
  *
  * Sous le bandeau : **recherche de lieux** + **puces de catégorie** (convergence Plan).
  *
@@ -146,7 +203,7 @@ function VisitMascotPickerPopover({ visitMascotId, visitMascotOptions, onChangeV
  * @param {{ total: number, seenCount: number, pct: number }} cartographyProgress progression carte courante.
  * @param {boolean} [showSeenProgress=true] afficher le donut de progression.
  * @param {React.ReactNode} helpPanelSlot `HelpPanel` déjà configuré par le parent (null = aide désactivée).
- * @param {Function|null} onBackToAuth retour à la connexion (null = bouton masqué).
+ * @param {Function|null} onBackToAuth « Quitter la visite » (visiteur sans compte ; null = bouton masqué).
  * @param {string|null} quickTipText astuce contextuelle (null = masquée).
  * @param {string} [searchQuery] saisie de recherche de lieux.
  * @param {(next: string) => void} [onSearchQueryChange]
@@ -176,6 +233,7 @@ export function VisitMapChrome({
   onToggleTeacherPreview,
   visitMascotId,
   visitMascotOptions = [],
+  visitMascotVariantOfById = null,
   onChangeVisitMascotId,
   cartographyProgress = { total: 0, seenCount: 0, pct: 0 },
   showSeenProgress = true,
@@ -295,12 +353,16 @@ export function VisitMapChrome({
                 onClick={onCycleMapTextSize}
               >
                 {mapTextSizeLabel}
+                <span className="visit-display-group__label" aria-hidden="true">
+                  Texte
+                </span>
               </button>
             ) : null}
             {visitMascotOptions.length > 0 ? (
               <VisitMascotPickerPopover
                 visitMascotId={visitMascotId}
                 visitMascotOptions={visitMascotOptions}
+                visitMascotVariantOfById={visitMascotVariantOfById}
                 onChangeVisitMascotId={onChangeVisitMascotId}
               />
             ) : null}
@@ -341,9 +403,11 @@ export function VisitMapChrome({
             </button>
           ) : null}
           {helpPanelSlot}
+          {/* Visiteur sans compte : il n'est jamais « retourné » à une connexion qu'il n'a pas
+              faite — il quitte la visite (audit UI/UX du 19/11/2026, U11). */}
           {onBackToAuth ? (
             <button type="button" className="btn btn-ghost btn-sm" onClick={onBackToAuth}>
-              ↩ Retour connexion
+              ↩ Quitter la visite
             </button>
           ) : null}
         </div>
