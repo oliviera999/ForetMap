@@ -216,6 +216,15 @@ d'observation** pour l'écriture naturaliste libre.
   ils apparaissent en vert, soulignés d'un pointillé. Ce marquage reste discret pour ne
   pas dénaturer la mise en page des fiches ; une fiche qui impose sa propre charte de
   liens garde la sienne.
+- **Moins de mots soulignés, et seulement les bons** (règle commune aux fiches, zones,
+  Visite, tutoriels, quiz et à Gnomes & Licornes) :
+  - un terme n'est souligné **qu'à sa première apparition** dans un même texte : la suite
+    du texte reste lisible, la définition est à un clic dès le premier emploi ;
+  - les mots qui ont un autre sens courant ne sont **jamais soulignés par erreur** : « vers »
+    dans « droit vers le bas », « été » dans « a été », « son » dans « son terrier ». Ils le
+    restent quand le contexte en fait sans ambiguïté un nom (« des vers », « l'été », « en
+    été », « le son »). Les expressions plus longues (« vers de terre ») sont toujours
+    soulignées. Liste actuelle : vers, été, sens, son, fin, mare.
 
 ## Le Réseau trophique
 

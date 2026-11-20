@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { loginAsNewStudent } = require('./fixtures/auth.fixture');
+const { loginAsNewStudent, openStudentTab } = require('./fixtures/auth.fixture');
 const { execute } = require('../database');
 
 /**
@@ -22,7 +22,7 @@ async function seedGlossaryTerm() {
 test('parcours élève : glossaire recherche et fiche', async ({ page }) => {
   const { terme } = await seedGlossaryTerm();
   await loginAsNewStudent(page);
-  await page.getByRole('button', { name: 'Glossaire' }).click();
+  await openStudentTab(page, 'Glossaire');
   await expect(page.getByRole('heading', { name: /Glossaire/i })).toBeVisible({ timeout: 20_000 });
 
   const search = page.getByPlaceholder('Mot-clé…');

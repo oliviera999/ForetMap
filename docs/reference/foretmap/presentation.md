@@ -223,12 +223,22 @@ onglet** pour continuer à préparer ; un bandeau les prévient : « module dés
 
 ## Comment l'écran s'organise
 
-- **L'élève** navigue par une barre d'onglets en bas d'écran. Sur téléphone, les
-  raccourcis principaux (Carte, Tâches, Biodiversité, Visite — ou Quiz si la Visite
-  est désactivée) restent visibles ; le bouton **Plus** ouvre le reste des onglets
-  (Glossaire, Réseau, Tuto, Carnet, Forum, À propos…). Sur grand écran, toute la
-  barre reste déployée. L'application fonctionne très bien sur téléphone et peut
-  s'installer comme une appli.
+- **L'élève** navigue par une barre en bas d'écran, organisée comme celle du professeur
+  en **quatre pôles** :
+  - **Terrain** — Carte, Tâches (et, sur grand écran, « Cartes & tâches »), Visite ;
+  - **Vivant** — Biodiversité, Clés, Réseau, Groupes, Individus ;
+  - **Apprendre** — Quiz, Glossaire, Séances, Tuto, Fresque ;
+  - **Moi** — Carnet, Forum, Stats, Classe, À propos.
+
+  Sur grand écran, la barre montre les quatre pôles puis les onglets du pôle en cours ;
+  cliquer un pôle ouvre son premier onglet, et le pôle suit l'onglet ouvert. Chaque onglet
+  a sa propre icône (Groupes et Individus ne partagent plus celle de Biodiversité). Sur
+  téléphone, les raccourcis principaux (Carte, Tâches, Biodiversité, Visite — ou Quiz si
+  la Visite est désactivée) restent visibles ; le bouton **Plus** ouvre tous les onglets,
+  rangés sous les noms des quatre pôles. Un pôle dont aucun onglet n'est disponible
+  n'apparaît pas. L'application fonctionne très bien sur téléphone et peut s'installer
+  comme une appli.
+
 - **Le professeur** navigue par une barre en haut, organisée en **trois pôles** qui
   déploient chacun leur rangée d'onglets :
   - **Contenus** — Carte & Zones, Biodiversité, Quiz, Glossaire, Réseau trophique,
@@ -260,9 +270,9 @@ onglet** pour continuer à préparer ; un bandeau les prévient : « module dés
 > ℹ️ **Navigation** — Les onglets sont stables : Tâches et Tuto sont toujours séparés.
 > Deux variations légitimes subsistent : sur grand écran, une vue « Cartes & tâches »
 > (pôle Contenus) affiche la carte et les tâches côte à côte ; et un onglet disparaît
-> si son module est désactivé dans les réglages. Sur téléphone, l'élève passe par
-> **Plus** pour les onglets secondaires ; le professeur ouvre les onglets d'un pôle
-> dans un menu bas.
+> si son module est désactivé dans les réglages. Sur grand écran, élève et professeur
+> passent par leurs pôles ; sur téléphone, l'élève passe par **Plus** pour les onglets
+> secondaires, et le professeur ouvre les onglets d'un pôle dans un menu bas.
 >
 > Le bouton **Retour** du navigateur ou du téléphone suit la navigation dans l'app :
 > il ferme d'abord ce qui est ouvert par-dessus l'écran — fenêtre, fiche, menu bas,

@@ -3,6 +3,7 @@ const {
   loginAsTeacherAdminApi,
   markAllDiscoveryToursSeen,
   dismissDiscoveryTourIfPresent,
+  openStudentTab,
 } = require('./fixtures/auth.fixture');
 
 /**
@@ -36,19 +37,9 @@ async function importAccounts(page, token, rows) {
   expect(report.totals.created, JSON.stringify(report.errors)).toBe(rows.length);
 }
 
-/** Onglet de la navigation basse, directement ou via « Plus d'onglets ». */
+/** Onglet de la navigation basse : pôle (ordinateur) ou « Plus d'onglets » (compact). */
 async function openBottomTab(page, name) {
-  const nav = page.locator('nav.bottom-nav');
-  const direct = nav.getByRole('button', { name, exact: true });
-  if (await direct.isVisible({ timeout: 2000 }).catch(() => false)) {
-    await direct.click();
-    return;
-  }
-  await nav.getByRole('button', { name: /Plus d'onglets/ }).click();
-  await page
-    .getByRole('dialog', { name: 'Navigation' })
-    .getByRole('button', { name, exact: true })
-    .click();
+  await openStudentTab(page, name);
 }
 
 test('prof de classe : navigation visiteur, stats et classe bornées à ses élèves', async ({

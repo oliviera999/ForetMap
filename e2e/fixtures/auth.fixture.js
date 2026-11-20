@@ -859,6 +859,76 @@ async function openTeacherPole(page, poleName) {
 }
 
 /**
+ * Pôles de la barre élève et libellés de leurs onglets (`STUDENT_NAV_POLES` et
+ * `STUDENT_NAV_POLE_BY_TAB`, lot 6 de l'audit UI/UX du 19/11/2026). Cliquer un pôle ouvre son
+ * premier onglet : on vise donc directement le bon pôle plutôt que de les parcourir.
+ */
+const STUDENT_POLE_TAB_LABELS = {
+  Terrain: [
+    'Cartes & tâches',
+    'Cartes & tâches · tuto',
+    'Carte',
+    'Tâches',
+    'Tâches · tuto',
+    'Visite',
+  ],
+  Vivant: ['Biodiversité', 'Clés', 'Réseau', 'Groupes', 'Individus'],
+  Apprendre: ['Quiz', 'Glossaire', 'Séances', 'Tuto', 'Fresque'],
+  Moi: ['Carnet', 'Forum', 'Stats', 'Classe', 'Profils', 'À propos'],
+};
+
+function studentPoleOf(name) {
+  const matches = (label) => (typeof name === 'string' ? label === name : name.test(label));
+  const poles = Object.keys(STUDENT_POLE_TAB_LABELS);
+  return poles.find((pole) => STUDENT_POLE_TAB_LABELS[pole].some(matches)) || null;
+}
+
+/**
+ * Ouvre un onglet de la navigation élève, quelle que soit la disposition :
+ *  - ordinateur : la barre basse montre les QUATRE PÔLES et les seuls onglets du pôle actif —
+ *    on ouvre le pôle de l'onglet s'il n'est pas déjà affiché ;
+ *  - compact (sous 1024px ou pointeur grossier) : primaires + « Plus », dont la feuille
+ *    « Navigation » range tous les onglets par pôle.
+ *
+ * @param {import('@playwright/test').Page} page
+ * @param {RegExp|string} name nom de l'onglet (chaîne = correspondance exacte)
+ */
+async function openStudentTab(page, name) {
+  const nav = page.locator('nav.bottom-nav');
+  await nav.waitFor({ state: 'visible', timeout: 30_000 });
+  const byName = (scope) =>
+    scope.getByRole('button', typeof name === 'string' ? { name, exact: true } : { name }).first();
+  const poles = nav.locator('.bottom-nav__poles');
+  if ((await poles.count()) > 0) {
+    const tabs = nav.locator('.bottom-nav__tabs');
+    if (
+      !(await byName(tabs)
+        .isVisible({ timeout: 1000 })
+        .catch(() => false))
+    ) {
+      const pole = studentPoleOf(name);
+      if (pole) {
+        await poles
+          .getByRole('button', { name: new RegExp(`^${pole}\\b`) })
+          .first()
+          .click({ timeout: 15_000 });
+      }
+    }
+    await byName(tabs).click({ timeout: 25_000 });
+    return;
+  }
+  const direct = byName(nav);
+  if (await direct.isVisible({ timeout: 2000 }).catch(() => false)) {
+    await direct.click({ timeout: 25_000 });
+    return;
+  }
+  await nav.getByRole('button', { name: /Plus d'onglets/ }).click({ timeout: 15_000 });
+  const sheet = page.getByRole('dialog', { name: 'Navigation' });
+  await sheet.waitFor({ state: 'visible', timeout: 15_000 });
+  await byName(sheet).click({ timeout: 15_000 });
+}
+
+/**
  * Ouvre un onglet prof d'un pôle donné, quelle que soit la disposition.
  *
  * Desktop : les onglets du pôle s'étalent dans `.teacher-main .top-tabs`. Compact (≤ 640px ou
@@ -968,20 +1038,8 @@ async function openVisitTab(page) {
     await teacherVisit.first().click({ timeout: 25_000 });
     return;
   }
-  const studentVisit = page
-    .locator('nav.bottom-nav')
-    .getByRole('button', { name: 'Visite', exact: true });
-  if ((await studentVisit.count()) > 0) {
-    await studentVisit.click({ timeout: 25_000 });
-    return;
-  }
-  const plus = page.locator('nav.bottom-nav').getByRole('button', { name: /Plus d'onglets/ });
-  if ((await plus.count()) > 0) {
-    await plus.click({ timeout: 15_000 });
-    await page
-      .getByRole('dialog', { name: 'Navigation' })
-      .getByRole('button', { name: 'Visite', exact: true })
-      .click({ timeout: 15_000 });
+  if ((await page.locator('nav.bottom-nav').count()) > 0) {
+    await openStudentTab(page, 'Visite');
     return;
   }
   await page.getByRole('button', { name: 'Visite', exact: true }).click({ timeout: 25_000 });
@@ -1523,6 +1581,7 @@ async function clickTeacherNewTask(page) {
 }
 
 module.exports = {
+  openStudentTab,
   loginAsNewStudent,
   openTeacherPole,
   openTeacherTabInPole,
