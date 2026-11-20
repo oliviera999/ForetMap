@@ -9,6 +9,38 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — G&L : écrans de séance, lot 3 (le moteur de la carte du moment)
+
+Troisième lot du chantier « écrans de séance » (`docs/prompts/GL_ECRANS_DE_SEANCE_PROMPT.md`,
+étape 4, première moitié ; suivi dans `docs/prompts/GL_ECRANS_DE_SEANCE_ETAT.md`). L'écran
+d'équipe va montrer **une seule chose à la fois** : ce que l'équipe a à faire maintenant. Ce lot
+pose le moteur et les trois composants **sans les brancher** : rien ne change à l'écran (le lot
+suivant les monte). Aucune règle, aucune route, aucun schéma, aucun réglage ne change.
+
+- **Moteur** (`src/gl/utils/glTenirMoment.js`, fonctions pures) : `momentDeLEquipe` choisit un
+  seul état parmi quatorze, du plus pressant au moins pressant (péripétie, main tenue par un
+  autre appareil, demande d'appareil, question, jet en suspens, saisie des dés, jet à valider,
+  retour, geste, tour joué, voile, camp, tour terminé, attente). Il ne lit que les droits
+  servis : un geste fermé n'apparaît pas, il n'est plus grisé. Ordre du gros bouton : répondre,
+  lancer, fouiller, lire, sorts ; trois puces au plus pour les autres gestes ouverts.
+- **Composants** (`src/gl/components/tenir/`) : `GLTenirBandeau` (mascotte, phase en mots
+  d'élève, sablier, une bourse par membre, bouton du tiroir), `GLTenirMoment` (la carte du
+  moment, ses bandeaux d'une ligne, puis Olu) et `GLTenirTiroir` (« L'équipe » : cases à venir en
+  pastilles, réserve, défi à préparer, carnet et bestiaire, présences). Les blocs existants y
+  sont déplacés, pas réécrits.
+- **Hooks** : `useGlTenirRetour` (le retour d'une fouille ou d'une question reste jusqu'à
+  « Continuer », et s'efface au changement de phase) et `useGlTenirTiroir` (fermé par défaut,
+  pastille de nouveauté).
+- **Aucune attente sans sortie** : une question restée ouverte ne se montre plus hors de la phase
+  de jeu ; « Votre tour est joué. » ne se dit que si le jet est fait et qu'il ne reste aucune
+  fouille ; le carnet du tiroir n'offre « Lire » que si le droit est servi.
+- Textes de fouille : une seule source (`TENIR_VERDICT_TEXTES`), lue par l'écran actuel comme
+  par la carte du moment.
+- Tests : `tests-ui/gl/glTenirMoment.test.js`, `GLTenirMoment.test.jsx`,
+  `GLTenirBandeau.test.jsx`, `GLTenirTiroir.test.jsx`, `useGlTenirMomentHooks.test.jsx` (100
+  tests) ; `tests/content/gl-adresse-ecran-equipe.test.js` relit aussi le moteur (vous, jamais
+  tu ; aucun mot interdit).
+
 ### Modifié — G&L : écrans de séance, lot 1 (textes, adresse, phases, plateau)
 
 Premier lot du chantier « écrans de séance » (`docs/prompts/GL_ECRANS_DE_SEANCE_PROMPT.md`,
