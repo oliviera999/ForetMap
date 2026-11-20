@@ -1300,7 +1300,7 @@ function VisitViewImpl({
                     onHeight={setRouteBarHeight}
                     canLocate={!!visitPosition.available}
                     distanceLabel={visitTargetDistanceLabel}
-                    hintLocate="Le lieu est mis en avant sur la carte. Utilisez « Me situer » puis avancez."
+                    hintLocate="Le lieu est mis en avant sur la carte. Utilise « Me situer » puis avance."
                     hintManual="Le lieu est mis en avant sur la carte. Avance puis Suivant."
                   />
                 ) : null}

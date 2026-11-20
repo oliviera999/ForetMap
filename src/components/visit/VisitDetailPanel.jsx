@@ -421,7 +421,7 @@ export function VisitDetailPanel({
                 type="button"
                 className="btn btn-primary btn-sm visit-detail-panel__go-btn"
                 data-testid="visit-detail-go"
-                title="Afficher la direction et la distance depuis votre position"
+                title="Afficher la direction et la distance depuis ta position"
                 onClick={() => onGoTo(selected)}
               >
                 {isGuideTarget ? 'Revoir la direction' : 'Y aller'}
