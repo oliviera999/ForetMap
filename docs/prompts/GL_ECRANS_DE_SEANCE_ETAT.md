@@ -24,7 +24,7 @@ dans une **nouvelle PR en brouillon** :
 | Session | Lot                                       | État                    | Commits                                                                             |
 | ------- | ----------------------------------------- | ----------------------- | ----------------------------------------------------------------------------------- |
 | S1      | Préparation, textes, adresse, plateau     | faite, fusionnée (#711) | `8272b2e08` (prompt, captures), `e898eff3c` (étape 1), `552754187` (étape 2) + état |
-| S2      | Projection (étape 3)                      | en cours (vérifs)       | `4416079` (étape 3) ; l'état passe à `faite` quand `npm test` a rendu son résultat  |
+| S2      | Projection (étape 3)                      | faite                   | `4416079` (étape 3) + commits d'état                                                |
 | S3      | Tablette 1 : moteur de la carte du moment | à faire                 | —                                                                                   |
 | S4      | Tablette 2 : branchement                  | à faire                 | —                                                                                   |
 | S5      | Console (étape 5)                         | à faire                 | —                                                                                   |
@@ -331,17 +331,20 @@ la page). Les pages du Passeur du corpus vont de 250 à 1 370 caractères.
 
 ### Vérifications de S2
 
-| Commande                                                                        | Résultat                                            |
-| ------------------------------------------------------------------------------- | --------------------------------------------------- |
-| Avant le lot : `npm test`, `npm run test:ui`                                    | 6 600 tests (2 ignorés) ; 816 fichiers, 6 237 tests |
-| `npm run lint`                                                                  | 0 erreur (321 avertissements, déjà là)              |
-| `npm run format:check`                                                          | vert                                                |
-| `npm run test:ui`                                                               | 817 fichiers, 6 254 tests                           |
-| e2e `gl-tenir-*` (projection, ecrans-relus, escalier, tablettes, defis-trame)   | 7 / 7                                               |
-| e2e `gl-intro`, `gl-foundations`, `gl-game-flow`, `gl-responsive-accessibility` | 14 / 14                                             |
-| `npm test`, `npm run test:content`, build de production, `check:bundle`         | **en cours** au moment de ce commit (voir plus bas) |
+| Commande                                                                        | Résultat                                               |
+| ------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| Avant le lot : `npm test`, `npm run test:ui`                                    | 6 600 tests (2 ignorés) ; 816 fichiers, 6 237 tests    |
+| `npm run lint`                                                                  | 0 erreur (321 avertissements, déjà là)                 |
+| `npm run format:check`                                                          | vert                                                   |
+| `npm run test:ui`                                                               | 817 fichiers, 6 254 tests                              |
+| e2e `gl-tenir-*` (projection, ecrans-relus, escalier, tablettes, defis-trame)   | 7 / 7                                                  |
+| e2e `gl-intro`, `gl-foundations`, `gl-game-flow`, `gl-responsive-accessibility` | 14 / 14                                                |
+| `npm test`                                                                      | 6 600 tests, 6 598 verts, 2 ignorés, 0 échec           |
+| `npm run test:content`                                                          | 154 tests                                              |
+| `NODE_ENV=production npm run build`, `check:bundle`, `check:runtime`            | JS 1 529,1 Ko (plafond 1 530), CSS 376,8 Ko ; conforme |
 
-Le banc n'a pas été relancé : le lot ne touche ni `lib/`, ni `routes/`, ni `migrations/`, ni
+Le budget du bundle n'a pas bougé (la projection vit dans le morceau G&L, pas dans l'entrée
+ForêtMap). Le banc n'a pas été relancé : le lot ne touche ni `lib/`, ni `routes/`, ni `migrations/`, ni
 `data/` (S6 le relance).
 
 ## Ce que la session suivante doit savoir
