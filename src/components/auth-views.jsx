@@ -1,18 +1,24 @@
-import { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { Suspense, lazy, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { api, saveStoredSession, withAppBase } from '../services/api';
 import { MarkdownTextarea } from './MarkdownTextarea.jsx';
 import { getRoleTerms } from '../utils/n3-terminology';
 import { getContentText } from '../utils/content';
 import { getAppCredits } from '../utils/appCredits.js';
-import { getAuthSubmitError } from '../utils/authRegisterValidation.js';
 import { PinModal } from './auth/PinModal.jsx';
 import { TotpChallenge, TotpSetupSuggestion } from './auth/TotpChallenge.jsx';
 import { startGoogleAuth } from './auth/startGoogleAuth.js';
 import { IconWarning } from '../shared/icons.jsx';
 import { PrivacyNoticeLink } from '../shared/privacy/PrivacyNoticeLink.jsx';
-import { PendingSessionNotice } from './pedago/PendingSessionNotice.jsx';
 import { getBuildBrand } from '../shared/brand/brandNames.js';
 import { DEFAULT_AUTH_SUBTITLE, stripLeadingAppName } from '../utils/authSubtitle.js';
+
+/**
+ * Avis « une séance t'attend » (lien `?seance=`) : rare, chargé à la demande pour tenir le
+ * budget de l'écran de connexion (audit UI/UX du 19/11/2026, U1).
+ */
+const PendingSessionNoticeLazy = lazy(() =>
+  import('./pedago/PendingSessionNotice.jsx').then((m) => ({ default: m.PendingSessionNotice })),
+);
 
 function AuthScreen({
   onLogin,
@@ -157,6 +163,9 @@ function AuthScreen({
   const submit = async () => {
     setInfo('');
     setErr('');
+    // Règles de saisie chargées au premier envoi : hors du paquet de l'écran de connexion
+    // (budget du lot 2, audit UI/UX du 19/11/2026, U1).
+    const { getAuthSubmitError } = await import('../utils/authRegisterValidation.js');
     const validationError = getAuthSubmitError({
       mode,
       identifier,
@@ -271,7 +280,9 @@ function AuthScreen({
           <h1>{authTitle}</h1>
           {authSubtitle ? <p className="sub">{authSubtitle}</p> : null}
           {welcomeMessage && <p className="sub auth-welcome">{welcomeMessage}</p>}
-          <PendingSessionNotice guestVisitOffered={guestVisitOffered} />
+          <Suspense fallback={null}>
+            <PendingSessionNoticeLazy guestVisitOffered={guestVisitOffered} />
+          </Suspense>
         </header>
 
         <div className="auth-doors">
