@@ -1204,6 +1204,7 @@ function VisitViewImpl({
             {!visitImmersion ? (
               <VisitMapChrome
                 title={visitTitle}
+                titleLevel={isGuestPublicVisit ? 1 : 2}
                 showPresentationButton={showVisitPresentationButton}
                 onOpenPresentation={() =>
                   setVisitTutorialPreview(tutorialPreviewPayload(visitPresentationTutorial))

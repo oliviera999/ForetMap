@@ -148,7 +148,7 @@ function VisitMascotPickerPopover({
         data-testid="visit-mascot-picker"
         aria-haspopup="menu"
         aria-expanded={open}
-        aria-label={`Choisir la mascotte affichée sur le plan (${triggerLabel})`}
+        aria-label={`Guide : choisir la mascotte affichée sur le plan (${triggerLabel})`}
         title="Mascotte affichée sur le plan"
         onClick={() => setOpen((v) => !v)}
       >
@@ -278,8 +278,11 @@ export function VisitMapChrome({
   onToggleCategory = null,
   onResetCategories = null,
   categoryCounts = null,
+  /** Niveau du titre : `h1` en Visite invitée (aucun autre titre de page), `h2` sinon. */
+  titleLevel = 2,
 }) {
   const searchInputId = useId();
+  const TitleTag = titleLevel === 1 ? 'h1' : 'h2';
   const hasCategories =
     Array.isArray(categoryCatalog) &&
     categoryCatalog.length > 0 &&
@@ -298,7 +301,9 @@ export function VisitMapChrome({
         {/* Zone 1 — identité et progression. Le donut est une **donnée**, pas une commande :
             sa place est auprès du titre, pas coincée entre un menu de préférence et l'aide. */}
         <div className="visit-map-card__chrome-title-line">
-          <h2 className="section-title visit-map-card__title">{title}</h2>
+          {/* Visite invitée : pas de barre d'application au-dessus, le titre de la carte est
+              le titre de la page (`h1`). */}
+          <TitleTag className="section-title visit-map-card__title">{title}</TitleTag>
           {showSeenProgress && cartographyProgress.total > 0 ? (
             <VisitProgressDonut progress={cartographyProgress} mapLabel={mapLabel} />
           ) : null}
@@ -373,10 +378,10 @@ export function VisitMapChrome({
                 className="map-toolbar-text-size-btn"
                 data-testid="visit-map-text-size"
                 title="Taille du texte sur la carte (Normal / Grand / Très grand)"
-                aria-label={`Taille du texte sur la carte (${mapTextSizeLabel})`}
+                aria-label={`${mapTextSizeLabel} Texte : taille du texte sur la carte`}
                 onClick={onCycleMapTextSize}
               >
-                {mapTextSizeLabel}
+                {mapTextSizeLabel}{' '}
                 <span className="visit-display-group__label" aria-hidden="true">
                   Texte
                 </span>

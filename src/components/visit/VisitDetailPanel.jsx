@@ -592,7 +592,7 @@ export function VisitDetailPanel({
   }
 
   return (
-    <aside
+    <div
       ref={sideRef}
       role="dialog"
       aria-modal="false"
@@ -613,6 +613,6 @@ export function VisitDetailPanel({
         </button>
       </div>
       {content}
-    </aside>
+    </div>
   );
 }

@@ -192,7 +192,11 @@ async function createStudentWithProfileViaAdmin(page) {
 
 async function logoutToAuth(page) {
   await page.getByRole('button', { name: /Déconnexion/ }).click();
-  await page.getByRole('button', { name: 'Connexion', exact: true }).waitFor({ state: 'visible' });
+  // « Se connecter » est toujours là ; l'onglet « Connexion » n'existe que si l'inscription
+  // est ouverte (accueil à deux portes, audit UI/UX du 19/11/2026, U3).
+  await page
+    .getByRole('button', { name: 'Se connecter', exact: true })
+    .waitFor({ state: 'visible' });
   await page
     .waitForFunction(
       () => !localStorage.getItem('foretmap_session') && !localStorage.getItem('foretmap_student'),

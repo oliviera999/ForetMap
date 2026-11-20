@@ -46,7 +46,9 @@ test.describe('inscription publique', () => {
     await page.goto('/');
     await markAllDiscoveryToursSeen(page);
 
-    await expect(page.getByRole('button', { name: 'Connexion', exact: true })).toBeVisible();
+    // Inscription fermée : plus de barre à un seul onglet (U3), le formulaire de connexion reste.
+    await expect(page.getByRole('button', { name: 'Se connecter', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Connexion', exact: true })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Créer un compte' })).toHaveCount(0);
 
     const nonce = `${Date.now()}-${Math.floor(Math.random() * 1e9)}`;
