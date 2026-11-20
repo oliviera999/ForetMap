@@ -10,8 +10,9 @@
  *
  * Cliquet : le plafond ne peut que baisser. Une PR qui alourdit l'écran de connexion échoue ;
  * une PR qui l'allège abaisse `BUNDLE_BUDGETS` dans le même lot. L'objectif fixé par l'audit
- * est `TARGET_JS_KB` (400 Ko de JS décodé) ; le plafond actuel en est loin tant que `App.jsx`
- * importe statiquement tout le shell connecté (voir `docs/AUDIT_UI_UX_2026-11-19.md`, U1).
+ * est `TARGET_JS_KB` (400 Ko de JS décodé). Le shell connecté est chargé à la demande depuis
+ * le 20/11/2026 (`src/components/app/authenticatedShellParts.js`) ; ce qui reste au-dessus de
+ * l'objectif est listé dans `docs/AUDIT_UI_UX_2026-11-19.md`, U1.
  *
  * La mesure n'a de sens que sur un build **de production** : avec `NODE_ENV=test` ou
  * `development`, Vite embarque la version de développement de React (deux fois plus lourde).
@@ -33,15 +34,16 @@ const TAG = '[bundle-budget]';
 const TARGET_JS_KB = 400;
 
 /**
- * Plafonds par entrée HTML (Ko décodés, 1 Ko = 1 024 octets). Mesure de référence au
- * 20/11/2026 (lot 2 du chantier UI/UX) : 1 525,8 Ko de JS en 24 fichiers, 375,9 Ko de CSS.
+ * Plafonds par entrée HTML (Ko décodés, 1 Ko = 1 024 octets). Mesures de référence au
+ * 20/11/2026 : 1 525,8 Ko de JS en 24 fichiers au lot 2 du chantier UI/UX, puis 770,1 Ko en
+ * 17 fichiers et 369,8 Ko de CSS une fois le shell connecté chargé à la demande.
  * Marge d'arrondi seulement : ce n'est pas une enveloppe à remplir.
  */
 const BUNDLE_BUDGETS = Object.freeze({
   'index.vite.html': Object.freeze({
     label: 'ForetMap (écran de connexion)',
-    jsKb: 1530,
-    cssKb: 380,
+    jsKb: 775,
+    cssKb: 372,
   }),
 });
 

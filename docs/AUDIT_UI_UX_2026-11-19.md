@@ -75,6 +75,15 @@ charger à la demande le shell connecté importé statiquement par `src/App.jsx`
 périmètre de la session C : mesure 1 526 → 795 Ko en neuf imports) ; branchement de la
 vignette dans la grille (session B) ; allègement de `/api/visit/content` (session B).
 
+**Corrigé** (lot à part « découpage d'`App.jsx` », 20/11) : le shell connecté est chargé à la
+demande depuis un seul module (`src/components/app/authenticatedShellParts.js`, `lazyScreen`
+sous `ScreenLoadBoundary`), préchargé à l'inactivité sur l'écran de connexion mais pas
+pendant la Visite publique. JS de l'écran de connexion : **1 529 → 770 Ko** ; cliquet abaissé
+à 775 Ko. **Reste** pour l'objectif de 400 Ko, encore chargés d'emblée : React (206 Ko,
+incompressible), `main` (203 Ko), `ImageLightboxProvider` (93 Ko), Markdown (76 Ko),
+`VisitMascotFallbackSvg` (57 Ko), `socket.io` (40 Ko, importé par `useForetmapRealtime` alors
+qu'il ne sert qu'une fois connecté).
+
 ### U2 — 🔴 Indisponibilité vue par l'utilisateur
 
 Deux redémarrages du serveur pendant l'audit. Côté écran : bandeau « Serveur momentanément

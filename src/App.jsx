@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { Suspense, useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { getAuthClaims, getStoredSession } from './services/api';
 import { useForetmapRealtime } from './hooks/useForetmapRealtime';
 import { useNotificationCenter } from './hooks/useNotificationCenter';
@@ -9,16 +9,10 @@ import { getRoleTerms } from './utils/n3-terminology';
 import { isLtiArrivalLocation, resolveAppShellTexts } from './utils/appShellTexts';
 import { normalizePedagoLevel } from './utils/biodivPedagoLevel.js';
 import { AppFooter } from './components/app/AppFooter.jsx';
-import { AppHeader } from './components/app/AppHeader.jsx';
-import { AppProviders } from './components/app/AppProviders.jsx';
-import { AppPedagoOverlays } from './components/app/AppPedagoOverlays.jsx';
-import { AppNoticeBanners } from './components/app/AppNoticeBanners.jsx';
-import { AppGlobalModals } from './components/app/AppGlobalModals.jsx';
-import { TeacherMainContent } from './components/app/TeacherMainContent.jsx';
-import { StudentMainContent } from './components/app/StudentMainContent.jsx';
+import { AppLoader, FULL_PAGE_LOADER_STYLE } from './components/app/AppLoader.jsx';
 import { UnauthenticatedShell } from './components/app/UnauthenticatedShell.jsx';
-import { RolePreviewBanners } from './components/app/RolePreviewBanners.jsx';
-import { LtiArrivee } from './components/lti/LtiArrivee.jsx';
+import { ScreenLoadBoundary } from './shared/components/ScreenLoadBoundary.jsx';
+import { lazyScreen } from './shared/lazyScreen.jsx';
 import { PublicSettingsProvider } from './contexts/PublicSettingsContext.jsx';
 import { useAppBootstrap } from './hooks/useAppBootstrap';
 import { useShellMapData } from './hooks/useShellMapData';
@@ -42,6 +36,56 @@ import { useAppPedago } from './hooks/useAppPedago';
 import { useAppTabGuards } from './hooks/useAppTabGuards';
 import { useAppTargetNavigation } from './hooks/useAppTargetNavigation';
 import { useShellContextValues } from './hooks/useShellContextValues';
+
+/*
+ * Shell connecté chargé à la demande (audit UI/UX du 19/11/2026, U1). L'écran de connexion
+ * et la Visite publique n'en affichent rien : avant, ces briques et leurs dépendances
+ * partaient avec le premier chargement. Toutes viennent du même module
+ * (`authenticatedShellParts.js`), donc d'un seul chunk et d'une seule requête.
+ */
+const loadAuthenticatedShell = () => import('./components/app/authenticatedShellParts.js');
+const fromShell = (name) => () => loadAuthenticatedShell().then((m) => ({ default: m[name] }));
+const AppProviders = lazyScreen(fromShell('AppProviders'));
+const AppPedagoOverlays = lazyScreen(fromShell('AppPedagoOverlays'));
+const AppNoticeBanners = lazyScreen(fromShell('AppNoticeBanners'));
+const AppGlobalModals = lazyScreen(fromShell('AppGlobalModals'));
+const AppHeader = lazyScreen(fromShell('AppHeader'));
+const RolePreviewBanners = lazyScreen(fromShell('RolePreviewBanners'));
+const TeacherMainContent = lazyScreen(fromShell('TeacherMainContent'));
+const StudentMainContent = lazyScreen(fromShell('StudentMainContent'));
+const LtiArrivee = lazyScreen(() =>
+  import('./components/lti/LtiArrivee.jsx').then((m) => ({ default: m.LtiArrivee })),
+);
+
+/**
+ * Précharge le shell connecté sans rien bloquer, quand le navigateur est inactif après
+ * l'affichage de l'écran de connexion : la connexion ne fait alors plus attendre. Avec une
+ * session déjà stockée, inutile — le premier rendu demande ce module lui-même. Pas de
+ * préchargement pendant la Visite publique : un visiteur sur téléphone ne se connectera
+ * sans doute pas, ce serait des données mobiles pour rien. Un échec est sans conséquence :
+ * le rendu relancera le téléchargement.
+ */
+function preloadAuthenticatedShell() {
+  loadAuthenticatedShell().catch(() => {});
+}
+const IDLE_PRELOAD_DELAY_MS = 1500;
+function scheduleIdlePreload() {
+  if (typeof window === 'undefined') return () => {};
+  let idleId = null;
+  const timer = window.setTimeout(() => {
+    if (typeof window.requestIdleCallback === 'function') {
+      idleId = window.requestIdleCallback(preloadAuthenticatedShell, { timeout: 5000 });
+    } else {
+      preloadAuthenticatedShell();
+    }
+  }, IDLE_PRELOAD_DELAY_MS);
+  return () => {
+    window.clearTimeout(timer);
+    if (idleId != null && typeof window.cancelIdleCallback === 'function') {
+      window.cancelIdleCallback(idleId);
+    }
+  };
+}
 
 /*
  * ── APP ─────────────────────────────────────────────────────────────────────────
@@ -360,10 +404,19 @@ function App() {
     dataSync,
   });
 
+  useEffect(() => {
+    if (hasAuthenticatedShell || showPublicVisit) return undefined;
+    return scheduleIdlePreload();
+  }, [hasAuthenticatedShell, showPublicVisit]);
+
   if (isLtiArrivalLocation()) {
     return (
       <PublicSettingsProvider value={publicSettings}>
-        <LtiArrivee />
+        <ScreenLoadBoundary>
+          <Suspense fallback={<AppLoader text={texts.loader} style={FULL_PAGE_LOADER_STYLE} />}>
+            <LtiArrivee />
+          </Suspense>
+        </ScreenLoadBoundary>
       </PublicSettingsProvider>
     );
   }
@@ -436,157 +489,161 @@ function App() {
   };
 
   return (
-    <AppProviders
-      pedagoSession={pedagoSession}
-      publicSettings={publicSettings}
-      biodiv={{
-        userPreference: userBiodivPedagoPref,
-        mapLevel: activeMapPedagoLevel,
-        groupLevels: session.biodivGroupPedagoLevels,
-        classCurriculumNiveaux: session.biodivGroupCurriculumNiveaux,
-        sessionLevel: pedagoSession.imposedLevel,
-        sessionNotionNiveau: pedagoSession.imposedNotionNiveau,
-        canTeacherPreview:
-          effectiveIsTeacher || (canSwitchToStudentView && roleViewMode === 'student'),
-        fullViewByDefault: effectiveIsTeacher || isClassTeacher,
-      }}
-      dialogsRef={appDialogsRef}
-      sessionContextValue={sessionContextValue}
-      dataContextValue={dataContextValue}
-      tour={{
-        tab,
-        isTeacher: effectiveIsTeacher,
-        isClassTeacher,
-        enabled: discoveryTourAutoEnabled,
-        accountSeen: session.discoveryTourSeen,
-        accountSeenReady: session.discoveryTourSeenReady,
-        onTourSeen: session.persistDiscoveryTourSeen,
-      }}
-    >
-      <div id="app" style={foretBrandStyle} data-brand-logo={foretBrand.logoUrl || undefined}>
-        <AppPedagoOverlays
-          tab={tab}
-          pedago={pedago}
-          pedagoSessionsAvailable={pedagoSessionsAvailable}
-          rewardsModuleEnabled={rewardsModuleEnabled}
-          canAddToNotebook={
-            pedagoAuthenticated && publicSettings?.modules?.observations_enabled !== false
-          }
-          visibleMaps={visibleMaps}
-          navigateTab={navigateTab}
-          forceLogout={forceLogout}
-        />
-        <AppNoticeBanners
-          pwa={pwa}
-          offline={offline}
-          dataSync={dataSync}
-          texts={texts}
-          hasAuthenticatedShell={hasAuthenticatedShell}
-          latestCriticalNotification={notif.latestCritical}
-          openNotificationAction={openNotificationAction}
-          sessionValidationError={sessionValidationError}
-          setSessionValidationError={setSessionValidationError}
-          studentForUi={studentForUi}
-          effectiveIsTeacher={effectiveIsTeacher}
-          validateStudentSession={validateStudentSession}
-        />
-        <AppGlobalModals
-          offline={offline}
-          dialogs={dialogs}
-          access={access}
-          hasAuthenticatedShell={hasAuthenticatedShell}
-          lastSyncAt={dataSync.lastSyncAt}
-          setToast={setToast}
-          toast={toast}
-          onToastDone={handleToastDone}
-          profilePromotion={profilePromotion}
-          setProfilePromotion={setProfilePromotion}
-          roleTerms={roleTerms}
-          onPinSuccess={() => {
-            setPinSuccessFetchAllTick((n) => n + 1);
-            setAuthClaims(getAuthClaims());
-            setShowPin(false);
-            setToast('Connexion professeur réussie, tout roule');
+    <ScreenLoadBoundary>
+      <Suspense fallback={<AppLoader text={texts.loader} style={FULL_PAGE_LOADER_STYLE} />}>
+        <AppProviders
+          pedagoSession={pedagoSession}
+          publicSettings={publicSettings}
+          biodiv={{
+            userPreference: userBiodivPedagoPref,
+            mapLevel: activeMapPedagoLevel,
+            groupLevels: session.biodivGroupPedagoLevels,
+            classCurriculumNiveaux: session.biodivGroupCurriculumNiveaux,
+            sessionLevel: pedagoSession.imposedLevel,
+            sessionNotionNiveau: pedagoSession.imposedNotionNiveau,
+            canTeacherPreview:
+              effectiveIsTeacher || (canSwitchToStudentView && roleViewMode === 'student'),
+            fullViewByDefault: effectiveIsTeacher || isClassTeacher,
           }}
-          publicSettings={publicSettings}
-          isN3Affiliated={isN3Affiliated}
-          statsDialogTarget={statsDialogTarget}
-          onProfileUpdated={session.handleProfileUpdated}
-          rewardsCelebrationEnabled={
-            rewardsModuleEnabled && pedagoAuthenticated && !access.isPreviewStudentView
-          }
-        />
+          dialogsRef={appDialogsRef}
+          sessionContextValue={sessionContextValue}
+          dataContextValue={dataContextValue}
+          tour={{
+            tab,
+            isTeacher: effectiveIsTeacher,
+            isClassTeacher,
+            enabled: discoveryTourAutoEnabled,
+            accountSeen: session.discoveryTourSeen,
+            accountSeenReady: session.discoveryTourSeenReady,
+            onTourSeen: session.persistDiscoveryTourSeen,
+          }}
+        >
+          <div id="app" style={foretBrandStyle} data-brand-logo={foretBrand.logoUrl || undefined}>
+            <AppPedagoOverlays
+              tab={tab}
+              pedago={pedago}
+              pedagoSessionsAvailable={pedagoSessionsAvailable}
+              rewardsModuleEnabled={rewardsModuleEnabled}
+              canAddToNotebook={
+                pedagoAuthenticated && publicSettings?.modules?.observations_enabled !== false
+              }
+              visibleMaps={visibleMaps}
+              navigateTab={navigateTab}
+              forceLogout={forceLogout}
+            />
+            <AppNoticeBanners
+              pwa={pwa}
+              offline={offline}
+              dataSync={dataSync}
+              texts={texts}
+              hasAuthenticatedShell={hasAuthenticatedShell}
+              latestCriticalNotification={notif.latestCritical}
+              openNotificationAction={openNotificationAction}
+              sessionValidationError={sessionValidationError}
+              setSessionValidationError={setSessionValidationError}
+              studentForUi={studentForUi}
+              effectiveIsTeacher={effectiveIsTeacher}
+              validateStudentSession={validateStudentSession}
+            />
+            <AppGlobalModals
+              offline={offline}
+              dialogs={dialogs}
+              access={access}
+              hasAuthenticatedShell={hasAuthenticatedShell}
+              lastSyncAt={dataSync.lastSyncAt}
+              setToast={setToast}
+              toast={toast}
+              onToastDone={handleToastDone}
+              profilePromotion={profilePromotion}
+              setProfilePromotion={setProfilePromotion}
+              roleTerms={roleTerms}
+              onPinSuccess={() => {
+                setPinSuccessFetchAllTick((n) => n + 1);
+                setAuthClaims(getAuthClaims());
+                setShowPin(false);
+                setToast('Connexion professeur réussie, tout roule');
+              }}
+              publicSettings={publicSettings}
+              isN3Affiliated={isN3Affiliated}
+              statsDialogTarget={statsDialogTarget}
+              onProfileUpdated={session.handleProfileUpdated}
+              rewardsCelebrationEnabled={
+                rewardsModuleEnabled && pedagoAuthenticated && !access.isPreviewStudentView
+              }
+            />
 
-        <AppHeader
-          isStandaloneMode={pwa.isStandaloneMode}
-          deferredInstallPrompt={pwa.deferredInstallPrompt}
-          onInstallClick={pwa.handleInstallClick}
-          isTeacher={isTeacher}
-          effectiveIsTeacher={effectiveIsTeacher}
-          appVersion={appVersion}
-          teacherSyncStatus={teacherSyncStatus}
-          publicSettings={publicSettings}
-          notificationRoleKey={notif.roleKey}
-          notifications={notif.items}
-          notificationsUnreadCount={notif.unreadCount}
-          notificationPrefs={notif.prefs}
-          notificationMetrics={notif.metrics}
-          onNotificationTogglePref={notif.updatePreference}
-          onNotificationOpenAction={openNotificationAction}
-          onNotificationMarkAsRead={notif.markAsRead}
-          onNotificationMarkAllRead={notif.markAllRead}
-          onNotificationRemove={notif.removeNotification}
-          onNotificationClearRead={notif.clearRead}
-          onNotificationOpenPanel={notif.trackOpenedPanel}
-          onNotificationResetMetrics={notif.resetMetrics}
-          currentUser={currentUser}
-          currentUserLabel={currentUserLabel}
-          canOpenUserDialogs={access.canOpenUserDialogs}
-          canOpenTeacherStatsFromBadge={access.canOpenTeacherStatsFromBadge}
-          roleTerms={roleTerms}
-          onOpenStats={dialogs.handleOpenStatsDialog}
-          onOpenTeacherStatsTab={tabNav.handleOpenTeacherStatsTab}
-          onOpenProfile={dialogs.handleOpenProfileDialog}
-          roleViewMode={roleViewMode}
-          canSwitchToStudentView={canSwitchToStudentView}
-          canSwitchToTeacherView={access.canSwitchToTeacherView}
-          onRoleViewModeSelect={handleRoleViewModeSelect}
-          isTeacherAccount={isTeacherAccount}
-          onRequestPin={dialogs.handleRequestPin}
-          onLogout={session.handleLogout}
-          helpText={helpText}
-          offlineCenter={offline.headerOfflineCenter}
-        />
+            <AppHeader
+              isStandaloneMode={pwa.isStandaloneMode}
+              deferredInstallPrompt={pwa.deferredInstallPrompt}
+              onInstallClick={pwa.handleInstallClick}
+              isTeacher={isTeacher}
+              effectiveIsTeacher={effectiveIsTeacher}
+              appVersion={appVersion}
+              teacherSyncStatus={teacherSyncStatus}
+              publicSettings={publicSettings}
+              notificationRoleKey={notif.roleKey}
+              notifications={notif.items}
+              notificationsUnreadCount={notif.unreadCount}
+              notificationPrefs={notif.prefs}
+              notificationMetrics={notif.metrics}
+              onNotificationTogglePref={notif.updatePreference}
+              onNotificationOpenAction={openNotificationAction}
+              onNotificationMarkAsRead={notif.markAsRead}
+              onNotificationMarkAllRead={notif.markAllRead}
+              onNotificationRemove={notif.removeNotification}
+              onNotificationClearRead={notif.clearRead}
+              onNotificationOpenPanel={notif.trackOpenedPanel}
+              onNotificationResetMetrics={notif.resetMetrics}
+              currentUser={currentUser}
+              currentUserLabel={currentUserLabel}
+              canOpenUserDialogs={access.canOpenUserDialogs}
+              canOpenTeacherStatsFromBadge={access.canOpenTeacherStatsFromBadge}
+              roleTerms={roleTerms}
+              onOpenStats={dialogs.handleOpenStatsDialog}
+              onOpenTeacherStatsTab={tabNav.handleOpenTeacherStatsTab}
+              onOpenProfile={dialogs.handleOpenProfileDialog}
+              roleViewMode={roleViewMode}
+              canSwitchToStudentView={canSwitchToStudentView}
+              canSwitchToTeacherView={access.canSwitchToTeacherView}
+              onRoleViewModeSelect={handleRoleViewModeSelect}
+              isTeacherAccount={isTeacherAccount}
+              onRequestPin={dialogs.handleRequestPin}
+              onLogout={session.handleLogout}
+              helpText={helpText}
+              offlineCenter={offline.headerOfflineCenter}
+            />
 
-        <RolePreviewBanners
-          authClaims={authClaims}
-          sessionUser={sessionUser}
-          isTeacher={isTeacher}
-          roleViewMode={roleViewMode}
-          roleTerms={roleTerms}
-          helpText={helpText}
-          onStopImpersonation={session.stopAdminImpersonation}
-          onRoleViewModeSelect={handleRoleViewModeSelect}
-        />
+            <RolePreviewBanners
+              authClaims={authClaims}
+              sessionUser={sessionUser}
+              isTeacher={isTeacher}
+              roleViewMode={roleViewMode}
+              roleTerms={roleTerms}
+              helpText={helpText}
+              onStopImpersonation={session.stopAdminImpersonation}
+              onRoleViewModeSelect={handleRoleViewModeSelect}
+            />
 
-        {effectiveIsTeacher ? (
-          <TeacherMainContent
-            {...mainProps}
-            handleTeacherTabChange={tabNav.handleTeacherTabChange}
-            teacherPendingValidationCount={teacherPendingValidationCount}
-            onMascotPackDirtyChange={tabNav.onMascotPackDirtyChange}
-            openMascotPackStudioTab={tabNav.openMascotPackStudioTab}
-            handleOpenSettingsLearning={tabNav.handleOpenSettingsLearning}
-          />
-        ) : (
-          <StudentMainContent
-            {...mainProps}
-            studentActiveAssignedTasksCount={studentActiveAssignedTasksCount}
-          />
-        )}
-        <AppFooter versionPrefix={texts.footerVersionPrefix} appVersion={appVersion} />
-      </div>
-    </AppProviders>
+            {effectiveIsTeacher ? (
+              <TeacherMainContent
+                {...mainProps}
+                handleTeacherTabChange={tabNav.handleTeacherTabChange}
+                teacherPendingValidationCount={teacherPendingValidationCount}
+                onMascotPackDirtyChange={tabNav.onMascotPackDirtyChange}
+                openMascotPackStudioTab={tabNav.openMascotPackStudioTab}
+                handleOpenSettingsLearning={tabNav.handleOpenSettingsLearning}
+              />
+            ) : (
+              <StudentMainContent
+                {...mainProps}
+                studentActiveAssignedTasksCount={studentActiveAssignedTasksCount}
+              />
+            )}
+            <AppFooter versionPrefix={texts.footerVersionPrefix} appVersion={appVersion} />
+          </div>
+        </AppProviders>
+      </Suspense>
+    </ScreenLoadBoundary>
   );
 }
 
