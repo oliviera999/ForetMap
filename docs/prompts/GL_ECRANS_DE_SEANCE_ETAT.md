@@ -9,18 +9,23 @@ les lots ») : un lot fini est fusionné sans attendre les suivants.** La sessio
 ouvre la PR, la fusionne quand sa CI est verte, et lance la session suivante sans attendre.
 Pour chaque session, cela veut dire :
 
-- au début, `git rebase origin/main` comme le dit le § 00 : les lots déjà fusionnés
-  disparaissent du rebase, c'est normal ;
+- au début, **`git merge origin/main`** (pas de `rebase`, contrairement au § 00 : la branche
+  porte des fusions, un rebase rejouerait leurs conflits), puis un push simple, sans
+  `--force` ;
 - **à la fin de ton lot, ajoute ta propre entrée de CHANGELOG** sous `[Non publié]`
   (« Modifié — G&L : écrans de séance, lot <n> (…) », au-dessus des précédentes) et la note de
   doc de référence si ton lot se voit à l'écran : n'attends pas S6 ;
 - ne fusionne rien toi-même et ne touche pas aux branches `…-lot<n>` ;
 - la PR #712 reste la PR en brouillon du travail en cours ; le dernier lot passera par elle.
-  **Changement de plan du 20/11 au soir (demande d'Oliv : « merge et continue »).** Le lot de S1
-  est fusionné sur `main` par la PR [#711](https://github.com/oliviera999/ForetMap/pull/711), avec
-  sa propre entrée de CHANGELOG et sa note dans `docs/reference/gl/guide-du-mj.md`. La suite
-  (S2 à S6) continue sur la **même branche** `claude/gl-ecrans-de-seance`, repartie de `main`, et
-  dans une **nouvelle PR en brouillon** :
+
+Lots fusionnés ou en cours de fusion : lot 1 = PR #711 (fusionnée), lot 2 = PR #714, lot 3 =
+PR ouverte par S1 depuis `claude/gl-ecrans-de-seance-lot3`.
+
+**Changement de plan du 20/11 au soir (demande d'Oliv : « merge et continue »).** Le lot de S1
+est fusionné sur `main` par la PR [#711](https://github.com/oliviera999/ForetMap/pull/711), avec
+sa propre entrée de CHANGELOG et sa note dans `docs/reference/gl/guide-du-mj.md`. La suite
+(S2 à S6) continue sur la **même branche** `claude/gl-ecrans-de-seance`, repartie de `main`, et
+dans une **nouvelle PR en brouillon** :
 
 - **la PR de la suite est la [#712](https://github.com/oliviera999/ForetMap/pull/712)**, en
   brouillon (ouverte par S2 : « feat(gl): écrans de séance — projection, tablette, console,
