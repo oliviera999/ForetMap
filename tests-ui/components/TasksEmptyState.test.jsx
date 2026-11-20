@@ -5,8 +5,8 @@ import { TasksEmptyState } from '../../src/components/TasksEmptyState.jsx';
 describe('TasksEmptyState', () => {
   test('count === 0 → rend le placeholder vide', () => {
     const { container } = render(<TasksEmptyState count={0} />);
-    expect(container.querySelector('.empty')).toBeInTheDocument();
-    expect(container.querySelector('.empty-icon svg')).toBeTruthy();
+    expect(container.querySelector('.empty-state')).toBeInTheDocument();
+    expect(container.querySelector('.empty-state-icon svg')).toBeTruthy();
     expect(screen.getByText(/Rien à faire ici pour l’instant/)).toBeInTheDocument();
   });
 

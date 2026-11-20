@@ -9,6 +9,28 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Interne — UI/UX : préalable R0 (points de bascule, cliquet des styles en ligne, état vide partagé)
+
+Outils communs du chantier UI/UX du 19 novembre 2026, utilisés ensuite par chaque lot. Aucun
+comportement modifié ; seul l'état vide de la vue Tâches passe par le nouveau composant.
+
+- **Points de bascule** : `src/shared/breakpoints.js`, source unique de l'échelle (480, 640,
+  768, 1024 px) avec `mediaUp()`, `mediaDown()` et des conditions prêtes pour `useMediaQuery`
+  (`MEDIA.phone`, `MEDIA.desktop`, `MEDIA.belowDesktop`). Une propriété `--bp-*` n'étant pas
+  lue dans une condition `@media`, les feuilles écrivent la valeur en clair et
+  `tests/breakpoints-guard.test.js` vérifie qu'elle appartient à l'échelle : 56 bornes hors
+  échelle (24 valeurs distinctes) au relevé, plafonnées, à ne faire que baisser.
+  `COMPACT_PANEL_QUERY` lit désormais l'échelle.
+- **Styles en ligne** : `tests/inline-style-guard.test.js`, cliquet par fichier
+  (`tests/fixtures/inline-style-baseline.json`, 1 387 `style={{ … }}` dans 245 fichiers). Un
+  fichier ne peut plus en gagner ; un objet qui ne déclare que des propriétés personnalisées
+  (`style={{ '--x': v }}`, forme recommandée pour une valeur dynamique) n'est pas compté.
+- **État vide** : `src/shared/components/EmptyState.jsx` et
+  `src/shared/styles/empty-state.css` (chargée par ForêtMap et G&L), icône décorative, titre,
+  message, action, variantes `compact` et `framed`. `TasksEmptyState` l'utilise.
+- **Audit** : `docs/AUDIT_UI_UX_2026-11-19.md` (constats U1 à U12, décisions du 20/11, plan des
+  sessions) ; chaque lot y ajoute sa ligne « Corrigé ». Indexé dans `docs/audits/README.md`.
+
 ### Documentation — G&L : audit des bugs, suite donnée (19 novembre 2026)
 
 `docs/AUDIT_BUGS_GL_2026-11-19.md` : les 42 constats corrigés par les huit lots (#677 à #685)

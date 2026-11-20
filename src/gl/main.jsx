@@ -30,6 +30,7 @@ import '../shared/styles/data-list.css';
 import '../shared/styles/forum.css';
 import '../shared/styles/visit-map-mascot.css';
 import '../shared/styles/map-fullscreen.css';
+import '../shared/styles/empty-state.css';
 import './styles/gl-base.css';
 import './styles/gl-theme.css';
 import './styles/gl-tenir.css';

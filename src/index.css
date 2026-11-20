@@ -30,6 +30,7 @@
     @import './shared/styles/pedago-sessions.css';
     @import './shared/styles/rewards.css';
     @import './shared/styles/fresque.css';
+    @import './shared/styles/empty-state.css';
 
     @font-face {
       font-family: 'ForetMapColorEmoji';
