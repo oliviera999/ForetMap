@@ -683,7 +683,7 @@
       "cle": "trame",
       "seance_escalier": 1,
       "expression": "explique",
-      "texte": "L'activité est finie ? Les défis de la Trame sont ouverts. Une réussite, et une page de plus pour ton carnet.",
+      "texte": "L'activité est finie ? Les défis de la Trame sont ouverts. Une réussite, et une page de plus pour votre carnet.",
       "variables": []
     },
     {
@@ -804,7 +804,7 @@
       "cle": "main",
       "seance_escalier": 0,
       "expression": "neutre",
-      "texte": "Un seul écran joue à la fois. Tu vois ce que fait ton camarade ; à la prochaine action, ce sera peut-être toi.",
+      "texte": "Un seul écran joue à la fois. Vous voyez ce que fait votre camarade ; à la prochaine action, cet écran reprend la main.",
       "variables": []
     },
     {

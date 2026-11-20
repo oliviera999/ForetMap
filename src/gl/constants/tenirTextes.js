@@ -22,7 +22,7 @@ export const TENIR_VERDICT_TEXTES = Object.freeze({
   froid: 'Froid : la page dort plus loin.',
   tiede: 'Tiède : on s’approche.',
   chaud: 'Chaud : la page est tout près.',
-  zone: 'Une page dort ici : réponds à sa question.',
+  zone: 'Une page dort ici : répondez à sa question.',
   deja_trouvee: 'Cette page est déjà trouvée.',
   palie: 'Cette page a pâli : seuls les Gnomes peuvent la réparer.',
   page_trouvee: 'Page trouvée ! Elle entre au carnet de la classe.',

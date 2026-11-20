@@ -20,7 +20,7 @@ export const GL_AUTH_TAGLINES = Object.freeze([
   Object.freeze({
     id: 'mission',
     registre: 'Mission',
-    text: 'Cinq mondes, une année, un carnet à sauver.',
+    text: 'Quatre mondes, une année, un carnet à sauver.',
   }),
   Object.freeze({
     id: 'emerveillement',
@@ -29,18 +29,21 @@ export const GL_AUTH_TAGLINES = Object.freeze([
   }),
 ]);
 
+/** Phrase d'appel, au « tu » : l'écran de connexion parle à un élève. */
 export const GL_AUTH_BASELINE =
-  "De l'équateur au pôle, réécrivez le monde vivant avant que le Souffle ne l'efface.";
+  "De l'équateur au pôle, réécris le monde vivant avant qu'il ne s'efface.";
 
 /**
  * Quatrième de couverture (≈ 85 mots) — dépliée à la demande sur la page de garde
  * (« Lire la quatrième de couverture »). Tableau de paragraphes pour une typographie
- * soignée. Source unique de ce texte dans l'application.
+ * soignée. Source unique de ce texte dans l'application. Au « tu », comme le reste de la
+ * connexion ; le Souffle s'y dit par ses effets (pâlir, se dessécher), jamais comme une force
+ * qui agit.
  */
 export const GL_AUTH_BACK_COVER = Object.freeze([
-  "Une voyageuse est partie avant vous — de l'équateur au pôle Nord, pour connaître et nommer tout le vivant. Elle a tout consigné dans un carnet. Puis le carnet est revenu seul. Et il s'efface.",
-  "Car une force le ronge : le Souffle, qui dessèche le monde jusqu'au nom des êtres. Franchissez le miroir, devenez Gnome qui répare ou Licorne qui révèle, et reprenez sa route. Observer, comprendre, nommer le vivant suffit à le faire réapparaître.",
-  "Une année entière pour réécrire le carnet — avant qu'il ne disparaisse.",
+  "Une voyageuse est partie avant toi — de l'équateur au pôle Nord, pour connaître et nommer tout le vivant. Elle a tout consigné dans un carnet. Puis le carnet est revenu seul. Et il s'efface.",
+  "Car le carnet pâlit : sous le Souffle, le monde se dessèche jusqu'au nom des êtres. Franchis le miroir, deviens Gnome qui répare ou Licorne qui révèle, et reprends sa route. Observer, comprendre, nommer le vivant suffit à le faire réapparaître.",
+  "Une année entière pour réécrire le carnet, avant qu'il ne disparaisse.",
 ]);
 
 export const GL_AUTH_CTA_LABEL = 'Franchir le miroir';

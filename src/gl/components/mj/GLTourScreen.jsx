@@ -13,16 +13,10 @@ import { GLTourJournal } from './GLTourJournal.jsx';
 import { GLClassLinkPanel } from './GLClassLinkPanel.jsx';
 import { GLDemandesPanel } from './GLDemandesPanel.jsx';
 import { numeroCase } from '../../../shared/glCaseNumeroCore.js';
+import { phaseConsole } from '../../constants/tenirPhases.js';
 
 /** Durée d'affichage d'un mot de passe provisoire avant qu'il ne s'efface seul. */
 const MOT_DE_PASSE_VISIBLE_MS = 60_000;
-
-const PHASE_LABELS = {
-  ouverture: 'Ouverture',
-  jeu: 'Jeu',
-  souffle: 'Souffle',
-  clos: 'Clos',
-};
 
 function TeamCard({
   team,
@@ -149,6 +143,8 @@ export function GLTourScreen({
   const [projectionUrl, setProjectionUrl] = useState('');
   const view = tourApi.tour;
   const round = view?.round || null;
+  // Mêmes mots que sur l'écran des élèves ; le terme du moteur reste en infobulle.
+  const phaseDuTour = round ? phaseConsole(round.phase) : null;
   // Une équipe joue depuis son appareil, un autre poste du prof change de phase : l'état de la
   // partie se recharge (temps réel), pas cet instantané du tour. On le relit, et avec lui la file
   // « Demandes », le lien de classe et le journal (`refreshKey`).
@@ -251,9 +247,9 @@ export function GLTourScreen({
   return (
     <div className="gl-tour-screen" data-testid="gl-tour-screen">
       <header className="gl-tour-screen__banner">
-        <h2>
-          Tour {view?.roundNumber || '—'} ·{' '}
-          {round ? PHASE_LABELS[round.phase] : 'aucun tour ouvert'} · {surface}
+        <h2 title={phaseDuTour?.technique} data-testid="gl-tour-titre">
+          Tour {view?.roundNumber || '—'} · {phaseDuTour ? phaseDuTour.label : 'aucun tour ouvert'}{' '}
+          · {surface}
         </h2>
         <div className="gl-inline-actions">
           {!round || round.phase === 'clos' ? (

@@ -137,7 +137,9 @@ describe('GLProjectionView', () => {
       // Un évènement d'une autre partie ne recharge rien.
       socketEcouteurs.get('gl:game:event')({ gameId: 12, eventType: 'tour_phase' });
     });
-    await waitFor(() => expect(screen.getByText(/Tour 1 — jeu/)).toBeTruthy(), { timeout: 3000 });
+    await waitFor(() => expect(screen.getByText(/Tour 1 — À vous de jouer/)).toBeTruthy(), {
+      timeout: 3000,
+    });
     // La rafale est regroupée : une seule relecture.
     expect(apiGlMock.mock.calls.filter(([p]) => p.endsWith('/tenir/tour')).length).toBe(
       lectures + 1,
