@@ -5668,62 +5668,99 @@
       color:#5b655f;
       font-size:var(--text-sm);
     }
-    /* Voile du panneau lieu visite : rétablit la modalité annoncée par `aria-modal`.
-       Sur mobile le panneau le recouvre entièrement ; sur grand écran (panneau centré)
-       il assombrit la carte et absorbe les clics qui, sans lui, ouvraient une autre zone
-       ou déplaçaient la mascotte derrière le dialogue. */
-    .visit-detail-panel__scrim {
-      position:fixed;
-      inset:0;
-      z-index:calc(var(--fm-z-panel) - 1);
-      background:rgba(12,26,20,.42);
-    }
-    /* Panneau lieu visite : plein viewport (repère/zone), au-dessus de la barre du bas. */
+    /* Fiche d'un lieu de la Visite (audit UI/UX du 19/11/2026, U6) : elle ne cache plus ce
+       qu'elle décrit. À partir de 1024 px, panneau latéral droit NON modal, sans voile : la
+       carte reste visible et cliquable à gauche. En dessous, feuille basse partagée
+       (`.fm-bottom-sheet`, cran « moitié »). Largeur réservée au panneau :
+       `--visit-side-panel-w` (reprise comme marge de recadrage côté droit). */
     .visit-detail-panel {
-      /* Décalage horizontal de centrage, repris tel quel par l'animation d'ouverture :
-         les keyframes écrasent `transform`, donc un `translateY` nu y perdait le
-         `translateX(-50%)` du mode centré — le panneau s'ouvrait décalé d'une demi-largeur
-         puis sautait en place. */
+      --visit-side-panel-w:min(420px, 36vw);
+      /* Décalage horizontal repris par les animations d'ouverture et de fermeture. */
       --visit-detail-panel-x:0px;
+    }
+    .visit-detail-panel--side {
       position:fixed;
-      inset:0;
+      top:var(--visit-side-panel-top, 12px);
+      right:max(12px, env(safe-area-inset-right, 0px));
+      bottom:max(12px, env(safe-area-inset-bottom, 0px));
       z-index:var(--fm-z-panel);
-      width:100%;
-      max-width:none;
-      height:100%;
-      max-height:100dvh;
+      width:var(--visit-side-panel-w);
       box-sizing:border-box;
-      padding-top:env(safe-area-inset-top, 0px);
-      padding-right:env(safe-area-inset-right, 0px);
-      padding-bottom:env(safe-area-inset-bottom, 0px);
-      padding-left:env(safe-area-inset-left, 0px);
-      background:var(--surface-1);
-      border:none;
-      border-radius:0;
-      box-shadow:none;
       display:flex;
       flex-direction:column;
+      background:var(--surface-1);
+      border:1px solid var(--outline-soft);
+      border-radius:16px;
+      box-shadow:var(--shadow-soft);
+      overflow:hidden;
       overscroll-behavior:contain;
     }
     @media (prefers-reduced-motion: no-preference) {
-      .visit-detail-panel {
+      .visit-detail-panel--side {
         animation:visitDetailPanelIn .2s ease-out;
       }
     }
     @keyframes visitDetailPanelIn {
-      from { opacity:0; transform:translate(var(--visit-detail-panel-x, 0px), 10px); }
+      from { opacity:0; transform:translate(calc(var(--visit-detail-panel-x, 0px) + 12px), 0); }
       to { opacity:1; transform:translate(var(--visit-detail-panel-x, 0px), 0); }
     }
-    /* Fermeture (`useExitAnimation`) : même décalage de centrage que l'ouverture. */
+    /* Fermeture (`useExitAnimation`, panneau latéral seulement). */
     .visit-detail-panel.fm-is-exiting {
       animation:visitDetailPanelOut var(--motion-exit) var(--ease-in) forwards;
     }
-    .visit-detail-panel__scrim.fm-is-exiting {
-      animation:overlayFadeOut var(--motion-exit) var(--ease-in) forwards;
-    }
     @keyframes visitDetailPanelOut {
-      from { opacity:1; transform:translate(var(--visit-detail-panel-x, 0px), 0) scale(1); }
-      to { opacity:0; transform:translate(var(--visit-detail-panel-x, 0px), 0) scale(.96); }
+      from { opacity:1; transform:translate(var(--visit-detail-panel-x, 0px), 0); }
+      to { opacity:0; transform:translate(calc(var(--visit-detail-panel-x, 0px) + 12px), 0); }
+    }
+    /* Feuille basse : le défilement est celui de la feuille, pas un second ascenseur. */
+    .visit-detail-panel--sheet .visit-detail-panel__body {
+      overflow:visible;
+      padding:4px 2px 12px;
+    }
+    .visit-detail-panel__tools {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+      flex-wrap:wrap;
+      margin-bottom:8px;
+    }
+    /* Progression par carte (U6) : « 6 / 45 lieux » à côté du donut, et message de fin. */
+    .visit-progress--chrome-inline.visit-progress--donut { display:flex; align-items:center; gap:6px; }
+    .visit-progress__count {
+      font-size:var(--text-xs);
+      font-weight:var(--fw-semibold);
+      color:var(--forest);
+      white-space:nowrap;
+    }
+    .visit-complete {
+      margin:6px 0 0;
+      padding:8px 12px;
+      border-radius:10px;
+      background:var(--tint-success);
+      color:var(--ink-success);
+      font-size:var(--text-sm);
+      font-weight:var(--fw-semibold);
+    }
+    .visit-complete__link {
+      color:var(--forest);
+      text-decoration:underline;
+      font-weight:var(--fw-bold);
+    }
+    .visit-seen-status {
+      display:flex;
+      align-items:center;
+      gap:8px;
+      flex-wrap:wrap;
+      min-height:var(--tap-target);
+    }
+    .visit-seen-status__label {
+      display:inline-flex;
+      align-items:center;
+      gap:4px;
+      color:var(--ink-success);
+      font-weight:var(--fw-semibold);
+      font-size:var(--text-sm);
     }
     .visit-detail-panel__handle {
       display:none;
@@ -5801,26 +5838,7 @@
       background:#f3f9ff;
       border-color:#c8def3;
     }
-    @media (min-width: 980px) {
-      .visit-detail-panel {
-        top:4dvh;
-        left:50%;
-        right:auto;
-        bottom:auto;
-        width:min(820px, calc(100vw - 40px));
-        height:auto;
-        max-height:92dvh;
-        border:1px solid var(--outline-soft);
-        border-radius:16px;
-        box-shadow:0 24px 48px rgba(0,0,0,.18);
-        --visit-detail-panel-x:-50%;
-        transform:translateX(var(--visit-detail-panel-x));
-      }
-      .visit-detail-panel__body {
-        padding:16px 20px 22px;
-      }
-    }
-    @media (max-width: 760px) {
+    @media (max-width: 767px) {
       .visit-reading-tone-switch {
         width:100%;
         order:3;
@@ -6775,7 +6793,7 @@
       color:#486056;
       text-align:center;
     }
-    @media (max-width: 700px) {
+    @media (max-width: 767px) {
       .visit-editorial-image--multi .visit-media-gallery {
         grid-template-columns:1fr;
       }
@@ -6783,7 +6801,7 @@
         height:190px;
       }
     }
-    @media (min-width: 701px) and (max-width: 1024px) {
+    @media (min-width: 768px) and (max-width: 1023px) {
       .visit-editorial-image--multi .visit-media-gallery {
         grid-template-columns:repeat(2, minmax(0, 1fr));
       }
@@ -6918,7 +6936,7 @@
       -webkit-box-orient:vertical;
       overflow:hidden;
     }
-    @media (max-width: 700px) {
+    @media (max-width: 767px) {
       .visit-biodiv__grid { grid-template-columns:1fr; }
     }
     .visit-details__section {

@@ -1405,6 +1405,13 @@
       "maxLength": 400,
       "default": "Les lieux et consignes réservés aux personnels du lycée."
     },
+    "ui.visit.auto_seen_delay_seconds": {
+      "scope": "public",
+      "type": "number",
+      "min": 0,
+      "max": 60,
+      "default": 8
+    },
     "ui.visit.default_category_ids": {
       "scope": "public",
       "type": "string",
@@ -1464,7 +1471,8 @@
           "mascot": {
             "default_id": ""
           },
-          "heading_up_enabled": false
+          "heading_up_enabled": false,
+          "auto_seen_delay_seconds": 8
         },
         "modules": {
           "tutorials_enabled": true,
@@ -5712,6 +5720,22 @@
       "updated_by_user_id": null
     },
     {
+      "key": "ui.visit.auto_seen_delay_seconds",
+      "scope": "public",
+      "type": "number",
+      "value": 8,
+      "default_value": 8,
+      "constraints": {
+        "min": 0,
+        "max": 60,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
       "key": "ui.visit.default_category_ids",
       "scope": "public",
       "type": "string",
@@ -5983,7 +6007,8 @@
           "mascot": {
             "default_id": "mascotte-carac"
           },
-          "heading_up_enabled": false
+          "heading_up_enabled": false,
+          "auto_seen_delay_seconds": 8
         },
         "modules": {
           "tutorials_enabled": true,

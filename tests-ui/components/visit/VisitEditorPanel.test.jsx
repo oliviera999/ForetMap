@@ -104,7 +104,7 @@ describe('VisitEditorPanel', () => {
   test('pas de suppression côté visite : le lieu se supprime depuis la carte', () => {
     setup();
     expect(screen.queryByRole('button', { name: /Supprimer/ })).not.toBeInTheDocument();
-    expect(screen.getByText(/supprimez-le depuis la carte/)).toBeInTheDocument();
+    expect(screen.getByText(/supprime-le depuis la carte/)).toBeInTheDocument();
   });
 
   test('action média (reload de la même sélection) ne réinitialise pas la saisie en cours', () => {

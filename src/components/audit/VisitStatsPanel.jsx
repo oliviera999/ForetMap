@@ -59,6 +59,8 @@ export function VisitStatsPanel({ roleTerms }) {
   const breakdown = stats?.breakdown || {};
   const students = breakdown.students || {};
   const anonymous = breakdown.anonymous || {};
+  /** Compteurs agrégés sans identifiant (migration 374) : seule mesure au-delà de 24 h. */
+  const anonymous30 = breakdown.anonymous_last_30_days || null;
 
   return (
     <div className="fade-in">
@@ -146,6 +148,18 @@ export function VisitStatsPanel({ roleTerms }) {
             </div>
           </div>
         </div>
+        {anonymous30 ? (
+          <div className="activity-item" data-testid="visit-stats-anonymous-30d">
+            <div className="activity-info">
+              <div className="activity-title">Visiteurs anonymes (30 jours, compteurs agrégés)</div>
+              <div className="activity-meta">
+                Sessions : {Number(anonymous30.sessions || 0).toLocaleString('fr-FR')} · Lieux vus :{' '}
+                {Number(anonymous30.seen_actions || 0).toLocaleString('fr-FR')} · Visites terminées
+                : {Number(anonymous30.completed_visits || 0).toLocaleString('fr-FR')}
+              </div>
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
   );

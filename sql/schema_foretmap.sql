@@ -1365,6 +1365,16 @@ CREATE TABLE IF NOT EXISTS visit_seen_anonymous (
   INDEX idx_visit_seen_anonymous_updated_at (updated_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- visite : compteurs anonymes agrégés par jour et par carte (migration 374, aucun identifiant)
+CREATE TABLE IF NOT EXISTS visit_anonymous_daily (
+  day DATE NOT NULL,
+  map_id VARCHAR(32) NOT NULL,
+  sessions INT UNSIGNED NOT NULL DEFAULT 0,
+  seen_actions INT UNSIGNED NOT NULL DEFAULT 0,
+  completed_visits INT UNSIGNED NOT NULL DEFAULT 0,
+  PRIMARY KEY (day, map_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- ---------------------------------------------------------------------------------------
 -- Lien Moodle (migration 219, docs/AUDIT_MOODLE_IDENTITES_2026-09.md section 5).
 -- Les tables qui référencent gl_classes / gl_teams (`external_groups`,

@@ -28,8 +28,8 @@ const SRC = path.join(ROOT, 'src');
 const MODULE = path.join(SRC, 'shared', 'breakpoints.js');
 
 /** Plafonds. À BAISSER quand un lot résorbe, jamais à monter. */
-const CEILING_OFF_SCALE_OCCURRENCES = 56;
-const CEILING_OFF_SCALE_DISTINCT = 24;
+const CEILING_OFF_SCALE_OCCURRENCES = 51;
+const CEILING_OFF_SCALE_DISTINCT = 21;
 
 function walk(dir, acc = []) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {

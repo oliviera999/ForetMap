@@ -1,6 +1,8 @@
 -- =====================================================================
--- 374 — Packs de mascottes : « Proposé dans la Visite » et variante féminine
--- (audit UI/UX du 19/11/2026, constat U4 ; décision d'Oliv du 20/11/2026).
+-- 374 — Visite : guides proposés, variante féminine, compteurs anonymes agrégés
+-- (audit UI/UX du 19/11/2026, constats U4 et U6 ; décisions d'Oliv du 20/11/2026).
+--
+-- 1. Packs de mascottes : « Proposé dans la Visite » et variante féminine.
 --
 -- `is_published` décidait à la fois de la Visite et du catalogue des mascottes d'équipe de
 -- Gnomes & Licornes (`lib/glUnifiedMascotCatalog.js`) : retirer un guide de la Visite le
@@ -38,3 +40,23 @@ UPDATE visit_mascot_packs AS v
    AND (v.label = CONCAT(b.label, ' (femme)') OR v.label = CONCAT(b.label, ' (femelle)'))
    SET v.variant_of = b.catalog_id
  WHERE v.variant_of IS NULL;
+
+-- 2. Compteurs anonymes agrégés de la Visite (U6, point 5).
+--
+-- Diagnostic : `visit_seen_anonymous` est purgée au bout de 24 h (le jeton anonyme vit 24 h,
+-- choix de confidentialité), et une ligne n'y existe que si un visiteur marque un lieu
+-- « vu ». Les statistiques ne pouvaient donc jamais compter un visiteur anonyme au-delà
+-- d'une journée, quand les élèves sont comptés depuis toujours : « 0 session anonyme ».
+--
+-- Une ligne par jour et par carte, trois compteurs, AUCUN identifiant : ni jeton, ni
+-- adresse, ni lieu vu. Une session est comptée au premier lieu vu d'un jeton anonyme, une
+-- visite terminée quand ce jeton a vu tous les lieux de la carte. Conservées 400 jours
+-- (purge dans `lib/visitAnonymousCounters.js`).
+CREATE TABLE IF NOT EXISTS visit_anonymous_daily (
+  day DATE NOT NULL,
+  map_id VARCHAR(32) NOT NULL,
+  sessions INT UNSIGNED NOT NULL DEFAULT 0,
+  seen_actions INT UNSIGNED NOT NULL DEFAULT 0,
+  completed_visits INT UNSIGNED NOT NULL DEFAULT 0,
+  PRIMARY KEY (day, map_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

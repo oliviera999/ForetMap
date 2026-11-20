@@ -8,7 +8,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { api, AccountDeletedError } from '../services/api';
+import { api, AccountDeletedError, withAppBase } from '../services/api';
 import { MARKER_EMOJIS, parseEmojiListSetting } from '../constants/emojis';
 import { getRoleTerms } from '../utils/n3-terminology';
 import { useHelp } from '../hooks/useHelp';
@@ -63,6 +63,8 @@ import { useHeadingUpPreference } from '../shared/pct-map/useHeadingUpPreference
 import { useScaleCompassPreference } from '../shared/pct-map/useScaleCompassPreference.js';
 import { useMapFullscreen } from '../shared/hooks/useMapFullscreen.js';
 import { usePrefersReducedMotion } from '../shared/hooks/usePrefersReducedMotion.js';
+import { useMediaQuery } from '../shared/hooks/useMediaQuery.js';
+import { MEDIA } from '../shared/breakpoints.js';
 import { MapFullscreenShell } from '../shared/components/MapFullscreenShell.jsx';
 import { VisitMapMascot } from './VisitMapMascot.jsx';
 import { buildPlaceIndex, searchPlaces } from '../shared/search/placeSearch.js';
@@ -108,6 +110,25 @@ const PlantCatalogPreviewModalLazy = lazy(() =>
     default: m.PlantCatalogPreviewModal,
   })),
 );
+
+/**
+ * Zoom de mise au point de la Visite plafonné (U6) : la zone ET ses voisines restent visibles,
+ * on garde le repère en refermant la fiche. Le réglage `ui.place_focus.max_zoom_percent`
+ * (4× par défaut) vaut pour la carte de travail ; la Visite ne dépasse pas 2×.
+ */
+const VISIT_PLACE_FOCUS_MAX_ZOOM = 2;
+
+/**
+ * Marges de recadrage recouvertes par la fiche ouverte (px) : le lieu est cadré dans la part
+ * de carte qui reste visible — à gauche du panneau latéral (≥ 1024 px), au-dessus de la
+ * feuille basse au cran « moitié » (55 dvh) en dessous.
+ * @param {boolean} isDesktop
+ */
+function visitDetailFocusInsets(isDesktop) {
+  if (typeof window === 'undefined') return null;
+  if (isDesktop) return { right: Math.round(Math.min(420, window.innerWidth * 0.36)) + 24 };
+  return { bottom: Math.round(window.innerHeight * 0.55) };
+}
 
 /**
  * Les identifiants cochés couvrent-ils toutes les catégories de la carte ? (puces U9)
@@ -660,13 +681,17 @@ function VisitViewImpl({
     getViewport: getVisitViewport,
     enabled: visitPlaceFocusActive,
     durationMs: placeFocusSettings.durationMs,
-    maxZoom: placeFocusSettings.maxZoom,
+    maxZoom: Math.min(placeFocusSettings.maxZoom, VISIT_PLACE_FOCUS_MAX_ZOOM),
     restoreOnClose: placeFocusSettings.restoreOnClose,
     resetKey: String(mapId || ''),
     onFx: visitPlaceFx.onFx,
   });
   /** Bords recouverts (barre de guidage) : lus à l'ouverture, calculés plus bas. */
   const visitMapFocusInsetsRef = useRef(null);
+  /** Mise en page de la fiche : panneau latéral (≥ 1024 px) ou feuille basse. */
+  const isDesktopLayout = useMediaQuery(MEDIA.desktop);
+  const isDesktopRef = useRef(isDesktopLayout);
+  isDesktopRef.current = isDesktopLayout;
   const openVisitSelection = useCallback(
     (item, itemType) => {
       placeFocus.focusThenOpen(
@@ -675,7 +700,12 @@ function VisitViewImpl({
           setSelected(item);
           setSelectedType(itemType);
         },
-        { insets: visitMapFocusInsetsRef.current },
+        {
+          insets: {
+            ...visitDetailFocusInsets(isDesktopRef.current),
+            ...(visitMapFocusInsetsRef.current || {}),
+          },
+        },
       );
     },
     [placeFocus, setSelected, setSelectedType],
@@ -735,15 +765,18 @@ function VisitViewImpl({
    * pas les chemins de la parcelle, et une direction honnête vaut mieux qu'un trajet inventé.
    * Même socle que le Plan Lyautey (`shared/map-guide`), mêmes mots, mêmes gestes.
    *
-   * Viser un lieu **rend la carte** : le panneau de détail est modal et la recouvre, donc il se
-   * referme et la barre de guidage le remplace. Seul « Arrêter » interrompt le guidage
+   * Viser un lieu **rend la carte** : sur mobile, la feuille basse se referme et la barre de
+   * guidage la remplace ; sur ordinateur, le panneau latéral reste ouvert (il ne recouvre pas
+   * la barre). Seul « Arrêter » interrompt le guidage
    * (`docs/AUDIT_PLAN_NAVIGATION_2026-09-16-bis.md` B4/B5).
    */
   const onVisitGuidanceStart = useCallback(() => {
     if (visitPosition.available && !visitPosition.active) visitPosition.toggle();
     // « Y aller » : la carte cadre le guidage, pas la vue d'avant le zoom.
     placeFocus.forget();
-    closeVisitSelection();
+    // Sur ordinateur, le panneau latéral ne recouvre ni la carte ni la barre de guidage : il
+    // reste ouvert. Sur mobile, la feuille basse laisse la place à la barre.
+    if (!isDesktopRef.current) closeVisitSelection();
   }, [visitPosition, closeVisitSelection, placeFocus]);
   const {
     guidedPlace: visitGuidedPlaceRaw,
@@ -915,15 +948,49 @@ function VisitViewImpl({
     pendingSyncCount,
     syncStatus,
     onToggleSeen,
+    setItemSeen,
     applyServerProgress,
   } = useVisitSeenSync({
     onForceLogout,
     loading,
     selected,
     selectedType,
-    closeVisitSelection,
     onMascotSeenCelebration,
   });
+  /**
+   * Panneau latéral (≥ 1024 px) : son haut s'aligne sur celui de la carte, pour ne couvrir ni
+   * la barre de l'application ni le bandeau de la Visite. Mesuré à l'ouverture, au
+   * redimensionnement et au défilement ; en plein écran, la valeur CSS par défaut s'applique.
+   */
+  const visitMapCardRef = useRef(null);
+  const [visitSidePanelTop, setVisitSidePanelTop] = useState(null);
+  const hasVisitSelection = !!selected;
+  useLayoutEffect(() => {
+    if (!hasVisitSelection || !isDesktopLayout || visitImmersion) {
+      setVisitSidePanelTop(null);
+      return undefined;
+    }
+    const measure = () => {
+      const el = visitMapCardRef.current;
+      if (!el || typeof el.getBoundingClientRect !== 'function') return;
+      const top = Math.max(8, Math.round(el.getBoundingClientRect().top));
+      setVisitSidePanelTop((prev) => (prev === top ? prev : top));
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    window.addEventListener('scroll', measure, { passive: true });
+    return () => {
+      window.removeEventListener('resize', measure);
+      window.removeEventListener('scroll', measure);
+    };
+  }, [hasVisitSelection, isDesktopLayout, visitImmersion]);
+
+  /** « Vu » automatique (U6) : délai réglable, 8 s par défaut, 0 = jamais automatique. */
+  const autoSeenDelayMs = useMemo(() => {
+    const raw = Number(publicSettings?.visit?.auto_seen_delay_seconds);
+    const seconds = Number.isFinite(raw) ? Math.min(60, Math.max(0, raw)) : 8;
+    return seconds * 1000;
+  }, [publicSettings?.visit?.auto_seen_delay_seconds]);
   applyServerProgressRef.current = applyServerProgress;
 
   /** Zones affichées sur le plan (polygone valide) + repères : aligné sur ce que l’utilisateur peut parcourir sur la carte courante. */
@@ -931,6 +998,42 @@ function VisitViewImpl({
     () => computeVisitCartographyProgress(content.zones, content.markers, seen),
     [content.zones, content.markers, seen],
   );
+
+  /**
+   * Fin de carte (U6) : tous les lieux vus → message, et lien vers une séance guidée publiée de
+   * cette carte s'il en existe (`?seance=slug` ; un visiteur sans compte est invité à se
+   * connecter par l'écran d'accueil). Liste publique, demandée seulement à la fin.
+   */
+  const visitMapCompleted =
+    visitCartographyProgress.total > 0 &&
+    visitCartographyProgress.seenCount >= visitCartographyProgress.total;
+  const [visitCompletionSession, setVisitCompletionSession] = useState(null);
+  useEffect(() => {
+    setVisitCompletionSession(null);
+    if (!visitMapCompleted || !mapId) return undefined;
+    let cancelled = false;
+    api('/api/pedago-sessions')
+      .then((body) => {
+        if (cancelled) return;
+        const items = Array.isArray(body?.items) ? body.items : [];
+        const found = items.find((item) => String(item?.mapId || '') === String(mapId));
+        setVisitCompletionSession(found?.slug ? { slug: found.slug, title: found.title } : null);
+      })
+      .catch(() => {
+        if (!cancelled) setVisitCompletionSession(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [visitMapCompleted, mapId]);
+  const visitCompletionLink = useMemo(() => {
+    if (!visitCompletionSession) return null;
+    const title = String(visitCompletionSession.title || '').trim();
+    return {
+      href: withAppBase(`/?seance=${encodeURIComponent(visitCompletionSession.slug)}`),
+      label: `Poursuivre avec la séance${title ? ` « ${title} »` : ''}${isGuestPublicVisit ? ' (avec ton compte)' : ''}`,
+    };
+  }, [visitCompletionSession, isGuestPublicVisit]);
 
   /** Bandeau carte : ouverture du premier tutoriel « présentation » (tous les profils en navigation). */
   const showVisitPresentationButton = mode === 'view' && !!visitPresentationTutorial;
@@ -1097,7 +1200,7 @@ function VisitViewImpl({
           </Suspense>
         ) : null}
         <div className="visit-grid visit-grid--map-forward">
-          <div className="visit-map-card">
+          <div className="visit-map-card" ref={visitMapCardRef}>
             {!visitImmersion ? (
               <VisitMapChrome
                 title={visitTitle}
@@ -1122,6 +1225,8 @@ function VisitViewImpl({
                 visitMascotVariantOfById={visitMascotVariantOfById}
                 onChangeVisitMascotId={onChangeVisitMascotId}
                 cartographyProgress={visitCartographyProgress}
+                mapLabel={String(currentMap?.label || '').trim()}
+                completionLink={visitCompletionLink}
                 showSeenProgress={showVisitSeenStatus}
                 helpPanelSlot={
                   isHelpEnabled ? (
@@ -1343,6 +1448,9 @@ function VisitViewImpl({
             seen={seen}
             savingSeen={savingSeen}
             onToggleSeen={onToggleSeen}
+            onSetItemSeen={setItemSeen}
+            autoSeenDelayMs={autoSeenDelayMs}
+            sidePanelTop={visitSidePanelTop}
             showSeenStatus={showVisitSeenStatus}
             plants={plants}
             onOpenPlantCatalogPreview={openPlantFromVisit}

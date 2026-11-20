@@ -238,6 +238,78 @@ test('visite publique : marquage vu hors ligne puis synchronisation', async ({ p
   await expect(status).toHaveAttribute('data-pending', '0', { timeout: 25_000 });
 });
 
+/**
+ * Audit UI/UX du 19/11/2026, U6 : sur ordinateur, la fiche est un panneau latéral non modal ;
+ * ouvrir puis fermer trois fiches de suite rend la carte dans son cadrage de départ, et la
+ * carte reste cliquable fiche ouverte (un autre lieu remplace la fiche).
+ */
+test('visite publique : trois fiches ouvertes puis fermées sans perdre le cadrage (U6)', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1366, height: 860 });
+  await page.goto('/');
+  await page.getByRole('button', { name: /Découvrir le lieu/i }).click();
+  const stage = page.locator('.visit-map-stage');
+  await expect(stage.locator('img.visit-map-img')).toBeVisible({ timeout: 30_000 });
+  const markers = stage.locator('.fm-pct-marker');
+  if ((await markers.count()) < 2) {
+    test.skip();
+    return;
+  }
+  const world = stage.locator('.visit-map-world');
+  const readTransform = () => world.evaluate((el) => el.style.transform || '');
+  const readScale = async () => {
+    const m = /scale\(([\d.]+)\)/.exec(await readTransform());
+    return m ? Number(m[1]) : 1;
+  };
+  await expect.poll(readScale, { timeout: 10_000 }).toBeCloseTo(1, 1);
+  const startScale = await readScale();
+
+  const panel = page.getByTestId('visit-detail-panel');
+  for (let i = 0; i < 3; i += 1) {
+    await markers.nth(i % (await markers.count())).click({ force: true });
+    await expect(panel).toBeVisible({ timeout: VISIT_MAP_MASCOT_MOVE_MS + 15_000 });
+    await expect(panel).toHaveAttribute('aria-modal', 'false');
+    await expect(panel).toHaveClass(/visit-detail-panel--side/);
+    await expect(page.getByTestId('visit-detail-panel-scrim')).toHaveCount(0);
+    await panel.getByRole('button', { name: 'Fermer' }).click();
+    await expect(panel).toHaveCount(0);
+    await expect.poll(readScale, { timeout: 5_000 }).toBeCloseTo(startScale, 1);
+  }
+
+  // Fiche ouverte, la carte reste cliquable : un autre repère remplace la fiche.
+  await markers.nth(0).click({ force: true });
+  await expect(panel).toBeVisible({ timeout: VISIT_MAP_MASCOT_MOVE_MS + 15_000 });
+  const firstTitle = await panel.locator('.visit-detail-panel__title').textContent();
+  await markers.nth(1).click({ force: true });
+  await expect(panel.locator('.visit-detail-panel__title')).not.toHaveText(String(firstTitle), {
+    timeout: VISIT_MAP_MASCOT_MOVE_MS + 15_000,
+  });
+});
+
+/** U6 : une vignette d'espèce active ouvre la fiche espèce en lecture (visiteur). */
+test('visite publique : une vignette d’espèce ouvre la fiche espèce', async ({ page }) => {
+  await page.setViewportSize({ width: 1366, height: 860 });
+  await page.goto('/');
+  await page.getByRole('button', { name: /Découvrir le lieu/i }).click();
+  const stage = page.locator('.visit-map-stage');
+  await expect(stage.locator('img.visit-map-img')).toBeVisible({ timeout: 30_000 });
+  const places = stage.locator('.fm-pct-marker, .fm-pct-zone');
+  const count = Math.min(await places.count(), 12);
+  const panel = page.getByTestId('visit-detail-panel');
+  for (let i = 0; i < count; i += 1) {
+    await places.nth(i).click({ force: true });
+    await expect(panel).toBeVisible({ timeout: VISIT_MAP_MASCOT_MOVE_MS + 15_000 });
+    const tile = panel.locator('button.visit-biodiv-tile').first();
+    if ((await tile.count()) > 0) {
+      await tile.click();
+      await expect(page.locator('#plant-catalog-preview-title')).toBeVisible({ timeout: 15_000 });
+      return;
+    }
+  }
+  test.skip();
+});
+
 /** Lot 2 — moteur de carte partagé : zoom bouton, double-clic, recentrage et bornes. */
 test('visite connectée : zoom bouton, double-clic et recentrage sur le moteur partagé', async ({
   page,

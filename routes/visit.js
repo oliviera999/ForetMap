@@ -4,6 +4,7 @@ const { createVisitContentCache } = require('../lib/visitContentCache');
 const { listPublishedVisitMascotPacks } = require('../lib/visitMascotRegistry');
 const { getVisitMascotSettings } = require('../lib/settings');
 const { FULL_PACKS_KEY, withVisitContentMascots } = require('../lib/visitContentMascots');
+const { recordAnonymousSeen, readAnonymousTotals } = require('../lib/visitAnonymousCounters');
 const { createSignedCookieGate, resolveCookieSecret } = require('../lib/accessGate');
 const { requirePermission, JWT_SECRET, authenticate } = require('../middleware/requireTeacher');
 const { logRouteError } = require('../lib/routeLog');
@@ -156,6 +157,9 @@ router.get(
     const completionRatePct = ratioPct(seenActionsTotal, sessionsTotal * activeTargetsTotal);
     const completedVisitsRatePct = ratioPct(completedVisitsTotal, sessionsTotal);
 
+    // Compteurs agrégés (migration 374) : seule mesure anonyme qui survit à la purge de 24 h.
+    const anonymousLast30Days = await readAnonymousTotals({ queryAll, execute }, 30);
+
     return res.json({
       generated_at: nowIso(),
       active_targets: {
@@ -187,6 +191,7 @@ router.get(
           ),
           completed_visits_rate_pct: ratioPct(anonymous.completed_visits, anonymous.sessions),
         },
+        anonymous_last_30_days: anonymousLast30Days,
       },
     });
   }),
@@ -760,12 +765,8 @@ router.post(
     await cleanupAnonymousSeen();
     const anonToken = readOrCreateAnonToken(req, res);
     if (seen) {
-      await execute(
-        `INSERT INTO visit_seen_anonymous (anon_token, target_type, target_id, updated_at)
-       VALUES (?, ?, ?, UTC_TIMESTAMP())
-       ON DUPLICATE KEY UPDATE updated_at = VALUES(updated_at)`,
-        [anonToken, targetType, targetId],
-      );
+      // Insertion + compteurs agrégés du jour (`visit_anonymous_daily`, aucun identifiant).
+      await recordAnonymousSeen({ queryOne, execute }, { anonToken, targetType, targetId });
     } else {
       await execute(
         `DELETE FROM visit_seen_anonymous

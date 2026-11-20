@@ -9,8 +9,25 @@ const VISIT_PROGRESS_DONUT_R = 14;
 const VISIT_PROGRESS_DONUT_STROKE = 3;
 const VISIT_PROGRESS_DONUT_C = 2 * Math.PI * VISIT_PROGRESS_DONUT_R;
 
-/** Donut de progression du parcours (zones + repères marqués comme vus). */
-function VisitProgressDonut({ progress }) {
+/**
+ * Progression **par carte** (U6) : « 6 lieux sur 45 » de la carte affichée, au lieu d'un
+ * pourcentage rapporté à tous les lieux de toutes les cartes.
+ */
+export function formatVisitMapProgress(progress, mapLabel = '') {
+  const seen = Number(progress?.seenCount || 0);
+  const total = Number(progress?.total || 0);
+  const lieux = total > 1 ? 'lieux' : 'lieu';
+  const base = `${seen.toLocaleString('fr-FR')}\u00a0${seen > 1 ? 'lieux' : 'lieu'} sur ${total.toLocaleString('fr-FR')}`;
+  const label = String(mapLabel || '').trim();
+  return {
+    short: `${seen.toLocaleString('fr-FR')}\u00a0/\u00a0${total.toLocaleString('fr-FR')}\u00a0${lieux}`,
+    long: label ? `${base} de la carte « ${label} »` : base,
+  };
+}
+
+/** Donut de progression de la carte (zones + repères vus) et décompte « x / y lieux ». */
+function VisitProgressDonut({ progress, mapLabel = '' }) {
+  const text = formatVisitMapProgress(progress, mapLabel);
   return (
     <div className="visit-progress visit-progress--donut visit-progress--chrome-inline">
       <div
@@ -19,8 +36,8 @@ function VisitProgressDonut({ progress }) {
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={progress.pct}
-        aria-label={`Parcours sur la carte : ${progress.pct} % des zones et repères marqués comme vus (${progress.seenCount} sur ${progress.total}).`}
-        title={`${progress.pct} % — ${progress.seenCount} / ${progress.total} vus`}
+        aria-label={`Parcours : ${text.long} vus.`}
+        title={`${text.long} vus`}
         data-testid="visit-progress-donut"
       >
         <svg
@@ -54,6 +71,9 @@ function VisitProgressDonut({ progress }) {
           <span className="visit-progress-donut__pct-sign">%</span>
         </span>
       </div>
+      <span className="visit-progress__count" aria-hidden="true" data-testid="visit-progress-count">
+        {text.short}
+      </span>
     </div>
   );
 }
@@ -237,6 +257,10 @@ export function VisitMapChrome({
   onChangeVisitMascotId,
   cartographyProgress = { total: 0, seenCount: 0, pct: 0 },
   showSeenProgress = true,
+  /** Nom de la carte affichée (progression « x lieux sur y de la carte … »). */
+  mapLabel = '',
+  /** Tous les lieux de la carte vus : message de fin, et séance de la carte s'il en existe. */
+  completionLink = null,
   helpPanelSlot = null,
   onBackToAuth = null,
   maps = [],
@@ -276,7 +300,7 @@ export function VisitMapChrome({
         <div className="visit-map-card__chrome-title-line">
           <h2 className="section-title visit-map-card__title">{title}</h2>
           {showSeenProgress && cartographyProgress.total > 0 ? (
-            <VisitProgressDonut progress={cartographyProgress} />
+            <VisitProgressDonut progress={cartographyProgress} mapLabel={mapLabel} />
           ) : null}
           {showPresentationButton ? (
             <button
@@ -494,6 +518,22 @@ export function VisitMapChrome({
         </div>
       ) : null}
 
+      {showSeenProgress &&
+      cartographyProgress.total > 0 &&
+      cartographyProgress.seenCount >= cartographyProgress.total ? (
+        <p className="visit-complete" role="status" data-testid="visit-complete">
+          <span aria-hidden="true">🎉</span>{' '}
+          {mapLabel ? `Tu as fait le tour de « ${mapLabel} ».` : 'Tu as fait le tour de la carte.'}
+          {completionLink ? (
+            <>
+              {' '}
+              <a className="visit-complete__link" href={completionLink.href}>
+                {completionLink.label}
+              </a>
+            </>
+          ) : null}
+        </p>
+      ) : null}
       {cartographyProgress.total === 0 ? (
         <p className="visit-progress-empty visit-progress-empty--below-chrome section-sub">
           {maps.length > 1

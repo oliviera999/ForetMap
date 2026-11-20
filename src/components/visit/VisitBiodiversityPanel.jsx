@@ -116,14 +116,27 @@ export function VisitBiodiversityPanel({
   namesOnlyOnTasks = [],
   onOpenPlant = null,
 }) {
+  /**
+   * Fiche du catalogue d'une espèce du lieu : par **identifiant** d'abord (le contenu de visite
+   * publie `species[].id`), puis par nom. La seule correspondance par nom laissait des
+   * vignettes inertes dès qu'un nom différait d'un caractère (audit UI/UX du 19/11/2026, U6).
+   */
   const plantByName = useMemo(() => {
+    const byId = new Map();
     const map = new Map();
     for (const plant of plants || []) {
+      const id = Number(plant?.id);
+      if (Number.isFinite(id) && id > 0 && !byId.has(id)) byId.set(id, plant);
       const key = String(plant?.name || '').trim();
       if (key && !map.has(key)) map.set(key, plant);
     }
+    for (const sp of species || []) {
+      const key = String(sp?.name || '').trim();
+      const plant = byId.get(Number(sp?.id));
+      if (key && plant) map.set(key, plant);
+    }
     return map;
-  }, [plants]);
+  }, [plants, species]);
 
   const emojiByName = useMemo(() => {
     const map = new Map();
