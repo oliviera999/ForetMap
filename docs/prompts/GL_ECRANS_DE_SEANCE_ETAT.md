@@ -2,8 +2,13 @@
 
 Mémoire entre les sessions du chantier décrit dans
 [`GL_ECRANS_DE_SEANCE_PROMPT.md`](./GL_ECRANS_DE_SEANCE_PROMPT.md) (à lire en premier, § 00).
-Branche `claude/gl-ecrans-de-seance`, une PR en brouillon. **Rien ne se fusionne** avant la CI
+Branche `claude/gl-ecrans-de-seance`, PR en brouillon
+[#711](https://github.com/oliviera999/ForetMap/pull/711). **Rien ne se fusionne** avant la CI
 verte et la décision d'Oliv.
+
+Chaque session met à jour le tableau « Avancement » de la description de la PR #711 (S6 la
+réécrit selon le § 9 du prompt). La session S1 est abonnée aux évènements de la PR : la CI, qui
+ne part qu'au passage en « prête », lui sera signalée.
 
 ## Sessions
 
@@ -17,6 +22,9 @@ verte et la décision d'Oliv.
 | S6      | Accueil, docs, clôture (étapes 6 et 7)    | à faire | —                                                                                   |
 
 Sessions `bis` : aucune. Sessions lancées : 1 sur 8 au plus.
+
+Relais : S1 a planifié S2 (tâche ponctuelle « G&L écrans de séance — S2 », cinq minutes après
+son dernier push).
 
 Les identifiants de commit sont ceux de la session qui les a écrits ; un `git rebase origin/main`
 les change. Retrouver un commit par son titre (`git log --oneline --grep "écrans de séance"`).
