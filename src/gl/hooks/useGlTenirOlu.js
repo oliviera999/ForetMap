@@ -65,7 +65,8 @@ const cleDe = (e) => e?.id ?? `${e?.eventType}-${e?.createdAt}`;
  * `ligneDeLEcran` (`{ id, texte, expression }`) : une ligne que l'écran dit **lui-même**, une
  * fois, sans qu'aucun évènement la désigne (la tablette d'équipe : « Le Marché et le Seuil
  * s'ouvrent depuis le compte de chacun. »). Le texte du catalogue passe devant celui reçu, qui
- * sert de repli ; elle prend son tour dans la même file. `onLigneDeLEcranDite(id)` : c'est fait.
+ * sert de repli quand le catalogue n'a pas pu être lu (une ligne retirée du catalogue ne se dit
+ * plus) ; elle prend son tour dans la même file. `onLigneDeLEcranDite(id)` : c'est fait.
  * @returns {{ line: null|{ id, texte, expression, moment }, speakerName, frozen }}
  */
 export function useGlTenirOlu({
@@ -205,6 +206,9 @@ export function useGlTenirOlu({
   useEffect(() => {
     if (!enabled || !data || !ligneDeLEcranId || diteRef.current === ligneDeLEcranId) return;
     const servie = data.lignes.find((l) => l.id === ligneDeLEcranId) || null;
+    // Catalogue lu, mais sans cette ligne : elle en a été retirée (`actif: false`), Olu ne la
+    // dit plus. Le repli ne sert que si le catalogue n'a pas pu être lu du tout.
+    if (!servie && data.lignes.length) return;
     const texte = String(servie?.texte || ligneDeLEcranRef.current?.texte || '').trim();
     if (!texte) return;
     diteRef.current = ligneDeLEcranId;

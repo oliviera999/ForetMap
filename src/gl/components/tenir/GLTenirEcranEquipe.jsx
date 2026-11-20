@@ -142,15 +142,51 @@ export function GLTenirEcranEquipe({
   // « répondre » et repris la main : on ne lui demande rien).
   const oublierCase = caseQuestion.oublier;
   const oublierChasse = chasse?.oublierQuestion || null;
+  const armerFouille = chasse?.setFouilleMode || null;
   const tourCleVue = useRef(tourCle);
   useEffect(() => {
     if (tourCleVue.current === tourCle) return;
     tourCleVue.current = tourCle;
     setPending(null);
     setSortsOuverts(false);
+    armerFouille?.(false);
     oublierCase?.();
     oublierChasse?.();
-  }, [tourCle, oublierCase, oublierChasse]);
+  }, [tourCle, oublierCase, oublierChasse, armerFouille]);
+
+  // Un geste engagé ne survit pas non plus à la fermeture de son droit, même dans la même
+  // phase (dernière fouille jouée par un autre appareil, main prise ailleurs, jet déjà fait) :
+  // le plateau ne reste pas armé pour une fouille que le serveur refuserait, et la saisie des
+  // dés ne se rouvre pas d'elle-même si le jet se rouvre plus tard.
+  const fouilleArmee = !!chasse?.fouilleMode;
+  const fouilleOuverte = !mainAilleurs && maintenant.some((m) => m.geste === 'fouiller');
+  const lancerOuvert = !mainAilleurs && maintenant.some((m) => m.geste === 'lancer');
+  useEffect(() => {
+    if (fouilleArmee && !fouilleOuverte) armerFouille?.(false);
+  }, [fouilleArmee, fouilleOuverte, armerFouille]);
+  useEffect(() => {
+    if (pending === 'lancer' && !lancerOuvert) setPending(null);
+  }, [pending, lancerOuvert]);
+
+  // Une demande d'appareil échoit seule (2 minutes au plus) : la carte du moment ne reste pas
+  // dessus si la relecture de l'échéance n'aboutit pas (réseau hésitant), comme pour la main.
+  const demandes = Array.isArray(tenir?.equipe?.appareils) ? tenir.equipe.appareils : [];
+  const cleDemandes = demandes.map((d) => `${d.id}:${d.resteSecondes}`).join(',');
+  const resteDemandes = demandes.length
+    ? Math.max(...demandes.map((d) => Number(d.resteSecondes) || 0))
+    : null;
+  const [demandesEchues, setDemandesEchues] = useState(null);
+  useEffect(() => {
+    if (resteDemandes == null) return undefined;
+    const timer = setTimeout(
+      () => {
+        setDemandesEchues(cleDemandes);
+        onReloadGame?.();
+      },
+      (resteDemandes + 1) * 1000,
+    );
+    return () => clearTimeout(timer);
+  }, [resteDemandes, cleDemandes, onReloadGame]);
 
   // « Relire l'écran » : ce que faisait « Actualiser ». L'icône ne se montre que si le temps
   // réel est coupé ou si l'état est périmé ; au retour de la connexion, l'écran se relit seul.
@@ -165,16 +201,20 @@ export function GLTenirEcranEquipe({
 
   if (!pret) return null;
 
-  const fouilleMode = !!chasse?.fouilleMode;
+  const fouilleMode = fouilleArmee && fouilleOuverte;
   const aLance = !!maVue?.hasRolledDiceThisRound;
   const cleDeRelecture = `${tourCle}:${events.length}`;
+  // L'élève qui regarde ce tour (absent ou en retrait, sur son compte) n'a aucun droit ouvert :
+  // ni « Garder ce jet », ni « Accepter » une tablette, ni les présences ne lui sont montrés.
+  const spectateur = tenir.spectateur === true;
+  const jetAGarder = spectateur ? null : jetEnSuspens;
   const moment = momentDeLEquipe({
     peripetie,
     mainAilleurs,
-    appareils: tenir.equipe?.appareils,
+    appareils: spectateur || demandesEchues === cleDemandes ? 0 : demandes,
     questionCase: !!caseQuestion.question,
     questionChasse: !!chasse?.question,
-    jetEnSuspens,
+    jetEnSuspens: jetAGarder,
     saisieDes: pending === 'lancer',
     jetEnAttente,
     retour,
@@ -185,7 +225,7 @@ export function GLTenirEcranEquipe({
     sortsOuverts,
     phase: round?.phase || null,
     partieFinie: gameState?.game?.status === 'ended',
-    spectateur: tenir.spectateur === true,
+    spectateur,
     surface: tenir.surface,
     tourJoue: tourEstJoue({ aLance, auCamp: !!maVue?.auCamp, fouilles }),
     presenceOuverte: !!presence,
@@ -214,8 +254,8 @@ export function GLTenirEcranEquipe({
     else if (geste === 'jeter') setSortsOuverts((v) => !v);
   };
   // La présence se dit dans la carte du moment tant que l'équipe n'a rien joué ; ensuite, dans
-  // le tiroir. Jamais aux deux endroits à la fois.
-  const presenceAuTiroir = moment.presence ? null : presence;
+  // le tiroir. Jamais aux deux endroits à la fois, et jamais à l'élève qui regarde le tour.
+  const presenceAuTiroir = moment.presence || spectateur ? null : presence;
 
   return (
     <section
@@ -256,7 +296,7 @@ export function GLTenirEcranEquipe({
             equipe={tenir.equipe || null}
             caseQuestion={caseQuestion}
             chasse={chasse}
-            jetEnSuspens={jetEnSuspens}
+            jetEnSuspens={jetAGarder}
             des={des}
             peripetie={peripetie}
             retour={retour}
@@ -299,7 +339,7 @@ export function GLTenirEcranEquipe({
           modules={modules}
           presence={presenceAuTiroir}
           membres={mates}
-          spectateur={tenir.spectateur === true}
+          spectateur={spectateur}
           occupe={tourApi.busy}
           onPresences={(absents) => tourApi.presences(absents)}
           onArrivee={(playerId) => tourApi.arrivee(playerId)}

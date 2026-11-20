@@ -36,11 +36,15 @@ les gestes montrés sont toujours ceux que le serveur ouvre, et il les rejoue.
   plus de quatre secondes (`useGlTempsReelCoupe`) ou si l'état est périmé ; au retour de la
   connexion, l'écran se relit seul.
 - **Ce qui est ouvert ne survit pas au tour** : au changement de tour ou de phase, la saisie
-  des dés et la liste des sorts se referment, et une question périmée s'oublie.
+  des dés et la liste des sorts se referment, une question périmée s'oublie, et le plateau
+  n'attend plus de fouille. Le mode fouille se désarme aussi dès que le droit se ferme (il
+  restait armé : chaque toucher partait au serveur, qui refusait).
+- **L'élève qui regarde le tour** (absent ou en retrait, sur son compte) ne voit plus « Garder
+  ce jet », « Accepter » une tablette ni les présences, que le serveur lui refusait.
 - **Surface « tableau » : rien ne change** (garde-fou 12). `GLTenirEquipeView`, l'ancien écran
   empilé, reste monté tel quel quand la partie se joue au tableau ou que le prof a touché
   « Tout au tableau ». La logique des deux écrans vit dans un seul hook, `useGlTenirEquipe`.
-- **Tests** : `GLTenirEcranEquipe.test.jsx` (27 scénarios, portés de l'ancien écran : un bouton
+- **Tests** : `GLTenirEcranEquipe.test.jsx` (32 scénarios, portés de l'ancien écran : un bouton
   grisé est devenu un bouton absent), `useGlTempsReelCoupe.test.jsx`, `GLTeamSessionView`,
   `GLDeuxEcrans`, `GLEscalier`, `GLUneMonnaie` et `tenir-chaines-interdites` portés sur le
   nouvel écran ; e2e `gl-tenir-tablettes` et `gl-tenir-escalier` adaptés, avec les mesures

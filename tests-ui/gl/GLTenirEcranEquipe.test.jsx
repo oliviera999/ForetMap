@@ -339,6 +339,70 @@ describe('GLTenirEcranEquipe — l’écran d’équipe en trois choses', () => 
     await waitFor(() => expect(onReloadGame).toHaveBeenCalled());
   });
 
+  test('une demande d’appareil échoit seule : la carte revient aux gestes, même si la relecture n’aboutit pas', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const onReloadGame = vi.fn();
+      const tenir = tenirWith(TOUT, {
+        equipe: {
+          gameId: 7,
+          teamId: 2,
+          version: 1,
+          main: null,
+          appareils: [{ id: 91, resteSecondes: 20 }],
+        },
+      });
+      render(ecran({ tenir, onReloadGame }));
+      await waitFor(() => expect(etatDuMoment()).toBe('appareil'));
+      // L'état servi ne change pas (relecture sans effet) : l'échéance locale suffit.
+      await vi.advanceTimersByTimeAsync(21500);
+      expect(onReloadGame).toHaveBeenCalled();
+      await waitFor(() => expect(etatDuMoment()).toBe('geste'));
+      expect(screen.queryByTestId('gl-tenir-appareils')).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test('spectateur : ni « Garder ce jet », ni « Accepter » une tablette, ni présences — son message reste', async () => {
+    brancher({
+      round: {
+        number: 1,
+        phase: 'jeu',
+        arriveesEnSuspens: [{ teamId: 2, markerId: 40, index: 4, total: 3, faces: [1, 2] }],
+      },
+      presences: { requise: true, equipes: [{ teamId: 2, confirmee: false, absents: [10] }] },
+    });
+    render(
+      ecran({
+        tenir: tenirWith(
+          {},
+          {
+            spectateur: true,
+            equipe: {
+              gameId: 7,
+              teamId: 2,
+              version: 1,
+              main: null,
+              appareils: [{ id: 91, resteSecondes: 80 }],
+            },
+          },
+        ),
+      }),
+    );
+    await waitFor(() => expect(lecturesDuTour()).toBeGreaterThan(0));
+    await waitFor(() => expect(screen.getByTestId('gl-tenir-spectateur')).toBeInTheDocument());
+    expect(etatDuMoment()).toBe('joue');
+    expect(screen.queryByTestId('gl-tenir-jet-suspens')).toBeNull();
+    expect(screen.queryByTestId('gl-tenir-garder-jet')).toBeNull();
+    expect(screen.queryByTestId('gl-tenir-appareils')).toBeNull();
+    fireEvent.click(screen.getByTestId('gl-tenir-tiroir-bouton'));
+    const tiroir = await screen.findByTestId('gl-tenir-tiroir');
+    expect(within(tiroir).queryByTestId('gl-presence')).toBeNull();
+    expect(within(tiroir).queryByTestId('gl-presence-ouvrir')).toBeNull();
+    expect(within(tiroir).queryByText(/vient d’arriver/)).toBeNull();
+  });
+
   test('spectateur : son message, et aucun geste', async () => {
     render(ecran({ tenir: tenirWith({}, { spectateur: true }) }));
     await waitFor(() => expect(screen.getByTestId('gl-tenir-spectateur')).toBeInTheDocument());
@@ -393,6 +457,35 @@ describe('GLTenirEcranEquipe — l’écran d’équipe en trois choses', () => 
     expect(gestesMontres()).toEqual(['fouiller']);
     fireEvent.click(screen.getByRole('button', { name: 'Arrêter de fouiller' }));
     expect(setFouilleMode).toHaveBeenLastCalledWith(false);
+  });
+
+  test('fouille armée, puis le droit se ferme (dernière fouille jouée ailleurs, phase qui change) : le plateau se désarme seul', async () => {
+    const setFouilleMode = vi.fn();
+    const chasse = (restantes) => ({
+      carnet: { pages: [], fouilles: { restantes, quota: 2, sousVoile: false } },
+      fouilleMode: true,
+      setFouilleMode,
+      refresh: vi.fn(),
+    });
+    const { rerender } = render(ecran({ chasse: chasse(1) }));
+    await waitFor(() => expect(screen.getByTestId('gl-tenir-fouilles')).toBeInTheDocument());
+    expect(setFouilleMode).not.toHaveBeenCalledWith(false);
+    // Un autre appareil de l'équipe joue la dernière fouille : plus rien à fouiller ici.
+    rerender(ecran({ chasse: chasse(0) }));
+    await waitFor(() => expect(setFouilleMode).toHaveBeenCalledWith(false));
+    // Tant que la chasse n'a pas suivi, ni la carte ni le plateau ne restent en fouille.
+    expect(screen.queryByTestId('gl-tenir-fouilles')).toBeNull();
+    expect(screen.getByTestId('gl-tenir-plateau')).not.toHaveClass('is-fouille');
+
+    // Même chose quand la phase change, fouilles restantes ou non.
+    setFouilleMode.mockClear();
+    rerender(
+      ecran({
+        chasse: chasse(1),
+        tenir: tenirWith({}, { round: { number: 1, phase: 'souffle' } }),
+      }),
+    );
+    await waitFor(() => expect(setFouilleMode).toHaveBeenCalledWith(false));
   });
 
   test('retour d’une fouille : le verdict, « Continuer » ; le geste suivant acquitte aussi', async () => {
@@ -670,6 +763,42 @@ describe('GLTenirEcranEquipe — l’écran d’équipe en trois choses', () => 
       await waitFor(() => expect(screen.queryByText(/Jet saisi/)).toBeNull());
     });
 
+    test('la saisie des dés ouverte se referme quand « lancer » se ferme, et ne se rouvre pas seule', async () => {
+      const etat = brancher({
+        round: { number: 1, phase: 'jeu' },
+        teams: [{ id: 2, hasRolledDiceThisRound: false }],
+      });
+      const { rerender } = render(ecran());
+      fireEvent.click(await screen.findByRole('button', { name: /Lancer les dés/ }));
+      expect(etatDuMoment()).toBe('saisie_des');
+      // Un autre appareil de l'équipe lance : le jet est fait, même tour, même phase.
+      etat.tour = {
+        round: { number: 1, phase: 'jeu' },
+        teams: [{ id: 2, hasRolledDiceThisRound: true }],
+      };
+      rerender(ecran({ gameState: { ...gameState, events: [{ id: 1, eventType: 'dice_roll' }] } }));
+      await waitFor(() => expect(etatDuMoment()).not.toBe('saisie_des'));
+      // Le jet se rouvre (Relance) : c'est le gros bouton qui revient, pas la saisie.
+      etat.tour = {
+        round: { number: 1, phase: 'jeu' },
+        teams: [{ id: 2, hasRolledDiceThisRound: false }],
+      };
+      rerender(
+        ecran({
+          gameState: {
+            ...gameState,
+            events: [
+              { id: 1, eventType: 'dice_roll' },
+              { id: 2, eventType: 'spell_effect' },
+            ],
+          },
+        }),
+      );
+      await screen.findByRole('button', { name: /Lancer les dés/ });
+      expect(etatDuMoment()).toBe('geste');
+      expect(screen.queryByTestId('gl-tour-des')).toBeNull();
+    });
+
     test('la saisie des dés ouverte ne survit pas au changement de phase', async () => {
       const { rerender } = render(ecran());
       fireEvent.click(await screen.findByRole('button', { name: /Lancer les dés/ }));
@@ -721,6 +850,25 @@ describe('GLTenirEcranEquipe — l’écran d’équipe en trois choses', () => 
           'Le Marché et le Seuil : depuis le compte de chacun.',
         ),
       );
+    });
+
+    test('retirée du catalogue (`actif: false`), elle ne se dit plus : le repli ne sert que sans catalogue', async () => {
+      brancher(
+        { round: { number: 1, phase: 'jeu' } },
+        {
+          '/tenir/olu': {
+            lignes: [{ id: 'olu-01', moment: 'ouverture', texte: 'La caravane repart.' }],
+            moments: {},
+          },
+        },
+      );
+      render(ecran({ tablette: true }));
+      await waitFor(() => expect(etatDuMoment()).toBe('geste'));
+      await waitFor(() =>
+        expect(apiGlMock.mock.calls.some(([p]) => String(p).endsWith('/tenir/olu'))).toBe(true),
+      );
+      expect(screen.queryByText(LIGNE)).toBeNull();
+      expect(window.sessionStorage.getItem('gl_olu_comptes_dits')).toBeNull();
     });
 
     test('pas sur le compte d’un élève, pas hors tour, pas tant que le Marché est fermé', async () => {

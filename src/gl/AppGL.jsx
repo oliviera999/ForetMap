@@ -813,7 +813,12 @@ export function AppGL() {
     showsPlayerChrome &&
     auth?.teamId != null &&
     String(gameState?.game?.status || '') === 'live';
-  const ecranEquipeEnTrois = ecranEquipeMonte && gameState.tenir.surface !== 'tableau';
+  // Sans l'équipe du compte dans la partie affichée, l'écran d'équipe n'aurait rien à montrer
+  // (et le plateau, qu'il porte, disparaîtrait avec lui) : le plateau classique reste alors.
+  const ecranEquipeEnTrois =
+    ecranEquipeMonte &&
+    gameState.tenir.surface !== 'tableau' &&
+    (gameState.teams || []).some((t) => Number(t.id) === Number(auth.teamId));
   const ecranEquipePleinEcran = ecranEquipeEnTrois && tab === 'maps';
   const tenirLayers = useMemo(
     () =>
