@@ -25,12 +25,12 @@ dans une **nouvelle PR en brouillon** :
 | ------- | ----------------------------------------- | ----------------------- | ----------------------------------------------------------------------------------- |
 | S1      | Préparation, textes, adresse, plateau     | faite, fusionnée (#711) | `8272b2e08` (prompt, captures), `e898eff3c` (étape 1), `552754187` (étape 2) + état |
 | S2      | Projection (étape 3)                      | faite                   | `4416079` (étape 3) + commits d'état                                                |
-| S3      | Tablette 1 : moteur de la carte du moment | à faire                 | —                                                                                   |
+| S3      | Tablette 1 : moteur de la carte du moment | en cours                | —                                                                                   |
 | S4      | Tablette 2 : branchement                  | à faire                 | —                                                                                   |
 | S5      | Console (étape 5)                         | à faire                 | —                                                                                   |
 | S6      | Accueil, docs, clôture (étapes 6 et 7)    | à faire                 | —                                                                                   |
 
-Sessions `bis` : aucune. Sessions lancées : 2 sur 8 au plus (la tentative de S2 par tâche
+Sessions `bis` : aucune. Sessions lancées : 3 sur 8 au plus (la tentative de S2 par tâche
 planifiée, arrêtée sans rien faire, ne compte pas).
 
 ### Relais : c'est la session S1 qui lance les suivantes (constat du 20/11, 19 h 25 UTC)
