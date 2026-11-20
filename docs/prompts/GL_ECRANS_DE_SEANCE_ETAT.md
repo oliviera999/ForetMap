@@ -18,8 +18,8 @@ Pour chaque session, cela veut dire :
 - ne fusionne rien toi-même et ne touche pas aux branches `…-lot<n>` ;
 - la PR #712 reste la PR en brouillon du travail en cours ; le dernier lot passera par elle.
 
-Lots fusionnés ou en cours de fusion : lot 1 = PR #711 (fusionnée), lot 2 = PR #714 et lot 3 =
-PR #715 (fusionnées, `main` v1.255.0). **Lot 4 (S4) : fini, poussé sur
+Lots fusionnés ou en cours de fusion : lot 1 = PR #711, lot 2 = PR #714, lot 3 = PR #715 et
+lot 4 = PR #716 (fusionnées, `main` v1.256.0). **Lot 5 (S5) : fini, poussé sur
 `claude/gl-ecrans-de-seance`, à figer et fusionner par S1.**
 
 **Décision attendue d'Oliv (laissée par S4)** : en surface « tableau », l'ancien écran d'équipe
@@ -50,11 +50,11 @@ dans une **nouvelle PR en brouillon** :
 | S1      | Préparation, textes, adresse, plateau     | faite, fusionnée (#711) | `8272b2e08` (prompt, captures), `e898eff3c` (étape 1), `552754187` (étape 2) + état          |
 | S2      | Projection (étape 3)                      | faite                   | `4416079` (étape 3) + commits d'état                                                         |
 | S3      | Tablette 1 : moteur de la carte du moment | faite                   | `c46fd3b` (lot), `9fe1eb9` (relecture garde-fous), `ae693b4` (CHANGELOG) + état              |
-| S4      | Tablette 2 : branchement                  | faite                   | `c9810be61` (lot), `0e471cbd3` (relecture garde-fous), `af1aa1f5c` (fusion de `main`) + état |
-| S5      | Console (étape 5)                         | en cours                | —                                                                                            |
+| S4      | Tablette 2 : branchement                  | faite, fusionnée (#716) | `c9810be61` (lot), `0e471cbd3` (relecture garde-fous), `af1aa1f5c` (fusion de `main`) + état |
+| S5      | Console (étape 5)                         | faite                   | `b5db4e5` (lot), `b5f0079` (relecture garde-fous), `159de3e` (fusion de `main`) + état       |
 | S6      | Accueil, docs, clôture (étapes 6 et 7)    | à faire                 | —                                                                                            |
 
-Sessions `bis` : aucune. Sessions lancées : 4 sur 8 au plus (la tentative de S2 par tâche
+Sessions `bis` : aucune. Sessions lancées : 5 sur 8 au plus (la tentative de S2 par tâche
 planifiée, arrêtée sans rien faire, ne compte pas).
 
 ### Relais : c'est la session S1 qui lance les suivantes (constat du 20/11, 19 h 25 UTC)
@@ -804,6 +804,250 @@ que `src/gl/` et `tests-ui/`, et la suite UI, les gardes statiques, le build et 
 rejoués **après**, sur l'état fusionné. Le budget du bundle n'a pas bougé (l'écran d'équipe vit
 dans le morceau G&L).
 
+## S5 — faite (20/11/2026, sur `main` v1.255.0, `3979351`)
+
+Lot : étape 5, la console du prof (K6, K7, K8, K9). Un commit de code (le lot), un commit de
+corrections après la relecture garde-fous, plus les commits d'état. `main` a bougé pendant la
+session (fusion du lot 4, PR #716, v1.256.0) : fusionné à la fin (`git merge origin/main`), sans
+rebase ; seul le numéro de version différait.
+
+### Ce qui est fait
+
+- **Mode séance (K7)** : `src/gl/utils/glModeSeance.js` — l'écran du tour se **déclare**
+  (`useDeclarerModeSeance`), la barre **lit** (`useGlModeSeance`, dans `AppGL`, qui passe
+  `seance` à `GLTopBar`). Ni contexte ni prop à travers le morceau paresseux de la console.
+  Barre réduite : nom de la partie, « Tour 2 — À vous de jouer » (`titreDuTour`), bouton
+  « Menu » ; dépliée : la barre d'avant, plus « Réduire le menu ». Le menu déplié ne survit pas
+  à l'écran du tour.
+- **Ordre de `GLTourScreen` (K6)** : bandeau (titre, boutons du tour, « Lien de projection »,
+  « Quitter l'écran du tour », durées, erreur, puis une ligne d'outils : sablier et tablettes) →
+  **demandes** → équipes → dés à valider, jets en attente, fenêtre de fouille, « Le voile » →
+  bulle d'Olu et **« Qui a trouvé l'erreur d'Olu ? »** → absences, Team Spirit, « Clore le
+  chapitre ».
+- **`GLClassLinkPanel`** : une ligne (`resumeDesTablettes`, bouton `gl-class-link-resume`),
+  dépliée au toucher, et d'office tant qu'une tablette attend ou que la feuille du QR est
+  ouverte. Dépliée : les demandes d'abord, puis « QR de la classe » et les tablettes.
+- **`GLTourDesSaisie`** : avec `allowLibre`, l'avance libre attend derrière « Corriger la
+  position… » ; « Annuler » referme ; le formulaire se referme quand le serveur a accepté.
+- **Erreurs réseau (K8)** : `apiGL` reçoit `onNetworkError` (`glNetworkFailureMessage`) ;
+  `src/shared/networkFailureMessages.js` porte les phrases communes aux deux produits
+  (`src/services/api.js` les réexporte, texte et comportement inchangés). Identifiant de
+  requête : retiré du message pour toute session qui n'est pas celle d'un prof
+  (`err.requestId` le garde) ; `GLErreurTexte` le montre en petit dans les bannières de la
+  console (`GLTourScreen`, `GLGameMasterConsole`, `GLAppBanners`).
+- **`lazyAvecReprise`** (`src/gl/utils/lazyAvecReprise.jsx`) : deux nouvelles tentatives
+  (0,7 s puis 1,8 s), chargement borné à 20 s, puis `GLMorceauIndisponible`
+  (« L'application vient d'être mise à jour », « Recharger »). Les cinq `lazy()` de
+  `GLGameMasterConsole` y passent.
+- **Visite guidée (K9)** : `GuidedTourOverlay` — au dernier pas, plus de « Fermer » ; pour une
+  seule étape, ni « Étape 1 / 1 » ni points ; prop `buttonClassNames` (défaut : les `.btn` de
+  ForêtMap ; `GLTourContext` passe les classes de `GLButton`).
+- **Docs de référence** : `guide-du-mj.md` (note « Écrans de séance : la console, en mode
+  séance », et la phrase sur le QR de la classe), `roles-et-connexion.md` (§ La tablette
+  d'équipe). **CHANGELOG** : entrée « lot 5 » sous `[Non publié]`. Aucune route ne change :
+  `docs/API.md` n'est pas touché.
+- **Tests** : nouveaux `glModeSeance.test.jsx`, `GLClassLinkPanel.test.jsx`,
+  `GLTourDesSaisie.test.jsx`, `lazyAvecReprise.test.jsx`, `GLErreurTexte.test.jsx`,
+  `tests-ui/shared/networkFailureMessages.test.js` ; complétés `GLTourScreen.test.jsx`,
+  `apiGL.test.js`, `DiscoveryTour.test.jsx`, `GLTourContext.test.jsx`. e2e
+  `gl-tenir-ecrans-relus` (mode séance, ordre, « Corriger la position… », capture) et
+  `gl-tenir-tablettes` (tablettes en une ligne) adaptés.
+- **Captures** (`docs/captures/ecrans-de-seance/`) : `avant/console-jouer-le-tour-1440x900.png`,
+  `avant/visite-guidee-gl-dernier-pas.png`, `avant/visite-guidee-foretmap-dernier-pas.png`
+  (prises sur l'état d'avant le lot, dans un arbre de travail séparé) ;
+  `apres/console-seance-1440x900.png` (écrite par le e2e), `apres/console-page-1440x900.png`
+  (page entière, une correction de position ouverte), `apres/console-tablette-attend-1440x900.png`,
+  `apres/visite-guidee-gl-dernier-pas.png`, `apres/visite-guidee-foretmap-dernier-pas.png`.
+
+### Écarts avec le prompt (étape 5), et pourquoi
+
+1. **`networkFailureUserMessage` n'est pas importé de `src/services/api.js`** : la règle
+   `foretmap/import-boundaries` interdit à `src/gl/` d'importer hors de `src/gl/` et
+   `src/shared/` (toute nouvelle violation est une erreur). Les deux phrases et le choix du
+   public sont donc **promus** dans `src/shared/networkFailureMessages.js`
+   (`networkFailureMessageFor`) ; `api.js` les réexporte et son `networkFailureUserMessage`
+   s'en sert. Mêmes textes, mêmes tests ForêtMap verts.
+2. **Une troisième phrase, au « vous »**, pour tout écran d'équipe
+   (`GL_PANNE_RESEAU_EQUIPE`, `src/gl/constants/glPanneReseau.js`) : le prompt disait « version
+   adulte pour le staff, version élève sinon », mais la version élève tutoie, et l'écran d'une
+   équipe vouvoie (décision d'adresse du 20/11). `apiGL` la rend pour une session d'onglet
+   (tablette, projection) ; `messagePourEquipe` la substitue là où l'écran d'équipe s'affiche
+   sous une autre session : la carte du moment ouverte depuis le compte d'un élève, et le
+   choix d'équipe par le lien de classe (avant toute session d'équipe). Relue par le test de
+   contenu.
+3. **L'identifiant de requête reste dans le texte pour le prof**, et c'est l'affichage qui le
+   met en petit (`GLErreurTexte`, trois bannières). Les autres endroits de la console qui
+   affichent une erreur (formulaires, panneaux) le montrent encore à la suite de la phrase,
+   comme avant. Un prof qui a pris la main d'un élève (« Voir comme ») lit ce que l'élève lit.
+4. **Le sablier est dans le bandeau** (le prompt le cite dans le bandeau) : sablier et tablettes
+   partagent une ligne d'outils, sous les boutons du tour. Sans cela les quatre cartes d'équipe
+   ne tenaient pas à l'écran à 1440 × 900.
+5. **« Actualiser » reste** dans le bandeau du tour de la console (le prompt ne le retire que
+   de la tablette) : c'est la sortie de secours du prof si le temps réel décroche.
+6. **Visite d'une seule étape** : « Étape 1 / 1 » disparaît avec le point de progression (le
+   prompt ne citait que le point).
+7. **`lazyAvecReprise` ne rejette jamais** : après les tentatives, il rend un composant de
+   remplacement (pas d'`ErrorBoundary` à ajouter). Un chargement qui pend plus de 20 s compte
+   comme un échec. Hors ligne, le message parle du réseau, pas d'une mise à jour.
+   `src/shared/lazyScreen.jsx` et `ScreenLoadBoundary` existent côté ForêtMap (réessai au retour
+   du réseau, bouton aux classes `.btn`) : non repris ici, parce qu'après un déploiement
+   réessayer ne suffit pas — il faut recharger — et que leur limite d'erreur est au thème
+   ForêtMap. À unifier un jour, pas dans ce lot.
+8. **Seuls les `lazy()` de `GLGameMasterConsole` passent par `lazyAvecReprise`** (c'est le
+   prompt). Ceux d'`AppGL` (dont la console elle-même, le journal, le Seuil) gardent
+   `React.lazy` : un échec y remonte à la limite d'erreur de la page (« Une erreur s'est
+   produite », « Recharger la page »). Une ligne par import suffirait ; à proposer à Oliv.
+
+### Choix faits sans demander (à reporter dans la PR finale, § 9.3)
+
+1. **Textes nouveaux, lus du prof seul** : « Menu », « Réduire le menu », « Aucun tour ouvert »
+   (barre réduite), « Corriger la position… », « Annuler », « Qui a trouvé l'erreur d'Olu ? »,
+   « n tablette(s) connectée(s) ✓ », « … · k équipe(s) sur N », « Aucune tablette connectée »
+   (avant : « Aucune tablette d'équipe connectée »), « 1 tablette attend » / « n tablettes
+   attendent », « L'application vient d'être mise à jour. Rechargez la page pour afficher cette
+   section. », « Pas de réseau pour l'instant. Cette section n'a pas pu se charger : rechargez
+   la page quand le réseau sera revenu. », « Recharger », « requête … » (en petit).
+2. **Texte nouveau, lu d'une équipe** : « Pas de réseau pour l'instant. Réessayez dans un
+   moment ; si ça dure, prévenez le prof. » (« le prof », comme les autres textes d'équipe ;
+   la phrase d'un élève, partagée avec ForêtMap, dit « ton professeur »). **À relire par Oliv.**
+3. **« ✓ » seulement quand chaque équipe a une tablette** ; sinon le résumé dit combien
+   d'équipes sont servies. On compte les tablettes (deux appareils dans une équipe = 2).
+4. **Le panneau des tablettes ne se replie pas tant qu'une tablette attend** (ou que la feuille
+   du QR est ouverte, ou qu'une erreur y est affichée) ; il se replie seul une fois la demande
+   traitée. Déplié, les demandes passent avant « QR de la classe ». Replier efface l'erreur.
+5. **Barre réduite sur écran étroit** : la navigation du bas disparaît aussi ; « Menu » la
+   rend. Le mode séance vaut pour tout compte qui ouvre « Jouer le tour ».
+6. **L'erreur d'Olu et la bulle d'Olu sont sous « Le voile »**, avant les absences. Les boutons
+   d'équipe y sont en variante secondaire (ils étaient « fantômes »).
+7. **Bannière d'erreur du tour** : `role="alert"` (elle n'était pas annoncée).
+8. **Visite guidée** : `buttonClassNames` plutôt qu'une règle CSS, pour que G&L rende
+   exactement les classes de `GLButton` ; ForêtMap garde ses `.btn` sans rien passer.
+9. **Sur la carte du moment, une même erreur ne s'affiche plus qu'une fois** (tour, question
+   de case et chasse échouent ensemble quand le réseau tombe : la phrase sortait trois fois).
+
+### Contrats de test changés (à reporter dans la PR finale, § 9.4)
+
+| Avant                                                                       | Après                                                                                                  |
+| --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `gl-class-link-sessions-count` : « Tablettes connectées : 4 équipes sur 4 » | « 4 tablettes connectées ✓ », dans le bouton `gl-class-link-resume` (`aria-expanded`)                  |
+| `gl-class-link-qr`, « Déconnecter » toujours rendus                         | rendus seulement panneau déplié (`gl-class-link-detail`) : toucher `gl-class-link-resume` d'abord      |
+| champ « Motif de l'avance libre », « Avancer » sur chaque carte d'équipe    | derrière `gl-tour-corriger-position` (« Corriger la position… ») ; formulaire `gl-tour-des-libre`      |
+| boutons « corrigé par Gnomes A »                                            | boutons « Gnomes A », dans le groupe « Qui a trouvé l'erreur d'Olu ? » ; `gl-tour-olu` est une section |
+| `GLOluBulle` et `gl-tour-olu` dans `.gl-tour-screen__banner`                | dans `.gl-tour-screen__main`, après les équipes                                                        |
+| visite guidée : « Fermer » au dernier pas ; « Étape 1 / 1 » et un point     | « Terminer » seul (avec « Précédent ») ; rien pour une seule étape                                     |
+| erreur réseau G&L : `TypeError: Failed to fetch`                            | `Error` en français, `code: 'GL_PANNE_RESEAU'`, `network: true`, `cause` = l'erreur d'origine          |
+| message d'erreur sans corps : « … [requête id] » pour tous                  | sans l'identifiant hors session de prof ; `err.requestId` dans tous les cas                            |
+
+Nouveaux : `gl-topbar-seance`, `gl-topbar-menu`, `gl-class-link-resume`, `gl-class-link-detail`,
+`gl-tour-corriger-position`, `gl-tour-des-libre`, `gl-erreur-requete`, `gl-morceau-indisponible`.
+
+### Constats du § 3 : état après S5
+
+| #   | État                                                                                                                                                                  |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| K6  | **Corrigé** : demandes avant les équipes ; tablettes en une ligne ; Olu et son erreur (avec un titre) sous les équipes ; avance libre derrière un bouton.             |
+| K7  | **Corrigé** pour « Jouer le tour » : barre de 56 px (elle faisait 240 px avec les 12 onglets de l'admin à 1440 px). Les autres écrans de la console gardent la barre. |
+| K8  | **Corrigé** : phrase française selon la session ; identifiant de requête hors du texte des élèves ; reprise des morceaux de la console.                               |
+| K9  | **Corrigé** : un seul bouton au dernier pas ; boutons au style du jeu dans G&L (ils étaient nus), inchangés dans ForêtMap.                                            |
+
+### Mesures à l'écran (Chromium, vrai écran, partie d'essai : 4 équipes, surface « tablette », tour en jeu, compte admin à 12 onglets)
+
+| Fenêtre    | Avant le lot                                                     | Après le lot                                                                    |
+| ---------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| 1440 × 900 | barre de 240 px ; titre du tour à 640 px ; demandes sous l'écran | barre de 56 px ; titre du tour à 457 px ; demandes à 585 px ; 4 cartes visibles |
+| 768 × 1024 | non mesuré                                                       | barre d'une ligne ; regardé, rien ne déborde                                    |
+| 390 × 844  | non mesuré                                                       | barre de 66 px (partie et tour sur deux lignes) ; regardé, rien ne déborde      |
+
+À 1440 × 900 la dernière carte d'équipe finit à 882 px tant que le message « Partie chargée. »
+est affiché (5 s), à 825 px ensuite. **Ce qui prend encore la place** au-dessus du tour, et que
+le lot n'a pas touché : le titre « Console MJ », le bandeau de la partie (déjà replié en mode
+« compact » par un lot antérieur : nom, « Démarrer / Pause / Terminer », « Modifier la
+partie ») et les sous-onglets, soit 345 px. Le nom de la partie étant maintenant dans la barre,
+ce bandeau pourrait se réduire à une ligne en mode séance : à proposer à Oliv (hors prompt).
+
+### Relecture `gl-relecteur-garde-fous` sur le lot, et ce qui en a été fait
+
+Aucun manquement bloquant aux douze garde-fous : aucun mot interdit ni point médian dans les
+lignes ajoutées ; aucun geste ouvert à un élève (`allowLibre` reste fermé sur l'écran d'équipe,
+le panneau des tablettes et `lazyAvecReprise` ne sont montés que dans la console) ;
+identifiant de requête absent de toute session qui n'est pas celle d'un prof ; mode séance
+toujours quittable ; surface « tableau » : aucun changement de comportement. Six écarts
+mineurs, corrigés dans le second commit, chacun avec son test :
+
+1. **Un refus pouvait disparaître** (garde-fou 11) : le panneau des tablettes se repliait sur
+   son message d'erreur quand la demande refusée par le serveur quittait la liste. Une erreur
+   garde maintenant le panneau ouvert.
+2. **L'adresse de la panne réseau suivait la session, pas l'écran** : « tu » au milieu de la
+   carte du moment ouverte depuis un compte élève ; phrase du prof ou du visiteur sur le choix
+   d'équipe par le lien de classe. `messagePourEquipe` les ramène au « vous ».
+3. **La même phrase sortait jusqu'à trois fois** sur la carte du moment (défaut ancien, rendu
+   lisible par le lot) : dédoublonnée.
+4. **Test de contenu** : `src/shared/networkFailureMessages.js` est relu aussi (mots interdits).
+5. **Accessibilité** : le focus suit « Menu » / « Réduire le menu » ; « Corriger la
+   position… » est fermé quand la carte l'est ; `aria-controls` seulement panneau déplié.
+6. **« le prof »** plutôt que « votre professeur » dans la phrase d'équipe.
+
+Remarques **non traitées** : sur écran étroit, barre réduite, `gl-app--has-bottom-nav` reste
+posé (64 px de marge en bas sans barre de navigation : cosmétique) ; `PUBLIC_SERVER_RESTART_MESSAGE`
+(`src/shared/apiTransport.js`, « Le site redémarre, il revient dans un instant. ») n'est relu
+par aucun test de contenu (relu à la main) ; l'écran du prof change aussi de présentation en
+surface « tableau » (c'est l'étape 5), et la phrase d'Olu y passe sous la ligne de flottaison à
+1440 × 900 — à savoir si Oliv recopie cet écran au tableau.
+
+### Écarts trouvés dans le code et dans l'environnement
+
+- **Règle `foretmap/import-boundaries`** (`scripts/lib/eslint-import-boundaries.cjs`) : toute
+  **nouvelle** importation de `src/gl/` vers `src/services/`, `src/components/`… est une erreur
+  de lint (les anciennes sont en avertissement, listées dans
+  `scripts/data/import-boundaries-baseline.json`). Passer par `src/shared/`.
+- **Un `beforeEach` qui rend une fonction la rappelle au nettoyage** (Vitest) :
+  `beforeEach(() => mock.mockReset())` rend le mock, qui est alors appelé sans argument.
+  Mettre des accolades.
+- **`fetchJsonWithRetry` hors ligne** (`navigator.onLine === false`) échoue tout de suite, sans
+  nouvelles tentatives : c'est le chemin rapide pour tester une panne réseau. En ligne, une
+  écriture est retentée deux fois (≈ 1,5 s) et une lecture sept fois (≈ 25 s).
+- **Capturer un « avant » après coup** : `git worktree add --detach <dossier> <commit>`, lien
+  symbolique vers `node_modules`, copie de `.env`, `npm run build`, puis la config Playwright
+  hors dépôt avec `ROOT` sur ce dossier (elle lit `PW_ROOT` dans cette session).
+- **`main`** : fusion du lot 4 (PR #716, v1.256.0) pendant la session. PR ouvertes : #712
+  (celle-ci) et #713 (shell ForêtMap), sans fichier commun avec ce lot hors `CHANGELOG.md`.
+  **Attention pour #713** : elle abaisse le budget de l'entrée ForêtMap à 775 Ko de JS ; ce lot
+  y ajoute `src/shared/networkFailureMessages.js` et quelques lignes dans `GuidedTourOverlay`
+  (mesure ci-dessous).
+- Avertissements de lint : 321, comme sur `main` ; le lot n'en ajoute aucun.
+
+### Vérifications de S5
+
+| Commande                                                                    | Résultat                                                                         |
+| --------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| Avant le lot : `npm run test:ui`, `npm test`                                | 824 fichiers, 6 395 tests ; 6 600 tests (2 ignorés), 0 échec                     |
+| `npm run lint`                                                              | 0 erreur (321 avertissements, déjà là)                                           |
+| `npm run format:check`                                                      | vert                                                                             |
+| `npm run test:ui` (état final du code)                                      | 830 fichiers, 6 443 tests                                                        |
+| `npm test`                                                                  | 6 600 tests, 6 598 verts, 2 ignorés, 0 échec                                     |
+| Gardes statiques (`tests/*-guard.test.js`, frontières d'import), état final | 78 / 78                                                                          |
+| `npm run test:content`                                                      | 154 tests                                                                        |
+| `NODE_ENV=production npm run build`, `check:bundle`, `check:runtime`        | JS 1 529,3 Ko (plafond 1 530), CSS 376,9 Ko (plafond 380) ; conforme             |
+| e2e `gl-tenir-ecrans-relus`, `gl-tenir-tablettes` (ceux du lot)             | 3 / 3                                                                            |
+| e2e `e2e/gl-*.spec.js`, tous                                                | 62 verts, 2 ignorés, **1 échec instable, présent aussi sur `main`** (ci-dessous) |
+
+**L'échec des e2e** : `gl-users-admin.spec.js`, « admin GL peut voir comme un joueur… » (le
+clic sur « Voir comme » ne rend pas la main à Playwright en 15 s). Rejoué seul sur la branche :
+même test rouge, le test jumeau « MJ GL peut voir comme… » vert en 21 s. Rejoué sur `main`
+v1.256.0 dans un arbre de travail séparé : c'est le jumeau qui est rouge (21,9 s) et celui-ci
+vert (19,2 s). Les deux tests sont donc **instables dans ce conteneur**, à la limite de leur
+délai, sur `main` comme sur la branche (S4 les avait vus rouges tous les deux) : ils ne
+viennent pas du lot, qui ne touche pas la prise de contrôle. Les 7 e2e `gl-tenir-*`, dont ceux
+de la console, sont verts.
+
+`npm test` a tourné sur le premier commit du lot pendant que les corrections de la relecture
+s'écrivaient (elles ne touchent que `src/gl/`, `tests-ui/` et un test de contenu) : la suite
+d'écran, les gardes statiques, le lint, le build de production et les e2e ont été lancés
+**après**, sur l'état final ; `test:content` aussi. La fusion de `main` (v1.256.0) n'a changé
+que le numéro de version. **Budget du bundle** : l'entrée ForêtMap prend 0,2 Ko de JS
+(1 529,1 → 1 529,3) et 0,1 Ko de CSS ; il reste 0,7 Ko de marge. Le banc n'a pas été relancé :
+le lot ne touche ni `lib/`, ni `routes/`, ni `migrations/`, ni `data/` (S6 le relance).
+
 ## Ce que la session suivante doit savoir
 
 ### Pour S4 (tablette, branchement) : fait
@@ -812,29 +1056,38 @@ Le mode d'emploi du branchement écrit par S3 a été suivi et retiré d'ici (il
 l'historique : `git show 7fe4262f4:docs/prompts/GL_ECRANS_DE_SEANCE_ETAT.md`). Ce qui en reste
 à savoir est dans la section S4 ci-dessus.
 
-### Pour S5 (console)
+### Pour S5 (console) : fait
 
-- **La barre de l'application pèse sur l'écran d'équipe d'un compte** : 188 px à 1 024 px de
-  large, 238 px à 768 px (trois rangées : titre, onglets, compte). L'écran d'équipe prend ce qui
-  reste (plateau de 483 px de haut à 1024 × 768, contre 715 px sur la tablette). Le « mode
-  séance » de `GLTopBar` (K7) est pensé pour la console ; s'il se déclenche aussi quand
-  `AppGL` pose `gl-app--ecran-equipe`, l'élève récupère environ 130 px. À proposer à Oliv, pas
-  à faire d'office (le prompt ne le demande que pour « Jouer le tour »).
-- `AppGL` : l'onglet du plateau est rendu par `ongletDuPlateau()` (fonction locale, juste avant
-  le `return`). `ecranEquipePleinEcran` dit si l'écran d'équipe occupe la fenêtre.
-- `useGlTempsReelCoupe(token, { onRetour })` existe : la console peut s'en servir pour son
-  message de panne réseau (K8) au lieu d'en réécrire un.
-- `e2e/gl-users-admin.spec.js` échoue déjà sur `main` (deux tests « Voir comme ») : ne pas
-  chercher la cause dans son propre lot.
-
-- `GLTourJournal` est partagé entre la console (journal complet, `limit={40}`) et la projection
-  (`marquants`, `limit={3}`). Le journal de la console n'a pas changé ; ne pas retirer la prop.
-
-- Le titre de la console porte déjà la phase en mots d'élève (`phaseConsole`). Le bandeau
-  réduit du mode séance peut réutiliser `titreDuTour`.
-- Budget du bundle : voir plus haut (0,9 Ko de marge sur l'entrée ForêtMap).
+Les notes laissées par S2 à S4 ont servi et sont retirées d'ici (historique :
+`git show 3226a98:docs/prompts/GL_ECRANS_DE_SEANCE_ETAT.md`). Deux d'entre elles restent
+ouvertes, reportées plus bas pour S6 : le mode séance sur le compte d'un élève, et les deux e2e
+de `gl-users-admin`.
 
 ### Pour S6 (docs)
+
+- **La console est déjà documentée** par S5 dans `guide-du-mj.md` (note « Écrans de séance : la
+  console, en mode séance ») et `roles-et-connexion.md` (où trouver le QR de la classe) :
+  relire, ne pas refaire. **Reste pour l'étape 7** : `docs/GL_TENIR_A_DEUX_REGLES.md` s'il
+  décrit l'écran « Jouer le tour » (ordre des blocs, « corrigé par … », avance libre visible
+  sur chaque carte), et les skills `gl-tenir-*` s'ils citent ces éléments.
+- **Captures de la console et de la visite guidée** : déjà dans `avant/` et `apres/` (liste dans
+  la section S5). `apres/console-seance-1440x900.png` est réécrite par
+  `gl-tenir-ecrans-relus` à chaque passage ; les autres ont été prises par une spec temporaire,
+  non versionnée.
+- **Trois propositions pour Oliv, non faites** (hors prompt) : réduire aussi le bandeau de la
+  partie de la console en mode séance (345 px au-dessus du tour, voir les mesures de S5) ;
+  étendre le mode séance au compte d'un élève quand l'écran d'équipe occupe la fenêtre (note de
+  S4 : la barre y prend 188 px à 1 024 px de large — `useDeclarerModeSeance` suffit, à poser
+  dans `AppGL` quand `ecranEquipePleinEcran` est vrai) ; passer les `lazy()` d'`AppGL` par
+  `lazyAvecReprise`.
+- **Textes à relire par Oliv** : la phrase de panne réseau dite à une équipe, et la liste des
+  libellés de la console (section S5, « Choix faits sans demander »).
+- **Relecteur garde-fous** : passé sur le lot 5 (six écarts mineurs corrigés). Reste à le passer
+  sur les textes de S2 (voir plus bas).
+- **#713** (shell ForêtMap, budget abaissé à 775 Ko) : ce lot ajoute 0,2 Ko à l'entrée ForêtMap.
+  Si #713 est fusionnée avant la clôture, relancer `check:bundle` sur un build de production.
+- `e2e/gl-users-admin.spec.js` : deux tests « Voir comme » instables dans ce conteneur, sur
+  `main` aussi (vérifications de S5). Ne pas en chercher la cause dans son propre lot.
 
 - **L'écran d'équipe est déjà documenté** par S4 dans `guide-du-mj.md` (note « L'écran d'équipe
   en trois choses ») et `roles-et-connexion.md` : relire, ne pas refaire. **Restent à écrire**
@@ -850,8 +1103,6 @@ l'historique : `git show 7fe4262f4:docs/prompts/GL_ECRANS_DE_SEANCE_ETAT.md`). C
   attendus (8/11, mêmes trois manqués).
 - **Description finale, § 9.3 et 9.4** : les listes sont prêtes dans la section S4 (« Choix
   faits sans demander », « Contrats de test changés », « Écarts avec le prompt »).
-- **Relecteur garde-fous** : passé sur le lot 4 (deux manquements corrigés). Reste à le passer
-  sur les textes de S2 (voir plus bas) et sur ceux de S5.
 - Si Oliv tranche pour le nouvel écran en surface « tableau » : marche à suivre dans la section
   S4 (une condition à retirer aux deux points de montage, puis `GLTenirEquipeView`, son test et
   deux blocs de styles à supprimer).
