@@ -25,7 +25,7 @@ dans une **nouvelle PR en brouillon** :
 | ------- | ----------------------------------------- | ----------------------- | ----------------------------------------------------------------------------------- |
 | S1      | Préparation, textes, adresse, plateau     | faite, fusionnée (#711) | `8272b2e08` (prompt, captures), `e898eff3c` (étape 1), `552754187` (étape 2) + état |
 | S2      | Projection (étape 3)                      | faite                   | `4416079` (étape 3) + commits d'état                                                |
-| S3      | Tablette 1 : moteur de la carte du moment | en cours                | —                                                                                   |
+| S3      | Tablette 1 : moteur de la carte du moment | faite                   | `c46fd3b` (lot), `9fe1eb9` (relecture garde-fous), `ae693b4` (CHANGELOG) + état     |
 | S4      | Tablette 2 : branchement                  | à faire                 | —                                                                                   |
 | S5      | Console (étape 5)                         | à faire                 | —                                                                                   |
 | S6      | Accueil, docs, clôture (étapes 6 et 7)    | à faire                 | —                                                                                   |
@@ -347,9 +347,311 @@ Le budget du bundle n'a pas bougé (la projection vit dans le morceau G&L, pas d
 ForêtMap). Le banc n'a pas été relancé : le lot ne touche ni `lib/`, ni `routes/`, ni `migrations/`, ni
 `data/` (S6 le relance).
 
+## S3 — faite (20/11/2026, sur `main` v1.254.0, `f72493c`)
+
+Lot : étape 4, partie 1 — le moteur de la carte du moment et les trois composants de l'écran
+d'équipe, **sans les brancher**. Deux commits de code (le lot, puis les corrections de la
+relecture garde-fous), plus les commits d'état.
+`main` n'a pas bougé pendant la session : aucun rebase. **Rien de visible ne change** : aucun
+point de montage n'importe encore ces fichiers (donc ni doc de référence ni CHANGELOG dans ce
+lot ; S4 et S6 s'en chargent).
+
+### Ce qui est fait
+
+- **`src/gl/utils/glTenirMoment.js`** (fonctions pures, sans React) :
+  - `momentDeLEquipe(entrée)` → `{ etat, geste, role, texte, libelle, detail, puces[], fouille,
+sorts, presence, origine, spectateur }` : un seul état, le premier vrai de `ETATS_DU_MOMENT` ;
+  - `retourDuMoment({ verdict, caseRetour })` : le retour à montrer (le plus récent), avec sa clé ;
+  - `bandeauxDuMoment(…)` : les lignes au-dessus de la carte (état périmé, encordée, un seul dé,
+    en retrait, sous le voile), chacune avec son `testId` ;
+  - `estSousVoile`, `aucunGesteDuTour`, `tourEstJoue`, `casesEnPastilles` (numéro, pictogramme,
+    libellé court),
+    `boursesDeLEquipe` (pseudo coupé à 12 caractères), `empreinteDuTiroir` (pastille de nouveauté).
+- **Deux hooks** : `useGlTenirRetour` (retour récent, « Continuer », effacement au changement de
+  tour ou de phase) et `useGlTenirTiroir` (ouvert / fermé, section, nouveauté).
+- **Trois composants** de `src/gl/components/tenir/` : `GLTenirBandeau`, `GLTenirMoment`,
+  `GLTenirTiroir`. Aucun n'appelle une route lui-même (sauf les blocs déplacés, qui le faisaient
+  déjà : défis, bestiaire, « ce qui change », demande d'appareil) ; ils reçoivent données et
+  gestes par leurs props.
+- **Style** : bloc « Écran d'équipe en trois choses » à la fin de `src/gl/styles/gl-tenir.css`
+  (bandeau, carte du moment, tiroir). La **mise en page de l'écran** (deux colonnes, `100dvh`,
+  feuille du bas) n'y est pas : elle vient avec le conteneur de S4.
+- `GLDefisEntree` reçoit `boutonProps` (la carte y pose `data-geste="trame"`).
+- `TENIR_VERDICT_TEXTES` (`tenirTextes.js`) devient la source unique des textes de fouille :
+  `GLTenirEquipeView` l'importe (son `VERDICT_TEXTES` local a disparu). Le texte « pâlie » du
+  module a été aligné sur celui que l'écran montrait (« Cette zone a pâli : les Gnomes savent la
+  réparer. ») : rien ne change à l'écran.
+- `tests/content/gl-adresse-ecran-equipe.test.js` relit aussi `glTenirMoment.js` (vous, jamais
+  tu ; aucun mot interdit).
+- **Tests** (100) : `tests-ui/gl/glTenirMoment.test.js`, `GLTenirMoment.test.jsx`,
+  `GLTenirBandeau.test.jsx`, `GLTenirTiroir.test.jsx`, `useGlTenirMomentHooks.test.jsx`.
+- **Relecture `gl-relecteur-garde-fous`** lancée sur le lot : aucun manquement dans les textes ;
+  trois dans la logique d'affichage, corrigés (`9fe1eb9`, écarts 10 à 12 ci-dessous) ; ses
+  remarques pour le branchement sont dans « Pour S4 ».
+
+### Écarts avec le tableau du prompt (étape 4), et pourquoi
+
+1. **`camp` passe devant `clos`.** Une partie close a presque toujours son dernier tour en phase
+   `clos` : dans l'ordre du tableau, « Ce qui change » ne s'afficherait jamais.
+2. **La phase `ouverture` n'avait pas d'état** : elle tombe dans `attente`, avec son propre texte
+   (« Le tour s'ouvre : à vous de jouer dans un instant. »).
+3. **Les défis de la Trame ne sont jamais le gros bouton** (`maintenantVousPouvez` les rend hors
+   tour) : ils sont une puce — dans `geste` s'il reste de la place, et dans `clos`, `camp` et
+   `attente`. Sans cela, la tablette hors tour perdait son entrée « Défis de la Trame ».
+4. **`saisie_des` exige que le jet soit encore permis** (pas seulement `pending === 'lancer'`) :
+   si un autre appareil de l'équipe a lancé, la saisie se referme seule. Elle a aussi une sortie,
+   « Pas maintenant » (aucun état sans issue).
+5. **Une fouille qui ouvre une question (`zone`) n'est pas un retour** : la question le dit déjà.
+   Sinon, la question fermée, la carte disait « répondez à sa question » sans question.
+6. **Un retour n'est montré que s'il est récent** : celui qui est déjà là quand l'écran s'ouvre
+   n'est pas rejoué, et un changement de tour ou de phase l'efface (`useGlTenirRetour`). Sinon
+   un retour oublié masquerait « Le voile avance. ».
+7. **Une fouille en cours passe devant le retour** (« le geste suivant acquitte aussi »).
+8. **L'élève qui regarde ce tour** (`tenir.spectateur`, compte d'un absent ou d'un élève en
+   retrait) : l'état `joue` porte son message (`MESSAGE_SPECTATEUR`, au tu : il parle à un
+   élève) au lieu de « Votre tour est joué. ». Le tableau ne le prévoyait pas.
+9. **Sorts** : pas d'état à part. En état `geste`, « Jeter un sort » déplie `GLSortsParMoment`
+   sous les boutons (`moment.sorts`), et le bouton devient « Fermer les sorts ».
+10. **Une question ouverte ne se montre qu'en phase de jeu.** Les questions sont des états
+    locaux des hooks (`useGlQuestionDeCase`, `useGlChasse`) que rien ne vide au changement de
+    phase, alors que le serveur ferme « répondre » : la carte serait restée sur la question,
+    devant « Le voile avance. », jusqu'à un « Fermer ».
+11. **« Votre tour est joué. » ne se dit que si c'est vrai** (`tourEstJoue` : jet fait ou équipe
+    au camp, et plus de fouille). Sinon, phase de jeu sans rien d'ouvert : « Pour l'instant,
+    regardez le plateau. » (en hybride, la fenêtre de fouille du prof peut encore s'ouvrir). En
+    surface **tableau**, où l'élève n'a aucun geste : « Le tour se joue au tableau. ».
+12. **Le carnet du tiroir ne montre « Lire » que si le droit est servi** (prop `peutLire`,
+    fermée par défaut).
+
+### Choix faits sans demander (à reporter dans la PR finale, § 9.3)
+
+1. **Textes nouveaux** (tous au vous, relus par le test de contenu) : « Votre tour est joué.
+   Regardez les autres équipes. », « Le voile avance. », « Jet saisi : le prof valide. » (avant :
+   « Jet saisi : en attente du clic du prof. »), « Le tour est terminé. », « Vous êtes au camp :
+   le chapitre est terminé. », « Le tour s'ouvre : à vous de jouer dans un instant. »,
+   « Touchez la carte · n fouilles », « Arrêter de fouiller » (avant : « Annuler la fouille »),
+   « Continuer », « Pas maintenant », « Un seul dé ce tour-ci. », « En retrait jusqu'à la fin du
+   tour. », « Votre mascotte est sous le voile. » (avant : « · sous le voile » après le compte
+   des fouilles), « Relire l'écran » (nom de l'icône de reconnexion), « L'équipe (du nouveau) »,
+   « Pour l'instant, regardez le plateau. », « Le tour se joue au tableau. ». **À relire par
+   Oliv**, surtout les deux derniers (ajoutés après la relecture garde-fous).
+   L'élève qui regarde le tour (`MESSAGE_SPECTATEUR`) lit son message dès la phase d'ouverture.
+2. **Gros bouton** : « Répondre à la question », « Lancer les dés » / « Lancer le dé », « Fouiller »
+   (+ « 2 fouilles »), « Lire » (+ « 1 page à lire et à faire tenir »), « Jeter un sort ». Les
+   puces disent la même chose en court (« Répondre », « Fouiller · 2 fouilles »).
+3. **Rôle au-dessus du bouton** : le rôle de `roleDuGeste` ; « Toute l'équipe » s'il n'y en a pas.
+4. **Pastilles des cases** : pictogramme par type de case, la tonalité (`trame`, `souffle`)
+   primant sur le type ; sans libellé de case, un mot (« Question », « Péripétie », « Souffle »,
+   « Trame », « Défi », « Raccourci », « Frontière », « Camp », « Histoire », « Récit »,
+   « Départ », « Étape »). Libellé coupé à 18 caractères, entier en infobulle.
+5. **Pastille de nouveauté du tiroir** : elle s'allume quand le carnet (état d'une page), la
+   réserve, les absents ou le nombre de défis changent, tiroir fermé. Pas les cases à venir
+   (elles changent à chaque jet).
+6. **Bandeau** : sur une ligne quand la place y est ; à 1024 px avec cinq bourses et le sablier,
+   les bourses passent sous la phase (72 px de haut au pire). En dessous de 1024 px, elles ont
+   leur ligne ; à 640 px et moins, elles sont dans le tiroir.
+7. **Bord doré de la fouille** : il revient au **plateau** (« la carte » du prompt), donc à S4 ;
+   la carte du moment porte seulement la classe `is-fouille` et un fond doré pâle sous
+   « Touchez la carte ».
+8. **Tiroir** : rien n'est rendu (ni lu sur le serveur) tant qu'il est fermé ; Échap et le retour
+   du navigateur le ferment ; le focus revient au bouton. Il ne montre pas les demandes
+   d'appareil (elles sont dans la carte du moment) : seulement le mot dit à l'élève qui regarde.
+
+### Mesures à l'écran (Chromium, banc d'essai temporaire non versionné : bandeau + faux plateau à 62 % + carte du moment)
+
+| Fenêtre    | Bandeau (5 bourses, sablier) | Carte du moment (état `geste`, 2 bandeaux, 3 puces, présences) | Page défile |
+| ---------- | ---------------------------- | -------------------------------------------------------------- | ----------- |
+| 1366 × 768 | 53 px                        | 495 × 357, tout visible                                        | non         |
+| 1024 × 768 | 72 px                        | 365 × 357, tout visible                                        | non         |
+| 768 × 1024 | 82 px                        | 296 × 405 (colonne étroite : voir « Pour S4 »)                 | non         |
+| 390 × 844  | 84 px (sans bourses)         | 366 × 344 sous un plateau de 55 dvh                            | non         |
+
+Aucun bouton sous 44 px. Les autres états (`question`, `retour`, `jet_suspens`, `saisie_des`,
+`main_ailleurs`, `joue`, `clos`, `attente`, tiroir ouvert) ont été regardés à 1024 × 768 : le
+plus haut est `geste` (357 px), le tiroir fait 448 px de large. Ces mesures sont à refaire par
+S4 dans le vrai écran (e2e).
+
+### Écarts trouvés dans le code et dans l'environnement
+
+- **Deux gardes de points de bascule, deux listes** : `tests/breakpoints-guard.test.js` accepte
+  `max-width: 639px`, `tests-ui/utils/breakpoints.test.js` non (sa liste : 480, 640, 641, 700,
+  701, 720, 767, 768, 1023, 1024). Pour le téléphone, écrire **`max-width: 640px`** (accepté
+  par les deux) et ne pas écrire son complément : allumer par défaut, éteindre dans la requête.
+- **Garde typographique** (`tests/typography-tokens-guard.test.js`) : aucun `font-size` en `rem`
+  littéral — `var(--text-sm)` … `var(--text-2xl)` (les `em` passent, S2 s'en servait).
+- **PR #713** (shell ForêtMap chargé à la demande, en brouillon) : elle écrit en tête de
+  `CHANGELOG.md` et **abaisse le budget du bundle à 775 Ko de JS et 372 Ko de CSS** pour
+  l'entrée ForêtMap. Aucun fichier commun avec ce lot. Si elle est fusionnée avant S5 : la marge
+  devient 4,9 Ko de JS et 2,2 Ko de CSS (mesures de sa description), et S6 aura un rebase sur
+  la tête du CHANGELOG.
+- Avertissements de lint : 321, comme sur `main` ; le lot n'en ajoute aucun.
+
+### Vérifications de S3
+
+| Commande                                                                   | Résultat                                               |
+| -------------------------------------------------------------------------- | ------------------------------------------------------ |
+| Avant le lot : `npm run test:ui`, `npm test`                               | 817 fichiers, 6 254 tests ; 6 600 tests (2 ignorés)    |
+| `npm run lint`                                                             | 0 erreur (321 avertissements, déjà là)                 |
+| `npm run format:check`                                                     | vert                                                   |
+| `npm run test:ui` (état final)                                             | 822 fichiers, 6 354 tests                              |
+| `npm test`                                                                 | 6 600 tests, 6 598 verts, 2 ignorés, 0 échec           |
+| Gardes statiques rejouées sur l'état final (a11y, bascules, jetons, 44 px) | 38 / 38                                                |
+| `npm run test:content`                                                     | 154 tests                                              |
+| `NODE_ENV=production npm run build`, `check:bundle`, `check:runtime`       | JS 1 529,1 Ko (plafond 1 530), CSS 376,8 Ko ; conforme |
+| e2e `gl-tenir-*` (projection, ecrans-relus, escalier, tablettes, defis)    | 7 / 7 (aucun n'est touché : rien n'est branché)        |
+
+`npm test` a tourné pendant que les corrections de la relecture s'écrivaient (elles ne touchent
+que `src/gl/` et `tests-ui/`) : les gardes statiques, la suite UI, le lint, le build et les e2e
+ont été rejoués ou lancés **après**. Les e2e réécrivent les captures de la projection
+(`apres/projection-*.png`) : elles ont été remises telles quelles (`git checkout`). Le banc n'a
+pas été relancé (ni `lib/`, ni `routes/`, ni `migrations/`, ni `data/` ne changent ; S6 le
+relance). Un test du lot s'est montré instable une fois (deux retours de case horodatés à la
+même milliseconde) : corrigé par un numéro d'ordre, puis rejoué six fois.
+
+**CHANGELOG** : à la demande de la session orchestratrice (changement de mode du 20/11, 21 h
+UTC : un lot fini est fusionné sans attendre les suivants), ce lot a sa propre entrée sous
+`[Non publié]` — « Modifié — G&L : écrans de séance, lot 3 (le moteur de la carte du moment) ».
+Pas de note de doc de référence : rien ne se voit à l'écran.
+
 ## Ce que la session suivante doit savoir
 
-### Pour S3 et S4 (tablette)
+### Pour S4 (tablette, branchement)
+
+**Le montage, en une fois.** `GLTenirEcranEquipe` reprend les hooks et les dérivations de
+`GLTenirEquipeView` (lignes 60 à 290 : `tourApi`, `caseQuestion`, `olu`, `peripetie`, état
+périmé, `mainAilleurs`, `round`, `maVue`, `maintenant`, `encordeePar`, `presence`,
+`jetEnSuspens`, `jetEnAttente`) et remplace son rendu par :
+
+```jsx
+const membres = mates; // roster DÉJÀ filtré sur l'équipe (le roster d'un compte porte la classe)
+const fouilles = chasse?.carnet?.fouilles || null;
+const aLance = !!maVue?.hasRolledDiceThisRound;
+const des = maVue?.desProchainJet || tenir.settings?.des_count || 2;
+const tourCle = `${round?.number || 0}:${round?.phase || ''}`;
+const { retour, acquitter } = useGlTenirRetour({
+  verdict: chasse?.dernierVerdict,
+  caseFeedback: caseQuestion.feedback,
+  tourCle,
+});
+const tiroir = useGlTenirTiroir({
+  empreinte: empreinteDuTiroir({ carnet: chasse?.carnet, reserve, absents: presence?.absents }),
+});
+const moment = momentDeLEquipe({
+  peripetie,
+  mainAilleurs,
+  appareils: tenir.equipe?.appareils,
+  questionCase: !!caseQuestion.question,
+  questionChasse: !!chasse?.question,
+  jetEnSuspens,
+  saisieDes: pending === 'lancer',
+  jetEnAttente,
+  retour,
+  maintenant,
+  fouilleMode,
+  fouillesRestantes: fouilles ? fouilles.restantes : null,
+  des,
+  sortsOuverts,
+  phase: round?.phase || null,
+  partieFinie: gameState?.game?.status === 'ended',
+  spectateur: tenir.spectateur === true,
+  surface: tenir.surface,
+  tourJoue: tourEstJoue({ aLance, auCamp: !!maVue?.auCamp, fouilles }),
+  presenceOuverte: !!presence,
+  aucunGeste: aucunGesteDuTour({ aLance, fouilles }),
+});
+const lignes = bandeauxDuMoment({
+  etatPerime,
+  encordeePar,
+  unDe: !!maVue?.unDe,
+  desProchainJet: maVue?.desProchainJet,
+  enRetrait: !!tenir.enRetrait,
+  sousVoile: estSousVoile({
+    fouilles,
+    pathIndex: maVue?.pathIndex,
+    voilePosition: tenir.state?.voilePosition,
+  }),
+});
+const onGeste = (geste) => {
+  acquitter(); // le geste suivant acquitte le retour
+  if (geste === 'lancer') setPending('lancer');
+  else if (geste === 'repondre')
+    onRepondre ? onRepondre() : caseQuestion.presenter(questionDue.markerId);
+  else if (geste === 'fouiller') chasse.setFouilleMode(true);
+  else if (geste === 'lire') tiroir.ouvrir('carnet');
+  else if (geste === 'jeter') setSortsOuverts((v) => !v);
+};
+```
+
+puis `<GLTenirBandeau team round sablier membres tiroirOuvert={tiroir.ouvert} tiroirId
+nouveaute={tiroir.nouveau} onTiroir={tiroir.basculer} reconnexion onReconnecter />`,
+`<GLTenirMoment moment lignes gameId teamName settings={tenir.settings} equipe={tenir.equipe}
+caseQuestion chasse jetEnSuspens des peripetie retour presence membres olu cleDeRelecture
+occupe={tourApi.busy} erreurs={[tourApi.error, caseQuestion.error, chasse?.error]} onGeste
+onArreterFouille onContinuer={acquitter} onOuvrirPiste onGarderJet onRelance onLancer
+onQuitterSaisie onPasserPeripetie onPresences onArrivee onJeterSort onRecharger />` et
+`<GLTenirTiroir ouvert={tiroir.ouvert} section={tiroir.section} id onFermer={tiroir.fermer}
+gameId casesAVenir reserve chasse peutLire={!!perms.lire} tablette onChangerEquipe modules
+presence membres spectateur occupe onPresences onArrivee cleDeRelecture />`. Les tests d'écran
+de S3 montrent chaque prop en situation.
+
+**À ne pas oublier en branchant** (relevé par la relecture garde-fous ou vu en écrivant) :
+
+- **Vider les questions quand `tourCle` change** (`caseQuestion.fermer`, `chasse.clearQuestion`
+  — attention, tous deux rendent la main au serveur ; un simple vidage local suffit). Le moteur
+  ne les montre plus hors de la phase de jeu, mais une question périmée reviendrait au tour
+  suivant.
+- **`main_ailleurs` n'a aucun bouton** : garder la minuterie d'échéance (`mainEchue`,
+  `GLTenirEquipeView` l. 144-164), sinon la carte reste sur « … prépare un sort… » après 60 s.
+  Passer `mainAilleurs` (pas `mainServie`) au moteur.
+- **`peripetie`** : garder le filtre « moins de 10 minutes » et `peripetiesPassees` ; passer
+  `onPasserPeripetie` (le passage seul à 30 s en dépend).
+- **`appareil`** : passer `onRecharger` (la relecture à l'échéance des 2 minutes en dépend).
+- **`membres`** : `mates`, jamais `gameState.roster` brut (sinon une pastille par élève de la
+  classe dans le bandeau).
+- **`peutLire`** : `!!perms.lire` (réglage `lecture_pendant_tour` éteint : le carnet se consulte
+  sans « Lire »). Hors tour sur la tablette, l'ancien écran montrait le carnet en lecture seule.
+- **Bord doré de la fouille** : sur la zone du **plateau** (le conteneur lit `chasse.fouilleMode`
+  ou `moment.fouille`) ; l'ancienne règle `.gl-tenir-equipe.is-fouille` (contour pointillé) part
+  avec l'ancien écran.
+- **Tiroir** : il est en `position: absolute` (`inset-inline-start: 0`, 28 rem de large) : son
+  parent — la zone sous le bandeau — doit être en `position: relative`. À 640 px et moins il
+  passe en `position: fixed` plein écran. Palier `--fm-z-panel` (sous les modales : la
+  péripétie et l'assistant de sort passent devant).
+- **Surface « tableau »** : l'écran d'équipe d'un compte y est monté aussi (`AppGL`, onglet
+  `maps`). Le moteur y dit « Le tour se joue au tableau. » ; garde-fou 12 (« au tableau, rien ne
+  change sans décision ») : à signaler dans la PR, ou garder l'ancien rendu pour cette surface.
+- **Dés tirés par le serveur** (`des_mode_effectif = 'serveur'`) : le gros bouton « Lancer les
+  dés » ouvre `saisie_des`, qui montre « Lancer 2 dés » — deux touchers, comme avant. S4 peut
+  lancer directement dans `onGeste('lancer')` quand le mode est `serveur` (une ligne) ; non fait
+  ici, le prompt gardant `GLTourDesSaisie`.
+- **Chaque fouille coûte un toucher de plus** qu'avant (verdict → « Continuer » → « Fouiller ») :
+  c'est le tableau du prompt. Si Oliv veut l'éviter, la piste est de montrer le verdict
+  « froid / tiède / chaud » comme une ligne au-dessus du bouton au lieu d'un état `retour`.
+- **`jet_attente` cache les autres gestes** pendant que le prof valide (tableau du prompt) ;
+  l'ancien écran n'affichait qu'une mention.
+- **Colonne d'action à 768 px en paysage** : avec « ≈ 38 %, min 320 px », elle ferait 292 px ;
+  la carte du moment y tient (mesurée à 296 px), mais les puces passent sur deux lignes.
+- **Ligne d'Olu `olu-pf-comptes`** (« Le Marché et le Seuil s'ouvrent depuis le compte de
+  chacun. ») : à ajouter au catalogue quand la phrase quitte `GLTeamSessionView` (voir le skill
+  `gl-tenir-catalogue` : JSON, exemple, synchronisation, test de contenu).
+- **Contrats de test gardés** par les composants : `gl-tenir-maintenant` (carte en état
+  `geste`), `data-geste` sur le gros bouton, chaque puce et « Arrêter de fouiller »,
+  `gl-tenir-jet-suspens`, `gl-tenir-garder-jet`, `gl-tenir-relance`, `gl-tenir-piste-reponse`,
+  `gl-tenir-case-retour`, `gl-tenir-un-de`, `gl-tenir-encorde`, `gl-tenir-etat-perime`,
+  `gl-tenir-reserve`, `gl-tenir-cases-a-venir`, `gl-tenir-fouilles`, `gl-tenir-main`,
+  `gl-tenir-spectateur`, `gl-tenir-appareils`, `gl-sablier-phase`, `gl-olu-bulle`. **Nouveaux** :
+  `gl-tenir-bandeau`, `gl-tenir-phase`, `gl-tenir-bourses`, `gl-tenir-tiroir-bouton`,
+  `gl-tenir-tiroir-nouveau`, `gl-tenir-reconnexion`, `gl-tenir-moment` (+ `data-etat`),
+  `gl-tenir-moment-<etat>`, `gl-tenir-puces`, `gl-tenir-lignes`, `gl-tenir-retour`,
+  `gl-tenir-continuer`, `gl-tenir-quitter-saisie`, `gl-tenir-tiroir`, `gl-tenir-tiroir-fermer`,
+  `gl-tenir-tiroir-carnet`, `gl-tenir-changer-equipe`. `data-testid="gl-tenir-equipe"` (racine)
+  reste à poser par le conteneur. **Disparus avec l'ancien écran** : `data-geste-possible`
+  (liste « Maintenant, vous pouvez… »), les boutons grisés.
+- Les tests qui montent `GLTenirEquipeView` (`GLTenirEquipeView.test.jsx`, `GLDeuxEcrans`,
+  `GLUneMonnaie`, `GLEscalier`, `tenir-chaines-interdites`) sont à porter sur le nouveau
+  conteneur.
+
+**Notes de S1 et S2, toujours valables :**
 
 - **Ne pas se fier au test `GLGameBoardPresentation`** pour compter les boutons du plateau : il
   simule `GLBoardMarkers`. En présentation `tenir`, les cases restent des boutons (c'est voulu :
