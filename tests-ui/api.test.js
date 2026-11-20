@@ -15,6 +15,7 @@ import {
   purgeCachedApiResponses,
   saveStoredSession,
 } from '../src/services/api.js';
+import { PUBLIC_SERVER_RESTART_MESSAGE } from '../src/shared/apiTransport.js';
 import { isPasswordChangeRequiredError } from '../src/utils/passwordChangeRequired.js';
 
 /** Réponse 401 JSON telle que la renvoie `middleware/requireTeacher.js`. */
@@ -365,7 +366,7 @@ describe('message de panne réseau (audit du 25/09/2026, § 1.4.6)', () => {
   const words = (text) => text.split(/\s+/).filter((w) => /[\p{L}\d]/u.test(w));
 
   test('élève : court, tutoyé, sans jargon', () => {
-    const message = networkFailureUserMessage({ dev: false, staff: false });
+    const message = networkFailureUserMessage({ dev: false, staff: false, publicAudience: false });
     expect(message).toBe(NETWORK_FAILURE_USER_MESSAGE);
     expect(words(message).length).toBeLessThanOrEqual(20);
     expect(message).toMatch(/Réessaie\b/);
@@ -391,12 +392,23 @@ describe('message de panne réseau (audit du 25/09/2026, § 1.4.6)', () => {
     } finally {
       localStorage.removeItem('foretmap_session');
     }
-    expect(networkFailureUserMessage({ dev: false })).toBe(NETWORK_FAILURE_USER_MESSAGE);
+    // Sans session : public non connecté, phrase simple du redémarrage (audit U2).
+    expect(networkFailureUserMessage({ dev: false })).toBe(PUBLIC_SERVER_RESTART_MESSAGE);
+  });
+
+  test('public non connecté : phrase simple, sans professeur ni administrateur (U2)', () => {
+    const message = networkFailureUserMessage({ dev: false, staff: false, publicAudience: true });
+    expect(message).toBe('Le site redémarre, il revient dans un instant.');
+    expect(message).not.toMatch(/administrateur|professeur|tentative/i);
   });
 
   test('le détail technique voyage sur l’erreur, pas dans le message', () => {
     const cause = new TypeError('Failed to fetch');
-    const error = createNetworkFailureError(cause, { dev: false, staff: false });
+    const error = createNetworkFailureError(cause, {
+      dev: false,
+      staff: false,
+      publicAudience: false,
+    });
     expect(error.message).toBe(NETWORK_FAILURE_USER_MESSAGE);
     expect(error.code).toBe(NETWORK_FAILURE_CODE);
     expect(error.cause).toBe(cause);
@@ -422,6 +434,8 @@ describe('déconnexion : purge du cache d’API (audit du 25/09/2026, piste D)',
         'https://foret.example/api/map/markers',
         'https://foret.example/api/visit/content',
         'https://foret.example/api/maps',
+        'https://foret.example/api/glossary/terms',
+        'https://foret.example/api/glossary/terms/photosynthese',
         'https://foret.example/assets/main.js',
       ].map((url) => [url, { url }]),
     );
@@ -435,6 +449,8 @@ describe('déconnexion : purge du cache d’API (audit du 25/09/2026, piste D)',
       expect([...store.keys()].map((u) => new URL(u).pathname)).toEqual([
         '/api/visit/content',
         '/api/maps',
+        '/api/glossary/terms',
+        '/api/glossary/terms/photosynthese',
         '/assets/main.js',
       ]);
     } finally {

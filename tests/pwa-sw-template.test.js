@@ -601,7 +601,10 @@ test('délai réseau : sans copie en cache, on continue d’attendre le réseau'
 
 test('délai réseau : un réseau rapide répond, la minuterie est annulée', async () => {
   const timers = fakeTimers();
-  const { listeners, context } = loadServiceWorker(renderServiceWorker(BASE_OPTIONS), { timers });
+  const { listeners, context } = loadServiceWorker(
+    renderServiceWorker({ ...BASE_OPTIONS, htmlStrategy: 'network-first' }),
+    { timers },
+  );
   cacheSandbox(context, [['/', { ok: true, body: 'page en cache' }]]);
   const fresh = { ok: true, status: 200, clone: () => ({ body: 'page' }) };
   context.fetch = () => Promise.resolve(fresh);
@@ -613,7 +616,10 @@ test('délai réseau : un réseau rapide répond, la minuterie est annulée', as
 
 test('délai réseau : la page HTML en cache part au bout du délai ; sinon la page hors ligne', async () => {
   const timers = fakeTimers();
-  const { listeners, context } = loadServiceWorker(renderServiceWorker(BASE_OPTIONS), { timers });
+  const { listeners, context } = loadServiceWorker(
+    renderServiceWorker({ ...BASE_OPTIONS, htmlStrategy: 'network-first' }),
+    { timers },
+  );
   const store = cacheSandbox(context, [
     ['/', { ok: true, body: 'coquille en cache' }],
     ['/offline.html', { body: 'offline' }],
@@ -628,6 +634,76 @@ test('délai réseau : la page HTML en cache part au bout du délai ; sinon la p
   context.fetch = () => Promise.reject(new Error('hors ligne'));
   const second = dispatchFetch(listeners, 'https://foretmap.test/index.html');
   assert.deepStrictEqual(await second.responded, { body: 'offline' });
+});
+
+test('coquille : la page HTML en cache part tout de suite, sans appel réseau ni minuterie', async () => {
+  const timers = fakeTimers();
+  const { listeners, context } = loadServiceWorker(renderServiceWorker(BASE_OPTIONS), { timers });
+  cacheSandbox(context, [['/', { ok: true, body: 'coquille de cette version' }]]);
+  let fetched = 0;
+  context.fetch = () => {
+    fetched += 1;
+    return new Promise(() => {});
+  };
+  // Requête ignorée dans la clé : le HTML est statique (`?lti=…`, `?code=…`).
+  const { responded } = dispatchFetch(listeners, 'https://foretmap.test/?lti=1');
+  assert.deepStrictEqual(await responded, { ok: true, body: 'coquille de cette version' });
+  assert.strictEqual(fetched, 0, 'aucun aller-retour réseau avant l’affichage');
+  assert.deepStrictEqual(timers.delays(), [], 'aucune minuterie');
+});
+
+test('coquille : sans copie, network-first avec délai puis page hors ligne', async () => {
+  const timers = fakeTimers();
+  const { listeners, context } = loadServiceWorker(renderServiceWorker(BASE_OPTIONS), { timers });
+  cacheSandbox(context, [['/offline.html', { body: 'offline' }]]);
+  context.fetch = () => Promise.reject(new Error('hors ligne'));
+  const { responded } = dispatchFetch(listeners, 'https://foretmap.test/index.vite.html');
+  assert.deepStrictEqual(await responded, { body: 'offline' });
+});
+
+test('coquille : une version en attente fait repasser la navigation par le réseau', async () => {
+  const timers = fakeTimers();
+  const { listeners, context } = loadServiceWorker(renderServiceWorker(BASE_OPTIONS), { timers });
+  context.self.registration = { waiting: {} };
+  cacheSandbox(context, [['/', { ok: true, body: 'ancienne coquille' }]]);
+  const fresh = { ok: true, status: 200, clone: () => ({ body: 'nouvelle page' }) };
+  context.fetch = () => Promise.resolve(fresh);
+  const { responded } = dispatchFetch(listeners, 'https://foretmap.test/');
+  assert.strictEqual(await responded, fresh);
+});
+
+test('stale-while-revalidate par motif : la fiche d’un terme part de la copie (U2)', async () => {
+  const { listeners, context } = loadServiceWorker(
+    renderServiceWorker({
+      ...BASE_OPTIONS,
+      apiStaleWhileRevalidatePatterns: ['^/api/glossary/terms/[^/]+$'],
+    }),
+  );
+  const cached = { ok: true, status: 200, body: 'fiche en cache' };
+  cacheSandbox(context, [['/api/glossary/terms/photosynthese', cached]]);
+  context.fetch = () => new Promise(() => {}); // serveur qui redémarre
+  const { responded } = dispatchFetch(
+    listeners,
+    'https://foretmap.test/api/glossary/terms/photosynthese',
+  );
+  assert.strictEqual(await responded, cached);
+  // L'écriture « j'ai appris ce terme » n'est jamais concernée (autre chemin, POST).
+  assert.throws(
+    () => renderServiceWorker({ ...BASE_OPTIONS, apiStaleWhileRevalidatePatterns: ['('] }),
+    SyntaxError,
+  );
+});
+
+test('coquille : stratégie validée, network-first toujours disponible', () => {
+  assert.throws(
+    () => renderServiceWorker({ ...BASE_OPTIONS, htmlStrategy: 'cache-only' }),
+    TypeError,
+  );
+  assert.match(renderServiceWorker(BASE_OPTIONS), /const HTML_STRATEGY = "app-shell";/);
+  assert.match(
+    renderServiceWorker({ ...BASE_OPTIONS, htmlStrategy: 'network-first' }),
+    /const HTML_STRATEGY = "network-first";/,
+  );
 });
 
 test('délai réseau : les scripts non hachés n’ont pas de délai (jamais de version obsolète)', async () => {

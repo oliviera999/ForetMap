@@ -9,6 +9,32 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — UI/UX lot 2 : performance perçue et indisponibilité (U1, U2)
+
+- **Ouverture immédiate à cache chaud** : le service worker sert le HTML depuis la coquille
+  précachée par sa version (stratégie `app-shell`, `src/shared/pwa/swTemplate.js`) au lieu
+  d'attendre le réseau jusqu'à 4 s. La nouvelle version arrive par le service worker et le
+  bandeau existant ; tant qu'une version attend, la navigation repasse en network-first.
+  Option `htmlStrategy: 'network-first'` conservée. Mesure e2e (serveur ralenti à 3 s) :
+  TTFB 3 018 → 5 ms, carte de connexion visible à 169 ms au lieu de 3,2 s.
+- **Indisponibilité vue par le public** : sans compte, « Le site redémarre, il revient dans
+  un instant. », sans compteur de tentatives ni « contactez l'administrateur ». Les comptes
+  connectés gardent le message détaillé et le compteur. Un 503 porteur d'un message métier
+  (« Forum désactivé ») reste inchangé.
+- **Glossaire de la Visite hors réseau** : `/api/glossary/terms` et la fiche d'un terme en
+  stale-while-revalidate, comme le contenu de la Visite ; conservés à la déconnexion (lecture
+  publique). Nouvelle option du gabarit : `apiStaleWhileRevalidatePatterns`.
+- **Bundle** : feuille principale renommée `foretmap-styles-*.css` (elle sortait sous le nom
+  `visitMascotPackExtras-*.css`, chunk partagé avec l'outil de découpe) ; notice « Vos
+  données » chargée à la demande (−18 Ko avant connexion). Budget de l'entrée non connectée
+  en CI (`npm run check:bundle`, `scripts/check-bundle-budget.js`, cliquet à 1 530 Ko de JS et
+  380 Ko de CSS, objectif 400 Ko de JS) ; le build de la CI passe en `NODE_ENV=production`,
+  comme l'artefact publié.
+- **Vignettes de mascotte** : `lib/visitMascotPackThumbnail.js` produit une vignette PNG de
+  96 px par pack (`uploads/visit_mascot_packs/<id>/_vignette.png`, servie par la route des
+  assets de pack), sans migration ; rattrapage : `node scripts/generate-visit-mascot-thumbnails.js`.
+  Branchement dans la grille de choix : lot suivant (session B).
+
 ### Interne — UI/UX : préalable R0 (points de bascule, cliquet des styles en ligne, état vide partagé)
 
 Outils communs du chantier UI/UX du 19 novembre 2026, utilisés ensuite par chaque lot. Aucun

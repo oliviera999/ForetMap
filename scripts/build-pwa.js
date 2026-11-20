@@ -69,7 +69,18 @@ const PWA_PROFILES = Object.freeze({
      * écran jamais visité échouait : l'élève sur le terrain, en mode avion, perdait la page.
      */
     precacheDynamicImports: true,
-    apiStaleWhileRevalidate: Object.freeze(['/api/maps', '/api/visit/content']),
+    /**
+     * Le glossaire suit la même stratégie que le contenu de la Visite (audit UI/UX du
+     * 19/11/2026, U2) : pendant un redémarrage du serveur, l'index des termes et la fiche
+     * d'un mot déjà ouverte répondent depuis la copie au lieu de rester sans effet. Lecture
+     * publique, identique pour tout lecteur (`routes/glossary.js`, statut `actif` seulement).
+     */
+    apiStaleWhileRevalidate: Object.freeze([
+      '/api/maps',
+      '/api/visit/content',
+      '/api/glossary/terms',
+    ]),
+    apiStaleWhileRevalidatePatterns: Object.freeze(['^/api/glossary/terms/[^/]+$']),
     /**
      * `/api/settings/public` : sans copie, un démarrage hors ligne attendait l'échec de cette
      * requête avant de charger les données. `/api/task-projects` et `/api/tutorials` sont
@@ -241,6 +252,9 @@ function precacheHash(product, precache, apiPolicy) {
       `swr:${[...(apiPolicy.apiStaleWhileRevalidate || [])].join(',')}`,
       `nf:${[...(apiPolicy.apiNetworkFirst || [])].join(',')}`,
     );
+    if (apiPolicy.apiStaleWhileRevalidatePatterns?.length) {
+      parts.push(`swrp:${[...apiPolicy.apiStaleWhileRevalidatePatterns].join(',')}`);
+    }
     if (apiPolicy.apiNetworkFirstPatterns?.length) {
       parts.push(`nfp:${[...apiPolicy.apiNetworkFirstPatterns].join(',')}`);
     }
@@ -275,6 +289,7 @@ function buildProductPwa(product, { viteManifest, exists, foretManifestExtra }) 
   ];
   const cacheName = `foretmap-${product.id}-${precacheHash(product.id, precache, {
     apiStaleWhileRevalidate: profile.apiStaleWhileRevalidate,
+    apiStaleWhileRevalidatePatterns: profile.apiStaleWhileRevalidatePatterns,
     apiNetworkFirst: profile.apiNetworkFirst,
     apiNetworkFirstPatterns: profile.apiNetworkFirstPatterns,
   })}`;
@@ -284,6 +299,7 @@ function buildProductPwa(product, { viteManifest, exists, foretManifestExtra }) 
     precache,
     htmlEntries,
     apiStaleWhileRevalidate: [...profile.apiStaleWhileRevalidate],
+    apiStaleWhileRevalidatePatterns: [...(profile.apiStaleWhileRevalidatePatterns || [])],
     apiNetworkFirst: [...profile.apiNetworkFirst],
     apiNetworkFirstPatterns: [...(profile.apiNetworkFirstPatterns || [])],
     outboxSync: !!profile.outboxSync,

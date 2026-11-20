@@ -132,6 +132,7 @@
     "audit:pedago": "node scripts/audit-pedago-content.js",
     "audit:visitor-texts": "node scripts/audit-visitor-texts.js",
     "check:cycles": "node scripts/check-import-cycles.js",
+    "check:bundle": "node scripts/check-bundle-budget.js",
     "templates:users": "node scripts/build-users-import-templates.js",
     "templates:users:check": "node scripts/build-users-import-templates.js --check",
     "test": "node --test --test-concurrency=1 --test-force-exit tests/*.test.js",

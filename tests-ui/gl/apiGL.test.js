@@ -85,7 +85,7 @@ describe('apiGL', () => {
   });
 
   test('200 HTML lève un message de contenu inattendu', async () => {
-    clearGlSession();
+    saveGlSession({ token: 'token-123' });
     vi.spyOn(globalThis, 'fetch').mockResolvedValue({
       ok: true,
       status: 200,
@@ -98,6 +98,11 @@ describe('apiGL', () => {
 
     await expect(apiGL('/api/gl/content/world')).rejects.toThrow(
       /Impossible de charger le contenu/i,
+    );
+    // Public sans session (écran d'accueil du jeu) : phrase simple du redémarrage (audit U2).
+    clearGlSession();
+    await expect(apiGL('/api/gl/content/world')).rejects.toThrow(
+      'Le site redémarre, il revient dans un instant.',
     );
   });
 });
