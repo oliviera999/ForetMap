@@ -133,6 +133,14 @@ export default defineConfig({
       },
       output: {
         manualChunks(id) {
+          // Feuille de style principale de ForetMap : importée par `src/main.jsx` ET par l'outil
+          // de découpe des packs (`src/mascot-pack-tool.jsx`). Rolldown range dans un même
+          // chunk partagé les modules qu'importent exactement les mêmes entrées, et nomme ce
+          // chunk d'après l'un d'eux : la feuille sortait donc en `visitMascotPackExtras-*.css`
+          // (constat de R0, audit UI/UX du 19/11/2026 U1), collée aux modules de mascotte que
+          // les deux entrées partagent aussi. Un chunk nommé la sépare et la rend lisible dans
+          // le budget de bundle (`scripts/check-bundle-budget.js`).
+          if (/\/src\/index\.css$/.test(id)) return 'foretmap-styles';
           // Regex bornée : `includes('node_modules/react')` capturait tout paquet
           // react* (react-is…) et laissait `scheduler` (dépendance de react-dom)
           // hors du chunk react-vendor.

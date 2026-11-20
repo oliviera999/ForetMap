@@ -2,7 +2,7 @@ import {
   safeLocalStorageGetItem,
   safeLocalStorageRemoveItem,
 } from '../shared/platform/browserStorage.js';
-import { buildApiHttpErrorMessage } from '../shared/apiTransport.js';
+import { buildApiHttpErrorMessage, PUBLIC_SERVER_RESTART_MESSAGE } from '../shared/apiTransport.js';
 import { fetchJsonWithRetry } from '../shared/fetchJsonWithRetry.js';
 // `API` et `withAppBase` ont été extraits vers le module partagé neutre
 // `src/shared/appBase.js` (purs, sans session). On les ré-exporte ici pour
@@ -354,8 +354,8 @@ export function saveStoredSession(next) {
   dispatchSessionChanged();
 }
 
-/** Lectures publiques de la visite, gardées hors ligne même sans session. */
-const PUBLIC_CACHED_API_RE = /\/api\/(?:maps|visit\/content)$/;
+/** Lectures publiques de la visite (glossaire compris), gardées hors ligne même sans session. */
+const PUBLIC_CACHED_API_RE = /\/api\/(?:maps|visit\/content|glossary\/terms(?:\/[^/]+)?)$/;
 
 /**
  * Paramètre que le service worker ajoute à la clé d'une réponse lue AVEC un jeton
@@ -477,11 +477,15 @@ function isStaffSession() {
 
 /**
  * Texte affiché quand le serveur ne répond pas, après épuisement des nouvelles tentatives.
- * @param {{ dev?: boolean, staff?: boolean }} [options] injectables pour les tests
+ * Public sans compte (visiteur, écran de connexion) : la phrase simple du redémarrage, sans
+ * « préviens ton professeur » ni piste de diagnostic (audit UI/UX du 19/11/2026, U2).
+ * @param {{ dev?: boolean, staff?: boolean, publicAudience?: boolean }} [options] injectables
+ *   pour les tests
  */
 export function networkFailureUserMessage({
   dev = import.meta.env.DEV,
   staff = isStaffSession(),
+  publicAudience = !getAuthToken(),
 } = {}) {
   // En build prod, ne pas afficher les consignes « Vite + port 3000 » (inadaptées sur serveur distant).
   if (dev) {
@@ -492,7 +496,8 @@ export function networkFailureUserMessage({
       'Sans l’API, toute inscription ou connexion échoue ainsi.'
     );
   }
-  return staff ? NETWORK_FAILURE_STAFF_MESSAGE : NETWORK_FAILURE_USER_MESSAGE;
+  if (staff) return NETWORK_FAILURE_STAFF_MESSAGE;
+  return publicAudience ? PUBLIC_SERVER_RESTART_MESSAGE : NETWORK_FAILURE_USER_MESSAGE;
 }
 
 /**

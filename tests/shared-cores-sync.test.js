@@ -58,6 +58,7 @@ test('la liste des paires couvre bien les noyaux attendus', () => {
     'taskCategoryGuessCore.js',
     'taskEnums.js',
     'taskTaxonomyCore.js',
+    'termAutolinkCore.js',
     'terrainEnums.js',
   ]);
 });

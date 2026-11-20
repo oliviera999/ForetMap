@@ -148,30 +148,43 @@ export function useDebouncedAutoSave({
 
     savingRef.current = true;
     queuedRef.current = false;
-    setStatus('saving');
-    setError('');
+    if (mountedRef.current) {
+      setStatus('saving');
+      setError('');
+    }
     let failed = false;
     try {
       const savedValue = await onSaveRef.current();
-      if (!mountedRef.current) return;
+      if (!mountedRef.current) {
+        // L'écran est déjà parti. On retient ce qui vient d'être écrit (si l'appelant le
+        // renvoie) pour que le rattrapage ne reparte que si la saisie a encore changé.
+        if (savedValue !== undefined) {
+          baselineRef.current = useJson ? serializeAutoSaveValue(savedValue) : savedValue;
+        }
+        return;
+      }
       markSaved(savedValue !== undefined ? savedValue : valueRef.current);
     } catch (err) {
       failed = true;
-      // Pas de relance sur erreur : un 409 ou un 400 referait la même requête en boucle.
-      queuedRef.current = false;
+      // Pas de relance sur erreur tant que l'écran est là : un 409 ou un 400 referait la
+      // même requête en boucle. Après démontage, le rattrapage unique reste dû.
+      if (mountedRef.current) queuedRef.current = false;
       if (!mountedRef.current) return;
       setStatus('error');
       setError(err?.message || 'Enregistrement impossible');
     } finally {
       savingRef.current = false;
-      if (!failed && queuedRef.current && mountedRef.current) {
+      // Après démontage aussi : le PUT déjà parti porte une saisie antérieure. Le suivant
+      // ne part qu'une fois celui-ci terminé, sinon le serveur (validation puis UPDATE)
+      // peut enregistrer l'ancien texte en dernier.
+      if (queuedRef.current && (!failed || !mountedRef.current)) {
         queuedRef.current = false;
         queueMicrotask(() => {
           void executeSaveRef.current();
         });
       }
     }
-  }, [enabled, equalsBaseline, markSaved]);
+  }, [enabled, equalsBaseline, markSaved, useJson]);
   executeSaveRef.current = executeSave;
 
   const flush = useCallback(async () => {
@@ -226,6 +239,14 @@ export function useDebouncedAutoSave({
       const validation = canSaveRef.current?.();
       if (validation === false) return;
       if (typeof validation === 'string' && validation.trim()) return;
+      // Un enregistrement est déjà en vol. Un second PUT maintenant se croise avec lui :
+      // « Terminer » pendant la frappe perdait la fin du texte (le premier UPDATE, encore
+      // en validation, s'écrivait après). On laisse finir, puis `executeSave` envoie la
+      // saisie courante.
+      if (savingRef.current) {
+        queuedRef.current = true;
+        return;
+      }
       // Best-effort après démontage : plus aucun état à mettre à jour, un échec
       // ne doit pas remonter en rejet non géré.
       Promise.resolve()

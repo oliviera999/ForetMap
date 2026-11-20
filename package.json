@@ -1,6 +1,6 @@
 {
   "name": "foretmap",
-  "version": "1.251.2",
+  "version": "1.254.0",
   "description": "Application de gestion de la forêt comestible - Lycée Lyautey",
   "main": "server.js",
   "author": "Olivier ARNOULD-LAURENT",
@@ -132,6 +132,7 @@
     "audit:pedago": "node scripts/audit-pedago-content.js",
     "audit:visitor-texts": "node scripts/audit-visitor-texts.js",
     "check:cycles": "node scripts/check-import-cycles.js",
+    "check:bundle": "node scripts/check-bundle-budget.js",
     "templates:users": "node scripts/build-users-import-templates.js",
     "templates:users:check": "node scripts/build-users-import-templates.js --check",
     "test": "node --test --test-concurrency=1 --test-force-exit tests/*.test.js",

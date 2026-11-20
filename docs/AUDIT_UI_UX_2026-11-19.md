@@ -62,6 +62,19 @@ Piste : HTML en _app shell_ (copie en cache immédiate, revalidation, invitation
 version » via `/api/version`), écran de connexion limité à l'authentification, vignette
 statique par pack, contenu de la Visite allégé.
 
+**Corrigé** (lot 2, session C, branche `claude/ui-ux-visite-lot2`) : HTML en coquille
+d'application dans le service worker (`src/shared/pwa/swTemplate.js`, stratégie `app-shell`
+par défaut, revalidation par le service worker lui-même et le bandeau existant, repli
+network-first si une version attend) — à cache chaud, TTFB ~5 ms au lieu de 3 s (serveur
+ralenti à 3 s, e2e `perf-app-shell`) ; CSS principal sorti en `foretmap-styles-*.css`
+(`vite.config.js`) ; notice « Vos données » chargée à la demande (`src/main.jsx`, −18 Ko) ;
+budget de bundle en CI (`scripts/check-bundle-budget.js`, cliquet à 1 530 Ko de JS, objectif
+400 Ko) ; vignette PNG par pack (`lib/visitMascotPackThumbnail.js`, rattrapage
+`scripts/generate-visit-mascot-thumbnails.js`). **Reste** : l'objectif de 400 Ko exige de
+charger à la demande le shell connecté importé statiquement par `src/App.jsx` (hors du
+périmètre de la session C : mesure 1 526 → 795 Ko en neuf imports) ; branchement de la
+vignette dans la grille (session B) ; allègement de `/api/visit/content` (session B).
+
 ### U2 — 🔴 Indisponibilité vue par l'utilisateur
 
 Deux redémarrages du serveur pendant l'audit. Côté écran : bandeau « Serveur momentanément
@@ -73,6 +86,13 @@ Piste : la cause relève du chantier d'exploitation. Côté interface : message 
 (« Le site redémarre, il revient dans un instant. »), contenu déjà affiché toujours lisible,
 compteur de tentatives réservé aux comptes connectés, glossaire de la Visite sur la même
 stratégie de cache que son contenu.
+
+**Corrigé** (lot 2, session C, branche `claude/ui-ux-visite-lot2`) : public non connecté =
+« Le site redémarre, il revient dans un instant. », sans compteur ni « contactez
+l'administrateur » (`src/shared/fetchJsonWithRetry.js`, `src/shared/apiTransport.js`,
+`src/services/api.js`) ; compteur réservé aux comptes connectés ; glossaire
+(`/api/glossary/terms` et fiche d'un terme) en stale-while-revalidate comme le contenu de la
+Visite (`scripts/build-pwa.js`) ; e2e `perf-app-shell` (API coupée : jamais d'écran blanc).
 
 ### U3 — 🟠 L'écran d'accueil sert les élèves, pas les visiteurs
 
@@ -158,6 +178,15 @@ Piste : panneau latéral sur ordinateur, feuille basse sur mobile ; fiche espèc
 Piste : liste d'homographes jamais liés, premier emploi seulement par bloc, noyau unique dans
 `lib/shared/`.
 
+> **Corrigé (lot 5, session D, branche `claude/ui-ux-visite-lot5`)** — noyau unique
+> `src/shared/glossary/termAutolinkCore.js`, miroir `lib/shared/termAutolinkCore.js` par
+> `npm run sync:shared-cores` (l'ancien miroir dédié `lib/term-autolink/` n'est plus qu'une
+> réexportation). Homographes (« vers », « été », « sens », « son », « fin », « mare ») liés
+> seulement après un déterminant ; premier emploi seulement par bloc ; tests
+> `tests/term-autolink-density.test.js`. Écart avec l'audit : il n'y avait plus trois
+> implémentations, déjà un tronc commun ESM et son miroir CJS ; l'option « forme exacte » par
+> terme demanderait une colonne (migration), non faite.
+
 ### U8 — 🟡 Tu ou vous : la Visite ne choisit pas
 
 L'habillage tutoie, une partie des textes vouvoyait (17 fiches sur 27 rédigées).
@@ -188,6 +217,19 @@ l'élève non. Biodiversité, Groupes et Individus portent la même icône.
 
 Piste : quatre pôles (Terrain, Vivant, Apprendre, Moi) sur le modèle de `TeacherTopTabs`,
 composant de pôles mutualisé, une icône par onglet.
+
+> **Corrigé (lot 6, session E, branche `claude/ui-ux-visite-lot6`)** — quatre pôles Terrain /
+> Vivant / Apprendre / Moi dans la barre basse sur ordinateur (pôles puis onglets du pôle
+> actif, hauteur inchangée), feuille « Plus » groupée par pôles sur mobile, pôle actif dérivé
+> de l'onglet. Briques communes avec la barre prof dans `src/components/app/NavPoles.jsx` ;
+> table onglet → pôle dans `src/constants/app-runtime.js` ; icônes propres pour Groupes et
+> Individus (`src/shared/icons.jsx`, aussi côté prof). Bascules lues dans `MEDIA`. Test de
+> non-perte sur les 65 536 combinaisons de modules et de droits.
+>
+> **Écarts avec l'audit, constatés à la reconnaissance** : constat confirmé (19 onglets au
+> plus) ; Individus et Groupes partageaient aussi l'icône de Biodiversité dans la barre prof ;
+> la barre élève était déjà sans `style={{` ni `z-index` littéral, et sa bascule compacte
+> (1 023 px) était déjà dans l'échelle — seule celle du prof (640 px) devient `MEDIA.phone`.
 
 ### U11 — 🟡 Finitions d'accessibilité et de libellés
 

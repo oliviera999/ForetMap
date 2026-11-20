@@ -3,8 +3,10 @@
  * Administration, chacun déployant sa rangée d'onglets — les onglets ne défilent plus
  * hors écran dans une barre unique au débordement invisible.
  *
- * Mobile (≤640px / coarse, `layoutMode` compact) : rangée pôles seule ; tap sur un pôle
- * ouvre une feuille BottomSheet avec les onglets de ce pôle (audit iPhone UX-IOS-004).
+ * Mobile (sous `sm` = `MEDIA.phone` / coarse, `layoutMode` compact) : rangée pôles seule ;
+ * tap sur un pôle ouvre une feuille BottomSheet avec les onglets de ce pôle (audit iPhone
+ * UX-IOS-004). Pôles, pôle actif et feuille : briques partagées avec la barre élève
+ * (`NavPoles.jsx`, lot 6 de l'audit UI/UX du 19/11/2026).
  *
  * Composant feuille purement piloté par props : l'onglet actif, les permissions et les
  * modules restent calculés dans `App` (aucun état déplacé — le pôle actif est DÉRIVÉ de
@@ -18,9 +20,9 @@
  ** Accessibilité : l'onglet actif porte `aria-current="page"`, le pôle actif
  * `aria-current="true"` ; les icônes (src/shared/icons.jsx) sont décoratives.
  */
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 
-import { useMediaQuery } from '../../shared/hooks/useMediaQuery.js';
+import { MEDIA } from '../../shared/breakpoints.js';
 import {
   IconAbout,
   IconAudit,
@@ -28,9 +30,11 @@ import {
   IconFoodweb,
   IconForum,
   IconGlossary,
+  IconIndividuals,
   IconMap,
   IconMascotPacks,
   IconMediaLibrary,
+  IconNestedGroups,
   IconNotebook,
   IconGlobe,
   IconPoleAdmin,
@@ -48,6 +52,7 @@ import {
 } from '../../shared/icons.jsx';
 import { BottomSheet } from '../../shared/ui/BottomSheet.jsx';
 import { useBiodivPedago } from '../../contexts/BiodivPedagoContext.jsx';
+import { NavPoleButtons, NavSheetTabs, resolveNavPoles, useCompactNav } from './NavPoles.jsx';
 import { UnreadDot } from './UnreadDot.jsx';
 
 const POLES = [
@@ -55,9 +60,6 @@ const POLES = [
   { id: 'tracking', label: 'Suivi', Icon: IconPoleTracking },
   { id: 'admin', label: 'Administration', Icon: IconPoleAdmin },
 ];
-
-const COMPACT_WIDTH_QUERY = '(max-width: 640px)';
-const COMPACT_POINTER_QUERY = '(pointer: coarse)';
 
 function TopTab({ id, tab, onTabChange, children }) {
   const isActive = tab === id;
@@ -107,17 +109,14 @@ export function TeacherTopTabs({
   hasPermission,
   hasPermissionInRole,
   /**
-   * `auto` : compact si max-width 640px ou pointeur coarse.
+   * `auto` : compact sous `sm` (`MEDIA.phone`) ou pointeur grossier.
    * `compact` / `full` : forçage (tests).
    */
   layoutMode = 'auto',
 }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [sheetPoleId, setSheetPoleId] = useState(null);
-  const widthCompact = useMediaQuery(COMPACT_WIDTH_QUERY);
-  const pointerCompact = useMediaQuery(COMPACT_POINTER_QUERY);
-  const isCompact =
-    layoutMode === 'compact' || (layoutMode === 'auto' && (widthCompact || pointerCompact));
+  const isCompact = useCompactNav({ widthQuery: MEDIA.phone, layoutMode });
 
   const { canShow } = useBiodivPedago();
 
@@ -167,7 +166,7 @@ export function TeacherTopTabs({
     {
       id: 'nested-groups',
       pole: 'contents',
-      Icon: IconBiodiv,
+      Icon: IconNestedGroups,
       label: 'Groupes emboîtés',
       visible: canPlants && canShow('nested_groups_tab'),
     },
@@ -233,7 +232,7 @@ export function TeacherTopTabs({
     {
       id: 'individuals',
       pole: 'tracking',
-      Icon: IconBiodiv,
+      Icon: IconIndividuals,
       label: 'Individus',
       // Deux conditions cumulées : le niveau pédagogique (masqué au collège) ET l'interrupteur.
       visible:
@@ -296,24 +295,20 @@ export function TeacherTopTabs({
   ];
 
   const visibleTabs = tabsSpec.filter((t) => t.visible);
-  const activePoleId = tabsSpec.find((t) => t.id === tab)?.pole ?? 'contents';
-  const firstTabOfPole = (poleId) => visibleTabs.find((t) => t.pole === poleId)?.id;
+  const { activePoleId, polesWithTabs, tabsOfPole } = resolveNavPoles({
+    poles: POLES,
+    tabs: visibleTabs,
+    tab,
+  });
 
   const sheetPole = sheetPoleId || activePoleId;
-  const sheetTabs = useMemo(
-    () => visibleTabs.filter((t) => t.pole === sheetPole),
-    [visibleTabs, sheetPole],
-  );
+  const sheetTabs = tabsOfPole(sheetPole);
   const sheetTitle = POLES.find((p) => p.id === sheetPole)?.label || 'Onglets';
 
-  function openPoleSheet(poleId) {
+  function handlePoleClick(poleId) {
+    if (!isCompact) return;
     setSheetPoleId(poleId);
     setDrawerOpen(true);
-  }
-
-  function handlePoleClick(poleId, first, isActive) {
-    if (!isActive && first) onTabChange(first);
-    if (isCompact) openPoleSheet(poleId);
   }
 
   function handleSelectFromSheet(id) {
@@ -321,44 +316,36 @@ export function TeacherTopTabs({
     setDrawerOpen(false);
   }
 
+  const renderBadge = ({ badge }) => (badge ? <PendingBadge count={pendingCount} /> : null);
+
   return (
     <>
       <nav
         className={`teacher-nav${isCompact ? ' teacher-nav--compact' : ''}`}
         aria-label="Navigation professeur"
       >
-        <div className="top-tabs app-tabs-surface teacher-nav__poles">
-          {POLES.map(({ id, label, Icon }) => {
-            const isActive = activePoleId === id;
-            const first = firstTabOfPole(id);
-            if (!first) return null;
-            return (
-              <button
-                key={id}
-                type="button"
-                className={`top-tab top-tab--pole ${isActive ? 'active' : ''}`}
-                aria-current={isActive ? 'true' : undefined}
-                aria-haspopup={isCompact ? 'dialog' : undefined}
-                onClick={() => handlePoleClick(id, first, isActive)}
-              >
-                <Icon size={16} /> {label}
-                {id === 'tracking' && <PendingBadge count={pendingCount} />}
-                <UnreadDot show={visibleTabs.some((t) => t.pole === id && t.unread)} />
-              </button>
-            );
-          })}
-        </div>
+        <NavPoleButtons
+          polesWithTabs={polesWithTabs}
+          activePoleId={activePoleId}
+          onTabChange={onTabChange}
+          onPoleClick={handlePoleClick}
+          className="top-tabs app-tabs-surface teacher-nav__poles"
+          buttonClassName="top-tab top-tab--pole"
+          hasPopup={isCompact}
+          ariaLabel="Pôles"
+          renderAddon={({ id }) =>
+            id === 'tracking' ? <PendingBadge count={pendingCount} /> : null
+          }
+        />
         {!isCompact ? (
           <div className="top-tabs app-tabs-surface top-tabs--secondary">
-            {visibleTabs
-              .filter((t) => t.pole === activePoleId)
-              .map(({ id, Icon, label, badge, unread }) => (
-                <TopTab key={id} id={id} tab={tab} onTabChange={onTabChange}>
-                  <Icon size={15} /> {label}
-                  {badge && <PendingBadge count={pendingCount} />}
-                  <UnreadDot show={unread} />
-                </TopTab>
-              ))}
+            {tabsOfPole(activePoleId).map(({ id, Icon, label, badge, unread }) => (
+              <TopTab key={id} id={id} tab={tab} onTabChange={onTabChange}>
+                <Icon size={15} /> {label}
+                {badge && <PendingBadge count={pendingCount} />}
+                <UnreadDot show={unread} />
+              </TopTab>
+            ))}
           </div>
         ) : null}
       </nav>
@@ -372,29 +359,13 @@ export function TeacherTopTabs({
           overlayClassName="fm-nav-drawer-overlay"
           initialSnap="half"
         >
-          <div className="fm-nav-drawer-tabs" role="list" aria-label={`Onglets ${sheetTitle}`}>
-            {sheetTabs.map(({ id, Icon, label, badge, unread }) => {
-              const isActive = tab === id;
-              return (
-                <button
-                  key={id}
-                  type="button"
-                  className={`fm-nav-drawer-tab${isActive ? ' is-active' : ''}`}
-                  aria-current={isActive ? 'page' : undefined}
-                  onClick={() => handleSelectFromSheet(id)}
-                >
-                  <span className="fm-nav-drawer-tab__icon" aria-hidden="true">
-                    <Icon size={18} />
-                  </span>
-                  <span className="fm-nav-drawer-tab__label">
-                    {label}
-                    {badge ? <PendingBadge count={pendingCount} /> : null}
-                    <UnreadDot show={unread} />
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+          <NavSheetTabs
+            tabs={sheetTabs}
+            tab={tab}
+            onSelect={handleSelectFromSheet}
+            ariaLabel={`Onglets ${sheetTitle}`}
+            renderAddon={renderBadge}
+          />
         </BottomSheet>
       ) : null}
     </>

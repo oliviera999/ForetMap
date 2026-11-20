@@ -78,6 +78,54 @@ describe('useDebouncedAutoSave — F5 (sauvegarde de démontage)', () => {
     }
   });
 
+  test('démontage pendant un enregistrement : la saisie plus récente part après, pas en parallèle', async () => {
+    vi.useFakeTimers();
+    try {
+      const seen = [];
+      let releaseFirst;
+      const gate = new Promise((resolve) => {
+        releaseFirst = resolve;
+      });
+      let calls = 0;
+      const latest = { current: { title: 'A' } };
+      const onSave = vi.fn(async () => {
+        const snapshot = latest.current;
+        calls += 1;
+        if (calls === 1) await gate;
+        seen.push(snapshot.title);
+        return snapshot;
+      });
+      const { rerender, unmount } = renderHook(
+        ({ value }) => {
+          latest.current = value;
+          return useDebouncedAutoSave({ value, debounceMs: 20, onSave });
+        },
+        { initialProps: { value: { title: 'A' } } },
+      );
+
+      rerender({ value: { title: 'AB' } });
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(50);
+      });
+      expect(onSave).toHaveBeenCalledTimes(1);
+
+      // Frappe pendant que le premier PUT est encore en validation, puis fermeture.
+      rerender({ value: { title: 'ABC' } });
+      unmount();
+      await flushMicrotasks();
+      expect(onSave).toHaveBeenCalledTimes(1);
+
+      await act(async () => {
+        releaseFirst();
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+      expect(seen).toEqual(['AB', 'ABC']);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   test('le vrai démontage sauvegarde encore une modification en attente', async () => {
     vi.useFakeTimers();
     try {

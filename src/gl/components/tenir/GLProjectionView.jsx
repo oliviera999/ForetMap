@@ -8,6 +8,7 @@ import { GLSablier } from './GLSablier.jsx';
 import { GLDefisCasePanel } from './GLDefisCasePanel.jsx';
 import { GLCeQuiChange } from './GLCeQuiChange.jsx';
 import { resolveBoardMovementConfig } from '../../utils/glBoardPath.js';
+import { titreDuTour } from '../../constants/tenirPhases.js';
 
 /** États d'une page du carnet → libellé affiché (jamais l'état brut). */
 export const PAGE_ETAT_LABELS = Object.freeze({
@@ -123,7 +124,7 @@ export function GLProjectionView({ gameId, token, refreshKey = 0 }) {
       <header className="gl-projection__banner">
         <h1>{state?.game?.name || 'Projection'}</h1>
         <p>
-          {round ? `Tour ${round.number} — ${round.phase}` : 'En attente du tour'}
+          {round ? titreDuTour(round) : 'En attente du tour'}
           {voileNumero != null ? ` · le voile est à la case ${voileNumero}` : ''}
         </p>
         {tour?.sablier?.phase && round?.phase === 'jeu' ? (

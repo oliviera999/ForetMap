@@ -72,6 +72,38 @@ export function resolveStudentMobilePrimaryIds({
   }
   return candidates.filter((id) => visible.has(id));
 }
+/**
+ * Pôles de la navigation élève (lot 6 de l'audit UI/UX du 19/11/2026, U10), dans l'ordre
+ * d'affichage. Chaque onglet de `buildStudentNavItems` appartient à exactement un pôle ; le
+ * pôle actif est dérivé de l'onglet courant (rien n'est persisté), comme pour le prof.
+ */
+export const STUDENT_NAV_POLE_IDS = ['field', 'living', 'learn', 'me'];
+/** Onglet élève → pôle. Un onglet absent de cette table n'apparaîtrait dans aucun pôle. */
+export const STUDENT_NAV_POLE_BY_TAB = Object.freeze({
+  // Terrain : carte, tâches, visite.
+  visit: 'field',
+  maptasks: 'field',
+  map: 'field',
+  tasks: 'field',
+  // Vivant : biodiversité, clés, réseau, groupes, individus.
+  plants: 'living',
+  'id-keys': 'living',
+  foodweb: 'living',
+  'nested-groups': 'living',
+  individuals: 'living',
+  // Apprendre : quiz, glossaire, séances, tutos, fresque.
+  quiz: 'learn',
+  glossary: 'learn',
+  sessions: 'learn',
+  tuto: 'learn',
+  fresque: 'learn',
+  // Moi : carnet, forum, stats, classe, à propos.
+  notebook: 'me',
+  forum: 'me',
+  stats: 'me',
+  profiles: 'me',
+  about: 'me',
+});
 export const GUEST_VISIT_MASCOT_CONFIRMED_KEY = 'foretmap_visit_guest_mascot_confirmed_v1';
 /**
  * Liste d'ids autorisés par défaut : **vide = aucune restriction** (toutes les mascottes

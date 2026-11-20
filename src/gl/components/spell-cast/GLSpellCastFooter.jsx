@@ -2,7 +2,7 @@ import { GLButton } from '../ui/GLButton.jsx';
 
 /**
  * Pied de l'assistant de lancement.
- * Composant feuille prop-driven : à l'étape « fund », boutons Annuler / Lancer ;
+ * Composant feuille prop-driven : à l'étape « fund », boutons « Ne pas lancer » / Lancer ;
  * sinon un simple bouton Fermer. Toutes les actions remontent via callbacks
  * (les appels de sort restent dans le parent).
  *
@@ -33,7 +33,7 @@ export function GLSpellCastFooter({
             disabled={busy || fundLoading}
             onClick={onCancelDraft}
           >
-            Annuler le brouillon
+            Ne pas lancer
           </GLButton>
           <GLButton
             type="button"

@@ -36,7 +36,7 @@ export function GLBestiairePanel({ gameId, canPropose = true }) {
     try {
       await apiGL(`/api/gl/games/${gameId}/tenir/chimeres`, 'POST', form);
       setForm({ nom: '', histoire: '' });
-      setMessage('Chimère proposée : ton professeur la relit avant de l’afficher.');
+      setMessage('Chimère proposée : le prof la relit avant de l’afficher.');
       await load();
     } catch (err) {
       setError(err.message || 'Proposition impossible');
@@ -61,7 +61,12 @@ export function GLBestiairePanel({ gameId, canPropose = true }) {
           ))}
         </ul>
       ) : (
-        <p className="gl-hint">Le bestiaire est encore vide : propose la première chimère.</p>
+        <p className="gl-hint">
+          {/* Une tablette d'équipe ne propose pas (la chimère vient d'un compte) : pas d'invitation. */}
+          {canPropose
+            ? 'Le bestiaire est encore vide : proposez la première chimère.'
+            : 'Le bestiaire est encore vide.'}
+        </p>
       )}
       {canPropose ? (
         <form className="gl-bestiaire__form" onSubmit={proposer}>

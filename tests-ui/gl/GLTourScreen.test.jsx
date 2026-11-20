@@ -93,7 +93,9 @@ describe('GLTourScreen', () => {
         onReloadGame={vi.fn()}
       />,
     );
-    await waitFor(() => expect(screen.getByText(/Tour 1 · Jeu · tableau/)).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByText(/Tour 1 · À vous de jouer · tableau/)).toBeInTheDocument(),
+    );
     const cards = screen.getAllByTestId(/gl-tour-team-/);
     expect(cards[0]).toHaveAttribute('data-testid', 'gl-tour-team-2');
     expect(cards[0]).toHaveAttribute('aria-current', 'true');
@@ -205,7 +207,9 @@ describe('GLTourScreen', () => {
         onReloadGame={vi.fn()}
       />,
     );
-    await waitFor(() => expect(screen.getByText(/Tour 1 · Jeu · tableau/)).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByText(/Tour 1 · À vous de jouer · tableau/)).toBeInTheDocument(),
+    );
     expect(screen.queryByTestId('gl-tour-durees')).toBeNull();
   });
   test('sablier éteint : aucun sablier affiché, le bouton « Sablier » permet de le rallumer', async () => {
@@ -231,7 +235,9 @@ describe('GLTourScreen', () => {
         onReloadGame={vi.fn()}
       />,
     );
-    await waitFor(() => expect(screen.getByText(/Tour 1 · Jeu · tableau/)).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByText(/Tour 1 · À vous de jouer · tableau/)).toBeInTheDocument(),
+    );
     expect(screen.queryByTestId('gl-tour-sablier')).toBeNull();
     expect(screen.queryByRole('timer')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: /Sablier/ }));
@@ -454,7 +460,7 @@ describe('GLTourScreen', () => {
 
     test('un changement de phase ou de tour vu dans l’état de la partie relit le tour', async () => {
       const { rerender } = render(ecran());
-      await waitFor(() => expect(screen.getByText(/Tour 1 · Jeu/)).toBeInTheDocument());
+      await waitFor(() => expect(screen.getByText(/Tour 1 · À vous de jouer/)).toBeInTheDocument());
       const tourLu = lectures('/tenir/tour');
       rerender(ecran({ tenir: { ...tenir, round: { number: 1, phase: 'souffle' } } }));
       await waitFor(() => expect(lectures('/tenir/tour')).toBe(tourLu + 1));
@@ -464,7 +470,7 @@ describe('GLTourScreen', () => {
 
     test('un nouveau rendu sans rien de neuf ne relit rien', async () => {
       const { rerender } = render(ecran());
-      await waitFor(() => expect(screen.getByText(/Tour 1 · Jeu/)).toBeInTheDocument());
+      await waitFor(() => expect(screen.getByText(/Tour 1 · À vous de jouer/)).toBeInTheDocument());
       const tourLu = lectures('/tenir/tour');
       rerender(ecran({ events: [] }));
       rerender(ecran({ tenir: { ...tenir, round: { number: 1, phase: 'jeu' } } }));

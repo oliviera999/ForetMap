@@ -131,6 +131,13 @@ export function resolveTransientRetryDelayMs(attemptIndex, res) {
   return Math.max(transientRetryDelayMs(attemptIndex), retryAfterDelayMs(res));
 }
 
+/**
+ * Indisponibilité vue par le public non connecté (audit UI/UX du 19/11/2026, U2) : une phrase
+ * simple, sans compteur ni « contactez l'administrateur » — un visiteur n'a personne à
+ * contacter, et le contenu déjà affiché reste lisible derrière le bandeau.
+ */
+export const PUBLIC_SERVER_RESTART_MESSAGE = 'Le site redémarre, il revient dans un instant.';
+
 export function gatewayUnavailableUserMessage() {
   return 'Service momentanément indisponible (redémarrage ou surcharge réseau). Réessayez dans quelques secondes.';
 }
@@ -153,7 +160,8 @@ export function isParsedApiJsonObject(body) {
   return true;
 }
 
-export function unexpectedApiBodyUserMessage({ ok, looksHtml } = {}) {
+export function unexpectedApiBodyUserMessage({ ok, looksHtml, publicAudience = false } = {}) {
+  if (publicAudience) return PUBLIC_SERVER_RESTART_MESSAGE;
   if (looksHtml) {
     return ok
       ? 'Impossible de charger le contenu — le serveur a renvoyé une page HTML (vérifiez l’API / le proxy).'
@@ -192,11 +200,22 @@ export async function parseApiBody(res) {
   return { raw: text };
 }
 
-export function assertJsonApiBody(body, { ok } = {}) {
+export function assertJsonApiBody(body, { ok, publicAudience = false } = {}) {
   if (body == null) return;
   if (isParsedApiJsonObject(body)) return;
   const looksHtml = isHtmlLikeApiPayload(body.raw);
-  throw new Error(unexpectedApiBodyUserMessage({ ok, looksHtml }));
+  throw new Error(unexpectedApiBodyUserMessage({ ok, looksHtml, publicAudience }));
+}
+
+/**
+ * Réponse typique d'un redémarrage : 5xx sans message applicatif (page HTML de la passerelle
+ * ou du proxy, corps vide ou illisible).
+ */
+function isServerRestartLikeResponse(res, errBody, errMsg) {
+  const status = Number(res?.status) || 0;
+  if (status < 500) return false;
+  // Un message applicatif (« Forum désactivé » en 503) reste celui du serveur.
+  return !errMsg || !!errBody?.parseError;
 }
 
 /**
@@ -211,6 +230,11 @@ export function buildApiHttpErrorMessage(ctx) {
     '';
   let errMsg =
     typeof errBody.error === 'string' && errBody.error.trim() ? errBody.error.trim() : '';
+  // Public sans compte : une passerelle ou un serveur qui redémarre se résume à une phrase.
+  // Le détail technique (code HTTP, identifiant de requête) ne lui sert à rien.
+  if (!authToken && isServerRestartLikeResponse(res, errBody, errMsg)) {
+    return { errMsg: PUBLIC_SERVER_RESTART_MESSAGE, reqId };
+  }
   if (res.status === 401 && !authToken && /^token requis$/i.test(errMsg)) {
     errMsg = 'Session locale incomplète : reconnecte-toi pour continuer.';
   }

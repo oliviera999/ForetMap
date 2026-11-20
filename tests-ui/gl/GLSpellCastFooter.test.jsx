@@ -20,7 +20,7 @@ function renderFooter(props = {}) {
 describe('GLSpellCastFooter', () => {
   test("à l'étape fund, rend Annuler et Lancer", () => {
     renderFooter();
-    expect(screen.getByText('Annuler le brouillon')).toBeInTheDocument();
+    expect(screen.getByText('Ne pas lancer')).toBeInTheDocument();
     expect(screen.getByText('Lancer le sortilège')).toBeInTheDocument();
   });
 
@@ -37,7 +37,7 @@ describe('GLSpellCastFooter', () => {
 
   test('désactive les deux boutons quand busy', () => {
     renderFooter({ busy: true });
-    expect(screen.getByText('Annuler le brouillon').closest('button').disabled).toBe(true);
+    expect(screen.getByText('Ne pas lancer').closest('button').disabled).toBe(true);
     expect(screen.getByText('Lancer le sortilège').closest('button').disabled).toBe(true);
   });
 
@@ -46,7 +46,7 @@ describe('GLSpellCastFooter', () => {
     const onCancelDraft = vi.fn();
     renderFooter({ onLaunch, onCancelDraft });
     fireEvent.click(screen.getByText('Lancer le sortilège'));
-    fireEvent.click(screen.getByText('Annuler le brouillon'));
+    fireEvent.click(screen.getByText('Ne pas lancer'));
     expect(onLaunch).toHaveBeenCalledTimes(1);
     expect(onCancelDraft).toHaveBeenCalledTimes(1);
   });

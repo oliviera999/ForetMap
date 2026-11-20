@@ -220,7 +220,7 @@ test.describe('GL — tablettes d’équipe par le lien de classe', () => {
       '« Pas moi » se dit depuis son propre compte, ou au prof.',
     );
     await potier.screenshot({ path: 'docs/captures/tenir-v2/tablette-pot-pas-moi.png' });
-    await potier.getByRole('button', { name: 'Annuler le brouillon' }).click();
+    await potier.getByRole('button', { name: 'Ne pas lancer' }).click();
     await expect(lignes).toHaveCount(0, { timeout: 15_000 });
     const assistant = potier.getByRole('dialog');
     if (await assistant.isVisible()) {
@@ -549,7 +549,7 @@ test.describe('GL — tablettes d’équipe par le lien de classe', () => {
     expect(refus.code).toBe('MAIN_AILLEURS');
     expect(refus.error).toBe('Lina prépare un sort… Attendez la fin de son geste.');
     // L'élève annule son brouillon : la main revient à l'équipe, les tablettes se rallument.
-    await pageEleve.getByRole('button', { name: 'Annuler le brouillon' }).click();
+    await pageEleve.getByRole('button', { name: 'Ne pas lancer' }).click();
     for (const t of [a, b]) {
       await expect(t.page.getByTestId('gl-tenir-main')).toBeHidden({ timeout: 30_000 });
       await expect(t.page.locator('[data-geste="lancer"]')).toBeEnabled({ timeout: 15_000 });

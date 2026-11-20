@@ -14,6 +14,7 @@
 import {
   API_FETCH_TIMEOUT_MS,
   assertJsonApiBody,
+  PUBLIC_SERVER_RESTART_MESSAGE,
   isGatewayStyleResponse,
   parseApiBody,
   RATE_LIMIT_PAUSE_MS,
@@ -59,9 +60,18 @@ let retryStatusSeq = 0;
  */
 function createRetryStatusReporter() {
   let id = null;
+  let publicAudience = false;
   return {
+    /** Public non connecté : phrase simple, sans compteur de tentatives (audit U2). */
+    setPublicAudience(value) {
+      publicAudience = !!value;
+    },
     retrying(attempt, maxAttempts) {
       if (!id) id = `api-retry-${++retryStatusSeq}`;
+      if (publicAudience) {
+        emitAppStatus({ id, kind: 'retrying', message: PUBLIC_SERVER_RESTART_MESSAGE });
+        return;
+      }
       emitAppStatus({
         id,
         kind: 'retrying',
@@ -143,6 +153,7 @@ async function runFetchJsonLoop(
   };
   const token = getToken() || null;
   if (token) headers.Authorization = `Bearer ${token}`;
+  retryStatus?.setPublicAudience?.(!token);
   const maxAttempts = resolveMaxAttempts(method, body);
   // Ne pas utiliser `body ? …` : `0` ou `false` seraient omis à tort ; `{}` reste un corps JSON valide.
   const hasBody = body !== undefined && body !== null;
@@ -246,7 +257,7 @@ async function runFetchJsonLoop(
           await handleTimeout(attempt);
           continue;
         }
-        assertJsonApiBody(okBody, { ok: true });
+        assertJsonApiBody(okBody, { ok: true, publicAudience: !token });
         retryGate.clear();
         return okBody;
       }

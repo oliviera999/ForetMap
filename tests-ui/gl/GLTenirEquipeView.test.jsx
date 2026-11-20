@@ -438,7 +438,7 @@ describe('GLTenirEquipeView', () => {
           onReloadGame={vi.fn()}
         />,
       );
-      await waitFor(() => expect(screen.getByText(/Tour 1 — ouverture/)).toBeInTheDocument());
+      await waitFor(() => expect(screen.getByText(/Tour 1 — Le tour s’ouvre/)).toBeInTheDocument());
       await waitFor(() => expect(lectures()).toBe(1));
 
       rerender(
@@ -449,7 +449,7 @@ describe('GLTenirEquipeView', () => {
           onReloadGame={vi.fn()}
         />,
       );
-      expect(screen.getByText(/Tour 1 — jeu/)).toBeInTheDocument();
+      expect(screen.getByText(/Tour 1 — À vous de jouer/)).toBeInTheDocument();
       expect(screen.getByTestId('gl-sablier-phase')).toBeInTheDocument();
       // Et l'instantané (cases à venir, présences) est relu sans geste de l'équipe.
       await waitFor(() => expect(lectures()).toBe(2));
@@ -467,7 +467,7 @@ describe('GLTenirEquipeView', () => {
           onReloadGame={vi.fn()}
         />,
       );
-      await waitFor(() => expect(screen.getByText(/Tour 1 — tour clos/)).toBeInTheDocument());
+      await waitFor(() => expect(screen.getByText(/Tour 1 — Tour terminé/)).toBeInTheDocument());
       await waitFor(() =>
         expect(screen.getByRole('button', { name: 'Répondre à la question' })).toBeInTheDocument(),
       );
@@ -479,7 +479,7 @@ describe('GLTenirEquipeView', () => {
           onReloadGame={vi.fn()}
         />,
       );
-      expect(screen.getByText(/Tour 2 — ouverture/)).toBeInTheDocument();
+      expect(screen.getByText(/Tour 2 — Le tour s’ouvre/)).toBeInTheDocument();
       // La question due au tour précédent n'est pas reportée sur le nouveau tour.
       expect(screen.queryByRole('button', { name: 'Répondre à la question' })).toBeNull();
       expect(screen.getByRole('button', { name: 'Répondre' }).disabled).toBe(true);
@@ -497,7 +497,7 @@ describe('GLTenirEquipeView', () => {
       );
       await waitFor(() => expect(screen.getByTestId('gl-tenir-equipe')).toBeInTheDocument());
       await waitFor(() => expect(lectures()).toBe(1));
-      expect(screen.getByText(/Aucun tour ouvert : attends le prof/)).toBeInTheDocument();
+      expect(screen.getByText(/Le prof ouvre bientôt le tour/)).toBeInTheDocument();
     });
   });
 

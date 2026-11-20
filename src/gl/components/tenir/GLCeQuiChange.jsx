@@ -3,7 +3,7 @@ import { apiGL } from '../../services/apiGL.js';
 
 /**
  * « Ce qui change » (ensemble unifié, M8) : au camp, trois lignes pour le chapitre suivant —
- * ton peuple, tes nouveaux sorts, le plateau. Tout vient du serveur
+ * le peuple, les nouveaux sorts, le plateau. Tout vient du serveur
  * (`GET /tenir/ce-qui-change`, calculé depuis les sorts des chapitres et les réglages) ; rien
  * ne s'affiche au dernier plateau, ni si la lecture échoue.
  */

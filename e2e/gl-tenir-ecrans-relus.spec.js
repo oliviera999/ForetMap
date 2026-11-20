@@ -83,16 +83,16 @@ test.describe('GL — écrans relus sans rechargement', () => {
     // Le prof joue depuis sa console : son jeton est toujours le sien (J3, conséquence).
     await ecranTour.getByRole('button', { name: 'Ouvrir le tour' }).click();
     await expect(ecranTour.getByRole('heading', { level: 2 }).first()).toContainText(
-      'Tour 1 · Ouverture',
+      'Tour 1 · Le tour s’ouvre',
     );
     // J1 — la projection suit, sans F5.
-    await expect(projection).toContainText('Tour 1 — ouverture', { timeout: 15_000 });
+    await expect(projection).toContainText('Tour 1 — Le tour s’ouvre', { timeout: 15_000 });
 
     // --- La phase change depuis un autre poste (API) : les deux écrans suivent ---------------
     await poster('/tenir/tour/phase', { phase: 'jeu' });
-    await expect(projection).toContainText('Tour 1 — jeu', { timeout: 15_000 });
+    await expect(projection).toContainText('Tour 1 — À vous de jouer', { timeout: 15_000 });
     await expect(ecranTour.getByRole('heading', { level: 2 }).first()).toContainText(
-      'Tour 1 · Jeu',
+      'Tour 1 · À vous de jouer',
       { timeout: 15_000 },
     );
 
