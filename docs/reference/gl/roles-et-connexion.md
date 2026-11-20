@@ -326,11 +326,13 @@ Depuis le 15 novembre 2026, une équipe peut jouer une séance « Tenir à deux 
 de la classe, **sans qu'aucun élève ne se connecte**.
 
 - Le MJ imprime une fois la **feuille de la classe** (bouton « QR de la classe » de l'écran
-  « Jouer le tour ») : un QR et un code de huit caractères, valables toute l'année.
+  « Jouer le tour », en dépliant la ligne des tablettes) : un QR et un code de huit caractères,
+  valables toute l'année.
 - L'équipe scanne le QR avec l'appareil photo de la tablette — ou touche **« J'ai le code de la
   classe »** sur l'écran de connexion et tape le code — puis touche sa mascotte.
 - **La tablette demande alors à rejoindre l'équipe, et attend** (depuis le 17 novembre 2026).
   La première tablette de chaque équipe est acceptée par le MJ : sur l'écran « Jouer le tour »,
+  la ligne des tablettes dit « 1 tablette attend » et se déplie toute seule ;
   le bouton **« Tout accepter »** les fait entrer d'un seul appui en début de séance (ou
   « Accepter » / « Refuser », une par une). Une tablette de plus pour la même équipe peut être
   acceptée par un appareil déjà dans l'équipe, qui voit « Une tablette demande à rejoindre

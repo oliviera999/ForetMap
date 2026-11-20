@@ -54,6 +54,8 @@ const SOURCES_EQUIPE = [
   path.join('src', 'gl', 'constants', 'tenirPhases.js'),
   // Les mots de la carte du moment (bouton, puces, bandeaux d'une ligne, états sans geste).
   path.join('src', 'gl', 'utils', 'glTenirMoment.js'),
+  // La panne réseau dite à une tablette d'équipe ou à la projection (lot 5, console).
+  path.join('src', 'gl', 'constants', 'glPanneReseau.js'),
 ];
 
 /**

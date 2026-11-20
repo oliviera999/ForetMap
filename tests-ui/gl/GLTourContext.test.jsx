@@ -55,6 +55,22 @@ describe('visite guidée GL', () => {
     expect(screen.getByTestId('has-tour-unknown').textContent).toBe('false');
   });
 
+  test('ses boutons portent les classes de G&L (les `.btn` de ForetMap n’y sont pas chargées)', async () => {
+    renderTour();
+    await userEvent.click(screen.getByRole('button', { name: '?' }));
+    const carte = await waitFor(() => {
+      const el = document.querySelector('.discovery-tour__card');
+      expect(el).not.toBeNull();
+      return el;
+    });
+    const boutons = [...carte.querySelectorAll('.discovery-tour__actions button')];
+    expect(boutons.length).toBeGreaterThan(0);
+    for (const bouton of boutons) {
+      expect(bouton).toHaveClass('gl-btn', 'shared-btn');
+      expect(bouton).not.toHaveClass('btn');
+    }
+  });
+
   test('lancé à la demande, il affiche la bulle signée du narrateur', async () => {
     renderTour();
     await userEvent.click(screen.getByRole('button', { name: '?' }));

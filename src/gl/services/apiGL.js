@@ -7,6 +7,10 @@ import {
   gatewayUnavailableUserMessage,
 } from '../../shared/apiTransport.js';
 import { fetchJsonWithRetry } from '../../shared/fetchJsonWithRetry.js';
+import { networkFailureMessageFor } from '../../shared/networkFailureMessages.js';
+import { isGlStaffAuth } from '../utils/glStaffView.js';
+import { sansIdRequete } from '../utils/glErreurTexte.js';
+import { GL_PANNE_RESEAU_EQUIPE } from '../constants/glPanneReseau.js';
 
 const GL_SESSION_KEY = 'gl_session';
 /**
@@ -150,6 +154,38 @@ function glDevUnavailableMessage() {
   return 'Serveur indisponible — lancez l’API ForetMap (port 3000) ou vérifiez NODE_ENV et le fichier .env.';
 }
 
+/** Code d'une erreur levée parce que le serveur n'a pas pu être joint (panne réseau). */
+export const GL_PANNE_RESEAU_CODE = 'GL_PANNE_RESEAU';
+
+export { GL_PANNE_RESEAU_EQUIPE };
+
+/**
+ * Phrase affichée quand le serveur ne répond pas, après les nouvelles tentatives (écrans de
+ * séance, K8) — à la place du « Failed to fetch » du navigateur. Selon la session : le prof
+ * reçoit les pistes de diagnostic, l'élève une phrase courte au « tu », l'équipe la même au
+ * « vous », le visiteur sans compte celle du redémarrage.
+ * @param {{ session?: object|null, dev?: boolean }} [options] injectables pour les tests
+ */
+export function glNetworkFailureMessage({
+  session = readSession(),
+  dev = import.meta.env.DEV,
+} = {}) {
+  if (dev) return glDevUnavailableMessage();
+  if (isTabSession(session)) return GL_PANNE_RESEAU_EQUIPE;
+  return networkFailureMessageFor({
+    staff: isGlStaffAuth(session?.auth),
+    publicAudience: !session?.token,
+  });
+}
+
+/** Erreur réseau G&L : phrase française, cause d'origine gardée pour le diagnostic. */
+function glNetworkFailureError(cause) {
+  const error = new Error(glNetworkFailureMessage(), { cause });
+  error.code = GL_PANNE_RESEAU_CODE;
+  error.network = true;
+  return error;
+}
+
 /**
  * Adaptateur GL au-dessus de la boucle partagée `fetchJsonWithRetry`
  * (`src/shared/fetchJsonWithRetry.js`) : injecte le jeton GL, la purge de
@@ -194,6 +230,7 @@ async function apiGLRaw(path, method, body, getToken = getGlToken, options = {})
     {
       resolveUrl: withAppBase,
       getToken,
+      onNetworkError: glNetworkFailureError,
       onUnauthorized: ({ errBody, token }) => {
         if (!token) return;
         const errText = String(errBody.error || '').toLowerCase();
@@ -230,6 +267,7 @@ async function apiGLRaw(path, method, body, getToken = getGlToken, options = {})
         const contentType = String(res.headers.get('content-type') || '').toLowerCase();
         const isJson = contentType.includes('application/json');
         let message = typeof errBody.error === 'string' && errBody.error ? errBody.error : '';
+        let requestId = '';
         if (!message) {
           if (sawGatewayResponse || (res.status >= 500 && !isJson)) {
             message = import.meta.env.DEV
@@ -243,9 +281,14 @@ async function apiGLRaw(path, method, body, getToken = getGlToken, options = {})
               sawGatewayResponse,
             });
             message = built.errMsg || `Erreur HTTP ${res.status}`;
+            requestId = built.reqId || '';
+            // L'identifiant de requête sert au diagnostic : seul le prof le garde dans le
+            // texte (la console le montre en petit) ; un élève ou une équipe ne le lit jamais.
+            if (!isGlStaffAuth(readSession()?.auth)) message = sansIdRequete(message);
           }
         }
         const err = new Error(message);
+        if (requestId) err.requestId = requestId;
         err.status = res.status;
         err.body = errBody;
         err.code = errBody.code || null;

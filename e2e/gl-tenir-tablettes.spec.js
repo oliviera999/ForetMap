@@ -394,9 +394,11 @@ test.describe('GL — tablettes d’équipe par le lien de classe', () => {
     await expect(pageProf.getByTestId('gl-tour-screen')).toBeVisible({ timeout: 20_000 });
     const demandes = pageProf.getByTestId('gl-demandes');
     await expect(demandes).toBeVisible();
+    // Les tablettes tiennent sur une ligne (écrans de séance, lot 5) ; le détail se déplie.
     await expect(pageProf.getByTestId('gl-class-link-sessions-count')).toContainText(
-      '4 équipes sur 4',
+      '4 tablettes connectées ✓',
     );
+    await expect(pageProf.getByTestId('gl-class-link-qr')).toHaveCount(0);
     await demandes.scrollIntoViewIfNeeded();
     await pageProf.screenshot({ path: 'docs/captures/tenir-v2/console-demandes.png' });
     // La ligne du défi : consigne, critère pour le prof seul, « Relevé » / « Pas encore ».
@@ -407,6 +409,8 @@ test.describe('GL — tablettes d’équipe par le lien de classe', () => {
     await expect(ligneDefi.getByTestId('gl-defi-sablier')).toBeVisible();
     await ligneDefi.scrollIntoViewIfNeeded();
     await ligneDefi.screenshot({ path: 'docs/captures/tenir-v2/console-defi-a-juger.png' });
+    await pageProf.getByTestId('gl-class-link-resume').click();
+    await expect(pageProf.getByRole('button', { name: 'Déconnecter' })).toHaveCount(4);
     await pageProf.getByTestId('gl-class-link-qr').click();
     const feuille = pageProf.getByTestId('gl-class-link-sheet');
     // L'image du QR est enveloppée par le bouton « Agrandir l'image » de l'app.

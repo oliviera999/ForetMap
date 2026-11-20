@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useStickyHeaderScrolled } from '../../shared/hooks/useStickyHeaderScrolled.js';
 import { GL_MOBILE_PRIMARY_TAB_IDS } from '../constants/app-runtime.js';
 import { useGlCompactNav } from '../hooks/useGlCompactNav.js';
@@ -37,10 +37,21 @@ export function GLTopBar({
   isGuestMode = false,
   /** Borne de démonstration (`?kiosque=1`) : aucune sortie possible depuis l'écran. */
   kioskMode = false,
+  /**
+   * Mode séance (console du prof, écran « Jouer le tour ») : `{ partie, tour }`. La barre se
+   * réduit à une ligne ; « Menu » redéplie les onglets et le compte.
+   */
+  seance = null,
 }) {
   const isScrolled = useStickyHeaderScrolled();
   const compactNav = useGlCompactNav();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const enSeance = !!seance;
+  const [menuDeplie, setMenuDeplie] = useState(false);
+  // Le menu déplié ne survit pas à l'écran du tour : la séance suivante repart d'une ligne.
+  useEffect(() => {
+    if (!enSeance) setMenuDeplie(false);
+  }, [enSeance]);
   const title = String(platformTitle || 'Gnomes & Licornes');
   const subtitle = String(platformSubtitle || 'Le jeu de Sciences et Technologie');
 
@@ -122,6 +133,32 @@ export function GLTopBar({
     </div>
   );
 
+  if (enSeance && !menuDeplie) {
+    // Une ligne : rien ne doit prendre la place du tour. La navigation du bas (écran étroit)
+    // disparaît avec les onglets ; « Menu » rend tout.
+    return (
+      <div
+        className={`gl-topbar gl-topbar--seance${isScrolled ? ' is-scrolled' : ''}`}
+        role="banner"
+        data-testid="gl-topbar-seance"
+      >
+        <div className="gl-topbar-seance__titre">
+          <strong className="gl-topbar-seance__partie">{seance.partie || title}</strong>
+          {seance.tour ? <span className="gl-topbar-seance__tour">{seance.tour}</span> : null}
+        </div>
+        <button
+          type="button"
+          className="gl-logout"
+          aria-expanded="false"
+          data-testid="gl-topbar-menu"
+          onClick={() => setMenuDeplie(true)}
+        >
+          Menu
+        </button>
+      </div>
+    );
+  }
+
   return (
     <>
       <div
@@ -156,6 +193,17 @@ export function GLTopBar({
         ) : null}
 
         {userChrome}
+        {enSeance ? (
+          <button
+            type="button"
+            className="gl-logout gl-topbar-seance__replier"
+            aria-expanded="true"
+            data-testid="gl-topbar-menu"
+            onClick={() => setMenuDeplie(false)}
+          >
+            Réduire le menu
+          </button>
+        ) : null}
       </div>
 
       {compactNav ? (

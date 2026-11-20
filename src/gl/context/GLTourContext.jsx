@@ -21,6 +21,15 @@ import { useGlTourOverrides } from '../hooks/useGlTourOverrides.js';
  */
 const GL_SEEN_STORAGE_KEY = 'gl_discovery_seen_v1';
 
+/**
+ * Boutons de la carte de visite au thème du royaume : les classes que rend `GLButton`
+ * (l'overlay partagé ne connaît que les `.btn…` de ForetMap, absentes de G&L).
+ */
+const GL_TOUR_BUTTON_CLASS_NAMES = Object.freeze({
+  ghost: 'shared-btn shared-btn--ghost shared-btn--sm gl-btn gl-btn--ghost gl-btn--sm',
+  primary: 'shared-btn shared-btn--primary shared-btn--sm gl-btn gl-btn--primary gl-btn--sm',
+});
+
 /** Délai avant l'auto-démarrage : laisse l'onglet finir de se peindre. */
 const AUTO_START_DELAY_MS = 650;
 
@@ -109,6 +118,7 @@ export function GLTourProvider({
         isStaff={isStaff}
         speakerName={speakerName}
         narrator={narrator}
+        buttonClassNames={GL_TOUR_BUTTON_CLASS_NAMES}
         onNext={tour.nextStep}
         onPrev={tour.prevStep}
         onStop={tour.stopTour}

@@ -9,6 +9,52 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — G&L : écrans de séance, lot 5 (la console du prof en mode séance)
+
+Cinquième lot du chantier « écrans de séance » (`docs/prompts/GL_ECRANS_DE_SEANCE_PROMPT.md`,
+étape 5 ; suivi dans `docs/prompts/GL_ECRANS_DE_SEANCE_ETAT.md`). Sur « Jouer le tour », la
+console laisse la place au tour. Aucune règle, aucune route, aucun schéma, aucun réglage ne
+change.
+
+- **Mode séance** : tant que `GLTourScreen` est monté, `GLTopBar` tient sur une ligne (nom de
+  la partie, tour et phase, bouton « Menu » qui redéplie les onglets et le compte ; « Réduire le
+  menu » y revient). L'écran du tour se déclare dans `src/gl/utils/glModeSeance.js`, `AppGL` le
+  lit : ni contexte ni prop à travers le morceau paresseux de la console.
+- **Ordre de l'écran du tour** : bandeau (phase, boutons du tour, sablier, « Lien de
+  projection », « Quitter l'écran du tour », tablettes en une ligne) → **demandes** → équipes
+  → le reste. La bulle d'Olu et son erreur quittent le bandeau.
+- **Tablettes en une ligne** (`GLClassLinkPanel`) : « 4 tablettes connectées ✓ », « 1 tablette
+  attend »… ; le détail (QR de la classe, « Déconnecter ») se déplie au toucher, et d'office
+  tant qu'une tablette attend d'entrer.
+- **Cartes d'équipe** : l'avance libre de `GLTourDesSaisie` attend derrière « Corriger la
+  position… » (motif toujours obligatoire, « Annuler »). Le formulaire se referme une fois la
+  correction faite.
+- **Erreur d'Olu** : titre « Qui a trouvé l'erreur d'Olu ? », un bouton au nom de chaque
+  équipe (plus de « corrigé par … »).
+- **Erreurs réseau** : `apiGL` reçoit un `onNetworkError` — plus de « Failed to fetch » brut,
+  mais la phrase française selon la session (prof, élève au « tu », tablette d'équipe et
+  projection au « vous », visiteur). Les phrases communes passent dans
+  `src/shared/networkFailureMessages.js` (`src/services/api.js` les réexporte, inchangées) ;
+  celle de l'équipe vit dans `src/gl/constants/glPanneReseau.js`, relue par le test de contenu
+  d'adresse et de mots interdits.
+  L'identifiant de requête ne figure plus dans le message lu par un élève ou une équipe
+  (`err.requestId` le garde) ; la console le montre en petit (`GLErreurTexte`).
+- **Morceaux paresseux** : les `lazy()` de `GLGameMasterConsole` passent par
+  `lazyAvecReprise` (deux nouvelles tentatives, délai borné, puis « L'application vient d'être
+  mise à jour » — ou « Pas de réseau pour l'instant. » hors ligne — et « Recharger ») au lieu
+  de rester sur « Chargement de la section… ».
+- **Visite guidée** (`GuidedTourOverlay`, partagé avec ForêtMap) : au dernier pas, un seul
+  bouton « Terminer » ; ni « Étape 1 / 1 » ni point de progression pour une visite d'une seule
+  étape ; prop `buttonClassNames`, par laquelle G&L donne à la carte ses boutons `.gl-btn`
+  (ForêtMap garde ses `.btn` par défaut).
+- **Contrats de test changés** : `gl-class-link-sessions-count` dit « n tablettes
+  connectées… » (plus « n équipes sur N ») et vit dans le bouton `gl-class-link-resume` ;
+  `gl-class-link-qr` et « Déconnecter » ne sont rendus que panneau déplié ; le champ « Motif de
+  l'avance libre » n'existe qu'après « Corriger la position… » ; les boutons « corrigé par … »
+  deviennent le nom de l'équipe ; la visite guidée n'a plus de bouton « Fermer » au dernier pas.
+- **Doc de référence** : `docs/reference/gl/guide-du-mj.md` (note « la console, en mode
+  séance »), `roles-et-connexion.md` (où trouver le QR de la classe).
+
 ### Modifié — G&L : écrans de séance, lot 4 (l'écran d'équipe en trois choses, branché)
 
 Quatrième lot du chantier « écrans de séance » (`docs/prompts/GL_ECRANS_DE_SEANCE_PROMPT.md`,
