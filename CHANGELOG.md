@@ -17,6 +17,73 @@ valide puis écrit : le premier envoi, plus ancien, pouvait s’enregistrer en d
 montrait le texte complet, le rechargement revenait à la version courte. Le second envoi part
 désormais seulement après la fin du premier.
 
+### Modifié — UI/UX lot 2 : performance perçue et indisponibilité (U1, U2)
+
+- **Ouverture immédiate à cache chaud** : le service worker sert le HTML depuis la coquille
+  précachée par sa version (stratégie `app-shell`, `src/shared/pwa/swTemplate.js`) au lieu
+  d'attendre le réseau jusqu'à 4 s. La nouvelle version arrive par le service worker et le
+  bandeau existant ; tant qu'une version attend, la navigation repasse en network-first.
+  Option `htmlStrategy: 'network-first'` conservée. Mesure e2e (serveur ralenti à 3 s) :
+  TTFB 3 018 → 5 ms, carte de connexion visible à 169 ms au lieu de 3,2 s.
+- **Indisponibilité vue par le public** : sans compte, « Le site redémarre, il revient dans
+  un instant. », sans compteur de tentatives ni « contactez l'administrateur ». Les comptes
+  connectés gardent le message détaillé et le compteur. Un 503 porteur d'un message métier
+  (« Forum désactivé ») reste inchangé.
+- **Glossaire de la Visite hors réseau** : `/api/glossary/terms` et la fiche d'un terme en
+  stale-while-revalidate, comme le contenu de la Visite ; conservés à la déconnexion (lecture
+  publique). Nouvelle option du gabarit : `apiStaleWhileRevalidatePatterns`.
+- **Bundle** : feuille principale renommée `foretmap-styles-*.css` (elle sortait sous le nom
+  `visitMascotPackExtras-*.css`, chunk partagé avec l'outil de découpe) ; notice « Vos
+  données » chargée à la demande (−18 Ko avant connexion). Budget de l'entrée non connectée
+  en CI (`npm run check:bundle`, `scripts/check-bundle-budget.js`, cliquet à 1 530 Ko de JS et
+  380 Ko de CSS, objectif 400 Ko de JS) ; le build de la CI passe en `NODE_ENV=production`,
+  comme l'artefact publié.
+- **Vignettes de mascotte** : `lib/visitMascotPackThumbnail.js` produit une vignette PNG de
+  96 px par pack (`uploads/visit_mascot_packs/<id>/_vignette.png`, servie par la route des
+  assets de pack), sans migration ; rattrapage : `node scripts/generate-visit-mascot-thumbnails.js`.
+  Branchement dans la grille de choix : lot suivant (session B).
+### Modifié — UI/UX lot 6 : navigation élève en quatre pôles (U10)
+
+La barre élève empilait jusqu'à 19 onglets à plat sur ordinateur. Elle s'organise désormais
+comme celle du professeur, en pôles dérivés de l'onglet ouvert (rien de nouveau n'est
+mémorisé). Aucun onglet n'est ajouté, retiré ni renommé.
+
+- **Quatre pôles sur ordinateur** : Terrain (carte, tâches, visite), Vivant (biodiversité,
+  clés, réseau, groupes, individus), Apprendre (quiz, glossaire, séances, tutos, fresque),
+  Moi (carnet, forum, stats, classe, à propos). La barre basse montre les pôles puis les
+  onglets du pôle actif, sans changer de hauteur ; cliquer un pôle ouvre son premier onglet ;
+  `aria-current="true"` sur le pôle, `aria-current="page"` sur l'onglet. Le point « non lu »
+  du forum remonte sur le pôle Moi.
+- **Mobile** : primaires + « Plus » inchangés ; la feuille « Plus » range les onglets sous les
+  intitulés des quatre pôles (groupe du pôle actif marqué).
+- **Icônes** : Groupes (`IconNestedGroups`) et Individus (`IconIndividuals`) ont leur icône,
+  côté élève comme côté prof ; quatre icônes de pôles élève dans `src/shared/icons.jsx`.
+- **Code commun** : `src/components/app/NavPoles.jsx` (pôle actif, rangée de pôles, feuille
+  d'onglets à plat ou groupée, bascule compacte) partagé par `StudentBottomNav` et
+  `TeacherTopTabs` ; table onglet → pôle dans `src/constants/app-runtime.js`. Bascules lues
+  dans `MEDIA` (`src/shared/breakpoints.js`) : élève `MEDIA.belowDesktop` (inchangé), prof
+  `MEDIA.phone` (639 px au lieu de 640 px). Les feuilles d'onglets passent de `role="list"`
+  (sans éléments de liste) à `role="group"`.
+- **Tests** : non-perte des onglets pour les 65 536 combinaisons de modules et de droits
+  (comparées à une copie figée de l'ancienne liste), montage des deux navigations dans
+  `AppShellWiring`, aide e2e `openStudentTab` (pôle sur ordinateur, « Plus » en compact)
+  reprise par les specs élève.
+### Modifié — UI/UX lot 5 : glossaire, homographes et densité des liens (U7)
+
+Commun à ForêtMap (fiches, zones, Visite, quiz), aux tutoriels servis par l'API et à Gnomes &
+Licornes (glossaires SVT et lore).
+
+- **Homographes** : « vers », « été », « sens », « son », « fin », « mare » ne sont liés que
+  précédés d'un déterminant (« des vers », « l'été », « en été ») ; « plonge droit vers le
+  bas » n'est plus lié à « ver ». Les libellés plus longs (« vers de terre ») restent liés.
+- **Premier emploi seulement** : un terme n'est lié qu'une fois par bloc de texte (fiche,
+  tutoriel, énoncé).
+- **Noyau unique** : `src/shared/glossary/termAutolinkCore.js`, miroir CJS
+  `lib/shared/termAutolinkCore.js` régénéré par `npm run sync:shared-cores` ;
+  `scripts/sync-term-autolink-lib.js` supprimé, `lib/term-autolink/termAutolink.js` et
+  `src/utils/termAutolink.js` deviennent des réexportations. Fonction `walkAndLink` (DOM,
+  jamais appelée) retirée.
+
 ### Interne — UI/UX : préalable R0 (points de bascule, cliquet des styles en ligne, état vide partagé)
 
 Outils communs du chantier UI/UX du 19 novembre 2026, utilisés ensuite par chaque lot. Aucun

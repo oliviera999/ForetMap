@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { loginAsNewStudent, enableTeacherMode } = require('./fixtures/auth.fixture');
+const { loginAsNewStudent, enableTeacherMode, openStudentTab } = require('./fixtures/auth.fixture');
 
 /** Un nom d'espèce peut contenir des caractères de syntaxe d'expression régulière. */
 function escapeForRegExp(value) {
@@ -40,7 +40,7 @@ test('catalogue biodiversité : vignettes muettes, fiche complète au clic', asy
     apiCalls.push(url.replace(/^https?:\/\/[^/]+/, ''));
   });
 
-  await page.getByRole('button', { name: /Biodiversité/ }).click();
+  await openStudentTab(page, 'Biodiversité');
   const firstTile = page.getByRole('button', { name: /^Ouvrir la fiche de / }).first();
   await firstTile.waitFor({ state: 'visible', timeout: 20_000 });
 

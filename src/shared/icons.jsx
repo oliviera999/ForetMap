@@ -28,6 +28,7 @@ import {
   ChevronRight,
   ChevronUp,
   Circle,
+  CircleUser,
   ClipboardList,
   Compass,
   Copy,
@@ -56,7 +57,9 @@ import {
   Info,
   KeyRound,
   LayoutGrid,
+  Layers,
   Leaf,
+  Library,
   Lightbulb,
   LineChart,
   Link as LinkGlyph,
@@ -90,6 +93,7 @@ import {
   Settings,
   Settings2,
   Shield,
+  Shovel,
   SignalLow,
   Siren,
   SlidersHorizontal,
@@ -100,6 +104,7 @@ import {
   Telescope,
   Thermometer,
   Trash2,
+  TreeDeciduous,
   Trees,
   TrendingUp,
   TriangleAlert,
@@ -153,6 +158,13 @@ export const IconNotebook = ui(NotebookPen);
 export const IconPoleContents = ui(LayoutGrid);
 export const IconPoleTracking = ui(LineChart);
 export const IconPoleAdmin = ui(Settings2);
+/* Onglets et pôles de la navigation élève (lot 6, U10) : une icône propre par onglet. */
+export const IconNestedGroups = ui(Layers);
+export const IconIndividuals = ui(TreeDeciduous);
+export const IconPoleField = ui(Shovel);
+export const IconPoleLiving = ui(Leaf);
+export const IconPoleLearn = ui(Library);
+export const IconPoleMe = ui(CircleUser);
 
 /* Hors ligne (boîte d'envoi, sortie terrain, stockage) */
 export const IconOffline = ui(CloudOff);

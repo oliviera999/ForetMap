@@ -8,7 +8,12 @@
  * au build et par `lib/pwaRoutes.js` hors production (manifest généré à la volée), jamais
  * par le bundle navigateur. Les stratégies reprennent celles de `public/sw.js` (source
  * historique, conservé pour le mode dev) :
- *   - HTML (entrées listées) en network-first, repli sur le cache puis `offline.html` ;
+ *   - HTML (entrées listées) en **coquille d'application** (_app shell_, défaut) : la copie
+ *     précachée par CETTE version du service worker part tout de suite, sans attendre le réseau
+ *     (audit UI/UX du 19/11/2026, U1 : 4 s de TTFB à cache chaud) ; la nouvelle version arrive
+ *     par le service worker lui-même (nouveau `sw.js` → bandeau « Nouvelle version disponible »).
+ *     Tant qu'une version attend d'être appliquée, ou sans copie, retour au network-first ;
+ *     option `htmlStrategy: 'network-first'` pour l'ancien comportement ;
  *   - API « lecture visite » en stale-while-revalidate (liste `apiStaleWhileRevalidate`) ;
  *   - autres API cachées en network-first, repli cache silencieux (liste `apiNetworkFirst`) ;
  *   - pour ces deux network-first, un **délai d'attente du réseau** (`networkTimeoutSeconds`,
@@ -52,6 +57,25 @@ const OUTBOX_REPLAYED_MESSAGE = 'FORETMAP_OUTBOX_REPLAYED';
  */
 const DEFAULT_NETWORK_TIMEOUT_SECONDS = 4;
 
+/**
+ * Stratégies des entrées HTML.
+ *  - `app-shell` (défaut) : la coquille précachée par la version active du service worker
+ *    est servie immédiatement. Elle référence les bundles hachés de CETTE version, précachés
+ *    dans le même cache : HTML et scripts restent toujours cohérents, y compris hors ligne.
+ *    La revalidation passe par le service worker lui-même : le navigateur revérifie `sw.js`
+ *    après chaque navigation (et `registerServiceWorker` au retour au premier plan) ; son nom
+ *    de cache change à chaque build, donc toute nouvelle version s'installe, attend, et le
+ *    bandeau existant (« Nouvelle version disponible ») propose de l'appliquer. Une version
+ *    en attente (`registration.waiting`) fait repasser la navigation en network-first :
+ *    un simple rechargement n'active pas un service worker en attente, sans ce garde-fou un
+ *    utilisateur qui ignore le bandeau resterait indéfiniment sur l'ancienne coquille.
+ *    Modèle « app shell » de Workbox (`NavigationRoute` + précache, Google, licence MIT ;
+ *    https://developer.chrome.com/docs/workbox/modules/workbox-routing#how-to-register-a-navigation-route ).
+ *  - `network-first` : comportement antérieur (réseau d'abord, délai, puis copie).
+ */
+const HTML_STRATEGIES = Object.freeze(['app-shell', 'network-first']);
+const DEFAULT_HTML_STRATEGY = 'app-shell';
+
 /** Borne du cache d'images : nombre d'entrées (les plus anciennes sortent d'abord) et âge. */
 const IMAGE_CACHE_MAX_ENTRIES = 200;
 const IMAGE_CACHE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
@@ -71,6 +95,8 @@ function renderStringList(values) {
  * @param {string[]} options.precache URLs absolues (même origine) à précacher à l'installation.
  * @param {string[]} options.htmlEntries Chemins HTML servis en network-first (`/`, `/index.html`, entrée Vite…).
  * @param {string[]} [options.apiStaleWhileRevalidate] Chemins d'API en stale-while-revalidate (correspondance par suffixe).
+ * @param {string[]} [options.apiStaleWhileRevalidatePatterns] Sources d'expressions régulières
+ *   (sur le pathname) servies en stale-while-revalidate — fiche d'un terme du glossaire…
  * @param {string[]} [options.apiNetworkFirst] Chemins d'API en network-first (correspondance exacte).
  * @param {string[]} [options.apiNetworkFirstPatterns] Sources d'expressions régulières (sur le
  *   pathname) servies en network-first — listes de photos d'un lieu, aperçu d'un tutoriel…
@@ -78,6 +104,8 @@ function renderStringList(values) {
  * @param {string} [options.offlinePath] Page de repli hors ligne (`/offline.html`).
  * @param {number} [options.networkTimeoutSeconds] Délai d'attente du réseau des lectures
  *   network-first (HTML, API) avant de servir le cache ; `0` le désactive.
+ * @param {'app-shell'|'network-first'} [options.htmlStrategy] Stratégie des entrées HTML
+ *   (`app-shell` par défaut, voir `HTML_STRATEGIES`).
  * @returns {string}
  */
 function renderServiceWorker({
@@ -86,13 +114,18 @@ function renderServiceWorker({
   precache,
   htmlEntries,
   apiStaleWhileRevalidate = [],
+  apiStaleWhileRevalidatePatterns = [],
   apiNetworkFirst = [],
   apiNetworkFirstPatterns = [],
   outboxSync = false,
   offlinePath = '/offline.html',
   networkTimeoutSeconds = DEFAULT_NETWORK_TIMEOUT_SECONDS,
+  htmlStrategy = DEFAULT_HTML_STRATEGY,
 }) {
-  for (const source of apiNetworkFirstPatterns) {
+  if (!HTML_STRATEGIES.includes(htmlStrategy)) {
+    throw new TypeError(`htmlStrategy doit valoir ${HTML_STRATEGIES.join(' ou ')}`);
+  }
+  for (const source of [...apiStaleWhileRevalidatePatterns, ...apiNetworkFirstPatterns]) {
     // Fail fast au build plutôt qu'un service worker qui ne s'installe pas.
     RegExp(source);
   }
@@ -126,6 +159,11 @@ const HTML_ENTRIES = ${renderStringList(html)};
 // API en lecture « stale-while-revalidate » (correspondance par suffixe du pathname).
 const API_STALE_WHILE_REVALIDATE = ${renderStringList(apiStaleWhileRevalidate)};
 
+// Lectures « stale-while-revalidate » reconnues par motif (fiche d'un terme du glossaire…).
+const API_STALE_WHILE_REVALIDATE_PATTERNS = ${renderStringList(apiStaleWhileRevalidatePatterns)}.map(
+  (source) => new RegExp(source),
+);
+
 // API en lecture « network-first » (correspondance exacte du pathname).
 const API_NETWORK_FIRST = ${renderStringList(apiNetworkFirst)};
 
@@ -138,6 +176,10 @@ const API_NETWORK_FIRST_PATTERNS = ${renderStringList(apiNetworkFirstPatterns)}.
 // Délai d'attente du réseau des lectures network-first (HTML, API), en millisecondes ;
 // 0 = pas de délai. Au-delà, la copie en cache part si elle existe.
 const NETWORK_TIMEOUT_MS = ${networkTimeoutMs};
+
+// Stratégie des entrées HTML : "app-shell" (copie de cette version tout de suite) ou
+// "network-first" (réseau d'abord, avec délai).
+const HTML_STRATEGY = ${JSON.stringify(htmlStrategy)};
 
 const IMAGE_FONT_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.gif', '.avif', '.svg', '.ico', '.webp', '.woff2', '.woff'];
 
@@ -161,7 +203,10 @@ function isHtmlEntry(pathname) {
 }
 
 function isStaleWhileRevalidateApi(pathname) {
-  return API_STALE_WHILE_REVALIDATE.some((suffix) => pathname.endsWith(suffix));
+  return (
+    API_STALE_WHILE_REVALIDATE.some((suffix) => pathname.endsWith(suffix)) ||
+    API_STALE_WHILE_REVALIDATE_PATTERNS.some((re) => re.test(pathname))
+  );
 }
 
 function isNetworkFirstApi(pathname) {
@@ -353,6 +398,30 @@ function networkFirst(request, fallback, options = {}) {
   });
 }
 
+/** Une nouvelle version du service worker est installée et attend d'être appliquée. */
+function hasWaitingUpdate() {
+  const registration = self.registration;
+  return !!(registration && registration.waiting);
+}
+
+/**
+ * Coquille d'application : la page HTML précachée par cette version, servie sans attendre le
+ * réseau. Clé sans la requête (\`?code=\`, \`?lti=…\`) : le HTML est un fichier statique, la
+ * requête ne sert qu'au script de la page. Sans copie, ou si une version attend d'être
+ * appliquée, on retombe sur le network-first avec délai (puis la page hors ligne).
+ */
+function appShell(request, event) {
+  const shellKey = new URL(request.url).pathname;
+  const fallbackToNetwork = () =>
+    networkFirst(request, () => caches.match(OFFLINE_PATH), { event, timeoutMs: NETWORK_TIMEOUT_MS });
+  if (hasWaitingUpdate()) return fallbackToNetwork();
+  return caches
+    .open(CACHE_NAME)
+    .then((cache) => cache.match(shellKey))
+    .catch(() => undefined)
+    .then((cached) => cached || fallbackToNetwork());
+}
+
 function cacheFirst(request) {
   const key = cacheKeyFor(request);
   return caches.match(key).then((cached) => {
@@ -492,8 +561,13 @@ self.addEventListener('fetch', (event) => {
   // interceptée ici serait bloquée, on la laisse au navigateur.
   if (url.origin !== self.location.origin) return;
 
-  // HTML en network-first ; repli vers la page hors ligne.
+  // HTML : coquille de cette version tout de suite (défaut) ; sinon network-first, repli
+  // vers la page hors ligne.
   if (isHtmlEntry(url.pathname)) {
+    if (HTML_STRATEGY === 'app-shell') {
+      event.respondWith(appShell(event.request, event));
+      return;
+    }
     event.respondWith(
       networkFirst(event.request, () => caches.match(OFFLINE_PATH), {
         event,
@@ -720,6 +794,8 @@ module.exports = {
   OUTBOX_SYNC_TAG,
   OUTBOX_REPLAYED_MESSAGE,
   DEFAULT_NETWORK_TIMEOUT_SECONDS,
+  HTML_STRATEGIES,
+  DEFAULT_HTML_STRATEGY,
   IMAGE_CACHE_MAX_ENTRIES,
   IMAGE_CACHE_MAX_AGE_MS,
   ICON_CANDIDATES,

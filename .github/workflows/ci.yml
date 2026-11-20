@@ -196,6 +196,17 @@ jobs:
 
       - name: Build frontend (Vite)
         run: npm run build
+        env:
+          # Build de PRODUCTION, comme l'artefact publié par release.yml (qui ne pose pas de
+          # NODE_ENV). Avec le `NODE_ENV: test` du job, Vite embarquait la version de
+          # développement de React (deux fois plus lourde) : les smokes e2e ne testaient pas le
+          # bundle livré, et le budget de bundle ne mesurait rien d'utile (lot 2 UI/UX, U1).
+          NODE_ENV: production
+
+      # Budget de l'écran de connexion (audit UI/UX du 19/11/2026, U1) : JS et CSS décodés
+      # chargés avant la connexion, en cliquet. Détail : node scripts/check-bundle-budget.js --report
+      - name: Budget de bundle (entrée non connectée)
+        run: npm run check:bundle
 
       # Miroirs CJS (`lib/visit-pack/`, `lib/gl-pack/`, `lib/term-autolink/`) : requis au
       # runtime par l'API, qui tourne sans `src/` ; `npm run build` les régénère. Une dérive

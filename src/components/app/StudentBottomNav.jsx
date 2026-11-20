@@ -1,24 +1,30 @@
 /**
- * Navigation basse du chemin n3beur — extraite de `src/App.jsx` (O6).
+ * Navigation basse du chemin n3beur — extraite de `src/App.jsx` (O6), organisée en QUATRE
+ * PÔLES depuis le lot 6 de l'audit UI/UX du 19/11/2026 (U10) : Terrain / Vivant / Apprendre /
+ * Moi (`STUDENT_NAV_POLE_BY_TAB`). Jusqu'à 19 onglets s'empilaient à plat.
  *
- * Composant feuille purement piloté par props : l'onglet actif, les drapeaux
- * de modules et le compteur de tâches assignées restent calculés dans `App`
- * (aucun état déplacé, `onTabChange` = setTab). État local : tiroir « Plus ».
+ * Composant feuille purement piloté par props : l'onglet actif, les drapeaux de modules et le
+ * compteur de tâches assignées restent calculés dans `App` (aucun état déplacé, `onTabChange`
+ * = setTab). Le pôle actif est DÉRIVÉ de l'onglet courant (rien de nouveau n'est persisté),
+ * comme pour la barre prof (`TeacherTopTabs`) avec qui il partage `NavPoles.jsx`.
  *
- * Mobile / tactile (`layoutMode` compact) : 3–4 onglets primaires + bouton Plus
- * ouvrant un BottomSheet (pattern aligné sur GLMobileNav — audit iPhone 2026-09).
- * Desktop large : barre complète (comportement historique).
+ * Ordinateur (pointeur fin, ≥ `lg`) : rangée des pôles puis onglets du pôle actif, dans la
+ * même barre basse. Cliquer un pôle ouvre son premier onglet.
+ * Mobile / tactile (`layoutMode` compact) : 3–4 onglets primaires + bouton Plus ouvrant un
+ * BottomSheet groupé par pôles (pattern aligné sur GLMobileNav — audit iPhone 2026-09).
  *
- * Icônes : jeu SVG commun (src/shared/icons.jsx, audit D-2) — rendu identique sur tous
- * les appareils ; les emojis restent réservés au contenu métier.
+ * Icônes : jeu SVG commun (src/shared/icons.jsx, audit D-2), une icône propre par onglet.
  *
- * Accessibilité : l'onglet actif porte `aria-current="page"` ; l'icône est décorative
- * (`aria-hidden`).
+ * Accessibilité : l'onglet actif porte `aria-current="page"`, le pôle actif
+ * `aria-current="true"` ; les icônes sont décoratives (`aria-hidden`).
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-import { resolveStudentMobilePrimaryIds } from '../../constants/app-runtime.js';
-import { useMediaQuery } from '../../shared/hooks/useMediaQuery.js';
+import {
+  resolveStudentMobilePrimaryIds,
+  STUDENT_NAV_POLE_BY_TAB,
+} from '../../constants/app-runtime.js';
+import { MEDIA } from '../../shared/breakpoints.js';
 import {
   IconAbout,
   IconBiodiv,
@@ -26,8 +32,14 @@ import {
   IconForum,
   IconGlobe,
   IconGlossary,
+  IconIndividuals,
   IconMap,
+  IconNestedGroups,
   IconNotebook,
+  IconPoleField,
+  IconPoleLearn,
+  IconPoleLiving,
+  IconPoleMe,
   IconProfiles,
   IconQuiz,
   IconSearch,
@@ -39,30 +51,28 @@ import {
 } from '../../shared/icons.jsx';
 import { BottomSheet } from '../../shared/ui/BottomSheet.jsx';
 import { useBiodivPedago } from '../../contexts/BiodivPedagoContext.jsx';
+import { NavPoleButtons, NavSheetPoleGroups, resolveNavPoles, useCompactNav } from './NavPoles.jsx';
 import { UnreadDot } from './UnreadDot.jsx';
 
-const COMPACT_WIDTH_QUERY = '(max-width: 1023px)';
-const COMPACT_POINTER_QUERY = '(pointer: coarse)';
+/** Pôles élève, dans l'ordre d'affichage (`STUDENT_NAV_POLE_IDS`). */
+export const STUDENT_NAV_POLES = [
+  { id: 'field', label: 'Terrain', Icon: IconPoleField },
+  { id: 'living', label: 'Vivant', Icon: IconPoleLiving },
+  { id: 'learn', label: 'Apprendre', Icon: IconPoleLearn },
+  { id: 'me', label: 'Moi', Icon: IconPoleMe },
+];
 
-function NavButton({
-  id,
-  tab,
-  onTabChange,
-  icon,
-  children,
-  unread = false,
-  className = 'nav-btn',
-}) {
+function NavButton({ id, tab, onTabChange, Icon, children, unread = false }) {
   const isActive = tab === id;
   return (
     <button
-      className={`${className}${isActive ? ' active' : ''}`}
+      className={`nav-btn${isActive ? ' active' : ''}`}
       type="button"
       aria-current={isActive ? 'page' : undefined}
       onClick={() => onTabChange(id)}
     >
       <span className="nav-icon" aria-hidden="true">
-        {icon}
+        <Icon size={20} />
       </span>{' '}
       {children}
       <UnreadDot show={unread} />
@@ -71,8 +81,9 @@ function NavButton({
 }
 
 /**
- * Construit la liste ordonnée des onglets visibles (même ordre que la barre historique).
- * @returns {{ id: string, label: string, icon: import('react').ReactNode }[]}
+ * Construit la liste des onglets visibles, rangés par pôle (Terrain, Vivant, Apprendre, Moi).
+ * Chaque onglet porte son pôle (`STUDENT_NAV_POLE_BY_TAB`).
+ * @returns {{ id: string, label: string, Icon: Function, pole: string }[]}
  */
 export function buildStudentNavItems({
   canAccessStudentMapTasks,
@@ -101,64 +112,49 @@ export function buildStudentNavItems({
   const assignedSuffix =
     studentActiveAssignedTasksCount > 0 ? ` (${studentActiveAssignedTasksCount})` : '';
   const items = [];
+  const add = (id, label, Icon) =>
+    items.push({ id, label, Icon, pole: STUDENT_NAV_POLE_BY_TAB[id] });
 
-  if (isVisitor && visitEnabled) {
-    items.push({ id: 'visit', label: 'Visite', icon: <IconVisit size={20} /> });
-  }
+  // Terrain — le visiteur commence par la Visite.
+  if (isVisitor && visitEnabled) add('visit', 'Visite', IconVisit);
   if (canAccessStudentMapTasks && shouldUseDesktopSplit) {
-    items.push({
-      id: 'maptasks',
-      label: `${tutorialsModuleEnabled ? 'Cartes & tâches · tuto' : 'Cartes & tâches'}${assignedSuffix}`,
-      icon: <IconMap size={20} />,
-    });
+    add(
+      'maptasks',
+      `${tutorialsModuleEnabled ? 'Cartes & tâches · tuto' : 'Cartes & tâches'}${assignedSuffix}`,
+      IconMap,
+    );
   }
   if (canAccessStudentMapTasks) {
-    items.push({ id: 'map', label: 'Carte', icon: <IconMap size={20} /> });
-    items.push({
-      id: 'tasks',
-      label: `${tutorialsModuleEnabled ? 'Tâches · tuto' : 'Tâches'}${assignedSuffix}`,
-      icon: <IconTasks size={20} />,
-    });
+    add('map', 'Carte', IconMap);
+    add(
+      'tasks',
+      `${tutorialsModuleEnabled ? 'Tâches · tuto' : 'Tâches'}${assignedSuffix}`,
+      IconTasks,
+    );
   }
-  items.push({ id: 'plants', label: 'Biodiversité', icon: <IconBiodiv size={20} /> });
-  items.push({ id: 'quiz', label: 'Quiz', icon: <IconQuiz size={20} /> });
-  items.push({ id: 'glossary', label: 'Glossaire', icon: <IconGlossary size={20} /> });
-  items.push({ id: 'foodweb', label: 'Réseau', icon: <IconFoodweb size={20} /> });
-  if (showNestedGroups) {
-    items.push({ id: 'nested-groups', label: 'Groupes', icon: <IconBiodiv size={20} /> });
-  }
-  if (idKeysEnabled) {
-    items.push({ id: 'id-keys', label: 'Clés', icon: <IconSearch size={20} /> });
-  }
-  if (pedagoSessionsEnabled) {
-    items.push({ id: 'sessions', label: 'Séances', icon: <IconSessions size={20} /> });
-  }
-  if (fresqueEnabled) {
-    items.push({ id: 'fresque', label: 'Fresque', icon: <IconGlobe size={20} /> });
-  }
+  if (!isVisitor && visitEnabled) add('visit', 'Visite', IconVisit);
+
+  // Vivant.
+  add('plants', 'Biodiversité', IconBiodiv);
+  if (idKeysEnabled) add('id-keys', 'Clés', IconSearch);
+  add('foodweb', 'Réseau', IconFoodweb);
+  if (showNestedGroups) add('nested-groups', 'Groupes', IconNestedGroups);
   // Deux conditions cumulées : le niveau pédagogique (masqué au collège) ET l'interrupteur.
-  if (showIndividuals && individualsEnabled) {
-    items.push({ id: 'individuals', label: 'Individus', icon: <IconBiodiv size={20} /> });
-  }
-  if (tutorialsModuleEnabled && canAccessTutorials) {
-    items.push({ id: 'tuto', label: 'Tuto', icon: <IconTuto size={20} /> });
-  }
-  if (canViewGeneralStats) {
-    items.push({ id: 'stats', label: 'Stats', icon: <IconStats size={20} /> });
-  }
-  if (canAccessProfiles) {
-    items.push({ id: 'profiles', label: profilesLabel, icon: <IconProfiles size={20} /> });
-  }
-  if (observationsEnabled) {
-    items.push({ id: 'notebook', label: 'Carnet', icon: <IconNotebook size={20} /> });
-  }
-  if (!isVisitor && visitEnabled) {
-    items.push({ id: 'visit', label: 'Visite', icon: <IconVisit size={20} /> });
-  }
-  if (canAccessForum) {
-    items.push({ id: 'forum', label: 'Forum', icon: <IconForum size={20} /> });
-  }
-  items.push({ id: 'about', label: 'À propos', icon: <IconAbout size={20} /> });
+  if (showIndividuals && individualsEnabled) add('individuals', 'Individus', IconIndividuals);
+
+  // Apprendre.
+  add('quiz', 'Quiz', IconQuiz);
+  add('glossary', 'Glossaire', IconGlossary);
+  if (pedagoSessionsEnabled) add('sessions', 'Séances', IconSessions);
+  if (tutorialsModuleEnabled && canAccessTutorials) add('tuto', 'Tuto', IconTuto);
+  if (fresqueEnabled) add('fresque', 'Fresque', IconGlobe);
+
+  // Moi.
+  if (observationsEnabled) add('notebook', 'Carnet', IconNotebook);
+  if (canAccessForum) add('forum', 'Forum', IconForum);
+  if (canViewGeneralStats) add('stats', 'Stats', IconStats);
+  if (canAccessProfiles) add('profiles', profilesLabel, IconProfiles);
+  add('about', 'À propos', IconAbout);
 
   return items;
 }
@@ -191,17 +187,14 @@ export function StudentBottomNav({
   /** Point rouge sur l'onglet Forum : message d'autrui non lu. */
   hasForumUnread = false,
   /**
-   * `auto` : compact si max-width 1023px ou pointeur coarse.
+   * `auto` : compact sous `lg` (`MEDIA.belowDesktop`) ou pointeur grossier.
    * `compact` / `full` : forçage (tests).
    */
   layoutMode = 'auto',
 }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const navRef = useRef(null);
-  const widthCompact = useMediaQuery(COMPACT_WIDTH_QUERY);
-  const pointerCompact = useMediaQuery(COMPACT_POINTER_QUERY);
-  const isCompact =
-    layoutMode === 'compact' || (layoutMode === 'auto' && (widthCompact || pointerCompact));
+  const isCompact = useCompactNav({ widthQuery: MEDIA.belowDesktop, layoutMode });
   const { canShow } = useBiodivPedago();
   const showNestedGroups = canShow('nested_groups_tab');
   const showIndividuals = canShow('individuals_tab');
@@ -260,18 +253,34 @@ export function StudentBottomNav({
     [canAccessStudentMapTasks, visitEnabled, items],
   );
 
-  const primaryItems = useMemo(() => {
-    const byId = new Map(items.map((item) => [item.id, item]));
-    return primaryIds.map((id) => byId.get(id)).filter(Boolean);
-  }, [items, primaryIds]);
+  const navItems = useMemo(
+    () =>
+      hasForumUnread
+        ? items.map((item) => (item.id === 'forum' ? { ...item, unread: true } : item))
+        : items,
+    [items, hasForumUnread],
+  );
 
-  const overflowCount = Math.max(0, items.length - primaryItems.length);
+  const primaryItems = useMemo(() => {
+    const byId = new Map(navItems.map((item) => [item.id, item]));
+    return primaryIds.map((id) => byId.get(id)).filter(Boolean);
+  }, [navItems, primaryIds]);
+
+  const poles = useMemo(
+    () => resolveNavPoles({ poles: STUDENT_NAV_POLES, tabs: navItems, tab }),
+    [navItems, tab],
+  );
+
+  const overflowCount = Math.max(0, navItems.length - primaryItems.length);
   const showMore = isCompact && overflowCount > 0;
+  const showPoles = !isCompact;
   const showMoreActive = showMore && primaryItems.every((item) => item.id !== tab);
-  const barItems = showMore ? primaryItems : items;
-  const isUnread = (id) => id === 'forum' && hasForumUnread;
+  let barItems = navItems;
+  if (showMore) barItems = primaryItems;
+  else if (showPoles) barItems = poles.tabsOfPole(poles.activePoleId);
   const moreHasUnread =
-    showMore && items.some((item) => isUnread(item.id) && !barItems.includes(item));
+    showMore && navItems.some((item) => item.unread && !barItems.includes(item));
+  const activePoleLabel = STUDENT_NAV_POLES.find((p) => p.id === poles.activePoleId)?.label;
 
   useEffect(() => {
     const el = navRef.current?.querySelector('[aria-current="page"]');
@@ -285,25 +294,48 @@ export function StudentBottomNav({
     setDrawerOpen(false);
   }
 
+  const tabButtons = barItems.map((item) => (
+    <NavButton
+      key={item.id}
+      id={item.id}
+      tab={tab}
+      onTabChange={onTabChange}
+      Icon={item.Icon}
+      unread={Boolean(item.unread)}
+    >
+      {item.label}
+    </NavButton>
+  ));
+
+  let navClassName = 'bottom-nav';
+  if (showMore) navClassName += ' bottom-nav--compact';
+  else if (showPoles) navClassName += ' bottom-nav--poles';
+
   return (
     <>
-      <nav
-        ref={navRef}
-        className={`bottom-nav${showMore ? ' bottom-nav--compact' : ''}`}
-        aria-label="Navigation principale"
-      >
-        {barItems.map((item) => (
-          <NavButton
-            key={item.id}
-            id={item.id}
-            tab={tab}
-            onTabChange={onTabChange}
-            icon={item.icon}
-            unread={isUnread(item.id)}
-          >
-            {item.label}
-          </NavButton>
-        ))}
+      <nav ref={navRef} className={navClassName} aria-label="Navigation principale">
+        {showPoles ? (
+          <>
+            <NavPoleButtons
+              polesWithTabs={poles.polesWithTabs}
+              activePoleId={poles.activePoleId}
+              onTabChange={onTabChange}
+              className="bottom-nav__poles"
+              buttonClassName="nav-btn nav-btn--pole"
+              iconSize={18}
+              ariaLabel="Pôles"
+            />
+            <div
+              className="bottom-nav__tabs"
+              role="group"
+              aria-label={activePoleLabel ? `Onglets ${activePoleLabel}` : undefined}
+            >
+              {tabButtons}
+            </div>
+          </>
+        ) : (
+          tabButtons
+        )}
         {showMore ? (
           <button
             type="button"
@@ -331,28 +363,12 @@ export function StudentBottomNav({
           overlayClassName="fm-nav-drawer-overlay"
           initialSnap="half"
         >
-          <div className="fm-nav-drawer-tabs" role="list" aria-label="Tous les onglets">
-            {items.map((item) => {
-              const isActive = tab === item.id;
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  className={`fm-nav-drawer-tab${isActive ? ' is-active' : ''}`}
-                  aria-current={isActive ? 'page' : undefined}
-                  onClick={() => handleSelectFromDrawer(item.id)}
-                >
-                  <span className="fm-nav-drawer-tab__icon" aria-hidden="true">
-                    {item.icon}
-                  </span>
-                  <span className="fm-nav-drawer-tab__label">
-                    {item.label}
-                    <UnreadDot show={isUnread(item.id)} />
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+          <NavSheetPoleGroups
+            polesWithTabs={poles.polesWithTabs}
+            activePoleId={poles.activePoleId}
+            tab={tab}
+            onSelect={handleSelectFromDrawer}
+          />
         </BottomSheet>
       ) : null}
     </>

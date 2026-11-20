@@ -84,7 +84,11 @@ describe('fetchJsonWithRetry (boucle partagée)', () => {
     const events = [];
     const unsubscribe = subscribeAppStatus((detail) => events.push(detail));
     try {
-      await fetchJsonWithRetry('/api/test', { method: 'POST' }, { buildHttpError });
+      await fetchJsonWithRetry(
+        '/api/test',
+        { method: 'POST' },
+        { buildHttpError, getToken: () => 'jeton-compte' },
+      );
     } finally {
       unsubscribe();
     }
@@ -94,6 +98,23 @@ describe('fetchJsonWithRetry (boucle partagée)', () => {
     const retrying = events.find((e) => e.kind === 'retrying');
     expect(retrying.id).toBeTruthy();
     expect(retrying.maxAttempts).toBe(8);
+  });
+
+  test('public non connecté : phrase simple, sans compteur de tentatives (U2)', async () => {
+    vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(html503())
+      .mockResolvedValueOnce(jsonRes(200, { done: true }));
+    const events = [];
+    const unsubscribe = subscribeAppStatus((detail) => events.push(detail));
+    try {
+      await fetchJsonWithRetry('/api/test', { method: 'POST' }, { buildHttpError });
+    } finally {
+      unsubscribe();
+    }
+    const retrying = events.find((e) => e.kind === 'retrying');
+    expect(retrying.message).toBe('Le site redémarre, il revient dans un instant.');
+    expect(retrying.attempt).toBeUndefined();
+    expect(retrying.maxAttempts).toBeUndefined();
   });
 
   test('ne publie aucun événement de statut pour une requête sans réessai', async () => {
@@ -396,7 +417,15 @@ describe('fetchJsonWithRetry (boucle partagée)', () => {
     });
 
     await expect(
-      fetchJsonWithRetry('/api/test', { method: 'GET' }, { buildHttpError }),
+      fetchJsonWithRetry(
+        '/api/test',
+        { method: 'GET' },
+        { buildHttpError, getToken: () => 'jeton-compte' },
+      ),
     ).rejects.toThrow(/Impossible de charger le contenu/i);
+    // Public sans compte : la phrase simple, sans consigne technique (U2).
+    await expect(
+      fetchJsonWithRetry('/api/test', { method: 'GET' }, { buildHttpError }),
+    ).rejects.toThrow('Le site redémarre, il revient dans un instant.');
   });
 });

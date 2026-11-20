@@ -9,7 +9,7 @@
  * un seul style pour un seul geste, quel que soit l'écran.
  */
 import { renderMarkdownToSafeHtml, sanitizeRichHtml } from '../shared/platform/markdown.js';
-import { createTermAutolink } from './termAutolink.js';
+import { createTermAutolink } from '../shared/glossary/termAutolinkCore.js';
 
 const autolink = createTermAutolink({
   codeField: 'glossary_code',

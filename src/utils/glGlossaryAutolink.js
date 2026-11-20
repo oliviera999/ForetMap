@@ -2,7 +2,7 @@
  * Auto-liens glossaire GL dans texte / HTML markdown.
  */
 import { renderMarkdownToSafeHtml, sanitizeRichHtml } from '../shared/platform/markdown.js';
-import { createTermAutolink } from './glTermAutolink.js';
+import { createTermAutolink } from '../shared/glossary/termAutolinkCore.js';
 
 const autolink = createTermAutolink({
   codeField: 'glossary_code',

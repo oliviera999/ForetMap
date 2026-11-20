@@ -7,7 +7,8 @@
  *   - le miroir CJS `lib/term-autolink/termAutolink.js` (celui qui tourne en prod
  *     « runtime », sans dossier `src/`) ;
  *   - l'adaptateur ForetMap `lib/foretmapGlossaryAutolink.js` ;
- *   - la source ESM `src/utils/termAutolink.js`, chargée par import dynamique
+ *   - la source ESM `src/utils/termAutolink.js` (réexportation du noyau
+ *     `src/shared/glossary/termAutolinkCore.js`), chargée par import dynamique
  *     (même technique que `tests/gl-glossary-autolink.test.js`), pour vérifier que
  *     le miroir n'a pas divergé.
  *
@@ -87,7 +88,7 @@ describe('termAutolink — contenus à ne jamais lier (audit A3)', () => {
 
   test('le skip se referme correctement : le texte après </style> est lié', () => {
     const linked = autolinkHtmlTextNodes(
-      '<style>a{}</style>Le sol.<style>b{}</style>Le sol.',
+      '<style>a{}</style>Le sol.<style>b{}</style>Le milieu.',
       entries,
     );
     assert.equal(countLinks(linked), 2);
@@ -99,20 +100,20 @@ describe('termAutolink — éléments vides (audit A6)', () => {
 
   test('<img src="x"> non auto-fermé ne coupe pas les liens suivants', () => {
     const html =
-      '<p>Le sol est vivant.</p><p><img src="https://ex.org/a.png"></p><p>Encore le sol après l’image.</p>';
+      '<p>Le sol est vivant.</p><p><img src="https://ex.org/a.png"></p><p>Encore le milieu après l’image.</p>';
     const linked = autolinkHtmlTextNodes(html, entries);
     assert.equal(countLinks(linked), 2);
     assert.ok(linked.includes('<img src="https://ex.org/a.png">'));
   });
 
   test('<img … /> auto-fermé se comporte de la même façon', () => {
-    const linked = autolinkHtmlTextNodes('sol <img src="a.png" /> sol', entries);
+    const linked = autolinkHtmlTextNodes('sol <img src="a.png" /> milieu', entries);
     assert.equal(countLinks(linked), 2);
   });
 
   test('<br>, <hr> et <input> ne coupent pas non plus', () => {
-    const linked = autolinkHtmlTextNodes('sol<br>sol<hr>sol<input name="x">sol', entries);
-    assert.equal(countLinks(linked), 4);
+    const linked = autolinkHtmlTextNodes('sol<br>milieu<hr>sol vivant<input name="x">', entries);
+    assert.equal(countLinks(linked), 3);
   });
 
   test('tous les éléments vides HTML sont connus de VOID_TAGS', () => {
@@ -243,8 +244,8 @@ describe('termAutolink — non-régression de la détection', () => {
 
   test('les regex précompilées sont réutilisables (lastIndex remis à zéro)', () => {
     const built = entriesFor();
-    const first = autolinkPlainText('le sol et le sol', built);
-    const second = autolinkPlainText('le sol et le sol', built);
+    const first = autolinkPlainText('le sol et le milieu', built);
+    const second = autolinkPlainText('le sol et le milieu', built);
     assert.equal(first, second);
     assert.equal(countLinks(first), 2);
   });
@@ -309,11 +310,14 @@ describe('miroir CJS ↔ source ESM', () => {
 describe('GL — bug jumeau A6 de bout en bout', () => {
   test('les termes situés après une image markdown restent liés', () => {
     const html = renderGlMarkdownWithGlossaryLinks(
-      "Le sol est vivant.\n\n![photo](https://ex.org/a.png)\n\nEncore le sol après l'image.",
-      [{ glossary_code: 'GL0001', terme: 'sol' }],
+      "Le sol est vivant.\n\n![photo](https://ex.org/a.png)\n\nEncore la mare après l'image.",
+      [
+        { glossary_code: 'GL0001', terme: 'sol' },
+        { glossary_code: 'GL0002', terme: 'mare' },
+      ],
       { allowImages: true },
     );
     assert.ok(html.includes('<img'), 'l’image doit être rendue');
-    assert.equal((html.match(/data-gl-glossary-code="GL0001"/g) || []).length, 2);
+    assert.equal((html.match(/data-gl-glossary-code="GL000[12]"/g) || []).length, 2);
   });
 });
