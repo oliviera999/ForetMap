@@ -18,8 +18,13 @@ Pour chaque session, cela veut dire :
 - ne fusionne rien toi-même et ne touche pas aux branches `…-lot<n>` ;
 - la PR #712 reste la PR en brouillon du travail en cours ; le dernier lot passera par elle.
 
-Lots fusionnés ou en cours de fusion : lot 1 = PR #711 (fusionnée), lot 2 = PR #714, lot 3 =
-PR ouverte par S1 depuis `claude/gl-ecrans-de-seance-lot3`.
+Lots fusionnés ou en cours de fusion : lot 1 = PR #711 (fusionnée), lot 2 = PR #714 et lot 3 =
+PR #715 (fusionnées, `main` v1.255.0). **Lot 4 (S4) : fini, poussé sur
+`claude/gl-ecrans-de-seance`, à figer et fusionner par S1.**
+
+**Décision attendue d'Oliv (laissée par S4)** : en surface « tableau », l'ancien écran d'équipe
+est gardé tel quel (garde-fou 12). « Tout au tableau », touché en pleine séance, fait donc
+repasser les tablettes à l'ancien écran. Détail et marche à suivre dans la section S4.
 
 **Changement de plan du 20/11 au soir (demande d'Oliv : « merge et continue »).** Le lot de S1
 est fusionné sur `main` par la PR [#711](https://github.com/oliviera999/ForetMap/pull/711), avec
@@ -40,16 +45,16 @@ dans une **nouvelle PR en brouillon** :
 
 ## Sessions
 
-| Session | Lot                                       | État                    | Commits                                                                             |
-| ------- | ----------------------------------------- | ----------------------- | ----------------------------------------------------------------------------------- |
-| S1      | Préparation, textes, adresse, plateau     | faite, fusionnée (#711) | `8272b2e08` (prompt, captures), `e898eff3c` (étape 1), `552754187` (étape 2) + état |
-| S2      | Projection (étape 3)                      | faite                   | `4416079` (étape 3) + commits d'état                                                |
-| S3      | Tablette 1 : moteur de la carte du moment | faite                   | `c46fd3b` (lot), `9fe1eb9` (relecture garde-fous), `ae693b4` (CHANGELOG) + état     |
-| S4      | Tablette 2 : branchement                  | en cours                | —                                                                                   |
-| S5      | Console (étape 5)                         | à faire                 | —                                                                                   |
-| S6      | Accueil, docs, clôture (étapes 6 et 7)    | à faire                 | —                                                                                   |
+| Session | Lot                                       | État                    | Commits                                                                                      |
+| ------- | ----------------------------------------- | ----------------------- | -------------------------------------------------------------------------------------------- |
+| S1      | Préparation, textes, adresse, plateau     | faite, fusionnée (#711) | `8272b2e08` (prompt, captures), `e898eff3c` (étape 1), `552754187` (étape 2) + état          |
+| S2      | Projection (étape 3)                      | faite                   | `4416079` (étape 3) + commits d'état                                                         |
+| S3      | Tablette 1 : moteur de la carte du moment | faite                   | `c46fd3b` (lot), `9fe1eb9` (relecture garde-fous), `ae693b4` (CHANGELOG) + état              |
+| S4      | Tablette 2 : branchement                  | faite                   | `c9810be61` (lot), `0e471cbd3` (relecture garde-fous), `af1aa1f5c` (fusion de `main`) + état |
+| S5      | Console (étape 5)                         | à faire                 | —                                                                                            |
+| S6      | Accueil, docs, clôture (étapes 6 et 7)    | à faire                 | —                                                                                            |
 
-Sessions `bis` : aucune. Sessions lancées : 3 sur 8 au plus (la tentative de S2 par tâche
+Sessions `bis` : aucune. Sessions lancées : 4 sur 8 au plus (la tentative de S2 par tâche
 planifiée, arrêtée sans rien faire, ne compte pas).
 
 ### Relais : c'est la session S1 qui lance les suivantes (constat du 20/11, 19 h 25 UTC)
@@ -532,174 +537,294 @@ UTC : un lot fini est fusionné sans attendre les suivants), ce lot a sa propre 
 `[Non publié]` — « Modifié — G&L : écrans de séance, lot 3 (le moteur de la carte du moment) ».
 Pas de note de doc de référence : rien ne se voit à l'écran.
 
+## S4 — faite (20/11/2026, sur `main` v1.254.0, puis fusion de `main` v1.255.0)
+
+Lot : étape 4, partie 2 — le branchement de l'écran d'équipe en trois choses. Un commit de
+code (le lot), un commit de corrections après la relecture garde-fous, plus les commits d'état.
+`main` a bougé pendant la session (fusion du lot 3, v1.255.0) : fusionné à la fin
+(`git merge origin/main`), sans rebase.
+
+### Ce qui est fait
+
+- **`GLTenirEcranEquipe`** (`src/gl/components/tenir/`) : le conteneur — `GLTenirBandeau`, la
+  zone du plateau (reçu par la prop `board`), `GLTenirMoment` dans la colonne d'action, et
+  `GLTenirTiroir` posé par-dessus le plateau. `data-testid="gl-tenir-equipe"` sur la racine,
+  `gl-tenir-plateau` et `gl-tenir-action` sur les deux zones.
+- **Deux points de montage, un seul écran** : `GLTeamSessionView` (tablette, **tour ouvert ou
+  non** : l'ancien bloc « Le tour n'est pas ouvert » a disparu avec l'en-tête de session) et
+  `AppGL`, onglet du plateau (fonction de rendu `ongletDuPlateau`). Tous deux passent
+  `<GLMapView presentation="tenir" />` en `board`. `AppGL` pose `gl-app--ecran-equipe` sur sa
+  racine tant que l'écran est affiché.
+- **`useGlTenirEquipe`** (`src/gl/hooks/`) : toute la logique de l'ancien écran (instantané du
+  tour, question de case, Olu, péripétie, état périmé, main d'un autre appareil et son échéance,
+  version d'état, tour servi, cases à venir, réserve, présences, jet en suspens…), **sortie telle
+  quelle** de `GLTenirEquipeView`. Les deux écrans la lisent : une correction vaut pour les deux.
+- **`useGlTempsReelCoupe`** : vrai quand le socket de la session reste déconnecté plus de 4 s ;
+  au retour de la connexion, l'écran se relit une fois. L'icône « Relire l'écran » du bandeau
+  ne se montre que dans ce cas, ou tant que le message d'état périmé est affiché (12 s).
+- **Mise en page** (fin de `gl-tenir.css`, bloc « Mise en page de l'écran d'équipe ») : deux
+  colonnes à partir de `lg`, ou de `md` en paysage (62 fr / 38 fr, 320 px au moins) ; sinon
+  plateau en haut (55 fr) et feuille d'action en bas (45 fr). La tablette prend `100dvh` ; sur
+  un compte, `.gl-app--ecran-equipe` verrouille la fenêtre et l'écran prend ce que la barre de
+  l'application laisse. Bord doré du plateau en fouille (`.gl-tenir-ecran__plateau.is-fouille`).
+- **Olu, `olu-pf-comptes`** : « Le Marché et le Seuil s'ouvrent depuis le compte de chacun. »
+  est une ligne du catalogue (`data/gl/tenir/olu-lignes.json`, 101 lignes ; clé `comptes` dans
+  `PREMIERE_FOIS_CLES`). **Aucun évènement ne la désigne** : c'est la tablette qui la dit
+  (`useGlTenirOlu`, option `ligneDeLEcran`), une fois par onglet (`sessionStorage`), quand un
+  tour est ouvert et que le Marché n'est pas fermé pour la partie. Repli local si le catalogue
+  ne la sert pas (`OLU_LIGNE_COMPTES`, `tenirTextes.js`).
+- **Ce qui est ouvert ne survit pas au tour** : quand `tourCle` change, la saisie des dés et la
+  liste des sorts se referment, et les questions s'oublient (`caseQuestion.oublier`,
+  `chasse.oublierQuestion` : un vidage local, sans appel au serveur).
+- **Pastille de nouveauté du tiroir** : `useGlTenirTiroir` accepte une empreinte `null` (« pas
+  encore lu »). Sans cela la pastille s'allumait à chaque ouverture de l'écran, quand le carnet
+  finissait de charger.
+- **Docs de référence** : `guide-du-mj.md` (note « Écrans de séance : l'écran d'équipe en trois
+  choses », plus deux phrases devenues inexactes), `roles-et-connexion.md` (§ La tablette
+  d'équipe). `docs/API.md` et `data/gl/tenir/README.md` pour la ligne d'Olu. **CHANGELOG** :
+  entrée « lot 4 » sous `[Non publié]`.
+- **Tests** : `GLTenirEcranEquipe.test.jsx` (32), `useGlTempsReelCoupe.test.jsx` (4) ;
+  `GLTeamSessionView`, `GLDeuxEcrans`, `GLEscalier`, `GLUneMonnaie`, `tenir-chaines-interdites`
+  portés sur le nouvel écran ; `useGlTenirMomentHooks` (empreinte `null`). e2e
+  `gl-tenir-tablettes` et `gl-tenir-escalier` adaptés ; `gl-tenir-defis-trame` passe sans
+  retouche. Nouvelle fixture `e2e/fixtures/gl-plateau.fixture.js` (image de plateau de
+  substitution, voir l'écart de S2).
+- **Captures « après »** (`docs/captures/ecrans-de-seance/apres/`, écrites par les e2e) :
+  `tablette-geste-`, `-fouille-`, `-retour-`, `-tiroir-`, `-jet-en-suspens-`,
+  `-main-ailleurs-1024x768.png`, `compte-eleve-geste-1024x768.png`, `telephone-geste-` et
+  `telephone-tiroir-390x844.png`.
+
+### Surface « tableau » : l'ancien écran est gardé (décision par défaut, à trancher par Oliv)
+
+Garde-fou 12 : « au tableau, rien ne change sans décision ». Faute de décision, **quand
+`tenir.surface === 'tableau'`, les deux points de montage rendent exactement ce qu'ils
+rendaient avant** : `GLTenirEquipeView` (les cinq boutons, grisés) puis le plateau classique ;
+sur la tablette, l'en-tête de session, « Le tour n'est pas ouvert », « Actualiser » et la
+phrase sur les comptes. `GLTenirEquipeView.jsx`, ses styles et ses tests
+(`GLTenirEquipeView.test.jsx`, inchangé) restent donc dans le dépôt.
+
+Ce que cela donne en classe, et qu'Oliv doit savoir : **« Tout au tableau », touché en pleine
+séance, fait repasser les tablettes de l'écran en trois choses à l'ancien écran empilé** ; elles
+reviennent au nouveau quand le prof rend la main. Le moteur de S3 sait pourtant dire « Le tour
+se joue au tableau. » dans le nouvel écran : si Oliv le préfère, il suffit de retirer la
+condition `surface !== 'tableau'` aux deux points de montage (`auTableau` dans
+`GLTeamSessionView`, `ecranEquipeEnTrois` dans `AppGL`), puis de supprimer `GLTenirEquipeView`,
+son test et les règles `.gl-tenir-equipe__gestes`, `.gl-tenir-maintenant` devenues orphelines.
+
+### Écarts avec le prompt (étape 4), et pourquoi
+
+1. **`GLTenirEquipeView` ne disparaît pas** (voir ci-dessus) : il sert la surface « tableau ».
+2. **L'état `camp` de la carte du moment ne se produit pas aujourd'hui.** Le compte ne monte
+   l'écran d'équipe que pour une partie `live` (c'était déjà vrai de l'ancien écran : son
+   `GLCeQuiChange` était du code mort), et la tablette perd sa session quand la partie se clôt.
+   « Ce qui change » se lit au Seuil et à la projection. La question laissée par S1 (« Ton
+   peuple : Tu passes… » dit à une tablette d'équipe) est donc **sans objet** : rien n'a été
+   touché dans `lib/glCeQuiChange.js`.
+3. **Mise en page étroite : 55 % de la zone, pas 55 dvh.** Le plateau prend 55 % de ce qui
+   reste sous le bandeau (et sous la barre de l'application, sur un compte). Avec 55 dvh fixes,
+   la feuille d'action d'un téléphone connecté à un compte n'aurait eu que 172 px.
+4. **Fenêtre trop basse : la page défile.** Téléphone couché (moins de 768 px de large et de
+   560 px de haut), et sur un compte toute fenêtre de moins de 600 px de haut : l'écran n'est
+   plus verrouillé, le plateau garde 240 px au moins. Sans cela le plateau d'un compte faisait
+   24 px de haut à 844 × 390.
+5. **Tiroir sur téléphone : sous le bandeau, pas « plein écran ».** Il couvre le plateau et la
+   feuille d'action ; le bandeau (et son bouton « L'équipe ») reste visible. `position: fixed`
+   ne tenait pas : la zone de contenu d'`AppGL` porte une transformation (`fade-in`).
+6. **`olu-pf-comptes` est dite par l'écran, pas par le serveur** (voir plus haut) : aucune
+   route, aucun évènement, aucune table ne change. Elle se dit une fois par onglet de tablette,
+   pas une fois par partie.
+7. **Dés tirés par le serveur : toujours deux touchers** (« Lancer les dés », puis « Lancer 2
+   dés » dans `GLTourDesSaisie`), comme avant. La piste de S3 (lancer directement) n'a pas été
+   prise : le prompt garde la saisie, et un toucher de trop vaut mieux qu'un jet parti par
+   mégarde.
+
+### Choix faits sans demander (à reporter dans la PR finale, § 9.3)
+
+1. **Hors tour, la tablette garde l'écran en trois choses** : le plateau, « Le prof ouvre
+   bientôt le tour. » (ou « Le tour est terminé. » avec le défi à préparer) et l'entrée « Défis
+   de la Trame ». Le carnet se consulte dans le tiroir. Le texte « Le tour n'est pas ouvert.
+   Regardez le plateau et le carnet de la classe en attendant le prof. » n'existe plus que
+   pour la surface « tableau ».
+2. **Le nom de la classe** (« · Sixième B ») n'est plus affiché sur la tablette : il vivait
+   dans l'en-tête de session, supprimé (K3).
+3. **« Changer d'équipe »** est dans le tiroir. Tant que l'écran n'est pas là (chargement,
+   panne du serveur), un en-tête de secours le garde à portée.
+4. **Pendant le tour, le défi à préparer n'est visible que dans le tiroir** (il revient dans
+   la carte du moment tour terminé) : c'est le tableau du prompt. L'ancien écran le montrait
+   en permanence.
+5. **Les six cases à venir ne se voient plus sans ouvrir le tiroir** (prompt). À surveiller en
+   classe : elles servaient à choisir entre lancer tout de suite et jeter un sort d'abord.
+6. **Reconnexion** : délai de grâce de 4 s avant de montrer l'icône ; relecture automatique au
+   retour de la connexion (sinon l'icône disparaîtrait au moment où elle sert).
+7. **`olu-pf-comptes`** : `seance_escalier` 4 (la séance où le Marché ouvre), expression
+   `explique`. Pas dite tant que `settings.marche === false`.
+8. **Sur un compte, le bouton de coupure de la musique de zone** passe dans les commandes
+   flottantes quand l'écran d'équipe est affiché (le plateau épuré n'a plus le sien).
+9. **Commandes flottantes d'un compte** (aide, notifications) : la colonne d'action leur laisse
+   la place en fin de défilement ; sur un téléphone, une gouttière à droite (la carte du moment
+   y fait 310 px de large au lieu de 366).
+10. **« Touchez la carte · 2 fouilles »** passe en `--text-lg` (il coupait après le point
+    médian dans une colonne de 365 px).
+
+### Contrats de test changés (à reporter dans la PR finale, § 9.4)
+
+| Avant                                                         | Après                                                                                                  |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| un geste fermé : bouton `[data-geste]` **grisé** (`disabled`) | bouton **absent** ; `[data-geste]:disabled` ne trouve jamais rien                                      |
+| cinq boutons toujours présents                                | un gros bouton `.gl-tenir-moment__gros[data-geste]`, puis trois puces au plus dans `gl-tenir-puces`    |
+| `[data-geste-possible]`, « Maintenant, vous pouvez… » (`h4`)  | disparus ; le rôle est dans `.gl-tenir-moment__role` (gros bouton) et en `title` des puces             |
+| bouton « Actualiser »                                         | disparu ; `gl-tenir-reconnexion` seulement si coupure ou état périmé                                   |
+| `gl-team-session-attente`, `gl-team-session-comptes`          | disparus (sauf surface « tableau ») ; `gl-tenir-moment-attente` / `-clos`, et la bulle d'Olu           |
+| `gl-tenir-cases-a-venir`, `gl-tenir-reserve`, `gl-defis-case` | dans le tiroir : ouvrir `gl-tenir-tiroir-bouton` d'abord (le défi revient dans la carte, tour terminé) |
+| « Lancer » (`name: 'Lancer', exact`)                          | « Lancer les dés » / « Lancer le dé »                                                                  |
+| « Jet saisi : en attente du clic du prof. »                   | « Jet saisi : le prof valide. » (`gl-tenir-moment-jet_attente`)                                        |
+| l'écran d'équipe n'existe sur la tablette que tour ouvert     | il est là dès que la partie est chargée ; attendre `gl-tenir-moment[data-etat="geste"]` pour le tour   |
+| en retrait, sous le voile : mentions dans la ligne de phase   | lignes `gl-tenir-en-retrait`, `gl-tenir-sous-voile` au-dessus de la carte                              |
+
+Nouveaux : `gl-tenir-plateau`, `gl-tenir-action`, `data-surface` sur la racine, classe
+`gl-app--ecran-equipe`.
+
+### Constats du § 3 : état après S4
+
+| #   | État                                                                                                                                            |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| K1  | **Corrigé** : à 1024 × 768 le plateau commence à 53 px (tablette) ; sur un compte, à 241 px, sous la barre de l'application (voir « Pour S5 »). |
+| K2  | **Corrigé** : gestes fermés absents ; ordre répondre, lancer, fouiller, lire, sorts.                                                            |
+| K3  | **Corrigé** : un seul bandeau, sans mot de surface.                                                                                             |
+| K13 | Rien de neuf (le tutoiement de « Ce qui change » n'atteint pas l'écran d'équipe : écart 2).                                                     |
+
+Tous trois restent vrais en surface « tableau » (ancien écran gardé).
+
+### Mesures à l'écran (Chromium, vrai écran, partie d'essai : 2 membres, tour en jeu, état `geste` avec 2 puces et « Il manque quelqu'un ? »)
+
+| Fenêtre    | Écran    | Bandeau | Plateau (y, hauteur) | Colonne ou feuille d'action             | Page défile |
+| ---------- | -------- | ------- | -------------------- | --------------------------------------- | ----------- |
+| 1024 × 768 | tablette | 53 px   | 53, 715 × 635 large  | 389 px de large, tout visible           | non         |
+| 1366 × 768 | tablette | 53 px   | 53, 715              | 519 px, tout visible                    | non         |
+| 1280 × 800 | tablette | 53 px   | 53, 747              | 486 px, tout visible                    | non         |
+| 768 × 1024 | tablette | 82 px   | 82, 518              | feuille de 424 px, tout visible         | non         |
+| 390 × 844  | tablette | 78 px   | 78, 421              | feuille de 345 px, tout visible         | non         |
+| 844 × 390  | tablette | 83 px   | 83, 307              | 321 px ; 24 px à faire défiler          | non         |
+| 640 × 360  | tablette | 78 px   | 78, 252              | sous le plateau                         | oui (voulu) |
+| 1024 × 768 | compte   | 53 px   | 241, 483             | 389 px, tout visible                    | non         |
+| 1366 × 768 | compte   | 53 px   | 241, 483             | 519 px, tout visible                    | non         |
+| 768 × 1024 | compte   | 82 px   | 320, 363             | feuille de 297 px ; Olu à faire défiler | non         |
+| 390 × 844  | compte   | 78 px   | 171, 311             | feuille de 254 px ; Olu à faire défiler | non         |
+| 844 × 390  | compte   | 83 px   | 322, 443             | à côté du plateau                       | oui (voulu) |
+
+Aucun bouton sous 44 px. Les e2e contrôlent 1024 × 768 (tablette et compte) et 390 × 844
+(compte) ; les autres lignes ont été mesurées par une spec temporaire, non versionnée.
+
+### Relecture `gl-relecteur-garde-fous` sur le lot, et ce qui en a été fait
+
+Aucun manquement dans les textes (mots interdits, adresse, cœurs, « Non »), ni sur les
+garde-fous 6 (bourses), 11 (attentes) et 12 (surface « tableau » : rendu comparé prop par prop
+à celui d'avant, identique). Deux manquements sur le garde-fou 9 (« l'écran cache un geste
+fermé »), tous deux hérités de l'ancien écran et refusés sans perte par le serveur ; corrigés
+dans le second commit, chacun avec son test (les tests échouent si l'on retire la correction) :
+
+1. **Le plateau restait armé pour la fouille** quand le droit se fermait (phase qui change,
+   main prise ailleurs, dernière fouille jouée par un autre appareil) : chaque toucher partait
+   au serveur, qui refusait. Le mode fouille se désarme maintenant seul, et au changement de
+   tour.
+2. **L'élève qui regarde le tour** (absent ou en retrait, sur son compte) voyait « Garder ce
+   jet », « Accepter » une tablette et les présences, alors que le serveur lui refuse tout
+   (403). Ces trois blocs ne lui sont plus montrés ; son message reste dans la carte.
+
+Remarques suivies : l'onglet du plateau d'un compte dont l'équipe n'est pas dans la partie
+garde le plateau classique (sinon l'écran, donc le plateau, disparaissait) ; une demande
+d'appareil échoit localement, comme la main ; la saisie des dés se referme quand « lancer » se
+ferme sans changement de tour ; `olu-pf-comptes` retirée du catalogue (`actif: false`) ne se
+dit plus (le repli ne sert que si le catalogue n'a pas pu être lu).
+
+Remarque **non traitée** (logique déplacée telle quelle, hors lot) : la péripétie n'a pas de
+sortie au changement de phase, et ses dix minutes ne sont recalculées qu'à l'arrivée d'un
+évènement. « On passe » reste toujours disponible.
+
+### Écarts trouvés dans le code et dans l'environnement
+
+- **Le temps réel fonctionne dans les e2e** : les écrans suivent le tour sans rechargement.
+  Les specs gardent quand même une sortie (`attendreEtat` recharge la page si l'état attendu
+  n'arrive pas), puisqu'il n'y a plus de bouton « Actualiser » à toucher.
+- **`position: fixed` ne vaut rien sous la zone de contenu d'`AppGL`** : `.gl-main-inner` porte
+  l'animation `fade-in` (`animation-fill-mode: both`, avec une transformation), qui en fait le
+  bloc conteneur des éléments fixes. À savoir pour tout panneau « plein écran » monté dans un
+  onglet ; `GLDefisEntree` s'en sort par un portail vers `document.body`.
+- **`.gl-topbar` a `min-height: 0`** : dans une colonne flex à hauteur fixe, elle se tasse et
+  ses boutons débordent. D'où `.gl-app--ecran-equipe > :not(.gl-main) { flex-shrink: 0 }`.
+- **`npm test` compte 6 594 tests sans `npm run build`, 6 600 après** : six tests du pack
+  mascotte ne s'enregistrent que si le miroir `lib/visit-pack/` est à jour. Ce n'est pas une
+  régression quand le chiffre bouge de six.
+- **Deux lignes « première fois » sans déclencheur** : `olu-pf-main` (« Un seul écran joue à la
+  fois… ») n'est désignée par aucun évènement du serveur (le test dit : « attend le lot
+  plusieurs appareils ») — elle **ne se dit donc jamais** aujourd'hui, alors que S1 l'a
+  réécrite. À signaler à Oliv ; `olu-pf-comptes` montre comment un écran peut dire lui-même
+  une ligne.
+- **Captures `docs/captures/tenir-v2/`** : les e2e y réécrivent leurs images, qui montreraient
+  désormais le nouvel écran. Elles ont été remises telles quelles (`git checkout`), comme aux
+  sessions précédentes : les images « après » sont dans `ecrans-de-seance/apres/`. S6 dira si
+  `tenir-v2` doit être rafraîchi.
+- `main` : fusion du lot 3 (PR #715, v1.255.0) pendant la session ; seul le numéro de version
+  a changé pour la branche. PR ouvertes : #712 (celle-ci) et #713 (shell ForêtMap, voir S3).
+- Avertissements de lint : 321, comme sur `main` ; le lot n'en ajoute aucun (celui de
+  `useGlTenirEquipe.js` a suivi le code sorti de `GLTenirEquipeView.jsx`).
+- **Deux e2e G&L échouent déjà sur `main`** dans ce conteneur : `gl-users-admin.spec.js`,
+  « admin GL / MJ GL peut voir comme un joueur… » (le clic sur « Voir comme » ne rend pas la
+  main à Playwright, alors que la prise de contrôle a bien lieu). Rejoués sur `main` v1.255.0
+  dans un arbre de travail séparé : mêmes deux échecs. Hors lot ; à regarder par S5 ou S6
+  (les sessions précédentes ne lançaient pas ce spec).
+- **Le banc n'est pas reproductible au chiffre près, même à graine fixée.** Cinq exécutions de
+  `tablette-parallele-absences --seed 1` (trois sur la branche, dont deux sur base fraîche,
+  une sur `main`) : 541 à 582 appels, pages tenues 7 à 9 sur 10, voile 25 à 100 %. Le scénario
+  joue les équipes en parallèle : l'ordre d'arrivée des requêtes change le tirage. Ce qui ne
+  bouge pas : « ok », 5 séances, **attendus 8/11 (manqués : equipesSousVoile, carnetComplet,
+  partGnomes)**, aucun mot interdit servi, catalogues `refuses: []`. S6 ne retrouvera donc pas
+  « 562 appels » : comparer les attendus, pas les décimales.
+
+### Vérifications de S4
+
+| Commande                                                                      | Résultat                                                               |
+| ----------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| Avant le lot : `npm run test:ui`, `npm test`                                  | 822 fichiers, 6 354 tests ; 6 594 tests (2 ignorés), avant tout build  |
+| `npm run lint`                                                                | 0 erreur (321 avertissements, déjà là)                                 |
+| `npm run format:check`                                                        | vert                                                                   |
+| `npm run test:ui` (état final, `main` v1.255.0 fusionné)                      | 824 fichiers, 6 395 tests                                              |
+| `npm test`                                                                    | 6 600 tests, 6 598 verts, 2 ignorés, 0 échec                           |
+| Gardes statiques et test du catalogue d'Olu, rejoués sur l'état final         | 99 / 99                                                                |
+| `npm run test:content`                                                        | 154 tests                                                              |
+| `NODE_ENV=production npm run build`, `check:bundle`, `check:runtime`          | JS 1 529,1 Ko (plafond 1 530), CSS 376,8 Ko ; conforme                 |
+| e2e `gl-tenir-*` (tablettes, escalier, defis-trame, ecrans-relus, projection) | 7 / 7                                                                  |
+| e2e `e2e/gl-*.spec.js`, tous                                                  | 61 verts, 2 ignorés, **2 échecs déjà présents sur `main`** (ci-dessus) |
+| Banc `tablette-parallele-absences --seed 1` (base `foretmap_sim` fraîche)     | ok, attendus 8/11 ; chiffres non reproductibles (ci-dessus)            |
+| Import des catalogues sur la base du banc (`gl:sim:db`)                       | `refuses: []`                                                          |
+
+`npm test` a tourné sur le premier commit du lot ; les corrections de la relecture ne touchent
+que `src/gl/` et `tests-ui/`, et la suite UI, les gardes statiques, le build et les e2e ont été
+rejoués **après**, sur l'état fusionné. Le budget du bundle n'a pas bougé (l'écran d'équipe vit
+dans le morceau G&L).
+
 ## Ce que la session suivante doit savoir
 
-### Pour S4 (tablette, branchement)
+### Pour S4 (tablette, branchement) : fait
 
-**Le montage, en une fois.** `GLTenirEcranEquipe` reprend les hooks et les dérivations de
-`GLTenirEquipeView` (lignes 60 à 290 : `tourApi`, `caseQuestion`, `olu`, `peripetie`, état
-périmé, `mainAilleurs`, `round`, `maVue`, `maintenant`, `encordeePar`, `presence`,
-`jetEnSuspens`, `jetEnAttente`) et remplace son rendu par :
-
-```jsx
-const membres = mates; // roster DÉJÀ filtré sur l'équipe (le roster d'un compte porte la classe)
-const fouilles = chasse?.carnet?.fouilles || null;
-const aLance = !!maVue?.hasRolledDiceThisRound;
-const des = maVue?.desProchainJet || tenir.settings?.des_count || 2;
-const tourCle = `${round?.number || 0}:${round?.phase || ''}`;
-const { retour, acquitter } = useGlTenirRetour({
-  verdict: chasse?.dernierVerdict,
-  caseFeedback: caseQuestion.feedback,
-  tourCle,
-});
-const tiroir = useGlTenirTiroir({
-  empreinte: empreinteDuTiroir({ carnet: chasse?.carnet, reserve, absents: presence?.absents }),
-});
-const moment = momentDeLEquipe({
-  peripetie,
-  mainAilleurs,
-  appareils: tenir.equipe?.appareils,
-  questionCase: !!caseQuestion.question,
-  questionChasse: !!chasse?.question,
-  jetEnSuspens,
-  saisieDes: pending === 'lancer',
-  jetEnAttente,
-  retour,
-  maintenant,
-  fouilleMode,
-  fouillesRestantes: fouilles ? fouilles.restantes : null,
-  des,
-  sortsOuverts,
-  phase: round?.phase || null,
-  partieFinie: gameState?.game?.status === 'ended',
-  spectateur: tenir.spectateur === true,
-  surface: tenir.surface,
-  tourJoue: tourEstJoue({ aLance, auCamp: !!maVue?.auCamp, fouilles }),
-  presenceOuverte: !!presence,
-  aucunGeste: aucunGesteDuTour({ aLance, fouilles }),
-});
-const lignes = bandeauxDuMoment({
-  etatPerime,
-  encordeePar,
-  unDe: !!maVue?.unDe,
-  desProchainJet: maVue?.desProchainJet,
-  enRetrait: !!tenir.enRetrait,
-  sousVoile: estSousVoile({
-    fouilles,
-    pathIndex: maVue?.pathIndex,
-    voilePosition: tenir.state?.voilePosition,
-  }),
-});
-const onGeste = (geste) => {
-  acquitter(); // le geste suivant acquitte le retour
-  if (geste === 'lancer') setPending('lancer');
-  else if (geste === 'repondre')
-    onRepondre ? onRepondre() : caseQuestion.presenter(questionDue.markerId);
-  else if (geste === 'fouiller') chasse.setFouilleMode(true);
-  else if (geste === 'lire') tiroir.ouvrir('carnet');
-  else if (geste === 'jeter') setSortsOuverts((v) => !v);
-};
-```
-
-puis `<GLTenirBandeau team round sablier membres tiroirOuvert={tiroir.ouvert} tiroirId
-nouveaute={tiroir.nouveau} onTiroir={tiroir.basculer} reconnexion onReconnecter />`,
-`<GLTenirMoment moment lignes gameId teamName settings={tenir.settings} equipe={tenir.equipe}
-caseQuestion chasse jetEnSuspens des peripetie retour presence membres olu cleDeRelecture
-occupe={tourApi.busy} erreurs={[tourApi.error, caseQuestion.error, chasse?.error]} onGeste
-onArreterFouille onContinuer={acquitter} onOuvrirPiste onGarderJet onRelance onLancer
-onQuitterSaisie onPasserPeripetie onPresences onArrivee onJeterSort onRecharger />` et
-`<GLTenirTiroir ouvert={tiroir.ouvert} section={tiroir.section} id onFermer={tiroir.fermer}
-gameId casesAVenir reserve chasse peutLire={!!perms.lire} tablette onChangerEquipe modules
-presence membres spectateur occupe onPresences onArrivee cleDeRelecture />`. Les tests d'écran
-de S3 montrent chaque prop en situation.
-
-**À ne pas oublier en branchant** (relevé par la relecture garde-fous ou vu en écrivant) :
-
-- **Vider les questions quand `tourCle` change** (`caseQuestion.fermer`, `chasse.clearQuestion`
-  — attention, tous deux rendent la main au serveur ; un simple vidage local suffit). Le moteur
-  ne les montre plus hors de la phase de jeu, mais une question périmée reviendrait au tour
-  suivant.
-- **`main_ailleurs` n'a aucun bouton** : garder la minuterie d'échéance (`mainEchue`,
-  `GLTenirEquipeView` l. 144-164), sinon la carte reste sur « … prépare un sort… » après 60 s.
-  Passer `mainAilleurs` (pas `mainServie`) au moteur.
-- **`peripetie`** : garder le filtre « moins de 10 minutes » et `peripetiesPassees` ; passer
-  `onPasserPeripetie` (le passage seul à 30 s en dépend).
-- **`appareil`** : passer `onRecharger` (la relecture à l'échéance des 2 minutes en dépend).
-- **`membres`** : `mates`, jamais `gameState.roster` brut (sinon une pastille par élève de la
-  classe dans le bandeau).
-- **`peutLire`** : `!!perms.lire` (réglage `lecture_pendant_tour` éteint : le carnet se consulte
-  sans « Lire »). Hors tour sur la tablette, l'ancien écran montrait le carnet en lecture seule.
-- **Bord doré de la fouille** : sur la zone du **plateau** (le conteneur lit `chasse.fouilleMode`
-  ou `moment.fouille`) ; l'ancienne règle `.gl-tenir-equipe.is-fouille` (contour pointillé) part
-  avec l'ancien écran.
-- **Tiroir** : il est en `position: absolute` (`inset-inline-start: 0`, 28 rem de large) : son
-  parent — la zone sous le bandeau — doit être en `position: relative`. À 640 px et moins il
-  passe en `position: fixed` plein écran. Palier `--fm-z-panel` (sous les modales : la
-  péripétie et l'assistant de sort passent devant).
-- **Surface « tableau »** : l'écran d'équipe d'un compte y est monté aussi (`AppGL`, onglet
-  `maps`). Le moteur y dit « Le tour se joue au tableau. » ; garde-fou 12 (« au tableau, rien ne
-  change sans décision ») : à signaler dans la PR, ou garder l'ancien rendu pour cette surface.
-- **Dés tirés par le serveur** (`des_mode_effectif = 'serveur'`) : le gros bouton « Lancer les
-  dés » ouvre `saisie_des`, qui montre « Lancer 2 dés » — deux touchers, comme avant. S4 peut
-  lancer directement dans `onGeste('lancer')` quand le mode est `serveur` (une ligne) ; non fait
-  ici, le prompt gardant `GLTourDesSaisie`.
-- **Chaque fouille coûte un toucher de plus** qu'avant (verdict → « Continuer » → « Fouiller ») :
-  c'est le tableau du prompt. Si Oliv veut l'éviter, la piste est de montrer le verdict
-  « froid / tiède / chaud » comme une ligne au-dessus du bouton au lieu d'un état `retour`.
-- **`jet_attente` cache les autres gestes** pendant que le prof valide (tableau du prompt) ;
-  l'ancien écran n'affichait qu'une mention.
-- **Colonne d'action à 768 px en paysage** : avec « ≈ 38 %, min 320 px », elle ferait 292 px ;
-  la carte du moment y tient (mesurée à 296 px), mais les puces passent sur deux lignes.
-- **Ligne d'Olu `olu-pf-comptes`** (« Le Marché et le Seuil s'ouvrent depuis le compte de
-  chacun. ») : à ajouter au catalogue quand la phrase quitte `GLTeamSessionView` (voir le skill
-  `gl-tenir-catalogue` : JSON, exemple, synchronisation, test de contenu).
-- **Contrats de test gardés** par les composants : `gl-tenir-maintenant` (carte en état
-  `geste`), `data-geste` sur le gros bouton, chaque puce et « Arrêter de fouiller »,
-  `gl-tenir-jet-suspens`, `gl-tenir-garder-jet`, `gl-tenir-relance`, `gl-tenir-piste-reponse`,
-  `gl-tenir-case-retour`, `gl-tenir-un-de`, `gl-tenir-encorde`, `gl-tenir-etat-perime`,
-  `gl-tenir-reserve`, `gl-tenir-cases-a-venir`, `gl-tenir-fouilles`, `gl-tenir-main`,
-  `gl-tenir-spectateur`, `gl-tenir-appareils`, `gl-sablier-phase`, `gl-olu-bulle`. **Nouveaux** :
-  `gl-tenir-bandeau`, `gl-tenir-phase`, `gl-tenir-bourses`, `gl-tenir-tiroir-bouton`,
-  `gl-tenir-tiroir-nouveau`, `gl-tenir-reconnexion`, `gl-tenir-moment` (+ `data-etat`),
-  `gl-tenir-moment-<etat>`, `gl-tenir-puces`, `gl-tenir-lignes`, `gl-tenir-retour`,
-  `gl-tenir-continuer`, `gl-tenir-quitter-saisie`, `gl-tenir-tiroir`, `gl-tenir-tiroir-fermer`,
-  `gl-tenir-tiroir-carnet`, `gl-tenir-changer-equipe`. `data-testid="gl-tenir-equipe"` (racine)
-  reste à poser par le conteneur. **Disparus avec l'ancien écran** : `data-geste-possible`
-  (liste « Maintenant, vous pouvez… »), les boutons grisés.
-- Les tests qui montent `GLTenirEquipeView` (`GLTenirEquipeView.test.jsx`, `GLDeuxEcrans`,
-  `GLUneMonnaie`, `GLEscalier`, `tenir-chaines-interdites`) sont à porter sur le nouveau
-  conteneur.
-
-**Notes de S1 et S2, toujours valables :**
-
-- **Ne pas se fier au test `GLGameBoardPresentation`** pour compter les boutons du plateau : il
-  simule `GLBoardMarkers`. En présentation `tenir`, les cases restent des boutons (c'est voulu :
-  on les touche pour fouiller). Vérifier dans le e2e.
-- `GLBoardMarkers` a maintenant une prop `statique` (projection seulement) : ne pas la passer en
-  `tenir`.
-- Les mentions d'équipe (« sous le voile », « ce tour-ci : un seul dé »…) ont une fonction pure
-  dans `GLProjectionView.jsx` (`mentionsDEquipe`) : les bandeaux d'une ligne de la carte du
-  moment disent la même chose avec d'autres données (`maVue.unDe`, `fouilles.sousVoile`) ; à
-  réunir seulement si cela simplifie, sinon laisser.
-- `PHASE_AUCUN_TOUR` est maintenant le texte « sans tour » de la projection aussi : l'état
-  `attente` de la carte du moment doit dire les mêmes mots.
-- Le e2e de la projection montre comment mesurer « rien ne défile » et « rien n'est coupé »
-  (`mesures(page)` dans `e2e/gl-tenir-projection.spec.js`) : à reprendre pour l'assertion
-  « carte visible sans défilement » de S4.
-
-- `GLMapView` transmet `presentation="tenir"` : un seul bouton « Recentrer » (nommé), gestes
-  gardés. Vérifié dans un vrai navigateur dans un conteneur de 520 px.
-- **À traiter en S4** : « Ce qui change au prochain chapitre » est servi par le serveur
-  (`lib/glCeQuiChange.js`). Quand l'équipe est connue, il dit « Ton peuple : Tu passes chez
-  les … » et « Tes nouveaux sorts », y compris sur une tablette d'équipe. S1 ne l'a pas touché
-  (texte de `lib/`, hors du périmètre de l'étape 1). En déplaçant `GLCeQuiChange` dans l'état
-  `camp`, décider : soit la route rend la forme « vous » à une session d'équipe (la fonction a
-  déjà les deux formes), soit on garde le tu en l'ajoutant aux exceptions signalées.
-- `GLTenirEquipeView` : les libellés de phase passent par `titreDuTour` ; le texte sans tour
-  est `PHASE_AUCUN_TOUR`. Les `VERDICT_TEXTES` du composant doublonnent `TENIR_VERDICT_TEXTES`
-  (`tenirTextes.js`, lu seulement par un test) : à réunir quand le bloc `retour` sera déplacé.
+Le mode d'emploi du branchement écrit par S3 a été suivi et retiré d'ici (il reste dans
+l'historique : `git show 7fe4262f4:docs/prompts/GL_ECRANS_DE_SEANCE_ETAT.md`). Ce qui en reste
+à savoir est dans la section S4 ci-dessus.
 
 ### Pour S5 (console)
+
+- **La barre de l'application pèse sur l'écran d'équipe d'un compte** : 188 px à 1 024 px de
+  large, 238 px à 768 px (trois rangées : titre, onglets, compte). L'écran d'équipe prend ce qui
+  reste (plateau de 483 px de haut à 1024 × 768, contre 715 px sur la tablette). Le « mode
+  séance » de `GLTopBar` (K7) est pensé pour la console ; s'il se déclenche aussi quand
+  `AppGL` pose `gl-app--ecran-equipe`, l'élève récupère environ 130 px. À proposer à Oliv, pas
+  à faire d'office (le prompt ne le demande que pour « Jouer le tour »).
+- `AppGL` : l'onglet du plateau est rendu par `ongletDuPlateau()` (fonction locale, juste avant
+  le `return`). `ecranEquipePleinEcran` dit si l'écran d'équipe occupe la fenêtre.
+- `useGlTempsReelCoupe(token, { onRetour })` existe : la console peut s'en servir pour son
+  message de panne réseau (K8) au lieu d'en réécrire un.
+- `e2e/gl-users-admin.spec.js` échoue déjà sur `main` (deux tests « Voir comme ») : ne pas
+  chercher la cause dans son propre lot.
 
 - `GLTourJournal` est partagé entre la console (journal complet, `limit={40}`) et la projection
   (`marquants`, `limit={3}`). Le journal de la console n'a pas changé ; ne pas retirer la prop.
@@ -709,6 +834,26 @@ de S3 montrent chaque prop en situation.
 - Budget du bundle : voir plus haut (0,9 Ko de marge sur l'entrée ForêtMap).
 
 ### Pour S6 (docs)
+
+- **L'écran d'équipe est déjà documenté** par S4 dans `guide-du-mj.md` (note « L'écran d'équipe
+  en trois choses ») et `roles-et-connexion.md` : relire, ne pas refaire. **Restent à écrire**
+  (étape 7) : le passage « écran d'équipe » de `docs/GL_TENIR_A_DEUX_REGLES.md` (M8 y parle
+  encore des « écrans Maintenant, vous pouvez… » ; § « Ce qui change » dit « sur l'écran
+  d'équipe », ce qui ne se produit pas : écart 2 de S4), et le skill `gl-tenir-moteur` s'il
+  doit citer `GLTenirEcranEquipe` et `useGlTenirEquipe`.
+- **Captures « après » de la tablette, du compte et du téléphone** : déjà dans `apres/`
+  (écrites par `gl-tenir-tablettes` et `gl-tenir-escalier`). Il manque, pour la liste de
+  l'étape 7, une capture « avant » du téléphone (S1 n'en a pas pris) et les captures de la
+  console (S5).
+- **Banc** : ne pas attendre « 562 appels » (voir S4, « Écarts trouvés ») ; comparer les
+  attendus (8/11, mêmes trois manqués).
+- **Description finale, § 9.3 et 9.4** : les listes sont prêtes dans la section S4 (« Choix
+  faits sans demander », « Contrats de test changés », « Écarts avec le prompt »).
+- **Relecteur garde-fous** : passé sur le lot 4 (deux manquements corrigés). Reste à le passer
+  sur les textes de S2 (voir plus bas) et sur ceux de S5.
+- Si Oliv tranche pour le nouvel écran en surface « tableau » : marche à suivre dans la section
+  S4 (une condition à retirer aux deux points de montage, puis `GLTenirEquipeView`, son test et
+  deux blocs de styles à supprimer).
 
 - `docs/reference/gl/guide-du-mj.md` (vers les lignes 348 à 352) parle de « la phase
   « jeu » » : dire les nouveaux mots (« À vous de jouer »), le terme technique restant en
