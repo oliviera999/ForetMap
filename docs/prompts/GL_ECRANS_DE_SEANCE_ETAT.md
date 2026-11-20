@@ -774,11 +774,12 @@ sortie au changement de phase, et ses dix minutes ne sont recalculées qu'à l'a
   dans un arbre de travail séparé : mêmes deux échecs. Hors lot ; à regarder par S5 ou S6
   (les sessions précédentes ne lançaient pas ce spec).
 - **Le banc n'est pas reproductible au chiffre près, même à graine fixée.** Cinq exécutions de
-  `tablette-parallele-absences --seed 1` (trois sur la branche, dont deux sur base fraîche,
-  une sur `main`) : 541 à 582 appels, pages tenues 7 à 9 sur 10, voile 25 à 100 %. Le scénario
-  joue les équipes en parallèle : l'ordre d'arrivée des requêtes change le tirage. Ce qui ne
-  bouge pas : « ok », 5 séances, **attendus 8/11 (manqués : equipesSousVoile, carnetComplet,
-  partGnomes)**, aucun mot interdit servi, catalogues `refuses: []`. S6 ne retrouvera donc pas
+  `tablette-parallele-absences --seed 1` (quatre sur la branche, dont trois sur base fraîche,
+  une sur `main` v1.255.0) : 541 à 582 appels, pages tenues 7 à 9 sur 10, voile 25 à 100 %. Le
+  scénario joue les équipes en parallèle : l'ordre d'arrivée des requêtes change sans doute le
+  tirage (cause non cherchée). Toutes finissent « ok », en 5 séances ; sur les trois où la
+  ligne a été relevée (deux sur la branche, une sur `main`) : **attendus 8/11 (manqués :
+  equipesSousVoile, carnetComplet, partGnomes)**, comme chez S1. S6 ne retrouvera donc pas
   « 562 appels » : comparer les attendus, pas les décimales.
 
 ### Vérifications de S4
