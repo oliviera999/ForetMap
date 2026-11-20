@@ -7,7 +7,7 @@
  * il reste exécutable côté serveur ou dans un test sans `document`.
  */
 import { renderMarkdownToSafeHtml, sanitizeRichHtml } from '../shared/platform/markdown.js';
-import { createTermAutolink } from './glTermAutolink.js';
+import { createTermAutolink } from '../shared/glossary/termAutolinkCore.js';
 
 const autolink = createTermAutolink({
   codeField: 'lore_code',

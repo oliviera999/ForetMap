@@ -4,7 +4,7 @@
  * (source de vérité unique), pour l’API Express sans dossier src/ (déploiement runtime).
  *
  * Même motif que scripts/sync-gl-pack-server-lib.js, scripts/sync-visit-pack-server-lib.js
- * et scripts/sync-term-autolink-lib.js, généralisé à plusieurs paires :
+ * (et de l'ancien scripts/sync-term-autolink-lib.js), généralisé à plusieurs paires :
  *   - `import { a } from './x.js'`  → `const { a } = require('./x')` (imports relatifs entre
  *     noyaux réalignés sur la sortie à plat de lib/shared/) ;
  *   - `export const` / `export function` → déclaration nue, exportée en fin de fichier ;
@@ -68,6 +68,8 @@ const PAIRS = Object.freeze([
   ['src/gl/defis/trameCore.js', 'glTrameCore.js'],
   // Clés d'identification : issue d'une proposition (couplet, espèce, groupe, clade), migration 366.
   ['src/shared/idKeyLeadCore.js', 'idKeyLeadCore.js'],
+  // Auto-liens de glossaire (ForetMap, G&L SVT et lore, tutoriels) : noyau unique (U7).
+  ['src/shared/glossary/termAutolinkCore.js', 'termAutolinkCore.js'],
 ]);
 
 function banner(relSrc) {
