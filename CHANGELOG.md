@@ -9,6 +9,33 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — UI/UX lot 6 : navigation élève en quatre pôles (U10)
+
+La barre élève empilait jusqu'à 19 onglets à plat sur ordinateur. Elle s'organise désormais
+comme celle du professeur, en pôles dérivés de l'onglet ouvert (rien de nouveau n'est
+mémorisé). Aucun onglet n'est ajouté, retiré ni renommé.
+
+- **Quatre pôles sur ordinateur** : Terrain (carte, tâches, visite), Vivant (biodiversité,
+  clés, réseau, groupes, individus), Apprendre (quiz, glossaire, séances, tutos, fresque),
+  Moi (carnet, forum, stats, classe, à propos). La barre basse montre les pôles puis les
+  onglets du pôle actif, sans changer de hauteur ; cliquer un pôle ouvre son premier onglet ;
+  `aria-current="true"` sur le pôle, `aria-current="page"` sur l'onglet. Le point « non lu »
+  du forum remonte sur le pôle Moi.
+- **Mobile** : primaires + « Plus » inchangés ; la feuille « Plus » range les onglets sous les
+  intitulés des quatre pôles (groupe du pôle actif marqué).
+- **Icônes** : Groupes (`IconNestedGroups`) et Individus (`IconIndividuals`) ont leur icône,
+  côté élève comme côté prof ; quatre icônes de pôles élève dans `src/shared/icons.jsx`.
+- **Code commun** : `src/components/app/NavPoles.jsx` (pôle actif, rangée de pôles, feuille
+  d'onglets à plat ou groupée, bascule compacte) partagé par `StudentBottomNav` et
+  `TeacherTopTabs` ; table onglet → pôle dans `src/constants/app-runtime.js`. Bascules lues
+  dans `MEDIA` (`src/shared/breakpoints.js`) : élève `MEDIA.belowDesktop` (inchangé), prof
+  `MEDIA.phone` (639 px au lieu de 640 px). Les feuilles d'onglets passent de `role="list"`
+  (sans éléments de liste) à `role="group"`.
+- **Tests** : non-perte des onglets pour les 65 536 combinaisons de modules et de droits
+  (comparées à une copie figée de l'ancienne liste), montage des deux navigations dans
+  `AppShellWiring`, aide e2e `openStudentTab` (pôle sur ordinateur, « Plus » en compact)
+  reprise par les specs élève.
+
 ### Interne — UI/UX : préalable R0 (points de bascule, cliquet des styles en ligne, état vide partagé)
 
 Outils communs du chantier UI/UX du 19 novembre 2026, utilisés ensuite par chaque lot. Aucun

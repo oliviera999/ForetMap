@@ -159,6 +159,19 @@ l'élève non. Biodiversité, Groupes et Individus portent la même icône.
 Piste : quatre pôles (Terrain, Vivant, Apprendre, Moi) sur le modèle de `TeacherTopTabs`,
 composant de pôles mutualisé, une icône par onglet.
 
+> **Corrigé (lot 6, session E, branche `claude/ui-ux-visite-lot6`)** — quatre pôles Terrain /
+> Vivant / Apprendre / Moi dans la barre basse sur ordinateur (pôles puis onglets du pôle
+> actif, hauteur inchangée), feuille « Plus » groupée par pôles sur mobile, pôle actif dérivé
+> de l'onglet. Briques communes avec la barre prof dans `src/components/app/NavPoles.jsx` ;
+> table onglet → pôle dans `src/constants/app-runtime.js` ; icônes propres pour Groupes et
+> Individus (`src/shared/icons.jsx`, aussi côté prof). Bascules lues dans `MEDIA`. Test de
+> non-perte sur les 65 536 combinaisons de modules et de droits.
+>
+> **Écarts avec l'audit, constatés à la reconnaissance** : constat confirmé (19 onglets au
+> plus) ; Individus et Groupes partageaient aussi l'icône de Biodiversité dans la barre prof ;
+> la barre élève était déjà sans `style={{` ni `z-index` littéral, et sa bascule compacte
+> (1 023 px) était déjà dans l'échelle — seule celle du prof (640 px) devient `MEDIA.phone`.
+
 ### U11 — 🟡 Finitions d'accessibilité et de libellés
 
 - Nom accessible « Ouvrir l aide: Aide visite » (apostrophe manquante, deux-points sans

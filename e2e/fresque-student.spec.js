@@ -6,6 +6,7 @@ const {
   buildE2eStudentProfile,
   markAllDiscoveryToursSeen,
   loginByIdentifier,
+  openStudentTab,
 } = require('./fixtures/auth.fixture');
 
 /**
@@ -18,9 +19,7 @@ const {
  */
 
 async function openFresqueTab(page) {
-  const tab = page.getByRole('button', { name: 'Fresque' });
-  await expect(tab).toBeVisible({ timeout: 20_000 });
-  await tab.click();
+  await openStudentTab(page, 'Fresque');
   await expect(page.getByTestId('fm-fresque-view')).toBeVisible({ timeout: 20_000 });
 }
 

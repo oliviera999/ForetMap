@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { loginAsNewStudent } = require('./fixtures/auth.fixture');
+const { loginAsNewStudent, openStudentTab } = require('./fixtures/auth.fixture');
 
 /**
  * Mode avion sur le terrain : l'application lancée en ligne doit rester utilisable une fois
@@ -38,9 +38,9 @@ test('mode avion : bandeau hors ligne, écrans ouvrables, aucun bandeau de recon
   await expect(page.getByText(/^Hors ligne — données/)).toBeVisible({ timeout: 10_000 });
 
   // Écrans chargés à la demande, jamais ouverts avant la coupure.
-  await page.getByRole('button', { name: /Biodiversité/ }).click();
+  await openStudentTab(page, 'Biodiversité');
   await expect(page.getByText('Catalogue de biodiversité')).toBeVisible({ timeout: 15_000 });
-  await page.getByRole('button', { name: /À propos/ }).click();
+  await openStudentTab(page, 'À propos');
   await expect(page.getByText('Informations du projet ForetMap')).toBeVisible({
     timeout: 15_000,
   });
