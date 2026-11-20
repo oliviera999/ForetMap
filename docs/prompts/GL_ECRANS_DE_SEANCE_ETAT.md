@@ -29,20 +29,23 @@ dans une **nouvelle PR en brouillon** :
 | S5      | Console (étape 5)                         | à faire                 | —                                                                                   |
 | S6      | Accueil, docs, clôture (étapes 6 et 7)    | à faire                 | —                                                                                   |
 
-Sessions `bis` : aucune. Sessions lancées : 1 sur 8 au plus.
+Sessions `bis` : aucune. Sessions lancées : 1 sur 8 au plus (la tentative de S2 par tâche
+planifiée, arrêtée sans rien faire, ne compte pas).
 
-Relais : S1 a planifié S2 (tâche ponctuelle « G&L écrans de séance — S2 »), l'a suspendue le
-temps de la fusion de #711, puis l'a réarmée une fois la branche repartie de `main`.
+### Relais : c'est la session S1 qui lance les suivantes (constat du 20/11, 19 h 25 UTC)
 
-**Avertissement de l'outil de planification** : une tâche planifiée depuis une session ne porte
-ni dépôt source ni connecteur. La session lancée doit donc attacher le dépôt elle-même
-(`add_repo`, accès `push`, puis `git clone`), et n'a pas les connecteurs (ForêtMap, etc.). Si
-les outils GitHub lui manquent aussi, elle ne se bloque pas : elle pousse sa branche et note
-ici, dans sa section, « description de la PR à mettre à jour » (la session suivante qui a ces
-outils, ou S1 restée abonnée à la PR, le fera). Si le push lui est refusé, état `bloquée`.
+La tâche planifiée « G&L écrans de séance — S2 » s'est bien déclenchée, mais sa session ne
+pouvait **pas pousser** sur le dépôt (dépôt non attaché, ni `add_repo` ni outil de
+planification) : elle s'est arrêtée sans rien faire. Une tâche planifiée créée depuis une
+session ne porte ni dépôt ni connecteur. Le relais du § 00 du prompt est donc remplacé :
 
-Les identifiants de commit sont ceux de la session qui les a écrits ; un `git rebase origin/main`
-les change. Retrouver un commit par son titre (`git log --oneline --grep "écrans de séance"`).
+- la session **S1 reste l'orchestratrice** : elle lance chaque session suivante avec le dépôt
+  attaché (`create_session`, branche `claude/gl-ecrans-de-seance`), surveille la branche et
+  lance la suivante quand la ligne de la session en cours passe à `faite` ;
+- **une session qui finit** met ce fichier à jour, pousse, met à jour la PR, **puis
+  s'arrête**. Elle ne planifie rien elle-même (si l'outil existe, ne pas s'en servir : deux
+  relais feraient deux sessions sur le même lot) ;
+- une session `bloquée` l'écrit ici si elle peut pousser, et s'arrête : S1 le verra.
 
 ---
 
