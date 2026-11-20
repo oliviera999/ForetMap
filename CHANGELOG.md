@@ -40,6 +40,25 @@ suivant les monte). Aucune règle, aucune route, aucun schéma, aucun réglage n
   `GLTenirBandeau.test.jsx`, `GLTenirTiroir.test.jsx`, `useGlTenirMomentHooks.test.jsx` (100
   tests) ; `tests/content/gl-adresse-ecran-equipe.test.js` relit aussi le moteur (vous, jamais
   tu ; aucun mot interdit).
+### Modifié — G&L : écrans de séance, lot 2 (la projection en mode tableau)
+
+La projection tient sur un seul écran, sans défilement à 1920 × 1080, et se lit du fond de la
+salle. Aucune règle, aucune route, aucun schéma, aucun réglage ne change.
+
+- **Grille plein écran** (`GLProjectionView`) : bandeau (partie, tour et phase en mots d'élève,
+  sablier), plateau à gauche en `presentation="projection"`, équipes en pastilles, Lumière en
+  jauge et carnet de la classe en pages à droite, trois faits marquants en bas.
+- **À la clôture du tour**, la carte « À la prochaine séance » remplace l'écran (page du
+  Passeur, indice d'une page endormie, défis à préparer) ; « Voir le plateau » y ramène.
+  Pendant le souffle et au camp, « La page du jour » s'ouvre de la même façon, à la demande.
+- **Voile plus lisible** au tableau (bande plus opaque, contour), sans pictogramme ; les cases
+  et les pions n'y sont plus des boutons.
+- Les indices du carnet ne sont plus au tableau (ils restent sur les écrans d'équipe) ; sans
+  tour ouvert, la projection dit « Le prof ouvre bientôt le tour. ».
+- `GLTourJournal` reçoit `marquants` (filtre fait à l'écran, la route du journal ne change pas).
+- Tests d'écran (projection, journal, voile, cases, plateau) et nouvel e2e
+  `gl-tenir-projection` (mesures à 1920 × 1080, captures dans
+  `docs/captures/ecrans-de-seance/apres/`).
 
 ### Modifié — G&L : écrans de séance, lot 1 (textes, adresse, phases, plateau)
 
