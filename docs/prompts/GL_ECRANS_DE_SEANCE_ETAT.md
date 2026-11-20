@@ -45,7 +45,7 @@ dans une **nouvelle PR en brouillon** :
 | S1      | Préparation, textes, adresse, plateau     | faite, fusionnée (#711) | `8272b2e08` (prompt, captures), `e898eff3c` (étape 1), `552754187` (étape 2) + état |
 | S2      | Projection (étape 3)                      | faite                   | `4416079` (étape 3) + commits d'état                                                |
 | S3      | Tablette 1 : moteur de la carte du moment | faite                   | `c46fd3b` (lot), `9fe1eb9` (relecture garde-fous), `ae693b4` (CHANGELOG) + état     |
-| S4      | Tablette 2 : branchement                  | à faire                 | —                                                                                   |
+| S4      | Tablette 2 : branchement                  | en cours                | —                                                                                   |
 | S5      | Console (étape 5)                         | à faire                 | —                                                                                   |
 | S6      | Accueil, docs, clôture (étapes 6 et 7)    | à faire                 | —                                                                                   |
 
