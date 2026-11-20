@@ -136,6 +136,15 @@ Piste : panneau latéral sur ordinateur, feuille basse sur mobile ; fiche espèc
 Piste : liste d'homographes jamais liés, premier emploi seulement par bloc, noyau unique dans
 `lib/shared/`.
 
+> **Corrigé (lot 5, session D, branche `claude/ui-ux-visite-lot5`)** — noyau unique
+> `src/shared/glossary/termAutolinkCore.js`, miroir `lib/shared/termAutolinkCore.js` par
+> `npm run sync:shared-cores` (l'ancien miroir dédié `lib/term-autolink/` n'est plus qu'une
+> réexportation). Homographes (« vers », « été », « sens », « son », « fin », « mare ») liés
+> seulement après un déterminant ; premier emploi seulement par bloc ; tests
+> `tests/term-autolink-density.test.js`. Écart avec l'audit : il n'y avait plus trois
+> implémentations, déjà un tronc commun ESM et son miroir CJS ; l'option « forme exacte » par
+> terme demanderait une colonne (migration), non faite.
+
 ### U8 — 🟡 Tu ou vous : la Visite ne choisit pas
 
 L'habillage tutoie, une partie des textes vouvoyait (17 fiches sur 27 rédigées).
