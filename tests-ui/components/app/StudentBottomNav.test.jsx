@@ -53,20 +53,65 @@ describe('resolveStudentMobilePrimaryIds', () => {
   });
 });
 
-describe('StudentBottomNav', () => {
-  test('rend les boutons de base, marque l’actif et notifie le clic', () => {
+/** Libellés des onglets visibles (tous pôles confondus) pour un jeu de props. */
+const labels = (overrides = {}) =>
+  buildStudentNavItems({ ...baseProps, ...overrides }).map((item) => item.label);
+
+describe('StudentBottomNav — quatre pôles (lot 6, U10)', () => {
+  test('ordinateur : pôles + onglets du pôle actif, aria-current sur l’onglet et le pôle', () => {
     const onTabChange = vi.fn();
     render(<StudentBottomNav {...baseProps} onTabChange={onTabChange} />);
-    expect(screen.getByText('Carte')).toHaveClass('active');
-    expect(screen.getByText('Tâches · tuto')).toBeInTheDocument();
-    expect(screen.getByText('Carnet')).toBeInTheDocument();
-    expect(screen.getByText('Visite')).toBeInTheDocument();
-    expect(screen.getByText('Forum')).toBeInTheDocument();
-    // Stats masquées sans droit, pas d’entrée split en mobile.
-    expect(screen.queryByText('Stats')).toBeNull();
-    expect(screen.queryByText(/Cartes & tâches/)).toBeNull();
-    fireEvent.click(screen.getByText('À propos'));
+    const poles = screen.getByRole('group', { name: 'Pôles' });
+    for (const name of ['Terrain', 'Vivant', 'Apprendre', 'Moi']) {
+      expect(within(poles).getByRole('button', { name })).toBeInTheDocument();
+    }
+    expect(within(poles).getByRole('button', { name: 'Terrain' })).toHaveAttribute(
+      'aria-current',
+      'true',
+    );
+    const tabs = screen.getByRole('group', { name: 'Onglets Terrain' });
+    expect(within(tabs).getByRole('button', { name: 'Carte' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    expect(within(tabs).getByRole('button', { name: 'Tâches · tuto' })).toBeInTheDocument();
+    expect(within(tabs).getByRole('button', { name: 'Visite' })).toBeInTheDocument();
+    // Onglets des autres pôles absents de la rangée.
+    expect(screen.queryByRole('button', { name: 'Forum' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Biodiversité' })).toBeNull();
+    // Cliquer un pôle ouvre son premier onglet.
+    fireEvent.click(within(poles).getByRole('button', { name: 'Vivant' }));
+    expect(onTabChange).toHaveBeenCalledWith('plants');
+    fireEvent.click(within(poles).getByRole('button', { name: 'Moi' }));
+    expect(onTabChange).toHaveBeenCalledWith('notebook');
+  });
+
+  test('le pôle actif suit l’onglet courant (rien n’est persisté)', () => {
+    const onTabChange = vi.fn();
+    const { rerender } = render(<StudentBottomNav {...baseProps} tab="glossary" />);
+    expect(screen.getByRole('button', { name: 'Apprendre' })).toHaveAttribute(
+      'aria-current',
+      'true',
+    );
+    expect(screen.getByRole('button', { name: 'Glossaire' })).toHaveClass('active');
+    rerender(<StudentBottomNav {...baseProps} tab="about" onTabChange={onTabChange} />);
+    expect(screen.getByRole('button', { name: 'Moi' })).toHaveAttribute('aria-current', 'true');
+    // Recliquer le pôle actif ne change pas d'onglet.
+    fireEvent.click(screen.getByRole('button', { name: 'Moi' }));
+    expect(onTabChange).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'À propos' }));
     expect(onTabChange).toHaveBeenCalledWith('about');
+  });
+
+  test('Vivant : une icône propre pour Groupes et Individus', () => {
+    render(<StudentBottomNav {...baseProps} tab="plants" />);
+    const tabs = screen.getByRole('group', { name: 'Onglets Vivant' });
+    const iconOf = (name) =>
+      within(tabs).getByRole('button', { name }).querySelector('svg').getAttribute('class');
+    const biodiv = iconOf('Biodiversité');
+    expect(iconOf('Groupes')).not.toBe(biodiv);
+    expect(iconOf('Individus')).not.toBe(biodiv);
+    expect(iconOf('Groupes')).not.toBe(iconOf('Individus'));
   });
 
   test('split desktop : entrée combinée avec compteur de tâches assignées', () => {
@@ -81,20 +126,37 @@ describe('StudentBottomNav', () => {
     render(
       <StudentBottomNav {...baseProps} canAccessStudentMapTasks={false} isVisitor tab="visit" />,
     );
-    const buttons = screen.getAllByRole('button');
-    expect(buttons[0]).toHaveTextContent('Visite');
+    const tabs = screen.getByRole('group', { name: 'Onglets Terrain' });
+    expect(within(tabs).getAllByRole('button')[0]).toHaveTextContent('Visite');
+    expect(labels({ canAccessStudentMapTasks: false, isVisitor: true })[0]).toBe('Visite');
     expect(screen.queryByText('Carte')).toBeNull();
     expect(screen.queryByText(/Tâches/)).toBeNull();
   });
 
-  test('sans accès carte/tâches → Carte et Tâches absents', () => {
+  test('sans accès carte/tâches ni visite : le pôle Terrain disparaît', () => {
     render(
-      <StudentBottomNav {...baseProps} canAccessStudentMapTasks={false} shouldUseDesktopSplit />,
+      <StudentBottomNav
+        {...baseProps}
+        canAccessStudentMapTasks={false}
+        visitEnabled={false}
+        shouldUseDesktopSplit
+        tab="plants"
+      />,
     );
-    expect(screen.queryByText('Carte')).toBeNull();
-    expect(screen.queryByText(/Tâches/)).toBeNull();
-    expect(screen.queryByText(/Cartes & tâches/)).toBeNull();
-    expect(screen.getByText('Biodiversité')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Terrain' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Biodiversité' })).toBeInTheDocument();
+    const all = labels({
+      canAccessStudentMapTasks: false,
+      visitEnabled: false,
+      shouldUseDesktopSplit: true,
+    });
+    expect(all).not.toContain('Carte');
+    expect(all.some((l) => /Tâches|Cartes & tâches/.test(l))).toBe(false);
+  });
+
+  test('onglet inconnu : premier pôle disponible', () => {
+    render(<StudentBottomNav {...baseProps} tab="settings" />);
+    expect(screen.getByRole('button', { name: 'Terrain' })).toHaveAttribute('aria-current', 'true');
   });
 
   test('F3 : Tâches et Tuto restent des onglets séparés (plus de fusion contextuelle)', () => {
@@ -105,62 +167,40 @@ describe('StudentBottomNav', () => {
   });
 
   test('parcours type visiteur : tuto + stats + classe sans carte', () => {
-    render(
-      <StudentBottomNav
-        {...baseProps}
-        canAccessStudentMapTasks={false}
-        isVisitor
-        canAccessTutorials
-        canViewGeneralStats
-        canAccessProfiles
-        profilesLabel="Classe"
-        tab="visit"
-      />,
-    );
-    expect(screen.queryByText('Carte')).toBeNull();
-    expect(screen.getByText('Tuto')).toBeInTheDocument();
-    expect(screen.getByText('Stats')).toBeInTheDocument();
-    expect(screen.getByText('Classe')).toBeInTheDocument();
+    const all = labels({
+      canAccessStudentMapTasks: false,
+      isVisitor: true,
+      canAccessTutorials: true,
+      canViewGeneralStats: true,
+      canAccessProfiles: true,
+      profilesLabel: 'Classe',
+    });
+    expect(all).not.toContain('Carte');
+    expect(all).toEqual(expect.arrayContaining(['Tuto', 'Stats', 'Classe']));
   });
 
   test('modules coupés → Carnet/Visite/Forum/Tuto masqués, Stats visible avec le droit', () => {
-    render(
-      <StudentBottomNav
-        {...baseProps}
-        tutorialsModuleEnabled={false}
-        observationsEnabled={false}
-        visitEnabled={false}
-        canAccessForum={false}
-        canViewGeneralStats
-      />,
-    );
-    expect(screen.queryByText('Tuto')).toBeNull();
-    expect(screen.queryByText('Carnet')).toBeNull();
-    expect(screen.queryByText('Visite')).toBeNull();
-    expect(screen.queryByText('Forum')).toBeNull();
-    expect(screen.getByText('Stats')).toBeInTheDocument();
-    expect(screen.getByText('Tâches')).toBeInTheDocument();
+    const all = labels({
+      tutorialsModuleEnabled: false,
+      observationsEnabled: false,
+      visitEnabled: false,
+      canAccessForum: false,
+      canViewGeneralStats: true,
+    });
+    for (const absent of ['Tuto', 'Carnet', 'Visite', 'Forum']) expect(all).not.toContain(absent);
+    expect(all).toEqual(expect.arrayContaining(['Stats', 'Tâches']));
   });
 
   test('modules pédagogiques coupés → Clés / Séances / Individus masqués', () => {
-    const { rerender } = render(<StudentBottomNav {...baseProps} />);
-    expect(screen.getByText('Clés')).toBeInTheDocument();
-    expect(screen.getByText('Séances')).toBeInTheDocument();
-    expect(screen.getByText('Individus')).toBeInTheDocument();
-    rerender(
-      <StudentBottomNav
-        {...baseProps}
-        idKeysEnabled={false}
-        pedagoSessionsEnabled={false}
-        individualsEnabled={false}
-      />,
-    );
-    expect(screen.queryByText('Clés')).toBeNull();
-    expect(screen.queryByText('Séances')).toBeNull();
-    expect(screen.queryByText('Individus')).toBeNull();
+    expect(labels()).toEqual(expect.arrayContaining(['Clés', 'Séances', 'Individus']));
+    const off = labels({
+      idKeysEnabled: false,
+      pedagoSessionsEnabled: false,
+      individualsEnabled: false,
+    });
+    for (const absent of ['Clés', 'Séances', 'Individus']) expect(off).not.toContain(absent);
     // Les onglets voisins ne sont pas entraînés.
-    expect(screen.getByText('Biodiversité')).toBeInTheDocument();
-    expect(screen.getByText('Réseau')).toBeInTheDocument();
+    expect(off).toEqual(expect.arrayContaining(['Biodiversité', 'Réseau']));
   });
 
   test('chaque interrupteur ne masque que son onglet', () => {
@@ -192,7 +232,7 @@ describe('StudentBottomNav', () => {
     const collegeLevel = { canShow: (feature) => feature !== 'individuals_tab' };
     render(
       <BiodivPedagoContext.Provider value={collegeLevel}>
-        <StudentBottomNav {...baseProps} individualsEnabled />
+        <StudentBottomNav {...baseProps} individualsEnabled tab="plants" />
       </BiodivPedagoContext.Provider>,
     );
     expect(screen.queryByText('Individus')).toBeNull();
@@ -212,17 +252,37 @@ describe('StudentBottomNav', () => {
     expect(within(nav).getByRole('button', { name: /Plus d'onglets/ })).toBeInTheDocument();
     expect(within(nav).queryByText('Forum')).toBeNull();
 
+    // Pas de rangée de pôles en mobile : primaires + Plus.
+    expect(screen.queryByRole('group', { name: 'Pôles' })).toBeNull();
+
     fireEvent.click(within(nav).getByRole('button', { name: /Plus d'onglets/ }));
     const sheet = await screen.findByRole('dialog', { name: 'Navigation' });
-    fireEvent.click(within(sheet).getByRole('button', { name: 'Forum' }));
+    // Feuille groupée par pôles, dans l'ordre ; le groupe du pôle actif est marqué.
+    const groups = within(sheet).getAllByRole('region');
+    expect(groups.map((g) => g.getAttribute('aria-current'))).toEqual(['true', null, null, null]);
+    expect(
+      within(sheet)
+        .getAllByRole('heading', { level: 3 })
+        .map((h) => h.textContent.trim()),
+    ).toEqual(['Terrain', 'Vivant', 'Apprendre', 'Moi']);
+    const me = within(sheet).getByRole('group', { name: 'Moi' });
+    expect(within(me).getByRole('button', { name: 'Forum' })).toBeInTheDocument();
+    expect(within(sheet).getByRole('button', { name: 'Carte' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    fireEvent.click(within(me).getByRole('button', { name: 'Forum' }));
     expect(onTabChange).toHaveBeenCalledWith('forum');
   });
 
-  test('point non lu sur Forum (barre complète)', () => {
+  test('point non lu sur Forum : reporté sur le pôle Moi, puis sur l’onglet', () => {
     const { rerender } = render(<StudentBottomNav {...baseProps} />);
     expect(screen.queryByRole('img', { name: 'Nouveaux messages' })).toBeNull();
     rerender(<StudentBottomNav {...baseProps} hasForumUnread />);
-    const forumBtn = screen.getByRole('button', { name: /Forum/ });
+    const pole = screen.getByRole('button', { name: /Moi/ });
+    expect(within(pole).getByRole('img', { name: 'Nouveaux messages' })).toBeInTheDocument();
+    rerender(<StudentBottomNav {...baseProps} hasForumUnread tab="forum" />);
+    const forumBtn = screen.getByRole('button', { name: /^Forum/ });
     expect(within(forumBtn).getByRole('img', { name: 'Nouveaux messages' })).toBeInTheDocument();
   });
 

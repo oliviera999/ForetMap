@@ -535,3 +535,32 @@ describe('App — célébration des badges à l’arrivée', () => {
     expect(probes.rewardsHost.filter((p) => p.enabled).length).toBe(0);
   });
 });
+
+/**
+ * Navigation du shell (lot 6, U10 de l'audit UI/UX du 19/11/2026) : posé AVANT le passage de
+ * la barre élève en pôles, pour qu'une zone morte temporelle ou une prop oubliée dans
+ * `StudentBottomNav` / `TeacherTopTabs` fasse tomber le montage réel d'`App`, pas seulement
+ * les tests unitaires des composants.
+ */
+describe('App — montage des navigations', () => {
+  test('session élève : la navigation principale est montée avec l’onglet actif marqué', async () => {
+    await renderAppWith(STUDENT_SESSION);
+    const nav = document.querySelector('nav.bottom-nav');
+    expect(nav).not.toBeNull();
+    expect(nav.getAttribute('aria-label')).toBe('Navigation principale');
+    expect(nav.querySelector('[aria-current="page"]')).not.toBeNull();
+  });
+
+  test('prof de classe sans teacher.access : navigation apprenant, pas la barre prof', async () => {
+    await renderAppWith(CLASS_TEACHER_SESSION_WITHOUT_TEACHER_ACCESS);
+    expect(document.querySelector('nav.bottom-nav')).not.toBeNull();
+    expect(document.querySelector('nav.teacher-nav')).toBeNull();
+  });
+
+  test('session prof : la barre en pôles est montée, pôle actif marqué', async () => {
+    await renderAppWith(TEACHER_SESSION);
+    const nav = document.querySelector('nav.teacher-nav');
+    expect(nav).not.toBeNull();
+    expect(nav.querySelector('[aria-current="true"]')).not.toBeNull();
+  });
+});

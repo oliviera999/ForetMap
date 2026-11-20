@@ -6,6 +6,7 @@ const {
   loginByIdentifier,
   markAllDiscoveryToursSeen,
   dismissProfilePromotionModalIfPresent,
+  openStudentTab,
 } = require('./fixtures/auth.fixture');
 
 /**
@@ -15,9 +16,7 @@ const {
  */
 
 async function openTeamBoard(page, teamName) {
-  const tab = page.getByRole('button', { name: 'Fresque' });
-  await expect(tab).toBeVisible({ timeout: 20_000 });
-  await tab.click();
+  await openStudentTab(page, 'Fresque');
   await page.getByRole('button', { name: `Fresque de l’équipe ${teamName}` }).click();
   await expect(page.getByTestId('fm-fresque-board')).toBeVisible({ timeout: 20_000 });
 }
