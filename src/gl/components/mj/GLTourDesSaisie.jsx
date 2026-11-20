@@ -66,6 +66,7 @@ export function GLTourDesSaisie({
           size="sm"
           className="gl-tour-des__corriger"
           aria-expanded="false"
+          disabled={disabled}
           data-testid="gl-tour-corriger-position"
           onClick={() => setLibreOuvert(true)}
         >

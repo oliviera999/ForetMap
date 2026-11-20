@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useStickyHeaderScrolled } from '../../shared/hooks/useStickyHeaderScrolled.js';
 import { GL_MOBILE_PRIMARY_TAB_IDS } from '../constants/app-runtime.js';
 import { useGlCompactNav } from '../hooks/useGlCompactNav.js';
@@ -52,6 +52,19 @@ export function GLTopBar({
   useEffect(() => {
     if (!enSeance) setMenuDeplie(false);
   }, [enSeance]);
+  // « Menu » et « Réduire le menu » sont deux boutons de deux rendus : le bouton touché
+  // disparaît. Le focus passe à celui qui le remplace, sinon le clavier retombe en haut de page.
+  const boutonMenuRef = useRef(null);
+  const basculeRef = useRef(false);
+  useEffect(() => {
+    if (!basculeRef.current) return;
+    basculeRef.current = false;
+    boutonMenuRef.current?.focus?.();
+  }, [menuDeplie]);
+  function basculerMenu(deplie) {
+    basculeRef.current = true;
+    setMenuDeplie(deplie);
+  }
   const title = String(platformTitle || 'Gnomes & Licornes');
   const subtitle = String(platformSubtitle || 'Le jeu de Sciences et Technologie');
 
@@ -149,9 +162,10 @@ export function GLTopBar({
         <button
           type="button"
           className="gl-logout"
+          ref={boutonMenuRef}
           aria-expanded="false"
           data-testid="gl-topbar-menu"
-          onClick={() => setMenuDeplie(true)}
+          onClick={() => basculerMenu(true)}
         >
           Menu
         </button>
@@ -197,9 +211,10 @@ export function GLTopBar({
           <button
             type="button"
             className="gl-logout gl-topbar-seance__replier"
+            ref={boutonMenuRef}
             aria-expanded="true"
             data-testid="gl-topbar-menu"
-            onClick={() => setMenuDeplie(false)}
+            onClick={() => basculerMenu(false)}
           >
             Réduire le menu
           </button>

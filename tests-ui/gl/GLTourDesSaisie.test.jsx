@@ -52,6 +52,11 @@ describe('GLTourDesSaisie — l’avance libre derrière « Corriger la position
     expect(screen.getByLabelText('Motif de l’avance libre')).toHaveValue('erreur de jet');
   });
 
+  test('carte inactive (au tableau, une autre équipe joue) : la correction est fermée aussi', () => {
+    render(<GLTourDesSaisie allowLibre disabled onLancer={vi.fn()} />);
+    expect(screen.getByRole('button', { name: 'Corriger la position…' })).toBeDisabled();
+  });
+
   test('« Annuler » referme sans rien envoyer', () => {
     const onLancer = vi.fn();
     render(<GLTourDesSaisie allowLibre onLancer={onLancer} />);

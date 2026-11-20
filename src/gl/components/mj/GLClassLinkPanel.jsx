@@ -159,8 +159,9 @@ export function GLClassLinkPanel({ game, teams = [], refreshKey = 0 }) {
   }));
   const connectees = parEquipe.filter((e) => e.sessions.length);
 
-  // Une tablette qui attend déplie le panneau d'office ; la feuille du QR ouverte aussi.
-  const ouvert = deplie || demandes.length > 0 || open;
+  // Une tablette qui attend déplie le panneau d'office ; la feuille du QR ouverte aussi. Une
+  // erreur aussi : un refus du serveur (demande échue…) ne doit pas disparaître avec le repli.
+  const ouvert = deplie || demandes.length > 0 || open || !!error;
 
   return (
     <section
@@ -171,10 +172,14 @@ export function GLClassLinkPanel({ game, teams = [], refreshKey = 0 }) {
         type="button"
         className={`gl-class-link-panel__resume${demandes.length ? ' is-attente' : ''}`}
         aria-expanded={ouvert}
-        aria-controls="gl-class-link-detail"
+        aria-controls={ouvert ? 'gl-class-link-detail' : undefined}
         data-testid="gl-class-link-resume"
         // Tant qu'une tablette attend (ou que la feuille du QR est ouverte), le détail reste là.
-        onClick={() => setDeplie(!ouvert)}
+        onClick={() => {
+          setDeplie(!ouvert);
+          // Replier, c'est aussi avoir lu l'erreur.
+          if (ouvert) setError('');
+        }}
       >
         <span className="gl-class-link-panel__chevron" aria-hidden="true">
           {ouvert ? '▾' : '▸'}

@@ -4,6 +4,7 @@ import { GLTourDesSaisie } from '../mj/GLTourDesSaisie.jsx';
 import { GLDefisEntree } from '../defis/GLDefisEntree.jsx';
 import { GLTenirQuestionCard } from './GLTenirQuestionCard.jsx';
 import { GLOluBulle } from './GLOluBulle.jsx';
+import { messagePourEquipe } from '../../constants/glPanneReseau.js';
 import { GLPeripetieOverlay } from './GLPeripetieOverlay.jsx';
 import { GLPresencePanel } from './GLPresencePanel.jsx';
 import { GLSortsParMoment } from './GLSortsParMoment.jsx';
@@ -372,7 +373,9 @@ export function GLTenirMoment({
           {corps}
         </div>
       ) : null}
-      {erreurs.filter(Boolean).map((e) => (
+      {/* Une panne réseau touche tous les gestes à la fois : la phrase se dit une fois, et au
+          « vous » même quand l'écran est ouvert depuis le compte d'un élève. */}
+      {[...new Set(erreurs.filter(Boolean).map(messagePourEquipe))].map((e) => (
         <p key={e} className="gl-error-banner">
           {e}
         </p>

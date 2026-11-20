@@ -79,6 +79,25 @@ describe('GLClassLinkPanel — une ligne, dépliée au toucher (K6)', () => {
     expect(screen.queryByTestId('gl-class-link-detail')).toBeNull();
   });
 
+  test('un refus du serveur reste à l’écran : le panneau ne se replie pas sur son message', async () => {
+    servir({ demandes: [{ id: 91, teamId: 2, resteSecondes: 100 }] });
+    render(<GLClassLinkPanel game={game} teams={teams} />);
+    await screen.findByTestId('gl-class-link-demandes');
+    // La demande a échu entre-temps : le serveur refuse, et la liste relue est vide.
+    apiGlMock.mockImplementation(async (path, method) => {
+      if (method === 'POST') throw new Error('Cette demande a expiré.');
+      return { sessions: [], demandes: [] };
+    });
+    fireEvent.click(screen.getByTestId('gl-class-link-accepter-tout'));
+    expect(await screen.findByText('Cette demande a expiré.')).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByTestId('gl-class-link-demandes')).toBeNull());
+    expect(screen.getByText('Cette demande a expiré.')).toBeInTheDocument();
+    // Replier, c'est avoir lu : le message s'en va avec le détail.
+    fireEvent.click(screen.getByTestId('gl-class-link-resume'));
+    expect(screen.queryByText('Cette demande a expiré.')).toBeNull();
+    expect(screen.queryByTestId('gl-class-link-detail')).toBeNull();
+  });
+
   test('une tablette qui attend déplie le panneau d’office, « Accepter » sous la main', async () => {
     servir({ demandes: [{ id: 91, teamId: 2, resteSecondes: 100 }] });
     render(<GLClassLinkPanel game={game} teams={teams} />);

@@ -145,7 +145,7 @@ describe('apiGL — panne réseau et identifiant de requête (écrans de séance
     // Tablette d'équipe et projection : l'écran parle à l'équipe, au « vous ».
     expect(dire({ token: 't', auth: { teamSession: true } })).toBe(GL_PANNE_RESEAU_EQUIPE);
     expect(dire({ token: 't', auth: { projection: true } })).toBe(GL_PANNE_RESEAU_EQUIPE);
-    expect(GL_PANNE_RESEAU_EQUIPE).toMatch(/Réessayez .* prévenez votre professeur/);
+    expect(GL_PANNE_RESEAU_EQUIPE).toMatch(/Réessayez .* prévenez le prof\./);
     expect(GL_PANNE_RESEAU_EQUIPE).not.toMatch(/\b(tu|ton|ta|tes|toi)\b/i);
     // Écran de connexion, sans compte : la phrase simple du redémarrage.
     expect(dire(null)).toBe('Le site redémarre, il revient dans un instant.');

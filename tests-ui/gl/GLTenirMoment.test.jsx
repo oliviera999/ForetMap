@@ -550,6 +550,20 @@ describe('GLTenirMoment', () => {
     expect(document.querySelectorAll('.gl-error-banner')).toHaveLength(1);
   });
 
+  test('panne réseau : une seule phrase, au « vous », même depuis le compte d’un élève', () => {
+    // `apiGL` rend la phrase d'un élève (« tu ») pour un compte ; les trois gestes en cours
+    // (tour, question de case, chasse) échouent ensemble et portent la même.
+    const tu =
+      'Pas de réseau pour l’instant. Réessaie dans un moment ; si ça dure, préviens ton professeur.';
+    const moment = momentDeLEquipe({ maintenant: gestes(), phase: 'jeu' });
+    render(<GLTenirMoment moment={moment} gameId={7} erreurs={[tu, tu, tu, 'Jet refusé']} />);
+    const bannieres = [...document.querySelectorAll('.gl-error-banner')].map((b) => b.textContent);
+    expect(bannieres).toEqual([
+      'Pas de réseau pour l’instant. Réessayez dans un moment ; si ça dure, prévenez le prof.',
+      'Jet refusé',
+    ]);
+  });
+
   test('pendant qu’un geste part, les boutons attendent', () => {
     const moment = momentDeLEquipe({ maintenant: gestes(), phase: 'jeu' });
     render(<GLTenirMoment moment={moment} gameId={7} occupe />);

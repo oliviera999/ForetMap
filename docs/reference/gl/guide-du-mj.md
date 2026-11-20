@@ -731,7 +731,7 @@ tour. Rien ne change dans les règles ni dans ce que font les boutons.
   maintenant sous les équipes, avec la bulle d'Olu.
 - **Quand le réseau tombe**, la console le dit en français (« Pas de réseau pour l'instant : le
   serveur ne répond pas… ») au lieu d'un message technique en anglais. Sur une tablette
-  d'équipe, la phrase vouvoie l'équipe (« … prévenez votre professeur. ») ; sur le compte d'un
+  d'équipe, la phrase vouvoie l'équipe (« … prévenez le prof. ») ; sur le compte d'un
   élève, elle le tutoie. Le numéro de requête d'une erreur n'apparaît plus chez les élèves ;
   dans la console, il est écrit en petit après le message : donnez-le si vous signalez un
   problème.

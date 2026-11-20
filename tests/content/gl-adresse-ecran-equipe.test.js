@@ -101,6 +101,9 @@ const SOURCES_GARDE_FOUS = [
   path.join('src', 'gl', 'constants', 'tenirTextes.js'),
   path.join('src', 'gl', 'constants', 'authCover.js'),
   path.join('src', 'gl', 'components', 'spell-cast', 'GLSpellCastFooter.jsx'),
+  // Panne réseau dite à un élève sur son compte (au « tu ») : partagée avec ForêtMap, elle
+  // atteint les écrans G&L depuis le lot 5.
+  path.join('src', 'shared', 'networkFailureMessages.js'),
 ];
 
 test('écrans de séance et connexion : aucun mot interdit dans les sources', () => {

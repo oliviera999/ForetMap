@@ -73,8 +73,11 @@ describe('mode séance de la console (K7)', () => {
     expect(screen.getByRole('button', { name: 'Déconnexion' })).toBeInTheDocument();
     const replier = screen.getByRole('button', { name: 'Réduire le menu' });
     expect(replier).toHaveAttribute('aria-expanded', 'true');
+    // Le bouton touché a disparu : le focus est passé à celui qui le remplace.
+    expect(replier).toHaveFocus();
     fireEvent.click(replier);
     expect(screen.getByTestId('gl-topbar-seance')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Menu' })).toHaveFocus();
   });
 
   test('le titre du tour suit la phase sans quitter le mode séance', () => {
