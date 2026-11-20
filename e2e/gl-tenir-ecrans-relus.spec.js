@@ -67,7 +67,7 @@ test.describe('GL — écrans relus sans rechargement', () => {
     await pageProjection.goto(jeton.url || `/?projection=${encodeURIComponent(jeton.token)}`);
     const projection = pageProjection.getByTestId('gl-projection');
     await expect(projection).toBeVisible();
-    await expect(projection).toContainText('En attente du tour');
+    await expect(projection).toContainText('Le prof ouvre bientôt le tour.');
 
     // J3 — le stockage partagé entre onglets porte toujours le compte du prof.
     const stockee = await pageProf.evaluate(() => JSON.parse(localStorage.getItem('gl_session')));
@@ -78,7 +78,7 @@ test.describe('GL — écrans relus sans rechargement', () => {
     expect(new URL(pageProjection.url()).searchParams.get('projection')).toBeNull();
     await pageProjection.reload();
     await expect(projection).toBeVisible();
-    await expect(projection).toContainText('En attente du tour');
+    await expect(projection).toContainText('Le prof ouvre bientôt le tour.');
 
     // Le prof joue depuis sa console : son jeton est toujours le sien (J3, conséquence).
     await ecranTour.getByRole('button', { name: 'Ouvrir le tour' }).click();

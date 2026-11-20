@@ -21,17 +21,7 @@ import { MESSAGE_ETAT_PERIME } from '../../../shared/glMainCore.js';
 import { ROLES_EN_CONSEIL, maintenantVousPouvez } from '../../../shared/glSortMomentsCore.js';
 import { numeroCase } from '../../../shared/glCaseNumeroCore.js';
 import { PHASE_AUCUN_TOUR, titreDuTour } from '../../constants/tenirPhases.js';
-
-const VERDICT_TEXTES = {
-  froid: 'Froid : la page dort plus loin.',
-  tiede: 'Tiède : on s’approche.',
-  chaud: 'Chaud : la page est tout près.',
-  zone: 'Une page dort ici : répondez à sa question.',
-  deja_trouvee: 'Cette page est déjà trouvée.',
-  palie: 'Cette zone a pâli : les Gnomes savent la réparer.',
-  page_trouvee: 'Page trouvée ! Elle entre au carnet de la classe.',
-  pas_encore: 'Pas encore : la page dort encore ici.',
-};
+import { TENIR_VERDICT_TEXTES as VERDICT_TEXTES } from '../../constants/tenirTextes.js';
 
 /** Durée d'affichage de « L'équipe a déjà joué ce geste. Voici où vous en êtes. » (ms). */
 const AVIS_ETAT_PERIME_MS = 12000;

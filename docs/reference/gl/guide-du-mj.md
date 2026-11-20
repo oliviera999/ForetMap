@@ -373,7 +373,7 @@ s'applique tout de suite, comme avant.
 honneurs, sceaux et titres s'attribuent, les badges se calculent. Les parures ne reviennent plus
 au comptoir : chaque élève garde les siennes et les repose, au chapitre suivant, sur la mascotte
 de sa nouvelle équipe. La **projection** (bouton « Projeter ») donne un lien à ouvrir sur le vidéoprojecteur :
-rien n'y est cliquable, aucune bourse ne s'y affiche ; elle suit le tour sans rechargement et peut
+aucun geste de jeu ne s'y fait, aucune bourse ne s'y affiche ; elle suit le tour sans rechargement et peut
 s'ouvrir dans un second onglet de votre poste sans vous déconnecter. L'écran « Jouer le tour » se
 relit lui aussi quand une équipe joue depuis son appareil : cartes d'équipe et file « Demandes »
 se mettent à jour sans « Actualiser » (le bouton reste là en secours). Les **exports** (Team Spirit, badges) se
@@ -389,7 +389,8 @@ main, la relecture des pages écrites et des chimères s'y saisissent aussi.
   plus en partie ; 40 questions vives les remplacent. La case « Posée en partie » de l'écran
   des QCM règle le tirage question par question.
 - **Indices de chasse.** Les 36 indices du carnet de la classe sont devenus des énigmes
-  scientifiques (« Là où… »). Ils s'affichent en entier, sur tablette comme en projection.
+  scientifiques (« Là où… »). Ils s'affichent en entier sur les écrans d'équipe ; la projection
+  n'en montre plus qu'un, à la fin de la séance (voir « La projection, mode tableau »).
 - **Au tableau, les sorts du tour passent par vous.** Un élève ne peut plus lancer depuis son
   compte un sort qui se joue pendant la phase jeu : l'app lui répond « Au tableau, ce sort se
   lance avec le prof. ». Les sorts de veillée, de seuil et d'activité restent ouverts.
@@ -589,7 +590,8 @@ Au chapitre 1, on n'explique plus les règles : la classe les rencontre, une à 
   nouveaux sorts, et ce que le plateau apporte. Elles s'affichent sur l'écran d'équipe, au Seuil
   de chaque élève et sur la projection.
 - **L'accroche de fin de séance.** Tour clos, la projection affiche « À la prochaine séance » :
-  la page du Passeur du jour et l'indice d'une page qui dort encore.
+  la page du Passeur du jour et l'indice d'une page qui dort encore. Depuis le 20 novembre 2026,
+  cette carte prend tout l'écran (voir « La projection, mode tableau »).
 - **Une seule limite de veillée.** Un élève gagne au plus **quatre pages par semaine** à la
   maison, toutes voies confondues (page tenue en veillée, défi de la Trame réussi), et ouvre une
   piste par semaine. Son écran lui dit « Encore N pages à gagner cette semaine. » Passé la
@@ -610,6 +612,37 @@ Au chapitre 1, on n'explique plus les règles : la classe les rencontre, une à 
   quatrième de couverture tutoie l'élève et dit le Souffle par ce qu'il fait (le carnet pâlit,
   le monde se dessèche).
 - **Dans l'assistant de sort**, le bouton qui renonce s'appelle « Ne pas lancer ».
+
+### Écrans de séance : la projection, mode tableau (20 novembre 2026)
+
+La projection tient désormais sur **un seul écran, sans défilement**, et se lit du fond de la
+salle (réglée pour un vidéoprojecteur en 1920 × 1080).
+
+- **En haut**, le nom de la partie, le tour et sa phase (« Tour 2 — À vous de jouer »), la case
+  du voile, et le sablier quand il tourne. Avant le premier tour : « Le prof ouvre bientôt le
+  tour. »
+- **À gauche, le plateau**, en grand, sans titre ni bouton. Le voile y est plus marqué qu'ailleurs
+  (bande plus sombre, cernée d'un trait) pour se voir de loin.
+- **À droite**, les équipes en grosses pastilles (mascotte, nom, case, et s'il y a lieu « au
+  camp », « sous le voile », « un seul dé ») ; la **Lumière de la classe** en jauge, une fois
+  ouverte ; le **carnet de la classe**, une tuile par page : « dort encore », « révélée par … »,
+  « trouvée par … », « tenue par … », « pâlie », « réparée ». Une page trouvée porte son titre ;
+  les autres s'appellent « Page 1 », « Page 2 »… Les indices (« Là où… ») ne sont plus au
+  tableau, faute de place : les équipes les lisent sur leur écran.
+- **En bas, les trois derniers faits marquants** : une page trouvée ou tenue, un défi relevé, le
+  voile qui avance, une arrivée au camp, une péripétie. Les jets de dés et les fouilles n'y
+  passent plus ; le journal complet reste dans « Jouer le tour ».
+- **À la clôture du tour**, la carte « À la prochaine séance » **remplace l'écran** : la page du
+  Passeur, l'indice d'une page qui dort encore, et les défis à préparer. Le bouton « Voir le
+  plateau » revient au plateau ; le bouton « À la prochaine séance », en haut, rouvre la carte.
+- **Pendant la phase « Le voile avance »**, le plateau reste à l'écran. La page du Passeur
+  s'ouvre en grand par le bouton « La page du jour », en haut à droite, et se referme par
+  « Voir le plateau ». Ce sont les deux seuls boutons de la projection : ils changent ce qui est
+  affiché, jamais la partie.
+- **Au camp** (chapitre clos), « Ce qui change au prochain chapitre » prend la place des faits
+  marquants, en bas.
+- Sur une fenêtre étroite (moins de 1 024 points de large, un téléphone par exemple), les mêmes
+  blocs s'empilent et la page défile.
 
 ## Pour aller plus loin
 

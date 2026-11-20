@@ -382,6 +382,16 @@ Seuil échoue, la partie reste en cours et le geste se rejoue.
 journal expurgé ; aucune bourse, aucun polygone, aucun motif de retrait ; révoqué à la clôture ou
 sur `{ revoke: true }`.
 
+Écran (`GLProjectionView`, « mode tableau ») : une grille plein écran, sans défilement à
+1920 × 1080 — bandeau (partie, tour et phase en mots d'élève, sablier), plateau en
+`presentation="projection"` (cases statiques, aucun bouton, voile `gl-voile-layer--projection`),
+colonne de droite (équipes en pastilles, Lumière en jauge, carnet en pages, sans les indices),
+et `GLTourJournal marquants limit={3}` en bas (`FAITS_MARQUANTS`, filtre fait à l'écran). À la
+clôture du tour, la carte « À la prochaine séance » remplace l'écran (page du Passeur, indice
+d'une page endormie, défis à préparer) ; « Voir le plateau » y ramène. Aucune route ne change.
+Styles : bloc « Projection, mode tableau » de `src/gl/styles/gl-tenir.css` ; e2e
+`e2e/gl-tenir-projection.spec.js`.
+
 ## Tests
 
 Voir [`GL_TESTS.md`](GL_TESTS.md) § « Tenir à deux ».

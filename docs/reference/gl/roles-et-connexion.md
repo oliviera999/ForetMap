@@ -367,9 +367,12 @@ de la classe, **sans qu'aucun élève ne se connecte**.
 ## La projection (vidéoprojecteur)
 
 Pour une partie « Tenir à deux », le MJ génère depuis la console un **lien de projection** valable
-la journée (douze heures). Ouvert sur le vidéoprojecteur, il montre le tour, les équipes, le voile,
-le carnet de la classe et le journal — **en lecture seule**, sans aucun bouton, sans aucune bourse,
-sans le motif d'un retrait. Le lien s'éteint à la clôture du chapitre ou quand le MJ le révoque.
+la journée (douze heures). Ouvert sur le vidéoprojecteur, il montre sur un seul écran le tour, le
+plateau, les équipes, le voile, le carnet de la classe et les derniers faits marquants — **en
+lecture seule**, sans aucun geste de jeu, sans aucune bourse, sans le motif d'un retrait. Ses deux
+seuls boutons changent l'affichage (« La page du jour » ou « À la prochaine séance », et « Voir le
+plateau ») ; le détail est dans le [guide du MJ](guide-du-mj.md). Le lien s'éteint à la clôture
+du chapitre ou quand le MJ le révoque.
 
 L'écran projeté **suit le tour tout seul** : ouverture, phase, jets, carnet — rien à recharger.
 Le lien peut s'ouvrir **dans un autre onglet du poste du MJ** (poste unique relié au

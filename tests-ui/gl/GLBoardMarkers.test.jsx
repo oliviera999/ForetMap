@@ -107,4 +107,40 @@ describe('GLBoardMarkers', () => {
     expect(btn.querySelector('.gl-board-marker__icon')).toBeTruthy();
     expect(document.querySelector('.gl-board-marker--icon')).toBeTruthy();
   });
+
+  // Chantier « écrans de séance », étape 3 : au tableau, rien ne se touche.
+  test('statique (projection) : la case se lit, ce n’est plus un bouton', () => {
+    const clics = [];
+    render(
+      <GLBoardMarkers
+        statique
+        onMarkerClick={(m) => clics.push(m.id)}
+        markerPathNumbers={new Map([[1, 3]])}
+        markers={[
+          {
+            id: 1,
+            label: 'Étape',
+            x_pct: 10,
+            y_pct: 20,
+            event_type: 'point',
+            display_mode: 'label',
+          },
+        ]}
+      />,
+    );
+    expect(screen.queryByRole('button')).toBeNull();
+    const repere = screen.getByRole('img', { name: 'Repère 3 — Étape' });
+    expect(repere.tagName).toBe('SPAN');
+    expect(repere.getAttribute('type')).toBeNull();
+    expect(repere.className).toBe(
+      'gl-board-marker gl-board-marker--label gl-board-marker--statique',
+    );
+    // Même place et même contenu que le bouton : seul le geste disparaît.
+    expect(repere.style.left).toBe('10%');
+    expect(repere.style.top).toBe('20%');
+    expect(repere).toHaveTextContent('Étape');
+    expect(repere.dataset.pathNumber).toBe('3');
+    repere.click();
+    expect(clics).toEqual([]);
+  });
 });

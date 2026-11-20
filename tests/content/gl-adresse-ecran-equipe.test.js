@@ -52,6 +52,8 @@ const SOURCES_EQUIPE = [
     .map((f) => path.join('src', 'gl', 'components', 'tenir', f)),
   path.join('src', 'shared', 'glSortMomentsCore.js'),
   path.join('src', 'gl', 'constants', 'tenirPhases.js'),
+  // Les mots de la carte du moment (bouton, puces, bandeaux d'une ligne, états sans geste).
+  path.join('src', 'gl', 'utils', 'glTenirMoment.js'),
 ];
 
 /**

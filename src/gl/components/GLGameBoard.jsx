@@ -577,6 +577,7 @@ export function GLGameBoard({
           markers={feuilletZoneEditMode ? editableMarkers : markers}
           selectedMarkerId={feuilletZoneEditMode ? plateauPlacement.selectedMarkerId : null}
           markerPathNumbers={markerPathNumbers}
+          statique={figee}
           onMarkerClick={
             feuilletZoneEditMode
               ? (marker) => plateauPlacement.selectMarker?.(marker.id)
@@ -586,7 +587,11 @@ export function GLGameBoard({
       ) : null}
 
       {tenirLayers && !feuilletZoneEditMode ? (
-        <GLVoileLayer markers={markers} position={tenirLayers.voilePosition ?? -1} />
+        <GLVoileLayer
+          markers={markers}
+          position={tenirLayers.voilePosition ?? -1}
+          variante={figee ? 'projection' : null}
+        />
       ) : null}
       {tenirLayers?.carnet && !feuilletZoneEditMode ? (
         <GLChasseLayer
