@@ -35,6 +35,21 @@ mémorisé). Aucun onglet n'est ajouté, retiré ni renommé.
   (comparées à une copie figée de l'ancienne liste), montage des deux navigations dans
   `AppShellWiring`, aide e2e `openStudentTab` (pôle sur ordinateur, « Plus » en compact)
   reprise par les specs élève.
+### Modifié — UI/UX lot 5 : glossaire, homographes et densité des liens (U7)
+
+Commun à ForêtMap (fiches, zones, Visite, quiz), aux tutoriels servis par l'API et à Gnomes &
+Licornes (glossaires SVT et lore).
+
+- **Homographes** : « vers », « été », « sens », « son », « fin », « mare » ne sont liés que
+  précédés d'un déterminant (« des vers », « l'été », « en été ») ; « plonge droit vers le
+  bas » n'est plus lié à « ver ». Les libellés plus longs (« vers de terre ») restent liés.
+- **Premier emploi seulement** : un terme n'est lié qu'une fois par bloc de texte (fiche,
+  tutoriel, énoncé).
+- **Noyau unique** : `src/shared/glossary/termAutolinkCore.js`, miroir CJS
+  `lib/shared/termAutolinkCore.js` régénéré par `npm run sync:shared-cores` ;
+  `scripts/sync-term-autolink-lib.js` supprimé, `lib/term-autolink/termAutolink.js` et
+  `src/utils/termAutolink.js` deviennent des réexportations. Fonction `walkAndLink` (DOM,
+  jamais appelée) retirée.
 
 ### Interne — UI/UX : préalable R0 (points de bascule, cliquet des styles en ligne, état vide partagé)
 
