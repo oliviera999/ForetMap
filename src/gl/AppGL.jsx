@@ -136,6 +136,7 @@ import {
   readClassLinkTokenFromUrl,
   removeClassLinkTokenFromUrl,
 } from './utils/glTeamSession.js';
+import { GLTenirEcranEquipe } from './components/tenir/GLTenirEcranEquipe.jsx';
 import { GLTenirEquipeView } from './components/tenir/GLTenirEquipeView.jsx';
 import { importTargetNav } from './utils/glJournalImportMeta.js';
 import { useGlChasse } from './hooks/useGlChasse.js';
@@ -804,6 +805,16 @@ export function AppGL() {
     tourRejointRef.current = tourOuvertNumero;
     navigateTab('maps');
   }, [tourOuvertNumero, navigateTab]);
+  // Écran d'équipe d'un compte élève (onglet du plateau, partie en cours). Surfaces hybride et
+  // tablette : l'écran en trois choses, qui prend toute la hauteur de la fenêtre. Surface
+  // « tableau » : l'ancien écran empilé, inchangé (garde-fou 12).
+  const ecranEquipeMonte =
+    !!gameState?.tenir?.enabled &&
+    showsPlayerChrome &&
+    auth?.teamId != null &&
+    String(gameState?.game?.status || '') === 'live';
+  const ecranEquipeEnTrois = ecranEquipeMonte && gameState.tenir.surface !== 'tableau';
+  const ecranEquipePleinEcran = ecranEquipeEnTrois && tab === 'maps';
   const tenirLayers = useMemo(
     () =>
       tenirChasseEnabled
@@ -950,6 +961,138 @@ export function AppGL() {
     );
   }
 
+  /**
+   * Onglet du plateau. Le plateau est le même partout ; seule sa présentation change : épurée
+   * (`tenir`) dans l'écran d'équipe en trois choses, classique sinon.
+   */
+  const ongletDuPlateau = () => {
+    const plateau = (presentation) => (
+      <GLMapView
+        gameState={gameState}
+        onMoveMascot={
+          isMjMapControls
+            ? moveMascotToMarker
+            : canPlayerMoveMascot
+              ? movePlayerMascotToMarker
+              : undefined
+        }
+        onMoveMascotToPct={
+          isMjMapControls
+            ? moveMascotToPct
+            : canPlayerMoveMascot
+              ? movePlayerMascotToPct
+              : undefined
+        }
+        onPlayerActionRequest={submitPlayerActionRequest}
+        onSelectTeam={setSelectedTeamId}
+        onOpenGlossaryTerm={openGlossaryPopover}
+        glossaryLinkItems={glossaryLinkItems}
+        onOpenLoreTerm={openLoreGlossaryPopover}
+        loreGlossaryLinkItems={loreGlossaryLinkItems}
+        loreCarnetEnabled={isModuleEnabled(modules, 'loreCarnetEnabled')}
+        onQcmAnswered={reloadGame}
+        canMoveMascot={canMoveMascotFree || canPlayerMoveMascot}
+        boardMovement={boardMovement}
+        onDiceRollResult={canDiceAdvancePath ? handleDiceRollAdvance : null}
+        canRequestAction={canRequestAction}
+        markerArrivalEnabled={markerArrivalEnabled}
+        canSpellCast={canSpellCast}
+        onLaunchSpell={() => openSpellCastWizard(null)}
+        selectedTeamId={
+          canPlayerMoveMascot && selectedTeamId == null ? Number(auth.teamId) : selectedTeamId
+        }
+        currentTeamId={currentTeamId}
+        playerTeamId={auth?.teamId != null ? Number(auth.teamId) : null}
+        mascotStateMachine={mascotStateMachine}
+        kingdomZones={kingdomZones}
+        zoneMusicEnabled={zoneMusicEnabled}
+        zoneMusicMuted={zoneMusicMuted}
+        onZoneMusicToggle={handleZoneMusicToggle}
+        onZoneMusicUnlock={handleZoneMusicUnlock}
+        brandThemeStyle={glBrandStyle}
+        virtualDiceEnabled={virtualDiceEnabled}
+        turnsEnabled={turnsEnabled}
+        roundNumber={currentRoundNumber}
+        canManageTurn={showStaffAdminUi && turnsEnabled}
+        onNextTurn={startNextGameRoundFromMap}
+        nextTurnBusy={mapNextTurnBusy}
+        activeTeamRolled={turnsEnabled && activeTeamHasRolledDice}
+        activeTeamName={activeDiceTeam?.name || null}
+        canRollDice={canRollDiceThisRound}
+        disableDiceReroll={turnsEnabled}
+        onRecordDiceRoll={recordDiceRoll}
+        feuilletZones={feuilletZones}
+        feuilletZoneEditMode={feuilletZoneEditMode}
+        feuilletZoneTraversalEnabled={gameplaySettings.feuilletZoneTraversalEnabled !== false}
+        showPlateauMarkers={plateauMapVisibility.markersVisible}
+        showPlateauZones={plateauMapVisibility.zonesVisible}
+        showMarkerPathNumbers={plateauMapVisibility.markerNumbersVisible}
+        boardFocus={boardFocusSettings}
+        roster={gameState?.roster || []}
+        vitalityEnabled={!!gameplaySettings.vitalityEnabled}
+        vitalityByPlayerId={gameState?.vitality?.byPlayerId || null}
+        playerId={
+          auth?.userType === 'gl_player' && auth?.userId != null ? Number(auth.userId) : null
+        }
+        tenirLayers={tenirLayers}
+        fouilleMode={chasse.fouilleMode}
+        onFouille={chasse.fouiller}
+        presentation={presentation}
+      />
+    );
+    const ouvrirPiste = (piste) =>
+      handleNavigateFromImport(
+        importTargetNav(piste?.type === 'fiche' ? 'species' : 'glossary', piste?.code),
+      );
+    const jeterUnSort = canSpellCast ? (code) => openSpellCastWizard(code || null) : null;
+    // Écran d'équipe en trois choses : le plateau y est reçu, épuré.
+    if (ecranEquipeEnTrois) {
+      return (
+        <GLTenirEcranEquipe
+          gameState={gameState}
+          tenir={gameState.tenir}
+          teamId={auth.teamId}
+          onReloadGame={reloadGame}
+          onJeter={jeterUnSort}
+          chasse={chasse}
+          modules={modules}
+          onOuvrirPiste={ouvrirPiste}
+          token={token}
+          board={plateau('tenir')}
+        />
+      );
+    }
+    return (
+      <>
+        {/* Surface « tableau » : l'écran d'avant, inchangé (garde-fou 12). */}
+        {ecranEquipeMonte ? (
+          <GLTenirEquipeView
+            gameState={gameState}
+            tenir={gameState.tenir}
+            teamId={auth.teamId}
+            onReloadGame={reloadGame}
+            onJeter={jeterUnSort}
+            chasse={chasse}
+            modules={modules}
+            onOuvrirPiste={ouvrirPiste}
+          />
+        ) : null}
+        {plateau('standard')}
+        {showsPlayerChrome && gameState?.game && auth?.teamId == null && (
+          <section className="gl-panel">
+            <h3>Rejoindre une équipe</h3>
+            <p className="gl-hint" style={{ marginTop: 0 }}>
+              Sélectionnez une équipe sur la carte, puis confirmez l’affectation joueur.
+            </p>
+            <GLButton type="button" onClick={joinSelectedTeam}>
+              Rejoindre l’équipe sélectionnée
+            </GLButton>
+          </section>
+        )}
+      </>
+    );
+  };
+
   return (
     <GlMapOverlaySettingsProvider>
       <GLMascotCatalogProvider token={isGuest ? null : token}>
@@ -970,7 +1113,7 @@ export function AppGL() {
           storageKey={guestDemoProfile ? GL_DEMO_TOUR_SEEN_STORAGE_KEY : undefined}
         >
           <div
-            className={`gl-app${compactNav ? ' gl-app--has-bottom-nav' : ''}${isGuest ? ' gl-app--discovery' : ''}${kioskMode ? ' gl-app--kiosque' : ''}`}
+            className={`gl-app${compactNav ? ' gl-app--has-bottom-nav' : ''}${isGuest ? ' gl-app--discovery' : ''}${kioskMode ? ' gl-app--kiosque' : ''}${ecranEquipePleinEcran ? ' gl-app--ecran-equipe' : ''}`}
             style={glAppStyle}
           >
             <AppStatusSticky />
@@ -1135,123 +1278,7 @@ export function AppGL() {
                       isMj={showStaffAdminUi}
                     />
                   ) : null}
-                  {tab === 'maps' && (
-                    <>
-                      {gameState?.tenir?.enabled &&
-                      showsPlayerChrome &&
-                      auth?.teamId != null &&
-                      String(gameState?.game?.status || '') === 'live' ? (
-                        <GLTenirEquipeView
-                          gameState={gameState}
-                          tenir={gameState.tenir}
-                          teamId={auth.teamId}
-                          onReloadGame={reloadGame}
-                          onJeter={
-                            canSpellCast ? (code) => openSpellCastWizard(code || null) : null
-                          }
-                          chasse={chasse}
-                          modules={modules}
-                          onOuvrirPiste={(piste) =>
-                            handleNavigateFromImport(
-                              importTargetNav(
-                                piste?.type === 'fiche' ? 'species' : 'glossary',
-                                piste?.code,
-                              ),
-                            )
-                          }
-                        />
-                      ) : null}
-                      <GLMapView
-                        gameState={gameState}
-                        onMoveMascot={
-                          isMjMapControls
-                            ? moveMascotToMarker
-                            : canPlayerMoveMascot
-                              ? movePlayerMascotToMarker
-                              : undefined
-                        }
-                        onMoveMascotToPct={
-                          isMjMapControls
-                            ? moveMascotToPct
-                            : canPlayerMoveMascot
-                              ? movePlayerMascotToPct
-                              : undefined
-                        }
-                        onPlayerActionRequest={submitPlayerActionRequest}
-                        onSelectTeam={setSelectedTeamId}
-                        onOpenGlossaryTerm={openGlossaryPopover}
-                        glossaryLinkItems={glossaryLinkItems}
-                        onOpenLoreTerm={openLoreGlossaryPopover}
-                        loreGlossaryLinkItems={loreGlossaryLinkItems}
-                        loreCarnetEnabled={isModuleEnabled(modules, 'loreCarnetEnabled')}
-                        onQcmAnswered={reloadGame}
-                        canMoveMascot={canMoveMascotFree || canPlayerMoveMascot}
-                        boardMovement={boardMovement}
-                        onDiceRollResult={canDiceAdvancePath ? handleDiceRollAdvance : null}
-                        canRequestAction={canRequestAction}
-                        markerArrivalEnabled={markerArrivalEnabled}
-                        canSpellCast={canSpellCast}
-                        onLaunchSpell={() => openSpellCastWizard(null)}
-                        selectedTeamId={
-                          canPlayerMoveMascot && selectedTeamId == null
-                            ? Number(auth.teamId)
-                            : selectedTeamId
-                        }
-                        currentTeamId={currentTeamId}
-                        playerTeamId={auth?.teamId != null ? Number(auth.teamId) : null}
-                        mascotStateMachine={mascotStateMachine}
-                        kingdomZones={kingdomZones}
-                        zoneMusicEnabled={zoneMusicEnabled}
-                        zoneMusicMuted={zoneMusicMuted}
-                        onZoneMusicToggle={handleZoneMusicToggle}
-                        onZoneMusicUnlock={handleZoneMusicUnlock}
-                        brandThemeStyle={glBrandStyle}
-                        virtualDiceEnabled={virtualDiceEnabled}
-                        turnsEnabled={turnsEnabled}
-                        roundNumber={currentRoundNumber}
-                        canManageTurn={showStaffAdminUi && turnsEnabled}
-                        onNextTurn={startNextGameRoundFromMap}
-                        nextTurnBusy={mapNextTurnBusy}
-                        activeTeamRolled={turnsEnabled && activeTeamHasRolledDice}
-                        activeTeamName={activeDiceTeam?.name || null}
-                        canRollDice={canRollDiceThisRound}
-                        disableDiceReroll={turnsEnabled}
-                        onRecordDiceRoll={recordDiceRoll}
-                        feuilletZones={feuilletZones}
-                        feuilletZoneEditMode={feuilletZoneEditMode}
-                        feuilletZoneTraversalEnabled={
-                          gameplaySettings.feuilletZoneTraversalEnabled !== false
-                        }
-                        showPlateauMarkers={plateauMapVisibility.markersVisible}
-                        showPlateauZones={plateauMapVisibility.zonesVisible}
-                        showMarkerPathNumbers={plateauMapVisibility.markerNumbersVisible}
-                        boardFocus={boardFocusSettings}
-                        roster={gameState?.roster || []}
-                        vitalityEnabled={!!gameplaySettings.vitalityEnabled}
-                        vitalityByPlayerId={gameState?.vitality?.byPlayerId || null}
-                        playerId={
-                          auth?.userType === 'gl_player' && auth?.userId != null
-                            ? Number(auth.userId)
-                            : null
-                        }
-                        tenirLayers={tenirLayers}
-                        fouilleMode={chasse.fouilleMode}
-                        onFouille={chasse.fouiller}
-                      />
-                      {showsPlayerChrome && gameState?.game && auth?.teamId == null && (
-                        <section className="gl-panel">
-                          <h3>Rejoindre une équipe</h3>
-                          <p className="gl-hint" style={{ marginTop: 0 }}>
-                            Sélectionnez une équipe sur la carte, puis confirmez l’affectation
-                            joueur.
-                          </p>
-                          <GLButton type="button" onClick={joinSelectedTeam}>
-                            Rejoindre l’équipe sélectionnée
-                          </GLButton>
-                        </section>
-                      )}
-                    </>
-                  )}
+                  {tab === 'maps' ? ongletDuPlateau() : null}
                   {resolveGlNavActiveTab(tab) === 'nature' ? (
                     <GLNatureView
                       activeSubTab={natureSubTab}
@@ -1481,7 +1508,10 @@ export function AppGL() {
                   onClear={notifications.clear}
                 />
               ) : null}
-              {zoneMusicEnabled && zoneMusicRuntimeActive && tab !== 'maps' && musicActiveZone ? (
+              {zoneMusicEnabled &&
+              zoneMusicRuntimeActive &&
+              (tab !== 'maps' || ecranEquipePleinEcran) &&
+              musicActiveZone ? (
                 <GLZoneMusicMuteButton
                   visible
                   muted={zoneMusicMuted}

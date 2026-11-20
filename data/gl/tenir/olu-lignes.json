@@ -833,6 +833,15 @@
       "expression": "curieux",
       "texte": "Une Lettre, c'est une page à toi, en marge du carnet. Choisis une amorce, ou pars de ton idée.",
       "variables": []
+    },
+    {
+      "id": "olu-pf-comptes",
+      "moment": "premiere_fois",
+      "cle": "comptes",
+      "seance_escalier": 4,
+      "expression": "explique",
+      "texte": "Le Marché et le Seuil s'ouvrent depuis le compte de chacun.",
+      "variables": []
     }
   ]
 }

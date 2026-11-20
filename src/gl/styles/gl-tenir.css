@@ -1896,10 +1896,11 @@
   padding: var(--gl-space-3);
   border-radius: var(--gl-radius-md);
   background: color-mix(in srgb, var(--gl-accent-warm) 22%, var(--gl-surface));
-  font-size: var(--text-xl);
+  font-size: var(--text-lg);
   font-weight: var(--fw-bold);
   line-height: var(--lh-tight);
   text-align: center;
+  text-wrap: balance;
 }
 .gl-tenir-moment__puces {
   display: flex;
@@ -2020,12 +2021,167 @@
 .gl-tenir-tiroir__carnet:focus {
   outline: none;
 }
-/* Téléphone : le tiroir prend tout l'écran. */
+/* Téléphone : le tiroir prend toute la zone sous le bandeau (plateau et feuille d'action). */
 @media (max-width: 640px) {
   .gl-tenir-tiroir {
-    position: fixed;
-    inset: 0;
-    width: auto;
+    width: 100%;
     border-inline-end: 0;
+  }
+}
+
+/*
+ * ── Mise en page de l'écran d'équipe (`GLTenirEcranEquipe`) ──
+ * Le bandeau en haut, toujours visible ; dessous, le plateau et la colonne d'action. La page ne
+ * défile pas : l'écran prend la hauteur de la fenêtre, et seule la colonne d'action défile s'il
+ * le faut. Le tiroir « L'équipe » se pose par-dessus le plateau (la zone est son repère).
+ *
+ * Deux colonnes à partir de `lg` (1024 px), ou de `md` (768 px) en paysage : plateau ≈ 62 %,
+ * action ≈ 38 % (320 px au moins). Sinon : le plateau en haut (≈ 55 %), la carte du moment dans
+ * une feuille en bas — au-dessus de la barre de navigation sur le compte d'un élève.
+ */
+.gl-tenir-ecran {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  background: var(--gl-color-background);
+}
+.gl-tenir-ecran__corps {
+  position: relative;
+  display: grid;
+  grid-template-rows: minmax(0, 55fr) minmax(0, 45fr);
+  min-height: 0;
+}
+.gl-tenir-ecran__plateau {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+/* Le plateau épuré a une hauteur plancher pour vivre seul ; ici, c'est sa zone qui décide. */
+.gl-tenir-ecran__plateau .gl-board-scene .gl-board {
+  min-height: 0;
+}
+/* En fouille : le plateau attend un toucher, il prend le bord doré. */
+.gl-tenir-ecran__plateau.is-fouille::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 4px solid var(--gl-accent-warm);
+  border-radius: var(--gl-radius-md);
+  pointer-events: none;
+}
+.gl-tenir-ecran__action {
+  min-width: 0;
+  min-height: 0;
+  padding: var(--gl-space-2) var(--gl-space-3) var(--gl-space-3);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-top: 1px solid var(--gl-border);
+  background: var(--gl-surface-muted);
+}
+@media (min-width: 1024px), (min-width: 768px) and (orientation: landscape) {
+  .gl-tenir-ecran__corps {
+    grid-template-rows: minmax(0, 1fr);
+    grid-template-columns: minmax(0, 62fr) minmax(320px, 38fr);
+  }
+  .gl-tenir-ecran__action {
+    padding: var(--gl-space-3);
+    border-top: 0;
+    border-inline-start: 1px solid var(--gl-border);
+  }
+}
+
+/* Tablette d'équipe : l'écran est toute la fenêtre. */
+.gl-team-session--ecran {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  box-sizing: border-box;
+  height: 100vh;
+  height: 100dvh;
+  padding: 0;
+  overflow: hidden;
+}
+.gl-team-session--ecran > .gl-error-banner {
+  margin: var(--gl-space-1) var(--gl-space-3);
+}
+
+/*
+ * Compte d'un élève : la barre de l'application reste en haut, l'écran d'équipe prend tout le
+ * reste (et s'arrête au-dessus de la barre de navigation du bas, quand il y en a une).
+ */
+.gl-app--ecran-equipe {
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+}
+/* La barre de l'application et les bandeaux gardent leur hauteur : seul le contenu se plie. */
+.gl-app--ecran-equipe > :not(.gl-main) {
+  flex-shrink: 0;
+}
+.gl-app--ecran-equipe .gl-main {
+  display: flex;
+  flex-direction: column;
+  max-width: none;
+  min-height: 0;
+  padding: 0;
+}
+.gl-app--has-bottom-nav.gl-app--ecran-equipe .gl-main {
+  padding-bottom: calc(var(--gl-bottom-nav-height) + var(--safe-bottom, 0px));
+}
+/*
+ * Les commandes flottantes (aide, notifications, en bas à droite) ne couvrent pas la carte du
+ * moment : la colonne d'action leur laisse la place en fin de défilement, et, sur un téléphone
+ * où la feuille est courte, une gouttière à droite.
+ */
+.gl-app--ecran-equipe .gl-tenir-ecran__action {
+  padding-bottom: calc(var(--gl-space-3) + 2 * var(--gl-tap-target, 44px) + 2 * var(--fm-dock-gap));
+}
+@media (max-width: 640px) {
+  .gl-app--ecran-equipe .gl-tenir-ecran__action {
+    padding-bottom: var(--gl-space-3);
+    padding-inline-end: calc(var(--fm-dock-inset) + var(--gl-tap-target, 44px) + var(--gl-space-2));
+  }
+  /* Le tiroir prend toute la largeur : la fin de son contenu se dégage des commandes. */
+  .gl-app--ecran-equipe .gl-tenir-tiroir__corps {
+    padding-bottom: calc(
+      var(--gl-space-3) + 2 * var(--gl-tap-target, 44px) + 2 * var(--fm-dock-gap)
+    );
+  }
+}
+
+/*
+ * Fenêtre trop basse pour tout y tenir : on ne force rien — la page défile, et le plateau garde
+ * une hauteur lisible. C'est le cas d'un téléphone couché (tablette d'équipe comme compte), et,
+ * sur le compte d'un élève, de toute fenêtre de moins de 600 px de haut : la barre de
+ * l'application y prend déjà le tiers de l'écran.
+ */
+@media (max-width: 767px) and (max-height: 559px) {
+  .gl-team-session--ecran {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+  .gl-team-session--ecran .gl-tenir-ecran__corps {
+    grid-template-rows: minmax(240px, 70dvh) auto;
+  }
+  .gl-team-session--ecran .gl-tenir-ecran__action {
+    overflow-y: visible;
+  }
+}
+@media (max-height: 599px) {
+  .gl-app--ecran-equipe {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+  .gl-app--ecran-equipe .gl-tenir-ecran__corps {
+    grid-auto-rows: auto;
+    grid-template-rows: minmax(max(240px, 70dvh), auto);
+  }
+  .gl-app--ecran-equipe .gl-tenir-ecran__action {
+    overflow-y: visible;
   }
 }

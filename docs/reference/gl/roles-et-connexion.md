@@ -340,20 +340,26 @@ de la classe, **sans qu'aucun élève ne se connecte**.
 - La tablette a les droits d'un membre de l'équipe, pour cette partie et cette équipe
   seulement, pendant trois heures. Elle n'agit que lorsqu'un tour est ouvert ; le reste du
   temps elle montre le plateau et le carnet, en lecture seule.
+- **Son écran montre trois choses** (depuis le 20 novembre 2026) : le plateau, une seule carte
+  — ce que l'équipe a à faire maintenant — et Olu, sous un bandeau fin (équipe, phase, bourses).
+  Le reste (cases à venir, carnet, « Changer d'équipe ») est dans le tiroir « ☰ L'équipe ». Il
+  n'y a plus de bouton « Actualiser » : l'écran suit le tour, et une flèche « Relire l'écran »
+  n'apparaît que si la connexion tombe. Le détail est dans le
+  [guide du MJ](guide-du-mj.md), note « L'écran d'équipe en trois choses ».
 - **Quand aucun tour n'est ouvert, la tablette propose les « Défis de la Trame »** de son
   peuple, et les trois défis ouverts aux deux peuples, pour l'équipe : aucune bourse n'y est touchée, et la réussite vaut pour chaque membre
   présent. Un élève connecté avec son compte les retrouve à son Seuil, pour lui seul.
 - **La tablette d'équipe ne touche la bourse de personne** (depuis le 17 novembre 2026). Elle
   fait les gestes de l'équipe : lancer les dés, répondre, fouiller, lire et faire tenir une
   page, préparer un sort (le coût se partage tout seul entre les présents). **Le Marché, le
-  Seuil et « pas moi » passent par le compte de chacun** — ou par vous. L'ancien « Qui agit ? »
-  a disparu. Les gestes personnels (journal, badges, sorts réservés à un élève) restent eux
+  Seuil et « pas moi » passent par le compte de chacun** — ou par vous (Olu le dit une fois
+  sur la tablette). L'ancien « Qui agit ? » a disparu. Les gestes personnels (journal, badges, sorts réservés à un élève) restent eux
   aussi sur le compte de chacun.
 - **Plusieurs appareils pour une même équipe** : deux tablettes, ou une tablette et les comptes
   des élèves, peuvent servir la même équipe. Un seul joue à la fois les gestes qui comptent :
   quand un appareil répond à une question, fouille, fait tenir une page ou prépare un sort, les
   autres affichent **« Lina répond… »** (le prénom seul ; « Une autre tablette… » pour une
-  tablette) et attendent, une minute au plus. Si deux écrans jouent le même geste au même
+  tablette) et attendent, une minute au plus — leur écran ne propose alors aucun geste. Si deux écrans jouent le même geste au même
   instant, un seul compte ; l'autre lit « L'équipe a déjà joué ce geste. Voici où vous en
   êtes. » et se met à jour. Rien n'est jamais retiré à l'équipe.
 - **Un élève absent, ou mis en retrait, regarde** : s'il se connecte avec son compte pendant

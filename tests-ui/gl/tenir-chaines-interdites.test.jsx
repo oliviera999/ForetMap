@@ -1,5 +1,6 @@
 import { describe, test, expect, vi } from 'vitest';
-import { render } from '@testing-library/react';
+import { render, fireEvent } from '@testing-library/react';
+import { GLTenirEcranEquipe } from '../../src/gl/components/tenir/GLTenirEcranEquipe.jsx';
 import { GLTenirEquipeView } from '../../src/gl/components/tenir/GLTenirEquipeView.jsx';
 import { GLCarnetClasseView } from '../../src/gl/components/tenir/GLCarnetClasseView.jsx';
 import { GLPeripetieOverlay } from '../../src/gl/components/tenir/GLPeripetieOverlay.jsx';
@@ -168,7 +169,7 @@ const chasse = {
 };
 
 describe('chaînes interdites côté élève (spec § 2)', () => {
-  test('vue équipe, carnet, question, calques, péripétie, bulle d’Olu, paramètres de sort', () => {
+  test('ancien écran d’équipe (surface « tableau »), carnet, question, calques, péripétie, bulle d’Olu, paramètres de sort', () => {
     const { container } = render(
       <>
         <GLTenirEquipeView
@@ -245,35 +246,147 @@ describe('chaînes interdites côté élève (spec § 2)', () => {
     expect(container.textContent).not.toMatch(/motif/i);
   });
 
+  test('écran d’équipe en trois choses : chaque état de la carte du moment, le bandeau et le tiroir', () => {
+    // L'écran ne montre qu'une chose à la fois : on le monte état par état, et on crible tout.
+    const base = { ...tenir, spectateur: false, enRetrait: false, equipe: null };
+    const calme = { ...chasse, fouilleMode: false, question: null, dernierVerdict: null };
+    // Sous le voile, il reste une fouille à l'équipe : la carte dit de toucher le plateau.
+    const enFouille = {
+      ...calme,
+      fouilleMode: true,
+      carnet: {
+        ...chasse.carnet,
+        fouilles: { quota: 1, utilisees: 0, restantes: 1, sousVoile: true },
+      },
+    };
+    const monter = (tenirDuCas, chasseDuCas = calme, extra = {}) => {
+      const vue = render(
+        <GLTenirEcranEquipe
+          gameState={gameState}
+          tenir={tenirDuCas}
+          teamId={2}
+          onReloadGame={vi.fn()}
+          onJeter={vi.fn()}
+          chasse={chasseDuCas}
+          {...extra}
+        />,
+      );
+      const etat = vue.container
+        .querySelector('[data-testid="gl-tenir-moment"]')
+        .getAttribute('data-etat');
+      // Le tiroir ouvert entre dans le crible (cases, réserve, carnet, bestiaire, badges).
+      fireEvent.click(vue.container.querySelector('[data-testid="gl-tenir-tiroir-bouton"]'));
+      const texte = vue.container.textContent;
+      vue.unmount();
+      return { etat, texte };
+    };
+    const cas = [
+      // La péripétie de l'équipe passe devant tout.
+      ['peripetie', monter(base)],
+      [
+        'main_ailleurs',
+        monter({ ...base, equipe: tenir.equipe }, calme, {
+          gameState: { ...gameState, events: [] },
+        }),
+      ],
+      [
+        'appareil',
+        monter({ ...base, equipe: { ...tenir.equipe, main: null } }, calme, {
+          gameState: { ...gameState, events: [] },
+        }),
+      ],
+      [
+        'question',
+        monter(
+          base,
+          { ...calme, question: chasse.question },
+          {
+            gameState: { ...gameState, events: [] },
+          },
+        ),
+      ],
+      [
+        'geste',
+        monter({ ...base, enRetrait: true }, enFouille, {
+          gameState: { ...gameState, events: [] },
+        }),
+      ],
+      [
+        'joue',
+        monter({ ...base, spectateur: true, permissions: {} }, calme, {
+          gameState: { ...gameState, events: [] },
+        }),
+      ],
+      [
+        'souffle',
+        monter({ ...base, round: { number: 2, phase: 'souffle' }, permissions: {} }, calme, {
+          gameState: { ...gameState, events: [] },
+        }),
+      ],
+      [
+        'clos',
+        monter({ ...base, round: { number: 2, phase: 'clos' }, permissions: {} }, calme, {
+          gameState: { ...gameState, events: [] },
+        }),
+      ],
+      [
+        'attente',
+        monter({ ...base, round: null, permissions: {} }, calme, {
+          gameState: { ...gameState, events: [] },
+        }),
+      ],
+      [
+        'camp',
+        monter({ ...base, round: { number: 2, phase: 'clos' }, permissions: {} }, calme, {
+          gameState: { ...gameState, events: [], game: { id: 7, status: 'ended' } },
+        }),
+      ],
+    ];
+    for (const [attendu, { etat, texte }] of cas) {
+      expect(etat, attendu).toBe(attendu);
+      expect(texteInterdit(texte), attendu).toBeNull();
+      expect(texte, attendu).not.toMatch(/motif|❤/i);
+    }
+    const texteDe = (etat) => cas.find(([e]) => e === etat)[1].texte;
+    expect(texteDe('main_ailleurs')).toContain('Lina répond…');
+    expect(texteDe('appareil')).toContain('2 tablettes demandent à rejoindre l’équipe.');
+    expect(texteDe('joue')).toContain(MESSAGE_SPECTATEUR);
+    expect(texteDe('geste')).toContain('Touchez la carte');
+    expect(texteDe('geste')).toContain('En retrait jusqu’à la fin du tour.');
+    expect(texteDe('geste')).toContain('Votre mascotte est sous le voile.');
+  });
+
   test('piste de réponse (M22) : le texte seul sur la tablette, un bouton là où il y a des onglets', () => {
-    const { container, rerender } = render(
-      <GLTenirEquipeView
-        gameState={gameState}
-        tenir={tenir}
+    // Le retour d'une fouille n'est montré que s'il vient d'arriver : l'écran s'ouvre sans lui.
+    const sans = { ...chasse, fouilleMode: false, question: null, dernierVerdict: null };
+    const avec = { ...sans, dernierVerdict: { ...chasse.dernierVerdict, at: 10 } };
+    const calme = { ...tenir, spectateur: false, enRetrait: false, equipe: null };
+    const etat = { ...gameState, events: [] };
+    const ecran = (chasseDuCas, extra = {}) => (
+      <GLTenirEcranEquipe
+        gameState={etat}
+        tenir={calme}
         teamId={2}
         onReloadGame={vi.fn()}
-        chasse={chasse}
-        tablette
-      />,
+        chasse={chasseDuCas}
+        {...extra}
+      />
     );
+    const { container, rerender } = render(ecran(sans, { tablette: true }));
+    expect(container.querySelector('[data-testid="gl-tenir-piste-reponse"]')).toBeNull();
+    rerender(ecran(avec, { tablette: true }));
     const piste = container.querySelector('[data-testid="gl-tenir-piste-reponse"]');
     expect(piste.textContent).toContain('La réponse se trouve dans la fiche « Fourmi magnan ».');
     expect(piste.querySelector('button')).toBeNull();
-    const onOuvrirPiste = vi.fn();
-    rerender(
-      <GLTenirEquipeView
-        gameState={gameState}
-        tenir={tenir}
-        teamId={2}
-        onReloadGame={vi.fn()}
-        chasse={chasse}
-        onOuvrirPiste={onOuvrirPiste}
-      />,
+    expect(container.querySelector('[data-testid="gl-tenir-retour"]').textContent).toContain(
+      'Pas encore : la page dort encore ici.',
     );
+    const onOuvrirPiste = vi.fn();
+    rerender(ecran(avec, { onOuvrirPiste }));
     const bouton = container.querySelector('[data-testid="gl-tenir-piste-reponse"] button');
     expect(bouton.textContent).toBe('Ouvrir la fiche');
     bouton.click();
-    expect(onOuvrirPiste).toHaveBeenCalledWith(chasse.dernierVerdict.piste);
+    expect(onOuvrirPiste).toHaveBeenCalledWith(avec.dernierVerdict.piste);
     expect(texteInterdit(container.textContent)).toBeNull();
   });
 

@@ -53,7 +53,7 @@ const emettre = (eventType, payload = {}, teamId = null, gameId = ctx.game.id) =
 
 before(async () => {
   await db.initSchema();
-  // Le catalogue réel des lignes (les 23 « première fois » comprises).
+  // Le catalogue réel des lignes (les 24 « première fois » comprises).
   const rep = await IMPORTERS['olu-lignes'](db, CATALOGUE, {});
   assert.deepEqual(rep.errors, []);
   ctx = await createTenirGame({
@@ -63,8 +63,8 @@ before(async () => {
   await importExempleChasse(db, { game: ctx.game });
 });
 
-test('catalogue : 23 lignes « première fois », une par clé, avec leur séance de l’escalier ; aucune ne gronde', () => {
-  assert.equal(PREMIERES.length, 23);
+test('catalogue : 24 lignes « première fois », une par clé, avec leur séance de l’escalier ; aucune ne gronde', () => {
+  assert.equal(PREMIERES.length, 24);
   assert.deepEqual(PREMIERES.map((l) => l.cle).sort(), [...olu.PREMIERE_FOIS_CLES].sort());
   for (const l of PREMIERES) {
     assert.equal(l.id, `olu-pf-${l.cle}`);
@@ -167,7 +167,8 @@ test('évènement → clés : ce qu’Olu dirait, dans l’ordre (pur)', () => {
   assert.deepEqual(cles({ eventType: 'voile_avance', payload: {} }), ['voile']);
   assert.deepEqual(cles({ eventType: 'dice_roll' }), []);
   assert.deepEqual(cles({ eventType: null, payload: null }), []);
-  // Chaque clé a un déclencheur — sauf « la main », qui attend le lot « plusieurs appareils ».
+  // Chaque clé a un déclencheur — sauf « la main », qui attend le lot « plusieurs appareils »,
+  // et « les comptes », que la tablette d'équipe dit elle-même (aucun évènement ne la désigne).
   const declenchees = new Set(
     [
       { eventType: 'tour_ouvert', plateau: 4, escalier: s(4) },
@@ -188,7 +189,7 @@ test('évènement → clés : ce qu’Olu dirait, dans l’ordre (pur)', () => {
   );
   assert.deepEqual(
     olu.PREMIERE_FOIS_CLES.filter((c) => !declenchees.has(c)),
-    ['main'],
+    ['main', 'comptes'],
   );
 });
 
@@ -321,7 +322,7 @@ test('GET /tenir/olu : les lignes « première fois » sont servies avec les aut
   const res = await request(app).get(api('/tenir/olu')).set(auth(ctx.players[0].token));
   assert.equal(res.status, 200, JSON.stringify(res.body).slice(0, 200));
   const premieres = res.body.lignes.filter((l) => l.moment === 'premiere_fois');
-  assert.equal(premieres.length, 23);
+  assert.equal(premieres.length, 24);
   assert.ok(premieres.every((l) => l.id.startsWith('olu-pf-') && l.texte));
   assert.ok(res.body.lignes.every((l) => l.correction === undefined));
 });

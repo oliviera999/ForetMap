@@ -9,10 +9,12 @@ export const SECTIONS_DU_TIROIR = Object.freeze(['equipe', 'carnet']);
  *
  * `nouveau` : le contenu du tiroir a changé depuis la dernière fois qu'on l'a vu (empreinte de
  * `empreinteDuTiroir`, `src/gl/utils/glTenirMoment.js`). Ce qui est là à l'ouverture de l'écran
- * est tenu pour vu ; ouvrir le tiroir éteint la pastille.
+ * est tenu pour vu ; ouvrir le tiroir éteint la pastille. Tant que le contenu n'est pas lu
+ * (`empreinte` à `null` : le carnet charge encore), rien n'est nouveau, et la première empreinte
+ * connue est tenue pour vue elle aussi.
  *
  * @param {object} p
- * @param {string} [p.empreinte] empreinte du contenu du tiroir
+ * @param {string|null} [p.empreinte] empreinte du contenu du tiroir (`null` : pas encore lu)
  * @returns {{ ouvert: boolean, section: string, nouveau: boolean,
  *   ouvrir: (section?: string) => void, fermer: () => void, basculer: () => void }}
  */
@@ -21,10 +23,12 @@ export function useGlTenirTiroir({ empreinte = '' } = {}) {
   const [section, setSection] = useState('equipe');
   const [vue, setVue] = useState(empreinte);
 
-  // Tiroir ouvert : tout ce qui change est vu au fur et à mesure.
+  // Tiroir ouvert : tout ce qui change est vu au fur et à mesure. Première empreinte connue :
+  // c'est l'état à l'ouverture de l'écran, déjà vu.
   useEffect(() => {
-    if (ouvert) setVue(empreinte);
-  }, [ouvert, empreinte]);
+    if (empreinte == null) return;
+    if (ouvert || vue == null) setVue(empreinte);
+  }, [ouvert, empreinte, vue]);
 
   const ouvrir = useCallback((cible = 'equipe') => {
     setSection(SECTIONS_DU_TIROIR.includes(cible) ? cible : 'equipe');
@@ -36,5 +40,6 @@ export function useGlTenirTiroir({ empreinte = '' } = {}) {
     setOuvert((v) => !v);
   }, []);
 
-  return { ouvert, section, nouveau: !ouvert && empreinte !== vue, ouvrir, fermer, basculer };
+  const nouveau = !ouvert && empreinte != null && vue != null && empreinte !== vue;
+  return { ouvert, section, nouveau, ouvrir, fermer, basculer };
 }

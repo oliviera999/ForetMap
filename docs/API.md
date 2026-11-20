@@ -901,8 +901,10 @@ Lumière ; 4 le Marché, trois sorts (`SL005`, `SL036`, `SL004`).
   `page_temoin` `{ zoneKey, roundNumber }`.
 - Le profil `prologue` est supprimé (migration 369 : `complet` + escalier à la séance atteinte).
 
-**Olu « première fois » (M8).** `olu-lignes.json` porte 23 lignes de moment `premiere_fois`
-(`cle`, `seance_escalier`). Le serveur les désigne sur l'évènement qui les déclenche :
+**Olu « première fois » (M8).** `olu-lignes.json` porte 24 lignes de moment `premiere_fois`
+(`cle`, `seance_escalier`). Deux n'ont aucun évènement : `main` (en attente) et `comptes`, que la
+tablette d'équipe dit elle-même, une fois. Le serveur désigne les autres sur l'évènement qui les
+déclenche :
 `payload.olu: [{ id, teamId? }]` (clé gardée publique sur un payload privé), une seule fois par
 partie — par équipe quand la ligne porte `{equipe}` —, mémoire `gl_game_olu_premieres` ; dans
 l'escalier, jamais avant la séance de la ligne. Une ligne ne se dit pas pour ce que la partie n'a

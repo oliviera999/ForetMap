@@ -19,6 +19,17 @@ export const TENIR_OLU_FALLBACK = Object.freeze({
 });
 
 /**
+ * La ligne qu'Olu dit une fois sur la tablette d'équipe (chantier « écrans de séance ») : elle
+ * remplace la phrase qui restait affichée sous l'écran. Le texte du catalogue
+ * (`data/gl/tenir/olu-lignes.json`, `olu-pf-comptes`) passe devant ; celui-ci est le repli.
+ */
+export const OLU_LIGNE_COMPTES = Object.freeze({
+  id: 'olu-pf-comptes',
+  texte: 'Le Marché et le Seuil s’ouvrent depuis le compte de chacun.',
+  expression: 'explique',
+});
+
+/**
  * Ce que l'écran d'équipe dit après une fouille (verdict servi par `POST /chasse/fouiller`).
  * Source unique : la carte du moment (`src/gl/utils/glTenirMoment.js › retourDuMoment`).
  */

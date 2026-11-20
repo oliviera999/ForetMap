@@ -15,12 +15,14 @@ vi.mock('../../src/gl/components/tenir/GLDefisCasePanel.jsx', () => ({
   GLDefisCasePanel: () => null,
 }));
 
-import { GLTenirEquipeView } from '../../src/gl/components/tenir/GLTenirEquipeView.jsx';
+import { GLTenirEcranEquipe } from '../../src/gl/components/tenir/GLTenirEcranEquipe.jsx';
 import { GLCeQuiChange } from '../../src/gl/components/tenir/GLCeQuiChange.jsx';
 import { GLProjectionView } from '../../src/gl/components/tenir/GLProjectionView.jsx';
 
-// Ensemble unifié, étape 2.3 (M8, M10) : « Maintenant, vous pouvez… », « Ce qui change »,
-// accroche de fin de séance.
+// Ensemble unifié, étape 2.3 (M8, M10) : les gestes possibles et l'appel des rôles, « Ce qui
+// change », accroche de fin de séance. Depuis le chantier « écrans de séance », la liste
+// « Maintenant, vous pouvez… » est devenue la carte du moment : un gros bouton (le premier geste
+// ouvert, son rôle au-dessus) et trois puces au plus, chacune avec son rôle en infobulle.
 const FORBIDDEN =
   /monstre|ennemi|attaque|poursui|corbeau|Krâ|Kraa|Grise|\bfaux\b|raté|perdu|classement/;
 const gameState = (status = 'live') => ({
@@ -77,7 +79,7 @@ const chasse = {
   page: null,
 };
 
-describe('« Maintenant, vous pouvez… »', () => {
+describe('la carte du moment : les gestes possibles, avec l’appel du rôle', () => {
   beforeEach(() => {
     apiGlMock.mockReset();
     apiGlMock.mockResolvedValue({
@@ -86,9 +88,17 @@ describe('« Maintenant, vous pouvez… »', () => {
     });
   });
 
-  test('en tête de l’écran d’équipe : chaque geste possible, avec l’appel du rôle, jamais bloquant', async () => {
+  /** Les puces sous le gros bouton : `[geste, rôle en infobulle, libellé]`. */
+  const puces = () =>
+    [...screen.getByTestId('gl-tenir-puces').querySelectorAll('[data-geste]')].map((b) => [
+      b.getAttribute('data-geste'),
+      b.getAttribute('title'),
+      b.textContent,
+    ]);
+
+  test('un gros bouton avec son rôle, les autres gestes en puces — un conseil, jamais bloquant', async () => {
     render(
-      <GLTenirEquipeView
+      <GLTenirEcranEquipe
         gameState={gameState()}
         tenir={tenir()}
         teamId={2}
@@ -97,31 +107,32 @@ describe('« Maintenant, vous pouvez… »', () => {
         onJeter={vi.fn()}
       />,
     );
-    await waitFor(() =>
-      expect(document.querySelector('[data-geste-possible="repondre"]')).toBeTruthy(),
+    await waitFor(() => expect(document.querySelector('[data-geste="repondre"]')).toBeTruthy());
+    const carte = screen.getByTestId('gl-tenir-maintenant');
+    // Ordre du gros bouton : répondre, lancer, fouiller, lire, sorts.
+    const gros = carte.querySelector('.gl-tenir-moment__gros');
+    expect(gros.getAttribute('data-geste')).toBe('repondre');
+    expect(gros.textContent).toBe('Répondre à la question');
+    expect(carte.querySelector('.gl-tenir-moment__role').textContent).toBe(
+      'Éclaireuse ou Éclaireur',
     );
-    const bandeau = screen.getByTestId('gl-tenir-maintenant');
-    expect(bandeau.querySelector('h4').textContent).toBe('Maintenant, vous pouvez…');
-    expect([...bandeau.querySelectorAll('li')].map((li) => li.textContent)).toEqual([
-      'Gestionnaire : lancer les dés',
-      'Éclaireuse ou Éclaireur : la question de la case',
-      'Opératrice ou Opérateur : 2 fouilles',
+    // Trois puces au plus : le cinquième geste ouvert (les sorts) attend qu'une place se libère.
+    expect(puces()).toEqual([
+      ['lancer', 'Gestionnaire', 'Lancer les dés'],
+      ['fouiller', 'Opératrice ou Opérateur', 'Fouiller · 2 fouilles'],
       // Une seule page attend un lecteur de mon peuple : celle que l'autre peuple a trouvée.
-      'Secrétaire : 1 page à lire et à faire tenir',
-      'Assistante ou Assistant : les sorts',
+      ['lire', 'Secrétaire', 'Lire'],
     ]);
-    // Un conseil : les boutons des gestes ne dépendent d'aucun rôle.
-    for (const geste of ['lancer', 'repondre', 'fouiller', 'lire', 'jeter']) {
-      expect(document.querySelector(`[data-geste="${geste}"]`).disabled).toBe(false);
-    }
-    expect(bandeau.textContent).not.toMatch(FORBIDDEN);
+    // Un conseil : aucun geste ne dépend d'un rôle, aucun n'est éteint.
+    expect(carte.querySelectorAll('[data-geste]:disabled')).toHaveLength(0);
+    expect(carte.textContent).not.toMatch(FORBIDDEN);
   });
 
-  test('escalier, séance 1 : ni sorts ni « tenir » dans la liste ; à quatre, l’Assistante ou l’Assistant répond', async () => {
+  test('escalier, séance 1 : ni sorts ni « tenir » ; à quatre, l’Assistante ou l’Assistant répond', async () => {
     const etat = gameState();
     etat.roster = etat.roster.slice(0, 4);
     render(
-      <GLTenirEquipeView
+      <GLTenirEcranEquipe
         gameState={etat}
         tenir={tenir({
           permissions: { lancer: true, repondre: true, fouiller: true, lire: true, tenir: false },
@@ -133,32 +144,33 @@ describe('« Maintenant, vous pouvez… »', () => {
         onJeter={vi.fn()}
       />,
     );
-    await waitFor(() =>
-      expect(document.querySelector('[data-geste-possible="repondre"]')).toBeTruthy(),
+    await waitFor(() => expect(document.querySelector('[data-geste="repondre"]')).toBeTruthy());
+    const carte = screen.getByTestId('gl-tenir-maintenant');
+    expect(carte.querySelector('.gl-tenir-moment__role').textContent).toBe(
+      'Assistante ou Assistant',
     );
-    const lignes = [...screen.getByTestId('gl-tenir-maintenant').querySelectorAll('li')].map(
-      (li) => li.textContent,
-    );
-    expect(lignes).toEqual([
-      'Gestionnaire : lancer les dés',
-      'Assistante ou Assistant : la question de la case',
-      'Opératrice ou Opérateur : 2 fouilles',
+    expect(puces()).toEqual([
+      ['lancer', 'Gestionnaire', 'Lancer les dés'],
+      ['fouiller', 'Opératrice ou Opérateur', 'Fouiller · 2 fouilles'],
     ]);
   });
 
   test('hors tour : les défis de la Trame, pour toute l’équipe', async () => {
     apiGlMock.mockResolvedValue({ round: null, teams: [] });
     render(
-      <GLTenirEquipeView
+      <GLTenirEcranEquipe
         gameState={gameState()}
         tenir={tenir({ round: null, permissions: { lire: true, tenir: true } })}
         teamId={2}
         onReloadGame={vi.fn()}
       />,
     );
-    await waitFor(() => expect(screen.getByTestId('gl-tenir-maintenant')).toBeInTheDocument());
-    expect(screen.getByTestId('gl-tenir-maintenant').textContent).toContain(
-      'Toute l’équipe : les défis de la Trame',
+    await waitFor(() => expect(screen.getByTestId('gl-tenir-moment-attente')).toBeInTheDocument());
+    expect(screen.getByTestId('gl-tenir-moment-attente').textContent).toContain(
+      'Le prof ouvre bientôt le tour.',
+    );
+    expect(document.querySelector('[data-geste="trame"]').textContent).toContain(
+      'Défis de la Trame',
     );
   });
 });
