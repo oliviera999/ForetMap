@@ -12,8 +12,10 @@ const GLDefisView = lazy(() =>
  * de la Trame **en plein écran** — le plateau de cartes a besoin de toute la largeur de la
  * tablette. Rien n'est chargé tant que l'élève n'a pas touché le bouton ; « Fermer », Échap ou
  * le retour du navigateur ramènent à l'écran d'où l'on vient.
+ *
+ * `boutonProps` : attributs en plus sur le bouton (la carte du moment y pose `data-geste`).
  */
-export function GLDefisEntree({ gameId, label = 'Défis de la Trame' }) {
+export function GLDefisEntree({ gameId, label = 'Défis de la Trame', boutonProps = null }) {
   const [ouvert, setOuvert] = useState(false);
   const fermerRef = useRef(null);
   const boutonRef = useRef(null);
@@ -72,6 +74,7 @@ export function GLDefisEntree({ gameId, label = 'Défis de la Trame' }) {
         aria-expanded={ouvert}
         onClick={() => setOuvert(true)}
         data-testid="gl-defis-entree-bouton"
+        {...(boutonProps || {})}
       >
         {label}
       </GLButton>

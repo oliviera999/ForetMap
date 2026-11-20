@@ -18,13 +18,17 @@ export const TENIR_OLU_FALLBACK = Object.freeze({
   erreur: [],
 });
 
+/**
+ * Ce que l'écran d'équipe dit après une fouille (verdict servi par `POST /chasse/fouiller`).
+ * Source unique : la carte du moment (`src/gl/utils/glTenirMoment.js › retourDuMoment`).
+ */
 export const TENIR_VERDICT_TEXTES = Object.freeze({
   froid: 'Froid : la page dort plus loin.',
   tiede: 'Tiède : on s’approche.',
   chaud: 'Chaud : la page est tout près.',
   zone: 'Une page dort ici : répondez à sa question.',
   deja_trouvee: 'Cette page est déjà trouvée.',
-  palie: 'Cette page a pâli : seuls les Gnomes peuvent la réparer.',
+  palie: 'Cette zone a pâli : les Gnomes savent la réparer.',
   page_trouvee: 'Page trouvée ! Elle entre au carnet de la classe.',
   pas_encore: 'Pas encore : la page dort encore ici.',
 });
