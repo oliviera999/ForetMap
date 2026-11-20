@@ -8,9 +8,10 @@ sa propre entrée de CHANGELOG et sa note dans `docs/reference/gl/guide-du-mj.md
 (S2 à S6) continue sur la **même branche** `claude/gl-ecrans-de-seance`, repartie de `main`, et
 dans une **nouvelle PR en brouillon** :
 
-- **S2 l'ouvre** après son premier push (titre « feat(gl): écrans de séance — projection,
-  tablette, console, accueil »), note son numéro ici, et chaque session en met à jour le tableau
-  d'avancement ; S6 la réécrit selon le § 9 du prompt et la passe en « prête » ;
+- **la PR de la suite est la [#712](https://github.com/oliviera999/ForetMap/pull/712)**, en
+  brouillon (ouverte par S2 : « feat(gl): écrans de séance — projection, tablette, console,
+  accueil ») ; chaque session en met à jour le tableau d'avancement ; S6 la réécrit selon le § 9
+  du prompt et la passe en « prête » ;
 - là où le prompt dit « la PR brouillon ouverte dès la session 1 », lire « la PR de la suite » ;
 - la description finale (§ 9) couvre tout le chantier : elle cite la PR #711 pour le lot de S1 ;
 - l'entrée de CHANGELOG de S6 s'ajoute à celle du lot 1, déjà sous `[Non publié]` (ou déjà
@@ -23,13 +24,13 @@ dans une **nouvelle PR en brouillon** :
 | Session | Lot                                       | État                    | Commits                                                                             |
 | ------- | ----------------------------------------- | ----------------------- | ----------------------------------------------------------------------------------- |
 | S1      | Préparation, textes, adresse, plateau     | faite, fusionnée (#711) | `8272b2e08` (prompt, captures), `e898eff3c` (étape 1), `552754187` (étape 2) + état |
-| S2      | Projection (étape 3)                      | en cours (20/11)        | —                                                                                   |
+| S2      | Projection (étape 3)                      | en cours (vérifs)       | `4416079` (étape 3) ; l'état passe à `faite` quand `npm test` a rendu son résultat  |
 | S3      | Tablette 1 : moteur de la carte du moment | à faire                 | —                                                                                   |
 | S4      | Tablette 2 : branchement                  | à faire                 | —                                                                                   |
 | S5      | Console (étape 5)                         | à faire                 | —                                                                                   |
 | S6      | Accueil, docs, clôture (étapes 6 et 7)    | à faire                 | —                                                                                   |
 
-Sessions `bis` : aucune. Sessions lancées : 1 sur 8 au plus (la tentative de S2 par tâche
+Sessions `bis` : aucune. Sessions lancées : 2 sur 8 au plus (la tentative de S2 par tâche
 planifiée, arrêtée sans rien faire, ne compte pas).
 
 ### Relais : c'est la session S1 qui lance les suivantes (constat du 20/11, 19 h 25 UTC)
@@ -213,28 +214,154 @@ S6 relance la même commande : les mêmes chiffres sont attendus.
 
 ---
 
+## S2 — faite (20/11/2026, sur `main` v1.254.0, `f72493c`)
+
+Lot : étape 3, la projection en mode tableau (K5). Un commit de code (voir le tableau), plus les
+commits d'état. `main` n'a pas bougé pendant la session : aucun rebase.
+
+### Ce qui est fait
+
+- **`GLProjectionView`** : une grille plein écran (`100dvh`, `overflow: hidden`) — bandeau
+  (partie, tour et phase, case du voile, sablier), plateau à gauche (≈ 70 %,
+  `presentation="projection"`), colonne de droite (équipes en pastilles, Lumière en jauge,
+  carnet en pages), trois faits marquants en bas. Corps `clamp(20px, 1.4vw, 32px)`, tout le
+  reste en `em`. Bloc « Projection, mode tableau » à la fin de `src/gl/styles/gl-tenir.css`
+  (les anciennes règles `.gl-projection__*` éparses ont disparu).
+- **Carte plein écran** : à la clôture du tour, « À la prochaine séance » remplace l'écran
+  (page du Passeur, indice endormi, défis à préparer), avec « Voir le plateau ».
+- **`GLTourJournal`** : prop `marquants` (+ `FAITS_MARQUANTS`, `faitsMarquants`). Le filtre se
+  fait à l'écran : la route du journal ne change pas, on lit 100 évènements pour en garder 3.
+- **`GLVoileLayer`** : prop `variante="projection"` → `.gl-voile-layer--projection` (bande plus
+  opaque, contour `gl-voile-contour`), passée par `GLGameBoard` en présentation `projection`.
+- **`GLBoardMarkers`** : prop `statique` (présentation `projection`) → les cases sont des `span`
+  `role="img"`, plus des boutons. **Écart avec S1** : la présentation `projection` gardait un
+  bouton par case (le test de S1 simulait `GLBoardMarkers`). C'est le e2e qui l'a montré.
+- **Pions agrandis au tableau** : mascottes (`--gl-board-mascot-h`), nom d'équipe et distance
+  au voile, sous `.gl-projection__board` seulement.
+- **Docs de référence** mises à jour dans le même lot (comportement visible) :
+  `guide-du-mj.md` (nouvelle note « Écrans de séance : la projection, mode tableau », plus trois
+  phrases devenues fausses), `roles-et-connexion.md` (§ La projection),
+  `chapitres-et-progression.md` (« révélée par …, trouvée par …, tenue par … »).
+- **Tests** : `tests-ui/gl/GLProjectionView.test.jsx` (mode tableau, carte, souffle, camp),
+  nouveau `GLTourJournal.test.jsx`, `GLChasseLayer.test.jsx` (variante du voile),
+  `GLBoardMarkers.test.jsx` (statique), `GLGameBoardPresentation.test.jsx` (voile au tableau) ;
+  nouveau e2e `e2e/gl-tenir-projection.spec.js` ; `gl-tenir-ecrans-relus` et
+  `gl-tenir-escalier` adaptés.
+- **Captures « après »** : `docs/captures/ecrans-de-seance/apres/projection-1920x1080.png`,
+  `projection-souffle-1920x1080.png`, `projection-accroche-1920x1080.png` (écrites par le e2e).
+  L'« avant » de l'accroche est `avant/escalier-accroche-projection.png` ; il n'y a pas
+  d'« avant » de la projection en jeu (S1 n'en avait pas pris).
+
+### Choix faits sans demander (à reporter dans la PR finale, § 9.3)
+
+1. **Sans tour ouvert**, la projection dit « Le prof ouvre bientôt le tour. » (`PHASE_AUCUN_TOUR`,
+   comme l'écran d'équipe) au lieu de « En attente du tour » (choix 5 de S1, tranché).
+2. **Les indices du carnet ne sont plus au tableau.** Le plateau 3 a dix pages, chaque indice
+   fait 75 à 100 caractères : ils ne tiennent pas à côté des équipes sans défilement. Une tuile
+   par page : son titre une fois trouvée, « Page n » sinon, et son état. L'indice d'**une** page
+   endormie reste sur la carte « À la prochaine séance ». **À relire par Oliv** : si les énigmes
+   doivent rester au tableau, la piste la plus simple est une énigme qui tourne dans la colonne
+   de droite (non faite : hors lot).
+3. **Une tuile dit une seule équipe** : « tenue par B » pour une page tenue (plus « trouvée par
+   A · tenue par B »), « trouvée par A », « révélée par A ». « pâlie » et « réparée » sans équipe.
+4. **Titres au double** : le nom de la partie (bandeau) et le titre de la carte plein écran.
+   Les intertitres de la colonne (« Carnet de la classe ») restent à la taille du corps, sinon
+   ils ne tiennent pas sur une ligne dans 30 % de l'écran.
+5. **Faits marquants** : exactement la liste du prompt (`page_trouvee`, `page_tenue`,
+   `defi_case_releve`, `defi_trame_reussi`, `voile_avance`, `arrivee_camp`, `peripetie`).
+   Restent hors liste, à ajouter d'une ligne si Oliv le veut : `carnet_complet`, `voile_recul`,
+   `page_reparee`, `lumiere_palier`. Le texte d'un fait est coupé à trois lignes.
+6. **La carte s'ouvre à toute clôture de tour** (partie non close), même sans page du Passeur
+   ni indice : elle porte aussi les **défis à préparer**, qui n'avaient plus d'autre place.
+7. **Pendant « Le voile avance »**, la page du Passeur ne s'affiche plus d'office (le plateau
+   doit rester visible) : un bouton « La page du jour », dans le bandeau, l'ouvre en plein écran.
+   Même bouton au camp. C'est un ajout par rapport au prompt, pour ne pas perdre la page.
+8. **Au camp**, « Ce qui change au prochain chapitre » prend la place des faits marquants (en
+   bas) ; pas de carte d'office. Les défis à préparer ne se voient alors que dans la carte « La
+   page du jour » (donc pas du tout s'il n'y a pas de page du Passeur : cas rare, assumé).
+9. **Deux boutons sur la projection** (« Voir le plateau », et celui qui rouvre la carte) : ils
+   ne changent que l'affichage. Le plateau, lui, n'a plus aucun bouton.
+10. **L'équipe active** (surface « tableau ») est cernée dans la colonne de droite.
+11. **Fenêtre étroite** (moins de `lg`, 1024 px) : les blocs s'empilent et la page défile.
+    **Vidéoprojecteur moins haut** (`max-height: 899px`) : les tuiles du carnet passent sur une
+    ligne. Une requête en hauteur n'est pas une bascule de l'échelle (la garde ne lit que les
+    largeurs).
+12. **Mascottes de la colonne** : `GLMascotAvatar`, donc l'image du pack si le catalogue est
+    chargé, le dessin de repli sinon. La projection (session invitée) ne charge pas le
+    catalogue : elle montre le dessin de repli, comme son plateau le faisait déjà.
+
+### Constats du § 3 : état après S2
+
+| #   | État                                                                                    |
+| --- | --------------------------------------------------------------------------------------- |
+| K5  | **Corrigé** : la projection a son style, son plateau n'a ni titre, ni zoom, ni panneau. |
+| K4  | Rien de neuf : la projection lit toujours `titreDuTour`.                                |
+
+### Mesures à l'écran (Chromium, pire cas forcé : 4 équipes aux noms longs avec deux mentions, Lumière, 10 pages, 3 faits longs)
+
+| Fenêtre     | Corps   | Page défile | Colonne de droite                     | Plateau     |
+| ----------- | ------- | ----------- | ------------------------------------- | ----------- |
+| 1920 × 1080 | 26,9 px | non         | tient (825 / 825)                     | 1304 × 825  |
+| 2560 × 1440 | 32 px   | non         | tient                                 | 1745 × 1137 |
+| 1366 × 768  | 20 px   | non         | tient (578 / 578)                     | 927 × 578   |
+| 1280 × 800  | 20 px   | non         | tient (610 / 610)                     | 867 × 610   |
+| 1280 × 720  | 20 px   | non         | dépasse de 38 px : elle défile seule  | 867 × 530   |
+| 1024 × 768  | 20 px   | non         | dépasse de 207 px : elle défile seule | 687 × 517   |
+| 900 × 700   | 20 px   | oui (voulu) | empilée                               | 872 × 558   |
+
+Le cas ordinaire (noms courts, peu de mentions) n'a été mesuré qu'à 1920 × 1080, par le e2e. La
+carte « À la prochaine séance » y tient avec une page du Passeur de 1 000 caractères et quatre
+défis ; à 1280 × 720 et à 1024 × 768, avec ce même contenu, elle défile dans son cadre (jamais
+la page). Les pages du Passeur du corpus vont de 250 à 1 370 caractères.
+
+### Écarts trouvés dans le code et dans l'environnement
+
+- **`public/maps/map-foret.svg` et `map-n3.svg` sont des SVG mal formés** (octet Latin-1 dans
+  un fichier sans déclaration d'encodage ; texte après la racine) : Chromium ne les affiche pas.
+  Or `map-foret.svg` est l'image de repli du plateau G&L (`resolveGlBoardImageUrl`). En prod les
+  plateaux ont leur image, donc rien ne se voit ; les jeux d'essai, eux, n'en ont pas. **Hors
+  lot, à signaler à Oliv.** Le e2e de la projection sert donc sa propre image de plateau
+  (`page.route('**/maps/map-foret.svg')`), sans toucher à l'API.
+- **Avertissements de lint** : 321 sur `main` v1.254.0 (S1 en notait 320 sur v1.253.4) ; le lot
+  n'en ajoute aucun.
+- **La page du Passeur s'affiche brute** : sauts de ligne gardés (`white-space: pre-line` sur la
+  carte), mais les astérisques d'italique du corpus (`*(…)*`) restent visibles. C'était déjà le
+  cas avant le lot ; à traiter avec le contenu, pas ici.
+- Rien d'autre n'a bougé sur `main` ; aucune autre PR ouverte.
+
+### Vérifications de S2
+
+| Commande                                                                        | Résultat                                            |
+| ------------------------------------------------------------------------------- | --------------------------------------------------- |
+| Avant le lot : `npm test`, `npm run test:ui`                                    | 6 600 tests (2 ignorés) ; 816 fichiers, 6 237 tests |
+| `npm run lint`                                                                  | 0 erreur (321 avertissements, déjà là)              |
+| `npm run format:check`                                                          | vert                                                |
+| `npm run test:ui`                                                               | 817 fichiers, 6 254 tests                           |
+| e2e `gl-tenir-*` (projection, ecrans-relus, escalier, tablettes, defis-trame)   | 7 / 7                                               |
+| e2e `gl-intro`, `gl-foundations`, `gl-game-flow`, `gl-responsive-accessibility` | 14 / 14                                             |
+| `npm test`, `npm run test:content`, build de production, `check:bundle`         | **en cours** au moment de ce commit (voir plus bas) |
+
+Le banc n'a pas été relancé : le lot ne touche ni `lib/`, ni `routes/`, ni `migrations/`, ni
+`data/` (S6 le relance).
+
 ## Ce que la session suivante doit savoir
 
-### Pour S2 (projection)
-
-- Monter le plateau ainsi : `<GLGameBoard presentation="projection" … />` dans un conteneur
-  **qui a une hauteur** (cellule de grille, `min-height: 0`). La scène prend 100 % ; sans
-  hauteur donnée, elle retombe à 240 px. Règles : bloc « Plateau en scène épurée » à la fin de
-  `src/gl/styles/gl-tenir.css`. Vérifié dans un vrai navigateur (conteneur de 600 px) : le
-  plateau le remplit, le voile reste visible, aucun bouton.
-- En `projection`, le moteur de carte est coupé (`enabled: false`) : ni pan ni zoom, et
-  `touch-action: auto`.
-- Phase : `titreDuTour(round)` ou `PHASE_ELEVE[round.phase]` (`tenirPhases.js`). Ne jamais
-  afficher `round.phase` brut.
-- `GLProjectionView.test.jsx` et `e2e/gl-tenir-ecrans-relus.spec.js` attendent aujourd'hui
-  « Tour 1 — À vous de jouer » : à adapter si le bandeau change de forme.
-- La page du Passeur des jeux d'essai contient les mots « corbeau » et « perdu » : c'est un
-  texte de lore autorisé (`data/gl/tenir/README.md`, pages du Passeur), pas un manquement.
-  La projection ne doit pas le passer au filtre des mots interdits.
-- Tout nouveau composant de `src/gl/components/tenir/` est relu par
-  `tests/content/gl-adresse-ecran-equipe.test.js` : vous, jamais tu ; aucun mot interdit.
-
 ### Pour S3 et S4 (tablette)
+
+- **Ne pas se fier au test `GLGameBoardPresentation`** pour compter les boutons du plateau : il
+  simule `GLBoardMarkers`. En présentation `tenir`, les cases restent des boutons (c'est voulu :
+  on les touche pour fouiller). Vérifier dans le e2e.
+- `GLBoardMarkers` a maintenant une prop `statique` (projection seulement) : ne pas la passer en
+  `tenir`.
+- Les mentions d'équipe (« sous le voile », « ce tour-ci : un seul dé »…) ont une fonction pure
+  dans `GLProjectionView.jsx` (`mentionsDEquipe`) : les bandeaux d'une ligne de la carte du
+  moment disent la même chose avec d'autres données (`maVue.unDe`, `fouilles.sousVoile`) ; à
+  réunir seulement si cela simplifie, sinon laisser.
+- `PHASE_AUCUN_TOUR` est maintenant le texte « sans tour » de la projection aussi : l'état
+  `attente` de la carte du moment doit dire les mêmes mots.
+- Le e2e de la projection montre comment mesurer « rien ne défile » et « rien n'est coupé »
+  (`mesures(page)` dans `e2e/gl-tenir-projection.spec.js`) : à reprendre pour l'assertion
+  « carte visible sans défilement » de S4.
 
 - `GLMapView` transmet `presentation="tenir"` : un seul bouton « Recentrer » (nommé), gestes
   gardés. Vérifié dans un vrai navigateur dans un conteneur de 520 px.
@@ -250,6 +377,9 @@ S6 relance la même commande : les mêmes chiffres sont attendus.
 
 ### Pour S5 (console)
 
+- `GLTourJournal` est partagé entre la console (journal complet, `limit={40}`) et la projection
+  (`marquants`, `limit={3}`). Le journal de la console n'a pas changé ; ne pas retirer la prop.
+
 - Le titre de la console porte déjà la phase en mots d'élève (`phaseConsole`). Le bandeau
   réduit du mode séance peut réutiliser `titreDuTour`.
 - Budget du bundle : voir plus haut (0,9 Ko de marge sur l'entrée ForêtMap).
@@ -264,5 +394,17 @@ S6 relance la même commande : les mêmes chiffres sont attendus.
 - CHANGELOG : entrée directe sous `[Non publié]`, « Modifié — G&L : écrans de séance », pour
   les lots de S2 à S6 ; celle du lot 1 existe déjà (fusion de #711).
 - `docs/reference/gl/guide-du-mj.md` porte déjà la note « Écrans de séance : les mots à
-  l'écran (20 novembre 2026) » : la compléter (projection, tablette, console) plutôt que d'en
-  ouvrir une autre.
+  l'écran (20 novembre 2026) » : la compléter (tablette, console) plutôt que d'en ouvrir une
+  autre. **La projection est déjà documentée** par S2 (note « Écrans de séance : la projection,
+  mode tableau », plus `roles-et-connexion.md` et `chapitres-et-progression.md`) : relire, ne
+  pas refaire.
+- Captures « après » de la projection : déjà dans `apres/` (jeu, souffle, accroche). Les e2e
+  les réécrivent à chaque passage ; recommiter seulement si l'écran a changé.
+- Avant de passer la PR en « prête » : lancer les relecteurs `gl-relecteur-garde-fous` sur le
+  diff complet (S2 ne l'a pas fait : ses textes nouveaux sont « La page du jour », « Voir le
+  plateau », « Lumière de la classe », « Page n », les libellés d'accessibilité « Les équipes »
+  et « Faits marquants » ; le test de contenu d'adresse et de mots interdits les relit).
+- CHANGELOG, à écrire par S6 pour la projection : mode tableau sans défilement à 1920 × 1080 ;
+  carte « À la prochaine séance » plein écran ; trois faits marquants ; voile cerné ; cases du
+  plateau non cliquables ; indices du carnet retirés du tableau ; « Le prof ouvre bientôt le
+  tour. ».
