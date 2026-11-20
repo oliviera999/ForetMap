@@ -60,6 +60,21 @@ import { GLVoileLayer } from './tenir/GLVoileLayer.jsx';
  */
 const EMPTY_LIST = Object.freeze([]);
 
+/**
+ * Présentations du plateau (chantier « écrans de séance ») :
+ * - `standard` : le plateau avec son en-tête (titre, plein écran), ses outils et le panneau
+ *   « Équipes » — le comportement historique, inchangé ;
+ * - `tenir` : la scène de l'écran d'équipe — ni en-tête, ni panneau, ni outils ; pincement et
+ *   molette conservés, un seul bouton « Recentrer » ; le plateau remplit son conteneur ;
+ * - `projection` : la scène du tableau — comme `tenir`, sans aucun bouton, ni pan ni zoom.
+ */
+export const GL_BOARD_PRESENTATIONS = Object.freeze(['standard', 'tenir', 'projection']);
+
+/** Présentation connue, sinon `standard` (une valeur inconnue ne change rien). */
+export function resolveBoardPresentation(presentation) {
+  return GL_BOARD_PRESENTATIONS.includes(presentation) ? presentation : 'standard';
+}
+
 export function GLGameBoard({
   chapter,
   markers,
@@ -118,7 +133,14 @@ export function GLGameBoard({
   tenirLayers = null,
   fouilleMode = false,
   onFouille = null,
+  /** `'standard'` (défaut) | `'tenir'` | `'projection'` : voir `GL_BOARD_PRESENTATIONS`. */
+  presentation: presentationProp = 'standard',
 }) {
+  const presentation = resolveBoardPresentation(presentationProp);
+  // Scène épurée (écran d'équipe, projection) : le plateau seul, à la hauteur de son conteneur.
+  const epure = presentation !== 'standard';
+  // Au tableau, personne ne touche l'écran : ni pan, ni zoom, ni bouton.
+  const figee = presentation === 'projection';
   const assetsReady = useGlAssetsReady();
   const plateauNumber = chapter?.chapter_plateau_number ?? chapter?.plateau_number ?? null;
   const conventionBoard = useMemo(() => {
@@ -150,7 +172,7 @@ export function GLGameBoard({
   const [boardHeightPx, setBoardHeightPx] = useState(0);
   const boardHeightPxRef = useRef(0);
   const boardShellRef = useRef(null);
-  const mapGestures = useGlPctMapGestures();
+  const mapGestures = useGlPctMapGestures({ enabled: !figee });
   const prefersReducedMotion = usePrefersReducedMotion();
 
   const { getPositionForTeam, getMotionForTeam, moveTeamTo, moveTeamAlongPath, triggerTransient } =
@@ -501,7 +523,7 @@ export function GLGameBoard({
     if (ecart <= 0) return 'sous le voile';
     return `voile à ${ecart} case${ecart > 1 ? 's' : ''}`;
   };
-  const canSelectTeam = Boolean(onSelectTeam) && teamList.length > 0;
+  const canSelectTeam = Boolean(onSelectTeam) && teamList.length > 0 && !figee;
 
   const handleSelectTeam = useCallback(
     (teamId) => {
@@ -514,6 +536,13 @@ export function GLGameBoard({
     ? 'gl-board-shell gl-board-shell--fullscreen'
     : 'gl-board-shell';
   const boardClass = mapFullscreen ? 'gl-board gl-board--fullscreen' : 'gl-board';
+  // Épurée, la scène n'est plus une carte posée dans la page (`gl-panel`) : elle prend la place
+  // que son conteneur lui donne.
+  const sceneClass = epure
+    ? `gl-board-scene gl-board-scene--${presentation}`
+    : mapFullscreen
+      ? 'gl-panel gl-panel--map-fullscreen-active'
+      : 'gl-panel';
 
   const plateauEditorProps = {
     zones: editZones,
@@ -601,6 +630,25 @@ export function GLGameBoard({
         if (motion?.snapCenter) classes.push('is-on-marker');
         if (isSelected) classes.push('is-selected');
         if (isCurrentTurn) classes.push('is-current-turn');
+        if (figee) {
+          // Projection : le nom de l'équipe se lit, rien ne se touche (un `span`, pas un bouton).
+          // La position passe par des propriétés personnalisées ; la feuille la pose.
+          return (
+            <span
+              key={`pin-${team.id}`}
+              className={`${classes.join(' ')} gl-board-team-pin--statique`}
+              style={{
+                '--gl-pin-x': `${position.xp}%`,
+                '--gl-pin-y': `${position.yp}%`,
+                '--gl-team-color': team.color || '#22c55e',
+              }}
+              data-team-id={team.id}
+              data-team-mascot={team.mascot_id || ''}
+            >
+              <span className="gl-board-team-pin-label">{team.name}</span>
+            </span>
+          );
+        }
         return (
           <button
             key={`pin-${team.id}`}
@@ -633,7 +681,8 @@ export function GLGameBoard({
       imageAlt={chapter?.title || 'Carte du chapitre'}
       mapGestures={mapGestures}
       className={boardClass}
-      showZoomControls={!feuilletZoneEditMode}
+      showZoomControls={!feuilletZoneEditMode && !figee}
+      zoomControls={epure ? 'recentrer' : 'complet'}
       cursor={
         feuilletZoneEditMode ? plateauPlacement.mapCursor : fouilleMode ? 'crosshair' : undefined
       }
@@ -679,6 +728,7 @@ export function GLGameBoard({
       )}
 
       <GLBoardChrome
+        masque={epure}
         mapFullscreen={mapFullscreen}
         onCloseFullscreen={() => setMapFullscreen(false)}
         canSpellCast={canSpellCast}
@@ -797,10 +847,10 @@ export function GLGameBoard({
   );
 
   return (
-    <section className={mapFullscreen ? 'gl-panel gl-panel--map-fullscreen-active' : 'gl-panel'}>
+    <section className={sceneClass} data-presentation={presentation}>
       <div className="gl-map-layout">
         <div className="gl-map-layout__board">
-          {!mapFullscreen ? (
+          {!mapFullscreen && !epure ? (
             <GLGameBoardHud
               chapterTitle={chapter?.title}
               canSpellCast={canSpellCast}
@@ -810,7 +860,7 @@ export function GLGameBoard({
           ) : null}
           {boardShellNode}
         </div>
-        {!mapFullscreen ? (
+        {!mapFullscreen && !epure ? (
           <GLGameBoardRoster
             teams={teamList}
             roster={roster}
