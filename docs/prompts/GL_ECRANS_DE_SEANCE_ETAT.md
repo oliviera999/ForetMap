@@ -23,8 +23,15 @@ ne part qu'au passage en « prête », lui sera signalée.
 
 Sessions `bis` : aucune. Sessions lancées : 1 sur 8 au plus.
 
-Relais : S1 a planifié S2 (tâche ponctuelle « G&L écrans de séance — S2 », cinq minutes après
-son dernier push).
+Relais : S1 a planifié S2 (tâche ponctuelle « G&L écrans de séance — S2 », créée le 20/11 à
+19 h 08 UTC pour 19 h 13).
+
+**Avertissement de l'outil de planification** : une tâche planifiée depuis une session ne porte
+ni dépôt source ni connecteur. La session lancée doit donc attacher le dépôt elle-même
+(`add_repo`, accès `push`, puis `git clone`), et n'a pas les connecteurs (ForêtMap, etc.). Si
+les outils GitHub lui manquent aussi, elle ne se bloque pas : elle pousse sa branche et note
+ici, dans sa section, « description de la PR à mettre à jour » (la session suivante qui a ces
+outils, ou S1 restée abonnée à la PR, le fera). Si le push lui est refusé, état `bloquée`.
 
 Les identifiants de commit sont ceux de la session qui les a écrits ; un `git rebase origin/main`
 les change. Retrouver un commit par son titre (`git log --oneline --grep "écrans de séance"`).
