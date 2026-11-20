@@ -417,6 +417,14 @@ scroller** :
   **« Connexion au serveur rétablie ✓ »**. L'erreur « Service momentanément
   indisponible » ne s'affiche plus que si le serveur reste réellement injoignable
   au-delà de cette fenêtre.
+- **Pour le public non connecté** (visiteur de la Visite, écran de connexion), la même
+  situation s'annonce par une phrase simple : **« Le site redémarre, il revient dans un
+  instant. »**, sans compteur de tentatives ni « contactez l'administrateur » (depuis
+  novembre 2026). Le contenu déjà affiché reste lisible derrière la pastille. Le compteur
+  « tentative n/8 » et les messages détaillés restent réservés aux comptes connectés.
+- **Le glossaire de la Visite** (mots soulignés, fiche d'un terme) répond depuis la copie
+  gardée par l'appareil pendant un redémarrage, comme le contenu de la Visite : un clic sur
+  un mot déjà consulté n'est plus sans effet.
 
 La pastille ne bloque rien (on peut cliquer au travers) et se place juste au-dessus
 de l'emplacement des messages éphémères pour ne jamais les masquer.
@@ -580,6 +588,13 @@ attendent ; ou bouton du bandeau) rassemble :
 ### Quand une nouvelle version est publiée
 
 L'application est mise à jour plusieurs fois par jour. Ce qu'un utilisateur en voit :
+
+- **L'application s'ouvre tout de suite** sur un appareil qui l'a déjà chargée (depuis
+  novembre 2026) : la page part de la copie gardée par l'appareil au lieu d'attendre le
+  serveur — jusqu'à 4 secondes sur une connexion lente. La vérification d'une nouvelle
+  version se fait en arrière-plan ; s'il y en a une, le bandeau ci-dessous la propose.
+  Tant qu'une version attend d'être appliquée, l'ouverture repasse par le serveur, pour
+  qu'un simple rechargement suffise à l'obtenir.
 
 - **Un bandeau « Une nouvelle version est disponible »**, avec un bouton **« Recharger »**.
   Rien ne bouge tant qu'on ne clique pas : une saisie en cours (formulaire de plante,

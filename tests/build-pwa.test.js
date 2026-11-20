@@ -211,6 +211,9 @@ test('buildProductPwa : seuls les bundles de la bonne entrée sont précachés',
   assert.ok(foret.precache.includes('/assets/Lazy-LLL.css'));
   assert.ok(foret.serviceWorker.includes('"/api/visit/content"'));
   assert.ok(foret.serviceWorker.includes('"/api/zones"'));
+  // Glossaire de la Visite : même stratégie que son contenu (audit UI/UX U2).
+  assert.ok(foret.serviceWorker.includes('"/api/glossary/terms"'));
+  assert.ok(foret.serviceWorker.includes('"^/api/glossary/terms/[^/]+$"'));
 });
 
 test('ForetMap hors ligne : réglages publics, projets et tutoriels en cache, jamais la sonde', () => {

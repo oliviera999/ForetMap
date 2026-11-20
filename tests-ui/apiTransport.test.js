@@ -1,6 +1,8 @@
 import { describe, expect, test } from 'vitest';
 import {
   assertJsonApiBody,
+  buildApiHttpErrorMessage,
+  PUBLIC_SERVER_RESTART_MESSAGE,
   gatewayUnavailableUserMessage,
   isGatewayStyleResponse,
   isParsedApiJsonObject,
@@ -149,5 +151,42 @@ describe('apiTransport', () => {
 
   test('shouldRetryAfterTimeout : respecte le plafond global de tentatives', () => {
     expect(shouldRetryAfterTimeout('GET', undefined, 0, 1)).toBe(false);
+  });
+
+  test('public sans compte : un 5xx sans message applicatif devient la phrase du redémarrage (U2)', () => {
+    const res = mockRes(502, 'text/html', { 'x-request-id': 'abc' });
+    const htmlBody = { raw: '<html><body>Bad Gateway</body></html>' };
+    expect(
+      buildApiHttpErrorMessage({
+        res,
+        errBody: htmlBody,
+        authToken: null,
+        sawGatewayResponse: true,
+      }).errMsg,
+    ).toBe(PUBLIC_SERVER_RESTART_MESSAGE);
+    // Compte connecté : message détaillé et identifiant de requête conservés.
+    const account = buildApiHttpErrorMessage({
+      res,
+      errBody: htmlBody,
+      authToken: 'jeton',
+      sawGatewayResponse: true,
+    }).errMsg;
+    expect(account).not.toBe(PUBLIC_SERVER_RESTART_MESSAGE);
+    expect(account).toMatch(/requête abc/);
+    // Message applicatif d'un 503 : jamais remplacé.
+    expect(
+      buildApiHttpErrorMessage({
+        res: mockRes(503, 'application/json'),
+        errBody: { error: 'Forum désactivé' },
+        authToken: null,
+      }).errMsg,
+    ).toBe('Forum désactivé');
+  });
+
+  test('public sans compte : corps illisible sans « contactez l’administrateur » (U2)', () => {
+    expect(() => assertJsonApiBody({ raw: 'garbage' }, { ok: true, publicAudience: true })).toThrow(
+      PUBLIC_SERVER_RESTART_MESSAGE,
+    );
+    expect(() => assertJsonApiBody({ raw: 'garbage' }, { ok: true })).toThrow(/administrateur/);
   });
 });

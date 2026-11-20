@@ -62,6 +62,19 @@ Piste : HTML en _app shell_ (copie en cache immédiate, revalidation, invitation
 version » via `/api/version`), écran de connexion limité à l'authentification, vignette
 statique par pack, contenu de la Visite allégé.
 
+**Corrigé** (lot 2, session C, branche `claude/ui-ux-visite-lot2`) : HTML en coquille
+d'application dans le service worker (`src/shared/pwa/swTemplate.js`, stratégie `app-shell`
+par défaut, revalidation par le service worker lui-même et le bandeau existant, repli
+network-first si une version attend) — à cache chaud, TTFB ~5 ms au lieu de 3 s (serveur
+ralenti à 3 s, e2e `perf-app-shell`) ; CSS principal sorti en `foretmap-styles-*.css`
+(`vite.config.js`) ; notice « Vos données » chargée à la demande (`src/main.jsx`, −18 Ko) ;
+budget de bundle en CI (`scripts/check-bundle-budget.js`, cliquet à 1 530 Ko de JS, objectif
+400 Ko) ; vignette PNG par pack (`lib/visitMascotPackThumbnail.js`, rattrapage
+`scripts/generate-visit-mascot-thumbnails.js`). **Reste** : l'objectif de 400 Ko exige de
+charger à la demande le shell connecté importé statiquement par `src/App.jsx` (hors du
+périmètre de la session C : mesure 1 526 → 795 Ko en neuf imports) ; branchement de la
+vignette dans la grille (session B) ; allègement de `/api/visit/content` (session B).
+
 ### U2 — 🔴 Indisponibilité vue par l'utilisateur
 
 Deux redémarrages du serveur pendant l'audit. Côté écran : bandeau « Serveur momentanément
@@ -73,6 +86,13 @@ Piste : la cause relève du chantier d'exploitation. Côté interface : message 
 (« Le site redémarre, il revient dans un instant. »), contenu déjà affiché toujours lisible,
 compteur de tentatives réservé aux comptes connectés, glossaire de la Visite sur la même
 stratégie de cache que son contenu.
+
+**Corrigé** (lot 2, session C, branche `claude/ui-ux-visite-lot2`) : public non connecté =
+« Le site redémarre, il revient dans un instant. », sans compteur ni « contactez
+l'administrateur » (`src/shared/fetchJsonWithRetry.js`, `src/shared/apiTransport.js`,
+`src/services/api.js`) ; compteur réservé aux comptes connectés ; glossaire
+(`/api/glossary/terms` et fiche d'un terme) en stale-while-revalidate comme le contenu de la
+Visite (`scripts/build-pwa.js`) ; e2e `perf-app-shell` (API coupée : jamais d'écran blanc).
 
 ### U3 — 🟠 L'écran d'accueil sert les élèves, pas les visiteurs
 
