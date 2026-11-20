@@ -52,7 +52,7 @@ dans une **nouvelle PR en brouillon** :
 | S3      | Tablette 1 : moteur de la carte du moment | faite                   | `c46fd3b` (lot), `9fe1eb9` (relecture garde-fous), `ae693b4` (CHANGELOG) + état              |
 | S4      | Tablette 2 : branchement                  | faite, fusionnée (#716) | `c9810be61` (lot), `0e471cbd3` (relecture garde-fous), `af1aa1f5c` (fusion de `main`) + état |
 | S5      | Console (étape 5)                         | faite                   | `b5db4e5` (lot), `b5f0079` (relecture garde-fous), `159de3e` (fusion de `main`) + état       |
-| S6      | Accueil, docs, clôture (étapes 6 et 7)    | à faire                 | —                                                                                            |
+| S6      | Accueil, docs, clôture (étapes 6 et 7)    | en cours                | —                                                                                            |
 
 Sessions `bis` : aucune. Sessions lancées : 5 sur 8 au plus (la tentative de S2 par tâche
 planifiée, arrêtée sans rien faire, ne compte pas).
