@@ -53,6 +53,7 @@ test('la liste des paires couvre bien les noyaux attendus', () => {
     'moodleSyncEnums.js',
     'n3beurRolesCore.js',
     'pedagoEnums.js',
+    'pedagoStepActions.js',
     'platformEnums.js',
     'rewardsCore.js',
     'taskCategoryGuessCore.js',
