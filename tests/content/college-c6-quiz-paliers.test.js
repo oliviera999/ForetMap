@@ -26,8 +26,9 @@ before(async () => {
 
 /**
  * Catégories rattachées au référentiel en production (instantané du 21/11/2026 :
- * `demarche_mesure` → 2-BIODIV, C4-TERRE ; `microbes_sante` → 2-MICRO, C4-MICRO) mais **pas
- * dans les migrations** : en base fraîche, leurs questions de collège n'ont aucune notion.
+ * `demarche_mesure` → 2-BIODIV, C4-TERRE ; `microbes_sante` → 2-MICRO, C4-MICRO) mais absentes
+ * d'une base fraîche (la migration 273 sème `demarche_mesure` avant que la catégorie existe :
+ * `INSERT IGNORE` sans effet) : leurs questions de collège n'y ont aucune notion.
  * Dérive dépôt ↔ prod signalée au flux D3 / à SI ; tolérée ici, nommément, jusqu'à ce qu'une
  * migration sème ces liens. Toute autre catégorie fautive fait échouer le test.
  */
