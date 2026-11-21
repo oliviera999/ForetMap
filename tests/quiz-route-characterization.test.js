@@ -421,7 +421,8 @@ test('present — forme de la présentation (code en minuscules accepté)', asyn
     'photoUrl',
     'photoCredit',
     'photoLicence',
-    'photoLegende',
+    // `photoLegende` a quitté la présentation (flux F4) : elle arrive avec la réponse,
+    // cf. tests/quiz-present-melange-legende.test.js.
     'wikipediaUrl',
   ]);
   assert.equal(res.body.questionCode, Q.lyceeMedium.code);

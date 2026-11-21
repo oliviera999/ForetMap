@@ -78,6 +78,15 @@ async function tryHydrateAuth(req) {
   }
 }
 
+/** Auteur des liens créés avec une question (`created_by_*` de `resource_question_links`). */
+function linkActor(req) {
+  const auth = req.auth || {};
+  return {
+    userType: auth.userType || 'teacher',
+    userId: auth.userId || auth.canonicalUserId || null,
+  };
+}
+
 function sendXlsx(res, filename, buffer) {
   res.setHeader('Content-Type', XLSX_CONTENT_TYPE);
   res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
@@ -212,13 +221,15 @@ router.post(
   '/admin/questions',
   quizManagePermission,
   quizHandler(async (req, res) => {
-    const question = await quizService.saveQuestion(req.body);
+    const { question, links } = await quizService.saveQuestionWithLinks(req.body, {
+      actor: linkActor(req),
+    });
     const code = question?.question_code || null;
     await logAudit('create_quiz', 'quiz_question', code, code || 'Question QCM créée', {
       req,
       payload: { question_code: code },
     });
-    return res.status(201).json({ ok: true, created: true, question });
+    return res.status(201).json({ ok: true, created: true, question, ...(links ? { links } : {}) });
   }),
 );
 
@@ -229,12 +240,15 @@ router.put(
   validate({ params: questionCodeParamsSchema }),
   quizHandler(async (req, res) => {
     const { code } = req.validatedParams;
-    const question = await quizService.saveQuestion(req.body, { code });
+    const { question, links } = await quizService.saveQuestionWithLinks(req.body, {
+      code,
+      actor: linkActor(req),
+    });
     await logAudit('update_quiz', 'quiz_question', code, code, {
       req,
       payload: { question_code: code },
     });
-    return res.json({ ok: true, created: false, question });
+    return res.json({ ok: true, created: false, question, ...(links ? { links } : {}) });
   }),
 );
 
