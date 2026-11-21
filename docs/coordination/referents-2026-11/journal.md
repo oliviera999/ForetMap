@@ -39,7 +39,9 @@
       branché dessus (`tests/recurring-tasks-joins-characterization.test.js`) ; `setTaskReferents`
       devient différentiel (préserve `source`, nouveaux liens `manual` + `added_at`, renvoie
       ajouts / retraits) — avance du lot 4.
-- [ ] Lot 2 — réglages
+- [x] Lot 2 — 7 réglages `tasks.student_referent_*` (bornes : `lib/tasks/referentBounds.js`,
+      `MAX_TASK_REFERENTS` déplacé) ; libellés `settingsAdminMeta.js` (section `tasks`, panneau
+      générique) ; `tests/student-referents-settings.test.js`.
 - [ ] Lot 3 — moteur
 - [ ] Lot 4 — clonage et services
 - [ ] Lot 5 — script de reprise, MCP, vérification lecture seule
@@ -49,4 +51,4 @@
 - [ ] Lot 10 — documentation
 - [ ] Lot 9 (reste)
 
-Prochaine action : lot 2 (réglages).
+Prochaine action : lot 3 (moteur `lib/tasks/studentReferents.js`).

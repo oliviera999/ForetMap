@@ -564,6 +564,48 @@ export const KEY_META = {
       group: 'Les entrées de ses camarades de groupe et les siennes',
     },
   },
+  'tasks.student_referent_enabled': {
+    label:
+      'Élèves référents automatiques des tâches récurrentes : un n3beur du groupe de l’année qui a réalisé assez d’occurrences validées d’une même série en devient référent (en plus des référents existants). Désactivé : rien n’est posé ni retiré.',
+    section: 'tasks',
+    order: 70,
+  },
+  'tasks.student_referent_group_id': {
+    label:
+      'Groupe de l’année des élèves référents (identifiant ou slug du groupe, à changer à chaque rentrée). Vide ou groupe inactif : aucun élève n’est éligible.',
+    section: 'tasks',
+    order: 71,
+  },
+  'tasks.student_referent_min_validations': {
+    label:
+      'Nombre d’occurrences validées d’une même série pour devenir référent (même règle que la progression des n3beurs, toutes années confondues).',
+    section: 'tasks',
+    order: 72,
+  },
+  'tasks.student_referent_max_series_per_student': {
+    label:
+      'Plafond de séries dont un même élève peut être référent automatique (0 = aucun plafond : être référent est une distinction).',
+    section: 'tasks',
+    order: 73,
+  },
+  'tasks.student_referent_max_students_per_series': {
+    label:
+      'Plafond d’élèves référents par série (0 = aucun plafond). Avec un plafond, les séries sans référent sont servies en premier.',
+    section: 'tasks',
+    order: 74,
+  },
+  'tasks.student_referent_inactivity_days': {
+    label:
+      'Retrait d’un référent automatique après ce nombre de jours sans réalisation de la série (0 = jamais). Un référent posé à la main n’est jamais retiré.',
+    section: 'tasks',
+    order: 75,
+  },
+  'tasks.student_referent_notify_managers': {
+    label:
+      'Prévenir aussi les gestionnaires de tâches quand un élève devient référent automatique (ou ne l’est plus).',
+    section: 'tasks',
+    order: 76,
+  },
   'ui.routes.overview_enabled': {
     label:
       'Commencer un parcours par une vue d’ensemble (tout le tracé, étapes numérotées et fléchées)',
