@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react';
 
 import { IconFullscreen } from '../../shared/icons.jsx';
+import VisitMascotFallbackSvg from '../../shared/mascot/VisitMascotFallbackSvg.jsx';
 import { MapCategoryChips } from '../../shared/map-discover/MapCategoryChips.jsx';
 
 /** Diagramme circulaire de progression visite (viewBox carré, cercle centré). */
@@ -100,6 +101,40 @@ export function groupVisitMascotVariants(options, variantOfById) {
   return { bases: list.filter((m) => !isVariant.has(m.id)), variantByBase };
 }
 
+/** Côté de la vignette d'un guide dans le menu (px) ; le fichier servi fait au plus 96 px. */
+const VISIT_MASCOT_THUMB_PX = 32;
+
+/**
+ * Vignette d'un guide dans le menu : petite image fixe générée par le serveur
+ * (`thumbnailUrl`, jamais la planche de sprites), sinon la silhouette de repli — aussi quand
+ * l'image ne se charge pas. Décorative : le nom du guide est écrit à côté.
+ */
+function VisitMascotThumb({ mascot }) {
+  const url = mascot?.thumbnailUrl || '';
+  const [failedUrl, setFailedUrl] = useState('');
+  return (
+    <span className="visit-mascot-picker__thumb" aria-hidden="true">
+      {url && failedUrl !== url ? (
+        <img
+          src={url}
+          alt=""
+          width={VISIT_MASCOT_THUMB_PX}
+          height={VISIT_MASCOT_THUMB_PX}
+          loading="lazy"
+          decoding="async"
+          data-testid="visit-mascot-thumb"
+          onError={() => setFailedUrl(url)}
+        />
+      ) : (
+        <VisitMascotFallbackSvg
+          silhouette={mascot?.fallbackSilhouette || 'gnome'}
+          variant={mascot?.fallbackVariant || 'forest'}
+        />
+      )}
+    </span>
+  );
+}
+
 /**
  * Sélecteur de guide discret : bouton + menu compact (remplace le grand `<select>`).
  * `data-testid="visit-mascot-picker"` reste sur le contrôle pour les e2e. Un personnage
@@ -178,6 +213,14 @@ function VisitMascotPickerPopover({
                     setOpen(false);
                   }}
                 >
+                  {/* Version féminine cochée : chaque personnage montre sa variante. */}
+                  <VisitMascotThumb
+                    mascot={
+                      (isFeminine &&
+                        visitMascotOptions.find((o) => o.id === variantByBase.get(m.id))) ||
+                      m
+                    }
+                  />
                   {m.label}
                 </button>
               </div>

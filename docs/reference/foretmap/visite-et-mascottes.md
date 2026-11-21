@@ -19,6 +19,8 @@ familles.
   modifiable dans _Réglages → Accueil_ ; porte activable ou non) affiche **directement la
   carte** : plus de fenêtre de choix de mascotte au démarrage. Le guide par défaut est
   présélectionné ; on en change à tout moment avec le bouton **« Guide »** de la barre.
+  Le menu montre une **petite image de chaque guide** (une silhouette quand le pack n'en a pas
+  encore — elle est créée à l'enregistrement du pack au studio).
   L'accueil n'a plus de barre d'onglets quand l'inscription est fermée (un seul onglet n'était
   pas un choix), et le sous-titre ne répète plus le nom du logiciel. Le crédit de l'auteur est
   au **prénom seul** par défaut (_Réglages → Accueil_, « Crédit — auteur »).

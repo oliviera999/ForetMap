@@ -6,7 +6,8 @@ import { buildVisitMascotCatalogExtrasFromContent } from '../utils/visitMascotPa
  * Guides de la Visite chargés **à la demande** (audit UI/UX du 19/11/2026, lot 2 point 3).
  *
  * `GET /api/visit/content` ne sert plus que le pack du guide par défaut (`mascot_packs`) et
- * une liste légère des guides proposés (`mascot_catalog` : `{ catalog_id, label, variant_of }`).
+ * une liste légère des guides proposés (`mascot_catalog` : `{ catalog_id, label, variant_of,
+ * fallback_silhouette, thumbnail_url }`).
  * Ce hook :
  *
  *  - fabrique une entrée **provisoire** par guide pas encore chargé (même identifiant, même
@@ -15,7 +16,10 @@ import { buildVisitMascotCatalogExtrasFromContent } from '../utils/visitMascotPa
  *    précédente n'est jamais écrasé par le guide par défaut le temps d'un chargement ;
  *  - charge le pack complet (`GET /api/visit/mascots/:catalogId`) quand on le demande
  *    (`ensurePack`) et remplace l'entrée provisoire ; cache au niveau du module (une requête
- *    par guide et par session, échec silencieux : la silhouette reste).
+ *    par guide et par session, échec silencieux : la silhouette reste) ;
+ *  - reporte sur chaque entrée, provisoire ou complète, la **vignette** du guide
+ *    (`thumbnailUrl`, PNG ≤ 96 px) : le sélecteur montre tous les guides sans charger une
+ *    seule planche de sprites.
  *
  * Mode inactif (`catalog` absent — ancien serveur) : renvoie `active: false` et l'appelant
  * garde le registre complet.
@@ -54,7 +58,7 @@ export function resetVisitMascotLazyPacksCache() {
 
 /**
  * Entrée provisoire d'un guide pas encore chargé.
- * @param {{ catalog_id: string, label: string, variant_of?: string|null, fallback_silhouette?: string|null }} row
+ * @param {{ catalog_id: string, label: string, variant_of?: string|null, fallback_silhouette?: string|null, thumbnail_url?: string|null }} row
  */
 export function buildPlaceholderMascotEntry(row) {
   const id = String(row?.catalog_id || '').trim();
@@ -65,8 +69,22 @@ export function buildPlaceholderMascotEntry(row) {
     renderer: 'sprite_cut',
     spriteCut: null,
     fallbackSilhouette: String(row?.fallback_silhouette || '').trim() || 'gnome',
+    thumbnailUrl: normalizeThumbnailUrl(row?.thumbnail_url),
     isPlaceholder: true,
   };
+}
+
+/** Vignette servie par le contenu : chemin de l'application seulement, sinon `null`. */
+function normalizeThumbnailUrl(value) {
+  const url = String(value || '').trim();
+  return url.startsWith('/api/visit/mascot-packs/') ? url : null;
+}
+
+/** Entrée complète enrichie de la vignette du catalogue (même objet s'il n'y en a pas). */
+function withThumbnail(entry, row) {
+  const thumbnailUrl = normalizeThumbnailUrl(row?.thumbnail_url);
+  if (!thumbnailUrl || entry.thumbnailUrl === thumbnailUrl) return entry;
+  return { ...entry, thumbnailUrl };
 }
 
 /**
@@ -99,7 +117,8 @@ export function useVisitMascotLazyPacks({ catalog, contentPacks }) {
     for (const row of catalog) {
       const id = String(row?.catalog_id || '').trim();
       if (!id) continue;
-      out.push(byId.get(id) || loadedEntries.get(id) || buildPlaceholderMascotEntry(row));
+      const full = byId.get(id) || loadedEntries.get(id);
+      out.push(full ? withThumbnail(full, row) : buildPlaceholderMascotEntry(row));
     }
     return out;
     // `version` : nouvel état du cache module après un chargement.
