@@ -14,7 +14,8 @@ import {
 } from '../../utils/visitMediaGallery.js';
 // Imports directs (mêmes symboles que les ré-exports du barrel map-views) :
 // évite de tirer MarkerModal/ZoneDrawModal/useMapGestures dans le chunk visite.
-import { LocationTutorialPreviewList } from '../map/mapModalShared.jsx';
+import { LocationTutorialPreviewList, ZoneSpeciesMoreButton } from '../map/mapModalShared.jsx';
+import { useZoneSpeciesDisplay } from '../map/useLocationModalData.js';
 import { VisitBiodiversityPanel } from './VisitBiodiversityPanel.jsx';
 import { VisitEditorPanel } from './VisitEditorPanel.jsx';
 import { IconCheck, IconEye } from '../../shared/icons.jsx';
@@ -144,6 +145,30 @@ function VisitEditorialRenderer({
  * @param {(() => void)|null} params.onMark marque le lieu vu
  * @returns {{ autoMarked: boolean, cancelled: boolean, markNow: () => void, cancel: () => void }}
  */
+/**
+ * Pied de la biodiversité d'un lieu au collège : espèces « à chercher » parmi les vignettes
+ * montrées (la vignette elle-même appartient à `VisitBiodiversityPanel`) et bouton
+ * « Voir les N autres » quand le plafond cache des espèces.
+ */
+function VisitZoneSpeciesCollegeFooter({ display }) {
+  const toSearchShown = display.names.filter((name) => display.toSearch.has(name));
+  if (toSearchShown.length === 0 && display.hiddenCount === 0) return null;
+  return (
+    <div className="visit-biodiv-college">
+      {toSearchShown.length > 0 ? (
+        <p className="zone-species-to-search-note">
+          <span className="zone-species-to-search">À chercher</span> {toSearchShown.join(', ')}
+          {' — '}
+          {toSearchShown.length > 1
+            ? 'leur présence ici reste à confirmer.'
+            : 'sa présence ici reste à confirmer.'}
+        </p>
+      ) : null}
+      <ZoneSpeciesMoreButton hiddenCount={display.hiddenCount} onExpand={display.expand} />
+    </div>
+  );
+}
+
 export function useVisitAutoSeen({ itemKey, isSeen, delayMs, onMark }) {
   const [state, setState] = useState({ key: itemKey, autoMarked: false, cancelled: false });
   const current =
@@ -321,6 +346,14 @@ export function VisitDetailPanel({
       }),
     [selected, selectedType, mapId, mapZones, mapMarkers, tasks, catalogTutorials, isTeacher],
   );
+  /**
+   * Collège (chantier collège, C5) : ordre et plafond de la liste passée aux vignettes —
+   * phares d'abord, « à chercher » en dernier, « Voir les N autres ». Présence lue dans le
+   * contenu de visite : aucune requête.
+   */
+  const speciesDisplay = useZoneSpeciesDisplay(visitLocationAside.primaryLivingNames, {
+    presence: visitLocationAside.primaryLivingPresence,
+  });
 
   if (!selected) return null;
 
@@ -519,12 +552,15 @@ export function VisitDetailPanel({
       {visitLocationAside.showBiodiversity && (
         <VisitBiodiversityPanel
           locationKind={visitLocationAside.locationKind}
-          names={visitLocationAside.primaryLivingNames}
+          names={speciesDisplay.names}
           species={visitLocationAside.primaryLivingSpecies}
           plants={plants}
           namesOnlyOnTasks={visitLocationAside.livingBeingsOnlyOnTasks}
           onOpenPlant={onOpenPlantCatalogPreview}
         />
+      )}
+      {visitLocationAside.showBiodiversity && (
+        <VisitZoneSpeciesCollegeFooter display={speciesDisplay} />
       )}
       {visitLocationAside.showTutos && (
         <details className="visit-details">

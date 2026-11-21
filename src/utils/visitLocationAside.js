@@ -13,6 +13,7 @@ export const EMPTY_VISIT_LOCATION_ASIDE = Object.freeze({
   showTutos: false,
   primaryLivingNames: [],
   primaryLivingSpecies: [],
+  primaryLivingPresence: [],
   livingBeingsOnlyOnTasks: [],
   tutorialListForPreview: [],
   locationKind: 'zone',
@@ -52,6 +53,15 @@ function speciesForDisplayedNames(source, names) {
       .map((sp) => [String(sp.name).trim(), sp]),
   );
   return names.map((name) => byName.get(name)).filter(Boolean);
+}
+
+/**
+ * Présence des espèces du lieu (`is_featured`, `validation_status`) : toujours celle du
+ * **contenu de visite** (`GET /api/visit/content`, chantier collège C5), même quand les noms
+ * viennent de la zone de la carte — les zones de `/api/zones` ne la portent pas.
+ */
+function visitLocationPresence(visitLocation) {
+  return Array.isArray(visitLocation?.species) ? visitLocation.species : [];
 }
 
 /**
@@ -116,6 +126,7 @@ export function computeVisitLocationAside(
       showTutos: tutorialListForPreview.length > 0,
       primaryLivingNames,
       primaryLivingSpecies: speciesForDisplayedNames(zoneSource, primaryLivingNames),
+      primaryLivingPresence: visitLocationPresence(selected),
       livingBeingsOnlyOnTasks,
       tutorialListForPreview,
       locationKind: 'zone',
@@ -153,6 +164,7 @@ export function computeVisitLocationAside(
     showTutos: tutorialListForPreview.length > 0,
     primaryLivingNames,
     primaryLivingSpecies: speciesForDisplayedNames(markerSource, primaryLivingNames),
+    primaryLivingPresence: visitLocationPresence(selected),
     livingBeingsOnlyOnTasks,
     tutorialListForPreview,
     locationKind: 'marker',

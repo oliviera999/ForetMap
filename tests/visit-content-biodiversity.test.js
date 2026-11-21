@@ -121,7 +121,10 @@ test('GET /api/visit/content — espèces de la zone exposées sans authentifica
   assert.ok(zone, 'zone de visite attendue dans le contenu public');
   assert.deepStrictEqual(zone.living_beings_list, [PLANT_NAME]);
   assert.deepStrictEqual(zone.species_ids, [plantId]);
-  assert.deepStrictEqual(zone.species, [{ id: plantId, name: PLANT_NAME, emoji: '🌿' }]);
+  // `is_featured` / `validation_status` (chantier collège, C5) : hors registre, false / null.
+  assert.deepStrictEqual(zone.species, [
+    { id: plantId, name: PLANT_NAME, emoji: '🌿', is_featured: false, validation_status: null },
+  ]);
   assert.strictEqual(zone.is_infrastructure, false);
 });
 
@@ -132,8 +135,41 @@ test('GET /api/visit/content — espèces du repère exposées sans authentifica
   assert.deepStrictEqual(marker.living_beings_list, [MARKER_PLANT_NAME]);
   assert.deepStrictEqual(marker.species_ids, [markerPlantId]);
   assert.deepStrictEqual(marker.species, [
-    { id: markerPlantId, name: MARKER_PLANT_NAME, emoji: '🍃' },
+    {
+      id: markerPlantId,
+      name: MARKER_PLANT_NAME,
+      emoji: '🍃',
+      is_featured: false,
+      validation_status: null,
+    },
   ]);
+});
+
+test('GET /api/visit/content — espèce de la zone : registre de la carte (phare, certitude)', async () => {
+  // Chantier collège (C5) : la fiche du lieu range les espèces sans autre requête.
+  await execute(
+    `INSERT INTO map_species (map_id, plant_id, validation_status, is_featured)
+     VALUES (?, ?, 'a_confirmer', 1)
+     ON DUPLICATE KEY UPDATE validation_status = 'a_confirmer', is_featured = 1`,
+    [MAP_ID, plantId],
+  );
+  try {
+    const res = await request(app).get(`/api/visit/content?map_id=${MAP_ID}`).expect(200);
+    const zone = (res.body.zones || []).find((z) => z.id === ZONE_ID);
+    assert.deepStrictEqual(zone.species, [
+      {
+        id: plantId,
+        name: PLANT_NAME,
+        emoji: '🌿',
+        is_featured: true,
+        validation_status: 'a_confirmer',
+      },
+    ]);
+    const siteEntry = (res.body.site_species || []).find((e) => e.plant_id === plantId);
+    assert.strictEqual(siteEntry.is_featured, true, 'même valeur que les espèces du site');
+  } finally {
+    await execute('DELETE FROM map_species WHERE map_id = ? AND plant_id = ?', [MAP_ID, plantId]);
+  }
 });
 
 test('GET /api/visit/content — zone d’infrastructure signalée (volet biodiversité masqué côté client)', async () => {
