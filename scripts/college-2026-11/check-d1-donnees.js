@@ -41,14 +41,19 @@ function read(name) {
 
 /**
  * Fiches dont l'emoji figure dans la table de règles sans que la fiche appartienne à l'un des
- * groupes admis pour lui (ressources exclues : elles ne sont pas des êtres vivants).
+ * groupes admis pour lui (ressources exclues : elles ne sont pas des êtres vivants). Seuls les
+ * rangs renseignés sur la fiche se comparent.
  */
 function emojiViolations(plants, regles) {
   const byEmoji = new Map(regles.map((r) => [r.emoji, r]));
   return plants
     .filter((p) => p.entity_kind !== 'ressource')
     .map((p) => ({ p, r: byEmoji.get(p.emoji) }))
-    .filter(({ p, r }) => r && !Object.entries(r.admis).some(([k, v]) => v.includes(p[k])))
+    .filter(({ p, r }) => {
+      if (!r) return false;
+      const connus = Object.keys(r.admis).filter((k) => p[k] != null);
+      return connus.length > 0 && !connus.some((k) => r.admis[k].includes(p[k]));
+    })
     .map(({ p, r }) => ({ name: p.name, emoji: p.emoji, represente: r.represente }));
 }
 
@@ -138,6 +143,7 @@ function checkAgainstSnapshot(emojiDoc, niveaux, contenu, cartes, seances) {
   const byName = new Map(plants.map((p) => [p.name, p]));
   for (const c of emojiDoc.corrections) {
     const p = byName.get(c.name);
+    if (!p && c.absente_de_la_production) continue;
     if (!p) err(`instantané : fiche « ${c.name} » absente`);
     else if (p.emoji !== c.avant)
       err(`instantané : « ${c.name} » porte ${p.emoji}, pas ${c.avant}`);

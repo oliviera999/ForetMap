@@ -565,6 +565,16 @@
       "origine": "audit"
     },
     {
+      "name": "Cochenille de la figue de Barbarie",
+      "scientific_name": "Dactylopius opuntiae",
+      "groupe": "Insecta / Hemiptera / Dactylopiidés",
+      "avant": "🐛",
+      "apres": "🌿",
+      "motif": "hémiptère montré comme une chenille (larve de papillon) ; ancien nom de la même fiche, encore porté par la base de démonstration (absent de la production)",
+      "origine": "revue",
+      "absente_de_la_production": true
+    },
+    {
       "name": "Iule",
       "scientific_name": "Julida",
       "groupe": "Diplopoda / Julida / Julidés",

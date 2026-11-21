@@ -23,7 +23,7 @@ SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;
 -- =====================================================================
 
 -- ---------------------------------------------------------------------
--- 1. Emoji trompeurs : 66 fiches. Garde : nom + ancien emoji (binaire).
+-- 1. Emoji trompeurs : 67 fiches. Garde : nom + ancien emoji (binaire).
 -- ---------------------------------------------------------------------
 UPDATE plants SET emoji = '🍂'
  WHERE name = 'Cloporte' AND CAST(emoji AS BINARY) = CAST('🪲' AS BINARY);
@@ -53,6 +53,8 @@ UPDATE plants SET emoji = '🌿'
  WHERE name = 'Cochenilles farineuses' AND CAST(emoji AS BINARY) = CAST('🐛' AS BINARY);
 UPDATE plants SET emoji = '🌿'
  WHERE name = 'Cochenille du figuier de Barbarie' AND CAST(emoji AS BINARY) = CAST('🐛' AS BINARY);
+UPDATE plants SET emoji = '🌿'
+ WHERE name = 'Cochenille de la figue de Barbarie' AND CAST(emoji AS BINARY) = CAST('🐛' AS BINARY);
 UPDATE plants SET emoji = '🍂'
  WHERE name = 'Iule' AND CAST(emoji AS BINARY) = CAST('🪱' AS BINARY);
 UPDATE plants SET emoji = '🍂'
