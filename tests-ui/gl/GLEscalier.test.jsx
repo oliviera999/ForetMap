@@ -6,7 +6,7 @@ vi.mock('../../src/gl/services/apiGL.js', () => ({
   apiGL: (...args) => apiGlMock(...args),
 }));
 
-import { GLTenirEquipeView } from '../../src/gl/components/tenir/GLTenirEquipeView.jsx';
+import { GLTenirEcranEquipe } from '../../src/gl/components/tenir/GLTenirEcranEquipe.jsx';
 import { GLTourSouffle } from '../../src/gl/components/mj/GLTourSouffle.jsx';
 import { GLTenirProfilPanel } from '../../src/gl/components/mj/GLTenirProfilPanel.jsx';
 import { etatEscalier } from '../../src/shared/glTenirEscalierCore.js';
@@ -43,40 +43,27 @@ describe('escalier du chapitre 1 — écrans', () => {
   });
 
   test('écran d’équipe : « Jeter un sort » n’existe pas avant la séance 3, puis il paraît', async () => {
-    const { rerender } = render(
-      <GLTenirEquipeView
+    const ecran = (pas) => (
+      <GLTenirEcranEquipe
         gameState={gameState}
-        tenir={tenir(1)}
+        tenir={tenir(pas)}
         teamId={2}
         onReloadGame={vi.fn()}
         onJeter={vi.fn()}
-      />,
+      />
     );
-    await waitFor(() => expect(screen.getByTestId('gl-tenir-equipe')).toBeInTheDocument());
+    const { rerender } = render(ecran(1));
+    await waitFor(() => expect(screen.getByTestId('gl-tenir-maintenant')).toBeInTheDocument());
     expect(document.querySelector('[data-geste="jeter"]')).toBeNull();
-    for (const geste of ['lancer', 'repondre', 'fouiller', 'lire']) {
+    // Les gestes ouverts sont là (le gros bouton, puis les puces) ; aucun n'est grisé.
+    for (const geste of ['lancer', 'fouiller']) {
       expect(document.querySelector(`[data-geste="${geste}"]`)).toBeTruthy();
     }
-    rerender(
-      <GLTenirEquipeView
-        gameState={gameState}
-        tenir={tenir(3)}
-        teamId={2}
-        onReloadGame={vi.fn()}
-        onJeter={vi.fn()}
-      />,
-    );
+    expect(document.querySelectorAll('[data-geste]:disabled')).toHaveLength(0);
+    rerender(ecran(3));
     expect(document.querySelector('[data-geste="jeter"]')).toBeTruthy();
     // Hors escalier : rien n'est masqué.
-    rerender(
-      <GLTenirEquipeView
-        gameState={gameState}
-        tenir={tenir(null)}
-        teamId={2}
-        onReloadGame={vi.fn()}
-        onJeter={vi.fn()}
-      />,
-    );
+    rerender(ecran(null));
     expect(document.querySelector('[data-geste="jeter"]')).toBeTruthy();
   });
 

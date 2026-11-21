@@ -2,6 +2,7 @@ const { test, expect } = require('@playwright/test');
 const { queryOne, execute } = require('../database');
 const { createTenirGame } = require('../tests/helpers/glTenirFixtures');
 const { mountGlSession } = require('./fixtures/gl.fixture');
+const { servirPlateau } = require('./fixtures/gl-plateau.fixture');
 
 // « Tenir à deux », lot 2 — jeu en parallèle sur tablettes de classe.
 // Quatre tablettes ouvrent le lien de la classe (trois par le QR, une par le code à huit
@@ -12,10 +13,62 @@ const { mountGlSession } = require('./fixtures/gl.fixture');
 // écran d'équipe.
 // Second scénario : trois appareils dans UNE équipe (deux tablettes et un compte) — la seconde
 // tablette acceptée par la première, la main (« … prépare un sort »), la version d'état.
-// Captures : docs/captures/tenir-v2/tablette-*.png, appareils-*.png.
+//
+// Depuis le chantier « écrans de séance » (étape 4), l'écran d'équipe montre trois choses : le
+// plateau, **une** carte du moment et Olu, sous un bandeau fin ; le reste est dans le tiroir
+// « L'équipe ». Il est le même sur la tablette et sur le compte d'un élève, tour ouvert ou non,
+// et suit le tour sans bouton « Actualiser ». Un geste fermé n'est plus grisé : il est absent.
+// Captures : docs/captures/tenir-v2/tablette-*.png, appareils-*.png, et
+// docs/captures/ecrans-de-seance/apres/tablette-*.png, compte-*.png, telephone-*.png.
 
 const TABLETTE = { viewport: { width: 1024, height: 768 }, deviceScaleFactor: 2 };
 const GL = { 'X-Foretmap-Product': 'gl' };
+const APRES = 'docs/captures/ecrans-de-seance/apres';
+
+/** Où sont le plateau et la carte du moment, et la page défile-t-elle ? */
+async function mesures(page) {
+  return page.evaluate(() => {
+    const racine = document.documentElement;
+    const boite = (sel) => {
+      const el = document.querySelector(sel);
+      if (!el) return null;
+      const r = el.getBoundingClientRect();
+      return { x: r.x, y: r.y, w: r.width, h: r.height, bas: r.bottom, droite: r.right };
+    };
+    return {
+      vue: { w: window.innerWidth, h: window.innerHeight },
+      page: { w: racine.scrollWidth, h: racine.scrollHeight },
+      bandeau: boite('[data-testid="gl-tenir-bandeau"]'),
+      plateau: boite('[data-testid="gl-tenir-plateau"]'),
+      carte: boite('[data-testid="gl-tenir-moment"] .gl-tenir-moment__carte'),
+      action: boite('[data-testid="gl-tenir-action"]'),
+      nav: boite('.gl-bottom-nav'),
+    };
+  });
+}
+
+/**
+ * L'écran d'équipe arrive dans l'état attendu de la carte du moment. Il suit le tour par le
+ * temps réel ; si l'évènement s'est perdu, recharger la page est la seule sortie (il n'y a plus
+ * de bouton « Actualiser »).
+ */
+async function attendreEtat(page, etat, timeout = 30_000) {
+  const moment = page.getByTestId('gl-tenir-moment');
+  await expect(async () => {
+    if ((await moment.getAttribute('data-etat').catch(() => null)) !== etat) {
+      await page.reload();
+    }
+    await expect(moment).toHaveAttribute('data-etat', etat, { timeout: 8_000 });
+  }).toPass({ timeout });
+}
+
+/** Le tiroir « L'équipe », ouvert. */
+async function ouvrirTiroir(page) {
+  const tiroir = page.getByTestId('gl-tenir-tiroir');
+  if (!(await tiroir.isVisible())) await page.getByTestId('gl-tenir-tiroir-bouton').click();
+  await expect(tiroir).toBeVisible();
+  return tiroir;
+}
 
 async function ouvrirTablette(browser) {
   const context = await browser.newContext(TABLETTE);
@@ -31,6 +84,7 @@ async function ouvrirTablette(browser) {
       /* stockage indisponible : l'intro s'affichera, le test la passera */
     }
   });
+  await servirPlateau(page);
   return { context, page };
 }
 
@@ -121,8 +175,14 @@ test.describe('GL — tablettes d’équipe par le lien de classe', () => {
     for (const t of tablettes) {
       await expect(t.page.getByTestId('gl-team-session')).toBeVisible({ timeout: 20_000 });
       await expect(t.page.getByTestId('gl-team-session')).toContainText(t.team.name);
-      // Hors tour : lecture seule, on attend le prof.
-      await expect(t.page.getByTestId('gl-team-session-attente')).toBeVisible();
+      // Hors tour : le même écran d'équipe, qui attend le prof — le plateau, et un mot.
+      await expect(t.page.getByTestId('gl-tenir-equipe')).toBeVisible();
+      await expect(t.page.getByTestId('gl-tenir-moment-attente')).toContainText(
+        'Le prof ouvre bientôt le tour.',
+      );
+      await expect(t.page.locator('[data-geste]:not([data-geste="trame"])')).toHaveCount(0);
+      // Aucune bourse hors tour : le bandeau ne porte que les pseudos.
+      await expect(t.page.getByTestId('gl-tenir-bandeau')).not.toContainText('💎');
       // Le jeton du lien ne reste pas dans l'adresse de la tablette.
       expect(t.page.url()).not.toContain('classe=');
     }
@@ -140,15 +200,12 @@ test.describe('GL — tablettes d’équipe par le lien de classe', () => {
     expect(jeu.ok(), await jeu.text()).toBeTruthy();
 
     for (const t of tablettes) {
-      // L'écran passe seul au tour ouvert (temps réel, sinon « Actualiser »).
-      const equipe = t.page.getByTestId('gl-tenir-equipe');
-      await expect(async () => {
-        if (!(await equipe.isVisible())) {
-          const actualiser = t.page.getByRole('button', { name: 'Actualiser' });
-          if (await actualiser.isVisible()) await actualiser.click();
-        }
-        await expect(equipe).toBeVisible({ timeout: 3_000 });
-      }).toPass({ timeout: 30_000 });
+      // L'écran passe seul au tour ouvert (temps réel) : la carte du moment montre le geste.
+      await attendreEtat(t.page, 'geste');
+      await expect(t.page.getByTestId('gl-tenir-phase')).toHaveText('Tour 1 — À vous de jouer');
+      await expect(t.page.getByRole('button', { name: 'Actualiser' })).toHaveCount(0);
+      // Tour ouvert : les bourses de l'équipe sont dans le bandeau.
+      await expect(t.page.getByTestId('gl-tenir-bourses')).toContainText('💎');
       // Ensemble unifié (M14) : tout le monde est là d'office. Rien à confirmer pour jouer,
       // seulement un bouton discret « Il manque quelqu'un ? ».
       const ouvrir = t.page.getByTestId('gl-presence-ouvrir');
@@ -163,6 +220,22 @@ test.describe('GL — tablettes d’équipe par le lien de classe', () => {
         await expect(t.page.getByTestId('gl-presence')).toBeHidden({ timeout: 15_000 });
       }
     }
+    // 1024 × 768 : le plateau est en haut de l'écran, la carte du moment entière à côté, et
+    // la page ne défile pas.
+    const m = await mesures(tablettes[1].page);
+    expect(m.page.h, 'la page ne défile pas').toBeLessThanOrEqual(m.vue.h);
+    expect(m.plateau.y, 'le plateau est en haut de l’écran').toBeLessThan(120);
+    expect(m.carte.y).toBeGreaterThanOrEqual(m.bandeau.bas - 1);
+    expect(m.carte.bas, 'la carte du moment est entière à l’écran').toBeLessThanOrEqual(m.vue.h);
+    expect(m.action.x).toBeGreaterThan(m.plateau.droite - 1);
+    // Olu dit une fois, sur la tablette, où s'ouvrent le Marché et le Seuil.
+    await expect
+      .poll(
+        () =>
+          tablettes[1].page.evaluate(() => sessionStorage.getItem('gl_olu_comptes_dits') === '1'),
+        { timeout: 20_000 },
+      )
+      .toBe(true);
     // Aucune demande de présence n'attend dans la file du prof.
     const demandesPresence = await queryOne(
       "SELECT COUNT(*) AS n FROM gl_game_demandes WHERE game_id = ? AND kind = 'presence_a_confirmer'",
@@ -172,8 +245,8 @@ test.describe('GL — tablettes d’équipe par le lien de classe', () => {
 
     // Deux tablettes jettent les dés au même instant : chacune garde son propre jet.
     const jeter = async (t) => {
-      const equipe = t.page.getByTestId('gl-tenir-equipe');
-      await equipe.getByRole('button', { name: 'Lancer', exact: true }).click();
+      // Le gros bouton de la carte du moment, puis la saisie des dés (tirés par le serveur).
+      await t.page.locator('.gl-tenir-moment__gros[data-geste="lancer"]').click();
       await t.page
         .getByTestId('gl-tour-des')
         .getByRole('button', { name: /^Lancer \d+ dés$/ })
@@ -199,16 +272,20 @@ test.describe('GL — tablettes d’équipe par le lien de classe', () => {
       [gameId],
     );
     expect(Number(acteurs.n)).toBeGreaterThan(0);
+    // Le jet est en suspens (Relance) : la carte du moment ne montre plus que lui.
+    await attendreEtat(tablettes[0].page, 'jet_suspens');
+    await expect(tablettes[0].page.locator('[data-geste]')).toHaveCount(0);
     await tablettes[0].page.screenshot({
       path: 'docs/captures/tenir-v2/tablette-ecran-equipe.png',
     });
+    await tablettes[0].page.screenshot({ path: `${APRES}/tablette-jet-en-suspens-1024x768.png` });
 
     // Le pot d'un sort sur la tablette : part automatique des présents. « Pas moi » ne se dit
     // plus d'ici (M13, bourses au propriétaire) : depuis son propre compte, ou au prof.
     const potier = tablettes[1].page;
     // Sentier (gnome, 2 gemmes — une seule monnaie, M1 ; chapitre 1 : ensemble unifié M6, Abri
     // s’ouvre au chapitre 2).
-    await potier.getByRole('button', { name: 'Jeter un sort' }).click();
+    await potier.getByTestId('gl-tenir-puces').locator('[data-geste="jeter"]').click();
     await potier.getByTestId('gl-sorts-moments').locator('[data-sort="SL042"]').click();
     const lignes = potier.locator('[data-testid^="gl-pot-ligne-"]');
     await expect(lignes).toHaveCount(2, { timeout: 15_000 });
@@ -231,11 +308,10 @@ test.describe('GL — tablettes d’équipe par le lien de classe', () => {
     if (await fermerSorts.isVisible()) await fermerSorts.click();
 
     // Le Marché ne s'ouvre plus depuis la tablette d'équipe (M13) : « Qui agit ? » a disparu,
-    // l'écran dit où aller, et le serveur refuse quoi qu'on lui envoie.
+    // Olu a dit où aller (plus de phrase posée sous l'écran), et le serveur refuse quoi qu'on
+    // lui envoie.
     await expect(tablettes[1].page.getByTestId('gl-team-session-marche')).toHaveCount(0);
-    await expect(tablettes[1].page.getByTestId('gl-team-session-comptes')).toContainText(
-      'Le Marché et le Seuil s’ouvrent depuis le compte de chacun.',
-    );
+    await expect(tablettes[1].page.getByTestId('gl-team-session-comptes')).toHaveCount(0);
     const jetonTablette = await tablettes[1].page.evaluate(
       () => JSON.parse(sessionStorage.getItem('gl_team_session') || '{}').token || null,
     );
@@ -280,12 +356,14 @@ test.describe('GL — tablettes d’équipe par le lien de classe', () => {
       .defis[0];
     expect(defiRecu.statut).toBe('a_preparer');
     expect(defiRecu.critere).toBeTruthy();
+    // Pendant le tour, le défi à préparer se lit dans le tiroir « L'équipe » (il reviendra dans
+    // la carte du moment, tour terminé).
     const pageDefi = tablettes[3].page;
     const panneauDefi = pageDefi.getByTestId('gl-defis-case');
     await expect(async () => {
-      if (!(await panneauDefi.isVisible())) {
-        await pageDefi.getByRole('button', { name: 'Actualiser' }).first().click();
-      }
+      const tiroir = pageDefi.getByTestId('gl-tenir-tiroir');
+      if (await tiroir.isVisible()) await pageDefi.getByTestId('gl-tenir-tiroir-fermer').click();
+      await ouvrirTiroir(pageDefi);
       await expect(panneauDefi).toBeVisible({ timeout: 3_000 });
     }).toPass({ timeout: 30_000 });
     await expect(panneauDefi).toContainText(defiRecu.titre);
@@ -293,6 +371,7 @@ test.describe('GL — tablettes d’équipe par le lien de classe', () => {
     expect(await pageDefi.locator('body').innerText()).not.toContain(defiRecu.critere);
     await panneauDefi.scrollIntoViewIfNeeded();
     await pageDefi.screenshot({ path: 'docs/captures/tenir-v2/tablette-defi-de-case.png' });
+    await pageDefi.getByTestId('gl-tenir-tiroir-fermer').click();
 
     // --- La console du prof : file « Demandes » (jets en suspens) et feuille du QR -----------
     const consoleProf = await browser.newContext({
@@ -315,9 +394,11 @@ test.describe('GL — tablettes d’équipe par le lien de classe', () => {
     await expect(pageProf.getByTestId('gl-tour-screen')).toBeVisible({ timeout: 20_000 });
     const demandes = pageProf.getByTestId('gl-demandes');
     await expect(demandes).toBeVisible();
+    // Les tablettes tiennent sur une ligne (écrans de séance, lot 5) ; le détail se déplie.
     await expect(pageProf.getByTestId('gl-class-link-sessions-count')).toContainText(
-      '4 équipes sur 4',
+      '4 tablettes connectées ✓',
     );
+    await expect(pageProf.getByTestId('gl-class-link-qr')).toHaveCount(0);
     await demandes.scrollIntoViewIfNeeded();
     await pageProf.screenshot({ path: 'docs/captures/tenir-v2/console-demandes.png' });
     // La ligne du défi : consigne, critère pour le prof seul, « Relevé » / « Pas encore ».
@@ -328,6 +409,8 @@ test.describe('GL — tablettes d’équipe par le lien de classe', () => {
     await expect(ligneDefi.getByTestId('gl-defi-sablier')).toBeVisible();
     await ligneDefi.scrollIntoViewIfNeeded();
     await ligneDefi.screenshot({ path: 'docs/captures/tenir-v2/console-defi-a-juger.png' });
+    await pageProf.getByTestId('gl-class-link-resume').click();
+    await expect(pageProf.getByRole('button', { name: 'Déconnecter' })).toHaveCount(4);
     await pageProf.getByTestId('gl-class-link-qr').click();
     const feuille = pageProf.getByTestId('gl-class-link-sheet');
     // L'image du QR est enveloppée par le bouton « Agrandir l'image » de l'app.
@@ -341,6 +424,7 @@ test.describe('GL — tablettes d’équipe par le lien de classe', () => {
     const eleve = ctx.players.find((p) => Number(p.teamId) === Number(ctx.teams[1].id));
     const cinquieme = await browser.newContext(TABLETTE);
     const pageEleve = await cinquieme.newPage();
+    await servirPlateau(pageEleve);
     await mountGlSession(pageEleve, {
       token: eleve.token,
       auth: {
@@ -353,11 +437,45 @@ test.describe('GL — tablettes d’équipe par le lien de classe', () => {
       tab: 'maps',
     });
     await expect(pageEleve.getByTestId('gl-tenir-equipe')).toBeVisible({ timeout: 30_000 });
+    await attendreEtat(pageEleve, 'geste');
     // Présent d'office, comme sa tablette d'équipe : aucun écran de présence à passer.
     await expect(pageEleve.getByTestId('gl-presence')).toBeHidden();
-    await expect(pageEleve.getByTestId('gl-tenir-cases-a-venir')).toBeVisible();
+    // Sous la barre de l'application, le même écran en trois choses : rien ne défile, la carte
+    // du moment est entière à l'écran.
+    const compte = await mesures(pageEleve);
+    expect(compte.page.h, 'la page du compte ne défile pas').toBeLessThanOrEqual(compte.vue.h);
+    expect(compte.plateau.h).toBeGreaterThan(300);
+    expect(compte.carte.bas).toBeLessThanOrEqual(compte.vue.h);
+    expect(compte.action.x).toBeGreaterThan(compte.plateau.droite - 1);
+    await pageEleve.screenshot({ path: `${APRES}/compte-eleve-geste-1024x768.png` });
+    // Les cases à venir sont dans le tiroir « L'équipe », avec « Mes badges ».
+    const tiroirEleve = await ouvrirTiroir(pageEleve);
+    await expect(tiroirEleve.getByTestId('gl-tenir-cases-a-venir')).toBeVisible();
+    await expect(tiroirEleve.getByRole('button', { name: 'Mes badges' })).toBeVisible();
+    await expect(tiroirEleve.getByTestId('gl-tenir-changer-equipe')).toHaveCount(0);
+    await pageEleve.getByTestId('gl-tenir-tiroir-fermer').click();
 
-    // --- Le prof clôt : la file est vide, les tablettes reviennent à l'attente --------------
+    // Le même compte sur un téléphone (390 × 844) : le plateau en haut, la carte du moment dans
+    // une feuille en bas, au-dessus de la barre de navigation. Les bourses passent au tiroir.
+    await pageEleve.setViewportSize({ width: 390, height: 844 });
+    await expect(pageEleve.locator('.gl-bottom-nav')).toBeVisible();
+    await expect(pageEleve.getByTestId('gl-tenir-bourses')).toBeHidden();
+    const tel = await mesures(pageEleve);
+    expect(tel.page.h, 'la page du téléphone ne défile pas').toBeLessThanOrEqual(tel.vue.h);
+    expect(tel.page.w).toBeLessThanOrEqual(tel.vue.w);
+    expect(tel.plateau.h, 'le plateau est visible').toBeGreaterThan(200);
+    expect(tel.action.y).toBeGreaterThan(tel.plateau.bas - 1);
+    expect(tel.action.h, 'la feuille d’action est visible').toBeGreaterThan(150);
+    expect(tel.action.bas).toBeLessThanOrEqual(tel.nav.y + 1);
+    await expect(pageEleve.locator('.gl-tenir-moment__gros')).toBeInViewport();
+    await pageEleve.screenshot({ path: `${APRES}/telephone-geste-390x844.png` });
+    const tiroirTel = await ouvrirTiroir(pageEleve);
+    await expect(tiroirTel.getByTestId('gl-tenir-tiroir-bourses')).toBeVisible();
+    await expect(tiroirTel.getByTestId('gl-tenir-tiroir-bourses')).toContainText('💎');
+    await pageEleve.screenshot({ path: `${APRES}/telephone-tiroir-390x844.png` });
+    await pageEleve.getByTestId('gl-tenir-tiroir-fermer').click();
+
+    // --- Le prof clôt : la file est vide, les tablettes disent « Le tour est terminé. » -----
     for (const body of [{ phase: 'souffle', dort: true }, { phase: 'clos' }]) {
       const res = await request.post(api('/tenir/tour/phase'), { headers: prof, data: body });
       expect(res.ok(), await res.text()).toBeTruthy();
@@ -385,11 +503,18 @@ test.describe('GL — tablettes d’équipe par le lien de classe', () => {
     }
     const vide = await (await request.get(api('/tenir/demandes'), { headers: prof })).json();
     expect(vide.total).toBe(0);
-    await expect(async () => {
-      const attente = tablettes[3].page.getByTestId('gl-team-session-attente');
-      if (!(await attente.isVisible())) await tablettes[3].page.reload();
-      await expect(attente).toBeVisible({ timeout: 3_000 });
-    }).toPass({ timeout: 30_000 });
+    await attendreEtat(tablettes[3].page, 'clos');
+    await expect(tablettes[3].page.getByTestId('gl-tenir-moment-clos')).toContainText(
+      'Le tour est terminé.',
+    );
+    await expect(tablettes[3].page.getByTestId('gl-tenir-phase')).toHaveText(
+      'Tour 1 — Tour terminé',
+    );
+    // Hors tour, il ne reste que l'entrée des défis de la Trame ; plus aucune bourse.
+    await expect(tablettes[3].page.locator('[data-geste]:not([data-geste="trame"])')).toHaveCount(
+      0,
+    );
+    await expect(tablettes[3].page.getByTestId('gl-tenir-bandeau')).not.toContainText('💎');
 
     for (const t of tablettes) await t.context.close();
     await cinquieme.close();
@@ -455,15 +580,8 @@ test.describe('GL — tablettes d’équipe par le lien de classe', () => {
       expect(res.ok(), await res.text()).toBeTruthy();
     }
     const ecranEquipe = async (page) => {
-      const equipe = page.getByTestId('gl-tenir-equipe');
-      await expect(async () => {
-        if (!(await equipe.isVisible())) {
-          const actualiser = page.getByRole('button', { name: 'Actualiser' });
-          if (await actualiser.first().isVisible()) await actualiser.first().click();
-        }
-        await expect(equipe).toBeVisible({ timeout: 3_000 });
-      }).toPass({ timeout: 30_000 });
-      return equipe;
+      await expect(page.getByTestId('gl-tenir-equipe')).toBeVisible({ timeout: 30_000 });
+      await attendreEtat(page, 'geste');
     };
     await ecranEquipe(a.page);
 
@@ -472,15 +590,11 @@ test.describe('GL — tablettes d’équipe par le lien de classe', () => {
     await b.page.goto(`/?classe=${encodeURIComponent(jeton)}`);
     await b.page.getByTestId(`gl-class-link-team-${team.id}`).click();
     await expect(b.page.getByTestId('gl-class-link-attente')).toBeVisible({ timeout: 20_000 });
+    // La demande prend toute la carte du moment : rien d'autre à faire tant qu'elle attend.
     const demande = a.page.getByTestId('gl-tenir-appareils');
-    await expect(async () => {
-      if (!(await demande.isVisible())) {
-        await a.page.getByRole('button', { name: 'Actualiser' }).first().click();
-      }
-      await expect(demande).toBeVisible({ timeout: 3_000 });
-    }).toPass({ timeout: 30_000 });
+    await attendreEtat(a.page, 'appareil');
     await expect(demande).toContainText('Une tablette demande à rejoindre l’équipe.');
-    await demande.scrollIntoViewIfNeeded();
+    await expect(a.page.locator('[data-geste]')).toHaveCount(0);
     await a.page.screenshot({ path: 'docs/captures/tenir-v2/appareils-demande.png' });
     await demande.getByRole('button', { name: 'Accepter' }).click();
     await expect(b.page.getByTestId('gl-team-session')).toBeVisible({ timeout: 20_000 });
@@ -497,6 +611,7 @@ test.describe('GL — tablettes d’équipe par le lien de classe', () => {
     const c = await browser.newContext(TABLETTE);
     const pageEleve = await c.newPage();
     pageEleve.setDefaultTimeout(20_000);
+    await servirPlateau(pageEleve);
     await mountGlSession(pageEleve, {
       token: eleve.token,
       auth: {
@@ -511,7 +626,7 @@ test.describe('GL — tablettes d’équipe par le lien de classe', () => {
     await ecranEquipe(pageEleve);
 
     // --- La main : l'élève prépare un sort depuis son compte, les deux tablettes attendent ---
-    await pageEleve.getByRole('button', { name: 'Jeter un sort' }).click();
+    await pageEleve.getByTestId('gl-tenir-puces').locator('[data-geste="jeter"]').click();
     await pageEleve.getByTestId('gl-sorts-moments').locator('[data-sort="SL042"]').click();
     // Avec un compte, l'assistant demande d'abord quelle équipe lance : la sienne.
     await pageEleve
@@ -523,19 +638,14 @@ test.describe('GL — tablettes d’équipe par le lien de classe', () => {
     });
     for (const t of [a, b]) {
       const main = t.page.getByTestId('gl-tenir-main');
-      await expect(async () => {
-        if (!(await main.isVisible())) {
-          await t.page.getByRole('button', { name: 'Actualiser' }).first().click();
-        }
-        await expect(main).toBeVisible({ timeout: 3_000 });
-      }).toPass({ timeout: 30_000 });
-      // Prénom seul, jamais le nom de famille ; les gestes de l'écran sont éteints.
+      await attendreEtat(t.page, 'main_ailleurs');
+      // Prénom seul, jamais le nom de famille ; l'écran ne propose plus aucun geste.
       await expect(main).toHaveText('Lina prépare un sort…');
-      await expect(t.page.locator('[data-geste="lancer"]')).toBeDisabled();
+      await expect(t.page.locator('[data-geste]')).toHaveCount(0);
       expect(await t.page.locator('body').innerText()).not.toContain('Secret');
     }
-    await a.page.getByTestId('gl-tenir-main').scrollIntoViewIfNeeded();
     await a.page.screenshot({ path: 'docs/captures/tenir-v2/appareils-la-main.png' });
+    await a.page.screenshot({ path: `${APRES}/tablette-main-ailleurs-1024x768.png` });
     // Le serveur refuse proprement le geste d'une tablette qui passerait outre l'écran.
     const jetonA = await a.page.evaluate(
       () => JSON.parse(sessionStorage.getItem('gl_team_session') || '{}').token || null,
@@ -561,10 +671,7 @@ test.describe('GL — tablettes d’équipe par le lien de classe', () => {
 
     // --- La version d'état : les deux tablettes jettent les dés au même instant -------------
     const jeter = async (t) => {
-      await t.page
-        .getByTestId('gl-tenir-equipe')
-        .getByRole('button', { name: 'Lancer', exact: true })
-        .click();
+      await t.page.locator('.gl-tenir-moment__gros[data-geste="lancer"]').click();
       return t.page.getByTestId('gl-tour-des').getByRole('button', { name: /^Lancer \d+ dés$/ });
     };
     const [boutonA, boutonB] = [await jeter(a), await jeter(b)];
@@ -599,9 +706,15 @@ test.describe('GL — tablettes d’équipe par le lien de classe', () => {
     await expect(second.page.getByTestId('gl-tenir-etat-perime')).toHaveText(
       'L’équipe a déjà joué ce geste. Voici où vous en êtes.',
     );
+    // Tant que le message est là, l'icône « Relire l'écran » l'est aussi — et seulement alors.
+    await expect(second.page.getByTestId('gl-tenir-reconnexion')).toBeVisible();
     await second.page.screenshot({ path: 'docs/captures/tenir-v2/appareils-etat-perime.png' });
     for (const t of [a, b]) {
-      await expect(t.page.getByTestId('gl-tenir-cases-a-venir')).toBeHidden({ timeout: 20_000 });
+      // Le jet est fait pour l'équipe : plus de « Lancer », plus de cases à venir au tiroir.
+      await expect(t.page.locator('[data-geste="lancer"]')).toHaveCount(0, { timeout: 20_000 });
+      const tiroir = await ouvrirTiroir(t.page);
+      await expect(tiroir.getByTestId('gl-tenir-cases-a-venir')).toHaveCount(0);
+      await t.page.getByTestId('gl-tenir-tiroir-fermer').click();
     }
     const texteDesEcrans = `${await a.page.locator('body').innerText()}\n${await b.page.locator('body').innerText()}`;
     const jets = await queryOne(

@@ -49,6 +49,7 @@ export function GLBoardMarkers({
   onMarkerClick,
   onMarkerPointerDown,
   className = 'gl-board-marker',
+  statique = false,
 }) {
   const resolveIconUrl = useResolveGlMarkerIconDisplayUrl();
   if (!Array.isArray(markers) || markers.length === 0) return null;
@@ -63,10 +64,15 @@ export function GLBoardMarkers({
       pathNumber != null
         ? `Repère ${pathNumber}${appearance.ariaLabel ? ` — ${appearance.ariaLabel}` : ''}`
         : appearance.ariaLabel;
+    // Projection (`statique`) : la case se lit, elle ne se touche pas — une image nommée, pas
+    // un bouton (ni clic, ni focus clavier).
+    const Case = statique ? 'span' : 'button';
+    if (statique) classes.push(`${className}--statique`);
     return (
-      <button
+      <Case
         key={marker.id}
-        type="button"
+        type={statique ? undefined : 'button'}
+        role={statique ? 'img' : undefined}
         className={classes.join(' ')}
         style={{
           left: `${markerValue(marker, 'x_pct')}%`,
@@ -76,11 +82,15 @@ export function GLBoardMarkers({
         aria-label={ariaLabel}
         data-marker-id={marker.id}
         data-path-number={pathNumber != null ? pathNumber : undefined}
-        onClick={(event) => {
-          event.stopPropagation();
-          onMarkerClick?.(marker);
-        }}
-        onPointerDown={(event) => onMarkerPointerDown?.(event, marker)}
+        onClick={
+          statique
+            ? undefined
+            : (event) => {
+                event.stopPropagation();
+                onMarkerClick?.(marker);
+              }
+        }
+        onPointerDown={statique ? undefined : (event) => onMarkerPointerDown?.(event, marker)}
       >
         {pathNumber != null ? (
           <span className="gl-board-marker__path-number" aria-hidden>
@@ -92,7 +102,7 @@ export function GLBoardMarkers({
           label={marker.label}
           resolveIconUrl={resolveIconUrl}
         />
-      </button>
+      </Case>
     );
   });
 }

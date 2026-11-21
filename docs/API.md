@@ -901,8 +901,10 @@ Lumière ; 4 le Marché, trois sorts (`SL005`, `SL036`, `SL004`).
   `page_temoin` `{ zoneKey, roundNumber }`.
 - Le profil `prologue` est supprimé (migration 369 : `complet` + escalier à la séance atteinte).
 
-**Olu « première fois » (M8).** `olu-lignes.json` porte 23 lignes de moment `premiere_fois`
-(`cle`, `seance_escalier`). Le serveur les désigne sur l'évènement qui les déclenche :
+**Olu « première fois » (M8).** `olu-lignes.json` porte 24 lignes de moment `premiere_fois`
+(`cle`, `seance_escalier`). Deux n'ont aucun évènement : `main` (en attente) et `comptes`, que la
+tablette d'équipe dit elle-même, une fois. Le serveur désigne les autres sur l'évènement qui les
+déclenche :
 `payload.olu: [{ id, teamId? }]` (clé gardée publique sur un payload privé), une seule fois par
 partie — par équipe quand la ligne porte `{equipe}` —, mémoire `gl_game_olu_premieres` ; dans
 l'escalier, jamais avant la séance de la ligne. Une ligne ne se dit pas pour ce que la partie n'a
@@ -1306,7 +1308,7 @@ défaut).
 | GET | `/api/gl/admin/media-library/audit` | — ; `{ report }` : clés branchées, ressources requises manquantes, clés `recit_*` suspectes et emplacements audio | `gl.content.manage` |
 | GET | `/api/gl/admin/media-library/chapter-scenes` | `?chapter=0..5` ; scènes de récit résolues `{ stableKey, url, relativePath, caption, order, cover }` | `gl.content.manage` |
 | PATCH | `/api/gl/admin/media-library/scene-meta` | `{ stable_key \| stableKey, caption?, order?, cover? }` ; met à jour les métadonnées de `_keys.json`, avec une seule couverture par chapitre | `gl.content.manage` |
-| POST | `/api/gl/admin/media-library` | `{ media_data }` (data URL base64 image/audio/vidéo) — enregistre `app: 'gl'` | `gl.content.manage` |
+| POST | `/api/gl/admin/media-library` | `{ media_data, original_name?, usage? }` (data URL base64 image/audio/vidéo) — enregistre `app: 'gl'`. Avec `usage: 'brand'` (éditeur de marque : héros et vignettes de l'accueil), la réponse porte en plus `optimized` : `{ url, size, width, height }`, une **variante WebP** de 1 600 px de large au plus (200 Ko visés) rangée sous `/uploads/gl_brand/optim/`, ou `null` si rien n'a été produit (image déjà légère, `sharp` absent). L'original reste dans la médiathèque ; c'est `optimized.url` que l'éditeur range dans l'emplacement | `gl.content.manage` |
 | DELETE | `/api/gl/admin/media-library` | `{ relative_path }` \| `{ relative_paths[] }` \| `{ clear_all: true }` (`media-library/...`) — **cloisonné G&L** : une purge ne touche que les médias `app: 'gl'` (et les hérités), et supprimer un média ForetMap est refusé | `gl.content.manage` |
 | GET | `/api/gl/admin/content-library/limits` | — ; `{ maxArchiveBytes, maxFileBytes, maxDecompressedBytes, maxFileCount }` | `gl.content.manage` |
 | POST | `/api/gl/admin/content-library/analyze` | **Recommandé** : `multipart/form-data` — champ `archive` (ZIP, max **50 Mo** par défaut) **ou** `files[]` (max **32 Mo** / fichier, **200** fichiers). **Legacy JSON** (petits fichiers / tests) : `{ files: [{ fileName, fileDataBase64 }] }` ou `{ archive: { fileName, fileDataBase64 } }` — soumis à `FORETMAP_JSON_BODY_LIMIT_LARGE` (défaut **25 Mo**, niveau « import » — les autres chemins relèvent du niveau « contenu » **8 Mo** ou du défaut global **2 Mo**, voir `lib/jsonBodyLimit.js`). Classification + dry-run sans écriture BDD. Erreur **413** : `{ code: 'PAYLOAD_TOO_LARGE', error, hint? }` | `gl.content.manage` |
@@ -3817,6 +3819,13 @@ de 520 px est générée à l'envoi pour `plants/<id>/<fichier>` → `plants/<id
 constituent le catalogue). Le front dérive la même adresse et retombe sur l'original si la
 vignette manque (fichier antérieur, `sharp` absent) ; rattrapage de l'existant :
 `node scripts/generate-public-thumbs.js --apply`.
+
+**Images de marque G&L.** Une image envoyée depuis l'éditeur de marque (`usage: 'brand'`,
+voir `POST /api/gl/admin/media-library`) reçoit une variante WebP sous `gl_brand/optim/`
+(`<nom>-<empreinte>-w1600.webp`, famille publique, hors catalogue) : la même image rend
+toujours la même adresse, et l'original n'est jamais modifié. Rattrapage des images déjà
+rangées dans `platform.brand` (héros, vignettes, logo) : `node scripts/gl-brand-optimiser.js`
+(à blanc par défaut, `--apply` pour écrire).
 
 **En-têtes de cache.**
 

@@ -2,8 +2,13 @@ import {
   safeLocalStorageGetItem,
   safeLocalStorageRemoveItem,
 } from '../shared/platform/browserStorage.js';
-import { buildApiHttpErrorMessage, PUBLIC_SERVER_RESTART_MESSAGE } from '../shared/apiTransport.js';
+import { buildApiHttpErrorMessage } from '../shared/apiTransport.js';
 import { fetchJsonWithRetry } from '../shared/fetchJsonWithRetry.js';
+import {
+  NETWORK_FAILURE_STAFF_MESSAGE,
+  NETWORK_FAILURE_USER_MESSAGE,
+  networkFailureMessageFor,
+} from '../shared/networkFailureMessages.js';
 // `API` et `withAppBase` ont été extraits vers le module partagé neutre
 // `src/shared/appBase.js` (purs, sans session). On les ré-exporte ici pour
 // préserver la compatibilité des importateurs ForetMap existants.
@@ -454,21 +459,9 @@ export function isLikelyNetworkTransportFailure(err) {
   );
 }
 
-/**
- * Serveur injoignable, message pour un ÉLÈVE (audit du 25/09/2026, § 1.4.6) : court, tutoyé,
- * concret. L'ancien texte comptait 37 mots et parlait de « passerelle réseau » et
- * d'« administrateur de la plateforme » à des élèves de 11 ans sur le terrain.
- */
-export const NETWORK_FAILURE_USER_MESSAGE =
-  'Pas de réseau pour l’instant. Réessaie dans un moment ; si ça dure, préviens ton professeur.';
-
-/**
- * Même situation, pour un compte personnel (prof, admin) : c'est lui qu'on prévient, il
- * reçoit donc les pistes de diagnostic que le message élève ne porte plus.
- */
-export const NETWORK_FAILURE_STAFF_MESSAGE =
-  'Pas de réseau pour l’instant : le serveur ne répond pas. Réessayez dans un moment ; si ça ' +
-  'dure, vérifiez la connexion de l’établissement — le site peut aussi être en maintenance.';
+// Les phrases « serveur injoignable » vivent dans `src/shared/networkFailureMessages.js`
+// (communes à G&L) ; elles restent exportées d'ici pour les importateurs ForetMap.
+export { NETWORK_FAILURE_USER_MESSAGE, NETWORK_FAILURE_STAFF_MESSAGE };
 
 /** Compte personnel (`userType: 'teacher'`, prof comme admin) ; élève ou visiteur sinon. */
 function isStaffSession() {
@@ -496,8 +489,7 @@ export function networkFailureUserMessage({
       'Sans l’API, toute inscription ou connexion échoue ainsi.'
     );
   }
-  if (staff) return NETWORK_FAILURE_STAFF_MESSAGE;
-  return publicAudience ? PUBLIC_SERVER_RESTART_MESSAGE : NETWORK_FAILURE_USER_MESSAGE;
+  return networkFailureMessageFor({ staff, publicAudience });
 }
 
 /**

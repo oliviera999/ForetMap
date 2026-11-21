@@ -216,25 +216,6 @@
   animation: none !important;
 }
 
-/* Projection */
-.gl-projection__teams {
-  list-style: none;
-  padding: 0;
-}
-.gl-projection__carnet {
-  list-style: none;
-  padding: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
-  gap: 0.5rem;
-}
-/* En projection, l'indice prend toute la largeur de sa carte ; l'état passe dessous. */
-.gl-projection__carnet .gl-carnet-page {
-  flex-direction: column;
-  align-items: flex-start;
-  overflow-wrap: anywhere;
-}
-
 /* Olu commentateur */
 .gl-olu-bulle {
   margin: 0.25rem 0;
@@ -339,6 +320,23 @@
   flex-wrap: wrap;
   gap: 0.35rem;
 }
+/* Sablier et tablettes côte à côte ; le détail des tablettes, déplié, prend toute la largeur. */
+.gl-tour-screen__outils {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.35rem 0.5rem;
+  margin-top: 0.35rem;
+}
+.gl-tour-screen__outils:empty {
+  display: none;
+}
+.gl-tour-screen__outils > .gl-class-link-panel {
+  margin: 0;
+}
+.gl-tour-screen__outils > .gl-class-link-panel.is-deplie {
+  flex: 1 1 100%;
+}
 .gl-tour-screen__layout {
   display: grid;
   gap: 0.75rem;
@@ -368,6 +366,27 @@
 .gl-tour-team-card.is-active {
   outline: 2px solid var(--accent, currentColor);
   outline-offset: 1px;
+}
+/* L'avance libre attend derrière « Corriger la position… » : la carte ne garde que le jet,
+   le bouton de correction à côté ; le formulaire ouvert prend sa propre ligne. */
+.gl-tour-team-card .gl-tour-des {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.5rem;
+}
+.gl-tour-team-card .gl-tour-des > .gl-inline-actions {
+  margin-top: 0;
+}
+.gl-tour-team-card .gl-tour-des__libre {
+  flex: 1 1 100%;
+}
+/* « Qui a trouvé l'erreur d'Olu ? » : la phrase, le titre, puis un bouton par équipe. */
+.gl-tour-olu__phrase {
+  margin: 0 0 0.35rem;
+}
+.gl-tour-olu .gl-inline-actions {
+  margin-top: 0;
 }
 .gl-tour-screen .gl-gameplay-block {
   margin: 0;
@@ -410,15 +429,6 @@
 }
 .gl-reglages-hors-tenir > summary {
   cursor: pointer;
-}
-
-/* Projection : le plateau en lecture seule occupe la largeur, sans débordement. */
-.gl-projection__board {
-  max-width: 100%;
-  margin: 0.5rem 0 0.75rem;
-}
-.gl-projection__board .gl-board {
-  pointer-events: none;
 }
 
 /* Sabliers (équipe active, phase, défis) : un rythme, jamais une sanction. */
@@ -563,6 +573,29 @@
 }
 .gl-class-link-panel {
   margin: var(--gl-space-2) 0;
+}
+/* Une ligne par défaut (« 4 tablettes connectées ✓ ») ; le détail se déplie au toucher, et
+   d'office tant qu'une tablette attend d'entrer. */
+.gl-class-link-panel__resume {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gl-space-2);
+  min-height: 44px;
+  padding: 0 var(--gl-space-3);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--gl-radius-control);
+  background: var(--surface-plain);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.gl-class-link-panel__resume.is-attente {
+  border-color: currentColor;
+  font-weight: var(--fw-bold);
+}
+.gl-class-link-panel__resume:focus-visible {
+  outline: 2px solid var(--gl-color-primary);
+  outline-offset: 2px;
 }
 .gl-class-link-panel__sessions {
   margin: var(--gl-space-2) 0;
@@ -1150,9 +1183,8 @@
   padding: 0;
   list-style: none;
 }
-/* « Ce qui change » (camp) et accroche de fin de séance (projection). */
-.gl-ce-qui-change,
-.gl-projection__accroche {
+/* « Ce qui change » (camp). */
+.gl-ce-qui-change {
   margin: var(--gl-space-2) 0;
   padding: var(--gl-space-2) var(--gl-space-3);
   border: 1px solid var(--gl-border);
@@ -1300,6 +1332,10 @@
   cursor: default;
 }
 
+.gl-board-marker--statique {
+  cursor: default;
+}
+
 /* Écran d'équipe : le seul bouton du plateau, avec son nom. */
 .gl-board-zoom-btn--nomme {
   display: inline-flex;
@@ -1307,4 +1343,906 @@
   gap: 6px;
   padding: 0 14px;
   font-size: var(--text-sm);
+}
+
+/*
+ * Projection, mode tableau (chantier « écrans de séance », étape 3) : une grille plein écran,
+ * lue du fond de la salle. Corps `clamp(20px, 1.4vw, 32px)`, titres au double ; tout le reste
+ * se règle en `em` de ce corps. À 1920×1080, rien ne défile : le plateau prend la place qui
+ * reste entre le bandeau et les faits marquants.
+ */
+.gl-projection {
+  display: grid;
+  grid-template-columns: minmax(0, 7fr) minmax(0, 3fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    'bandeau bandeau'
+    'plateau cote'
+    'faits faits';
+  gap: 0.45em 0.7em;
+  box-sizing: border-box;
+  height: 100vh;
+  height: 100dvh;
+  padding: 0.45em 0.7em;
+  overflow: hidden;
+  font-size: clamp(20px, 1.4vw, 32px);
+  line-height: 1.25;
+}
+.gl-projection--carte {
+  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-areas:
+    'bandeau bandeau'
+    'carte carte';
+}
+.gl-projection h1,
+.gl-projection h2,
+.gl-projection h4,
+.gl-projection p {
+  margin: 0;
+}
+.gl-projection .gl-hint,
+.gl-projection .gl-btn {
+  font-size: 0.75em;
+}
+
+/* Bandeau : la partie, le tour et sa phase, le sablier. */
+.gl-projection__banner {
+  grid-area: bandeau;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.1em 1em;
+}
+.gl-projection__banner h1 {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 2em;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gl-projection__tour {
+  flex: 1 1 auto;
+  font-size: 1.35em;
+}
+.gl-projection__voile {
+  font-size: 0.74em;
+  color: var(--gl-color-text-muted);
+  white-space: nowrap;
+}
+.gl-projection__outils {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  margin-inline-start: auto;
+}
+.gl-projection .gl-tour-sablier__time {
+  font-size: 1.35em;
+}
+.gl-projection__erreur {
+  flex-basis: 100%;
+}
+
+/* Le plateau : toute la hauteur de sa cellule, rien ne se touche. */
+.gl-projection__board {
+  grid-area: plateau;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: var(--gl-radius-lg);
+}
+.gl-projection__board .gl-board {
+  pointer-events: none;
+  /* Les pions se lisent du fond de la salle : mascottes et noms d'équipe agrandis. */
+  --gl-board-mascot-h: clamp(54px, 5vw, 112px);
+}
+.gl-projection__board .gl-board .gl-board-mascot .visit-map-mascot-rive-shell,
+.gl-projection__board .gl-board .gl-board-mascot .visit-map-mascot-spritesheet-shell,
+.gl-projection__board .gl-board .gl-board-mascot .visit-map-mascot-sprite-cut {
+  width: clamp(48px, 4.4vw, 100px);
+}
+.gl-projection__board .gl-board-mascot .visit-map-mascot-static,
+.gl-projection__board .gl-board-mascot .gl-mascot-avatar {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.gl-projection__board .gl-board-team-pin {
+  max-width: 14em;
+  font-size: 0.62em;
+}
+.gl-projection__board .gl-board-mascot__titre {
+  font-size: 0.56em;
+}
+
+/* Colonne de droite : les équipes, la Lumière, le carnet. */
+.gl-projection__cote {
+  grid-area: cote;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5em;
+  min-height: 0;
+  overflow-y: auto;
+}
+.gl-projection__teams {
+  display: grid;
+  gap: 0.3em;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.gl-projection__team {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  padding: 0.2em 0.5em;
+  border: 1px solid var(--gl-border);
+  border-inline-start: 0.3em solid var(--gl-team-color, var(--gl-color-primary));
+  border-radius: var(--gl-radius-lg);
+  background: var(--gl-surface);
+}
+.gl-projection__team.is-active {
+  outline: 0.12em solid var(--gl-color-accent);
+  outline-offset: -0.12em;
+}
+.gl-projection__team .gl-mascot-avatar {
+  flex: 0 0 auto;
+}
+.gl-projection__team-texte {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 0.5em;
+  min-width: 0;
+}
+.gl-projection__team-nom {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.gl-projection__team-case {
+  font-weight: var(--fw-semibold);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.gl-projection__team-mentions {
+  display: flex;
+  flex-basis: 100%;
+  flex-wrap: wrap;
+  gap: 0.25em;
+  font-size: 0.75em;
+}
+.gl-projection__mention {
+  padding: 0 0.5em;
+  border: 1px solid var(--gl-border);
+  border-radius: var(--gl-radius-pill);
+  background: var(--gl-surface-muted);
+}
+.gl-projection__lumiere {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 0.1em 0.5em;
+}
+.gl-projection__lumiere-titre {
+  font-weight: var(--fw-semibold);
+}
+.gl-projection__lumiere-compte {
+  font-variant-numeric: tabular-nums;
+}
+.gl-projection__lumiere progress {
+  grid-column: 1 / -1;
+  width: 100%;
+  height: 0.5em;
+}
+.gl-projection__chasse {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3em;
+}
+.gl-projection__chasse h2 {
+  font-size: 1em;
+}
+/* Le carnet en pages : une tuile par page, son état en mots (jamais l'indice, trop long ici). */
+.gl-projection__carnet {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.25em;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.75em;
+}
+.gl-projection__page {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 0.1em 0.5em;
+  border: 1px solid var(--gl-border);
+  border-inline-start: 0.3em solid var(--gl-border);
+  border-radius: var(--gl-radius-md);
+  background: var(--gl-surface);
+}
+/* Deux lignes par tuile, jamais plus : un titre ou un nom d'équipe trop long se coupe. */
+.gl-projection__page-titre,
+.gl-projection__page-etat {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gl-projection__page--endormie,
+.gl-projection__page--revelee {
+  border-style: dashed;
+  background: transparent;
+  color: var(--gl-color-text-muted);
+}
+.gl-projection__page--trouvee,
+.gl-projection__page--reparee {
+  border-inline-start-color: var(--accent-success-solid);
+}
+.gl-projection__page--tenue {
+  border-inline-start-color: var(--accent-info-solid);
+}
+.gl-projection__page--palie {
+  background: var(--gl-surface-muted);
+  color: var(--gl-color-text-muted);
+}
+
+/* En bas : les trois derniers faits marquants (au camp : « Ce qui change »). */
+.gl-projection__faits {
+  grid-area: faits;
+  min-height: 2.6em;
+}
+.gl-projection__faits .gl-tour-journal--marquants ul,
+.gl-projection__faits .gl-ce-qui-change ul {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.6em;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.gl-projection__faits .gl-tour-journal--marquants li,
+.gl-projection__faits .gl-ce-qui-change li {
+  padding: 0.2em 0.6em;
+  border: 1px solid var(--gl-border);
+  border-radius: var(--gl-radius-lg);
+  background: var(--gl-surface);
+}
+.gl-projection__faits .gl-tour-journal--marquants li p {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+}
+.gl-projection__faits .gl-ce-qui-change {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.gl-projection__faits .gl-ce-qui-change h4 {
+  margin-bottom: 0.2em;
+  font-size: 1em;
+}
+
+/* La carte plein écran : « À la prochaine séance » à la clôture, la page du jour à la demande. */
+.gl-projection__carte {
+  grid-area: carte;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5em;
+  min-height: 0;
+  padding: 0.6em 1em;
+  overflow-y: auto;
+  border: 1px solid var(--gl-border);
+  border-radius: var(--gl-radius-lg);
+  background: var(--gl-surface);
+}
+.gl-projection__carte > h2 {
+  font-size: 2em;
+  line-height: 1.1;
+}
+.gl-projection__carte-corps {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.6em 1.5em;
+}
+.gl-projection__carte .gl-tour-passeur {
+  flex: 3 1 24em;
+  max-width: 68ch;
+  margin: 0;
+  padding-inline-start: 0.8em;
+  border-inline-start: 0.2em solid var(--gl-color-accent);
+}
+.gl-projection__carte .gl-tour-passeur p {
+  white-space: pre-line;
+}
+.gl-projection__carte-suite {
+  display: grid;
+  flex: 2 1 16em;
+  gap: 0.5em;
+  min-width: 0;
+}
+.gl-projection__carte-suite:empty {
+  display: none;
+}
+.gl-projection__indice {
+  font-style: italic;
+}
+.gl-projection__carte .gl-defis-case {
+  margin: 0;
+}
+.gl-projection__retour {
+  align-self: flex-end;
+}
+
+/* Le voile au tableau : bande plus opaque, cernée d'un contour — toujours sans pictogramme. */
+.gl-voile-layer--projection .gl-voile-contour {
+  fill: none;
+  stroke: var(--ink-base);
+  stroke-opacity: 0.7;
+  stroke-width: 7.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.gl-voile-layer--projection .gl-voile-bande {
+  stroke-opacity: 0.8;
+  stroke-width: 6.2;
+}
+.gl-voile-layer--projection .gl-voile-case {
+  fill-opacity: 0.7;
+  stroke: var(--ink-base);
+  stroke-width: 0.3;
+}
+
+/* Vidéoprojecteur moins haut (720, 768 ou 800 points) : chaque page du carnet tient sur une
+   ligne, pour que la colonne de droite garde tout à l'écran. */
+@media (min-width: 1024px) and (max-height: 899px) {
+  .gl-projection__page {
+    flex-direction: row;
+    align-items: baseline;
+    gap: 0.4em;
+  }
+  .gl-projection__page-titre {
+    flex: 0 1 auto;
+    min-width: 3.6em;
+  }
+  .gl-projection__page-etat {
+    flex: 0 1 auto;
+    min-width: 0;
+  }
+}
+
+/* Fenêtre étroite (la projection ouverte sur un petit écran) : tout s'empile et défile. */
+@media (max-width: 1023px) {
+  .gl-projection,
+  .gl-projection--carte {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+    grid-template-areas: none;
+    height: auto;
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+  .gl-projection > * {
+    grid-area: auto;
+  }
+  .gl-projection__board {
+    height: 62vw;
+  }
+  .gl-projection__cote,
+  .gl-projection__carte {
+    overflow-y: visible;
+  }
+}
+
+/*
+ * Écran d'équipe en trois choses (chantier « écrans de séance », étape 4) : le bandeau
+ * (`GLTenirBandeau`), la carte du moment (`GLTenirMoment`) et le tiroir « L'équipe »
+ * (`GLTenirTiroir`). Ces règles habillent les trois composants ; la mise en page de l'écran
+ * (carte du plateau à gauche, colonne d'action à droite) vient avec leur conteneur.
+ */
+
+/* ── Bandeau : mascotte et nom, phase, sablier, bourses, tiroir ── */
+.gl-tenir-bandeau {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--gl-space-1) var(--gl-space-3);
+  padding: var(--gl-space-1) var(--gl-space-3);
+  background: var(--gl-surface);
+  border-bottom: 1px solid var(--gl-border);
+}
+.gl-tenir-bandeau__equipe {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-space-2);
+  min-width: 0;
+}
+.gl-tenir-bandeau__nom {
+  margin: 0;
+  font-size: var(--text-md);
+  line-height: var(--lh-tight);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* Phase, sablier, bourses : une ligne quand la place y est ; sinon les bourses passent dessous. */
+.gl-tenir-bandeau__milieu {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--gl-space-1) var(--gl-space-3);
+  min-width: 0;
+}
+.gl-tenir-bandeau__phase {
+  margin: 0;
+  font-weight: var(--fw-semibold);
+  white-space: nowrap;
+}
+.gl-tenir-bandeau__bourses {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gl-space-1);
+  margin: 0 0 0 auto;
+  padding: 0;
+  list-style: none;
+}
+.gl-tenir-bandeau__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-space-1);
+}
+.gl-tenir-bandeau__actions .gl-btn {
+  min-height: var(--gl-tap-target, 44px);
+  min-width: var(--gl-tap-target, 44px);
+}
+.gl-tenir-bandeau__tiroir {
+  position: relative;
+  white-space: nowrap;
+}
+/* Pastille de nouveauté : le contenu du tiroir a changé depuis qu'on l'a vu. */
+.gl-tenir-bandeau__nouveau {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 10px;
+  height: 10px;
+  border-radius: var(--gl-radius-pill);
+  background: var(--gl-accent-warm);
+  box-shadow: 0 0 0 2px var(--gl-surface);
+}
+
+/* Une bourse : le pseudo, puis les gemmes. Jamais un classement : l'ordre est celui de l'équipe. */
+.gl-tenir-bourse {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--gl-space-1);
+  padding: 2px var(--gl-space-2);
+  border: 1px solid var(--gl-border);
+  border-radius: var(--gl-radius-pill);
+  background: var(--gl-surface-muted);
+  font-size: var(--text-sm);
+  line-height: var(--lh-normal);
+  white-space: nowrap;
+}
+.gl-tenir-bourse__gemmes {
+  font-weight: var(--fw-semibold);
+}
+
+/* En dessous de l'ordinateur : les bourses prennent leur ligne, sur toute la largeur. */
+@media (max-width: 1023px) {
+  .gl-tenir-bandeau {
+    grid-template-columns: auto auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      'equipe phase sablier actions'
+      'bourses bourses bourses bourses';
+  }
+  .gl-tenir-bandeau__milieu {
+    display: contents;
+  }
+  .gl-tenir-bandeau__equipe {
+    grid-area: equipe;
+  }
+  .gl-tenir-bandeau__phase {
+    grid-area: phase;
+  }
+  .gl-tenir-bandeau__sablier {
+    grid-area: sablier;
+  }
+  .gl-tenir-bandeau__actions {
+    grid-area: actions;
+  }
+  .gl-tenir-bandeau__bourses {
+    grid-area: bourses;
+    margin: 0;
+  }
+}
+/*
+ * Téléphone : pas la place pour les bourses, elles vivent dans le tiroir. Une seule requête
+ * (`max-width: 640px`, la forme que les deux gardes de points de bascule acceptent) éteint les
+ * unes et allume les autres : à aucune largeur les bourses ne sont absentes des deux.
+ */
+.gl-tenir-tiroir__bourses {
+  display: none;
+}
+@media (max-width: 640px) {
+  .gl-tenir-bandeau {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'equipe actions'
+      'phase sablier';
+    padding: var(--gl-space-1) var(--gl-space-2);
+  }
+  .gl-tenir-bandeau__bourses {
+    display: none;
+  }
+  .gl-tenir-bandeau__phase {
+    white-space: normal;
+  }
+  .gl-tenir-tiroir__bourses {
+    display: block;
+  }
+}
+
+/* ── Carte du moment : une seule chose à faire, puis la bulle d'Olu ── */
+.gl-tenir-moment {
+  display: grid;
+  align-content: start;
+  gap: var(--gl-space-2);
+  min-width: 0;
+}
+.gl-tenir-moment__lignes {
+  display: grid;
+  gap: var(--gl-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.gl-tenir-moment__lignes li {
+  padding: var(--gl-space-1) var(--gl-space-2);
+  border-left: 4px solid var(--gl-accent-warm);
+  border-radius: var(--gl-radius-sm);
+  background: var(--gl-surface-muted);
+  font-size: var(--text-base);
+}
+.gl-tenir-moment__carte {
+  display: grid;
+  gap: var(--gl-space-2);
+  padding: var(--gl-space-3);
+  border: 2px solid var(--gl-border);
+  border-radius: var(--gl-radius-lg);
+  background: var(--gl-surface);
+  box-shadow: var(--gl-shadow-sm);
+}
+.gl-tenir-moment__carte > * {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+.gl-tenir-moment__role {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: var(--fw-bold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--gl-color-text-muted);
+}
+.gl-tenir-moment__gros {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  width: 100%;
+  min-height: 72px;
+  padding: var(--gl-space-3);
+  white-space: normal;
+}
+.gl-tenir-moment__gros-libelle {
+  font-size: var(--text-xl);
+  font-weight: var(--fw-bold);
+  line-height: var(--lh-tight);
+}
+.gl-tenir-moment__gros-detail {
+  font-size: var(--text-base);
+  font-weight: var(--fw-medium);
+}
+/* En fouille : la carte du moment dit de toucher le plateau (c'est lui qui prend le bord doré). */
+.gl-tenir-moment__fouille {
+  margin: 0;
+  padding: var(--gl-space-3);
+  border-radius: var(--gl-radius-md);
+  background: color-mix(in srgb, var(--gl-accent-warm) 22%, var(--gl-surface));
+  font-size: var(--text-lg);
+  font-weight: var(--fw-bold);
+  line-height: var(--lh-tight);
+  text-align: center;
+  text-wrap: balance;
+}
+.gl-tenir-moment__puces {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gl-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+/* Cibles tactiles : aucun bouton de la carte ni du tiroir sous 44 px, même « petit ». */
+.gl-tenir-moment__carte .gl-btn,
+.gl-tenir-tiroir__corps .gl-btn {
+  min-height: var(--gl-tap-target, 44px);
+}
+.gl-tenir-moment__retour {
+  display: grid;
+  gap: var(--gl-space-2);
+}
+.gl-tenir-moment__retour .gl-tenir-equipe__verdict {
+  margin: 0;
+  font-size: var(--text-lg);
+}
+/* Les blocs déplacés dans la carte n'ont plus leur propre cadre : la carte est le cadre. */
+.gl-tenir-moment__carte .gl-tenir-question,
+.gl-tenir-moment__carte .gl-tenir-main,
+.gl-tenir-moment__carte .gl-tenir-appareils {
+  margin: 0;
+}
+.gl-tenir-moment__carte .gl-tenir-main,
+.gl-tenir-moment__carte .gl-tenir-appareils {
+  padding: 0;
+  border: 0;
+  background: none;
+}
+.gl-tenir-moment__carte .gl-tenir-main {
+  font-size: var(--text-lg);
+}
+.gl-tenir-moment__carte .empty-state {
+  padding: var(--gl-space-3) var(--gl-space-2);
+}
+
+/* ── Tiroir « L'équipe » : fermé par défaut, par-dessus la carte du plateau ── */
+.gl-tenir-tiroir {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  z-index: var(--fm-z-panel);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  width: min(28rem, 100%);
+  background: var(--gl-surface);
+  border-inline-end: 1px solid var(--gl-border);
+  box-shadow: var(--gl-shadow-lg);
+}
+.gl-tenir-tiroir__tete {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gl-space-2);
+  padding: var(--gl-space-2) var(--gl-space-3);
+  border-bottom: 1px solid var(--gl-border);
+}
+.gl-tenir-tiroir__tete h2 {
+  margin: 0;
+  font-size: var(--text-lg);
+}
+.gl-tenir-tiroir__tete .gl-btn {
+  min-height: var(--gl-tap-target, 44px);
+}
+.gl-tenir-tiroir__corps {
+  display: grid;
+  align-content: start;
+  gap: var(--gl-space-3);
+  padding: var(--gl-space-3);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.gl-tenir-tiroir__corps h3 {
+  margin: 0 0 var(--gl-space-1);
+  font-size: var(--text-md);
+}
+.gl-tenir-tiroir__corps > * {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+.gl-tenir-tiroir__pastilles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gl-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+/* Une case à venir : son numéro, son pictogramme, son nom court. */
+.gl-tenir-case {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gl-space-1);
+  padding: 2px var(--gl-space-2) 2px 2px;
+  border: 1px solid var(--gl-border);
+  border-radius: var(--gl-radius-pill);
+  background: var(--gl-surface-muted);
+  font-size: var(--text-base);
+  white-space: nowrap;
+}
+.gl-tenir-case__numero {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.75rem;
+  height: 1.75rem;
+  padding: 0 4px;
+  border-radius: var(--gl-radius-pill);
+  background: var(--gl-color-primary);
+  color: var(--gl-color-on-dark);
+  font-weight: var(--fw-bold);
+  font-variant-numeric: tabular-nums;
+}
+.gl-tenir-tiroir__carnet:focus {
+  outline: none;
+}
+/* Téléphone : le tiroir prend toute la zone sous le bandeau (plateau et feuille d'action). */
+@media (max-width: 640px) {
+  .gl-tenir-tiroir {
+    width: 100%;
+    border-inline-end: 0;
+  }
+}
+
+/*
+ * ── Mise en page de l'écran d'équipe (`GLTenirEcranEquipe`) ──
+ * Le bandeau en haut, toujours visible ; dessous, le plateau et la colonne d'action. La page ne
+ * défile pas : l'écran prend la hauteur de la fenêtre, et seule la colonne d'action défile s'il
+ * le faut. Le tiroir « L'équipe » se pose par-dessus le plateau (la zone est son repère).
+ *
+ * Deux colonnes à partir de `lg` (1024 px), ou de `md` (768 px) en paysage : plateau ≈ 62 %,
+ * action ≈ 38 % (320 px au moins). Sinon : le plateau en haut (≈ 55 %), la carte du moment dans
+ * une feuille en bas — au-dessus de la barre de navigation sur le compte d'un élève.
+ */
+.gl-tenir-ecran {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  background: var(--gl-color-background);
+}
+.gl-tenir-ecran__corps {
+  position: relative;
+  display: grid;
+  grid-template-rows: minmax(0, 55fr) minmax(0, 45fr);
+  min-height: 0;
+}
+.gl-tenir-ecran__plateau {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+/* Le plateau épuré a une hauteur plancher pour vivre seul ; ici, c'est sa zone qui décide. */
+.gl-tenir-ecran__plateau .gl-board-scene .gl-board {
+  min-height: 0;
+}
+/* En fouille : le plateau attend un toucher, il prend le bord doré. */
+.gl-tenir-ecran__plateau.is-fouille::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 4px solid var(--gl-accent-warm);
+  border-radius: var(--gl-radius-md);
+  pointer-events: none;
+}
+.gl-tenir-ecran__action {
+  min-width: 0;
+  min-height: 0;
+  padding: var(--gl-space-2) var(--gl-space-3) var(--gl-space-3);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-top: 1px solid var(--gl-border);
+  background: var(--gl-surface-muted);
+}
+@media (min-width: 1024px), (min-width: 768px) and (orientation: landscape) {
+  .gl-tenir-ecran__corps {
+    grid-template-rows: minmax(0, 1fr);
+    grid-template-columns: minmax(0, 62fr) minmax(320px, 38fr);
+  }
+  .gl-tenir-ecran__action {
+    padding: var(--gl-space-3);
+    border-top: 0;
+    border-inline-start: 1px solid var(--gl-border);
+  }
+}
+
+/* Tablette d'équipe : l'écran est toute la fenêtre. */
+.gl-team-session--ecran {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  box-sizing: border-box;
+  height: 100vh;
+  height: 100dvh;
+  padding: 0;
+  overflow: hidden;
+}
+.gl-team-session--ecran > .gl-error-banner {
+  margin: var(--gl-space-1) var(--gl-space-3);
+}
+
+/*
+ * Compte d'un élève : la barre de l'application reste en haut, l'écran d'équipe prend tout le
+ * reste (et s'arrête au-dessus de la barre de navigation du bas, quand il y en a une).
+ */
+.gl-app--ecran-equipe {
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+}
+/* La barre de l'application et les bandeaux gardent leur hauteur : seul le contenu se plie. */
+.gl-app--ecran-equipe > :not(.gl-main) {
+  flex-shrink: 0;
+}
+.gl-app--ecran-equipe .gl-main {
+  display: flex;
+  flex-direction: column;
+  max-width: none;
+  min-height: 0;
+  padding: 0;
+}
+.gl-app--has-bottom-nav.gl-app--ecran-equipe .gl-main {
+  padding-bottom: calc(var(--gl-bottom-nav-height) + var(--safe-bottom, 0px));
+}
+/*
+ * Les commandes flottantes (aide, notifications, en bas à droite) ne couvrent pas la carte du
+ * moment : la colonne d'action leur laisse la place en fin de défilement, et, sur un téléphone
+ * où la feuille est courte, une gouttière à droite.
+ */
+.gl-app--ecran-equipe .gl-tenir-ecran__action {
+  padding-bottom: calc(var(--gl-space-3) + 2 * var(--gl-tap-target, 44px) + 2 * var(--fm-dock-gap));
+}
+@media (max-width: 640px) {
+  .gl-app--ecran-equipe .gl-tenir-ecran__action {
+    padding-bottom: var(--gl-space-3);
+    padding-inline-end: calc(var(--fm-dock-inset) + var(--gl-tap-target, 44px) + var(--gl-space-2));
+  }
+  /* Le tiroir prend toute la largeur : la fin de son contenu se dégage des commandes. */
+  .gl-app--ecran-equipe .gl-tenir-tiroir__corps {
+    padding-bottom: calc(
+      var(--gl-space-3) + 2 * var(--gl-tap-target, 44px) + 2 * var(--fm-dock-gap)
+    );
+  }
+}
+
+/*
+ * Fenêtre trop basse pour tout y tenir : on ne force rien — la page défile, et le plateau garde
+ * une hauteur lisible. C'est le cas d'un téléphone couché (tablette d'équipe comme compte), et,
+ * sur le compte d'un élève, de toute fenêtre de moins de 600 px de haut : la barre de
+ * l'application y prend déjà le tiers de l'écran.
+ */
+@media (max-width: 767px) and (max-height: 559px) {
+  .gl-team-session--ecran {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+  .gl-team-session--ecran .gl-tenir-ecran__corps {
+    grid-template-rows: minmax(240px, 70dvh) auto;
+  }
+  .gl-team-session--ecran .gl-tenir-ecran__action {
+    overflow-y: visible;
+  }
+}
+@media (max-height: 599px) {
+  .gl-app--ecran-equipe {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+  .gl-app--ecran-equipe .gl-tenir-ecran__corps {
+    grid-auto-rows: auto;
+    grid-template-rows: minmax(max(240px, 70dvh), auto);
+  }
+  .gl-app--ecran-equipe .gl-tenir-ecran__action {
+    overflow-y: visible;
+  }
 }

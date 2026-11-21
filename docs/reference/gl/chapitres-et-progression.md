@@ -320,8 +320,9 @@ l'a trouvée ne gagne rien de plus). Les Gnomes réparent les pages pâlies.
   équipe gnome, avec une fouille ordinaire : c'est la réparation. Une Licorne qui touche une page
   pâlie lit « Cette zone a pâli : les Gnomes savent la réparer. », sans perdre sa fouille.
 - **Révéler** : seule une fouille **licorne** qui répond « pas encore » sur une page la révèle à
-  toute la classe (contour visible). Une fouille gnome « pas encore » ne révèle rien. Le carnet et la
-  projection disent « révélée par …, trouvée par …, tenue par … ».
+  toute la classe (contour visible). Une fouille gnome « pas encore » ne révèle rien. Le carnet dit
+  « révélée par …, trouvée par …, tenue par … » ; la projection ne garde que la dernière étape
+  (« tenue par … » pour une page tenue).
 - **Case Souffle** : au tour suivant, l'équipe ne lance **qu'un dé** — le même effet pour les deux
   peuples, sur les quatre plateaux. Ni recul, ni tour passé, ni ressource retirée. L'écran d'équipe,
   la console et la projection affichent « Au prochain tour : un seul dé », puis « Ce tour-ci : un

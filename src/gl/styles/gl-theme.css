@@ -307,6 +307,68 @@ body.gl-body {
   box-shadow: 0 8px 16px rgba(15, 23, 42, 0.16);
 }
 
+/* Mode séance (console du prof, écran « Jouer le tour ») : la barre tient sur une ligne —
+   la partie, le tour, « Menu ». Dépliée, elle retrouve ses onglets et « Réduire le menu ». */
+.gl-topbar--seance {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 16px;
+}
+
+.gl-topbar-seance__titre {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  min-width: 0;
+}
+
+.gl-topbar-seance__partie {
+  font-size: var(--text-md);
+  font-weight: var(--fw-bold);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.gl-topbar-seance__tour {
+  font-size: var(--text-base);
+  opacity: 0.9;
+}
+
+.gl-topbar-seance__replier {
+  justify-self: start;
+}
+
+/* Identifiant de requête d'une erreur : pour le diagnostic, en petit, à part de la phrase. */
+.gl-erreur-requete {
+  font-size: var(--text-xs);
+  font-weight: var(--fw-regular);
+  opacity: 0.75;
+  white-space: nowrap;
+}
+
+/* Section dont le morceau n'a pas pu être chargé (application mise à jour) : « Recharger ». */
+.gl-morceau-indisponible {
+  display: grid;
+  justify-items: start;
+  gap: var(--gl-space-2);
+  margin: var(--gl-space-3) 0;
+  padding: var(--gl-space-3) var(--gl-space-4);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--gl-radius-control);
+  background: var(--gl-surface-muted);
+  color: var(--gl-color-text);
+}
+
+.gl-morceau-indisponible p {
+  margin: 0;
+}
+
 /* —— Navigation mobile (bottom bar + drawer) —— */
 .gl-app--has-bottom-nav {
   --gl-bottom-nav-height: 64px;

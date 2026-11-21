@@ -246,7 +246,14 @@ export function GLAuthView({
       <GLSurface className="gl-auth-card fade-in" variant="elevated">
         {platformLogoUrl ? (
           <div className="gl-auth-logo-wrap">
-            <img src={platformLogoUrl} alt="Logo plateforme" className="gl-auth-logo" />
+            <img
+              src={platformLogoUrl}
+              alt="Logo plateforme"
+              className="gl-auth-logo"
+              width={88}
+              height={88}
+              decoding="async"
+            />
           </div>
         ) : null}
 

@@ -168,6 +168,25 @@ describe('GLGameBoard — prop `presentation`', () => {
     expect(container.querySelector('.gl-board-world .gl-board-fit-layer img')).not.toBeNull();
   });
 
+  test('le voile : cerné d’un contour au tableau seulement', () => {
+    const avecVoile = {
+      ...baseProps,
+      markers: [
+        { id: 1, x_pct: 10, y_pct: 50, order_index: 0 },
+        { id: 2, x_pct: 30, y_pct: 50, order_index: 1 },
+      ],
+      tenirLayers: { carnet: null, voilePosition: 1 },
+    };
+    const tableau = render(<GLGameBoard {...avecVoile} presentation="projection" />);
+    expect(tableau.container.querySelector('.gl-voile-layer--projection')).not.toBeNull();
+    expect(tableau.container.querySelector('.gl-voile-contour')).not.toBeNull();
+    tableau.unmount();
+    const equipe = render(<GLGameBoard {...avecVoile} presentation="tenir" />);
+    expect(equipe.container.querySelector('.gl-voile-layer')).not.toBeNull();
+    expect(equipe.container.querySelector('.gl-voile-layer--projection')).toBeNull();
+    expect(equipe.container.querySelector('.gl-voile-contour')).toBeNull();
+  });
+
   test('une présentation inconnue ne change rien au plateau', () => {
     const { container } = render(<GLGameBoard {...baseProps} presentation="mystere" />);
     expect(scene(container).dataset.presentation).toBe('standard');

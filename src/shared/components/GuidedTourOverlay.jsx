@@ -16,6 +16,12 @@ const CARD_WIDTH_WITH_PORTRAIT = 384;
 /** Sous ce seuil, le portrait devient un médaillon d'angle et la carte reste étroite (§9.3). */
 const COMPACT_QUERY = '(max-width: 480px)';
 
+/** Classes des boutons de la carte quand le produit n'en passe pas (thème ForetMap). */
+const DEFAULT_BUTTON_CLASS_NAMES = Object.freeze({
+  ghost: 'btn btn-ghost btn-sm',
+  primary: 'btn btn-primary btn-sm',
+});
+
 /** Marge minimale entre la carte et les bords de l'écran. */
 const VIEWPORT_GUTTER = 12;
 /** Hauteur supposée tant que la carte n'a pas encore été mesurée (premier rendu). */
@@ -127,12 +133,17 @@ export function computeCardPosition(
  *
  * `isStaff` sélectionne la variante de texte du second public — prof côté ForetMap,
  * MJ côté GL.
+ *
+ * `buttonClassNames` : classes des boutons de la carte. Par défaut celles de ForetMap
+ * (`.btn…`) ; G&L, qui ne charge pas ces styles, passe les siennes (`.gl-btn…`) — sans elles
+ * ses boutons restaient nus.
  */
 export function GuidedTourOverlay({
   active,
   isStaff = false,
   speakerName = '',
   narrator = null,
+  buttonClassNames = DEFAULT_BUTTON_CLASS_NAMES,
   onNext,
   onPrev,
   onStop,
@@ -267,6 +278,8 @@ export function GuidedTourOverlay({
     cardHeight,
   );
   const isLast = stepIndex >= stepCount - 1;
+  // Une visite d'une seule étape n'a pas de progression à montrer.
+  const plusieursEtapes = stepCount > 1;
 
   const spotlightStyle = rect
     ? {
@@ -297,9 +310,11 @@ export function GuidedTourOverlay({
           maxHeight: card.maxHeight,
         }}
       >
-        <div className="discovery-tour__progress">
-          Étape {stepIndex + 1} / {stepCount}
-        </div>
+        {plusieursEtapes ? (
+          <div className="discovery-tour__progress">
+            Étape {stepIndex + 1} / {stepCount}
+          </div>
+        ) : null}
         <h3 className="discovery-tour__title">{step.title}</h3>
         <div className={`discovery-tour__scene ${compact ? 'is-compact' : ''}`}>
           {showPortrait ? (
@@ -318,25 +333,30 @@ export function GuidedTourOverlay({
             text={body}
           />
         </div>
-        <div className="discovery-tour__dots" aria-hidden="true">
-          {active.steps.map((s, i) => (
-            <span
-              key={`${s.title}-${i}`}
-              className={`discovery-tour__dot ${i === stepIndex ? 'is-active' : ''}`}
-            />
-          ))}
-        </div>
-        <div className="discovery-tour__actions">
-          <button type="button" className="btn btn-ghost btn-sm" onClick={() => onStop?.()}>
-            {isLast ? 'Fermer' : 'Passer'}
-          </button>
+        {plusieursEtapes ? (
+          <div className="discovery-tour__dots" aria-hidden="true">
+            {active.steps.map((s, i) => (
+              <span
+                key={`${s.title}-${i}`}
+                className={`discovery-tour__dot ${i === stepIndex ? 'is-active' : ''}`}
+              />
+            ))}
+          </div>
+        ) : null}
+        <div className={`discovery-tour__actions${isLast ? ' is-last' : ''}`}>
+          {/* Au dernier pas, « Fermer » et « Terminer » faisaient la même chose : un seul reste. */}
+          {isLast ? null : (
+            <button type="button" className={buttonClassNames.ghost} onClick={() => onStop?.()}>
+              Passer
+            </button>
+          )}
           <div className="discovery-tour__nav">
             {stepIndex > 0 && (
-              <button type="button" className="btn btn-ghost btn-sm" onClick={() => onPrev?.()}>
+              <button type="button" className={buttonClassNames.ghost} onClick={() => onPrev?.()}>
                 Précédent
               </button>
             )}
-            <button type="button" className="btn btn-primary btn-sm" onClick={() => onNext?.()}>
+            <button type="button" className={buttonClassNames.primary} onClick={() => onNext?.()}>
               {isLast ? 'Terminer' : 'Suivant'}
             </button>
           </div>
