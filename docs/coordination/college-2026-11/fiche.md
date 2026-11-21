@@ -8,17 +8,25 @@
 > d'origine, **la fiche fait foi** : elle a été écrite après lecture du code réel. Seule une
 > session S0 relancée la modifie. SI la **supprime** (avec `snapshot/`, `journal/`, le chargeur
 > `scripts/college-2026-11/load-snapshot.js`) avant la PR vers `main`.
+>
+> **Mise à jour n° 1 (S0, 21/11 au soir)** : ajout du flux **R1** (élèves référents automatiques
+> des tâches récurrentes), chantier indépendant mené dans la même orchestration. Section de
+> session prête à coller : `sessions/R1-referents-eleves.md`. Voir E7, § 1, § 3, § 4 « R1 »,
+> § 6 et § 7. Si R1 n'est pas encore fusionné quand SI supprime le dossier de coordination, SI
+> recopie `sessions/R1-referents-eleves.md` dans la description de sa PR (la reprise de R1 en a
+> besoin).
 
 ## 0. Écarts au prompt (à reporter dans la PR finale)
 
-| N°  | Constat (vérifié)                                                                                                                                                                                                                                                                                                                                                        | Décision S0                                                                                                                                                                                                                                                                          |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| E1  | **Réserver `N+1`…`N+6` par branche est impossible** : `tests/migrations-numbering.test.js` exige une numérotation continue depuis 252. Une branche D2 qui porte `380` sans `379` fait échouer `npm test` ; deux branches qui portent chacune `379` font échouer le démarrage après fusion (`assertNoNewDuplicateMigrationNumbers`). Même constat que D1 du chantier CPT. | Chaque flux D travaille avec **`379_<suffixe>.sql`** (premier libre de `integration/college`). Le **numéro définitif** est celui de la réservation (§ 1), posé par **SI** au moment de l'intégration (renommage du fichier). Le numéro n'apparaît **que** dans le nom de fichier.    |
-| E2  | `sql/schema_foretmap.sql` **n'est pas** mis à jour à chaque migration (`entity_kind`, `clades` y sont absents).                                                                                                                                                                                                                                                          | Pas touché. La base fraîche reçoit les colonnes par la migration de socle.                                                                                                                                                                                                           |
-| E3  | Le prompt place le remplacement du `switch` de `biodivFeatureVisibility` dans C1.                                                                                                                                                                                                                                                                                        | **Fait par S0** (valeurs identiques, test de caractérisation) : la table est la seule source dès le socle ; C1 n'a plus qu'à **remplir les valeurs** et à retirer les tests de niveau en dur des composants.                                                                         |
-| E4  | La règle `foodweb_types_cycle4_only` a besoin de la liste « symbiose, compétition », qui relève de l'énumération (C3).                                                                                                                                                                                                                                                   | S0 a créé le sous-ensemble **`CYCLE4_ONLY_INTERACTION_TYPE_ENUM`** (`src/shared/enums/biodivEnums.js`), défini et non appliqué. C1 l'utilise pour remplir la règle ; C3 ne le redéfinit pas.                                                                                         |
-| E5  | `usage_group` : le prompt dit « première boîte `visible_college` de la chaîne ».                                                                                                                                                                                                                                                                                         | Lu comme **la plus proche de la fiche** en remontant (la plus précise), incluse. Forme : `{ id, label }` ou `null`. Calculé dans `GET /api/plants` seulement (`listCatalog`) ; les réponses d'écriture (`POST`/`PUT`) ne le portent pas.                                             |
-| E6  | `zone_tiles_cap` et `iucn_code` ne sont pas des booléens.                                                                                                                                                                                                                                                                                                                | Clés à paramètre : `iucn_code` vaut `'code'` (actuel) ou `'mots'` ; `zone_tiles_cap` vaut `null` (pas de plafond, actuel) ou un entier. Hors contexte (pas de fournisseur), `visibility()` rend `'show'` : un consommateur traite toute valeur non entière comme « pas de plafond ». |
+| N°  | Constat (vérifié)                                                                                                                                                                                                                                                                                                                                                        | Décision S0                                                                                                                                                                                                                                                                                    |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| E1  | **Réserver `N+1`…`N+6` par branche est impossible** : `tests/migrations-numbering.test.js` exige une numérotation continue depuis 252. Une branche D2 qui porte `380` sans `379` fait échouer `npm test` ; deux branches qui portent chacune `379` font échouer le démarrage après fusion (`assertNoNewDuplicateMigrationNumbers`). Même constat que D1 du chantier CPT. | Chaque flux D travaille avec **`379_<suffixe>.sql`** (premier libre de `integration/college`). Le **numéro définitif** est celui de la réservation (§ 1), posé par **SI** au moment de l'intégration (renommage du fichier). Le numéro n'apparaît **que** dans le nom de fichier.              |
+| E2  | `sql/schema_foretmap.sql` **n'est pas** mis à jour à chaque migration (`entity_kind`, `clades` y sont absents).                                                                                                                                                                                                                                                          | Pas touché. La base fraîche reçoit les colonnes par la migration de socle.                                                                                                                                                                                                                     |
+| E3  | Le prompt place le remplacement du `switch` de `biodivFeatureVisibility` dans C1.                                                                                                                                                                                                                                                                                        | **Fait par S0** (valeurs identiques, test de caractérisation) : la table est la seule source dès le socle ; C1 n'a plus qu'à **remplir les valeurs** et à retirer les tests de niveau en dur des composants.                                                                                   |
+| E4  | La règle `foodweb_types_cycle4_only` a besoin de la liste « symbiose, compétition », qui relève de l'énumération (C3).                                                                                                                                                                                                                                                   | S0 a créé le sous-ensemble **`CYCLE4_ONLY_INTERACTION_TYPE_ENUM`** (`src/shared/enums/biodivEnums.js`), défini et non appliqué. C1 l'utilise pour remplir la règle ; C3 ne le redéfinit pas.                                                                                                   |
+| E5  | `usage_group` : le prompt dit « première boîte `visible_college` de la chaîne ».                                                                                                                                                                                                                                                                                         | Lu comme **la plus proche de la fiche** en remontant (la plus précise), incluse. Forme : `{ id, label }` ou `null`. Calculé dans `GET /api/plants` seulement (`listCatalog`) ; les réponses d'écriture (`POST`/`PUT`) ne le portent pas.                                                       |
+| E6  | `zone_tiles_cap` et `iucn_code` ne sont pas des booléens.                                                                                                                                                                                                                                                                                                                | Clés à paramètre : `iucn_code` vaut `'code'` (actuel) ou `'mots'` ; `zone_tiles_cap` vaut `null` (pas de plafond, actuel) ou un entier. Hors contexte (pas de fournisseur), `visibility()` rend `'show'` : un consommateur traite toute valeur non entière comme « pas de plafond ».           |
+| E7  | Le prompt « Élèves référents automatiques » (R1) est un chantier **tâches**, sans lien fonctionnel avec le collège, avec ses propres points d'arrêt et une PR vers `main`. Périmètre de fichiers **disjoint** des douze flux collège (vérifié). Seul contact : la numérotation des migrations.                                                                           | R1 tourne **en parallèle** des vagues A et B, depuis `origin/main`, et livre par **sa propre PR vers `main`** (pas par SI). Règle de numérotation « premier arrivé sur `main` » (§ 1). Points d'arrêt du prompt remplacés par le tronc commun § 1.6 ; les gestes en production restent à Oliv. |
 
 ## 1. Migrations
 
@@ -53,6 +61,20 @@ au-dessus du dernier numéro de `main` à ce moment-là. Si une autre PR prend `
 | D5    | `379_college_etiquettes_simples.sql`                                                                                                                                                 | 383                                           |
 | D6    | `379_college_especes_phares.sql`                                                                                                                                                     | 384                                           |
 | C1…C6 | **aucune migration** (les colonnes existent grâce au socle) ; un besoin imprévu prend `379_college_<flux>_<objet>.sql`, numéro définitif **385** et suivants, dans l'ordre de fusion | 385+                                          |
+
+**Numéros relatifs.** Les numéros définitifs ci-dessus supposent `main` encore à 377 quand SI
+ouvre sa PR. Règle générale : la série collège prend, dans l'ordre S0, D1 … D6, puis les
+éventuels C, les numéros qui suivent **immédiatement** la dernière migration de `main` au moment
+de l'intégration. En particulier, si **R1** (§ 4) fusionne sur `main` avant SI avec
+`378_task_referents_auto`, SI rebase `integration/college` sur `main` et décale **toute** la
+série d'un cran (`378_college_socle` → `379`, D1 → `380`, …). Inversement, si SI fusionne avant
+R1, R1 renumérote son unique fichier au-dessus de la série. **Premier arrivé sur `main`, premier
+servi** ; aucune réservation entre les deux chantiers (une réservation créerait un trou, refusé
+par `tests/migrations-numbering.test.js`).
+
+| Flux | Fichier de travail                                           | Numéro définitif                    |
+| ---- | ------------------------------------------------------------ | ----------------------------------- |
+| R1   | `378_task_referents_auto.sql` (branche depuis `origin/main`) | premier libre de `main` à sa fusion |
 
 **Rendre la renumérotation gratuite** (obligatoire) :
 
@@ -174,7 +196,7 @@ Puis, dans le `.env` **du worktree** : `DB_NAME=foretmap_test_<flux>`,
 | C4   | `foretmap_test_c4` | 3204 | D4   | `foretmap_test_d4` | 3214 |
 | C5   | `foretmap_test_c5` | 3205 | D5   | `foretmap_test_d5` | 3215 |
 | C6   | `foretmap_test_c6` | 3206 | D6   | `foretmap_test_d6` | 3216 |
-| SI   | `foretmap_test_si` | 3209 |      |                    |      |
+| SI   | `foretmap_test_si` | 3209 | R1   | `foretmap_test_r1` | 3221 |
 
 Créer la base (`CREATE DATABASE … utf8mb4_unicode_ci`) puis `npm run db:init`. Ce qui isole déjà,
 sans correctif (vérifié, comme au chantier CPT) : `tests/helpers/setup.js` remplace `DB_NAME`
@@ -404,6 +426,49 @@ Précisions par flux :
 - **D5** : `plants.usage_label`, hors `entity_kind = 'ressource'`.
 - **D6** : `map_species.is_featured`, `plants.description_college`.
 
+### R1 — Élèves référents automatiques des tâches récurrentes (hors chantier collège)
+
+Branche `feat/referents-eleves-auto` depuis **`origin/main`**, PR brouillon **vers `main`**,
+journal `docs/coordination/referents-2026-11/journal.md` (supprimé avant « Ready for review »).
+Section de session : `sessions/R1-referents-eleves.md` (adaptations § A, prompt d'origine § B).
+
+- migration `<n>_task_referents_auto.sql` (§ 1) ; `tests/task-referents-auto-migration.test.js`
+- tâches : `lib/tasks/taskService.js`, `lib/tasks/taskQueries.js`, nouveau
+  `lib/tasks/studentReferents.js`, nouvelle requête partagée de progression dans `lib/tasks/`,
+  `lib/recurringTasks.js`, `lib/taskRouteHelpers.js`, `lib/tasks/assignmentVisibility.js`,
+  `routes/tasks.js`
+- règle de progression : `lib/rbac.js` (**seulement** `countValidatedAssignmentsForStudent` et
+  l'appel de la requête extraite)
+- récompenses : `lib/rewards/creditedTasks.js` (commentaire d'écart), `lib/rewards/hooks.js`
+  (modèle du déclencheur ; crochet nouveau de préférence dans un module à part)
+- réglages et jobs : `lib/settings/tasks.js`, `src/constants/settingsAdminMeta.js` (entrées
+  `tasks.student_referent_*`), panneau des réglages de tâches (à identifier en reconnaissance),
+  `lib/dailyJobs.js`
+- notifications : `lib/notificationEvents.js`, `lib/notifications.js` (évènements
+  `task_referent_granted`, `task_referent_granted_manager` ; partagés avec G&L)
+- données personnelles : `lib/accountMerge.js`, `lib/accounts/exportRegistry.js`,
+  `lib/retention/` (catégorie des vetos), nettoyages de comptes concernés
+- exploitation et connecteur : `scripts/student-referents-sync.js`,
+  `lib/mcp/domains/opsScripts.js`, `lib/mcp/tools/domains/tasks.js`
+- interface : `src/components/tasks/TaskFormModal.jsx`, `TaskTileCard.jsx` (et la fiche de tâche
+  si elle affiche les référents), feuille de styles de domaine
+- tests : `tests/task-referents*.test.js`, `tests/tasks-put-characterization.test.js`,
+  `tests/task-service.test.js`, `tests/rewards-engine.test.js`,
+  `tests/notifications-events.test.js`, tests de fusion / export / purge concernés, nouveaux
+  `tests/student-referents-*.test.js`, `tests-ui/components/TaskFormModal*`,
+  `tests-ui/components/TaskTileCard*`
+- docs : `docs/API.md` sections « Tâches » / référents et réglages, ligne `foretmap_tasks` de
+  `docs/MCP.md`, `docs/CRONTAB.md`, `docs/MCP_REGISTRE_TRAITEMENT.md` (vetos),
+  `docs/reference/foretmap/taches-tutoriels-et-validation.md`
+- `CHANGELOG.md` sous `[Non publié]` (livraison directe vers `main`, workflow normal)
+
+Aucun de ces fichiers n'appartient à un flux collège. Fichiers communs aux deux chantiers et
+règle : `docs/API.md`, `docs/MCP.md` (sections disjointes) ; `src/index.css` (jamais) ;
+`scripts/sync-shared-cores.js` (pas de nouvelle paire sauf nécessité démontrée, alors une ligne en
+fin de liste) ; `tests/fixtures/inline-style-baseline.json` et `a11y-static-baseline.json` (ses
+seules entrées). Le conflit éventuel sur `CHANGELOG.md` se règle au rebase du second arrivé sur
+`main` (SI ou R1).
+
 ## 5. Fichiers chauds (réservés à SI)
 
 - `src/App.jsx` (650 lignes) et le shell `src/components/app/` **sauf** `AppPreviewMenu.jsx` et
@@ -426,13 +491,14 @@ Précisions par flux :
 
 ## 6. Chantiers concurrents
 
-| Chantier                                                                                                                                      | État au 21/11                                                                                   | Flux exposé                                                       | Consigne                                                                                                                                                              |
-| --------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `prompt_claude_code_ui_ux_visite`                                                                                                             | Lots fusionnés (`claude/ui-ux-visite-lot1-3`, `lot4`, `ui-ux-*` : 0 commit d'avance sur `main`) | C1, C5 (Visite)                                                   | Rien à rebaser. Une session de ce prompt relancée **après** cette fiche touchera `src/components/visit/` : C1 / C5 rebasent avant « Ready for review » et SI arbitre. |
-| `quiz_reponse_choisie`                                                                                                                        | Aucune branche, aucune PR                                                                       | C6, D3                                                            | Si une PR apparaît, elle touchera `routes/quiz.js`, `lib/pedago/quizService.js`, `QuizView.jsx` : C6 rebase dessus ; une migration de sa part décale la série (§ 1).  |
-| `exploitation_novembre`                                                                                                                       | Aucune branche, aucune PR                                                                       | aucun connu                                                       | Si une PR apparaît avec une migration, SI décale la série.                                                                                                            |
-| CPT F7 (fin des écritures directes en prod, reprise de la dérive de schéma)                                                                   | Non commencé (fiche `docs/coordination/cpt-2026-11.md`)                                         | D (dérive `plants.health_risk`, `domestication`, ancêtre sauvage) | Les flux D n'écrivent **pas** les colonnes en dérive ; le chargeur d'instantané les retire en les signalant.                                                          |
-| Branches sans PR du 19/11 (`claude/affectionate-hawking-ra83tc` journal, `claude/dazzling-hawking-pqfrio` tâches, `claude/gl-audit-lot*` G&L) | Abandonnées ou en attente, aucune migration                                                     | aucun (journal, tâches, G&L)                                      | Rien.                                                                                                                                                                 |
+| Chantier                                                                                                                                      | État au 21/11                                                                                                          | Flux exposé                                                           | Consigne                                                                                                                                                              |
+| --------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `prompt_claude_code_ui_ux_visite`                                                                                                             | Lots fusionnés (`claude/ui-ux-visite-lot1-3`, `lot4`, `ui-ux-*` : 0 commit d'avance sur `main`)                        | C1, C5 (Visite)                                                       | Rien à rebaser. Une session de ce prompt relancée **après** cette fiche touchera `src/components/visit/` : C1 / C5 rebasent avant « Ready for review » et SI arbitre. |
+| `quiz_reponse_choisie`                                                                                                                        | Aucune branche, aucune PR                                                                                              | C6, D3                                                                | Si une PR apparaît, elle touchera `routes/quiz.js`, `lib/pedago/quizService.js`, `QuizView.jsx` : C6 rebase dessus ; une migration de sa part décale la série (§ 1).  |
+| `exploitation_novembre`                                                                                                                       | Aucune branche, aucune PR                                                                                              | aucun connu                                                           | Si une PR apparaît avec une migration, SI décale la série.                                                                                                            |
+| CPT F7 (fin des écritures directes en prod, reprise de la dérive de schéma)                                                                   | Non commencé (fiche `docs/coordination/cpt-2026-11.md`)                                                                | D (dérive `plants.health_risk`, `domestication`, ancêtre sauvage)     | Les flux D n'écrivent **pas** les colonnes en dérive ; le chargeur d'instantané les retire en les signalant.                                                          |
+| **R1** — élèves référents automatiques (`sessions/R1-referents-eleves.md`)                                                                    | Prompt validé par Oliv le 21/11, à lancer en parallèle des vagues A et B                                               | aucun flux collège (périmètre disjoint) ; numérotation des migrations | « Premier arrivé sur `main` » (§ 1). SI vérifie l'état de `main` avant sa PR et décale la série si R1 est passé.                                                      |
+| Branches sans PR du 19/11 (`claude/affectionate-hawking-ra83tc` journal, `claude/dazzling-hawking-pqfrio` tâches, `claude/gl-audit-lot*` G&L) | Restes de branches fusionnées par squash (`dazzling-hawking` = #681, déjà sur `main`) ou en attente ; aucune migration | aucun (journal, tâches, G&L)                                          | Rien.                                                                                                                                                                 |
 
 ## 7. Ordre de fusion pour SI
 
@@ -442,7 +508,11 @@ Précisions par flux :
    `foodWebTypes`, C5 après C1 pour les vignettes de la Visite).
 4. **D1 → D6**, chacun renommé `379_…` → numéro définitif du § 1 (`git mv`), dans cet ordre ;
    rejouer toute la série deux fois sur base fraîche puis sur base « instantané ».
-5. Besoins hors périmètre notés dans les PR (« À faire par SI »), `changelog.d/*.md` →
+5. **Avant d'ouvrir la PR vers `main`** : `git fetch` ; si `main` a reçu des migrations depuis
+   la création d'`integration/college` (R1 notamment), rebaser, renuméroter **toute** la série
+   au-dessus (§ 1, « Numéros relatifs ») et rejouer les tests de migration. R1 n'est jamais
+   fusionné dans `integration/college`.
+6. Besoins hors périmètre notés dans les PR (« À faire par SI »), `changelog.d/*.md` →
    `CHANGELOG.md`, suppression de `docs/coordination/college-2026-11/` et du chargeur, PR vers
    `main` (Oliv fusionne).
 
