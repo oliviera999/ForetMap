@@ -71,6 +71,8 @@ const PAIRS = Object.freeze([
   ['src/shared/idKeyLeadCore.js', 'idKeyLeadCore.js'],
   // Auto-liens de glossaire (ForetMap, G&L SVT et lore, tutoriels) : noyau unique (U7).
   ['src/shared/glossary/termAutolinkCore.js', 'termAutolinkCore.js'],
+  // Table de visibilité pédagogique (profil collège / lycée / université, règles de palier).
+  ['src/shared/pedagoVisibilityCore.js', 'pedagoVisibilityCore.js'],
 ]);
 
 function banner(relSrc) {

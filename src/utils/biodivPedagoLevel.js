@@ -5,6 +5,7 @@
 import { visibleCurriculumNiveaux } from './pedagoScales.js';
 import { PEDAGO_ETAPE_ENUM } from '../shared/enums/pedagoEnums.js';
 import { COLLEGE_INTERACTION_TYPE_ENUM } from '../shared/enums/biodivEnums.js';
+import { visibilityFor, canShowFor } from '../shared/pedagoVisibilityCore.js';
 
 /** Étapes d'affichage et libellés : référentiel partagé (`src/shared/enums/pedagoEnums.js`). */
 export const PEDAGO_LEVELS = PEDAGO_ETAPE_ENUM.values;
@@ -78,32 +79,16 @@ export function resolveBiodivPedagoLevel(input = {}) {
   return minPedagoLevel([pref, base], base);
 }
 
-export function biodivFeatureVisibility(feature, level) {
-  const lv = normalizePedagoLevel(level) || DEFAULT_SITE_LEVEL;
-  switch (feature) {
-    case 'accepted_name_gbif_latin':
-      if (lv === 'college') return 'hide';
-      if (lv === 'lycee') return 'collapsed';
-      return 'open';
-    case 'clade_breadcrumb':
-    case 'nested_groups_tab':
-    case 'foodweb_advanced':
-    case 'pollination_efficacy':
-    case 'individuals_tab':
-      return lv === 'college' ? 'hide' : 'show';
-    case 'biomass_estimates':
-      if (lv === 'college') return 'hide';
-      if (lv === 'lycee') return 'collapsed';
-      return 'open';
-    case 'curriculum_notions_lycee_plus':
-      return lv === 'college' ? 'hide' : 'show';
-    default:
-      return 'show';
-  }
+/**
+ * Visibilité d'une brique UI. Accepte une étape (`'college'`…) ou l'objet `learner` complet.
+ * Valeurs : table unique `src/shared/pedagoVisibilityCore.js` (plus de `switch` ici).
+ */
+export function biodivFeatureVisibility(feature, levelOrLearner) {
+  return visibilityFor(feature, levelOrLearner);
 }
 
-export function canShowBiodivFeature(feature, level) {
-  return biodivFeatureVisibility(feature, level) !== 'hide';
+export function canShowBiodivFeature(feature, levelOrLearner) {
+  return canShowFor(feature, levelOrLearner);
 }
 
 export function foodWebTypesForPedagoLevel(level, allTypes) {

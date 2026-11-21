@@ -9,6 +9,7 @@ import {
   normalizePedagoLevel,
 } from '../utils/biodivPedagoLevel.js';
 import { resolveLearnerLevel } from '../utils/learnerLevel.js';
+import { palierRuleFor } from '../shared/pedagoVisibilityCore.js';
 
 const PREVIEW_STORAGE_KEY = 'foretmap.biodivPedagoPreview';
 
@@ -124,8 +125,11 @@ export function BiodivPedagoProvider({
       setTeacherPreview: canTeacherPreview ? setTeacherPreview : () => {},
       canTeacherPreview,
       fullViewByDefault: canTeacherPreview && fullViewByDefault,
-      canShow: (feature) => canShowBiodivFeature(feature, level),
-      visibility: (feature) => biodivFeatureVisibility(feature, level),
+      // Table de visibilité (`src/shared/pedagoVisibilityCore.js`) : le profil se lit sur
+      // l'apprenant complet (étape d'affichage) ; les règles de palier sur sa classe.
+      canShow: (feature) => canShowBiodivFeature(feature, learner),
+      visibility: (feature) => biodivFeatureVisibility(feature, learner),
+      palierRule: (rule) => palierRuleFor(rule, learner),
       foodWebTypes: (allTypes) => foodWebTypesForPedagoLevel(level, allTypes),
       curriculumNiveaux,
       levels: PEDAGO_LEVELS,
@@ -154,6 +158,7 @@ const FALLBACK = Object.freeze({
   fullViewByDefault: false,
   canShow: () => true,
   visibility: () => 'show',
+  palierRule: (rule) => palierRuleFor(rule, null),
   foodWebTypes: (all) => (Array.isArray(all) ? all : []),
   curriculumNiveaux: null,
   levels: PEDAGO_LEVELS,
