@@ -73,6 +73,25 @@ test('clés : feuille sans espèce, renvoi cassé, couplet inatteignable, espèc
   assert.ok(out.includes('couplet:20'), 'une seule proposition');
 });
 
+test('clés : chemins multiples voulus — l’espèce atteinte deux fois n’est plus signalée', () => {
+  const flagged = {
+    ...KEY,
+    idKeys: KEY.idKeys.map((k) => (k.id === 1 ? { ...k, allows_multiple_paths: 1 } : k)),
+  };
+  const out = ids(checks.idKeyDeadPaths(flagged));
+  assert.ok(!out.includes('key:1:plant:5'), 'voulu par l’auteur : pas de constat');
+  // Les autres constats de la clé restent signalés.
+  assert.ok(out.includes('lead:103'), 'feuille sans espèce');
+  assert.ok(out.includes('lead:105'), 'couplet absent');
+  assert.ok(out.includes('couplet:12'), 'inatteignable');
+  // Drapeau à 0 (ou absent) : le constat reste.
+  const unflagged = {
+    ...KEY,
+    idKeys: KEY.idKeys.map((k) => ({ ...k, allows_multiple_paths: 0 })),
+  };
+  assert.ok(ids(checks.idKeyDeadPaths(unflagged)).includes('key:1:plant:5'));
+});
+
 test('clés : feuilles groupe, grand groupe et renvoi vers une autre clé (migration 366)', () => {
   const out = ids(
     checks.idKeyDeadPaths({
@@ -93,9 +112,9 @@ test('clés : feuilles groupe, grand groupe et renvoi vers une autre clé (migra
           outcome: 'groupe',
           result_label: 'Goélands',
           clade_id: 'oiseaux',
-          group_count: 3,
+          group_plant_ids: '4,5,6',
         },
-        { id: 311, couplet_id: 31, outcome: 'groupe', result_label: 'Vide', group_count: 0 },
+        { id: 311, couplet_id: 31, outcome: 'groupe', result_label: 'Vide', group_plant_ids: null },
         { id: 312, couplet_id: 31, outcome: 'espece', plant_id: 9, next_key_id: 3 },
         { id: 313, couplet_id: 31, outcome: 'clade', clade_id: 'x', next_key_id: 404 },
       ],
