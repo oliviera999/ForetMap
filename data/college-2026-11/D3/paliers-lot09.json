@@ -1,0 +1,272 @@
+[
+ {
+  "code": "QF9406",
+  "categorie": "sol_compost",
+  "palier": 3,
+  "raison": "reconnaître des moucherons et ajuster l’entretien"
+ },
+ {
+  "code": "QF9412",
+  "categorie": "sol_compost",
+  "palier": 3,
+  "raison": "comment un animal sans yeux trouve ses proies"
+ },
+ {
+  "code": "QF9707",
+  "categorie": "sol_compost",
+  "palier": 3,
+  "raison": "vers de terre et vers de compost : milieux de vie"
+ },
+ {
+  "code": "QF9708",
+  "categorie": "sol_compost",
+  "palier": 3,
+  "raison": "découper les déchets pour accélérer la décomposition"
+ },
+ {
+  "code": "QF9709",
+  "categorie": "sol_compost",
+  "palier": 3,
+  "raison": "entretien du lombricomposteur"
+ },
+ {
+  "code": "QF9710",
+  "categorie": "sol_compost",
+  "palier": 3,
+  "raison": "usage du liquide du lombricomposteur"
+ },
+ {
+  "code": "QF9712",
+  "categorie": "sol_compost",
+  "palier": 3,
+  "raison": "conditions de température du lombricomposteur"
+ },
+ {
+  "code": "QF0001",
+  "categorie": "vivant_classification",
+  "palier": 3,
+  "raison": "classer d’après le nombre de pattes"
+ },
+ {
+  "code": "QF0002",
+  "categorie": "vivant_classification",
+  "palier": 3,
+  "raison": "l’araignée n’est pas un insecte"
+ },
+ {
+  "code": "QF0003",
+  "categorie": "vivant_classification",
+  "palier": 4,
+  "raison": "bactéries du cycle de l’azote"
+ },
+ {
+  "code": "QF0004",
+  "categorie": "vivant_classification",
+  "palier": 3,
+  "raison": "classer le ver de terre"
+ },
+ {
+  "code": "QF0201",
+  "categorie": "vivant_classification",
+  "palier": 3,
+  "raison": "groupe des mollusques"
+ },
+ {
+  "code": "QF0203",
+  "categorie": "vivant_classification",
+  "palier": 3,
+  "raison": "caractère des vertébrés"
+ },
+ {
+  "code": "QF0503",
+  "categorie": "vivant_classification",
+  "palier": 3,
+  "raison": "histoire d’un arbre du campus"
+ },
+ {
+  "code": "QF0516",
+  "categorie": "vivant_classification",
+  "palier": 3,
+  "raison": "forme des feuilles pour distinguer deux palmiers"
+ },
+ {
+  "code": "QF0533",
+  "categorie": "vivant_classification",
+  "palier": 4,
+  "raison": "caractères d’une famille botanique"
+ },
+ {
+  "code": "QF7024",
+  "categorie": "vivant_classification",
+  "palier": 3,
+  "raison": "nombre de pattes d’un acarien"
+ },
+ {
+  "code": "QF7027",
+  "categorie": "vivant_classification",
+  "palier": 3,
+  "raison": "cycle de vie d’un papillon"
+ },
+ {
+  "code": "QF7031",
+  "categorie": "vivant_classification",
+  "palier": 3,
+  "raison": "être vivant formé d’une seule cellule"
+ },
+ {
+  "code": "QF7038",
+  "categorie": "vivant_classification",
+  "palier": 3,
+  "raison": "forme des ailes et mode de chasse"
+ },
+ {
+  "code": "QF7063",
+  "categorie": "vivant_classification",
+  "palier": 3,
+  "raison": "groupe d’insectes de la fourmi"
+ },
+ {
+  "code": "QF9471",
+  "categorie": "vivant_classification",
+  "palier": 3,
+  "raison": "groupe des crustacés"
+ },
+ {
+  "code": "QF9473",
+  "categorie": "vivant_classification",
+  "palier": 3,
+  "raison": "groupe des arachnides"
+ },
+ {
+  "code": "QF9761",
+  "categorie": "vivant_classification",
+  "palier": 3,
+  "raison": "groupe d’un animal fixé sur les rochers"
+ },
+ {
+  "code": "QF9762",
+  "categorie": "vivant_classification",
+  "palier": 3,
+  "raison": "régime alimentaire d’un animal filtreur"
+ },
+ {
+  "code": "QF9766",
+  "categorie": "vivant_classification",
+  "palier": 3,
+  "raison": "adaptation d’un animal à la marée basse"
+ },
+ {
+  "code": "QF9770",
+  "categorie": "vivant_classification",
+  "palier": 4,
+  "raison": "lichen : association champignon-algue (symbiose)"
+ },
+ {
+  "code": "QF9771",
+  "categorie": "vivant_classification",
+  "palier": 3,
+  "raison": "reconnaître les groupes d’algues à leur couleur"
+ },
+ {
+  "code": "QF9775",
+  "categorie": "vivant_classification",
+  "palier": 3,
+  "raison": "parenté entre deux animaux"
+ },
+ {
+  "code": "QF9777",
+  "categorie": "vivant_classification",
+  "palier": 3,
+  "raison": "adaptation d’un poisson au courant"
+ },
+ {
+  "code": "QF9778",
+  "categorie": "vivant_classification",
+  "palier": 3,
+  "raison": "changement de couleur d’un animal"
+ },
+ {
+  "code": "QF9783",
+  "categorie": "vivant_classification",
+  "palier": 3,
+  "raison": "le dauphin est un mammifère"
+ },
+ {
+  "code": "QF9784",
+  "categorie": "vivant_classification",
+  "palier": 3,
+  "raison": "mode de chasse d’un oiseau marin"
+ },
+ {
+  "code": "QF9795",
+  "categorie": "vivant_classification",
+  "palier": 4,
+  "raison": "hybride de deux espèces, descendant non fécond"
+ },
+ {
+  "code": "QF9796",
+  "categorie": "vivant_classification",
+  "palier": 3,
+  "raison": "différences entre les petits de deux animaux"
+ },
+ {
+  "code": "QF9797",
+  "categorie": "vivant_classification",
+  "palier": 3,
+  "raison": "traces et indices de présence"
+ },
+ {
+  "code": "QF9801",
+  "categorie": "vivant_classification",
+  "palier": 3,
+  "raison": "forme du bec et régime alimentaire"
+ },
+ {
+  "code": "QF9802",
+  "categorie": "vivant_classification",
+  "palier": 3,
+  "raison": "cycle de vie des amphibiens"
+ },
+ {
+  "code": "QF9804",
+  "categorie": "vivant_classification",
+  "palier": 3,
+  "raison": "adaptation : doigts adhésifs"
+ },
+ {
+  "code": "QF9805",
+  "categorie": "vivant_classification",
+  "palier": 3,
+  "raison": "distinguer deux tortues"
+ },
+ {
+  "code": "QF9806",
+  "categorie": "vivant_classification",
+  "palier": 3,
+  "raison": "comportement de défense d’un serpent"
+ },
+ {
+  "code": "QF9810",
+  "categorie": "vivant_classification",
+  "palier": 3,
+  "raison": "distinguer libellule et demoiselle"
+ },
+ {
+  "code": "QF9825",
+  "categorie": "vivant_classification",
+  "palier": 4,
+  "raison": "reproduction des fougères par spores"
+ },
+ {
+  "code": "QF9832",
+  "categorie": "vivant_classification",
+  "palier": 3,
+  "raison": "mode de chasse d’une araignée"
+ },
+ {
+  "code": "QF9833",
+  "categorie": "vivant_classification",
+  "palier": 3,
+  "raison": "reconnaître une araignée sauteuse"
+ }
+]

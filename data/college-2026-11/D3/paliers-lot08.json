@@ -1,0 +1,302 @@
+[
+ {
+  "code": "QF9215",
+  "categorie": "semis_recolte",
+  "palier": 3,
+  "raison": "geste de rempotage"
+ },
+ {
+  "code": "QF9216",
+  "categorie": "semis_recolte",
+  "palier": 3,
+  "raison": "geste de démoulage d’un plant"
+ },
+ {
+  "code": "QF9229",
+  "categorie": "semis_recolte",
+  "palier": "lycee",
+  "raison": "hybride F1, génétique mendélienne et hétérosis : lycée"
+ },
+ {
+  "code": "QF9230",
+  "categorie": "semis_recolte",
+  "palier": 3,
+  "raison": "conservation des graines de tomate"
+ },
+ {
+  "code": "QF9231",
+  "categorie": "semis_recolte",
+  "palier": 4,
+  "raison": "humidité relative et conservation des graines"
+ },
+ {
+  "code": "QF9232",
+  "categorie": "semis_recolte",
+  "palier": 3,
+  "raison": "test de germination"
+ },
+ {
+  "code": "QF9519",
+  "categorie": "semis_recolte",
+  "palier": 3,
+  "raison": "multiplication par stolons"
+ },
+ {
+  "code": "QF9542",
+  "categorie": "semis_recolte",
+  "palier": 3,
+  "raison": "germination et température"
+ },
+ {
+  "code": "QF9606",
+  "categorie": "semis_recolte",
+  "palier": 3,
+  "raison": "bouturage d’une feuille"
+ },
+ {
+  "code": "QF9881",
+  "categorie": "semis_recolte",
+  "palier": 3,
+  "raison": "montée en graines d’une salade"
+ },
+ {
+  "code": "QF9891",
+  "categorie": "semis_recolte",
+  "palier": 3,
+  "raison": "geste de rempotage, eau du sol"
+ },
+ {
+  "code": "QF9900",
+  "categorie": "semis_recolte",
+  "palier": 3,
+  "raison": "racines privées d’air dans un sol détrempé"
+ },
+ {
+  "code": "QF0030",
+  "categorie": "sol_compost",
+  "palier": 3,
+  "raison": "devenir du compost : terreau"
+ },
+ {
+  "code": "QF0031",
+  "categorie": "sol_compost",
+  "palier": 3,
+  "raison": "régime alimentaire du ver de terre"
+ },
+ {
+  "code": "QF0033",
+  "categorie": "sol_compost",
+  "palier": 3,
+  "raison": "sol vivant et fertilité"
+ },
+ {
+  "code": "QF0230",
+  "categorie": "sol_compost",
+  "palier": 4,
+  "raison": "équilibre carbone / azote du compost"
+ },
+ {
+  "code": "QF0232",
+  "categorie": "sol_compost",
+  "palier": 3,
+  "raison": "détritivores du sol"
+ },
+ {
+  "code": "QF7008",
+  "categorie": "sol_compost",
+  "palier": 4,
+  "raison": "nodosités et bactéries fixatrices d’azote (symbiose)"
+ },
+ {
+  "code": "QF7023",
+  "categorie": "sol_compost",
+  "palier": 3,
+  "raison": "régime alimentaire d’un animal du compost"
+ },
+ {
+  "code": "QF7026",
+  "categorie": "sol_compost",
+  "palier": 3,
+  "raison": "champignon décomposeur du compost"
+ },
+ {
+  "code": "QF7032",
+  "categorie": "sol_compost",
+  "palier": 3,
+  "raison": "observation d’un être vivant microscopique"
+ },
+ {
+  "code": "QF7049",
+  "categorie": "sol_compost",
+  "palier": 3,
+  "raison": "instrument d’observation : microscope"
+ },
+ {
+  "code": "QF7051",
+  "categorie": "sol_compost",
+  "palier": 3,
+  "raison": "observer à la loupe pour distinguer deux animaux"
+ },
+ {
+  "code": "QF9105",
+  "categorie": "sol_compost",
+  "palier": 4,
+  "raison": "détritivore et décomposeur : dégradation chimique"
+ },
+ {
+  "code": "QF9221",
+  "categorie": "sol_compost",
+  "palier": 4,
+  "raison": "fermentation sans air (anaérobie) dans le compost"
+ },
+ {
+  "code": "QF9222",
+  "categorie": "sol_compost",
+  "palier": "lycee",
+  "raison": "rapport C/N du compost : lycée (liste du prompt)"
+ },
+ {
+  "code": "QF9223",
+  "categorie": "sol_compost",
+  "palier": 3,
+  "raison": "test de maturité du compost"
+ },
+ {
+  "code": "QF9224",
+  "categorie": "sol_compost",
+  "palier": 3,
+  "raison": "déchet toxique à ne pas composter"
+ },
+ {
+  "code": "QF9233",
+  "categorie": "sol_compost",
+  "palier": 3,
+  "raison": "compter les vers pour juger un sol"
+ },
+ {
+  "code": "QF9234",
+  "categorie": "sol_compost",
+  "palier": 4,
+  "raison": "sol asphyxié, gaz malodorant"
+ },
+ {
+  "code": "QF9235",
+  "categorie": "sol_compost",
+  "palier": "lycee",
+  "raison": "pH et disponibilité du fer : lycée"
+ },
+ {
+  "code": "QF9236",
+  "categorie": "sol_compost",
+  "palier": 4,
+  "raison": "plante indicatrice d’un sol pauvre en azote"
+ },
+ {
+  "code": "QF9237",
+  "categorie": "sol_compost",
+  "palier": "lycee",
+  "raison": "nitrification ammonium → nitrate : lycée (liste du prompt)"
+ },
+ {
+  "code": "QF9238",
+  "categorie": "sol_compost",
+  "palier": 4,
+  "raison": "fongicides et champignons utiles du sol"
+ },
+ {
+  "code": "QF9239",
+  "categorie": "sol_compost",
+  "palier": "lycee",
+  "raison": "ordre de grandeur en kg d’azote par hectare : lycée"
+ },
+ {
+  "code": "QF9240",
+  "categorie": "sol_compost",
+  "palier": 4,
+  "raison": "humus (terme « approfondissement » du glossaire)"
+ },
+ {
+  "code": "QF9256",
+  "categorie": "sol_compost",
+  "palier": "lycee",
+  "raison": "symbiose mycorhizienne à Glomus : lycée (liste du prompt)"
+ },
+ {
+  "code": "QF9261",
+  "categorie": "sol_compost",
+  "palier": 3,
+  "raison": "deux vers, deux milieux de vie"
+ },
+ {
+  "code": "QF9264",
+  "categorie": "sol_compost",
+  "palier": 4,
+  "raison": "plantes indicatrices (bio-indicateurs)"
+ },
+ {
+  "code": "QF9271",
+  "categorie": "sol_compost",
+  "palier": 3,
+  "raison": "lecture du réseau : nourriture qui n’est pas une espèce"
+ },
+ {
+  "code": "QF9301",
+  "categorie": "sol_compost",
+  "palier": 4,
+  "raison": "respiration des micro-organismes et chaleur du compost"
+ },
+ {
+  "code": "QF9303",
+  "categorie": "sol_compost",
+  "palier": 4,
+  "raison": "actinomycète : bactérie filamenteuse"
+ },
+ {
+  "code": "QF9305",
+  "categorie": "sol_compost",
+  "palier": 3,
+  "raison": "reconnaître de petits vers du compost"
+ },
+ {
+  "code": "QF9307",
+  "categorie": "sol_compost",
+  "palier": 4,
+  "raison": "équilibre carbone / azote du lombricomposteur"
+ },
+ {
+  "code": "QF9309",
+  "categorie": "sol_compost",
+  "palier": 3,
+  "raison": "distinguer deux animaux par leurs pattes"
+ },
+ {
+  "code": "QF9310",
+  "categorie": "sol_compost",
+  "palier": 3,
+  "raison": "geste d’entretien du composteur"
+ },
+ {
+  "code": "QF9401",
+  "categorie": "sol_compost",
+  "palier": 3,
+  "raison": "reconnaître un champignon du compost"
+ },
+ {
+  "code": "QF9402",
+  "categorie": "sol_compost",
+  "palier": 4,
+  "raison": "organes de reproduction d’une moisissure (spores)"
+ },
+ {
+  "code": "QF9404",
+  "categorie": "sol_compost",
+  "palier": 3,
+  "raison": "reconnaître un petit animal de la litière"
+ },
+ {
+  "code": "QF9405",
+  "categorie": "sol_compost",
+  "palier": 3,
+  "raison": "comportement de deux espèces de cloportes"
+ }
+]

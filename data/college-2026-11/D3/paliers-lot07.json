@@ -1,0 +1,302 @@
+[
+ {
+  "code": "QF9604",
+  "categorie": "plantes_biologie",
+  "palier": 3,
+  "raison": "plante piquante : consigne de sécurité"
+ },
+ {
+  "code": "QF9608",
+  "categorie": "plantes_biologie",
+  "palier": 3,
+  "raison": "pollinisation et formation des grains"
+ },
+ {
+  "code": "QF9609",
+  "categorie": "plantes_biologie",
+  "palier": 4,
+  "raison": "types de fruits (drupe)"
+ },
+ {
+  "code": "QF9613",
+  "categorie": "plantes_biologie",
+  "palier": 3,
+  "raison": "partie du fruit que l’on mange (arille expliquée)"
+ },
+ {
+  "code": "QF9725",
+  "categorie": "plantes_biologie",
+  "palier": 3,
+  "raison": "besoins en eau et sels minéraux d’une plante sans terre"
+ },
+ {
+  "code": "QF9786",
+  "categorie": "plantes_biologie",
+  "palier": 3,
+  "raison": "plante du haut de plage et ses ressources"
+ },
+ {
+  "code": "QF9789",
+  "categorie": "plantes_biologie",
+  "palier": 3,
+  "raison": "plante toxique : consigne de sécurité"
+ },
+ {
+  "code": "QF9794",
+  "categorie": "plantes_biologie",
+  "palier": 4,
+  "raison": "bactéries fixatrices d’azote des racines (symbiose)"
+ },
+ {
+  "code": "QF9821",
+  "categorie": "plantes_biologie",
+  "palier": 3,
+  "raison": "plantes toxiques : consigne de sécurité"
+ },
+ {
+  "code": "QF9837",
+  "categorie": "plantes_biologie",
+  "palier": 3,
+  "raison": "repousse à partir des bourgeons de la souche"
+ },
+ {
+  "code": "QF9876",
+  "categorie": "populations_equilibres",
+  "palier": 4,
+  "raison": "limites d’aire de répartition des espèces"
+ },
+ {
+  "code": "QF9886",
+  "categorie": "populations_equilibres",
+  "palier": 3,
+  "raison": "migration d’un oiseau"
+ },
+ {
+  "code": "QF9896",
+  "categorie": "populations_equilibres",
+  "palier": 3,
+  "raison": "comportement face à la chaleur et à la sécheresse"
+ },
+ {
+  "code": "QF9904",
+  "categorie": "populations_equilibres",
+  "palier": 4,
+  "raison": "dynamique d’une population en milieu clos"
+ },
+ {
+  "code": "QF9911",
+  "categorie": "populations_equilibres",
+  "palier": 4,
+  "raison": "pollution par excès de nutriments"
+ },
+ {
+  "code": "QF9917",
+  "categorie": "populations_equilibres",
+  "palier": 4,
+  "raison": "pollution et manque de dioxygène dans l’eau"
+ },
+ {
+  "code": "QF9923",
+  "categorie": "populations_equilibres",
+  "palier": 4,
+  "raison": "effet d’une action humaine sur une population"
+ },
+ {
+  "code": "QF9929",
+  "categorie": "populations_equilibres",
+  "palier": 3,
+  "raison": "répartition d’une plante selon l’humidité du sol"
+ },
+ {
+  "code": "QF0050",
+  "categorie": "pratiques_potager",
+  "palier": 3,
+  "raison": "culture associée : entraide entre plantes"
+ },
+ {
+  "code": "QF0051",
+  "categorie": "pratiques_potager",
+  "palier": 3,
+  "raison": "paillage et humidité du sol"
+ },
+ {
+  "code": "QF0250",
+  "categorie": "pratiques_potager",
+  "palier": 3,
+  "raison": "protéger le sol nu"
+ },
+ {
+  "code": "QF0251",
+  "categorie": "pratiques_potager",
+  "palier": 3,
+  "raison": "association de cultures"
+ },
+ {
+  "code": "QF0252",
+  "categorie": "pratiques_potager",
+  "palier": 3,
+  "raison": "accueillir les auxiliaires au jardin"
+ },
+ {
+  "code": "QF0254",
+  "categorie": "pratiques_potager",
+  "palier": 3,
+  "raison": "laisser des plantes spontanées pour la biodiversité"
+ },
+ {
+  "code": "QF0255",
+  "categorie": "pratiques_potager",
+  "palier": 3,
+  "raison": "paillage et évaporation"
+ },
+ {
+  "code": "QF0514",
+  "categorie": "pratiques_potager",
+  "palier": 3,
+  "raison": "fruit qui se mange cuit (origine des aliments)"
+ },
+ {
+  "code": "QF0527",
+  "categorie": "pratiques_potager",
+  "palier": 3,
+  "raison": "confusion entre deux plantes : consigne de sécurité"
+ },
+ {
+  "code": "QF9205",
+  "categorie": "pratiques_potager",
+  "palier": 4,
+  "raison": "plante indicatrice d’un sol tassé"
+ },
+ {
+  "code": "QF9206",
+  "categorie": "pratiques_potager",
+  "palier": 3,
+  "raison": "graines en réserve dans le sol"
+ },
+ {
+  "code": "QF9207",
+  "categorie": "pratiques_potager",
+  "palier": 3,
+  "raison": "repousse à partir de fragments de racines"
+ },
+ {
+  "code": "QF9208",
+  "categorie": "pratiques_potager",
+  "palier": 3,
+  "raison": "labour et graines remontées en surface"
+ },
+ {
+  "code": "QF9217",
+  "categorie": "pratiques_potager",
+  "palier": 4,
+  "raison": "haricot, azote et Rhizobium (symbiose)"
+ },
+ {
+  "code": "QF9218",
+  "categorie": "pratiques_potager",
+  "palier": 4,
+  "raison": "même famille botanique, même maladie"
+ },
+ {
+  "code": "QF9219",
+  "categorie": "pratiques_potager",
+  "palier": "lycee",
+  "raison": "molécule (alpha-terthiényl) et nématodes : lycée"
+ },
+ {
+  "code": "QF9220",
+  "categorie": "pratiques_potager",
+  "palier": "lycee",
+  "raison": "allélopathie : lycée (liste du prompt)"
+ },
+ {
+  "code": "QF9513",
+  "categorie": "pratiques_potager",
+  "palier": 4,
+  "raison": "adaptation des feuilles à la sécheresse"
+ },
+ {
+  "code": "QF9514",
+  "categorie": "pratiques_potager",
+  "palier": 3,
+  "raison": "multiplication de la menthe par tiges souterraines"
+ },
+ {
+  "code": "QF7005",
+  "categorie": "ravageurs_auxiliaires",
+  "palier": 3,
+  "raison": "ponte d’un papillon et chenilles sur le chou"
+ },
+ {
+  "code": "QF7029",
+  "categorie": "ravageurs_auxiliaires",
+  "palier": 3,
+  "raison": "dégâts des larves d’un insecte"
+ },
+ {
+  "code": "QF7059",
+  "categorie": "ravageurs_auxiliaires",
+  "palier": 3,
+  "raison": "plantes qui nourrissent une chenille"
+ },
+ {
+  "code": "QF0060",
+  "categorie": "semis_recolte",
+  "palier": 3,
+  "raison": "cycle de vie d’une plante annuelle"
+ },
+ {
+  "code": "QF0061",
+  "categorie": "semis_recolte",
+  "palier": 3,
+  "raison": "bouture : nouvelle plante à partir d’un morceau"
+ },
+ {
+  "code": "QF0260",
+  "categorie": "semis_recolte",
+  "palier": 3,
+  "raison": "geste de semis"
+ },
+ {
+  "code": "QF0262",
+  "categorie": "semis_recolte",
+  "palier": 3,
+  "raison": "garder ses graines"
+ },
+ {
+  "code": "QF0263",
+  "categorie": "semis_recolte",
+  "palier": 3,
+  "raison": "multiplication par bouture"
+ },
+ {
+  "code": "QF0264",
+  "categorie": "semis_recolte",
+  "palier": 3,
+  "raison": "récolte et production de la plante"
+ },
+ {
+  "code": "QF0265",
+  "categorie": "semis_recolte",
+  "palier": 3,
+  "raison": "semis à l’abri"
+ },
+ {
+  "code": "QF0508",
+  "categorie": "semis_recolte",
+  "palier": 4,
+  "raison": "parthénocarpie"
+ },
+ {
+  "code": "QF0515",
+  "categorie": "semis_recolte",
+  "palier": 3,
+  "raison": "gel des fleurs et récolte"
+ },
+ {
+  "code": "QF0538",
+  "categorie": "semis_recolte",
+  "palier": 4,
+  "raison": "espèce dioïque"
+ }
+]
