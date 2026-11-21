@@ -1,11 +1,10 @@
-import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   INTERACTION_TYPES,
   interactionMatterFlow,
   interactionTypeLabel,
 } from '../../shared/foodWebTypes.js';
 import {
-  buildEdgeExportCss,
   edgeEvidenceClass,
   edgeStyleClass,
   resolveEdgeRenderStyle,
@@ -39,225 +38,22 @@ import {
   trophicRoleText,
   truncateNodeLabel,
 } from './foodWebGraphModel.js';
+import { IconAdd, IconClose, IconFoodweb, IconStats, IconTarget } from '../../shared/icons.jsx';
+import { FoodWebEdgeView, FoodWebNodeView, NODE_R, rovingTarget } from './FoodWebGraphElements.jsx';
 import {
-  IconAdd,
-  IconClose,
-  IconFoodweb,
-  IconDownload,
-  IconImage,
-  IconStats,
-  IconSearch,
-  IconTarget,
-  IconZoomIn,
-  IconZoomOut,
-  IconZoomReset,
-} from '../../shared/icons.jsx';
+  LAYOUT_CHAIN,
+  LAYOUT_CIRCLE,
+  LAYOUT_LEVELS,
+  readStoredLayout,
+  storeLayout,
+} from './foodWebGraphPrefs.js';
+import { exportGraphPng, exportGraphSvg } from './foodWebGraphExport.js';
+import { useFoodWebFocus } from '../../hooks/useFoodWebFocus.js';
+import { FoodWebGraphExportControls, FoodWebGraphZoomSearch } from './FoodWebGraphToolbar.jsx';
 
 const BASE_W = 880;
 const BASE_H = 560;
-const NODE_R = 20;
-/** Rayon de la cible de toucher (invisible) : 44 px de diamètre, règle tactile projet. */
-const HIT_R = 22;
 const CLICK_MOVE_THRESHOLD = 4;
-
-/** Touches de la tabulation itinérante (un seul arrêt Tab par famille d'éléments). */
-const ROVING_NEXT = new Set(['ArrowRight', 'ArrowDown']);
-const ROVING_PREV = new Set(['ArrowLeft', 'ArrowUp']);
-
-/** Élément voisin dans une liste pour la tabulation itinérante (null si touche sans effet). */
-function rovingTarget(key, ids, currentId) {
-  if (!ids.length) return null;
-  const idx = Math.max(0, ids.indexOf(currentId));
-  if (ROVING_NEXT.has(key)) return ids[(idx + 1) % ids.length];
-  if (ROVING_PREV.has(key)) return ids[(idx - 1 + ids.length) % ids.length];
-  if (key === 'Home') return ids[0];
-  if (key === 'End') return ids[ids.length - 1];
-  return null;
-}
-
-/**
- * Flèche du graphe. Mémoïsée, avec des props primitives et des gestionnaires stables :
- * un survol ou le glissement d'un nœud ne redessinent que les flèches concernées.
- */
-const FoodWebEdgeView = memo(function FoodWebEdgeView({
-  id,
-  d,
-  halo,
-  haloColor,
-  haloWidth,
-  dash,
-  lineClass,
-  color,
-  width,
-  opacity,
-  markerId,
-  symmetric,
-  midX,
-  midY,
-  ariaLabel,
-  title,
-  tabIndex,
-  handlers,
-}) {
-  return (
-    <g>
-      {halo ? (
-        <path
-          d={d}
-          className="pedago-foodweb-graph__line-halo"
-          stroke={haloColor}
-          strokeWidth={haloWidth}
-          strokeDasharray={dash || undefined}
-          aria-hidden="true"
-        />
-      ) : null}
-      <path
-        d={d}
-        className={lineClass}
-        stroke={color}
-        strokeWidth={width}
-        strokeDasharray={dash || undefined}
-        opacity={opacity === 1 ? undefined : opacity}
-        markerEnd={markerId}
-        markerStart={symmetric ? markerId : undefined}
-      />
-      <circle
-        cx={midX}
-        cy={midY}
-        r={HIT_R}
-        className="pedago-foodweb-graph__edge-hit"
-        tabIndex={tabIndex}
-        role="button"
-        aria-label={ariaLabel}
-        data-fw-edge={id}
-        onPointerDown={(e) => e.stopPropagation()}
-        onClick={() => handlers.click(id)}
-        onKeyDown={(e) => handlers.keyDown(e, id)}
-        onFocus={() => handlers.focus(id)}
-        onBlur={handlers.blur}
-        onMouseEnter={() => handlers.enter(id)}
-        onMouseLeave={handlers.leave}
-      >
-        <title>{title}</title>
-      </circle>
-    </g>
-  );
-});
-
-/** Nœud (espèce ou environnement) du graphe — mêmes principes que `FoodWebEdgeView`. */
-const FoodWebNodeView = memo(function FoodWebNodeView({
-  id,
-  x,
-  y,
-  circleClass,
-  emoji,
-  showLabel,
-  labelClass,
-  labelText,
-  radial,
-  flip,
-  angle,
-  title,
-  ariaLabel,
-  tabIndex,
-  handlers,
-}) {
-  return (
-    <g
-      transform={`translate(${x}, ${y})`}
-      className="pedago-foodweb-graph__node-group"
-      tabIndex={tabIndex}
-      role="button"
-      aria-label={ariaLabel}
-      data-fw-node={id}
-      onPointerDown={(e) => handlers.pointerDown(e, id)}
-      onPointerUp={(e) => handlers.pointerUp(e, id)}
-      onKeyDown={(e) => handlers.keyDown(e, id)}
-      onFocus={() => handlers.focus(id)}
-      onBlur={handlers.blur}
-      onMouseEnter={() => handlers.enter(id)}
-      onMouseLeave={handlers.leave}
-      onDoubleClick={() => handlers.open(id)}
-      style={{ cursor: 'pointer' }}
-    >
-      <circle r={HIT_R} className="pedago-foodweb-graph__node-hit" aria-hidden="true" />
-      <circle r={NODE_R} className={circleClass} />
-      <text className="pedago-foodweb-graph__node-emoji" textAnchor="middle" y={5}>
-        {emoji}
-      </text>
-      {showLabel ? (
-        <text
-          className={labelClass}
-          textAnchor={radial ? (flip ? 'end' : 'start') : 'middle'}
-          x={radial ? 0 : undefined}
-          y={radial ? 0 : NODE_R + 14}
-          dy={radial ? '0.32em' : undefined}
-          transform={
-            radial
-              ? `rotate(${flip ? angle + 180 : angle}) translate(${flip ? -(NODE_R + 8) : NODE_R + 8}, 0)`
-              : undefined
-          }
-        >
-          {labelText}
-        </text>
-      ) : null}
-      <title>{title}</title>
-    </g>
-  );
-});
-
-/** Clé de mémorisation de la disposition choisie (par produit). */
-const LAYOUT_STORAGE_KEY = 'foretmap.foodweb.layout';
-
-/** Dispositions proposées. `levels` retombe sur les rôles faute de niveaux calculables. */
-const LAYOUT_CIRCLE = 'circle';
-const LAYOUT_LEVELS = 'levels';
-const LAYOUT_CHAIN = 'chain';
-
-/** Lecture tolérante du dernier choix de disposition (stockage indisponible, valeur inconnue). */
-function readStoredLayout(variant) {
-  try {
-    const raw = window.localStorage.getItem(`${LAYOUT_STORAGE_KEY}.${variant}`);
-    return raw === LAYOUT_CIRCLE || raw === LAYOUT_LEVELS ? raw : null;
-  } catch (_) {
-    return null;
-  }
-}
-
-function storeLayout(variant, value) {
-  try {
-    window.localStorage.setItem(`${LAYOUT_STORAGE_KEY}.${variant}`, value);
-  } catch (_) {
-    /* stockage indisponible (navigation privée, quota) : sans conséquence */
-  }
-}
-
-/** Styles embarqués pour l'export SVG/PNG (le CSS de la page ne s'applique pas hors DOM). */
-const EXPORT_STYLE = `
-  ${buildEdgeExportCss()}
-  .pedago-foodweb-graph__node{fill:#dcfce7;stroke:#16a34a;stroke-width:1.5}
-  .pedago-foodweb-graph__node.highlight{fill:#bbf7d0;stroke-width:2.5}
-  .pedago-foodweb-graph__node.dim{opacity:.18}
-  .pedago-foodweb-graph__node--env{fill:#f3f4f6;stroke:#94a3b8;stroke-dasharray:3 3}
-  .pedago-foodweb-graph__node--outside{fill:#fff7ed;stroke:#ea9a5c;stroke-dasharray:5 3}
-  .pedago-foodweb-graph__label{font:600 10px sans-serif;fill:#1f2937;paint-order:stroke;stroke:#ffffff;stroke-width:2.5px;stroke-linejoin:round}
-  .pedago-foodweb-graph__label.dim{opacity:.2}
-  .pedago-foodweb-graph__col-label{font:600 11px sans-serif;fill:#4b5563}
-  .pedago-foodweb-graph__band-label{font:600 11px sans-serif;fill:#4b5563}
-  .pedago-foodweb-graph__band-rule{stroke:#d7e3da;stroke-width:1;stroke-dasharray:4 4}
-  .pedago-foodweb-graph__node-emoji{font:16px sans-serif}
-`;
-
-function download(blob, filename) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
 
 /**
  * Graphe SVG interactif du réseau trophique.
@@ -309,16 +105,8 @@ export function FoodWebGraph({
   const [overrides, setOverrides] = useState(() => new Map());
   const [hoverNode, setHoverNode] = useState(null);
   const [hoverEdge, setHoverEdge] = useState(null);
-  /** Sélection d'espèces isolées : un ensemble, pas un identifiant (lot F3). */
-  const [focusIds, setFocusIds] = useState(() => new Set());
-  const [focusDepth, setFocusDepth] = useState(1);
-  /** Vrai : garder le reste du réseau estompé en fond plutôt que de le retirer. */
-  const [showContext, setShowContext] = useState(false);
-  /** Mode « ajouter » : un simple appui ajoute à la sélection (tablette). */
-  const [addMode, setAddMode] = useState(false);
   const [search, setSearch] = useState('');
   const [hiddenTypes, setHiddenTypes] = useState(() => new Set());
-  const [moreOpen, setMoreOpen] = useState(false);
   /** Tabulation itinérante : un seul nœud et une seule flèche portent `tabIndex=0`. */
   const [rovingNodeId, setRovingNodeId] = useState(null);
   const [rovingEdgeId, setRovingEdgeId] = useState(null);
@@ -335,6 +123,28 @@ export function FoodWebGraph({
 
   const presetItems = useMemo(() => itemsForPreset(items, preset), [items, preset]);
   const { nodes, edges } = useMemo(() => buildGraphModel(presetItems), [presetItems]);
+
+  // Sélection d'espèces isolées, profondeur, contexte estompé, mode « ajouter » ; mise en
+  // avant à l'arrivée et demande d'isolement d'une séance (hook `useFoodWebFocus`).
+  const {
+    focusIds,
+    focusDepth,
+    setFocusDepth,
+    showContext,
+    setShowContext,
+    addMode,
+    setAddMode,
+    toggleFocus,
+    clearFocus,
+  } = useFoodWebFocus({ nodes, highlightPlantId, focusRequest });
+
+  /** Espèces teintées « mise en avant » (lien d'arrivée ou départ du réseau collège). */
+  const highlightSet = useMemo(() => {
+    const out = new Set();
+    for (const raw of highlightPlantIds || []) out.add(Number(raw));
+    if (highlightPlantId != null) out.add(Number(highlightPlantId));
+    return out;
+  }, [highlightPlantId, highlightPlantIds]);
 
   const visibleEdges = useMemo(
     () => edges.filter((edge) => !hiddenTypes.has(String(edge.type || '').toLowerCase())),
@@ -794,83 +604,6 @@ export function FoodWebGraph({
     [flushPendingDrag, releasePointer],
   );
 
-  /**
-   * Isole une espèce. `additive` (⌘/Ctrl, mode « Ajouter », ⌘/Ctrl+Entrée)
-   * l'ajoute à la sélection au lieu de la remplacer : c'est ce qui permet de
-   * composer un réseau avec plusieurs espèces et d'exclure tout le reste.
-   */
-  const toggleFocus = useCallback((id, additive = false) => {
-    setFocusIds((cur) => {
-      const next = new Set(cur);
-      if (additive) {
-        if (next.has(id)) next.delete(id);
-        else next.add(id);
-        return next;
-      }
-      if (next.size === 1 && next.has(id)) return new Set();
-      return new Set([id]);
-    });
-  }, []);
-
-  const clearFocus = useCallback(() => {
-    setFocusIds(new Set());
-    setShowContext(false);
-    setAddMode(false);
-    setFocusDepth(1);
-  }, []);
-
-  /** Dernière espèce mise en avant déjà appliquée (évite de re-focaliser à chaque rendu). */
-  const appliedHighlightRef = useRef(null);
-
-  // Arrivée depuis une fiche plante (« Voir le réseau trophique ») : isoler d'emblée
-  // le réseau de l'espèce. Sans cela, elle était seulement teintée parmi tous les
-  // autres nœuds — introuvable sur un graphe fourni.
-  useEffect(() => {
-    if (highlightPlantId == null) {
-      appliedHighlightRef.current = null;
-      return;
-    }
-    const id = Number(highlightPlantId);
-    if (!Number.isFinite(id) || appliedHighlightRef.current === id) return;
-    if (!nodes.some((node) => node.id === id)) return;
-    appliedHighlightRef.current = id;
-    setFocusIds(new Set([id]));
-  }, [highlightPlantId, nodes]);
-
-  /** Dernière demande d'isolement appliquée (une fois par `nonce`). */
-  const appliedFocusRequestRef = useRef(null);
-
-  // Séance qui montre plusieurs espèces : isoler leur sous-réseau (profondeur 0 = leurs
-  // liens mutuels). Déclaré après l'effet de mise en avant : la demande l'emporte.
-  useEffect(() => {
-    if (!focusRequest || !Array.isArray(focusRequest.ids)) return;
-    const key = focusRequest.nonce ?? focusRequest.ids.join(',');
-    if (appliedFocusRequestRef.current === key) return;
-    const present = new Set(nodes.map((node) => node.id));
-    const ids = focusRequest.ids.map(Number).filter((id) => present.has(id));
-    if (ids.length === 0) return;
-    appliedFocusRequestRef.current = key;
-    setFocusIds(new Set(ids));
-    if (Number.isFinite(Number(focusRequest.depth))) setFocusDepth(Number(focusRequest.depth));
-  }, [focusRequest, nodes]);
-
-  /** Espèces teintées « mise en avant » (lien d'arrivée ou départ du réseau collège). */
-  const highlightSet = useMemo(() => {
-    const out = new Set();
-    for (const raw of highlightPlantIds || []) out.add(Number(raw));
-    if (highlightPlantId != null) out.add(Number(highlightPlantId));
-    return out;
-  }, [highlightPlantId, highlightPlantIds]);
-
-  // Le jeu de données a changé (carte, zone, filtre de type) : un focus sur un nœud
-  // disparu vidait la scène sans que rien ne l'explique.
-  useEffect(() => {
-    if (focusIds.size === 0) return;
-    const present = new Set(nodes.map((node) => node.id));
-    if ([...focusIds].every((id) => present.has(id))) return;
-    setFocusIds((cur) => new Set([...cur].filter((id) => present.has(id))));
-  }, [nodes, focusIds]);
-
   const onNodePointerUp = useCallback(
     (evt, id) => {
       const wasPinching = Boolean(pinchRef.current);
@@ -1094,47 +827,13 @@ export function FoodWebGraph({
   );
 
   // --- Export ---
-  const serializeSvg = useCallback(() => {
-    const svg = svgRef.current;
-    if (!svg) return '';
-    const clone = svg.cloneNode(true);
-    clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-    clone.setAttribute('width', String(BASE_W));
-    clone.setAttribute('height', String(sceneHeight));
-    // neutralise pan/zoom pour un export cadré
-    const inner = clone.querySelector('[data-fw-viewport]');
-    if (inner) inner.setAttribute('transform', 'translate(0,0) scale(1)');
-    const style = document.createElement('style');
-    style.textContent = EXPORT_STYLE;
-    clone.insertBefore(style, clone.firstChild);
-    return new window.XMLSerializer().serializeToString(clone);
+  const exportSvg = useCallback(() => {
+    exportGraphSvg(svgRef.current, { width: BASE_W, height: sceneHeight });
   }, [sceneHeight]);
 
-  const exportSvg = useCallback(() => {
-    const str = serializeSvg();
-    if (!str) return;
-    download(new Blob([str], { type: 'image/svg+xml;charset=utf-8' }), 'reseau-trophique.svg');
-  }, [serializeSvg]);
-
   const exportPng = useCallback(() => {
-    const str = serializeSvg();
-    if (!str) return;
-    const scale = 2;
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = BASE_W * scale;
-      canvas.height = sceneHeight * scale;
-      const ctx = canvas.getContext('2d');
-      ctx.fillStyle = '#fff';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      canvas.toBlob((blob) => {
-        if (blob) download(blob, 'reseau-trophique.png');
-      }, 'image/png');
-    };
-    img.src = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(str)))}`;
-  }, [serializeSvg, sceneHeight]);
+    exportGraphPng(svgRef.current, { width: BASE_W, height: sceneHeight });
+  }, [sceneHeight]);
 
   if ((items || []).length === 0) {
     return <p className="section-sub">Aucun nœud à afficher.</p>;
@@ -1193,64 +892,15 @@ export function FoodWebGraph({
             </button>
           ) : null}
         </div>
-        <div className="pedago-foodweb-graph__tbgroup" role="group" aria-label="Zoom">
-          <button
-            type="button"
-            className="pedago-foodweb-graph__tbtn"
-            onClick={() => zoomBy(1 / 1.2)}
-            aria-label="Dézoomer"
-            title="Dézoomer"
-          >
-            <IconZoomOut size={14} />
-          </button>
-          <button
-            type="button"
-            className="pedago-foodweb-graph__tbtn"
-            onClick={resetView}
-            aria-label="Réinitialiser la vue et les positions"
-            title="Réinitialiser la vue et les positions"
-          >
-            <IconZoomReset size={14} />
-          </button>
-          <button
-            type="button"
-            className="pedago-foodweb-graph__tbtn"
-            onClick={() => zoomBy(1.2)}
-            aria-label="Zoomer"
-            title="Zoomer"
-          >
-            <IconZoomIn size={14} />
-          </button>
-        </div>
-        <form
-          className="pedago-foodweb-graph__search"
+        <FoodWebGraphZoomSearch
+          onZoom={zoomBy}
+          onReset={resetView}
+          search={search}
+          onSearchChange={setSearch}
           onSubmit={submitSearch}
-          role="search"
-          aria-label="Recherche dans le graphe"
-        >
-          <input
-            type="search"
-            className="pedago-foodweb-graph__search-input"
-            placeholder="Rechercher une espèce…"
-            aria-label="Rechercher une espèce"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            list="fw-graph-search-list"
-            autoComplete="off"
-          />
-          <datalist id="fw-graph-search-list">
-            {searchMatches.map((node) => (
-              <option key={node.id} value={node.name} />
-            ))}
-          </datalist>
-          <button
-            type="submit"
-            className="pedago-foodweb-graph__tbtn"
-            disabled={searchMatches.length === 0}
-          >
-            <IconSearch size={14} /> {addMode ? 'Ajouter' : 'Isoler'}
-          </button>
-        </form>
+          matches={searchMatches}
+          addMode={addMode}
+        />
         <button
           type="button"
           className={`pedago-foodweb-graph__tbtn${addMode ? ' active' : ''}`}
@@ -1309,55 +959,7 @@ export function FoodWebGraph({
             Voir la fiche
           </button>
         ) : null}
-        <div
-          className="pedago-foodweb-graph__tbgroup pedago-foodweb-graph__export--desktop"
-          role="group"
-          aria-label="Export"
-        >
-          <button type="button" className="pedago-foodweb-graph__tbtn" onClick={exportPng}>
-            <IconImage size={14} /> PNG
-          </button>
-          <button type="button" className="pedago-foodweb-graph__tbtn" onClick={exportSvg}>
-            <IconDownload size={14} /> SVG
-          </button>
-        </div>
-        <div className="pedago-foodweb-graph__more pedago-foodweb-graph__export--mobile">
-          <button
-            type="button"
-            className="pedago-foodweb-graph__tbtn"
-            aria-expanded={moreOpen}
-            aria-haspopup="true"
-            onClick={() => setMoreOpen((o) => !o)}
-          >
-            Plus…
-          </button>
-          {moreOpen ? (
-            <div className="pedago-foodweb-graph__more-menu" role="menu">
-              <button
-                type="button"
-                className="pedago-foodweb-graph__tbtn"
-                role="menuitem"
-                onClick={() => {
-                  exportPng();
-                  setMoreOpen(false);
-                }}
-              >
-                <IconImage size={14} /> PNG
-              </button>
-              <button
-                type="button"
-                className="pedago-foodweb-graph__tbtn"
-                role="menuitem"
-                onClick={() => {
-                  exportSvg();
-                  setMoreOpen(false);
-                }}
-              >
-                <IconDownload size={14} /> SVG
-              </button>
-            </div>
-          ) : null}
-        </div>
+        <FoodWebGraphExportControls onPng={exportPng} onSvg={exportSvg} />
       </div>
 
       {nodes.length === 0 ? (
