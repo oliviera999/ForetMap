@@ -18,9 +18,11 @@ Pour chaque session, cela veut dire :
 - ne fusionne rien toi-même et ne touche pas aux branches `…-lot<n>` ;
 - la PR #712 reste la PR en brouillon du travail en cours ; le dernier lot passera par elle.
 
-Lots fusionnés ou en cours de fusion : lot 1 = PR #711, lot 2 = PR #714, lot 3 = PR #715 et
-lot 4 = PR #716 (fusionnées, `main` v1.256.0). **Lot 5 (S5) : fini, poussé sur
-`claude/gl-ecrans-de-seance`, à figer et fusionner par S1.**
+Lots fusionnés : lot 1 = PR #711, lot 2 = PR #714, lot 3 = PR #715, lot 4 = PR #716 et
+lot 5 = PR #717 (`main` v1.257.0). **Lot 6 (S6) : fini, poussé sur
+`claude/gl-ecrans-de-seance` ; il passe par la PR #712, passée en « prête », que S1 fusionnera
+quand sa CI sera verte.** Le chantier est clos côté sessions : il ne reste que cette fusion et
+ce qu'Oliv doit faire ensuite (section S6, « Après la fusion »).
 
 **Décision attendue d'Oliv (laissée par S4)** : en surface « tableau », l'ancien écran d'équipe
 est gardé tel quel (garde-fou 12). « Tout au tableau », touché en pleine séance, fait donc
@@ -45,16 +47,16 @@ dans une **nouvelle PR en brouillon** :
 
 ## Sessions
 
-| Session | Lot                                       | État                    | Commits                                                                                      |
-| ------- | ----------------------------------------- | ----------------------- | -------------------------------------------------------------------------------------------- |
-| S1      | Préparation, textes, adresse, plateau     | faite, fusionnée (#711) | `8272b2e08` (prompt, captures), `e898eff3c` (étape 1), `552754187` (étape 2) + état          |
-| S2      | Projection (étape 3)                      | faite                   | `4416079` (étape 3) + commits d'état                                                         |
-| S3      | Tablette 1 : moteur de la carte du moment | faite                   | `c46fd3b` (lot), `9fe1eb9` (relecture garde-fous), `ae693b4` (CHANGELOG) + état              |
-| S4      | Tablette 2 : branchement                  | faite, fusionnée (#716) | `c9810be61` (lot), `0e471cbd3` (relecture garde-fous), `af1aa1f5c` (fusion de `main`) + état |
-| S5      | Console (étape 5)                         | faite                   | `b5db4e5` (lot), `b5f0079` (relecture garde-fous), `159de3e` (fusion de `main`) + état       |
-| S6      | Accueil, docs, clôture (étapes 6 et 7)    | en cours                | —                                                                                            |
+| Session | Lot                                       | État                    | Commits                                                                                        |
+| ------- | ----------------------------------------- | ----------------------- | ---------------------------------------------------------------------------------------------- |
+| S1      | Préparation, textes, adresse, plateau     | faite, fusionnée (#711) | `8272b2e08` (prompt, captures), `e898eff3c` (étape 1), `552754187` (étape 2) + état            |
+| S2      | Projection (étape 3)                      | faite                   | `4416079` (étape 3) + commits d'état                                                           |
+| S3      | Tablette 1 : moteur de la carte du moment | faite                   | `c46fd3b` (lot), `9fe1eb9` (relecture garde-fous), `ae693b4` (CHANGELOG) + état                |
+| S4      | Tablette 2 : branchement                  | faite, fusionnée (#716) | `c9810be61` (lot), `0e471cbd3` (relecture garde-fous), `af1aa1f5c` (fusion de `main`) + état   |
+| S5      | Console (étape 5)                         | faite, fusionnée (#717) | `b5db4e5` (lot), `b5f0079` (relecture garde-fous), `159de3e` (fusion de `main`) + état         |
+| S6      | Accueil, docs, clôture (étapes 6 et 7)    | faite                   | `7825d1b5c` (étape 6), `48e285688` (étape 7 et clôture), `9eb96ee2b` (fusion de `main`) + état |
 
-Sessions `bis` : aucune. Sessions lancées : 5 sur 8 au plus (la tentative de S2 par tâche
+Sessions `bis` : aucune. Sessions lancées : 6 sur 8 au plus (la tentative de S2 par tâche
 planifiée, arrêtée sans rien faire, ne compte pas).
 
 ### Relais : c'est la session S1 qui lance les suivantes (constat du 20/11, 19 h 25 UTC)
@@ -1048,6 +1050,162 @@ que le numéro de version. **Budget du bundle** : l'entrée ForêtMap prend 0,2 
 (1 529,1 → 1 529,3) et 0,1 Ko de CSS ; il reste 0,7 Ko de marge. Le banc n'a pas été relancé :
 le lot ne touche ni `lib/`, ni `routes/`, ni `migrations/`, ni `data/` (S6 le relance).
 
+## S6 — faite (21/11/2026, sur `main` v1.257.0, `3fcaa6f`)
+
+Lot : étapes 6 (poids de l'accueil, K11) et 7 (docs, captures), vérifications complètes du § 8,
+description finale de la PR #712. Deux commits (voir le tableau), plus les commits d'état.
+`main` a bougé au début de la session (fusion du lot 5, PR #717, v1.257.0) : fusionné
+(`git merge origin/main`), sans rebase ; seul le numéro de version différait.
+
+**Aucune valeur de production n'a été lue.** Une lecture du réglage `platform.brand` par le
+connecteur ForêtMap a été tentée au début de la session ; elle est restée en attente d'une
+approbation et n'a pas eu lieu. Consigne de S1 ensuite : aucun connecteur vers la prod. La
+forme des emplacements a donc été lue dans le code (`lib/glBrand.js`, `GLBrandEditor`,
+`scripts/gl-import-wp.js`) et le script essayé sur la base locale seulement. **C'est Oliv qui
+le lancera sur le serveur, à blanc d'abord.** Conséquence : on ne sait pas, depuis ce lot, où
+sont rangées les images de l'accueil en prod (`/uploads/gl_brand/…` par l'import WP, ou
+`/uploads/media-library/…`) ni leur format ; le script traite les deux cas.
+
+### Ce qui est fait
+
+- **`lib/glBrandImages.js`** : `ensureGlBrandVariant(url, { profile, dryRun })` produit ou
+  retrouve la variante WebP d'une image de marque — 1 600 px de large au plus et 200 Ko visés
+  (profil `slot`), 512 px et 60 Ko (profil `logo`) ; qualité WebP abaissée par paliers (82 → 50) jusqu'à passer sous le poids visé. Rangée sous `uploads/gl_brand/optim/`, nommée
+  `<nom>-<empreinte>-w<largeur>.webp` : la même image rend toujours la même adresse. L'original
+  n'est jamais touché ; écriture par fichier temporaire puis `rename`. Ne lève jamais : sans
+  variante, l'adresse d'origine est rendue. `optimizeGlBrandImages(brand, { dryRun })` passe
+  les quatre emplacements et le logo, sans modifier l'objet reçu.
+- **Route** : `POST /api/gl/admin/media-library` accepte `usage: 'brand'` et rend `optimized`
+  (`{ url, size, width, height }` ou `null`). Sans ce champ, rien ne change.
+- **`GLBrandEditor`** envoie `usage: 'brand'` et range `optimized.url` dans l'emplacement
+  (message « Image de charte importée, en version allégée pour l'accueil. »).
+- **`scripts/gl-brand-optimiser.js`** : à blanc par défaut (`--dry-run` accepté), `--apply`,
+  `--json` ; lit `platform.brand` en base, écrit par `upsertGlSetting` (auteur
+  `gl-brand-optimiser`) **seulement s'il y a un changement**. Exporte `run()` pour les tests.
+- **`GLBrandHub`** : `decoding="async"`, `width` / `height` au ratio du cadre
+  (`cardImageDimensions`) ; **`GLAuthView`** : logo en 88 × 88, `decoding="async"`.
+- **Projection, lien fermé** (correction issue de la relecture, voir plus bas) :
+  `PROJECTION_FERMEE` dans `GLProjectionView`.
+- **Docs (étape 7)** : `docs/GL_TENIR_A_DEUX_REGLES.md` (§ 3, nouveau paragraphe « Les écrans
+  de séance » ; rôles ; erreur d'Olu ; « Ce qui change » ; accroche ; M8 annoté),
+  `docs/GL_TENIR_A_DEUX.md` (section « Écrans de séance », paragraphe des captures),
+  `docs/reference/gl/guide-du-mj.md` (note « l'accueil, plus léger » ; « À vous de jouer » là
+  où le guide disait « la phase « jeu » » ; le lien de projection fermé au camp),
+  `docs/API.md`, `docs/EXPLOITATION.md`, skills `.claude/skills/gl-tenir-moteur` (section
+  « Les écrans de séance », « l'écran masque » au lieu de « le client grise ») et
+  `.cursor/skills/foretmap-gl-project`. **CHANGELOG** : entrée « lot 6 » sous `[Non publié]`.
+- **Captures** : `apres/connexion-1440x900.png` et `apres/connexion-telephone-390x844.png`
+  (pleine page, quatrième de couverture dépliée, comme les « avant » de S1 ; script temporaire
+  non versionné, contre le serveur des e2e).
+- **Tests** : `tests/gl-brand-images.test.js` (9), `tests-ui/gl/GLBrandEditor.test.jsx` (3),
+  `GLBrandHub.test.jsx` (+ 2), `GLAuthView.test.jsx` (+ 1), `GLProjectionView.test.jsx` (+ 2).
+
+### Écarts avec le prompt (étapes 6 et 7), et pourquoi
+
+1. **Une route change, par un champ optionnel.** Le § 1 dit « aucune route », l'étape 6
+   demande une variante produite par le serveur à l'envoi. Un champ optionnel sur la route
+   d'envoi existante est le plus petit changement ; pas de route nouvelle.
+2. **La variante n'est pas dans la médiathèque** : fichier compagnon sous `gl_brand/optim/`
+   (famille publique, déjà celle de l'import WP), comme les vignettes vivent sous
+   `media-thumbs/`. Dans le catalogue, elle aurait reçu une clé stable, une vignette et une
+   ligne dans les manifestes. Conséquence assumée : la médiathèque montre l'original comme
+   non utilisé ; le supprimer ne casse rien (la variante reste).
+3. **Le logo n'a sa variante que par le script** (aucun champ d'envoi propre dans l'éditeur
+   de marque) : profil à part, 512 px. Le favicon n'est pas touché.
+4. **« Déjà légère »** : une image sous le poids visé **et** sous la largeur maximale n'est
+   pas ré-encodée, quel que soit son format. Un GIF ou un SVG n'est jamais traité.
+5. **`loading="lazy"` existait déjà** sur les trois vignettes ; le lot ajoute `decoding` et
+   les dimensions. Le héros est un fond CSS : rien à poser dessus.
+6. **Captures de l'étape 7** : il n'existe pas d'« avant » du téléphone sur l'écran d'équipe
+   (S1 n'en avait pas pris ; `avant/defis-alteree-telephone.png` est la seule capture
+   téléphone d'avant) ni de la projection en jeu. Non reconstituées.
+7. **`docs/captures/tenir-v2/` n'est pas rafraîchi** : ces images sont celles des lots
+   d'avant. Les e2e les réécrivent à chaque passage ; elles ont été remises telles quelles.
+8. **Une correction hors des étapes 6 et 7** : la phrase de la projection fermée (ci-dessous).
+
+### Relecture `gl-relecteur-garde-fous` (projection du lot 2, et lot 6)
+
+- **Lot 6** : rien. Aucun texte lu d'un élève ne change ; le message nouveau n'est lu que de
+  l'admin ; la route reste sous `gl.content.manage`.
+- **Projection, vérifié sans manquement** : voile jamais personnifié (libellés, tracés, pas
+  de pictogramme) ; oiseau sans nom ; aucune bourse ; ni « Non » ni « Faux » ; « vous »
+  partout ; « Voir le plateau » toujours rendu ; aucun geste de jeu.
+- **Un manquement, corrigé** (garde-fou 11) : la clôture du chapitre révoque le lien de
+  projection (`routes/gl/games/status.js`, antérieur au chantier) ; la projection déjà ouverte
+  recevait un 403 et affichait « Accès refusé à cette partie » au-dessus d'un plateau figé.
+  Elle dit maintenant « Cette projection est fermée. Le prof peut en ouvrir une nouvelle
+  depuis son écran. ». **Ce qui reste vrai** : « Ce qui change » au camp (écrit par S2) ne se
+  voit pas sur une projection déjà ouverte ; il faut un nouveau lien. Le guide du MJ le dit.
+  Ne plus révoquer à la clôture serait une décision d'Oliv.
+- **Trois remarques, non traitées** (antérieures au chantier) : la page du Passeur projetée
+  vient du corpus, que la liste des mots interdits ne relit pas (une page dit « le corbeau ») ;
+  ses astérisques d'italique s'affichent bruts ; la projection ne se relit que sur évènement
+  (pas à la reconnexion du socket).
+
+### Points à trancher ou à relire par Oliv (repris dans la PR #712)
+
+1. Surface « tableau » : l'ancien écran d'équipe y est gardé (section S4).
+2. Révocation du lien de projection à la clôture du chapitre (ci-dessus).
+3. Indices du carnet retirés de la projection ; « La page du jour » derrière un bouton (S2).
+4. Cases à venir et défi à préparer dans le tiroir pendant le tour (S4).
+5. Textes nouveaux ou changés : listes des sections S1, S3, S5, et la phrase de la projection
+   fermée.
+6. `olu-pf-main` ne se dit jamais (S4).
+7. Page du Passeur brute à la projection (astérisques, mots non relus).
+8. `public/maps/map-foret.svg` et `map-n3.svg` mal formés (S2).
+9. Propositions non faites : bandeau de la partie en mode séance, mode séance sur le compte
+   d'un élève, `lazyAvecReprise` pour `AppGL` (S5) ; relecture de la projection à la
+   reconnexion.
+
+### Après la fusion, à faire par Oliv
+
+- Sur le serveur : `node scripts/gl-brand-optimiser.js` (à blanc), lire le rapport, puis
+  `--apply`. Ou renvoyer les images depuis la charte visuelle. Retour arrière : remettre
+  l'adresse de l'original dans la charte (les originaux ne bougent pas).
+- Relire les textes ; répétition générale sur vrais appareils ; `gl_seance apres`.
+
+### Écarts trouvés dans le code et dans l'environnement
+
+- **Les deux e2e « Voir comme » de `gl-users-admin`** (instables chez S4 et S5) sont **verts**
+  dans cette session (6,7 s et 6,9 s) : la machine était moins chargée, rien n'a été touché.
+- **Un tableau Markdown se réaligne en entier** dès qu'une cellule dépasse la plus large
+  (`docs/GL_TENIR_A_DEUX.md`, table des modules : 41 lignes de diff pour une ligne ajoutée).
+  Préférer un paragraphe sous la table.
+- **`uploads/gl_brand/`** était déjà une famille publique (import WP) ; `scripts/reconcile-orphan-uploads.js`
+  ne la parcourt pas : une variante n'est jamais comptée comme orpheline.
+- **Banc** : la base `foretmap_sim` existait déjà dans le conteneur ; `npm run gl:sim:db` la
+  remet d'aplomb.
+- Avertissements de lint : 321, comme sur `main` ; le lot n'en ajoute aucun.
+- PR ouvertes : #712 (celle-ci) et #713 (shell ForêtMap, brouillon, autre chantier), sans
+  fichier de code commun ; aucune migration de part et d'autre.
+
+### Vérifications de S6 (§ 8 complet, état final)
+
+| Commande                                                             | Résultat                                                          |
+| -------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| Avant le lot : `npm run test:ui`, `npm test`                         | 830 fichiers, 6 443 tests ; 6 600 tests (2 ignorés), 0 échec      |
+| `npm run lint`                                                       | 0 erreur (321 avertissements, déjà là)                            |
+| `npm run format:check`                                               | vert                                                              |
+| `npm run test:ui`                                                    | 831 fichiers, 6 451 tests                                         |
+| `npm test`                                                           | 6 609 tests, 6 607 verts, 2 ignorés, 0 échec (9 de plus : le lot) |
+| `npm run test:content`                                               | 154 tests                                                         |
+| `NODE_ENV=production npm run build`, `check:bundle`, `check:runtime` | JS 1 529,3 Ko (plafond 1 530), CSS 376,9 Ko ; conforme            |
+| e2e `e2e/gl-*.spec.js`, tous                                         | 63 verts, 2 ignorés, 0 échec                                      |
+| e2e `gl-tenir-projection`, `gl-intro`, rejoués sur le dernier build  | 3 / 3                                                             |
+| Banc `tablette-parallele-absences --seed 1` (base `foretmap_sim`)    | ok, **attendus 8/11**, mêmes trois manqués (détail ci-dessous)    |
+
+Les e2e complets ont tourné sur l'état d'après l'étape 6 et les docs ; la correction de la
+projection (une phrase d'erreur) est venue ensuite : la suite d'écran, le lint, le build et les
+e2e de la projection ont été rejoués après elle, `npm test` et `test:content` aussi. Le budget
+du bundle n'a pas bougé : le lot n'ajoute rien à l'entrée ForêtMap.
+
+**Banc, avant / après.** Référence de S1 : `ok · 562 appels · 5 séances, tenues 9/10, pâlies
+0, voile 75 %`, attendus 8/11 (manqués : `equipesSousVoile`, `carnetComplet`, `partGnomes`).
+Après le lot (état final, une exécution) : `ok · 554 appels · 5 séances, tenues 6/10, pâlies 2, voile 75 %`, **attendus 8/11 (manqués : `equipesSousVoile`, `carnetComplet`, `partGnomes`)** : les mêmes attendus, les trois mêmes manqués. Les chiffres bruts diffèrent (554 appels contre 562, 6 pages tenues contre 9), dans la fourchette relevée par S4 sur `main`. Le scénario n'est pas reproductible au chiffre près, sur `main` comme sur la
+branche (constat de S4) : ce sont les attendus qui se comparent, pas les décimales. Le lot 6 ne
+touche aucun fichier du moteur (`lib/glBrandImages.js` et la route d'envoi d'un média ne sont
+pas lus par une partie).
+
 ## Ce que la session suivante doit savoir
 
 ### Pour S4 (tablette, branchement) : fait
@@ -1063,7 +1221,10 @@ Les notes laissées par S2 à S4 ont servi et sont retirées d'ici (historique :
 ouvertes, reportées plus bas pour S6 : le mode séance sur le compte d'un élève, et les deux e2e
 de `gl-users-admin`.
 
-### Pour S6 (docs)
+### Pour S6 (docs) : fait
+
+Les notes ci-dessous ont servi à S6 ; elles restent là comme trace. Ce qui en reste ouvert est
+dans la section S6 (« Points à trancher ou à relire par Oliv »).
 
 - **La console est déjà documentée** par S5 dans `guide-du-mj.md` (note « Écrans de séance : la
   console, en mode séance ») et `roles-et-connexion.md` (où trouver le QR de la classe) :
