@@ -9,7 +9,7 @@ import { GLGameBoardRoster } from '../../src/gl/components/GLGameBoardRoster.jsx
 import { GLMarketComptoirPanel } from '../../src/gl/components/GLMarketPlacePanels.jsx';
 import { GLSeuilGardeRobe } from '../../src/gl/components/GLSeuilGardeRobe.jsx';
 import { GLButDeLAnnee } from '../../src/gl/components/tenir/GLButDeLAnnee.jsx';
-import { GLTenirEquipeView } from '../../src/gl/components/tenir/GLTenirEquipeView.jsx';
+import { GLTenirEcranEquipe } from '../../src/gl/components/tenir/GLTenirEcranEquipe.jsx';
 import { gemmesSeules, gemmesTexte } from '../../src/gl/utils/glMonnaie.js';
 import { computePlayerVitality } from '../../src/gl/utils/glGameplayRules.js';
 import { findForbiddenString } from '../../src/shared/glGardeFousCore.js';
@@ -124,9 +124,11 @@ describe('une seule monnaie — la bourse à l’écran', () => {
       reserves: [{ teamId: 2, power: 3 }],
     };
     const { container } = render(
-      <GLTenirEquipeView gameState={gameState} tenir={tenir} teamId={2} onReloadGame={vi.fn()} />,
+      <GLTenirEcranEquipe gameState={gameState} tenir={tenir} teamId={2} onReloadGame={vi.fn()} />,
     );
-    await waitFor(() => expect(container.textContent).toMatch(/💎 4/));
+    // Les bourses dans le bandeau ; la réserve de la caravane dans le tiroir « L'équipe ».
+    await waitFor(() => expect(screen.getByTestId('gl-tenir-bourses').textContent).toMatch(/💎 4/));
+    fireEvent.click(screen.getByTestId('gl-tenir-tiroir-bouton'));
     expect(screen.getByTestId('gl-tenir-reserve').textContent).toMatch(
       /Réserve de la caravane : 💎 3/,
     );

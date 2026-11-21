@@ -61,9 +61,23 @@ const cleDe = (e) => e?.id ?? `${e?.eventType}-${e?.createdAt}`;
  * Ensemble unifié (M8) — « première fois » : le serveur désigne, sur l'évènement qui la
  * déclenche, la ou les lignes à dire une seule fois dans la partie (`payload.olu`). Elles
  * passent avant toute autre, se disent une à une, et tiennent la bulle le temps d'être lues.
+ *
+ * `ligneDeLEcran` (`{ id, texte, expression }`) : une ligne que l'écran dit **lui-même**, une
+ * fois, sans qu'aucun évènement la désigne (la tablette d'équipe : « Le Marché et le Seuil
+ * s'ouvrent depuis le compte de chacun. »). Le texte du catalogue passe devant celui reçu, qui
+ * sert de repli quand le catalogue n'a pas pu être lu (une ligne retirée du catalogue ne se dit
+ * plus) ; elle prend son tour dans la même file. `onLigneDeLEcranDite(id)` : c'est fait.
  * @returns {{ line: null|{ id, texte, expression, moment }, speakerName, frozen }}
  */
-export function useGlTenirOlu({ gameId, events = [], teams = [], enabled = true, teamId = null }) {
+export function useGlTenirOlu({
+  gameId,
+  events = [],
+  teams = [],
+  enabled = true,
+  teamId = null,
+  ligneDeLEcran = null,
+  onLigneDeLEcranDite = null,
+}) {
   const [data, setData] = useState(cache);
   const [line, setLine] = useState(null);
   const lastSeenRef = useRef(null);
@@ -71,6 +85,26 @@ export function useGlTenirOlu({ gameId, events = [], teams = [], enabled = true,
   const timerRef = useRef(null);
   const tenueJusquaRef = useRef(0);
   const { speakerName, frozen } = useGlNarrator();
+
+  // Les lignes en file (« première fois », ligne de l'écran) se disent une à une, chacune le
+  // temps d'être lue.
+  const direSuivanteRef = useRef(null);
+  direSuivanteRef.current = () => {
+    timerRef.current = null;
+    const suivante = fileRef.current.shift();
+    if (!suivante) return;
+    setLine(suivante);
+    tenueJusquaRef.current = Date.now() + OLU_PREMIERE_FOIS_MS;
+    if (fileRef.current.length) {
+      timerRef.current = setTimeout(() => direSuivanteRef.current(), OLU_PREMIERE_FOIS_MS);
+    }
+  };
+  const lancerLaFile = useRef(() => {
+    if (!fileRef.current.length || timerRef.current) return;
+    const attente = tenueJusquaRef.current - Date.now();
+    if (attente > 0) timerRef.current = setTimeout(() => direSuivanteRef.current(), attente);
+    else direSuivanteRef.current();
+  }).current;
 
   useEffect(() => {
     if (!gameId || !enabled) return undefined;
@@ -110,14 +144,6 @@ export function useGlTenirOlu({ gameId, events = [], teams = [], enabled = true,
     lastSeenRef.current = key;
 
     // « Première fois » : les lignes désignées par le serveur, mises en file, dites une à une.
-    const direSuivante = () => {
-      timerRef.current = null;
-      const suivante = fileRef.current.shift();
-      if (!suivante) return;
-      setLine(suivante);
-      tenueJusquaRef.current = Date.now() + OLU_PREMIERE_FOIS_MS;
-      if (fileRef.current.length) timerRef.current = setTimeout(direSuivante, OLU_PREMIERE_FOIS_MS);
-    };
     for (const e of nouveaux) {
       for (const o of Array.isArray(e?.payload?.olu) ? e.payload.olu : []) {
         const ligne = data.lignes.find((l) => l.id === o?.id);
@@ -134,11 +160,7 @@ export function useGlTenirOlu({ gameId, events = [], teams = [], enabled = true,
       }
     }
     if (fileRef.current.length) {
-      if (!timerRef.current) {
-        const attente = tenueJusquaRef.current - Date.now();
-        if (attente > 0) timerRef.current = setTimeout(direSuivante, attente);
-        else direSuivante();
-      }
+      lancerLaFile();
       return;
     }
     // Une ligne « première fois » encore à l'écran garde la bulle le temps d'être lue.
@@ -172,7 +194,33 @@ export function useGlTenirOlu({ gameId, events = [], teams = [], enabled = true,
       expression: chosen.expression || 'neutre',
       moment,
     });
-  }, [events, data, enabled, teamNames, teamId]);
+  }, [events, data, enabled, teamNames, teamId, lancerLaFile]);
+
+  // La ligne que l'écran dit lui-même : une fois par montage, dès que le catalogue est lu.
+  const ligneDeLEcranId = ligneDeLEcran?.id || null;
+  const ligneDeLEcranRef = useRef(ligneDeLEcran);
+  ligneDeLEcranRef.current = ligneDeLEcran;
+  const onDiteRef = useRef(onLigneDeLEcranDite);
+  onDiteRef.current = onLigneDeLEcranDite;
+  const diteRef = useRef(null);
+  useEffect(() => {
+    if (!enabled || !data || !ligneDeLEcranId || diteRef.current === ligneDeLEcranId) return;
+    const servie = data.lignes.find((l) => l.id === ligneDeLEcranId) || null;
+    // Catalogue lu, mais sans cette ligne : elle en a été retirée (`actif: false`), Olu ne la
+    // dit plus. Le repli ne sert que si le catalogue n'a pas pu être lu du tout.
+    if (!servie && data.lignes.length) return;
+    const texte = String(servie?.texte || ligneDeLEcranRef.current?.texte || '').trim();
+    if (!texte) return;
+    diteRef.current = ligneDeLEcranId;
+    fileRef.current.push({
+      id: ligneDeLEcranId,
+      texte,
+      expression: servie?.expression || ligneDeLEcranRef.current?.expression || 'neutre',
+      moment: 'premiere_fois',
+    });
+    lancerLaFile();
+    onDiteRef.current?.(ligneDeLEcranId);
+  }, [enabled, data, ligneDeLEcranId, lancerLaFile]);
 
   return { line, speakerName, frozen };
 }

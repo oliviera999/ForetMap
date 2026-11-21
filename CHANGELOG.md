@@ -52,6 +52,185 @@ Constats U3, U4, U6, U8, U9 et U11 de `docs/AUDIT_UI_UX_2026-11-19.md`, et point
   à icône de la barre à partir de 640 px, `h1` en Visite invitée.
 - **Interne** : points de bascule de la fiche ramenés dans l'échelle (980, 760, 700 → 1024,
   768) ; plafonds du garde-fou abaissés à 51 bornes / 21 valeurs.
+### Modifié — G&L : écrans de séance, lot 6 (l'accueil allégé, docs et clôture)
+
+Sixième et dernier lot du chantier « écrans de séance »
+(`docs/prompts/GL_ECRANS_DE_SEANCE_PROMPT.md`, étapes 6 et 7 ; suivi dans
+`docs/prompts/GL_ECRANS_DE_SEANCE_ETAT.md`). La page de connexion de G&L pèse moins, et les
+documents disent les écrans tels qu'ils sont. Aucune règle, aucun schéma, aucun réglage ne
+change ; une route existante reçoit un champ optionnel.
+
+- **Variante WebP des images de marque** (`lib/glBrandImages.js`) : 1 600 px de large au plus,
+  200 Ko visés (qualité abaissée par paliers), rangée sous `uploads/gl_brand/optim/` avec
+  l'empreinte de l'original dans son nom — la même image rend toujours la même adresse.
+  L'original n'est ni modifié ni supprimé. Rien n'est produit pour une image déjà légère, un
+  format non pris en charge ou une adresse hors de `/uploads` : l'adresse d'origine reste.
+- **À l'envoi** : `POST /api/gl/admin/media-library` accepte `usage: 'brand'` et rend alors
+  `optimized` (`{ url, size, width, height }` ou `null`) ; `GLBrandEditor` range cette adresse
+  dans l'emplacement (« Image de charte importée, en version allégée pour l'accueil. »). Sans
+  ce champ, la route répond comme avant.
+- **Pour les images déjà en base** : `scripts/gl-brand-optimiser.js`, **à blanc par défaut**
+  (`--apply` pour écrire), idempotent, sans écriture s'il n'y a rien à faire ; il traite le
+  héros, les trois vignettes et le logo (512 px, 60 Ko visés). À lancer sur le serveur après
+  la fusion, à blanc d'abord (`docs/EXPLOITATION.md`).
+- **Écran de connexion** : les trois vignettes (`GLBrandHub`) portent `decoding="async"` et
+  des dimensions explicites au ratio de leur cadre (elles avaient déjà `loading="lazy"`) ; le
+  logo (`GLAuthView`) annonce 88 × 88.
+- **Projection, lien fermé** (relecture garde-fous du chantier) : quand le lien de projection
+  est révoqué (clôture du chapitre) ou échu, l'écran déjà ouvert dit « Cette projection est
+  fermée. Le prof peut en ouvrir une nouvelle depuis son écran. » au lieu du refus brut du
+  serveur (« Accès refusé à cette partie »).
+- **Docs** : `docs/GL_TENIR_A_DEUX_REGLES.md` (§ 3 « Les écrans de séance » : écran d'équipe
+  en trois choses, projection, console ; rôles, erreur d'Olu, « Ce qui change », accroche),
+  `docs/GL_TENIR_A_DEUX.md` (section « Écrans de séance »), `docs/reference/gl/guide-du-mj.md`
+  (note « l'accueil, plus léger »), `docs/API.md`, `docs/EXPLOITATION.md`, skills
+  `gl-tenir-moteur` et `foretmap-gl-project`. Captures « après » de la connexion.
+- **Tests** : `tests/gl-brand-images.test.js` (module, script à blanc puis appliqué puis sans
+  effet, route), `tests-ui/gl/GLBrandEditor.test.jsx` (l'emplacement pointe vers la variante
+  après l'envoi), `GLBrandHub.test.jsx`, `GLAuthView.test.jsx`.
+
+### Modifié — G&L : écrans de séance, lot 5 (la console du prof en mode séance)
+
+Cinquième lot du chantier « écrans de séance » (`docs/prompts/GL_ECRANS_DE_SEANCE_PROMPT.md`,
+étape 5 ; suivi dans `docs/prompts/GL_ECRANS_DE_SEANCE_ETAT.md`). Sur « Jouer le tour », la
+console laisse la place au tour. Aucune règle, aucune route, aucun schéma, aucun réglage ne
+change.
+
+- **Mode séance** : tant que `GLTourScreen` est monté, `GLTopBar` tient sur une ligne (nom de
+  la partie, tour et phase, bouton « Menu » qui redéplie les onglets et le compte ; « Réduire le
+  menu » y revient). L'écran du tour se déclare dans `src/gl/utils/glModeSeance.js`, `AppGL` le
+  lit : ni contexte ni prop à travers le morceau paresseux de la console.
+- **Ordre de l'écran du tour** : bandeau (phase, boutons du tour, sablier, « Lien de
+  projection », « Quitter l'écran du tour », tablettes en une ligne) → **demandes** → équipes
+  → le reste. La bulle d'Olu et son erreur quittent le bandeau.
+- **Tablettes en une ligne** (`GLClassLinkPanel`) : « 4 tablettes connectées ✓ », « 1 tablette
+  attend »… ; le détail (QR de la classe, « Déconnecter ») se déplie au toucher, et d'office
+  tant qu'une tablette attend d'entrer.
+- **Cartes d'équipe** : l'avance libre de `GLTourDesSaisie` attend derrière « Corriger la
+  position… » (motif toujours obligatoire, « Annuler »). Le formulaire se referme une fois la
+  correction faite.
+- **Erreur d'Olu** : titre « Qui a trouvé l'erreur d'Olu ? », un bouton au nom de chaque
+  équipe (plus de « corrigé par … »).
+- **Erreurs réseau** : `apiGL` reçoit un `onNetworkError` — plus de « Failed to fetch » brut,
+  mais la phrase française selon la session (prof, élève au « tu », tablette d'équipe et
+  projection au « vous », visiteur). Les phrases communes passent dans
+  `src/shared/networkFailureMessages.js` (`src/services/api.js` les réexporte, inchangées) ;
+  celle de l'équipe vit dans `src/gl/constants/glPanneReseau.js`, relue par le test de contenu
+  d'adresse et de mots interdits.
+  L'identifiant de requête ne figure plus dans le message lu par un élève ou une équipe
+  (`err.requestId` le garde) ; la console le montre en petit (`GLErreurTexte`).
+- **Morceaux paresseux** : les `lazy()` de `GLGameMasterConsole` passent par
+  `lazyAvecReprise` (deux nouvelles tentatives, délai borné, puis « L'application vient d'être
+  mise à jour » — ou « Pas de réseau pour l'instant. » hors ligne — et « Recharger ») au lieu
+  de rester sur « Chargement de la section… ».
+- **Visite guidée** (`GuidedTourOverlay`, partagé avec ForêtMap) : au dernier pas, un seul
+  bouton « Terminer » ; ni « Étape 1 / 1 » ni point de progression pour une visite d'une seule
+  étape ; prop `buttonClassNames`, par laquelle G&L donne à la carte ses boutons `.gl-btn`
+  (ForêtMap garde ses `.btn` par défaut).
+- **Contrats de test changés** : `gl-class-link-sessions-count` dit « n tablettes
+  connectées… » (plus « n équipes sur N ») et vit dans le bouton `gl-class-link-resume` ;
+  `gl-class-link-qr` et « Déconnecter » ne sont rendus que panneau déplié ; le champ « Motif de
+  l'avance libre » n'existe qu'après « Corriger la position… » ; les boutons « corrigé par … »
+  deviennent le nom de l'équipe ; la visite guidée n'a plus de bouton « Fermer » au dernier pas.
+- **Doc de référence** : `docs/reference/gl/guide-du-mj.md` (note « la console, en mode
+  séance »), `roles-et-connexion.md` (où trouver le QR de la classe).
+
+### Modifié — G&L : écrans de séance, lot 4 (l'écran d'équipe en trois choses, branché)
+
+Quatrième lot du chantier « écrans de séance » (`docs/prompts/GL_ECRANS_DE_SEANCE_PROMPT.md`,
+étape 4, seconde moitié ; suivi dans `docs/prompts/GL_ECRANS_DE_SEANCE_ETAT.md`). La tablette
+d'équipe et le compte d'un élève montrent désormais **le plateau, une seule carte du moment et
+Olu** : à 1024 × 768 le plateau commence sous un bandeau de 53 px (il commençait vers 760 px),
+et la page ne défile plus. Aucune règle, aucune route, aucun schéma, aucun réglage ne change :
+les gestes montrés sont toujours ceux que le serveur ouvre, et il les rejoue.
+
+- **Un seul écran, deux entrées** : `GLTenirEcranEquipe` (bandeau, plateau en présentation
+  `tenir`, `GLTenirMoment`, tiroir « L'équipe ») est monté par `GLTeamSessionView` (tablette,
+  tour ouvert ou non) et par `AppGL` (onglet du plateau d'un compte élève). Les deux points de
+  montage ne rendent plus l'écran d'équipe puis le plateau l'un sous l'autre.
+- **Mise en page** : deux colonnes à partir de 1 024 px, ou de 768 px en paysage (plateau
+  ≈ 62 %, action ≈ 38 %, 320 px au moins) ; sinon le plateau en haut et la carte du moment
+  dans une feuille en bas, au-dessus de la barre de navigation sur un compte. La page ne
+  défile pas ; seule la colonne d'action défile s'il le faut. Fenêtre trop basse (téléphone
+  couché) : la page défile, le plateau garde 240 px au moins.
+- **Supprimés de l'écran** : l'en-tête de session et le mot de surface, « Actualiser », la
+  liste « Maintenant, vous pouvez… », les boutons grisés (un geste fermé est **absent**), la
+  phrase « Le Marché et le Seuil s'ouvrent depuis le compte de chacun. » — devenue une ligne
+  d'Olu (`olu-pf-comptes`, catalogue `olu-lignes.json` : 101 lignes), que la tablette dit une
+  fois, quand un tour est ouvert et que le Marché l'est aussi.
+- **« Relire l'écran »** : l'icône du bandeau n'apparaît que si le temps réel est coupé depuis
+  plus de quatre secondes (`useGlTempsReelCoupe`) ou si l'état est périmé ; au retour de la
+  connexion, l'écran se relit seul.
+- **Ce qui est ouvert ne survit pas au tour** : au changement de tour ou de phase, la saisie
+  des dés et la liste des sorts se referment, une question périmée s'oublie, et le plateau
+  n'attend plus de fouille. Le mode fouille se désarme aussi dès que le droit se ferme (il
+  restait armé : chaque toucher partait au serveur, qui refusait).
+- **L'élève qui regarde le tour** (absent ou en retrait, sur son compte) ne voit plus « Garder
+  ce jet », « Accepter » une tablette ni les présences, que le serveur lui refusait.
+- **Surface « tableau » : rien ne change** (garde-fou 12). `GLTenirEquipeView`, l'ancien écran
+  empilé, reste monté tel quel quand la partie se joue au tableau ou que le prof a touché
+  « Tout au tableau ». La logique des deux écrans vit dans un seul hook, `useGlTenirEquipe`.
+- **Tests** : `GLTenirEcranEquipe.test.jsx` (32 scénarios, portés de l'ancien écran : un bouton
+  grisé est devenu un bouton absent), `useGlTempsReelCoupe.test.jsx`, `GLTeamSessionView`,
+  `GLDeuxEcrans`, `GLEscalier`, `GLUneMonnaie` et `tenir-chaines-interdites` portés sur le
+  nouvel écran ; e2e `gl-tenir-tablettes` et `gl-tenir-escalier` adaptés, avec les mesures
+  « le plateau commence à moins de 120 px, la carte du moment est entière à l'écran, rien ne
+  défile » à 1024 × 768 et « plateau et feuille d'action visibles » à 390 × 844. Captures
+  dans `docs/captures/ecrans-de-seance/apres/`.
+- **Docs** : `docs/reference/gl/guide-du-mj.md` (note « L'écran d'équipe en trois choses ») et
+  `roles-et-connexion.md` (§ La tablette d'équipe).
+
+### Modifié — G&L : écrans de séance, lot 3 (le moteur de la carte du moment)
+
+Troisième lot du chantier « écrans de séance » (`docs/prompts/GL_ECRANS_DE_SEANCE_PROMPT.md`,
+étape 4, première moitié ; suivi dans `docs/prompts/GL_ECRANS_DE_SEANCE_ETAT.md`). L'écran
+d'équipe va montrer **une seule chose à la fois** : ce que l'équipe a à faire maintenant. Ce lot
+pose le moteur et les trois composants **sans les brancher** : rien ne change à l'écran (le lot
+suivant les monte). Aucune règle, aucune route, aucun schéma, aucun réglage ne change.
+
+- **Moteur** (`src/gl/utils/glTenirMoment.js`, fonctions pures) : `momentDeLEquipe` choisit un
+  seul état parmi quatorze, du plus pressant au moins pressant (péripétie, main tenue par un
+  autre appareil, demande d'appareil, question, jet en suspens, saisie des dés, jet à valider,
+  retour, geste, tour joué, voile, camp, tour terminé, attente). Il ne lit que les droits
+  servis : un geste fermé n'apparaît pas, il n'est plus grisé. Ordre du gros bouton : répondre,
+  lancer, fouiller, lire, sorts ; trois puces au plus pour les autres gestes ouverts.
+- **Composants** (`src/gl/components/tenir/`) : `GLTenirBandeau` (mascotte, phase en mots
+  d'élève, sablier, une bourse par membre, bouton du tiroir), `GLTenirMoment` (la carte du
+  moment, ses bandeaux d'une ligne, puis Olu) et `GLTenirTiroir` (« L'équipe » : cases à venir en
+  pastilles, réserve, défi à préparer, carnet et bestiaire, présences). Les blocs existants y
+  sont déplacés, pas réécrits.
+- **Hooks** : `useGlTenirRetour` (le retour d'une fouille ou d'une question reste jusqu'à
+  « Continuer », et s'efface au changement de phase) et `useGlTenirTiroir` (fermé par défaut,
+  pastille de nouveauté).
+- **Aucune attente sans sortie** : une question restée ouverte ne se montre plus hors de la phase
+  de jeu ; « Votre tour est joué. » ne se dit que si le jet est fait et qu'il ne reste aucune
+  fouille ; le carnet du tiroir n'offre « Lire » que si le droit est servi.
+- Textes de fouille : une seule source (`TENIR_VERDICT_TEXTES`), lue par l'écran actuel comme
+  par la carte du moment.
+- Tests : `tests-ui/gl/glTenirMoment.test.js`, `GLTenirMoment.test.jsx`,
+  `GLTenirBandeau.test.jsx`, `GLTenirTiroir.test.jsx`, `useGlTenirMomentHooks.test.jsx` (100
+  tests) ; `tests/content/gl-adresse-ecran-equipe.test.js` relit aussi le moteur (vous, jamais
+  tu ; aucun mot interdit).
+### Modifié — G&L : écrans de séance, lot 2 (la projection en mode tableau)
+
+La projection tient sur un seul écran, sans défilement à 1920 × 1080, et se lit du fond de la
+salle. Aucune règle, aucune route, aucun schéma, aucun réglage ne change.
+
+- **Grille plein écran** (`GLProjectionView`) : bandeau (partie, tour et phase en mots d'élève,
+  sablier), plateau à gauche en `presentation="projection"`, équipes en pastilles, Lumière en
+  jauge et carnet de la classe en pages à droite, trois faits marquants en bas.
+- **À la clôture du tour**, la carte « À la prochaine séance » remplace l'écran (page du
+  Passeur, indice d'une page endormie, défis à préparer) ; « Voir le plateau » y ramène.
+  Pendant le souffle et au camp, « La page du jour » s'ouvre de la même façon, à la demande.
+- **Voile plus lisible** au tableau (bande plus opaque, contour), sans pictogramme ; les cases
+  et les pions n'y sont plus des boutons.
+- Les indices du carnet ne sont plus au tableau (ils restent sur les écrans d'équipe) ; sans
+  tour ouvert, la projection dit « Le prof ouvre bientôt le tour. ».
+- `GLTourJournal` reçoit `marquants` (filtre fait à l'écran, la route du journal ne change pas).
+- Tests d'écran (projection, journal, voile, cases, plateau) et nouvel e2e
+  `gl-tenir-projection` (mesures à 1920 × 1080, captures dans
+  `docs/captures/ecrans-de-seance/apres/`).
+
 ### Modifié — G&L : écrans de séance, lot 1 (textes, adresse, phases, plateau)
 
 Premier lot du chantier « écrans de séance » (`docs/prompts/GL_ECRANS_DE_SEANCE_PROMPT.md`,

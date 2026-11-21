@@ -124,6 +124,10 @@
   justify-content: space-between;
   gap: 8px;
 }
+/* Dernier pas : plus de « Passer », le seul bouton « Terminer » reste à droite. */
+.discovery-tour__actions.is-last {
+  justify-content: flex-end;
+}
 .discovery-tour__nav {
   display: flex;
   gap: 8px;

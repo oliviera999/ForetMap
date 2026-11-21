@@ -130,6 +130,50 @@ describe('DiscoveryTour', () => {
     expect(document.querySelector('[data-speech-bubble-speaker]')).toHaveTextContent('OLU');
   });
 
+  it('au dernier pas, un seul bouton de sortie : « Terminer » (plus de « Fermer » en double)', () => {
+    const onNext = vi.fn();
+    render(<DiscoveryTour active={makeActive(1)} onNext={onNext} />);
+    expect(screen.queryByRole('button', { name: 'Fermer' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Passer' })).toBeNull();
+    expect(screen.getAllByRole('button').map((b) => b.textContent)).toEqual([
+      'Précédent',
+      'Terminer',
+    ]);
+    fireEvent.click(screen.getByRole('button', { name: 'Terminer' }));
+    expect(onNext).toHaveBeenCalledTimes(1);
+  });
+
+  it('visite d’une seule étape : ni points ni « Étape 1 / 1 », un seul bouton', () => {
+    const active = { ...makeActive(0), steps: makeActive(0).steps.slice(0, 1) };
+    render(<DiscoveryTour active={active} />);
+    expect(document.querySelector('.discovery-tour__dots')).toBeNull();
+    expect(document.querySelector('.discovery-tour__progress')).toBeNull();
+    expect(screen.getAllByRole('button').map((b) => b.textContent)).toEqual(['Terminer']);
+  });
+
+  it('à plusieurs étapes, les points de progression restent', () => {
+    render(<DiscoveryTour active={makeActive(0)} />);
+    expect(document.querySelectorAll('.discovery-tour__dot')).toHaveLength(2);
+  });
+
+  it('boutons au thème de ForetMap par défaut ; un produit peut passer ses classes', () => {
+    const { unmount } = render(<DiscoveryTour active={makeActive(0)} />);
+    expect(screen.getByRole('button', { name: 'Suivant' })).toHaveClass('btn', 'btn-primary');
+    expect(screen.getByRole('button', { name: 'Passer' })).toHaveClass('btn', 'btn-ghost');
+    unmount();
+
+    render(
+      <DiscoveryTour
+        active={makeActive(0)}
+        buttonClassNames={{ ghost: 'gl-btn gl-btn--ghost', primary: 'gl-btn gl-btn--primary' }}
+      />,
+    );
+    const suivant = screen.getByRole('button', { name: 'Suivant' });
+    expect(suivant).toHaveClass('gl-btn', 'gl-btn--primary');
+    expect(suivant).not.toHaveClass('btn');
+    expect(screen.getByRole('button', { name: 'Passer' })).toHaveClass('gl-btn--ghost');
+  });
+
   it('Échap arrête le parcours même pendant la frappe', () => {
     const onStop = vi.fn();
     render(<DiscoveryTour active={makeActive(0)} onStop={onStop} />);

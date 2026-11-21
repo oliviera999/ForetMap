@@ -18,6 +18,22 @@ describe('GLAuthView', () => {
     apiGlMock.mockResolvedValue({ title: 'G&L', subtitle: '', allowGoogleStaff: false });
   });
 
+  // Écrans de séance, étape 6 (K11) : la place du logo est réservée avant son arrivée.
+  test('le logo annonce ses dimensions et se décode hors du fil principal', async () => {
+    apiGlMock.mockResolvedValueOnce({
+      title: 'G&L',
+      subtitle: '',
+      allowGoogleStaff: false,
+      brand: { logoUrl: '/uploads/gl_brand/optim/logo-abc-w512.webp' },
+    });
+    render(<GLAuthView onLogin={() => {}} />);
+    const logo = await screen.findByAltText('Logo plateforme');
+    expect(logo.getAttribute('src')).toBe('/uploads/gl_brand/optim/logo-abc-w512.webp');
+    expect(logo.getAttribute('width')).toBe('88');
+    expect(logo.getAttribute('height')).toBe('88');
+    expect(logo.getAttribute('decoding')).toBe('async');
+  });
+
   test('soumet le formulaire et appelle onLogin', async () => {
     apiGlMock
       .mockResolvedValueOnce({ title: 'G&L', subtitle: '', allowGoogleStaff: false })

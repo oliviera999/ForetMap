@@ -345,11 +345,12 @@ s'applique tout de suite, comme avant.
 
 - Au **chapitre 1**, tant que l'escalier n'a pas ouvert Relance (séance 4), un jet s'applique
   tout de suite : plus de « Gardez ce jet, ou lancez Relance » pour un sort pas encore ouvert.
-- La **question d'une case** se présente et se joue pendant la phase « jeu ». Une fois le
-  souffle lancé, une question restée à l'écran d'une équipe ne se joue plus ; depuis votre
+- La **question d'une case** se présente et se joue pendant « À vous de jouer » (la phase
+  « jeu »). Une fois le souffle lancé (« Le voile avance »), une question restée à l'écran d'une équipe ne se joue plus ; depuis votre
   écran, vous pouvez toujours la présenter. Au tableau, c'est vous qui la présentez et qui
   validez la réponse ; en hybride et sur tablette, l'équipe répond depuis sa tablette.
-- En **hybride**, l'équipe lance aussi ses **dés** depuis sa tablette, pendant la phase « jeu »,
+- En **hybride**, l'équipe lance aussi ses **dés** depuis sa tablette, pendant « À vous de
+  jouer »,
   comme sur tablette ; vous pouvez toujours lancer pour elle depuis votre écran. Avec des dés
   **physiques** (le réglage de départ en hybride), l'équipe saisit ses faces et vous les validez
   d'un clic dans « Jouer le tour » ; pour que l'app tire les dés elle-même, passez le mode de
@@ -373,7 +374,7 @@ s'applique tout de suite, comme avant.
 honneurs, sceaux et titres s'attribuent, les badges se calculent. Les parures ne reviennent plus
 au comptoir : chaque élève garde les siennes et les repose, au chapitre suivant, sur la mascotte
 de sa nouvelle équipe. La **projection** (bouton « Projeter ») donne un lien à ouvrir sur le vidéoprojecteur :
-rien n'y est cliquable, aucune bourse ne s'y affiche ; elle suit le tour sans rechargement et peut
+aucun geste de jeu ne s'y fait, aucune bourse ne s'y affiche ; elle suit le tour sans rechargement et peut
 s'ouvrir dans un second onglet de votre poste sans vous déconnecter. L'écran « Jouer le tour » se
 relit lui aussi quand une équipe joue depuis son appareil : cartes d'équipe et file « Demandes »
 se mettent à jour sans « Actualiser » (le bouton reste là en secours). Les **exports** (Team Spirit, badges) se
@@ -389,7 +390,8 @@ main, la relecture des pages écrites et des chimères s'y saisissent aussi.
   plus en partie ; 40 questions vives les remplacent. La case « Posée en partie » de l'écran
   des QCM règle le tirage question par question.
 - **Indices de chasse.** Les 36 indices du carnet de la classe sont devenus des énigmes
-  scientifiques (« Là où… »). Ils s'affichent en entier, sur tablette comme en projection.
+  scientifiques (« Là où… »). Ils s'affichent en entier sur les écrans d'équipe ; la projection
+  n'en montre plus qu'un, à la fin de la séance (voir « La projection, mode tableau »).
 - **Au tableau, les sorts du tour passent par vous.** Un élève ne peut plus lancer depuis son
   compte un sort qui se joue pendant la phase jeu : l'app lui répond « Au tableau, ce sort se
   lance avec le prof. ». Les sorts de veillée, de seuil et d'activité restent ouverts.
@@ -411,9 +413,10 @@ main, la relecture des pages écrites et des chimères s'y saisissent aussi.
 En hybride et sur tablette, il n'y a plus d'équipe « active » : les quatre équipes jouent en
 parallèle. Au tableau, rien ne change.
 
-- **Une tablette par équipe, sans compte.** Sur l'écran « Jouer le tour », le bouton **« QR de
-  la classe »** affiche une feuille à imprimer une fois pour l'année : un QR et un code de huit
-  caractères. L'équipe scanne le QR avec l'appareil photo de la tablette (ou tape le code depuis
+- **Une tablette par équipe, sans compte.** Sur l'écran « Jouer le tour », touchez la ligne des
+  tablettes (« Aucune tablette connectée », « 4 tablettes connectées ✓ ») pour la déplier : le
+  bouton **« QR de la classe »** affiche une feuille à imprimer une fois pour l'année : un QR et
+  un code de huit caractères. L'équipe scanne le QR avec l'appareil photo de la tablette (ou tape le code depuis
   « J'ai le code de la classe »), puis touche sa mascotte. **La tablette demande alors à
   entrer : touchez « Tout accepter »** en début de séance (ou « Accepter » / « Refuser », une
   par une). Une demande sans réponse s'éteint seule au bout de deux minutes. La tablette joue
@@ -450,7 +453,9 @@ parallèle. Au tableau, rien ne change.
 - **L'écran d'équipe guide le tour.** Les sorts y sont rangés par moment (« Avant de lancer »,
   « Après le jet », « Pendant le tour », « Au camp ou en veillée »), les six cases à venir sont affichées
   avant le jet, la distance au voile se lit sous chaque mascotte, et le carnet de la classe
-  signale les pages qui « attendent un lecteur ».
+  signale les pages qui « attendent un lecteur ». _(Depuis le 20 novembre 2026, les cases à
+  venir et le carnet sont dans le tiroir « L'équipe » : voir « L'écran d'équipe en trois
+  choses ».)_
 - **Le défi de case.** Les trois cases « Défi d'équipe » de chaque plateau confient à l'équipe
   qui s'y arrête un défi **à préparer pour la séance suivante** (titre, consigne, préparation
   sur son écran et à son Seuil). Le tour continue. Dans « Demandes », la ligne du défi vous
@@ -578,7 +583,10 @@ Au chapitre 1, on n'explique plus les règles : la classe les rencontre, une à 
 - **Olu dit le geste, une seule fois.** La première fois qu'un geste arrive dans la partie (le
   premier lancer, la première fouille, le premier dé gris, le premier sort…), Olu le dit en une
   phrase, puis n'y revient plus. Vous n'avez rien à lancer.
-- **« Maintenant, vous pouvez… ».** En tête de l'écran d'équipe, la liste des gestes possibles à
+- **« Maintenant, vous pouvez… ».** _(Depuis le 20 novembre 2026, cette liste est devenue la
+  carte du moment : un gros bouton pour le premier geste, les autres en petits boutons ; voir
+  « L'écran d'équipe en trois choses ». Elle reste telle quelle quand la partie se joue au
+  tableau.)_ En tête de l'écran d'équipe, la liste des gestes possibles à
   cet instant, chacun avec le rôle qu'il appelle : **Gestionnaire** (lancer les dés),
   **Éclaireuse ou Éclaireur** (la question de la case), **Opératrice ou Opérateur** (les
   fouilles), **Secrétaire** (lire et faire tenir une page), **Assistante ou Assistant** (les
@@ -589,7 +597,8 @@ Au chapitre 1, on n'explique plus les règles : la classe les rencontre, une à 
   nouveaux sorts, et ce que le plateau apporte. Elles s'affichent sur l'écran d'équipe, au Seuil
   de chaque élève et sur la projection.
 - **L'accroche de fin de séance.** Tour clos, la projection affiche « À la prochaine séance » :
-  la page du Passeur du jour et l'indice d'une page qui dort encore.
+  la page du Passeur du jour et l'indice d'une page qui dort encore. Depuis le 20 novembre 2026,
+  cette carte prend tout l'écran (voir « La projection, mode tableau »).
 - **Une seule limite de veillée.** Un élève gagne au plus **quatre pages par semaine** à la
   maison, toutes voies confondues (page tenue en veillée, défi de la Trame réussi), et ouvre une
   piste par semaine. Son écran lui dit « Encore N pages à gagner cette semaine. » Passé la
@@ -610,6 +619,151 @@ Au chapitre 1, on n'explique plus les règles : la classe les rencontre, une à 
   quatrième de couverture tutoie l'élève et dit le Souffle par ce qu'il fait (le carnet pâlit,
   le monde se dessèche).
 - **Dans l'assistant de sort**, le bouton qui renonce s'appelle « Ne pas lancer ».
+
+### Écrans de séance : la projection, mode tableau (20 novembre 2026)
+
+La projection tient désormais sur **un seul écran, sans défilement**, et se lit du fond de la
+salle (réglée pour un vidéoprojecteur en 1920 × 1080).
+
+- **En haut**, le nom de la partie, le tour et sa phase (« Tour 2 — À vous de jouer »), la case
+  du voile, et le sablier quand il tourne. Avant le premier tour : « Le prof ouvre bientôt le
+  tour. »
+- **À gauche, le plateau**, en grand, sans titre ni bouton. Le voile y est plus marqué qu'ailleurs
+  (bande plus sombre, cernée d'un trait) pour se voir de loin.
+- **À droite**, les équipes en grosses pastilles (mascotte, nom, case, et s'il y a lieu « au
+  camp », « sous le voile », « un seul dé ») ; la **Lumière de la classe** en jauge, une fois
+  ouverte ; le **carnet de la classe**, une tuile par page : « dort encore », « révélée par … »,
+  « trouvée par … », « tenue par … », « pâlie », « réparée ». Une page trouvée porte son titre ;
+  les autres s'appellent « Page 1 », « Page 2 »… Les indices (« Là où… ») ne sont plus au
+  tableau, faute de place : les équipes les lisent sur leur écran.
+- **En bas, les trois derniers faits marquants** : une page trouvée ou tenue, un défi relevé, le
+  voile qui avance, une arrivée au camp, une péripétie. Les jets de dés et les fouilles n'y
+  passent plus ; le journal complet reste dans « Jouer le tour ».
+- **À la clôture du tour**, la carte « À la prochaine séance » **remplace l'écran** : la page du
+  Passeur, l'indice d'une page qui dort encore, et les défis à préparer. Le bouton « Voir le
+  plateau » revient au plateau ; le bouton « À la prochaine séance », en haut, rouvre la carte.
+- **Pendant la phase « Le voile avance »**, le plateau reste à l'écran. La page du Passeur
+  s'ouvre en grand par le bouton « La page du jour », en haut à droite, et se referme par
+  « Voir le plateau ». Ce sont les deux seuls boutons de la projection : ils changent ce qui est
+  affiché, jamais la partie.
+- **Au camp** (chapitre clos), « Ce qui change au prochain chapitre » prend la place des faits
+  marquants, en bas. **Attention : clore le chapitre ferme le lien de projection en cours.** La
+  projection déjà ouverte affiche alors « Cette projection est fermée. Le prof peut en ouvrir
+  une nouvelle depuis son écran. » : créez un nouveau lien de projection pour montrer le camp.
+- Sur une fenêtre étroite (moins de 1 024 points de large, un téléphone par exemple), les mêmes
+  blocs s'empilent et la page défile.
+
+### Écrans de séance : l'écran d'équipe en trois choses (20 novembre 2026)
+
+L'écran d'une équipe — sur la tablette de la classe comme sur le compte d'un élève — ne montre
+plus tout ce que l'équipe pourrait faire : il montre **le plateau**, **une seule carte** (ce
+qu'elle a à faire maintenant) et **Olu**. Sur une tablette, tout tient à l'écran, sans défiler.
+
+- **En haut, un bandeau fin** : la mascotte et le nom de l'équipe, le tour et sa phase (« Tour
+  2 — À vous de jouer »), le sablier quand il tourne, **la bourse de chaque membre** (pseudo et
+  gemmes) et le bouton **« ☰ L'équipe »**. Hors tour, la tablette ne montre aucune bourse, comme
+  avant. Le nom de la classe et le mot « tablette » ont disparu.
+- **Le plateau, en grand**, à gauche (en haut sur un écran étroit ou un téléphone). Un seul
+  bouton : « Recentrer ». On zoome en écartant deux doigts.
+- **La carte du moment**, à droite (en bas sur un téléphone). Une seule chose à la fois, dans
+  cet ordre : une péripétie à lire ; « Lina prépare un sort… » quand un autre appareil de
+  l'équipe a la main ; une tablette qui demande à rejoindre l'équipe ; la question à laquelle
+  répondre ; le jet à garder (ou à relancer) ; la saisie des dés ; « Jet saisi : le prof
+  valide. » ; le retour d'une fouille ou d'une réponse ; **le geste à faire** ; « Votre tour est
+  joué. Regardez les autres équipes. » ; « Le voile avance. » ; « Le tour est terminé. » (avec
+  le défi à préparer) ; « Le prof ouvre bientôt le tour. »
+- **Le geste à faire, c'est un gros bouton** — « Répondre à la question », « Lancer les dés »,
+  « Fouiller », « Lire », « Jeter un sort », dans cet ordre de priorité — avec, au-dessus, le
+  rôle qu'il appelle (« GESTIONNAIRE »). Les autres gestes possibles sont de petits boutons
+  dessous, trois au plus. **Un geste fermé n'est plus grisé : il n'est pas là.** Les rôles
+  restent un conseil : n'importe qui peut toucher le bouton.
+- **Fouiller** : la carte dit « Touchez la carte · 2 fouilles », le plateau prend un bord doré,
+  et « Arrêter de fouiller » en sort. Après la fouille, la carte donne le retour (« Froid : la
+  page dort plus loin. », « Pas encore… » et où lire la réponse) ; l'équipe touche
+  **« Continuer »** pour revenir à ses gestes.
+- **Le tiroir « L'équipe »** s'ouvre par le bouton du bandeau, par-dessus le plateau, et se
+  referme par « Fermer ». Il garde le reste : les **six cases à venir** (en pastilles), la
+  réserve de la caravane, le défi à préparer, le **carnet de la classe** et le Bestiaire (le
+  bouton « Lire » l'ouvre directement sur le carnet), les présences une fois le tour commencé,
+  « Changer d'équipe » (tablette) ou « Mes badges » (compte d'un élève). Un point doré sur le
+  bouton signale du nouveau (une page trouvée, la réserve qui bouge).
+- **Plus de bouton « Actualiser ».** L'écran suit le tour tout seul. Si le Wi-Fi de la tablette
+  tombe, une flèche ronde **« Relire l'écran »** apparaît dans le bandeau ; elle apparaît aussi
+  quelques secondes après « L'équipe a déjà joué ce geste. Voici où vous en êtes. » Quand la
+  connexion revient, l'écran se relit de lui-même.
+- **Hors tour**, la tablette garde le même écran : le plateau, « Le prof ouvre bientôt le
+  tour. », et le bouton « Défis de la Trame ». « Changer d'équipe » est dans le tiroir.
+- **Olu dit une fois**, sur la tablette, « Le Marché et le Seuil s'ouvrent depuis le compte de
+  chacun. » (la phrase n'est plus affichée en permanence). Il ne le dit pas tant que le Marché
+  est fermé.
+- **Sur le compte d'un élève**, la barre de l'application reste en haut et l'écran d'équipe
+  prend le reste de la fenêtre ; sur un téléphone, la carte du moment est une feuille en bas,
+  au-dessus de la barre de navigation, et les bourses passent dans le tiroir.
+- **« Tout au tableau » et parties jouées au tableau : rien ne change.** Quand vous portez les
+  gestes (surface « tableau »), les écrans d'équipe gardent leur présentation d'avant : la
+  liste des boutons, grisés, au-dessus du plateau. Si vous touchez « Tout au tableau » en pleine
+  séance, les tablettes repassent donc à cet ancien écran, et reviennent au nouveau quand vous
+  rendez la main.
+
+### Écrans de séance : la console, en mode séance (20 novembre 2026)
+
+Tant que l'écran **« Jouer le tour »** est ouvert, la console se range pour laisser la place au
+tour. Rien ne change dans les règles ni dans ce que font les boutons.
+
+- **La barre du haut tient sur une ligne** : le nom de la partie, le tour et sa phase (« Tour
+  2 — À vous de jouer »), et un bouton **« Menu »**. Les onglets, « Mon profil » et
+  « Déconnexion » sont derrière « Menu » ; « Réduire le menu » revient à une ligne. En quittant
+  l'écran du tour (« Quitter l'écran du tour », ou un autre onglet), la barre redevient comme
+  avant.
+- **L'ordre de l'écran** : d'abord le bandeau du tour (la phase, les boutons du tour, le
+  sablier, « Lien de projection », « Quitter l'écran du tour », et les tablettes en une ligne),
+  puis **les demandes**, puis les équipes, puis le reste (dés à valider, jets en attente, le
+  voile, Olu, absences, Team Spirit).
+- **Les tablettes en une ligne.** « 4 tablettes connectées ✓ » quand chaque équipe a la sienne,
+  « 3 tablettes connectées · 3 équipes sur 4 » sinon, « Aucune tablette connectée » en début de
+  séance. Touchez la ligne pour la déplier : le « QR de la classe », et une ligne par tablette
+  avec « Déconnecter ». **Quand une tablette attend d'entrer, la ligne dit « 1 tablette
+  attend » et se déplie toute seule**, avec « Tout accepter », « Accepter » et « Refuser » ;
+  elle se replie une fois la demande traitée.
+- **Les cartes d'équipe ne montrent plus que l'essentiel** : la case, les dés, les fouilles, la
+  réserve, et le jet. L'avance libre (faire avancer une équipe de 1 à 12 cases) est derrière le
+  bouton **« Corriger la position… »** ; le motif reste obligatoire, « Annuler » referme sans
+  rien envoyer.
+- **L'erreur d'Olu** : sous la phrase d'Olu, la question **« Qui a trouvé l'erreur d'Olu ? »**
+  et un bouton au nom de chaque équipe (ils s'appelaient « corrigé par … »). Le bloc est
+  maintenant sous les équipes, avec la bulle d'Olu.
+- **Quand le réseau tombe**, la console le dit en français (« Pas de réseau pour l'instant : le
+  serveur ne répond pas… ») au lieu d'un message technique en anglais. Sur une tablette
+  d'équipe, la phrase vouvoie l'équipe (« … prévenez le prof. ») ; sur le compte d'un
+  élève, elle le tutoie. Le numéro de requête d'une erreur n'apparaît plus chez les élèves ;
+  dans la console, il est écrit en petit après le message : donnez-le si vous signalez un
+  problème.
+- **Juste après une mise à jour de l'application**, une section de la console qui ne peut plus
+  se charger ne reste plus sur « Chargement de la section… » : elle réessaie deux fois, puis
+  affiche « L'application vient d'être mise à jour » et un bouton **« Recharger »**. Si c'est
+  le réseau qui est coupé, elle le dit (« Pas de réseau pour l'instant. ») : rechargez la page
+  quand il est revenu.
+- **Visites guidées** : au dernier pas il n'y a plus qu'un bouton, « Terminer » (« Fermer »
+  faisait la même chose) ; une visite d'une seule étape n'affiche plus « Étape 1 / 1 » ni son
+  point de progression. Dans G&L, les boutons de la visite ont pris le style des autres boutons
+  du jeu. Ces deux retouches valent aussi pour les visites guidées de ForêtMap.
+
+### Écrans de séance : l'accueil, plus léger (21 novembre 2026)
+
+- **La page de connexion se charge plus vite.** Ses images (la grande illustration du haut et
+  les trois vignettes « Un monde », « Les règles du jeu », « Les sortilèges ») pesaient plus
+  d'un mégaoctet chacune. Désormais, quand un Admin envoie une image depuis la **charte
+  visuelle** des Réglages, l'application en garde une **version allégée** pour l'accueil
+  (même image, 1 600 points de large au plus, autour de 200 Ko). Le message le dit : « Image de
+  charte importée, en version allégée pour l'accueil. » Rien d'autre à faire.
+- **L'image d'origine n'est pas perdue** : elle reste dans la médiathèque, telle qu'elle a été
+  envoyée. Seule l'adresse rangée dans la charte change.
+- **Pour les images déjà en place**, deux façons de faire : les renvoyer une à une depuis la
+  charte visuelle, ou demander à la personne qui gère le serveur de lancer l'outil prévu
+  (voir le guide d'exploitation, « Images de l'accueil de Gnomes & Licornes ») — il montre
+  d'abord ce qu'il ferait, sans rien changer.
+- Les trois vignettes ne se chargent qu'au moment où elles arrivent à l'écran, et leur place
+  est réservée d'avance : la page ne saute plus pendant le chargement.
 
 ## Pour aller plus loin
 

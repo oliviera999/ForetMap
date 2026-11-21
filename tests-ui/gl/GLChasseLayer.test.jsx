@@ -64,5 +64,35 @@ describe('GLVoileLayer', () => {
     expect(container.querySelectorAll('.gl-voile-case')).toHaveLength(2);
     expect(container.querySelector('.gl-voile-bande')).toHaveAttribute('points', '10,50 30,50');
     expect(container.textContent).not.toMatch(FORBIDDEN);
+    // Hors projection : ni modificateur, ni contour.
+    expect(layer.classList.contains('gl-voile-layer--projection')).toBe(false);
+    expect(container.querySelector('.gl-voile-contour')).toBeNull();
+  });
+
+  test('variante « projection » : bande cernée d’un contour, toujours sans pictogramme', () => {
+    const { container } = render(
+      <GLVoileLayer markers={markers} position={2} variante="projection" />,
+    );
+    const layer = screen.getByRole('img', { name: 'le voile' });
+    expect(layer.getAttribute('class')).toBe('gl-voile-layer gl-voile-layer--projection');
+    const contour = container.querySelector('.gl-voile-contour');
+    const bande = container.querySelector('.gl-voile-bande');
+    expect(contour).toHaveAttribute('points', '10,50 30,50 50,50');
+    expect(bande).toHaveAttribute('points', '10,50 30,50 50,50');
+    // Le contour passe sous la bande.
+    expect(contour.compareDocumentPosition(bande) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // Rien d'autre qu'une ligne et des disques : ni image, ni texte, ni visage.
+    expect([...layer.children].map((n) => n.tagName.toLowerCase()).sort()).toEqual(
+      ['circle', 'circle', 'circle', 'polyline', 'polyline'].sort(),
+    );
+    expect(container.textContent).toBe('');
+  });
+
+  test('variante « projection », une seule case recouverte : pas de ligne, pas de contour', () => {
+    const { container } = render(
+      <GLVoileLayer markers={markers} position={0} variante="projection" />,
+    );
+    expect(container.querySelectorAll('.gl-voile-case')).toHaveLength(1);
+    expect(container.querySelector('.gl-voile-contour')).toBeNull();
   });
 });

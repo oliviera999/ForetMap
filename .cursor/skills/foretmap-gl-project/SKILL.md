@@ -90,6 +90,7 @@ Lu par le front au login via `GET /api/gl/auth/config`.
 - Modèle partagé : `src/utils/glImageFrame.js` (frontend) et `lib/glImageFrame.js` (backend).
 - Éditeur visuel : `src/gl/components/GLImageFrameEditor.jsx`.
 - Charte : `platform.brand.slots.*.frame` (`GLBrandEditor`, `GLSettingsView`, validation `routes/gl/admin.js`).
+- Images de la charte : à l'envoi (`POST /api/gl/admin/media-library`, `usage: 'brand'`), une variante WebP allégée est rangée sous `uploads/gl_brand/optim/` et retenue par l'emplacement (`lib/glBrandImages.js`) ; rattrapage de l'existant : `scripts/gl-brand-optimiser.js` (à blanc par défaut).
 - Chapitres : `mapImageFrame` (`routes/gl/chapters.js`, migration `091_gl_chapters_map_image_frame.sql`).
 - Markdown : attribut `data-gl-frame` nettoyé/normalisé dans `src/utils/markdown.js`.
 - Référence fonctionnelle : `docs/GL_IMAGE_FRAMES.md`.

@@ -51,7 +51,7 @@ de Lumière ; 4 le Marché, trois sorts de plus.
 - Chaque phase est chronométrée (`gl_game_round_phases`, `lib/glRoundPhases.js`).
 - Sabliers : `lib/glSablier.js` + `src/shared/glSablierCore.js`, composant `GLSablier`.
 
-## Droits : le serveur rejoue, le client grise
+## Droits : le serveur rejoue, l'écran masque
 
 Noyau pur `src/shared/glTenirPermissionsCore.js` (miroir `lib/shared/`) :
 
@@ -64,6 +64,9 @@ Côté serveur : `assertActionOuverte` (`lib/glTour.js`) pour lancer / répondre
 `resolveLectureContext` pour lire et tenir, `assertTenirSurfacePermission`
 (`lib/glSpellCast.js`) pour les sorts. Refus : 403 `TENIR_PERMISSION`, 409 `TENIR_PHASE`.
 Les routes prof portent `requireGlPermission('gl.game.manage')`.
+
+L'écran lit les droits servis (`tenir.permissions`) et **cache** un geste fermé : il ne l'ouvre
+jamais, et ne le montre plus grisé (sauf l'ancien écran, gardé en surface `tableau`).
 
 ## Plusieurs appareils par équipe (ensemble unifié, M13)
 
@@ -96,6 +99,48 @@ dont les transactions du moteur verrouillent la ligne (un compteur posé dessus 
   `gl:game:equipe` (sans donnée : on recharge), `GLEquipeAppareils`.
 - Un geste d'équipe nouveau : poser `gardeDEquipe()` sur sa route, et rien d'autre.
 
+## Les écrans de séance (20 novembre 2026)
+
+Trois écrans, aucune règle : ils rangent ce que le serveur sert. Rien n'y ouvre un geste.
+
+- **Écran d'équipe** — `GLTenirEcranEquipe` (`src/gl/components/tenir/`), le même aux deux
+  points de montage : `GLTeamSessionView` (tablette, tour ouvert ou non) et l'onglet du plateau
+  d'`AppGL` (compte d'un élève). Il reçoit le plateau par sa prop `board`
+  (`<GLMapView presentation="tenir" />`) et assemble `GLTenirBandeau` (phase, sablier, bourses,
+  bouton du tiroir, icône « Relire l'écran »), `GLTenirMoment` (la carte du moment) et
+  `GLTenirTiroir` (cases à venir, réserve, défi, carnet, présences).
+- **La carte du moment** est une fonction pure : `momentDeLEquipe(entrée)` de
+  `src/gl/utils/glTenirMoment.js` rend **un seul** état, le premier vrai de `ETATS_DU_MOMENT`
+  (`peripetie`, `main_ailleurs`, `appareil`, `question`, `jet_suspens`, `saisie_des`,
+  `jet_attente`, `retour`, `geste`, `joue`, `souffle`, `camp`, `clos`, `attente`). Le gros bouton
+  suit `ORDRE_DES_GESTES` (répondre, lancer, fouiller, lire, sorts), puis `PUCES_MAX` puces. Les
+  gestes ouverts viennent de `maintenantVousPouvez` (`src/shared/glSortMomentsCore.js`). **Un
+  état nouveau a toujours une sortie** (geste, temps réel ou « Continuer »).
+- **Toute la logique de l'écran** (instantané du tour, question de case, Olu, péripétie, état
+  périmé, main, version d'état, présences, jet en suspens) vit dans le hook `useGlTenirEquipe`
+  (`src/gl/hooks/`), lu par le nouvel écran **et** par l'ancien : une correction vaut pour les
+  deux. `useGlTempsReelCoupe` dit quand le socket est coupé depuis plus de 4 s.
+- **Surface `tableau`** : `GLTenirEquipeView` (l'ancien écran, cinq boutons grisés) est gardé
+  tel quel aux deux points de montage (`auTableau`, `ecranEquipeEnTrois`). Ne pas le supprimer
+  sans décision.
+- **Un geste nouveau à l'écran** : son droit dans `maintenantVousPouvez`, sa place dans
+  `ORDRE_DES_GESTES`, son libellé dans `glTenirMoment.js` (au « vous » : le test de contenu
+  `tests/content/gl-adresse-ecran-equipe.test.js` relit ces fichiers), `data-geste="<geste>"`
+  sur le bouton. Tests : `tests-ui/gl/glTenirMoment.test.js`, `GLTenirEcranEquipe.test.jsx`.
+- **Phases en mots d'élève** : `src/gl/constants/tenirPhases.js` (`PHASE_ELEVE`,
+  `PHASE_CONSOLE`, `titreDuTour`), seule source pour l'écran d'équipe, la projection et la
+  console.
+- **Projection** — `GLProjectionView` (mode tableau, `presentation="projection"` : un plateau
+  sans aucun bouton) ; les faits marquants viennent de `GLTourJournal` (prop `marquants`,
+  liste `FAITS_MARQUANTS`). Jamais une bourse ni la réserve.
+- **Console** — `GLTourScreen` déclare le **mode séance** (`useDeclarerModeSeance`,
+  `src/gl/utils/glModeSeance.js`), que `GLTopBar` lit pour se réduire. Les morceaux paresseux de
+  la console passent par `lazyAvecReprise` ; une panne réseau rend une phrase française selon
+  la session (`glNetworkFailureMessage`, `messagePourEquipe` pour un écran d'équipe).
+- Mises en page : blocs « Écran d'équipe en trois choses », « Mise en page de l'écran
+  d'équipe » et « Projection, mode tableau » à la fin de `src/gl/styles/gl-tenir.css`. Points
+  de bascule de `src/shared/breakpoints.js` seulement ; pas de `style={{ … }}` nouveau.
+
 ## Écrire dans une partie
 
 - Une route = `withTransaction(async (tx) => …)` puis `emitAll(gameId, events)` **après** le
@@ -126,6 +171,8 @@ dont les transactions du moteur verrouillent la ligne (un compteur posé dessus 
   d'un geste porte `payload.olu: [{ id, teamId? }]` (mémoire `gl_game_olu_premieres`, dans la
   transaction du geste). Un geste nouveau qui mérite sa ligne : une clé dans `PREMIERE_FOIS_CLES`,
   un cas dans `clesPremiereFois`, une ligne `premiere_fois` dans `olu-lignes.json`.
+  Exception : `olu-pf-comptes` n'a aucun évènement — c'est la tablette qui la dit elle-même,
+  une fois par onglet (`useGlTenirOlu`, option `ligneDeLEcran`).
 - **Tout type émis a un libellé** dans `lib/glJournalPresentTenir.js` et figure dans
   `TENIR_EVENT_TYPES` (`tests/gl-journal-tenir-exhaustif.test.js` le vérifie). Le libellé
   respecte les garde-fous (skill `gl-tenir-garde-fous`).
@@ -142,4 +189,5 @@ dont les transactions du moteur verrouillent la ligne (un compteur posé dessus 
    suivante, camp).
 5. Tests `tests/gl-tenir-*.test.js` (fixtures `tests/helpers/glTenirFixtures.js`, suites
    séquentielles `--test-concurrency=1 --test-force-exit`), puis le banc (skill `gl-banc`).
-6. `docs/API.md`, `docs/GL_TENIR_A_DEUX.md`, doc de référence `docs/reference/gl/`.
+6. Sa place à l'écran : la carte du moment (section « Les écrans de séance »).
+7. `docs/API.md`, `docs/GL_TENIR_A_DEUX.md`, doc de référence `docs/reference/gl/`.

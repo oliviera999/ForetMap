@@ -111,6 +111,28 @@ describe('GLClassLinkEntry — « J’ai le code de la classe »', () => {
     expect(screen.queryByText('Touchez la mascotte de votre équipe.')).toBeNull();
   });
 
+  test('panne réseau : la phrase vouvoie l’équipe, même avec un compte resté dans le navigateur', async () => {
+    // Ce qu'`apiGL` rend pour un compte élève (« tu »), puis pour un compte de prof.
+    for (const phrase of [
+      'Pas de réseau pour l’instant. Réessaie dans un moment ; si ça dure, préviens ton professeur.',
+      'Pas de réseau pour l’instant : le serveur ne répond pas. Réessayez dans un moment ; si ça ' +
+        'dure, vérifiez la connexion de l’établissement — le site peut aussi être en maintenance.',
+    ]) {
+      apiGlMock.mockReset();
+      apiGlMock.mockRejectedValueOnce(new Error(phrase));
+      const { unmount } = render(<GLClassLinkEntry onSession={vi.fn()} />);
+      fireEvent.change(screen.getByTestId('gl-class-link-code'), { target: { value: 'ABCDEFGH' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Continuer' }));
+      await waitFor(() =>
+        screen.getByText(
+          'Pas de réseau pour l’instant. Réessayez dans un moment ; si ça dure, prévenez le prof.',
+        ),
+      );
+      expect(screen.queryByText(/préviens ton professeur|connexion de l’établissement/)).toBeNull();
+      unmount();
+    }
+  });
+
   test('code inconnu : le message du serveur, et on peut ressaisir', async () => {
     apiGlMock.mockRejectedValueOnce(new Error('Ce code de classe n’est pas reconnu.'));
     const onCancel = vi.fn();

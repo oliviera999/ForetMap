@@ -326,11 +326,13 @@ Depuis le 15 novembre 2026, une équipe peut jouer une séance « Tenir à deux 
 de la classe, **sans qu'aucun élève ne se connecte**.
 
 - Le MJ imprime une fois la **feuille de la classe** (bouton « QR de la classe » de l'écran
-  « Jouer le tour ») : un QR et un code de huit caractères, valables toute l'année.
+  « Jouer le tour », en dépliant la ligne des tablettes) : un QR et un code de huit caractères,
+  valables toute l'année.
 - L'équipe scanne le QR avec l'appareil photo de la tablette — ou touche **« J'ai le code de la
   classe »** sur l'écran de connexion et tape le code — puis touche sa mascotte.
 - **La tablette demande alors à rejoindre l'équipe, et attend** (depuis le 17 novembre 2026).
   La première tablette de chaque équipe est acceptée par le MJ : sur l'écran « Jouer le tour »,
+  la ligne des tablettes dit « 1 tablette attend » et se déplie toute seule ;
   le bouton **« Tout accepter »** les fait entrer d'un seul appui en début de séance (ou
   « Accepter » / « Refuser », une par une). Une tablette de plus pour la même équipe peut être
   acceptée par un appareil déjà dans l'équipe, qui voit « Une tablette demande à rejoindre
@@ -340,20 +342,26 @@ de la classe, **sans qu'aucun élève ne se connecte**.
 - La tablette a les droits d'un membre de l'équipe, pour cette partie et cette équipe
   seulement, pendant trois heures. Elle n'agit que lorsqu'un tour est ouvert ; le reste du
   temps elle montre le plateau et le carnet, en lecture seule.
+- **Son écran montre trois choses** (depuis le 20 novembre 2026) : le plateau, une seule carte
+  — ce que l'équipe a à faire maintenant — et Olu, sous un bandeau fin (équipe, phase, bourses).
+  Le reste (cases à venir, carnet, « Changer d'équipe ») est dans le tiroir « ☰ L'équipe ». Il
+  n'y a plus de bouton « Actualiser » : l'écran suit le tour, et une flèche « Relire l'écran »
+  n'apparaît que si la connexion tombe. Le détail est dans le
+  [guide du MJ](guide-du-mj.md), note « L'écran d'équipe en trois choses ».
 - **Quand aucun tour n'est ouvert, la tablette propose les « Défis de la Trame »** de son
   peuple, et les trois défis ouverts aux deux peuples, pour l'équipe : aucune bourse n'y est touchée, et la réussite vaut pour chaque membre
   présent. Un élève connecté avec son compte les retrouve à son Seuil, pour lui seul.
 - **La tablette d'équipe ne touche la bourse de personne** (depuis le 17 novembre 2026). Elle
   fait les gestes de l'équipe : lancer les dés, répondre, fouiller, lire et faire tenir une
   page, préparer un sort (le coût se partage tout seul entre les présents). **Le Marché, le
-  Seuil et « pas moi » passent par le compte de chacun** — ou par vous. L'ancien « Qui agit ? »
-  a disparu. Les gestes personnels (journal, badges, sorts réservés à un élève) restent eux
+  Seuil et « pas moi » passent par le compte de chacun** — ou par vous (Olu le dit une fois
+  sur la tablette). L'ancien « Qui agit ? » a disparu. Les gestes personnels (journal, badges, sorts réservés à un élève) restent eux
   aussi sur le compte de chacun.
 - **Plusieurs appareils pour une même équipe** : deux tablettes, ou une tablette et les comptes
   des élèves, peuvent servir la même équipe. Un seul joue à la fois les gestes qui comptent :
   quand un appareil répond à une question, fouille, fait tenir une page ou prépare un sort, les
   autres affichent **« Lina répond… »** (le prénom seul ; « Une autre tablette… » pour une
-  tablette) et attendent, une minute au plus. Si deux écrans jouent le même geste au même
+  tablette) et attendent, une minute au plus — leur écran ne propose alors aucun geste. Si deux écrans jouent le même geste au même
   instant, un seul compte ; l'autre lit « L'équipe a déjà joué ce geste. Voici où vous en
   êtes. » et se met à jour. Rien n'est jamais retiré à l'équipe.
 - **Un élève absent, ou mis en retrait, regarde** : s'il se connecte avec son compte pendant
@@ -367,9 +375,12 @@ de la classe, **sans qu'aucun élève ne se connecte**.
 ## La projection (vidéoprojecteur)
 
 Pour une partie « Tenir à deux », le MJ génère depuis la console un **lien de projection** valable
-la journée (douze heures). Ouvert sur le vidéoprojecteur, il montre le tour, les équipes, le voile,
-le carnet de la classe et le journal — **en lecture seule**, sans aucun bouton, sans aucune bourse,
-sans le motif d'un retrait. Le lien s'éteint à la clôture du chapitre ou quand le MJ le révoque.
+la journée (douze heures). Ouvert sur le vidéoprojecteur, il montre sur un seul écran le tour, le
+plateau, les équipes, le voile, le carnet de la classe et les derniers faits marquants — **en
+lecture seule**, sans aucun geste de jeu, sans aucune bourse, sans le motif d'un retrait. Ses deux
+seuls boutons changent l'affichage (« La page du jour » ou « À la prochaine séance », et « Voir le
+plateau ») ; le détail est dans le [guide du MJ](guide-du-mj.md). Le lien s'éteint à la clôture
+du chapitre ou quand le MJ le révoque.
 
 L'écran projeté **suit le tour tout seul** : ouverture, phase, jets, carnet — rien à recharger.
 Le lien peut s'ouvrir **dans un autre onglet du poste du MJ** (poste unique relié au

@@ -79,6 +79,9 @@ export function useGlQuestionDeCase({ gameId, onChanged = null }) {
     error,
     presenter,
     repondre,
+    // Le tour ou la phase a changé : la question n'a plus cours (le serveur a fermé « répondre »
+    // et repris la main). On l'oublie ici, sans rien lui demander.
+    oublier: () => setQuestion(null),
     // Fermer sans répondre rend la main à l'équipe (M13) ; elle expirerait seule sinon.
     fermer: () => {
       setQuestion(null);

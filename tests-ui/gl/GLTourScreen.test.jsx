@@ -1,6 +1,7 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
 import { GLTourScreen } from '../../src/gl/components/mj/GLTourScreen.jsx';
+import { useGlModeSeance } from '../../src/gl/utils/glModeSeance.js';
 
 const apiGlMock = vi.fn();
 vi.mock('../../src/gl/services/apiGL.js', () => ({
@@ -101,6 +102,190 @@ describe('GLTourScreen', () => {
     expect(cards[0]).toHaveAttribute('aria-current', 'true');
     expect(screen.getByTestId('gl-tour-sablier')).toHaveTextContent('3:00');
     expect(screen.getByTestId('gl-tour-olu')).toHaveTextContent('manchot');
+  });
+
+  test('ordre de l’écran (K6) : bandeau, demandes, équipes, puis Olu et le reste', async () => {
+    apiGlMock.mockImplementation(async (path) => {
+      if (path.endsWith('/tenir/tour')) return tourView({ surface: 'tablette' });
+      if (path.endsWith('/tenir/sessions')) {
+        return { sessions: [{ id: 11, teamId: 1, createdAt: '2026-11-20T08:00:00Z' }] };
+      }
+      if (path.includes('/journal/')) return { events: [], teams: [] };
+      return { ok: true };
+    });
+    render(
+      <GLTourScreen
+        game={{ id: 7, class_id: 3 }}
+        teams={teams}
+        roster={[]}
+        tenir={{ ...tenir, surface: 'tablette' }}
+        token="tok"
+        onReloadGame={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+    await waitFor(() => expect(screen.getAllByTestId(/gl-tour-team-/).length).toBe(2));
+    const ecran = screen.getByTestId('gl-tour-screen');
+    const bandeau = ecran.querySelector('.gl-tour-screen__banner');
+    const avant = (a, b) =>
+      Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+    const demandes = ecran.querySelector('#gl-demandes');
+    const equipes = ecran.querySelector('.gl-tour-teams');
+    const olu = screen.getByTestId('gl-tour-olu');
+    expect(avant(bandeau, demandes)).toBe(true);
+    expect(avant(demandes, equipes)).toBe(true);
+    expect(avant(equipes, olu)).toBe(true);
+    // Le bandeau ne porte plus Olu ; il garde la projection, la sortie et les tablettes en une ligne.
+    expect(bandeau.contains(olu)).toBe(false);
+    expect(bandeau).toHaveTextContent('Lien de projection');
+    expect(bandeau).toHaveTextContent('Quitter l’écran du tour');
+    expect(bandeau.contains(screen.getByTestId('gl-class-link-resume'))).toBe(true);
+    expect(screen.queryByRole('button', { name: 'Déconnecter' })).toBeNull();
+  });
+
+  test('erreur d’Olu : un titre, puis le nom seul de chaque équipe', async () => {
+    render(
+      <GLTourScreen
+        game={{ id: 7 }}
+        teams={teams}
+        roster={[]}
+        tenir={tenir}
+        token="tok"
+        onReloadGame={vi.fn()}
+      />,
+    );
+    const bloc = await screen.findByTestId('gl-tour-olu');
+    expect(bloc).toHaveTextContent('Le manchot vole très bien');
+    expect(
+      screen.getByRole('heading', { name: 'Qui a trouvé l’erreur d’Olu ?' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /corrigé par/ })).toBeNull();
+    const groupe = screen.getByRole('group', { name: 'Qui a trouvé l’erreur d’Olu ?' });
+    expect([...groupe.querySelectorAll('button')].map((b) => b.textContent)).toEqual([
+      'Licornes A',
+      'Gnomes A',
+    ]);
+    fireEvent.click(screen.getByRole('button', { name: 'Gnomes A' }));
+    await waitFor(() =>
+      expect(apiGlMock).toHaveBeenCalledWith('/api/gl/games/7/tenir/tour/olu-corrige', 'POST', {
+        teamId: 1,
+      }),
+    );
+  });
+
+  test('erreur d’Olu déjà trouvée : la correction, sans titre ni boutons', async () => {
+    apiGlMock.mockImplementation(async (path) => {
+      if (path.endsWith('/tenir/tour')) {
+        const view = tourView();
+        return {
+          ...view,
+          round: {
+            ...view.round,
+            oluCorrigeTeamId: 1,
+            oluErreur: { ...view.round.oluErreur, correction: 'Le manchot nage, il ne vole pas.' },
+          },
+        };
+      }
+      if (path.includes('/journal/')) return { events: [], teams: [] };
+      return { ok: true };
+    });
+    render(
+      <GLTourScreen
+        game={{ id: 7 }}
+        teams={teams}
+        roster={[]}
+        tenir={tenir}
+        token="tok"
+        onReloadGame={vi.fn()}
+      />,
+    );
+    const bloc = await screen.findByTestId('gl-tour-olu');
+    expect(bloc).toHaveTextContent('Le manchot nage, il ne vole pas.');
+    expect(screen.queryByRole('heading', { name: 'Qui a trouvé l’erreur d’Olu ?' })).toBeNull();
+  });
+
+  test('cartes d’équipe : l’avance libre attend derrière « Corriger la position… »', async () => {
+    render(
+      <GLTourScreen
+        game={{ id: 7 }}
+        teams={teams}
+        roster={[]}
+        tenir={tenir}
+        token="tok"
+        onReloadGame={vi.fn()}
+      />,
+    );
+    await waitFor(() => expect(screen.getAllByTestId('gl-tour-des').length).toBe(2));
+    expect(screen.queryByLabelText('Motif de l’avance libre')).toBeNull();
+    const corriger = screen.getAllByRole('button', { name: 'Corriger la position…' });
+    expect(corriger).toHaveLength(2);
+    // Équipe active (Licornes A, première carte) : le prof corrige de 3 cases, motif à l'appui.
+    fireEvent.click(corriger[0]);
+    fireEvent.change(screen.getByLabelText('Avance libre'), { target: { value: '3' } });
+    fireEvent.change(screen.getByLabelText('Motif de l’avance libre'), {
+      target: { value: 'pion déplacé par erreur' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Avancer' }));
+    await waitFor(() =>
+      expect(apiGlMock).toHaveBeenCalledWith('/api/gl/games/7/tenir/lancer', 'POST', {
+        mode: 'libre',
+        cases: 3,
+        motif: 'pion déplacé par erreur',
+        teamId: 2,
+      }),
+    );
+  });
+
+  test('mode séance : déclaré tant que l’écran est monté, avec la partie et le tour', async () => {
+    const vu = vi.fn();
+    function Temoin() {
+      vu(useGlModeSeance());
+      return null;
+    }
+    const { unmount } = render(
+      <>
+        <Temoin />
+        <GLTourScreen
+          game={{ id: 7, name: 'Sixième B — chapitre 1' }}
+          teams={teams}
+          roster={[]}
+          tenir={tenir}
+          token="tok"
+          onReloadGame={vi.fn()}
+        />
+      </>,
+    );
+    await waitFor(() =>
+      expect(vu.mock.lastCall[0]).toMatchObject({
+        partie: 'Sixième B — chapitre 1',
+        tour: 'Tour 1 — À vous de jouer',
+      }),
+    );
+    unmount();
+    render(<Temoin />);
+    expect(vu.mock.lastCall[0]).toBeNull();
+  });
+
+  test('une erreur du serveur montre son identifiant de requête en petit, à part de la phrase', async () => {
+    apiGlMock.mockImplementation(async (path) => {
+      if (path.endsWith('/tenir/tour')) {
+        throw new Error('Erreur serveur (HTTP 500) [requête 4f2a-91]');
+      }
+      return { events: [], teams: [] };
+    });
+    render(
+      <GLTourScreen
+        game={{ id: 7 }}
+        teams={teams}
+        roster={[]}
+        tenir={tenir}
+        token="tok"
+        onReloadGame={vi.fn()}
+      />,
+    );
+    const alerte = await screen.findByRole('alert');
+    expect(alerte).toHaveTextContent('Erreur serveur (HTTP 500)');
+    expect(screen.getByTestId('gl-erreur-requete')).toHaveTextContent('requête 4f2a-91');
   });
 
   test('en tableau, seule l’équipe active peut saisir un jet ; « Équipe suivante » appelle le serveur', async () => {
