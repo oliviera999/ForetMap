@@ -105,8 +105,12 @@ test('élève sans groupe (défaut Collège) : seule la question de collège ver
   assert.equal(state.level_fallback, 'none');
 });
 
-test('fiche gardée seulement par du lycée : repli sur toutes ses questions (décision Q1)', async () => {
+// Chantier collège (novembre 2026) : un collégien n'est jamais interrogé au-delà du cycle 4.
+// Une fiche gardée seulement par du lycée n'est pas verrouillée pour lui (repli journalisé) ;
+// l'ancien repli « toutes les questions » (décision Q1) reste celui des autres élèves.
+test('fiche gardée seulement par du lycée : non verrouillée pour un collégien', async () => {
   const learnerLevel = await loadLearnerLevel(studentId);
+  assert.equal(learnerLevel.contentEtape, 'college');
   const state = await getChallengeState(db, {
     product: 'fm',
     resourceType: 'plant',
@@ -114,9 +118,8 @@ test('fiche gardée seulement par du lycée : repli sur toutes ses questions (d�
     userId: studentId,
     learnerLevel,
   });
-  assert.equal(state.required, true);
-  assert.deepEqual(codesOf(state), [qLycee]);
-  assert.equal(state.level_fallback, 'all_levels');
+  assert.equal(state.ok, true);
+  assert.equal(state.required, false);
 });
 
 test('élève d’un groupe Lycée : toutes les questions (le défaut Collège ne plafonne pas)', async () => {
