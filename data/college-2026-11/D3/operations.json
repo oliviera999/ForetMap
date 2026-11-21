@@ -4,7 +4,7 @@
    {
     "code": "QF0130",
     "categorie": "agroecologie_permaculture",
-    "notion": "C3-ALIM"
+    "notion": "C4-RESS"
    },
    {
     "code": "QF0131",
@@ -240,9 +240,310 @@
     "code": "QF0510",
     "categorie": "ecologie_reseaux",
     "notion": "C3-ENV"
+   },
+   {
+    "code": "QF0524",
+    "categorie": "ecologie_reseaux",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF0539",
+    "categorie": "ecologie_reseaux",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF7012",
+    "categorie": "ecologie_reseaux",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF7018",
+    "categorie": "ecologie_reseaux",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF7035",
+    "categorie": "ecologie_reseaux",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF7036",
+    "categorie": "ecologie_reseaux",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF7037",
+    "categorie": "ecologie_reseaux",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF7040",
+    "categorie": "ecologie_reseaux",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF7042",
+    "categorie": "ecologie_reseaux",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF7046",
+    "categorie": "ecologie_reseaux",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF7048",
+    "categorie": "ecologie_reseaux",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF7050",
+    "categorie": "ecologie_reseaux",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF7052",
+    "categorie": "ecologie_reseaux",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF7053",
+    "categorie": "ecologie_reseaux",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF7056",
+    "categorie": "ecologie_reseaux",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF9002",
+    "categorie": "ecologie_reseaux",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF9101",
+    "categorie": "ecologie_reseaux",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF9102",
+    "categorie": "ecologie_reseaux",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF9260",
+    "categorie": "ecologie_reseaux",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF9263",
+    "categorie": "ecologie_reseaux",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF9268",
+    "categorie": "ecologie_reseaux",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF9272",
+    "categorie": "ecologie_reseaux",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF9529",
+    "categorie": "ecologie_reseaux",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF9726",
+    "categorie": "ecologie_reseaux",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF9735",
+    "categorie": "ecologie_reseaux",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF9763",
+    "categorie": "ecologie_reseaux",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF9765",
+    "categorie": "ecologie_reseaux",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF9768",
+    "categorie": "ecologie_reseaux",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF9769",
+    "categorie": "ecologie_reseaux",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF9779",
+    "categorie": "ecologie_reseaux",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF9781",
+    "categorie": "ecologie_reseaux",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF9799",
+    "categorie": "ecologie_reseaux",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF9808",
+    "categorie": "ecologie_reseaux",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF9815",
+    "categorie": "ecologie_reseaux",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF9829",
+    "categorie": "ecologie_reseaux",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF9830",
+    "categorie": "ecologie_reseaux",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF9831",
+    "categorie": "ecologie_reseaux",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF9834",
+    "categorie": "ecologie_reseaux",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF9835",
+    "categorie": "ecologie_reseaux",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF9880",
+    "categorie": "ecologie_reseaux",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF9890",
+    "categorie": "ecologie_reseaux",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF0094",
+    "categorie": "energie_matiere",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF0532",
+    "categorie": "energie_matiere",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF9859",
+    "categorie": "energie_matiere",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF9884",
+    "categorie": "energie_matiere",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF9894",
+    "categorie": "energie_matiere",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF9902",
+    "categorie": "energie_matiere",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF9909",
+    "categorie": "energie_matiere",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF9921",
+    "categorie": "energie_matiere",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF9927",
+    "categorie": "energie_matiere",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF9885",
+    "categorie": "evolution_biodiversite",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF9895",
+    "categorie": "evolution_biodiversite",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF9903",
+    "categorie": "evolution_biodiversite",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF9910",
+    "categorie": "evolution_biodiversite",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF9916",
+    "categorie": "evolution_biodiversite",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF9922",
+    "categorie": "evolution_biodiversite",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF9928",
+    "categorie": "evolution_biodiversite",
+    "notion": "C4-VIV"
    }
   ],
-  "ajout_to_exclusion": [],
+  "ajout_to_exclusion": [
+   {
+    "code": "QF7064",
+    "categorie": "ecologie_reseaux",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF9874",
+    "categorie": "energie_matiere",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF9915",
+    "categorie": "energie_matiere",
+    "notion": "C3-MATORG"
+   }
+  ],
   "ajout_delete": [
    {
     "code": "QF9877",
@@ -253,6 +554,241 @@
     "code": "QF9924",
     "categorie": "demarche_mesure",
     "notion": "C3-ENV"
+   },
+   {
+    "code": "QF7030",
+    "categorie": "environnement_durable",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF7034",
+    "categorie": "environnement_durable",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF7057",
+    "categorie": "environnement_durable",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF9875",
+    "categorie": "evolution_biodiversite",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF0365",
+    "categorie": "glossaire_definitions",
+    "notion": "C4-TERRE"
+   },
+   {
+    "code": "QF0366",
+    "categorie": "glossaire_definitions",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF0368",
+    "categorie": "glossaire_definitions",
+    "notion": "C4-TERRE"
+   },
+   {
+    "code": "QF0368",
+    "categorie": "glossaire_definitions",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF0370",
+    "categorie": "glossaire_definitions",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF0372",
+    "categorie": "glossaire_definitions",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF0373",
+    "categorie": "glossaire_definitions",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF0374",
+    "categorie": "glossaire_definitions",
+    "notion": "C3-DEVREPRO"
+   },
+   {
+    "code": "QF0374",
+    "categorie": "glossaire_definitions",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF0376",
+    "categorie": "glossaire_definitions",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF0378",
+    "categorie": "glossaire_definitions",
+    "notion": "C4-TERRE"
+   },
+   {
+    "code": "QF0378",
+    "categorie": "glossaire_definitions",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF0379",
+    "categorie": "glossaire_definitions",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF0380",
+    "categorie": "glossaire_definitions",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF0381",
+    "categorie": "glossaire_definitions",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF0382",
+    "categorie": "glossaire_definitions",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF0382",
+    "categorie": "glossaire_definitions",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF0383",
+    "categorie": "glossaire_definitions",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF0383",
+    "categorie": "glossaire_definitions",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF0384",
+    "categorie": "glossaire_definitions",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF0385",
+    "categorie": "glossaire_definitions",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF0386",
+    "categorie": "glossaire_definitions",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF0388",
+    "categorie": "glossaire_definitions",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF0389",
+    "categorie": "glossaire_definitions",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF0390",
+    "categorie": "glossaire_definitions",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF0391",
+    "categorie": "glossaire_definitions",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF0392",
+    "categorie": "glossaire_definitions",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF0393",
+    "categorie": "glossaire_definitions",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF0394",
+    "categorie": "glossaire_definitions",
+    "notion": "C4-RESS"
+   },
+   {
+    "code": "QF0394",
+    "categorie": "glossaire_definitions",
+    "notion": "C4-TERRE"
+   },
+   {
+    "code": "QF0395",
+    "categorie": "glossaire_definitions",
+    "notion": "C4-RESS"
+   },
+   {
+    "code": "QF0395",
+    "categorie": "glossaire_definitions",
+    "notion": "C4-TERRE"
+   },
+   {
+    "code": "QF0396",
+    "categorie": "glossaire_definitions",
+    "notion": "C4-RESS"
+   },
+   {
+    "code": "QF0396",
+    "categorie": "glossaire_definitions",
+    "notion": "C4-TERRE"
+   },
+   {
+    "code": "QF0399",
+    "categorie": "glossaire_definitions",
+    "notion": "C4-RESS"
+   },
+   {
+    "code": "QF0399",
+    "categorie": "glossaire_definitions",
+    "notion": "C4-TERRE"
+   },
+   {
+    "code": "QF0400",
+    "categorie": "glossaire_definitions",
+    "notion": "C3-ALIM"
+   },
+   {
+    "code": "QF0401",
+    "categorie": "glossaire_definitions",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF0402",
+    "categorie": "glossaire_definitions",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF0403",
+    "categorie": "glossaire_definitions",
+    "notion": "C4-RESS"
+   },
+   {
+    "code": "QF0403",
+    "categorie": "glossaire_definitions",
+    "notion": "C4-TERRE"
+   },
+   {
+    "code": "QF0404",
+    "categorie": "glossaire_definitions",
+    "notion": "C4-TERRE"
+   },
+   {
+    "code": "QF0404",
+    "categorie": "glossaire_definitions",
+    "notion": "C4-VIV"
    }
   ],
   "ajout_insert": [
@@ -287,21 +823,94 @@
     "notion": "C3-ENV"
    }
   ],
-  "lycee_ajout_delete": [],
-  "lycee_niveau": [],
+  "lycee_ajout_delete": [
+   {
+    "code": "QF0367",
+    "categorie": "glossaire_definitions",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF0367",
+    "categorie": "glossaire_definitions",
+    "notion": "C4-TERRE"
+   },
+   {
+    "code": "QF0369",
+    "categorie": "glossaire_definitions",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF0369",
+    "categorie": "glossaire_definitions",
+    "notion": "C4-TERRE"
+   },
+   {
+    "code": "QF0369",
+    "categorie": "glossaire_definitions",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF0371",
+    "categorie": "glossaire_definitions",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF0371",
+    "categorie": "glossaire_definitions",
+    "notion": "C4-TERRE"
+   },
+   {
+    "code": "QF0371",
+    "categorie": "glossaire_definitions",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF0375",
+    "categorie": "glossaire_definitions",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF0375",
+    "categorie": "glossaire_definitions",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF0375",
+    "categorie": "glossaire_definitions",
+    "notion": "C4-VIV"
+   }
+  ],
+  "lycee_niveau": [
+   {
+    "code": "QF0367",
+    "categorie": "glossaire_definitions"
+   },
+   {
+    "code": "QF0369",
+    "categorie": "glossaire_definitions"
+   },
+   {
+    "code": "QF0371",
+    "categorie": "glossaire_definitions"
+   },
+   {
+    "code": "QF0375",
+    "categorie": "glossaire_definitions"
+   }
+  ],
   "lycee_ajout_insert": []
  },
  "decisions": [
   {
    "code": "QF0130",
    "categorie": "agroecologie_permaculture",
-   "palier": 4,
+   "palier": 3,
    "before": [
     "C3-ALIM",
     "C4-RESS"
    ],
    "after": [
-    "C4-RESS"
+    "C3-ALIM"
    ]
   },
   {
@@ -896,6 +1505,1273 @@
    ],
    "after": [
     "C4-VIV"
+   ]
+  },
+  {
+   "code": "QF0524",
+   "categorie": "ecologie_reseaux",
+   "palier": 3,
+   "before": [
+    "C3-ENV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C3-ENV"
+   ]
+  },
+  {
+   "code": "QF0539",
+   "categorie": "ecologie_reseaux",
+   "palier": 3,
+   "before": [
+    "C3-ENV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C3-ENV"
+   ]
+  },
+  {
+   "code": "QF7012",
+   "categorie": "ecologie_reseaux",
+   "palier": 3,
+   "before": [
+    "C3-ENV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C3-ENV"
+   ]
+  },
+  {
+   "code": "QF7018",
+   "categorie": "ecologie_reseaux",
+   "palier": 3,
+   "before": [
+    "C3-ENV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C3-ENV"
+   ]
+  },
+  {
+   "code": "QF7035",
+   "categorie": "ecologie_reseaux",
+   "palier": 3,
+   "before": [
+    "C3-DEV",
+    "C3-ENV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C3-DEV",
+    "C3-ENV"
+   ]
+  },
+  {
+   "code": "QF7036",
+   "categorie": "ecologie_reseaux",
+   "palier": 3,
+   "before": [
+    "C3-ENV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C3-ENV"
+   ]
+  },
+  {
+   "code": "QF7037",
+   "categorie": "ecologie_reseaux",
+   "palier": 3,
+   "before": [
+    "C3-ENV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C3-ENV"
+   ]
+  },
+  {
+   "code": "QF7040",
+   "categorie": "ecologie_reseaux",
+   "palier": 3,
+   "before": [
+    "C3-ENV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C3-ENV"
+   ]
+  },
+  {
+   "code": "QF7042",
+   "categorie": "ecologie_reseaux",
+   "palier": 3,
+   "before": [
+    "C3-ENV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C3-ENV"
+   ]
+  },
+  {
+   "code": "QF7046",
+   "categorie": "ecologie_reseaux",
+   "palier": 3,
+   "before": [
+    "C3-ENV",
+    "C3-MAT",
+    "C4-VIV"
+   ],
+   "after": [
+    "C3-ENV",
+    "C3-MAT"
+   ]
+  },
+  {
+   "code": "QF7048",
+   "categorie": "ecologie_reseaux",
+   "palier": 3,
+   "before": [
+    "C3-ENV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C3-ENV"
+   ]
+  },
+  {
+   "code": "QF7050",
+   "categorie": "ecologie_reseaux",
+   "palier": 3,
+   "before": [
+    "C3-ENV",
+    "C3-MAT",
+    "C4-VIV"
+   ],
+   "after": [
+    "C3-ENV",
+    "C3-MAT"
+   ]
+  },
+  {
+   "code": "QF7052",
+   "categorie": "ecologie_reseaux",
+   "palier": 3,
+   "before": [
+    "C3-ENV",
+    "C3-MAT",
+    "C4-VIV"
+   ],
+   "after": [
+    "C3-ENV",
+    "C3-MAT"
+   ]
+  },
+  {
+   "code": "QF7053",
+   "categorie": "ecologie_reseaux",
+   "palier": 3,
+   "before": [
+    "C3-ENV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C3-ENV"
+   ]
+  },
+  {
+   "code": "QF7056",
+   "categorie": "ecologie_reseaux",
+   "palier": 3,
+   "before": [
+    "C3-ENV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C3-ENV"
+   ]
+  },
+  {
+   "code": "QF7064",
+   "categorie": "ecologie_reseaux",
+   "palier": 4,
+   "before": [
+    "C3-ENV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C4-VIV"
+   ]
+  },
+  {
+   "code": "QF9002",
+   "categorie": "ecologie_reseaux",
+   "palier": 4,
+   "before": [
+    "C3-ENV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C4-VIV"
+   ]
+  },
+  {
+   "code": "QF9101",
+   "categorie": "ecologie_reseaux",
+   "palier": 4,
+   "before": [
+    "C3-ENV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C4-VIV"
+   ]
+  },
+  {
+   "code": "QF9102",
+   "categorie": "ecologie_reseaux",
+   "palier": 4,
+   "before": [
+    "C3-ENV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C4-VIV"
+   ]
+  },
+  {
+   "code": "QF9260",
+   "categorie": "ecologie_reseaux",
+   "palier": 4,
+   "before": [
+    "C3-ENV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C4-VIV"
+   ]
+  },
+  {
+   "code": "QF9263",
+   "categorie": "ecologie_reseaux",
+   "palier": 3,
+   "before": [
+    "C3-ENV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C3-ENV"
+   ]
+  },
+  {
+   "code": "QF9268",
+   "categorie": "ecologie_reseaux",
+   "palier": 3,
+   "before": [
+    "C3-ENV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C3-ENV"
+   ]
+  },
+  {
+   "code": "QF9272",
+   "categorie": "ecologie_reseaux",
+   "palier": 4,
+   "before": [
+    "C3-ENV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C4-VIV"
+   ]
+  },
+  {
+   "code": "QF9529",
+   "categorie": "ecologie_reseaux",
+   "palier": 3,
+   "before": [
+    "C3-ENV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C3-ENV"
+   ]
+  },
+  {
+   "code": "QF9726",
+   "categorie": "ecologie_reseaux",
+   "palier": 3,
+   "before": [
+    "C3-ENV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C3-ENV"
+   ]
+  },
+  {
+   "code": "QF9735",
+   "categorie": "ecologie_reseaux",
+   "palier": 3,
+   "before": [
+    "C3-ENV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C3-ENV"
+   ]
+  },
+  {
+   "code": "QF9763",
+   "categorie": "ecologie_reseaux",
+   "palier": 3,
+   "before": [
+    "C3-ENV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C3-ENV"
+   ]
+  },
+  {
+   "code": "QF9765",
+   "categorie": "ecologie_reseaux",
+   "palier": 3,
+   "before": [
+    "C3-ENV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C3-ENV"
+   ]
+  },
+  {
+   "code": "QF9768",
+   "categorie": "ecologie_reseaux",
+   "palier": 3,
+   "before": [
+    "C3-ENV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C3-ENV"
+   ]
+  },
+  {
+   "code": "QF9769",
+   "categorie": "ecologie_reseaux",
+   "palier": 3,
+   "before": [
+    "C3-ENV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C3-ENV"
+   ]
+  },
+  {
+   "code": "QF9779",
+   "categorie": "ecologie_reseaux",
+   "palier": 3,
+   "before": [
+    "C3-ENV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C3-ENV"
+   ]
+  },
+  {
+   "code": "QF9781",
+   "categorie": "ecologie_reseaux",
+   "palier": 3,
+   "before": [
+    "C3-ENV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C3-ENV"
+   ]
+  },
+  {
+   "code": "QF9799",
+   "categorie": "ecologie_reseaux",
+   "palier": 3,
+   "before": [
+    "C3-ENV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C3-ENV"
+   ]
+  },
+  {
+   "code": "QF9808",
+   "categorie": "ecologie_reseaux",
+   "palier": 3,
+   "before": [
+    "C3-ENV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C3-ENV"
+   ]
+  },
+  {
+   "code": "QF9815",
+   "categorie": "ecologie_reseaux",
+   "palier": 3,
+   "before": [
+    "C3-ENV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C3-ENV"
+   ]
+  },
+  {
+   "code": "QF9829",
+   "categorie": "ecologie_reseaux",
+   "palier": 4,
+   "before": [
+    "C3-ENV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C4-VIV"
+   ]
+  },
+  {
+   "code": "QF9830",
+   "categorie": "ecologie_reseaux",
+   "palier": 4,
+   "before": [
+    "C3-ENV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C4-VIV"
+   ]
+  },
+  {
+   "code": "QF9831",
+   "categorie": "ecologie_reseaux",
+   "palier": 4,
+   "before": [
+    "C3-ENV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C4-VIV"
+   ]
+  },
+  {
+   "code": "QF9834",
+   "categorie": "ecologie_reseaux",
+   "palier": 3,
+   "before": [
+    "C3-ENV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C3-ENV"
+   ]
+  },
+  {
+   "code": "QF9835",
+   "categorie": "ecologie_reseaux",
+   "palier": 3,
+   "before": [
+    "C3-ENV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C3-ENV"
+   ]
+  },
+  {
+   "code": "QF9880",
+   "categorie": "ecologie_reseaux",
+   "palier": 3,
+   "before": [
+    "C3-ENV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C3-ENV"
+   ]
+  },
+  {
+   "code": "QF9890",
+   "categorie": "ecologie_reseaux",
+   "palier": 3,
+   "before": [
+    "C3-ENV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C3-ENV"
+   ]
+  },
+  {
+   "code": "QF0094",
+   "categorie": "energie_matiere",
+   "palier": 4,
+   "before": [
+    "C3-MATORG",
+    "C4-VIV"
+   ],
+   "after": [
+    "C4-VIV"
+   ]
+  },
+  {
+   "code": "QF0532",
+   "categorie": "energie_matiere",
+   "palier": 3,
+   "before": [
+    "C3-MATORG",
+    "C4-VIV"
+   ],
+   "after": [
+    "C3-MATORG"
+   ]
+  },
+  {
+   "code": "QF9859",
+   "categorie": "energie_matiere",
+   "palier": 4,
+   "before": [
+    "C3-MATORG",
+    "C4-VIV"
+   ],
+   "after": [
+    "C4-VIV"
+   ]
+  },
+  {
+   "code": "QF9874",
+   "categorie": "energie_matiere",
+   "palier": 4,
+   "before": [
+    "C3-MATORG",
+    "C4-VIV"
+   ],
+   "after": [
+    "C4-VIV"
+   ]
+  },
+  {
+   "code": "QF9884",
+   "categorie": "energie_matiere",
+   "palier": 3,
+   "before": [
+    "C3-MATORG",
+    "C4-VIV"
+   ],
+   "after": [
+    "C3-MATORG"
+   ]
+  },
+  {
+   "code": "QF9894",
+   "categorie": "energie_matiere",
+   "palier": 3,
+   "before": [
+    "C3-MATORG",
+    "C4-VIV"
+   ],
+   "after": [
+    "C3-MATORG"
+   ]
+  },
+  {
+   "code": "QF9902",
+   "categorie": "energie_matiere",
+   "palier": 3,
+   "before": [
+    "C3-MATORG",
+    "C4-VIV"
+   ],
+   "after": [
+    "C3-MATORG"
+   ]
+  },
+  {
+   "code": "QF9909",
+   "categorie": "energie_matiere",
+   "palier": 3,
+   "before": [
+    "C3-MATORG",
+    "C4-VIV"
+   ],
+   "after": [
+    "C3-MATORG"
+   ]
+  },
+  {
+   "code": "QF9915",
+   "categorie": "energie_matiere",
+   "palier": 4,
+   "before": [
+    "C3-MATORG",
+    "C4-VIV"
+   ],
+   "after": [
+    "C4-VIV"
+   ]
+  },
+  {
+   "code": "QF9921",
+   "categorie": "energie_matiere",
+   "palier": 3,
+   "before": [
+    "C3-MATORG",
+    "C4-VIV"
+   ],
+   "after": [
+    "C3-MATORG"
+   ]
+  },
+  {
+   "code": "QF9927",
+   "categorie": "energie_matiere",
+   "palier": 3,
+   "before": [
+    "C3-MATORG",
+    "C4-VIV"
+   ],
+   "after": [
+    "C3-MATORG"
+   ]
+  },
+  {
+   "code": "QF7030",
+   "categorie": "environnement_durable",
+   "palier": 4,
+   "before": [
+    "C3-ENV",
+    "C4-RESS",
+    "C4-TERRE"
+   ],
+   "after": [
+    "C4-RESS",
+    "C4-TERRE"
+   ]
+  },
+  {
+   "code": "QF7034",
+   "categorie": "environnement_durable",
+   "palier": 4,
+   "before": [
+    "C3-ENV",
+    "C4-RESS",
+    "C4-TERRE"
+   ],
+   "after": [
+    "C4-RESS",
+    "C4-TERRE"
+   ]
+  },
+  {
+   "code": "QF7057",
+   "categorie": "environnement_durable",
+   "palier": 4,
+   "before": [
+    "C3-ENV",
+    "C4-RESS",
+    "C4-TERRE"
+   ],
+   "after": [
+    "C4-RESS",
+    "C4-TERRE"
+   ]
+  },
+  {
+   "code": "QF9875",
+   "categorie": "evolution_biodiversite",
+   "palier": 4,
+   "before": [
+    "C3-VIV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C4-VIV"
+   ]
+  },
+  {
+   "code": "QF9885",
+   "categorie": "evolution_biodiversite",
+   "palier": 3,
+   "before": [
+    "C3-VIV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C3-VIV"
+   ]
+  },
+  {
+   "code": "QF9895",
+   "categorie": "evolution_biodiversite",
+   "palier": 3,
+   "before": [
+    "C3-VIV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C3-VIV"
+   ]
+  },
+  {
+   "code": "QF9903",
+   "categorie": "evolution_biodiversite",
+   "palier": 3,
+   "before": [
+    "C3-VIV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C3-VIV"
+   ]
+  },
+  {
+   "code": "QF9910",
+   "categorie": "evolution_biodiversite",
+   "palier": 3,
+   "before": [
+    "C3-ENV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C3-ENV"
+   ]
+  },
+  {
+   "code": "QF9916",
+   "categorie": "evolution_biodiversite",
+   "palier": 3,
+   "before": [
+    "C3-ENV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C3-ENV"
+   ]
+  },
+  {
+   "code": "QF9922",
+   "categorie": "evolution_biodiversite",
+   "palier": 3,
+   "before": [
+    "C3-VIV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C3-VIV"
+   ]
+  },
+  {
+   "code": "QF9928",
+   "categorie": "evolution_biodiversite",
+   "palier": 3,
+   "before": [
+    "C3-ENV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C3-ENV"
+   ]
+  },
+  {
+   "code": "QF0365",
+   "categorie": "glossaire_definitions",
+   "palier": 3,
+   "before": [
+    "C3-ENV",
+    "C4-TERRE"
+   ],
+   "after": [
+    "C3-ENV"
+   ]
+  },
+  {
+   "code": "QF0366",
+   "categorie": "glossaire_definitions",
+   "palier": 4,
+   "before": [
+    "C3-ENV",
+    "C4-TERRE"
+   ],
+   "after": [
+    "C4-TERRE"
+   ]
+  },
+  {
+   "code": "QF0367",
+   "categorie": "glossaire_definitions",
+   "palier": "lycee",
+   "before": [
+    "C3-ENV",
+    "C4-TERRE"
+   ],
+   "after": [
+    "1-ECO",
+    "2-AGRO",
+    "ES1-SOLEIL",
+    "EST-CLIMAT"
+   ]
+  },
+  {
+   "code": "QF0368",
+   "categorie": "glossaire_definitions",
+   "palier": 3,
+   "before": [
+    "C3-ENV",
+    "C4-TERRE",
+    "C4-VIV"
+   ],
+   "after": [
+    "C3-ENV"
+   ]
+  },
+  {
+   "code": "QF0369",
+   "categorie": "glossaire_definitions",
+   "palier": "lycee",
+   "before": [
+    "C3-ENV",
+    "C4-TERRE",
+    "C4-VIV"
+   ],
+   "after": [
+    "1-ECO",
+    "2-BIODIV",
+    "ES1-SOLEIL",
+    "EST-VIVANT"
+   ]
+  },
+  {
+   "code": "QF0370",
+   "categorie": "glossaire_definitions",
+   "palier": 4,
+   "before": [
+    "C3-ENV",
+    "C4-TERRE",
+    "C4-VIV"
+   ],
+   "after": [
+    "C4-TERRE",
+    "C4-VIV"
+   ]
+  },
+  {
+   "code": "QF0371",
+   "categorie": "glossaire_definitions",
+   "palier": "lycee",
+   "before": [
+    "C3-ENV",
+    "C4-TERRE",
+    "C4-VIV"
+   ],
+   "after": [
+    "1-ECO",
+    "2-BIODIV",
+    "ES1-SOLEIL",
+    "EST-VIVANT"
+   ]
+  },
+  {
+   "code": "QF0372",
+   "categorie": "glossaire_definitions",
+   "palier": 3,
+   "before": [
+    "C3-ENV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C3-ENV"
+   ]
+  },
+  {
+   "code": "QF0373",
+   "categorie": "glossaire_definitions",
+   "palier": 4,
+   "before": [
+    "C3-ENV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C4-VIV"
+   ]
+  },
+  {
+   "code": "QF0374",
+   "categorie": "glossaire_definitions",
+   "palier": 4,
+   "before": [
+    "C3-DEVREPRO",
+    "C3-VIV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C4-VIV"
+   ]
+  },
+  {
+   "code": "QF0375",
+   "categorie": "glossaire_definitions",
+   "palier": "lycee",
+   "before": [
+    "C3-MATORG",
+    "C3-VIV",
+    "C4-VIV"
+   ],
+   "after": [
+    "2-BIODIV",
+    "2-ORGA",
+    "ES1-SOLEIL"
+   ]
+  },
+  {
+   "code": "QF0376",
+   "categorie": "glossaire_definitions",
+   "palier": 4,
+   "before": [
+    "C3-VIV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C4-VIV"
+   ]
+  },
+  {
+   "code": "QF0378",
+   "categorie": "glossaire_definitions",
+   "palier": 3,
+   "before": [
+    "C3-ENV",
+    "C4-TERRE",
+    "C4-VIV"
+   ],
+   "after": [
+    "C3-ENV"
+   ]
+  },
+  {
+   "code": "QF0379",
+   "categorie": "glossaire_definitions",
+   "palier": 3,
+   "before": [
+    "C3-VIV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C3-VIV"
+   ]
+  },
+  {
+   "code": "QF0380",
+   "categorie": "glossaire_definitions",
+   "palier": 3,
+   "before": [
+    "C3-MATORG",
+    "C3-VIV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C3-MATORG",
+    "C3-VIV"
+   ]
+  },
+  {
+   "code": "QF0381",
+   "categorie": "glossaire_definitions",
+   "palier": 3,
+   "before": [
+    "C3-MATORG",
+    "C3-VIV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C3-MATORG",
+    "C3-VIV"
+   ]
+  },
+  {
+   "code": "QF0382",
+   "categorie": "glossaire_definitions",
+   "palier": 4,
+   "before": [
+    "C3-MATORG",
+    "C3-VIV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C4-VIV"
+   ]
+  },
+  {
+   "code": "QF0383",
+   "categorie": "glossaire_definitions",
+   "palier": 4,
+   "before": [
+    "C3-MATORG",
+    "C3-VIV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C4-VIV"
+   ]
+  },
+  {
+   "code": "QF0384",
+   "categorie": "glossaire_definitions",
+   "palier": 3,
+   "before": [
+    "C3-MATORG",
+    "C3-VIV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C3-MATORG",
+    "C3-VIV"
+   ]
+  },
+  {
+   "code": "QF0385",
+   "categorie": "glossaire_definitions",
+   "palier": 3,
+   "before": [
+    "C3-DEVREPRO",
+    "C3-VIV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C3-DEVREPRO",
+    "C3-VIV"
+   ]
+  },
+  {
+   "code": "QF0386",
+   "categorie": "glossaire_definitions",
+   "palier": 3,
+   "before": [
+    "C3-DEVREPRO",
+    "C3-VIV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C3-DEVREPRO",
+    "C3-VIV"
+   ]
+  },
+  {
+   "code": "QF0388",
+   "categorie": "glossaire_definitions",
+   "palier": 3,
+   "before": [
+    "C3-DEVREPRO",
+    "C3-VIV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C3-DEVREPRO",
+    "C3-VIV"
+   ]
+  },
+  {
+   "code": "QF0389",
+   "categorie": "glossaire_definitions",
+   "palier": 3,
+   "before": [
+    "C3-DEVREPRO",
+    "C3-VIV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C3-DEVREPRO",
+    "C3-VIV"
+   ]
+  },
+  {
+   "code": "QF0390",
+   "categorie": "glossaire_definitions",
+   "palier": 3,
+   "before": [
+    "C3-DEVREPRO",
+    "C3-VIV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C3-DEVREPRO",
+    "C3-VIV"
+   ]
+  },
+  {
+   "code": "QF0391",
+   "categorie": "glossaire_definitions",
+   "palier": 3,
+   "before": [
+    "C3-ENV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C3-ENV"
+   ]
+  },
+  {
+   "code": "QF0392",
+   "categorie": "glossaire_definitions",
+   "palier": 3,
+   "before": [
+    "C3-ENV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C3-ENV"
+   ]
+  },
+  {
+   "code": "QF0393",
+   "categorie": "glossaire_definitions",
+   "palier": 3,
+   "before": [
+    "C3-ENV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C3-ENV"
+   ]
+  },
+  {
+   "code": "QF0394",
+   "categorie": "glossaire_definitions",
+   "palier": 3,
+   "before": [
+    "C3-ENV",
+    "C3-MATORG",
+    "C4-RESS",
+    "C4-TERRE"
+   ],
+   "after": [
+    "C3-ENV",
+    "C3-MATORG"
+   ]
+  },
+  {
+   "code": "QF0395",
+   "categorie": "glossaire_definitions",
+   "palier": 3,
+   "before": [
+    "C3-ENV",
+    "C3-MATORG",
+    "C4-RESS",
+    "C4-TERRE"
+   ],
+   "after": [
+    "C3-ENV",
+    "C3-MATORG"
+   ]
+  },
+  {
+   "code": "QF0396",
+   "categorie": "glossaire_definitions",
+   "palier": 3,
+   "before": [
+    "C3-ALIM",
+    "C4-RESS",
+    "C4-TERRE"
+   ],
+   "after": [
+    "C3-ALIM"
+   ]
+  },
+  {
+   "code": "QF0399",
+   "categorie": "glossaire_definitions",
+   "palier": 3,
+   "before": [
+    "C3-ALIM",
+    "C4-RESS",
+    "C4-TERRE"
+   ],
+   "after": [
+    "C3-ALIM"
+   ]
+  },
+  {
+   "code": "QF0400",
+   "categorie": "glossaire_definitions",
+   "palier": 4,
+   "before": [
+    "C3-ALIM",
+    "C4-RESS",
+    "C4-TERRE"
+   ],
+   "after": [
+    "C4-RESS",
+    "C4-TERRE"
+   ]
+  },
+  {
+   "code": "QF0401",
+   "categorie": "glossaire_definitions",
+   "palier": 3,
+   "before": [
+    "C3-MATORG",
+    "C3-VIV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C3-MATORG",
+    "C3-VIV"
+   ]
+  },
+  {
+   "code": "QF0402",
+   "categorie": "glossaire_definitions",
+   "palier": 3,
+   "before": [
+    "C3-MATORG",
+    "C3-VIV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C3-MATORG",
+    "C3-VIV"
+   ]
+  },
+  {
+   "code": "QF0403",
+   "categorie": "glossaire_definitions",
+   "palier": 3,
+   "before": [
+    "C3-ALIM",
+    "C4-RESS",
+    "C4-TERRE"
+   ],
+   "after": [
+    "C3-ALIM"
+   ]
+  },
+  {
+   "code": "QF0404",
+   "categorie": "glossaire_definitions",
+   "palier": 3,
+   "before": [
+    "C3-ENV",
+    "C4-TERRE",
+    "C4-VIV"
+   ],
+   "after": [
+    "C3-ENV"
    ]
   }
  ]

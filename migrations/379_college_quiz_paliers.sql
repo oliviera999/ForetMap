@@ -29,7 +29,7 @@
 SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------------------
--- 1. Ajouts de l'autre cycle supprimés (2 lignes)
+-- 1. Ajouts de l'autre cycle supprimés (49 lignes)
 --    Notion ajoutée à la main qui ne vient pas de la catégorie.
 -- ---------------------------------------------------------------------
 DELETE qn
@@ -37,6 +37,53 @@ DELETE qn
   JOIN (
     SELECT 'QF9877' AS code, 'demarche_mesure' AS categorie, 'C3-ENV' AS notion
     UNION ALL SELECT 'QF9924', 'demarche_mesure', 'C3-ENV'
+    UNION ALL SELECT 'QF7030', 'environnement_durable', 'C3-ENV'
+    UNION ALL SELECT 'QF7034', 'environnement_durable', 'C3-ENV'
+    UNION ALL SELECT 'QF7057', 'environnement_durable', 'C3-ENV'
+    UNION ALL SELECT 'QF9875', 'evolution_biodiversite', 'C3-VIV'
+    UNION ALL SELECT 'QF0365', 'glossaire_definitions', 'C4-TERRE'
+    UNION ALL SELECT 'QF0366', 'glossaire_definitions', 'C3-ENV'
+    UNION ALL SELECT 'QF0368', 'glossaire_definitions', 'C4-TERRE'
+    UNION ALL SELECT 'QF0368', 'glossaire_definitions', 'C4-VIV'
+    UNION ALL SELECT 'QF0370', 'glossaire_definitions', 'C3-ENV'
+    UNION ALL SELECT 'QF0372', 'glossaire_definitions', 'C4-VIV'
+    UNION ALL SELECT 'QF0373', 'glossaire_definitions', 'C3-ENV'
+    UNION ALL SELECT 'QF0374', 'glossaire_definitions', 'C3-DEVREPRO'
+    UNION ALL SELECT 'QF0374', 'glossaire_definitions', 'C3-VIV'
+    UNION ALL SELECT 'QF0376', 'glossaire_definitions', 'C3-VIV'
+    UNION ALL SELECT 'QF0378', 'glossaire_definitions', 'C4-TERRE'
+    UNION ALL SELECT 'QF0378', 'glossaire_definitions', 'C4-VIV'
+    UNION ALL SELECT 'QF0379', 'glossaire_definitions', 'C4-VIV'
+    UNION ALL SELECT 'QF0380', 'glossaire_definitions', 'C4-VIV'
+    UNION ALL SELECT 'QF0381', 'glossaire_definitions', 'C4-VIV'
+    UNION ALL SELECT 'QF0382', 'glossaire_definitions', 'C3-MATORG'
+    UNION ALL SELECT 'QF0382', 'glossaire_definitions', 'C3-VIV'
+    UNION ALL SELECT 'QF0383', 'glossaire_definitions', 'C3-MATORG'
+    UNION ALL SELECT 'QF0383', 'glossaire_definitions', 'C3-VIV'
+    UNION ALL SELECT 'QF0384', 'glossaire_definitions', 'C4-VIV'
+    UNION ALL SELECT 'QF0385', 'glossaire_definitions', 'C4-VIV'
+    UNION ALL SELECT 'QF0386', 'glossaire_definitions', 'C4-VIV'
+    UNION ALL SELECT 'QF0388', 'glossaire_definitions', 'C4-VIV'
+    UNION ALL SELECT 'QF0389', 'glossaire_definitions', 'C4-VIV'
+    UNION ALL SELECT 'QF0390', 'glossaire_definitions', 'C4-VIV'
+    UNION ALL SELECT 'QF0391', 'glossaire_definitions', 'C4-VIV'
+    UNION ALL SELECT 'QF0392', 'glossaire_definitions', 'C4-VIV'
+    UNION ALL SELECT 'QF0393', 'glossaire_definitions', 'C4-VIV'
+    UNION ALL SELECT 'QF0394', 'glossaire_definitions', 'C4-RESS'
+    UNION ALL SELECT 'QF0394', 'glossaire_definitions', 'C4-TERRE'
+    UNION ALL SELECT 'QF0395', 'glossaire_definitions', 'C4-RESS'
+    UNION ALL SELECT 'QF0395', 'glossaire_definitions', 'C4-TERRE'
+    UNION ALL SELECT 'QF0396', 'glossaire_definitions', 'C4-RESS'
+    UNION ALL SELECT 'QF0396', 'glossaire_definitions', 'C4-TERRE'
+    UNION ALL SELECT 'QF0399', 'glossaire_definitions', 'C4-RESS'
+    UNION ALL SELECT 'QF0399', 'glossaire_definitions', 'C4-TERRE'
+    UNION ALL SELECT 'QF0400', 'glossaire_definitions', 'C3-ALIM'
+    UNION ALL SELECT 'QF0401', 'glossaire_definitions', 'C4-VIV'
+    UNION ALL SELECT 'QF0402', 'glossaire_definitions', 'C4-VIV'
+    UNION ALL SELECT 'QF0403', 'glossaire_definitions', 'C4-RESS'
+    UNION ALL SELECT 'QF0403', 'glossaire_definitions', 'C4-TERRE'
+    UNION ALL SELECT 'QF0404', 'glossaire_definitions', 'C4-TERRE'
+    UNION ALL SELECT 'QF0404', 'glossaire_definitions', 'C4-VIV'
   ) v ON qn.question_code = v.code COLLATE utf8mb4_unicode_ci AND qn.notion_id = v.notion COLLATE utf8mb4_unicode_ci
   JOIN quiz_questions q ON q.question_code = qn.question_code
                        AND q.categorie_slug = v.categorie COLLATE utf8mb4_unicode_ci
@@ -44,20 +91,29 @@ DELETE qn
  WHERE qn.mode = 'ajout';
 
 -- ---------------------------------------------------------------------
--- 2. Ajouts de l'autre cycle aussi hérités : passés en exclusion (0 lignes)
+-- 2. Ajouts de l'autre cycle aussi hérités : passés en exclusion (3 lignes)
 --    Clé primaire (question, notion) : une seule ligne, dont on change le mode.
 -- ---------------------------------------------------------------------
--- (rien)
-
+UPDATE quiz_question_notions qn
+  JOIN (
+    SELECT 'QF7064' AS code, 'ecologie_reseaux' AS categorie, 'C3-ENV' AS notion
+    UNION ALL SELECT 'QF9874', 'energie_matiere', 'C3-MATORG'
+    UNION ALL SELECT 'QF9915', 'energie_matiere', 'C3-MATORG'
+  ) v ON qn.question_code = v.code COLLATE utf8mb4_unicode_ci AND qn.notion_id = v.notion COLLATE utf8mb4_unicode_ci
+  JOIN quiz_questions q ON q.question_code = qn.question_code
+                       AND q.categorie_slug = v.categorie COLLATE utf8mb4_unicode_ci
+                       AND q.niveau = 'college'
+   SET qn.mode = 'exclusion'
+ WHERE qn.mode = 'ajout';
 
 -- ---------------------------------------------------------------------
--- 3. Exclusions des notions héritées de l'autre cycle (48 lignes)
+-- 3. Exclusions des notions héritées de l'autre cycle (105 lignes)
 --    Parents : la question (code, catégorie, niveau college) et la notion.
 -- ---------------------------------------------------------------------
 INSERT INTO quiz_question_notions (question_code, notion_id, mode)
 SELECT q.question_code, cn.id, 'exclusion'
   FROM (
-    SELECT 'QF0130' AS code, 'agroecologie_permaculture' AS categorie, 'C3-ALIM' AS notion
+    SELECT 'QF0130' AS code, 'agroecologie_permaculture' AS categorie, 'C4-RESS' AS notion
     UNION ALL SELECT 'QF0131', 'agroecologie_permaculture', 'C4-RESS'
     UNION ALL SELECT 'QF0133', 'agroecologie_permaculture', 'C3-ALIM'
     UNION ALL SELECT 'QF0330', 'agroecologie_permaculture', 'C4-RESS'
@@ -105,6 +161,63 @@ SELECT q.question_code, cn.id, 'exclusion'
     UNION ALL SELECT 'QF0211', 'ecologie_reseaux', 'C3-ENV'
     UNION ALL SELECT 'QF0212', 'ecologie_reseaux', 'C4-VIV'
     UNION ALL SELECT 'QF0510', 'ecologie_reseaux', 'C3-ENV'
+    UNION ALL SELECT 'QF0524', 'ecologie_reseaux', 'C4-VIV'
+    UNION ALL SELECT 'QF0539', 'ecologie_reseaux', 'C4-VIV'
+    UNION ALL SELECT 'QF7012', 'ecologie_reseaux', 'C4-VIV'
+    UNION ALL SELECT 'QF7018', 'ecologie_reseaux', 'C4-VIV'
+    UNION ALL SELECT 'QF7035', 'ecologie_reseaux', 'C4-VIV'
+    UNION ALL SELECT 'QF7036', 'ecologie_reseaux', 'C4-VIV'
+    UNION ALL SELECT 'QF7037', 'ecologie_reseaux', 'C4-VIV'
+    UNION ALL SELECT 'QF7040', 'ecologie_reseaux', 'C4-VIV'
+    UNION ALL SELECT 'QF7042', 'ecologie_reseaux', 'C4-VIV'
+    UNION ALL SELECT 'QF7046', 'ecologie_reseaux', 'C4-VIV'
+    UNION ALL SELECT 'QF7048', 'ecologie_reseaux', 'C4-VIV'
+    UNION ALL SELECT 'QF7050', 'ecologie_reseaux', 'C4-VIV'
+    UNION ALL SELECT 'QF7052', 'ecologie_reseaux', 'C4-VIV'
+    UNION ALL SELECT 'QF7053', 'ecologie_reseaux', 'C4-VIV'
+    UNION ALL SELECT 'QF7056', 'ecologie_reseaux', 'C4-VIV'
+    UNION ALL SELECT 'QF9002', 'ecologie_reseaux', 'C3-ENV'
+    UNION ALL SELECT 'QF9101', 'ecologie_reseaux', 'C3-ENV'
+    UNION ALL SELECT 'QF9102', 'ecologie_reseaux', 'C3-ENV'
+    UNION ALL SELECT 'QF9260', 'ecologie_reseaux', 'C3-ENV'
+    UNION ALL SELECT 'QF9263', 'ecologie_reseaux', 'C4-VIV'
+    UNION ALL SELECT 'QF9268', 'ecologie_reseaux', 'C4-VIV'
+    UNION ALL SELECT 'QF9272', 'ecologie_reseaux', 'C3-ENV'
+    UNION ALL SELECT 'QF9529', 'ecologie_reseaux', 'C4-VIV'
+    UNION ALL SELECT 'QF9726', 'ecologie_reseaux', 'C4-VIV'
+    UNION ALL SELECT 'QF9735', 'ecologie_reseaux', 'C4-VIV'
+    UNION ALL SELECT 'QF9763', 'ecologie_reseaux', 'C4-VIV'
+    UNION ALL SELECT 'QF9765', 'ecologie_reseaux', 'C4-VIV'
+    UNION ALL SELECT 'QF9768', 'ecologie_reseaux', 'C4-VIV'
+    UNION ALL SELECT 'QF9769', 'ecologie_reseaux', 'C4-VIV'
+    UNION ALL SELECT 'QF9779', 'ecologie_reseaux', 'C4-VIV'
+    UNION ALL SELECT 'QF9781', 'ecologie_reseaux', 'C4-VIV'
+    UNION ALL SELECT 'QF9799', 'ecologie_reseaux', 'C4-VIV'
+    UNION ALL SELECT 'QF9808', 'ecologie_reseaux', 'C4-VIV'
+    UNION ALL SELECT 'QF9815', 'ecologie_reseaux', 'C4-VIV'
+    UNION ALL SELECT 'QF9829', 'ecologie_reseaux', 'C3-ENV'
+    UNION ALL SELECT 'QF9830', 'ecologie_reseaux', 'C3-ENV'
+    UNION ALL SELECT 'QF9831', 'ecologie_reseaux', 'C3-ENV'
+    UNION ALL SELECT 'QF9834', 'ecologie_reseaux', 'C4-VIV'
+    UNION ALL SELECT 'QF9835', 'ecologie_reseaux', 'C4-VIV'
+    UNION ALL SELECT 'QF9880', 'ecologie_reseaux', 'C4-VIV'
+    UNION ALL SELECT 'QF9890', 'ecologie_reseaux', 'C4-VIV'
+    UNION ALL SELECT 'QF0094', 'energie_matiere', 'C3-MATORG'
+    UNION ALL SELECT 'QF0532', 'energie_matiere', 'C4-VIV'
+    UNION ALL SELECT 'QF9859', 'energie_matiere', 'C3-MATORG'
+    UNION ALL SELECT 'QF9884', 'energie_matiere', 'C4-VIV'
+    UNION ALL SELECT 'QF9894', 'energie_matiere', 'C4-VIV'
+    UNION ALL SELECT 'QF9902', 'energie_matiere', 'C4-VIV'
+    UNION ALL SELECT 'QF9909', 'energie_matiere', 'C4-VIV'
+    UNION ALL SELECT 'QF9921', 'energie_matiere', 'C4-VIV'
+    UNION ALL SELECT 'QF9927', 'energie_matiere', 'C4-VIV'
+    UNION ALL SELECT 'QF9885', 'evolution_biodiversite', 'C4-VIV'
+    UNION ALL SELECT 'QF9895', 'evolution_biodiversite', 'C4-VIV'
+    UNION ALL SELECT 'QF9903', 'evolution_biodiversite', 'C4-VIV'
+    UNION ALL SELECT 'QF9910', 'evolution_biodiversite', 'C4-VIV'
+    UNION ALL SELECT 'QF9916', 'evolution_biodiversite', 'C4-VIV'
+    UNION ALL SELECT 'QF9922', 'evolution_biodiversite', 'C4-VIV'
+    UNION ALL SELECT 'QF9928', 'evolution_biodiversite', 'C4-VIV'
   ) v
   JOIN quiz_questions q ON q.question_code = v.code COLLATE utf8mb4_unicode_ci
                        AND q.categorie_slug = v.categorie COLLATE utf8mb4_unicode_ci
@@ -139,18 +252,42 @@ SELECT q.question_code, cn.id, 'ajout'
             AND x.notion_id = cn.id);
 
 -- ---------------------------------------------------------------------
--- 5. Questions passées au lycée : ajouts de collège supprimés (0 lignes)
+-- 5. Questions passées au lycée : ajouts de collège supprimés (11 lignes)
 --    Avant le bloc 6 (garde niveau = college).
 -- ---------------------------------------------------------------------
--- (rien)
-
+DELETE qn
+  FROM quiz_question_notions qn
+  JOIN (
+    SELECT 'QF0367' AS code, 'glossaire_definitions' AS categorie, 'C3-ENV' AS notion
+    UNION ALL SELECT 'QF0367', 'glossaire_definitions', 'C4-TERRE'
+    UNION ALL SELECT 'QF0369', 'glossaire_definitions', 'C3-ENV'
+    UNION ALL SELECT 'QF0369', 'glossaire_definitions', 'C4-TERRE'
+    UNION ALL SELECT 'QF0369', 'glossaire_definitions', 'C4-VIV'
+    UNION ALL SELECT 'QF0371', 'glossaire_definitions', 'C3-ENV'
+    UNION ALL SELECT 'QF0371', 'glossaire_definitions', 'C4-TERRE'
+    UNION ALL SELECT 'QF0371', 'glossaire_definitions', 'C4-VIV'
+    UNION ALL SELECT 'QF0375', 'glossaire_definitions', 'C3-MATORG'
+    UNION ALL SELECT 'QF0375', 'glossaire_definitions', 'C3-VIV'
+    UNION ALL SELECT 'QF0375', 'glossaire_definitions', 'C4-VIV'
+  ) v ON qn.question_code = v.code COLLATE utf8mb4_unicode_ci AND qn.notion_id = v.notion COLLATE utf8mb4_unicode_ci
+  JOIN quiz_questions q ON q.question_code = qn.question_code
+                       AND q.categorie_slug = v.categorie COLLATE utf8mb4_unicode_ci
+                       AND q.niveau = 'college'
+ WHERE qn.mode = 'ajout';
 
 -- ---------------------------------------------------------------------
--- 6. Niveau college → lycee (0 questions)
+-- 6. Niveau college → lycee (4 questions)
 --    La garde de palier retire alors d'elle-même les notions de collège héritées.
 -- ---------------------------------------------------------------------
--- (rien)
-
+UPDATE quiz_questions q
+  JOIN (
+    SELECT 'QF0367' AS code, 'glossaire_definitions' AS categorie
+    UNION ALL SELECT 'QF0369', 'glossaire_definitions'
+    UNION ALL SELECT 'QF0371', 'glossaire_definitions'
+    UNION ALL SELECT 'QF0375', 'glossaire_definitions'
+  ) v ON q.question_code = v.code COLLATE utf8mb4_unicode_ci AND q.categorie_slug = v.categorie COLLATE utf8mb4_unicode_ci
+   SET q.niveau = 'lycee'
+ WHERE q.niveau <=> 'college';
 
 -- ---------------------------------------------------------------------
 -- 7. Notions de lycée des questions passées au lycée (0 lignes)

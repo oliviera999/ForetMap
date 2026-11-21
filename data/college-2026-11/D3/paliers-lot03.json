@@ -1,0 +1,302 @@
+[
+ {
+  "code": "QF9915",
+  "categorie": "energie_matiere",
+  "palier": 4,
+  "raison": "pyramide des nombres le long d’une chaîne alimentaire"
+ },
+ {
+  "code": "QF9921",
+  "categorie": "energie_matiere",
+  "palier": 3,
+  "raison": "les aliments apportent matière et énergie"
+ },
+ {
+  "code": "QF9927",
+  "categorie": "energie_matiere",
+  "palier": 3,
+  "raison": "devenir de la matière : décomposeurs et sels minéraux"
+ },
+ {
+  "code": "QF7030",
+  "categorie": "environnement_durable",
+  "palier": 4,
+  "raison": "espèce envahissante : action humaine sur la biodiversité"
+ },
+ {
+  "code": "QF7034",
+  "categorie": "environnement_durable",
+  "palier": 4,
+  "raison": "espèce introduite par l’humain"
+ },
+ {
+  "code": "QF7057",
+  "categorie": "environnement_durable",
+  "palier": 4,
+  "raison": "endémisme, répartition des espèces"
+ },
+ {
+  "code": "QF9875",
+  "categorie": "evolution_biodiversite",
+  "palier": 4,
+  "raison": "définition biologique de l’espèce (interfécondité)"
+ },
+ {
+  "code": "QF9885",
+  "categorie": "evolution_biodiversite",
+  "palier": 3,
+  "raison": "classer d’après les attributs observables"
+ },
+ {
+  "code": "QF9895",
+  "categorie": "evolution_biodiversite",
+  "palier": 3,
+  "raison": "classification en groupes emboîtés"
+ },
+ {
+  "code": "QF9903",
+  "categorie": "evolution_biodiversite",
+  "palier": 3,
+  "raison": "classer d’après ce que les êtres vivants possèdent"
+ },
+ {
+  "code": "QF9910",
+  "categorie": "evolution_biodiversite",
+  "palier": 3,
+  "raison": "peuplement de deux milieux différents"
+ },
+ {
+  "code": "QF9916",
+  "categorie": "evolution_biodiversite",
+  "palier": 3,
+  "raison": "compter la diversité des espèces de deux lieux"
+ },
+ {
+  "code": "QF9922",
+  "categorie": "evolution_biodiversite",
+  "palier": 3,
+  "raison": "nom scientifique d’une espèce"
+ },
+ {
+  "code": "QF9928",
+  "categorie": "evolution_biodiversite",
+  "palier": 3,
+  "raison": "fossiles et peuplements passés"
+ },
+ {
+  "code": "QF0365",
+  "categorie": "glossaire_definitions",
+  "palier": 3,
+  "raison": "terme « base » du glossaire (écosystème)"
+ },
+ {
+  "code": "QF0366",
+  "categorie": "glossaire_definitions",
+  "palier": 4,
+  "raison": "terme « approfondissement » du glossaire (biotope)"
+ },
+ {
+  "code": "QF0367",
+  "categorie": "glossaire_definitions",
+  "palier": "lycee",
+  "raison": "terme « avancé » du glossaire (biocénose) : lycée"
+ },
+ {
+  "code": "QF0368",
+  "categorie": "glossaire_definitions",
+  "palier": 3,
+  "raison": "terme « base » du glossaire (habitat)"
+ },
+ {
+  "code": "QF0369",
+  "categorie": "glossaire_definitions",
+  "palier": "lycee",
+  "raison": "terme « avancé » du glossaire (niche écologique) : lycée"
+ },
+ {
+  "code": "QF0370",
+  "categorie": "glossaire_definitions",
+  "palier": 4,
+  "raison": "terme « approfondissement » du glossaire (population)"
+ },
+ {
+  "code": "QF0371",
+  "categorie": "glossaire_definitions",
+  "palier": "lycee",
+  "raison": "terme « avancé » du glossaire (hétérotrophe) : lycée"
+ },
+ {
+  "code": "QF0372",
+  "categorie": "glossaire_definitions",
+  "palier": 3,
+  "raison": "terme « base » du glossaire (pollinisateur)"
+ },
+ {
+  "code": "QF0373",
+  "categorie": "glossaire_definitions",
+  "palier": 4,
+  "raison": "terme « approfondissement » du glossaire (parasitisme)"
+ },
+ {
+  "code": "QF0374",
+  "categorie": "glossaire_definitions",
+  "palier": 4,
+  "raison": "terme « approfondissement » du glossaire (plante bisannuelle)"
+ },
+ {
+  "code": "QF0375",
+  "categorie": "glossaire_definitions",
+  "palier": "lycee",
+  "raison": "terme « avancé » du glossaire (angiosperme) : lycée"
+ },
+ {
+  "code": "QF0376",
+  "categorie": "glossaire_definitions",
+  "palier": 4,
+  "raison": "terme « approfondissement » du glossaire (famille)"
+ },
+ {
+  "code": "QF0378",
+  "categorie": "glossaire_definitions",
+  "palier": 3,
+  "raison": "terme « base » du glossaire (être vivant)"
+ },
+ {
+  "code": "QF0379",
+  "categorie": "glossaire_definitions",
+  "palier": 3,
+  "raison": "terme « base » du glossaire (mammifère)"
+ },
+ {
+  "code": "QF0380",
+  "categorie": "glossaire_definitions",
+  "palier": 3,
+  "raison": "terme « base » du glossaire (tige)"
+ },
+ {
+  "code": "QF0381",
+  "categorie": "glossaire_definitions",
+  "palier": 3,
+  "raison": "terme « base » du glossaire (graine)"
+ },
+ {
+  "code": "QF0382",
+  "categorie": "glossaire_definitions",
+  "palier": 4,
+  "raison": "terme « approfondissement » du glossaire (bourgeon)"
+ },
+ {
+  "code": "QF0383",
+  "categorie": "glossaire_definitions",
+  "palier": 4,
+  "raison": "terme « approfondissement » du glossaire (sève)"
+ },
+ {
+  "code": "QF0384",
+  "categorie": "glossaire_definitions",
+  "palier": 3,
+  "raison": "terme « base » du glossaire (nectar)"
+ },
+ {
+  "code": "QF0385",
+  "categorie": "glossaire_definitions",
+  "palier": 3,
+  "raison": "terme « base » du glossaire (reproduction)"
+ },
+ {
+  "code": "QF0386",
+  "categorie": "glossaire_definitions",
+  "palier": 3,
+  "raison": "terme « base » du glossaire (cycle de vie)"
+ },
+ {
+  "code": "QF0388",
+  "categorie": "glossaire_definitions",
+  "palier": 3,
+  "raison": "terme « base » du glossaire (métamorphose)"
+ },
+ {
+  "code": "QF0389",
+  "categorie": "glossaire_definitions",
+  "palier": 3,
+  "raison": "terme « base » du glossaire (larve)"
+ },
+ {
+  "code": "QF0390",
+  "categorie": "glossaire_definitions",
+  "palier": 3,
+  "raison": "terme « base » du glossaire (ponte)"
+ },
+ {
+  "code": "QF0391",
+  "categorie": "glossaire_definitions",
+  "palier": 3,
+  "raison": "terme « base » du glossaire (carnivore)"
+ },
+ {
+  "code": "QF0392",
+  "categorie": "glossaire_definitions",
+  "palier": 3,
+  "raison": "terme « base » du glossaire (prédateur)"
+ },
+ {
+  "code": "QF0393",
+  "categorie": "glossaire_definitions",
+  "palier": 3,
+  "raison": "terme « base » du glossaire (proie)"
+ },
+ {
+  "code": "QF0394",
+  "categorie": "glossaire_definitions",
+  "palier": 3,
+  "raison": "terme « base » du glossaire (sol)"
+ },
+ {
+  "code": "QF0395",
+  "categorie": "glossaire_definitions",
+  "palier": 3,
+  "raison": "terme « base » du glossaire (terreau)"
+ },
+ {
+  "code": "QF0396",
+  "categorie": "glossaire_definitions",
+  "palier": 3,
+  "raison": "terme « base » du glossaire (engrais)"
+ },
+ {
+  "code": "QF0399",
+  "categorie": "glossaire_definitions",
+  "palier": 3,
+  "raison": "terme « base » du glossaire (verger)"
+ },
+ {
+  "code": "QF0400",
+  "categorie": "glossaire_definitions",
+  "palier": 4,
+  "raison": "terme « approfondissement » du glossaire (serre)"
+ },
+ {
+  "code": "QF0401",
+  "categorie": "glossaire_definitions",
+  "palier": 3,
+  "raison": "terme « base » du glossaire (plante aromatique)"
+ },
+ {
+  "code": "QF0402",
+  "categorie": "glossaire_definitions",
+  "palier": 3,
+  "raison": "terme « base » du glossaire (légume)"
+ },
+ {
+  "code": "QF0403",
+  "categorie": "glossaire_definitions",
+  "palier": 3,
+  "raison": "terme « base » du glossaire (compost mûr)"
+ },
+ {
+  "code": "QF0404",
+  "categorie": "glossaire_definitions",
+  "palier": 3,
+  "raison": "terme « base » du glossaire (environnement)"
+ }
+]
