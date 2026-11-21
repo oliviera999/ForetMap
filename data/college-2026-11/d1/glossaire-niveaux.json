@@ -1,0 +1,929 @@
+{
+  "description": "Niveaux du glossaire (D1, point 2). « consigne » : liste du prompt D1 ; « revue » : revue systématique des 482 termes contre les programmes et contre les contenus collège (questions collège actives, clés collège et leurs propositions, séances collège ; terme et variantes, instantané du 21/11/2026). Chaque changement est gardé par glossary_code, terme et ancien niveau.",
+  "changements": [
+    {
+      "glossary_code": "FM0244",
+      "terme": "cycle de l'eau",
+      "avant": "avance",
+      "apres": "base",
+      "motif": "programme du cycle 3 (« la planète Terre, les êtres vivants dans leur environnement ») ; notion vue dès l’école",
+      "origine": "consigne",
+      "usages_college": {
+        "nb": 0,
+        "par_type": {},
+        "exemples": []
+      }
+    },
+    {
+      "glossary_code": "FM0211",
+      "terme": "cellule",
+      "avant": "avance",
+      "apres": "base",
+      "motif": "programme du cycle 3 (6e : « la cellule, unité structurelle du vivant ») ; employé par 17 questions collège",
+      "origine": "consigne",
+      "usages_college": {
+        "nb": 17,
+        "par_type": {
+          "quiz": 17
+        },
+        "exemples": [
+          "quiz:QF0003",
+          "quiz:QF0397",
+          "quiz:QF7031",
+          "quiz:QF7032",
+          "quiz:QF9011",
+          "quiz:QF9766"
+        ]
+      }
+    },
+    {
+      "glossary_code": "FM0141",
+      "terme": "régime alimentaire",
+      "avant": "approfondissement",
+      "apres": "base",
+      "motif": "programme du cycle 3 (régimes alimentaires des animaux) ; titre d’une séance 6e",
+      "origine": "consigne",
+      "usages_college": {
+        "nb": 8,
+        "par_type": {
+          "quiz": 7,
+          "seance": 1
+        },
+        "exemples": [
+          "quiz:QF0532",
+          "quiz:QF9534",
+          "quiz:QF9741",
+          "quiz:QF9769",
+          "quiz:QF9781",
+          "quiz:QF9801"
+        ]
+      }
+    },
+    {
+      "glossary_code": "FM0239",
+      "terme": "évolution",
+      "avant": "avance",
+      "apres": "approfondissement",
+      "motif": "programme du cycle 4 (« le vivant et son évolution »)",
+      "origine": "consigne",
+      "usages_college": {
+        "nb": 1,
+        "par_type": {
+          "quiz": 1
+        },
+        "exemples": [
+          "quiz:QF0388"
+        ]
+      }
+    },
+    {
+      "glossary_code": "FM0073",
+      "terme": "angiosperme",
+      "avant": "avance",
+      "apres": "approfondissement",
+      "motif": "classification du vivant au cycle 4 ; employé dans 3 questions et 2 clés collège",
+      "origine": "consigne",
+      "usages_college": {
+        "nb": 5,
+        "par_type": {
+          "quiz": 3,
+          "cle": 2
+        },
+        "exemples": [
+          "quiz:QF0375",
+          "quiz:QF9265",
+          "quiz:QF9865",
+          "cle:vegetaux-grands-groupes",
+          "cle:arbres-palmiers"
+        ]
+      }
+    },
+    {
+      "glossary_code": "FM0431",
+      "terme": "gymnosperme",
+      "avant": "avance",
+      "apres": "approfondissement",
+      "motif": "classification du vivant au cycle 4 ; employé dans 3 questions et 2 clés collège",
+      "origine": "consigne",
+      "usages_college": {
+        "nb": 5,
+        "par_type": {
+          "quiz": 3,
+          "cle": 2
+        },
+        "exemples": [
+          "quiz:QF0375",
+          "quiz:QF0522",
+          "quiz:QF9865",
+          "cle:vegetaux-grands-groupes",
+          "cle:arbres-palmiers"
+        ]
+      }
+    },
+    {
+      "glossary_code": "FM0472",
+      "terme": "épillet",
+      "avant": "avance",
+      "apres": "approfondissement",
+      "motif": "critère d’observation des graminées, utile aux clés de terrain du collège",
+      "origine": "consigne",
+      "usages_college": {
+        "nb": 0,
+        "par_type": {},
+        "exemples": []
+      }
+    },
+    {
+      "glossary_code": "FM0512",
+      "terme": "tarse",
+      "avant": "avance",
+      "apres": "approfondissement",
+      "motif": "critère d’observation (oiseaux, insectes), utile aux clés de terrain du collège",
+      "origine": "consigne",
+      "usages_college": {
+        "nb": 0,
+        "par_type": {},
+        "exemples": []
+      }
+    },
+    {
+      "glossary_code": "FM0516",
+      "terme": "pupille",
+      "avant": "avance",
+      "apres": "approfondissement",
+      "motif": "critère d’observation employé par la clé collège amphibiens-reptiles-melah",
+      "origine": "consigne",
+      "usages_college": {
+        "nb": 6,
+        "par_type": {
+          "cle": 6
+        },
+        "exemples": [
+          "cle:amphibiens-reptiles-melah"
+        ]
+      }
+    },
+    {
+      "glossary_code": "FM0513",
+      "terme": "miroir",
+      "avant": "avance",
+      "apres": "approfondissement",
+      "motif": "critère d’observation des canards, utile aux clés de terrain du collège",
+      "origine": "consigne",
+      "usages_college": {
+        "nb": 0,
+        "par_type": {},
+        "exemples": []
+      }
+    },
+    {
+      "glossary_code": "FM0384",
+      "terme": "mutualisme",
+      "avant": "base",
+      "apres": "approfondissement",
+      "motif": "relations entre êtres vivants : programme du cycle 4, pas du cycle 3",
+      "origine": "consigne",
+      "usages_college": {
+        "nb": 2,
+        "par_type": {
+          "quiz": 2
+        },
+        "exemples": [
+          "quiz:QF0373",
+          "quiz:QF0410"
+        ]
+      }
+    },
+    {
+      "glossary_code": "FM0386",
+      "terme": "service écosystémique",
+      "avant": "base",
+      "apres": "approfondissement",
+      "motif": "notion du cycle 4 (écosystèmes et action humaine) et du lycée",
+      "origine": "consigne",
+      "usages_college": {
+        "nb": 0,
+        "par_type": {},
+        "exemples": []
+      }
+    },
+    {
+      "glossary_code": "FM0387",
+      "terme": "service d'approvisionnement",
+      "avant": "base",
+      "apres": "approfondissement",
+      "motif": "notion du cycle 4 (écosystèmes et action humaine) et du lycée",
+      "origine": "consigne",
+      "usages_college": {
+        "nb": 0,
+        "par_type": {},
+        "exemples": []
+      }
+    },
+    {
+      "glossary_code": "FM0388",
+      "terme": "service de régulation",
+      "avant": "base",
+      "apres": "approfondissement",
+      "motif": "notion du cycle 4 (écosystèmes et action humaine) et du lycée",
+      "origine": "consigne",
+      "usages_college": {
+        "nb": 0,
+        "par_type": {},
+        "exemples": []
+      }
+    },
+    {
+      "glossary_code": "FM0389",
+      "terme": "service culturel",
+      "avant": "base",
+      "apres": "approfondissement",
+      "motif": "notion du cycle 4 (écosystèmes et action humaine) et du lycée",
+      "origine": "consigne",
+      "usages_college": {
+        "nb": 0,
+        "par_type": {},
+        "exemples": []
+      }
+    },
+    {
+      "glossary_code": "FM0004",
+      "terme": "biocénose",
+      "avant": "avance",
+      "apres": "approfondissement",
+      "motif": "écosystème = biotope + biocénose : vocabulaire du cycle 4 ; employé par 5 questions collège (QF0365 à QF0370)",
+      "origine": "revue",
+      "usages_college": {
+        "nb": 5,
+        "par_type": {
+          "quiz": 5
+        },
+        "exemples": [
+          "quiz:QF0365",
+          "quiz:QF0366",
+          "quiz:QF0367",
+          "quiz:QF0368",
+          "quiz:QF0370"
+        ]
+      }
+    },
+    {
+      "glossary_code": "FM0006",
+      "terme": "niche écologique",
+      "avant": "avance",
+      "apres": "approfondissement",
+      "motif": "employé par 8 questions collège, 2 clés et une séance ; rattaché à l’étude des écosystèmes du cycle 4",
+      "origine": "revue",
+      "usages_college": {
+        "nb": 11,
+        "par_type": {
+          "quiz": 8,
+          "cle": 2,
+          "seance": 1
+        },
+        "exemples": [
+          "quiz:QF0330",
+          "quiz:QF0367",
+          "quiz:QF0368",
+          "quiz:QF0369",
+          "quiz:QF7033",
+          "quiz:QF9785"
+        ]
+      }
+    },
+    {
+      "glossary_code": "FM0012",
+      "terme": "niveau trophique",
+      "avant": "avance",
+      "apres": "approfondissement",
+      "motif": "réseaux trophiques du cycle 4 (producteurs, consommateurs) ; employé par QF0369",
+      "origine": "revue",
+      "usages_college": {
+        "nb": 1,
+        "par_type": {
+          "quiz": 1
+        },
+        "exemples": [
+          "quiz:QF0369"
+        ]
+      }
+    },
+    {
+      "glossary_code": "FM0016",
+      "terme": "autotrophe",
+      "avant": "avance",
+      "apres": "approfondissement",
+      "motif": "nutrition des organismes (cycle 4) ; question collège QF0371 qui porte sur le terme",
+      "origine": "revue",
+      "usages_college": {
+        "nb": 1,
+        "par_type": {
+          "quiz": 1
+        },
+        "exemples": [
+          "quiz:QF0371"
+        ]
+      }
+    },
+    {
+      "glossary_code": "FM0017",
+      "terme": "hétérotrophe",
+      "avant": "avance",
+      "apres": "approfondissement",
+      "motif": "nutrition des organismes (cycle 4) ; question collège QF0371 qui porte sur le terme",
+      "origine": "revue",
+      "usages_college": {
+        "nb": 1,
+        "par_type": {
+          "quiz": 1
+        },
+        "exemples": [
+          "quiz:QF0371"
+        ]
+      }
+    },
+    {
+      "glossary_code": "FM0085",
+      "terme": "bioindicateur",
+      "avant": "avance",
+      "apres": "approfondissement",
+      "motif": "biodiversité et sciences participatives (cycle 4) ; question collège QF0377 qui porte sur le terme",
+      "origine": "revue",
+      "usages_college": {
+        "nb": 1,
+        "par_type": {
+          "quiz": 1
+        },
+        "exemples": [
+          "quiz:QF0377"
+        ]
+      }
+    },
+    {
+      "glossary_code": "FM0235",
+      "terme": "commensalisme",
+      "avant": "avance",
+      "apres": "approfondissement",
+      "motif": "relations entre êtres vivants (cycle 4), même palier que mutualisme ; 4 questions collège",
+      "origine": "revue",
+      "usages_college": {
+        "nb": 4,
+        "par_type": {
+          "quiz": 4
+        },
+        "exemples": [
+          "quiz:QF0373",
+          "quiz:QF0410",
+          "quiz:QF0520",
+          "quiz:QF9741"
+        ]
+      }
+    },
+    {
+      "glossary_code": "FM0214",
+      "terme": "fermentation",
+      "avant": "avance",
+      "apres": "approfondissement",
+      "motif": "micro-organismes et transformation des aliments (cycles 3 et 4) ; 6 questions collège",
+      "origine": "revue",
+      "usages_college": {
+        "nb": 6,
+        "par_type": {
+          "quiz": 6
+        },
+        "exemples": [
+          "quiz:QF0397",
+          "quiz:QF9229",
+          "quiz:QF9230",
+          "quiz:QF9232",
+          "quiz:QF9301",
+          "quiz:QF9310"
+        ]
+      }
+    },
+    {
+      "glossary_code": "FM0241",
+      "terme": "diversité génétique",
+      "avant": "avance",
+      "apres": "approfondissement",
+      "motif": "programme du cycle 4 (« la diversité génétique des individus ») ; 2 questions collège",
+      "origine": "revue",
+      "usages_college": {
+        "nb": 2,
+        "par_type": {
+          "quiz": 2
+        },
+        "exemples": [
+          "quiz:QF0114",
+          "quiz:QF9107"
+        ]
+      }
+    },
+    {
+      "glossary_code": "FM0232",
+      "terme": "espèce invasive",
+      "avant": "avance",
+      "apres": "approfondissement",
+      "motif": "biodiversité et action humaine (cycle 4) ; employé par QF0377",
+      "origine": "revue",
+      "usages_college": {
+        "nb": 1,
+        "par_type": {
+          "quiz": 1
+        },
+        "exemples": [
+          "quiz:QF0377"
+        ]
+      }
+    },
+    {
+      "glossary_code": "FM0223",
+      "terme": "dynamique des populations",
+      "avant": "avance",
+      "apres": "approfondissement",
+      "motif": "cité en toutes lettres par le programme du cycle 4 (« la dynamique des populations »)",
+      "origine": "revue",
+      "usages_college": {
+        "nb": 0,
+        "par_type": {},
+        "exemples": []
+      }
+    },
+    {
+      "glossary_code": "FM0238",
+      "terme": "sélection naturelle",
+      "avant": "avance",
+      "apres": "approfondissement",
+      "motif": "mécanismes de l’évolution : programme du cycle 4 (3e)",
+      "origine": "revue",
+      "usages_college": {
+        "nb": 0,
+        "par_type": {},
+        "exemples": []
+      }
+    },
+    {
+      "glossary_code": "FM0212",
+      "terme": "chloroplaste",
+      "avant": "avance",
+      "apres": "approfondissement",
+      "motif": "nutrition des végétaux chlorophylliens, observation de cellules au microscope (cycle 4)",
+      "origine": "revue",
+      "usages_college": {
+        "nb": 0,
+        "par_type": {},
+        "exemples": []
+      }
+    },
+    {
+      "glossary_code": "FM0511",
+      "terme": "pédipalpe",
+      "avant": "avance",
+      "apres": "approfondissement",
+      "motif": "critère d’observation employé par la clé collège araignees (même famille que tarse, pupille)",
+      "origine": "revue",
+      "usages_college": {
+        "nb": 1,
+        "par_type": {
+          "cle": 1
+        },
+        "exemples": [
+          "cle:araignees"
+        ]
+      }
+    },
+    {
+      "glossary_code": "FM0515",
+      "terme": "parotoïde",
+      "avant": "avance",
+      "apres": "approfondissement",
+      "motif": "critère d’observation employé par la clé collège amphibiens-reptiles-melah (même famille que pupille)",
+      "origine": "revue",
+      "usages_college": {
+        "nb": 1,
+        "par_type": {
+          "cle": 1
+        },
+        "exemples": [
+          "cle:amphibiens-reptiles-melah"
+        ]
+      }
+    },
+    {
+      "glossary_code": "FM0514",
+      "terme": "barre alaire",
+      "avant": "avance",
+      "apres": "approfondissement",
+      "motif": "critère d’observation des oiseaux employé par la question collège QF9439 (même famille que miroir)",
+      "origine": "revue",
+      "usages_college": {
+        "nb": 1,
+        "par_type": {
+          "quiz": 1
+        },
+        "exemples": [
+          "quiz:QF9439"
+        ]
+      }
+    }
+  ],
+  "maintenus_avance": [
+    {
+      "glossary_code": "FM0022",
+      "terme": "ammonium",
+      "niveau": "avance",
+      "motif": "chimie (ion) hors des programmes du collège ; la séance 6e et les questions l’expliquent dans la phrase ; catégorie cycle_azote_aquaponie revue par D3",
+      "usages_college": {
+        "nb": 15,
+        "par_type": {
+          "quiz": 14,
+          "seance": 1
+        },
+        "exemples": [
+          "quiz:QF0020",
+          "quiz:QF0021",
+          "quiz:QF0506",
+          "quiz:QF9102",
+          "quiz:QF9105",
+          "quiz:QF9237"
+        ]
+      }
+    },
+    {
+      "glossary_code": "FM0021",
+      "terme": "nitrification",
+      "niveau": "avance",
+      "motif": "notion du lycée (cycle de l’azote) ; questions de la catégorie cycle_azote_aquaponie, que D3 reclasse",
+      "usages_college": {
+        "nb": 7,
+        "par_type": {
+          "quiz": 7
+        },
+        "exemples": [
+          "quiz:QF9102",
+          "quiz:QF9105",
+          "quiz:QF9252",
+          "quiz:QF9260",
+          "quiz:QF9261",
+          "quiz:QF9268"
+        ]
+      }
+    },
+    {
+      "glossary_code": "FM0024",
+      "terme": "bactérie nitrifiante",
+      "niveau": "avance",
+      "motif": "notion du lycée ; questions de la catégorie cycle_azote_aquaponie, que D3 reclasse",
+      "usages_college": {
+        "nb": 8,
+        "par_type": {
+          "quiz": 8
+        },
+        "exemples": [
+          "quiz:QF9237",
+          "quiz:QF9255",
+          "quiz:QF9270",
+          "quiz:QF9530",
+          "quiz:QF9531",
+          "quiz:QF9701"
+        ]
+      }
+    },
+    {
+      "glossary_code": "FM0217",
+      "terme": "nodosité",
+      "niveau": "avance",
+      "motif": "fixation de l’azote : lycée ; questions que D3 reclasse (QF9250 citée par D3)",
+      "usages_college": {
+        "nb": 5,
+        "par_type": {
+          "quiz": 5
+        },
+        "exemples": [
+          "quiz:QF0506",
+          "quiz:QF7008",
+          "quiz:QF9250",
+          "quiz:QF9263",
+          "quiz:QF9794"
+        ]
+      }
+    },
+    {
+      "glossary_code": "FM0220",
+      "terme": "mycorhize",
+      "niveau": "avance",
+      "motif": "symbiose racinaire : lycée ; questions tirées de tutoriels que D3 reclasse (QF9220, QF9256)",
+      "usages_college": {
+        "nb": 4,
+        "par_type": {
+          "quiz": 4
+        },
+        "exemples": [
+          "quiz:QF9220",
+          "quiz:QF9226",
+          "quiz:QF9238",
+          "quiz:QF9256"
+        ]
+      }
+    },
+    {
+      "glossary_code": "FM0221",
+      "terme": "rhizosphère",
+      "niveau": "avance",
+      "motif": "lycée ; question tirée d’un tutoriel (QF9226)",
+      "usages_college": {
+        "nb": 1,
+        "par_type": {
+          "quiz": 1
+        },
+        "exemples": [
+          "quiz:QF9226"
+        ]
+      }
+    },
+    {
+      "glossary_code": "FM0236",
+      "terme": "allélopathie",
+      "niveau": "avance",
+      "motif": "lycée ; questions tirées de tutoriels (QF9206, QF9210, QF9218, QF9220)",
+      "usages_college": {
+        "nb": 4,
+        "par_type": {
+          "quiz": 4
+        },
+        "exemples": [
+          "quiz:QF9206",
+          "quiz:QF9210",
+          "quiz:QF9218",
+          "quiz:QF9220"
+        ]
+      }
+    },
+    {
+      "glossary_code": "FM0273",
+      "terme": "phase thermophile",
+      "niveau": "avance",
+      "motif": "compostage technique ; questions de tutoriel que D3 reclasse (QF9222)",
+      "usages_college": {
+        "nb": 5,
+        "par_type": {
+          "quiz": 5
+        },
+        "exemples": [
+          "quiz:QF9221",
+          "quiz:QF9222",
+          "quiz:QF9233",
+          "quiz:QF9240",
+          "quiz:QF9712"
+        ]
+      }
+    },
+    {
+      "glossary_code": "FM0296",
+      "terme": "géosmine",
+      "niveau": "avance",
+      "motif": "chimie du sol ; questions de tutoriel (QF9223, QF9234)",
+      "usages_college": {
+        "nb": 2,
+        "par_type": {
+          "quiz": 2
+        },
+        "exemples": [
+          "quiz:QF9223",
+          "quiz:QF9234"
+        ]
+      }
+    },
+    {
+      "glossary_code": "FM0280",
+      "terme": "biochar",
+      "niveau": "avance",
+      "motif": "agronomie ; question de tutoriel (QF9224)",
+      "usages_college": {
+        "nb": 1,
+        "par_type": {
+          "quiz": 1
+        },
+        "exemples": [
+          "quiz:QF9224"
+        ]
+      }
+    },
+    {
+      "glossary_code": "FM0290",
+      "terme": "hybride F1",
+      "niveau": "avance",
+      "motif": "génétique du lycée ; question de tutoriel (QF9229)",
+      "usages_college": {
+        "nb": 1,
+        "par_type": {
+          "quiz": 1
+        },
+        "exemples": [
+          "quiz:QF9229"
+        ]
+      }
+    },
+    {
+      "glossary_code": "FM0209",
+      "terme": "respiration cellulaire",
+      "niveau": "avance",
+      "motif": "notion du lycée ; un seul feedback collège (QF9011), compréhensible avec « respire »",
+      "usages_college": {
+        "nb": 1,
+        "par_type": {
+          "quiz": 1
+        },
+        "exemples": [
+          "quiz:QF9011"
+        ]
+      }
+    },
+    {
+      "glossary_code": "FM0210",
+      "terme": "ATP",
+      "niveau": "avance",
+      "motif": "notion du lycée ; n’apparaît que dans un distracteur (QF9105)",
+      "usages_college": {
+        "nb": 1,
+        "par_type": {
+          "quiz": 1
+        },
+        "exemples": [
+          "quiz:QF9105"
+        ]
+      }
+    },
+    {
+      "glossary_code": "FM0206",
+      "terme": "cycle du carbone",
+      "niveau": "avance",
+      "motif": "notion du lycée ; une seule question collège (QF0094), à examiner par D3",
+      "usages_college": {
+        "nb": 1,
+        "par_type": {
+          "quiz": 1
+        },
+        "exemples": [
+          "quiz:QF0094"
+        ]
+      }
+    },
+    {
+      "glossary_code": "FM0341",
+      "terme": "calcarénite",
+      "niveau": "avance",
+      "motif": "géologie locale ; n’apparaît que dans un distracteur (QF9737)",
+      "usages_college": {
+        "nb": 1,
+        "par_type": {
+          "quiz": 1
+        },
+        "exemples": [
+          "quiz:QF9737"
+        ]
+      }
+    },
+    {
+      "glossary_code": "FM0429",
+      "terme": "lignée verte",
+      "niveau": "avance",
+      "motif": "classification phylogénétique du lycée ; la clé collège dit « plantes terrestres »",
+      "usages_college": {
+        "nb": 1,
+        "par_type": {
+          "cle": 1
+        },
+        "exemples": [
+          "cle:vegetaux-grands-groupes"
+        ]
+      }
+    },
+    {
+      "glossary_code": "FM0430",
+      "terme": "embryophyte",
+      "niveau": "avance",
+      "motif": "classification phylogénétique du lycée ; repéré par sa variante « plantes terrestres », mot courant",
+      "usages_college": {
+        "nb": 2,
+        "par_type": {
+          "quiz": 1,
+          "cle": 1
+        },
+        "exemples": [
+          "quiz:QF9238",
+          "cle:vegetaux-grands-groupes"
+        ]
+      }
+    },
+    {
+      "glossary_code": "FM0434",
+      "terme": "métamérie",
+      "niveau": "avance",
+      "motif": "repéré par ses variantes (« segment », « anneau ») : la clé collège emploie le mot courant",
+      "usages_college": {
+        "nb": 7,
+        "par_type": {
+          "quiz": 2,
+          "cle": 5
+        },
+        "exemples": [
+          "quiz:QF9309",
+          "quiz:QF9866",
+          "cle:araignees",
+          "cle:compost-petites-betes"
+        ]
+      }
+    },
+    {
+      "glossary_code": "FM0473",
+      "terme": "cladode",
+      "niveau": "avance",
+      "motif": "repéré par sa variante « raquette » : le contenu collège emploie le mot courant",
+      "usages_college": {
+        "nb": 6,
+        "par_type": {
+          "quiz": 3,
+          "cle": 3
+        },
+        "exemples": [
+          "quiz:QF7014",
+          "quiz:QF9253",
+          "quiz:QF9603",
+          "cle:vegetaux-grands-groupes",
+          "cle:arbres-palmiers",
+          "cle:potager-familles"
+        ]
+      }
+    },
+    {
+      "glossary_code": "FM0478",
+      "terme": "sclérophylle",
+      "niveau": "avance",
+      "motif": "repéré par sa variante « coriace » : le contenu collège emploie le mot courant",
+      "usages_college": {
+        "nb": 5,
+        "par_type": {
+          "quiz": 2,
+          "cle": 3
+        },
+        "exemples": [
+          "quiz:QF0527",
+          "quiz:QF0530",
+          "cle:algues-estran",
+          "cle:compost-petites-betes",
+          "cle:matorral-melah"
+        ]
+      }
+    },
+    {
+      "glossary_code": "FM0554",
+      "terme": "trophobiose",
+      "niveau": "avance",
+      "motif": "repéré par des mots voisins (miellat, fourmis et pucerons) ; le terme savant n’est pas employé",
+      "usages_college": {
+        "nb": 5,
+        "par_type": {
+          "quiz": 5
+        },
+        "exemples": [
+          "quiz:QF0354",
+          "quiz:QF0384",
+          "quiz:QF0535",
+          "quiz:QF7029",
+          "quiz:QF7064"
+        ]
+      }
+    },
+    {
+      "glossary_code": "FM0556",
+      "terme": "efficacité de pollinisation",
+      "niveau": "avance",
+      "motif": "notion de mesure (lycée, brique pollination_efficacy masquée au collège) ; une seule question",
+      "usages_college": {
+        "nb": 1,
+        "par_type": {
+          "quiz": 1
+        },
+        "exemples": [
+          "quiz:QF0372"
+        ]
+      }
+    },
+    {
+      "glossary_code": "FM0476",
+      "terme": "cuticule",
+      "niveau": "avance",
+      "motif": "un seul emploi (QF0272), compréhensible par la phrase (« fine et fragile »)",
+      "usages_college": {
+        "nb": 1,
+        "par_type": {
+          "quiz": 1
+        },
+        "exemples": [
+          "quiz:QF0272"
+        ]
+      }
+    }
+  ]
+}
