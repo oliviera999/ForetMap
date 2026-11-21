@@ -50,6 +50,15 @@ export const PRIVACY_RETENTION = Object.freeze({
    * départ (désactivation, ou année scolaire entière sans connexion pour un élève).
    */
   accountMonthsAfterDeparture: 12,
+  /**
+   * Observations d'espèces, `lib/retention/policy.js` (durées proposées, à confirmer par
+   * l'établissement) : `OBSERVATION_REFUSED_PHOTO_RETENTION_DAYS` (photo d'une observation non
+   * retenue), `OBSERVATION_REFUSED_RETENTION_DAYS` (observation non retenue) et
+   * `OBSERVATION_PENDING_RETENTION_DAYS` (observation jamais examinée).
+   */
+  observationRefusedPhotoDays: 7,
+  observationRefusedDays: 90,
+  observationPendingDays: 365,
   /** `PASSWORD_RESET_TTL_MINUTES`, `lib/passwordReset.js`. */
   passwordResetMinutes: 60,
   /** `ANON_TTL_SECONDS` (24 h), `routes/visit.js` — progression de la visite sans compte. */
@@ -167,6 +176,7 @@ export function buildPrivacyNotice({
       'organiser les activités de la forêt comestible : carte, zones, plantes et tâches à faire ;',
       'savoir qui s’occupe de quoi, et permettre aux enseignants de valider les tâches ;',
       'apprendre : quiz, observations, carnet, forum, visite guidée ;',
+      'tenir l’inventaire des êtres vivants de l’établissement : tes observations de terrain et leurs photos, vérifiées par un enseignant ;',
       'protéger le site : connexions, prévention des abus et des erreurs.',
     ],
     gl: [
@@ -245,7 +255,7 @@ export function buildPrivacyNotice({
     foret: [
       'tes enseignants : ton profil, tes tâches, tes productions et tes statistiques ;',
       'les administrateurs du site, pour le faire fonctionner ;',
-      'les autres élèves voient ton nom ou ton pseudo et ce que tu publies (forum, commentaires, observations partagées), jamais ton e-mail ni ton mot de passe.',
+      'les autres élèves voient ton nom ou ton pseudo et ce que tu publies (forum, commentaires), jamais ton e-mail ni ton mot de passe ; ils ne voient ni tes observations de terrain ni leurs photos.',
     ],
     gl: [
       'le maître du jeu (MJ) et les enseignants : ton profil, ta progression et tes productions ;',
@@ -288,6 +298,29 @@ export function buildPrivacyNotice({
     [],
     recipients[kind],
   );
+  // Observations de terrain : textes et photos d'élèves, vérifiés par un enseignant
+  // (`lib/terrain/observationService.js`, durées de `lib/retention/policy.js`).
+  if (kind === 'foret') {
+    const days = (n) => (n === 365 ? '1 an' : `${n} jours`);
+    section(
+      'observations',
+      'Tes observations de terrain',
+      [
+        'Quand tu signales une observation, tu participes à l’inventaire des êtres vivants de l’établissement. Un enseignant la vérifie avant qu’elle compte.',
+        'Photographie les plantes et les animaux, pas les personnes.',
+      ],
+      [
+        'ce qui est gardé : l’espèce, le lieu, la date, la façon dont tu l’as repérée, ce que tu écris et les photos que tu ajoutes ;',
+        'les informations cachées dans une photo (position GPS, modèle de l’appareil, date de prise de vue) sont effacées à l’envoi ;',
+        'qui les voit : toi, et les enseignants chargés de les vérifier. Les autres élèves ne voient ni ton texte ni tes photos ;',
+        'quand ton observation est validée, l’espèce est notée « confirmée sur le site » pour tout le monde ; ton texte et tes photos restent privés ;',
+        `si ton observation n’est pas retenue : ses photos sont supprimées au bout de ${days(R.observationRefusedPhotoDays)}, puis l’observation elle-même au bout de ${days(R.observationRefusedDays)} ;`,
+        `si personne ne l’a examinée au bout de ${days(R.observationPendingDays)}, elle est supprimée avec ses photos ;`,
+        `une observation validée est gardée autant que ton compte (pendant ta scolarité, puis ${R.accountMonthsAfterDeparture === 12 ? '1 an' : `${R.accountMonthsAfterDeparture} mois`} après ton départ) : elle sert de preuve à l’inventaire ;`,
+        'tu peux supprimer toi-même une observation tant qu’elle n’est pas validée, et tu retrouves les tiennes dans l’export de tes données.',
+      ],
+    );
+  }
   // Badges (récompenses) des élèves : profil léger tiré de l'activité d'un mineur.
   if (kind === 'foret') {
     section(
