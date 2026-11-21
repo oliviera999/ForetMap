@@ -133,7 +133,7 @@ describe('VisitMapChrome — commandes compactées', () => {
     const { props } = setup({ visitMascotOptions: MASCOTS, visitMascotId: 'gnome' });
     const picker = screen.getByTestId('visit-mascot-picker');
     expect(picker.tagName).toBe('BUTTON');
-    expect(picker).toHaveAccessibleName(/Choisir la mascotte/);
+    expect(picker).toHaveAccessibleName(/^Guide : choisir la mascotte/);
     fireEvent.click(picker);
     fireEvent.click(screen.getByRole('menuitemradio', { name: 'Spore' }));
     expect(props.onChangeVisitMascotId).toHaveBeenCalledWith('spore');

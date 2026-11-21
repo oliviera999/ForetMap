@@ -29,7 +29,6 @@
   "src/components/audit/AuditEventsPanel.jsx": 1,
   "src/components/audit/UserActivityPanel.jsx": 2,
   "src/components/audit/VisitStatsPanel.jsx": 1,
-  "src/components/auth-views.jsx": 12,
   "src/components/auth/PinModal.jsx": 10,
   "src/components/auth/TotpProfileSection.jsx": 2,
   "src/components/biodiv/PlantCatalogFilterPanel.jsx": 25,

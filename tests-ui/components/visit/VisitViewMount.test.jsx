@@ -247,7 +247,9 @@ describe('VisitView — biodiversité et glossaire sans session', () => {
     stubs.visit.selected = { ...ZONE_WITH_SPECIES, living_beings_list: [], species: [] };
     stubs.visit.selectedType = 'zone';
     const view = renderVisit({ student: null });
-    await waitFor(() => expect(view.container.querySelector('.visit-detail-panel')).not.toBeNull());
+    await waitFor(() =>
+      expect(view.baseElement.querySelector('.visit-detail-panel')).not.toBeNull(),
+    );
     expect(apiMock.mock.calls.some((c) => String(c[0]) === '/api/plants')).toBe(false);
   });
 

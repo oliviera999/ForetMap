@@ -1314,6 +1314,8 @@ CREATE TABLE IF NOT EXISTS visit_mascot_packs (
   label VARCHAR(120) NOT NULL,
   pack_json LONGTEXT NOT NULL,
   is_published TINYINT(1) NOT NULL DEFAULT 0,
+  visit_listed TINYINT(1) NOT NULL DEFAULT 1,
+  variant_of VARCHAR(80) DEFAULT NULL,
   created_at VARCHAR(32) DEFAULT NULL,
   updated_at VARCHAR(32) DEFAULT NULL,
   created_by VARCHAR(64) DEFAULT NULL,
@@ -1361,6 +1363,16 @@ CREATE TABLE IF NOT EXISTS visit_seen_anonymous (
   PRIMARY KEY (anon_token, target_type, target_id),
   INDEX idx_visit_seen_anonymous_target (target_type, target_id),
   INDEX idx_visit_seen_anonymous_updated_at (updated_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- visite : compteurs anonymes agrégés par jour et par carte (migration 374, aucun identifiant)
+CREATE TABLE IF NOT EXISTS visit_anonymous_daily (
+  day DATE NOT NULL,
+  map_id VARCHAR(32) NOT NULL,
+  sessions INT UNSIGNED NOT NULL DEFAULT 0,
+  seen_actions INT UNSIGNED NOT NULL DEFAULT 0,
+  completed_visits INT UNSIGNED NOT NULL DEFAULT 0,
+  PRIMARY KEY (day, map_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------------------------------------

@@ -116,6 +116,14 @@ Visite (`scripts/build-pwa.js`) ; e2e `perf-app-shell` (API coupée : jamais d'�
 
 Piste : deux portes de poids égal, « Découvrir le lieu » et « Me connecter ».
 
+> **Corrigé (lot 1, session B, branche `claude/ui-ux-visite-lot1-3`)** — deux portes de même
+> poids « Découvrir le lieu » / « Me connecter » (`auth-views.jsx`, côte à côte ≥ 768 px), plus
+> de barre à un seul onglet (inscription fermée en prod), sous-titre sans le nom du logiciel
+> (défaut et valeur enregistrée), crédit au prénom seul (`lib/settings/identity.js`,
+> `src/utils/appCredits.js`). Écart : la mention du message libre de crédit (réglage
+> `content.auth.credit_message`, valeur de prod) nomme encore l'élève en entier — donnée à
+> modifier dans l'administration, pas dans le code.
+
 ### U4 — 🔴 Le choix de la mascotte bloque l'entrée dans la Visite
 
 - Fenêtre modale obligatoire avant toute carte, 19 packs ; le bouton « Commencer la visite »
@@ -129,6 +137,13 @@ Piste : deux portes de poids égal, « Découvrir le lieu » et « Me connecter 
 
 Piste : guide présélectionné et visite immédiate ; choix dans la barre ; propriété « proposé
 dans la Visite » par pack (pas de liste blanche figée, retirée volontairement en septembre).
+
+> **Corrigé (lot 1, session B)** — plus de fenêtre : guide par défaut présélectionné, choix
+> dans la barre (« Guide ») ; `visit_mascot_packs.visit_listed` (migration 374) distinct de
+> `is_published`, case « Proposé dans la Visite » au studio, G&L inchangé ; `variant_of` et
+> case « Version féminine » au sélecteur (une ligne par personnage) ; `/api/visit/content`
+> réduit au pack par défaut + catalogue léger (pack à la demande). Le `label` du JSON d'un pack
+> est réaligné sur la colonne (« Oiseau noir ») ; il n'était affiché nulle part dans la Visite.
 
 ### U5 — 🟠 La carte n'est pas lisible d'emblée
 
@@ -183,6 +198,13 @@ iPhone 13) :
 Piste : panneau latéral sur ordinateur, feuille basse sur mobile ; fiche espèce visiteur ;
 « vu » automatique ; progression par carte.
 
+> **Corrigé (lot 3, session B)** — panneau latéral non modal ≥ 1024 px, feuille basse
+> partagée en dessous, zoom plafonné à 2× ; vignettes reliées par identifiant d'espèce ;
+> « Y aller » sur une ligne ; « vu » automatique annulable (`ui.visit.auto_seen_delay_seconds`,
+> 8 s) ; progression par carte et message de fin. Suivi anonyme : les progressions anonymes
+> sont purgées au bout de 24 h et n'existent qu'au marquage « vu » — d'où « 0 session » ;
+> compteurs agrégés par jour et par carte, sans identifiant (`visit_anonymous_daily`).
+
 ### U7 — 🟠 Le glossaire relie des mots qui n'en sont pas
 
 - « plonge droit **vers** le bas » est lié au terme « ver » (homographe).
@@ -209,6 +231,9 @@ L'habillage tutoie, une partie des textes vouvoyait (17 fiches sur 27 rédigées
 Décision : tutoiement partout. Contenus passés au tutoiement en prod le 20/11 ; reste
 l'habillage de l'interface et un test qui interdit le vouvoiement dans ses chaînes.
 
+> **Corrigé (lot 1, session B)** — habillage de la Visite au tutoiement, garde-fou
+> `tests/visit-tutoiement-guard.test.js` (Visite, accueil, aide).
+
 ### U9 — 🟡 Filtres de catégories à l'envers
 
 Toutes les puces sont pleines (actives) et « Tout » est blanc : on lit l'inverse. Huit puces
@@ -216,6 +241,11 @@ plus « Tout » ne tiennent pas sur une ligne en mobile.
 
 Piste : puces non pleines à l'état « tout affiché », pleine = filtre actif, « Tout »
 réinitialise, `aria-pressed` cohérent.
+
+> **Corrigé (lot 1, session B)** — le composant était juste ; c'est le réglage
+> `ui.visit.default_category_ids`, qui coche toutes les catégories en prod, qui produisait
+> l'état inversé. Toutes les catégories cochées valent désormais « Tout ». Défilement
+> horizontal conservé sur mobile.
 
 ### U10 — 🟠 Navigation élève : jusqu'à 19 onglets à plat sur ordinateur
 
@@ -245,6 +275,10 @@ composant de pôles mutualisé, une icône par onglet.
 - Boutons à icône seule (⤢, Aa, ⤡) au sens peu lisible sans survol.
 - « Retour connexion » pour un visiteur sans compte (« Quitter la visite »).
 - L'ouverture de la fiche ajoute une barre de défilement de page.
+
+> **Corrigé (lot 1, session B)** — « Ouvrir l'aide : … » (`HelpPanel`), « Quitter la
+> visite », libellés visibles des boutons à icône de la barre à partir de 640 px. La barre de
+> défilement de page à l'ouverture de la fiche disparaît avec le panneau latéral.
 
 ### U12 — 🟡 Dette d'interface remesurée
 

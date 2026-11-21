@@ -9,8 +9,25 @@ const VISIT_PROGRESS_DONUT_R = 14;
 const VISIT_PROGRESS_DONUT_STROKE = 3;
 const VISIT_PROGRESS_DONUT_C = 2 * Math.PI * VISIT_PROGRESS_DONUT_R;
 
-/** Donut de progression du parcours (zones + repères marqués comme vus). */
-function VisitProgressDonut({ progress }) {
+/**
+ * Progression **par carte** (U6) : « 6 lieux sur 45 » de la carte affichée, au lieu d'un
+ * pourcentage rapporté à tous les lieux de toutes les cartes.
+ */
+export function formatVisitMapProgress(progress, mapLabel = '') {
+  const seen = Number(progress?.seenCount || 0);
+  const total = Number(progress?.total || 0);
+  const lieux = total > 1 ? 'lieux' : 'lieu';
+  const base = `${seen.toLocaleString('fr-FR')}\u00a0${seen > 1 ? 'lieux' : 'lieu'} sur ${total.toLocaleString('fr-FR')}`;
+  const label = String(mapLabel || '').trim();
+  return {
+    short: `${seen.toLocaleString('fr-FR')}\u00a0/\u00a0${total.toLocaleString('fr-FR')}\u00a0${lieux}`,
+    long: label ? `${base} de la carte « ${label} »` : base,
+  };
+}
+
+/** Donut de progression de la carte (zones + repères vus) et décompte « x / y lieux ». */
+function VisitProgressDonut({ progress, mapLabel = '' }) {
+  const text = formatVisitMapProgress(progress, mapLabel);
   return (
     <div className="visit-progress visit-progress--donut visit-progress--chrome-inline">
       <div
@@ -19,8 +36,8 @@ function VisitProgressDonut({ progress }) {
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={progress.pct}
-        aria-label={`Parcours sur la carte : ${progress.pct} % des zones et repères marqués comme vus (${progress.seenCount} sur ${progress.total}).`}
-        title={`${progress.pct} % — ${progress.seenCount} / ${progress.total} vus`}
+        aria-label={`Parcours : ${text.long} vus.`}
+        title={`${text.long} vus`}
         data-testid="visit-progress-donut"
       >
         <svg
@@ -54,19 +71,58 @@ function VisitProgressDonut({ progress }) {
           <span className="visit-progress-donut__pct-sign">%</span>
         </span>
       </div>
+      <span className="visit-progress__count" aria-hidden="true" data-testid="visit-progress-count">
+        {text.short}
+      </span>
     </div>
   );
 }
 
 /**
- * Sélecteur de mascotte discret : bouton icône + menu compact (remplace le grand `<select>`).
- * `data-testid="visit-mascot-picker"` reste sur le contrôle pour les e2e.
+ * Regroupe les guides par personnage : une variante féminine (`variantOfById`, migration 374)
+ * n'a pas sa propre ligne, elle devient l'option « version féminine » de son pack de base.
+ * @param {Array<{ id: string, label: string }>} options
+ * @param {Map<string, string>|null|undefined} variantOfById variante → base
+ * @returns {{ bases: Array<{ id: string, label: string }>, variantByBase: Map<string, string> }}
  */
-function VisitMascotPickerPopover({ visitMascotId, visitMascotOptions, onChangeVisitMascotId }) {
+export function groupVisitMascotVariants(options, variantOfById) {
+  const list = Array.isArray(options) ? options : [];
+  const ids = new Set(list.map((m) => m.id));
+  const variantByBase = new Map();
+  const isVariant = new Set();
+  if (variantOfById && typeof variantOfById.forEach === 'function') {
+    variantOfById.forEach((baseId, variantId) => {
+      if (!ids.has(baseId) || !ids.has(variantId) || variantByBase.has(baseId)) return;
+      variantByBase.set(baseId, variantId);
+      isVariant.add(variantId);
+    });
+  }
+  return { bases: list.filter((m) => !isVariant.has(m.id)), variantByBase };
+}
+
+/**
+ * Sélecteur de guide discret : bouton + menu compact (remplace le grand `<select>`).
+ * `data-testid="visit-mascot-picker"` reste sur le contrôle pour les e2e. Un personnage
+ * décliné en deux packs (« Gnome néon » / « Gnome néon (femme) ») n'occupe qu'une ligne,
+ * avec une case « Version féminine » (audit UI/UX du 19/11/2026, U4).
+ */
+function VisitMascotPickerPopover({
+  visitMascotId,
+  visitMascotOptions,
+  visitMascotVariantOfById = null,
+  onChangeVisitMascotId,
+}) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
   const current = visitMascotOptions.find((m) => m.id === visitMascotId);
-  const triggerLabel = current?.label || 'Mascotte';
+  const triggerLabel = current?.label || 'Guide';
+  const { bases, variantByBase } = groupVisitMascotVariants(
+    visitMascotOptions,
+    visitMascotVariantOfById,
+  );
+  const isFeminine = !!(visitMascotVariantOfById && visitMascotVariantOfById.has(visitMascotId));
+  const currentBaseId = isFeminine ? visitMascotVariantOfById.get(visitMascotId) : visitMascotId;
+  const currentVariantId = variantByBase.get(currentBaseId) || null;
 
   useEffect(() => {
     if (!open) return undefined;
@@ -92,19 +148,22 @@ function VisitMascotPickerPopover({ visitMascotId, visitMascotOptions, onChangeV
         data-testid="visit-mascot-picker"
         aria-haspopup="menu"
         aria-expanded={open}
-        aria-label={`Choisir la mascotte affichée sur le plan (${triggerLabel})`}
+        aria-label={`Guide : choisir la mascotte affichée sur le plan (${triggerLabel})`}
         title="Mascotte affichée sur le plan"
         onClick={() => setOpen((v) => !v)}
       >
         <span aria-hidden>🐾</span>
+        <span className="visit-display-group__label" aria-hidden="true">
+          Guide
+        </span>
       </button>
       {/* `div` plutôt que `ul` : un menu ARIA n'est pas une liste de contenu, et
           `role="menu"` sur une liste est refusé par jsx-a11y (le lecteur d'écran annonce
           « liste » là où il faut « menu »). */}
       {open ? (
         <div className="visit-mascot-picker__menu" role="menu" aria-label="Mascottes disponibles">
-          {visitMascotOptions.map((m) => {
-            const selected = m.id === visitMascotId;
+          {bases.map((m) => {
+            const selected = m.id === currentBaseId;
             return (
               <div key={m.id} role="none">
                 <button
@@ -113,7 +172,9 @@ function VisitMascotPickerPopover({ visitMascotId, visitMascotOptions, onChangeV
                   aria-checked={selected}
                   className={`visit-mascot-picker__option${selected ? ' is-selected' : ''}`}
                   onClick={() => {
-                    onChangeVisitMascotId(m.id);
+                    // La préférence « version féminine » suit d'un personnage à l'autre.
+                    const variant = variantByBase.get(m.id);
+                    onChangeVisitMascotId(isFeminine && variant ? variant : m.id);
                     setOpen(false);
                   }}
                 >
@@ -122,6 +183,22 @@ function VisitMascotPickerPopover({ visitMascotId, visitMascotOptions, onChangeV
               </div>
             );
           })}
+          {currentVariantId ? (
+            <div role="none" className="visit-mascot-picker__variant">
+              <button
+                type="button"
+                role="menuitemcheckbox"
+                aria-checked={isFeminine}
+                data-testid="visit-mascot-variant-toggle"
+                className={`visit-mascot-picker__option visit-mascot-picker__option--variant${isFeminine ? ' is-selected' : ''}`}
+                onClick={() => {
+                  onChangeVisitMascotId(isFeminine ? currentBaseId : currentVariantId);
+                }}
+              >
+                <span aria-hidden="true">{isFeminine ? '☑' : '☐'}</span> Version féminine
+              </button>
+            </div>
+          ) : null}
         </div>
       ) : null}
     </div>
@@ -137,7 +214,7 @@ function VisitMascotPickerPopover({ visitMascotId, visitMascotOptions, onChangeV
  *  1. *identité et progression* — titre, donut, « Présentation du lieu », sélecteur de carte ;
  *  2. *affichage du plan* — plein écran, taille du texte, mascotte, réunis dans un groupe
  *     visuel unique (`.visit-display-group`) qui rime avec les commandes de zoom du plan ;
- *  3. *contexte et rôle* — état réseau, aperçu élève, aide, retour connexion.
+ *  3. *contexte et rôle* — état réseau, aperçu élève, aide, « Quitter la visite ».
  *
  * Sous le bandeau : **recherche de lieux** + **puces de catégorie** (convergence Plan).
  *
@@ -146,7 +223,7 @@ function VisitMascotPickerPopover({ visitMascotId, visitMascotOptions, onChangeV
  * @param {{ total: number, seenCount: number, pct: number }} cartographyProgress progression carte courante.
  * @param {boolean} [showSeenProgress=true] afficher le donut de progression.
  * @param {React.ReactNode} helpPanelSlot `HelpPanel` déjà configuré par le parent (null = aide désactivée).
- * @param {Function|null} onBackToAuth retour à la connexion (null = bouton masqué).
+ * @param {Function|null} onBackToAuth « Quitter la visite » (visiteur sans compte ; null = bouton masqué).
  * @param {string|null} quickTipText astuce contextuelle (null = masquée).
  * @param {string} [searchQuery] saisie de recherche de lieux.
  * @param {(next: string) => void} [onSearchQueryChange]
@@ -176,9 +253,14 @@ export function VisitMapChrome({
   onToggleTeacherPreview,
   visitMascotId,
   visitMascotOptions = [],
+  visitMascotVariantOfById = null,
   onChangeVisitMascotId,
   cartographyProgress = { total: 0, seenCount: 0, pct: 0 },
   showSeenProgress = true,
+  /** Nom de la carte affichée (progression « x lieux sur y de la carte … »). */
+  mapLabel = '',
+  /** Tous les lieux de la carte vus : message de fin, et séance de la carte s'il en existe. */
+  completionLink = null,
   helpPanelSlot = null,
   onBackToAuth = null,
   maps = [],
@@ -196,8 +278,11 @@ export function VisitMapChrome({
   onToggleCategory = null,
   onResetCategories = null,
   categoryCounts = null,
+  /** Niveau du titre : `h1` en Visite invitée (aucun autre titre de page), `h2` sinon. */
+  titleLevel = 2,
 }) {
   const searchInputId = useId();
+  const TitleTag = titleLevel === 1 ? 'h1' : 'h2';
   const hasCategories =
     Array.isArray(categoryCatalog) &&
     categoryCatalog.length > 0 &&
@@ -216,9 +301,11 @@ export function VisitMapChrome({
         {/* Zone 1 — identité et progression. Le donut est une **donnée**, pas une commande :
             sa place est auprès du titre, pas coincée entre un menu de préférence et l'aide. */}
         <div className="visit-map-card__chrome-title-line">
-          <h2 className="section-title visit-map-card__title">{title}</h2>
+          {/* Visite invitée : pas de barre d'application au-dessus, le titre de la carte est
+              le titre de la page (`h1`). */}
+          <TitleTag className="section-title visit-map-card__title">{title}</TitleTag>
           {showSeenProgress && cartographyProgress.total > 0 ? (
-            <VisitProgressDonut progress={cartographyProgress} />
+            <VisitProgressDonut progress={cartographyProgress} mapLabel={mapLabel} />
           ) : null}
           {showPresentationButton ? (
             <button
@@ -291,16 +378,20 @@ export function VisitMapChrome({
                 className="map-toolbar-text-size-btn"
                 data-testid="visit-map-text-size"
                 title="Taille du texte sur la carte (Normal / Grand / Très grand)"
-                aria-label={`Taille du texte sur la carte (${mapTextSizeLabel})`}
+                aria-label={`${mapTextSizeLabel} Texte : taille du texte sur la carte`}
                 onClick={onCycleMapTextSize}
               >
-                {mapTextSizeLabel}
+                {mapTextSizeLabel}{' '}
+                <span className="visit-display-group__label" aria-hidden="true">
+                  Texte
+                </span>
               </button>
             ) : null}
             {visitMascotOptions.length > 0 ? (
               <VisitMascotPickerPopover
                 visitMascotId={visitMascotId}
                 visitMascotOptions={visitMascotOptions}
+                visitMascotVariantOfById={visitMascotVariantOfById}
                 onChangeVisitMascotId={onChangeVisitMascotId}
               />
             ) : null}
@@ -341,9 +432,11 @@ export function VisitMapChrome({
             </button>
           ) : null}
           {helpPanelSlot}
+          {/* Visiteur sans compte : il n'est jamais « retourné » à une connexion qu'il n'a pas
+              faite — il quitte la visite (audit UI/UX du 19/11/2026, U11). */}
           {onBackToAuth ? (
             <button type="button" className="btn btn-ghost btn-sm" onClick={onBackToAuth}>
-              ↩ Retour connexion
+              ↩ Quitter la visite
             </button>
           ) : null}
         </div>
@@ -430,6 +523,22 @@ export function VisitMapChrome({
         </div>
       ) : null}
 
+      {showSeenProgress &&
+      cartographyProgress.total > 0 &&
+      cartographyProgress.seenCount >= cartographyProgress.total ? (
+        <p className="visit-complete" role="status" data-testid="visit-complete">
+          <span aria-hidden="true">🎉</span>{' '}
+          {mapLabel ? `Tu as fait le tour de « ${mapLabel} ».` : 'Tu as fait le tour de la carte.'}
+          {completionLink ? (
+            <>
+              {' '}
+              <a className="visit-complete__link" href={completionLink.href}>
+                {completionLink.label}
+              </a>
+            </>
+          ) : null}
+        </p>
+      ) : null}
       {cartographyProgress.total === 0 ? (
         <p className="visit-progress-empty visit-progress-empty--below-chrome section-sub">
           {maps.length > 1

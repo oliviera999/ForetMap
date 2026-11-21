@@ -587,7 +587,7 @@ test.describe('pack mascotte serveur (GUI)', () => {
     await srcField.fill(srcUrl);
 
     await page.getByRole('button', { name: 'Enregistrer sur le serveur' }).click();
-    await page.getByRole('button', { name: 'Publier sur la visite' }).click();
+    await page.getByRole('button', { name: 'Publier', exact: true }).click();
 
     await expect
       .poll(
@@ -599,8 +599,8 @@ test.describe('pack mascotte serveur (GUI)', () => {
             contentByMap[mapId] = await res.json();
           }
           const allPublished = ['foret', 'n3'].flatMap((mapId) =>
-            Array.isArray(contentByMap[mapId]?.mascot_packs)
-              ? contentByMap[mapId].mascot_packs
+            Array.isArray(contentByMap[mapId]?.mascot_catalog)
+              ? contentByMap[mapId].mascot_catalog
               : [],
           );
           return allPublished.some((p) => p.label === packLabel);
@@ -616,7 +616,7 @@ test.describe('pack mascotte serveur (GUI)', () => {
       contentByMap[mapId] = await res.json();
     }
     const allPublished = ['foret', 'n3'].flatMap((mapId) =>
-      Array.isArray(contentByMap[mapId]?.mascot_packs) ? contentByMap[mapId].mascot_packs : [],
+      Array.isArray(contentByMap[mapId]?.mascot_catalog) ? contentByMap[mapId].mascot_catalog : [],
     );
     const publishedPack = allPublished.find((p) => p.label === packLabel);
     expect(!!publishedPack).toBeTruthy();

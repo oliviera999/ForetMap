@@ -105,7 +105,8 @@ describe('useVisitSeenSync', () => {
 
     await act(async () => apiRef.current.onToggleSeen());
 
-    expect(props.closeVisitSelection).toHaveBeenCalledTimes(1);
+    // « Vu » automatique (U6) : la fiche reste ouverte, le marquage est annulable dedans.
+    expect(props.closeVisitSelection).not.toHaveBeenCalled();
     expect(api).toHaveBeenCalledWith('/api/visit/seen', 'POST', {
       target_type: 'marker',
       target_id: 7,
@@ -114,6 +115,21 @@ describe('useVisitSeenSync', () => {
     expect(apiRef.current.seen.has('marker:7')).toBe(true);
     expect(props.onMascotSeenCelebration).toHaveBeenCalledTimes(1);
     expect(apiRef.current.syncStatus).toBe('idle');
+  });
+
+  it('setItemSeen : marque puis annule un lieu précis, sans double appel inutile', async () => {
+    const { apiRef } = renderHarness();
+    await act(async () => apiRef.current.setItemSeen('zone', 4, true));
+    expect(apiRef.current.seen.has('zone:4')).toBe(true);
+    await act(async () => apiRef.current.setItemSeen('zone', 4, true));
+    expect(api).toHaveBeenCalledTimes(1);
+    await act(async () => apiRef.current.setItemSeen('zone', 4, false));
+    expect(apiRef.current.seen.has('zone:4')).toBe(false);
+    expect(api).toHaveBeenLastCalledWith('/api/visit/seen', 'POST', {
+      target_type: 'zone',
+      target_id: 4,
+      seen: false,
+    });
   });
 
   it('onToggleSeen hors ligne : file locale (pending) sans appel API, célébration conservée', async () => {

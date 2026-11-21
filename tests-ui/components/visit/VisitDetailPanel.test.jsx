@@ -1,5 +1,5 @@
-import { describe, test, expect, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { afterEach, beforeEach, describe, test, expect, vi } from 'vitest';
+import { act, render, screen, fireEvent, waitFor } from '@testing-library/react';
 
 import { VisitDetailPanel } from '../../../src/components/visit/VisitDetailPanel.jsx';
 
@@ -26,23 +26,56 @@ function setup(overrides = {}) {
     ...overrides,
   };
   const utils = render(<VisitDetailPanel {...props} />);
-  return { ...utils, props };
+  // La feuille basse (mobile) est rendue en portail sous `document.body` : les requêtes DOM
+  // portent sur `baseElement`, la racine React reste disponible sous `root`.
+  return { ...utils, container: utils.baseElement, root: utils.container, props };
 }
 
-describe('VisitDetailPanel — modalité et accessibilité', () => {
-  test('le panneau est un dialogue nommé par son titre', () => {
-    setup();
-    const dialog = screen.getByRole('dialog');
-    expect(dialog).toHaveAttribute('aria-modal', 'true');
-    expect(dialog).toHaveAccessibleName('Verger');
+function mockDesktop(matches) {
+  window.matchMedia = vi.fn().mockImplementation((query) => ({
+    matches: matches && /min-width:\s*1024px/.test(query),
+    media: query,
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    addListener: () => {},
+    removeListener: () => {},
+  }));
+}
+
+describe('VisitDetailPanel — fiche non modale (U6)', () => {
+  const originalMatchMedia = window.matchMedia;
+  afterEach(() => {
+    window.matchMedia = originalMatchMedia;
   });
 
-  test('le focus entre dans le panneau à l’ouverture', () => {
+  test('mobile : feuille basse nommée par son titre, non modale', () => {
+    mockDesktop(false);
+    setup();
+    const dialog = screen.getByRole('dialog');
+    expect(dialog).toHaveAttribute('aria-modal', 'false');
+    expect(dialog).toHaveAccessibleName('Verger');
+    expect(dialog).toHaveClass('fm-bottom-sheet');
+    expect(dialog).toHaveAttribute('data-testid', 'visit-detail-panel');
+  });
+
+  test('ordinateur : panneau latéral non modal, sans voile sur la carte', () => {
+    mockDesktop(true);
+    setup();
+    const dialog = screen.getByRole('dialog');
+    expect(dialog).toHaveAttribute('aria-modal', 'false');
+    expect(dialog).toHaveAccessibleName('Verger');
+    expect(dialog).toHaveClass('visit-detail-panel--side');
+    expect(screen.queryByTestId('visit-detail-panel-scrim')).toBeNull();
+  });
+
+  test('le focus entre dans la fiche à l’ouverture', () => {
+    mockDesktop(true);
     setup();
     expect(screen.getByRole('dialog').contains(document.activeElement)).toBe(true);
   });
 
   test('le focus revient sur l’élément déclencheur à la fermeture', () => {
+    mockDesktop(true);
     const trigger = document.createElement('button');
     document.body.appendChild(trigger);
     trigger.focus();
@@ -56,6 +89,7 @@ describe('VisitDetailPanel — modalité et accessibilité', () => {
   });
 
   test('Échap ferme le panneau (via onRequestClose quand il est fourni)', async () => {
+    mockDesktop(true);
     const onRequestClose = vi.fn();
     const { props } = setup({ onRequestClose });
     fireEvent.keyDown(document, { key: 'Escape' });
@@ -64,28 +98,27 @@ describe('VisitDetailPanel — modalité et accessibilité', () => {
   });
 
   test('Échap retombe sur onClose si aucune garde n’est fournie', async () => {
+    mockDesktop(true);
     const { props } = setup();
     fireEvent.keyDown(document, { key: 'Escape' });
     await waitFor(() => expect(props.onClose).toHaveBeenCalledTimes(1));
   });
 
-  test('un voile couvre la carte et la referme au clic', async () => {
-    const { props } = setup();
-    const scrim = screen.getByTestId('visit-detail-panel-scrim');
-    expect(scrim).toHaveAttribute('aria-hidden', 'true');
-    fireEvent.click(scrim);
-    await waitFor(() => expect(props.onClose).toHaveBeenCalledTimes(1));
-  });
-
-  test('la fermeture est animée : classe de sortie, puis onClose une seule fois', async () => {
+  test('ordinateur : fermeture animée, puis onClose une seule fois', async () => {
+    mockDesktop(true);
     const { props } = setup();
     fireEvent.click(screen.getByRole('button', { name: 'Fermer' }));
     expect(screen.getByRole('dialog')).toHaveClass('fm-is-exiting');
-    expect(screen.getByTestId('visit-detail-panel-scrim')).toHaveClass('fm-is-exiting');
     expect(props.onClose).not.toHaveBeenCalled();
-    // Seconde demande pendant la fermeture : ignorée.
-    fireEvent.click(screen.getByTestId('visit-detail-panel-scrim'));
+    fireEvent.click(screen.getByRole('button', { name: 'Fermer' }));
     await waitFor(() => expect(props.onClose).toHaveBeenCalledTimes(1));
+  });
+
+  test('mobile : « Fermer » de la feuille ferme la fiche', () => {
+    mockDesktop(false);
+    const { props } = setup();
+    fireEvent.click(screen.getByRole('button', { name: 'Fermer' }));
+    expect(props.onClose).toHaveBeenCalledTimes(1);
   });
 
   test('le bouton « Aa » porte un nom accessible explicite', () => {
@@ -97,8 +130,83 @@ describe('VisitDetailPanel — modalité et accessibilité', () => {
   });
 
   test('sans sélection, rien n’est rendu', () => {
-    const { container } = setup({ selected: null });
-    expect(container).toBeEmptyDOMElement();
+    const { root } = setup({ selected: null });
+    expect(root).toBeEmptyDOMElement();
+  });
+});
+
+describe('VisitDetailPanel — « vu » automatique (décision du 20/11/2026)', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  test('marqué vu après le délai, sans fermer la fiche', () => {
+    const onSetItemSeen = vi.fn();
+    const { props } = setup({ onSetItemSeen, autoSeenDelayMs: 8000 });
+    act(() => {
+      vi.advanceTimersByTime(7999);
+    });
+    expect(onSetItemSeen).not.toHaveBeenCalled();
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
+    expect(onSetItemSeen).toHaveBeenCalledWith('zone', 3, true);
+    expect(props.onClose).not.toHaveBeenCalled();
+  });
+
+  test('annulable : « Annuler » démarque et la minuterie ne remarque pas', () => {
+    const onSetItemSeen = vi.fn();
+    const { rerender, props } = setup({ onSetItemSeen, autoSeenDelayMs: 8000 });
+    act(() => {
+      vi.advanceTimersByTime(8000);
+    });
+    // Le parent répercute le marquage.
+    rerender(
+      <VisitDetailPanel
+        {...props}
+        onSetItemSeen={onSetItemSeen}
+        autoSeenDelayMs={8000}
+        seen={new Set(['zone:3'])}
+      />,
+    );
+    fireEvent.click(screen.getByTestId('visit-seen-undo'));
+    expect(onSetItemSeen).toHaveBeenLastCalledWith('zone', 3, false);
+    rerender(
+      <VisitDetailPanel
+        {...props}
+        onSetItemSeen={onSetItemSeen}
+        autoSeenDelayMs={8000}
+        seen={new Set()}
+      />,
+    );
+    act(() => {
+      vi.advanceTimersByTime(20000);
+    });
+    expect(onSetItemSeen).toHaveBeenCalledTimes(2);
+  });
+
+  test('délai à 0 : jamais automatique, le bouton reste', () => {
+    const onSetItemSeen = vi.fn();
+    setup({ onSetItemSeen, autoSeenDelayMs: 0 });
+    act(() => {
+      vi.advanceTimersByTime(60000);
+    });
+    expect(onSetItemSeen).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: /Marquer comme vu/ }));
+    expect(onSetItemSeen).toHaveBeenCalledWith('zone', 3, true);
+  });
+
+  test('un lieu déjà vu n’est pas remarqué', () => {
+    const onSetItemSeen = vi.fn();
+    setup({ onSetItemSeen, autoSeenDelayMs: 8000, seen: new Set(['zone:3']) });
+    act(() => {
+      vi.advanceTimersByTime(10000);
+    });
+    expect(onSetItemSeen).not.toHaveBeenCalled();
+    expect(screen.getByTestId('visit-seen-status')).toHaveTextContent('Déjà vu');
   });
 });
 
@@ -340,6 +448,8 @@ describe('VisitDetailPanel — « Y aller »', () => {
     const go = screen.getByTestId('visit-detail-go');
     expect(go).toHaveTextContent('Y aller');
     expect(screen.getByText(/pas un itinéraire/)).toBeTruthy();
+    // Une seule ligne d'aide (U6) : plus d'annonce « La fiche se referme ».
+    expect(screen.queryByText(/se referme/)).toBeNull();
 
     fireEvent.click(go);
     expect(onGoTo).toHaveBeenCalledWith(props.selected);

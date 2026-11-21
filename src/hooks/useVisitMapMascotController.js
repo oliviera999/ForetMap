@@ -7,6 +7,7 @@ import { resolveVisitMascotInteraction } from '../utils/visitMascotInteractionAp
 import { getTapActions, runBehaviorAction } from '../utils/mascotBehaviorEngine.js';
 import useAmbientMascotBehavior from './useAmbientMascotBehavior.js';
 import { useVisitMascotRegistry } from './useVisitMascotCatalogExtras.js';
+import { useVisitMascotLazyPacks } from './useVisitMascotLazyPacks.js';
 import useVisitMascotStateMachine from './useVisitMascotStateMachine.js';
 import {
   loadVisitMascotPositionPct,
@@ -102,9 +103,20 @@ export function useVisitMapMascotController({
   //
   // `offeredIds` borne le sélecteur au registre — la même liste que le studio. Sans lui, le
   // catalogue livré revenait en entier, dépublier n'ayant alors aucun effet visible côté visite.
-  const { extras: visitMascotRegistryExtras, offeredIds: visitMascotOfferedIds } =
-    useVisitMascotRegistry();
+  //
+  // Contenu allégé (`mascot_catalog`, lot 2 point 3) : le registre complet (tous les packs, JSON
+  // compris) n'est plus téléchargé ; le pack d'un guide est chargé quand on le choisit.
+  const lazyPacks = useVisitMascotLazyPacks({
+    catalog: content.mascot_catalog,
+    contentPacks: content.mascot_packs,
+  });
+  const { extras: registryExtrasFull, offeredIds: registryOfferedIds } = useVisitMascotRegistry({
+    enabled: !lazyPacks.active,
+  });
+  const visitMascotRegistryExtras = lazyPacks.active ? lazyPacks.extras : registryExtrasFull;
+  const visitMascotOfferedIds = lazyPacks.active ? lazyPacks.offeredIds : registryOfferedIds;
   const visitMascotCatalogExtras = useMemo(() => {
+    if (lazyPacks.active) return lazyPacks.extras;
     const fromContent = buildVisitMascotCatalogExtrasFromContent(content.mascot_packs);
     const seen = new Set(fromContent.map((entry) => String(entry?.id || '').trim()));
     const merged = [...fromContent];
@@ -115,7 +127,7 @@ export function useVisitMapMascotController({
       merged.push(entry);
     }
     return merged;
-  }, [content.mascot_packs, visitMascotRegistryExtras]);
+  }, [lazyPacks.active, lazyPacks.extras, content.mascot_packs, visitMascotRegistryExtras]);
 
   const {
     visitMascotId,
@@ -134,6 +146,12 @@ export function useVisitMapMascotController({
     onPersistPreferredMascotId: onPersistVisitMascotId,
     defaultMascotId: visitMascotDefaultId,
   });
+
+  // Guide courant encore provisoire (choix mémorisé, ou nouveau choix) : charger son pack.
+  const ensureVisitMascotPack = lazyPacks.ensurePack;
+  useEffect(() => {
+    if (activeMascotEntry?.isPlaceholder) ensureVisitMascotPack(visitMascotId);
+  }, [activeMascotEntry, visitMascotId, ensureVisitMascotPack]);
 
   /** Changement de carte : coupe minuteries et états transitoires (la vue gère sa part transform/mode). */
   useEffect(() => {
@@ -429,6 +447,8 @@ export function useVisitMapMascotController({
   return {
     visitMascotId,
     visitMascotOptions,
+    /** Guide → pack de base dont il est la version féminine (option « version féminine »). */
+    visitMascotVariantOfById: lazyPacks.variantOfById,
     visitMascotAnimationState,
     onChangeVisitMascotId,
     visitMascotCatalogExtras,

@@ -25,7 +25,8 @@ import { useAppDialogs } from '../shared/components/AppDialogsProvider.jsx';
  * @param {boolean} params.loading chargement visite en cours (suspend le flush initial).
  * @param {object|null} params.selected élément sélectionné (zone/repère) pour onToggleSeen.
  * @param {('zone'|'marker')|null} params.selectedType type de l'élément sélectionné.
- * @param {() => void} params.closeVisitSelection ferme le panneau détail (avant célébration).
+ * @param {() => void} [params.closeVisitSelection] conservé pour compatibilité : la fiche ne se
+ *   ferme plus au marquage « vu » (« vu » automatique, audit UI/UX du 19/11/2026, U6).
  * @param {() => void} params.onMascotSeenCelebration réaction mascotte au marquage « vu ».
  * @returns {{
  *   seen: Set<string>,
@@ -34,6 +35,7 @@ import { useAppDialogs } from '../shared/components/AppDialogsProvider.jsx';
  *   pendingSyncCount: number,
  *   syncStatus: 'idle'|'pending'|'syncing'|'synced'|'error',
  *   onToggleSeen: () => Promise<void>,
+ *   setItemSeen: (type: 'zone'|'marker', id: string, nextSeen: boolean) => Promise<void>,
  *   applyServerProgress: (progressBody: unknown) => void,
  *   flushVisitSeenQueueNow: () => Promise<void>,
  * }}
@@ -43,11 +45,13 @@ export function useVisitSeenSync({
   loading,
   selected,
   selectedType,
-  closeVisitSelection,
   onMascotSeenCelebration,
 }) {
   const { notify } = useAppDialogs();
   const [seen, setSeen] = useState(new Set());
+  /** Lecture à jour de `seen` dans les rappels asynchrones (minuterie du « vu » automatique). */
+  const seenRef = useRef(seen);
+  seenRef.current = seen;
   const [savingSeen, setSavingSeen] = useState(false);
   const [isOnline, setIsOnline] = useState(() => isBrowserOnline());
   const [pendingSyncCount, setPendingSyncCount] = useState(() => loadVisitSeenQueue().length);
@@ -140,76 +144,78 @@ export function useVisitSeenSync({
     setSyncStatus('pending');
   }, []);
 
-  const onToggleSeen = async () => {
-    if (!selected || !selectedType) return;
-    const key = itemSeenKey(selectedType, selected.id);
-    const wasSeen = seen.has(key);
-    const payloadType = selectedType;
-    const payloadId = selected.id;
-    const nextSeen = !wasSeen;
+  /**
+   * Cœur du marquage : optimiste, file hors ligne, célébration de la mascotte au passage à
+   * « vu ». La fiche reste ouverte (« vu » automatique, U6) : plus de fermeture forcée.
+   * @param {'zone'|'marker'} payloadType
+   * @param {string} payloadId
+   * @param {boolean} nextSeen
+   */
+  const setItemSeen = useCallback(
+    async (payloadType, payloadId, nextSeen) => {
+      if (!payloadType || payloadId == null) return;
+      const key = itemSeenKey(payloadType, payloadId);
+      const wasSeen = seenRef.current.has(key);
+      if (wasSeen === nextSeen) return;
 
-    if (!wasSeen) {
-      closeVisitSelection();
-      await new Promise((resolve) => {
-        if (typeof requestAnimationFrame !== 'function') {
-          setTimeout(resolve, 0);
-          return;
-        }
-        requestAnimationFrame(() => {
-          requestAnimationFrame(resolve);
-        });
+      setSeen((prev) => {
+        const optimistic = new Set(prev);
+        if (nextSeen) optimistic.add(key);
+        else optimistic.delete(key);
+        return optimistic;
       });
-    }
 
-    setSeen((prev) => {
-      const optimistic = new Set(prev);
-      if (wasSeen) optimistic.delete(key);
-      else optimistic.add(key);
-      return optimistic;
-    });
-
-    if (!isBrowserOnline()) {
-      queueSeenChangeLocally(payloadType, payloadId, nextSeen);
-      if (nextSeen) onMascotSeenCelebration();
-      return;
-    }
-
-    setSavingSeen(true);
-    try {
-      await api('/api/visit/seen', 'POST', {
-        target_type: payloadType,
-        target_id: payloadId,
-        seen: nextSeen,
-      });
-      const compact = replaceQueuedVisitSeenAction({
-        target_type: payloadType,
-        target_id: payloadId,
-        seen: nextSeen,
-      });
-      setPendingSyncCount(compact.length);
-      if (compact.length === 0) setSyncStatus((prev) => (prev === 'syncing' ? prev : 'idle'));
-      else setSyncStatus((prev) => (prev === 'syncing' ? prev : 'pending'));
-      if (nextSeen) onMascotSeenCelebration();
-    } catch (err) {
-      if (err instanceof AccountDeletedError) {
-        onForceLogout?.();
-        return;
-      }
-      if (isLikelyNetworkTransportFailure(err)) {
+      if (!isBrowserOnline()) {
         queueSeenChangeLocally(payloadType, payloadId, nextSeen);
         if (nextSeen) onMascotSeenCelebration();
         return;
       }
-      notify(err.message || 'Erreur mise à jour');
-      setSeen((prev) => {
-        const revert = new Set(prev);
-        if (wasSeen) revert.add(key);
-        else revert.delete(key);
-        return revert;
-      });
-    } finally {
-      setSavingSeen(false);
-    }
+
+      setSavingSeen(true);
+      try {
+        await api('/api/visit/seen', 'POST', {
+          target_type: payloadType,
+          target_id: payloadId,
+          seen: nextSeen,
+        });
+        const compact = replaceQueuedVisitSeenAction({
+          target_type: payloadType,
+          target_id: payloadId,
+          seen: nextSeen,
+        });
+        setPendingSyncCount(compact.length);
+        if (compact.length === 0) setSyncStatus((prev) => (prev === 'syncing' ? prev : 'idle'));
+        else setSyncStatus((prev) => (prev === 'syncing' ? prev : 'pending'));
+        if (nextSeen) onMascotSeenCelebration();
+      } catch (err) {
+        if (err instanceof AccountDeletedError) {
+          onForceLogout?.();
+          return;
+        }
+        if (isLikelyNetworkTransportFailure(err)) {
+          queueSeenChangeLocally(payloadType, payloadId, nextSeen);
+          if (nextSeen) onMascotSeenCelebration();
+          return;
+        }
+        notify(err.message || 'Erreur mise à jour');
+        setSeen((prev) => {
+          const revert = new Set(prev);
+          if (nextSeen) revert.delete(key);
+          else revert.add(key);
+          return revert;
+        });
+      } finally {
+        setSavingSeen(false);
+      }
+    },
+    [queueSeenChangeLocally, onMascotSeenCelebration, onForceLogout, notify],
+  );
+
+  /** Bascule « vu » du lieu ouvert (bouton de la fiche). */
+  const onToggleSeen = async () => {
+    if (!selected || !selectedType) return;
+    const key = itemSeenKey(selectedType, selected.id);
+    await setItemSeen(selectedType, selected.id, !seen.has(key));
   };
 
   return {
@@ -219,6 +225,7 @@ export function useVisitSeenSync({
     pendingSyncCount,
     syncStatus,
     onToggleSeen,
+    setItemSeen,
     applyServerProgress,
     flushVisitSeenQueueNow,
   };

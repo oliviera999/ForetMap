@@ -116,10 +116,7 @@ describe('MascotPackListAside', () => {
       'disabled',
       true,
     );
-    expect(screen.getByRole('button', { name: 'Publier sur la visite' })).toHaveProperty(
-      'disabled',
-      true,
-    );
+    expect(screen.getByRole('button', { name: 'Publier' })).toHaveProperty('disabled', true);
     fireEvent.click(screen.getByRole('button', { name: 'Enregistrer sur le serveur' }));
     expect(props.onSave).not.toHaveBeenCalled();
   });
@@ -133,7 +130,7 @@ describe('MascotPackListAside', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: 'Enregistrer sur le serveur' }));
     expect(props.onSave).toHaveBeenCalledTimes(1);
-    fireEvent.click(screen.getByRole('button', { name: 'Publier sur la visite' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Publier' }));
     expect(props.onTogglePublish).toHaveBeenCalledTimes(1);
     fireEvent.click(screen.getByRole('button', { name: 'Supprimer…' }));
     expect(props.onDelete).toHaveBeenCalledTimes(1);

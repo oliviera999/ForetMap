@@ -18,7 +18,7 @@ function renderPanel(narrator) {
 }
 
 function openPanel() {
-  fireEvent.click(screen.getByRole('button', { name: /Ouvrir l aide/ }));
+  fireEvent.click(screen.getByRole('button', { name: /Ouvrir l'aide/ }));
 }
 
 function headerPortrait() {

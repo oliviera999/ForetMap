@@ -55,6 +55,49 @@ partaient avec l'écran de connexion et la Visite publique, qui n'en affichent r
   publique sans préchargement, aucune erreur de console.
 - Aucun changement visible ni de comportement métier ; G&L n'est pas concerné (`gl.html` a sa
   propre entrée).
+### Visite — entrée visiteur et fiche de lieu (chantier UI/UX, lots 1 et 3)
+
+Constats U3, U4, U6, U8, U9 et U11 de `docs/AUDIT_UI_UX_2026-11-19.md`, et point 3 du lot 2.
+
+- **Accueil à deux portes** : « Découvrir le lieu » et « Me connecter », de même poids
+  (côte à côte à partir de 768 px). Plus de barre d'onglets à un seul onglet quand
+  l'inscription est fermée ; le sous-titre ne répète plus le nom du logiciel (défaut sans
+  marque, et préfixe retiré d'une valeur enregistrée) ; crédit de l'auteur au prénom seul
+  par défaut. Repli du titre par la marque du build, plus de « ForêtMap » en dur. Douze
+  `style={{` résorbés.
+- **Visite sans fenêtre bloquante** : la carte s'affiche dès le clic, guide par défaut
+  présélectionné, choix dans la barre (« Guide »). `VisitGuestMascotOnboarding` supprimé.
+- **« Proposé dans la Visite »** (migration **374**) : `visit_mascot_packs.visit_listed`,
+  distinct de `is_published` (qui sert aussi les mascottes d'équipe de G&L, inchangées) ;
+  case au studio, filtre du registre public, de la préférence de profil et du contenu.
+  Reprend la valeur de `is_published` au passage. **`variant_of`** relie la version
+  féminine d'un personnage : une seule ligne au sélecteur, case « Version féminine ».
+  Le `label` du JSON d'un pack est réaligné sur la colonne à l'enregistrement.
+- **`/api/visit/content` allégé** : le pack du guide par défaut seul, plus un catalogue léger
+  (`mascot_catalog`) ; pack d'un autre guide à la demande
+  (`GET /api/visit/mascots/:catalogId`), registre `?light=1`. En prod le 20/11 : 19 packs
+  publiés, ≈ 100 Ko de JSON de packs embarqués à chaque contenu de Visite, ramenés à un
+  pack (≈ 5 Ko) et une liste de quelques lignes.
+- **Fiche de lieu** : panneau latéral non modal à partir de 1024 px (carte visible et
+  cliquable), feuille basse partagée (`BottomSheet`, non bloquante) en dessous ; zoom de mise
+  au point plafonné à 2× ; « Y aller » sur une ligne, la fiche reste ouverte sur ordinateur.
+- **« Vu » automatique** après lecture réelle (réglage `ui.visit.auto_seen_delay_seconds`,
+  8 s, ou défilement jusqu'en bas), annulable ; la fiche ne se ferme plus au marquage.
+  **Progression par carte** (« 6 / 45 lieux »), message de fin et lien vers une séance
+  guidée publiée de la carte.
+- **Vignettes d'espèces** reliées au catalogue par identifiant (elles restaient inertes au
+  moindre écart de nom) ; contrat de la fiche espèce publique (aucune donnée réservée).
+- **Suivi anonyme** : diagnostic — les progressions anonymes sont purgées au bout de 24 h et
+  n'existent qu'au marquage « vu » ; compteurs agrégés par jour et par carte
+  (`visit_anonymous_daily`, migration 374, aucun identifiant) et ligne « 30 jours » dans les
+  statistiques de la Visite.
+- **Tutoiement** de l'habillage de la Visite et garde-fou `tests/visit-tutoiement-guard.test.js`.
+- **Puces de catégories** : toutes les catégories cochées valent « Tout » (le réglage de prod
+  les cochait toutes : puces pleines, « Tout » blanc).
+- **Libellés** : « Ouvrir l'aide : … », « Quitter la visite », libellés visibles des boutons
+  à icône de la barre à partir de 640 px, `h1` en Visite invitée.
+- **Interne** : points de bascule de la fiche ramenés dans l'échelle (980, 760, 700 → 1024,
+  768) ; plafonds du garde-fou abaissés à 51 bornes / 21 valeurs.
 ### Modifié — G&L : écrans de séance, lot 6 (l'accueil allégé, docs et clôture)
 
 Sixième et dernier lot du chantier « écrans de séance »

@@ -13,10 +13,18 @@ familles.
 
 ## Ce que vit le visiteur
 
-- **Entrer** : depuis l'écran d'accueil, un bouton « Visiter sans compte » (libellé
-  par défaut, modifiable ; bouton activable dans les réglages) ouvre la visite sans créer de compte. À la première venue, une
-  fenêtre de bienvenue propose de **choisir sa mascotte guide** ; ce choix est retenu
-  pour les fois suivantes et reste modifiable pendant la visite.
+- **Entrer** : l'écran d'accueil présente **deux portes de même importance** — « Découvrir
+  le lieu » (sans compte) et « Me connecter » (côte à côte sur grand écran, l'une sous l'autre
+  sur téléphone, la Visite d'abord). Un clic sur « Découvrir le lieu » (libellé par défaut,
+  modifiable dans _Réglages → Accueil_ ; porte activable ou non) affiche **directement la
+  carte** : plus de fenêtre de choix de mascotte au démarrage. Le guide par défaut est
+  présélectionné ; on en change à tout moment avec le bouton **« Guide »** de la barre.
+  L'accueil n'a plus de barre d'onglets quand l'inscription est fermée (un seul onglet n'était
+  pas un choix), et le sous-titre ne répète plus le nom du logiciel. Le crédit de l'auteur est
+  au **prénom seul** par défaut (_Réglages → Accueil_, « Crédit — auteur »).
+- **Quitter** : le bouton **« Quitter la visite »** ramène à l'écran d'accueil.
+- **Tutoiement** : toute l'interface de la Visite tutoie le visiteur, comme le reste de
+  l'application (les fiches de lieux sont rédigées au tutoiement depuis le 20/11/2026).
 - **Explorer** : un plan du jardin avec zones et repères, que l'on parcourt en
   déplaçant la vue (zoom, glisser, mode plein écran) — mêmes gestes que la carte de
   l'application : pincer pour zoomer et déplacer d'un seul geste, double-tap sur un point,
@@ -62,29 +70,43 @@ familles.
   et un trait relie la position au lieu visé.
 - **« Y aller »** : la fiche d'un lieu porte un bouton **« Y aller »** — **seulement si la
   géolocalisation est activée sur la carte** (plan calé + suivi GPS coché côté prof, et appareil
-  capable de se localiser). Sinon le bouton n'apparaît pas du tout. Il **referme la fiche**
-  (qui recouvrait la carte) et affiche en bas une **barre de guidage** : le nom du lieu, la
-  **distance à vol d'oiseau**, et sur la carte un **trait droit** entre votre position et lui.
+  capable de se localiser). Sinon le bouton n'apparaît pas du tout. Il affiche en bas une
+  **barre de guidage** : le nom du lieu, la **distance à vol d'oiseau**, et sur la carte un
+  **trait droit** entre ta position et lui. Sur ordinateur, la fiche reste ouverte à côté ; sur
+  téléphone, la feuille de la fiche se referme pour laisser la place à la barre.
   Le guidage ne s'arrête que sur **« Arrêter »** — ni en refermant la fiche, ni en se déplaçant
   sur la carte. Le lieu visé reste affiché même si les filtres de catégories l'excluent, et le
   bouton « Revoir la direction » ramène le guidage sur un lieu déjà visé. Pendant un parcours,
   c'est la barre d'étape qui guide : il n'y a jamais deux barres à la fois. Même geste, mêmes
   mots et même comportement que sur le Plan Lyautey.
+- **Où s'ouvre la fiche** : sur **ordinateur** (écran d'au moins 1 024 px), dans un **panneau à
+  droite** de la carte, qui reste visible et cliquable : toucher un autre lieu remplace la
+  fiche, sans la refermer. Sur **téléphone et tablette**, dans une **feuille qui monte du bas**
+  jusqu'à mi-écran (on la tire vers le haut pour lire plus, vers le bas pour la fermer) : la
+  moitié haute de la carte reste visible. Le zoom sur le lieu est **modéré** (deux fois au
+  plus) : le lieu et ses voisins restent visibles, et refermer la fiche rend la vue d'avant.
 - **La fiche d'un lieu** : titre, sous-titre, **une** photo principale (celle de la carte
   si elle existe — alors le premier grand bloc image du texte n'est pas répété en dessous ;
   sinon la première image visite), contenu éditorial (paragraphes, intertitres, autres
   blocs d'images légendées), la
   **biodiversité du lieu**, un volet Tuto (les fiches pratiques associées), un mode
   « lecture confortable », un bouton **« Y aller »** (voir ci-dessus, présent seulement si la
-  géolocalisation est activée sur la carte) et un bouton
-  **« Marquer comme vu »** — qui fait fêter la mascotte et met à jour la progression.
+  géolocalisation est activée sur la carte, avec une seule ligne d'aide) et le **statut « vu »**.
+- **« Vu » automatique** : un lieu est marqué **vu** après une **lecture réelle** de sa fiche —
+  8 secondes d'ouverture (réglable : _Réglages → Visite_, « marquer un lieu vu après N
+  secondes », 0 = jamais automatique) ou défilement jusqu'en bas. La mascotte fête le
+  marquage, la fiche **reste ouverte**, et un bouton **« Annuler »** retire le marquage (le
+  lieu n'est alors plus remarqué pendant cette lecture). Le bouton « Marquer comme vu »
+  reste disponible pour marquer tout de suite.
 - **La biodiversité du lieu est visible d'emblée**, sous le texte : une vignette par espèce
   (photo de la fiche ou pictogramme, nom courant, nom scientifique, une ligne sur son rôle).
   Toucher une vignette ouvre la **fiche complète de l'espèce** — la même que dans l'onglet
   Biodiversité. Les espèces rattachées au lieu par une **mission** apparaissent à part, sous
   « Également dans les missions ». Les lieux d'**infrastructure** (bâtiment, mare, compostage…)
-  n'affichent pas de biodiversité. Une espèce citée sur le lieu mais absente du catalogue est
-  annoncée sans être ouvrable : c'est le signe qu'il manque sa fiche côté Biodiversité.
+  n'affichent pas de biodiversité. La vignette retrouve la fiche par l'**espèce rattachée au
+  lieu** (et non plus par son seul nom). Une espèce citée sur le lieu mais absente du catalogue
+  est annoncée sans être ouvrable : c'est le signe qu'il manque sa fiche côté Biodiversité.
+  La fiche ouverte par un visiteur sans compte ne montre **aucune donnée réservée**.
 - **Les espèces du site suivent la même règle que le reste de l'application** : une espèce
   est présente sur le site si elle est au registre du site, dans une zone ou sur un repère
   (voir [Plantes et biodiversité](plantes-et-biodiversite.md), « Présente sur ce site »).
@@ -108,7 +130,10 @@ familles.
   pastilles de couleur sur chaque lieu. À l'entrée sur une carte, un **halo doux**
   met brièvement en avant jusqu'à **cinq** lieux non vus les plus proches du centre du
   plan, puis s'éteint — pour aider le premier regard sans allumer toute la carte. Le
-  **donut** du bandeau indique le pourcentage de lieux marqués. Il n'y a **pas** de
+  **donut** du bandeau indique la progression **de la carte affichée**, avec le décompte à côté
+  (« 6 / 45 lieux »). Quand tous les lieux de la carte sont vus, un message le dit (« Tu as fait
+  le tour de … ») et, si une **séance guidée** publiée existe pour cette carte, propose de la
+  poursuivre (avec un compte). Il n'y a **pas** de
   libellé « À découvrir » / « Vu » collé sur chaque lieu au survol — pour ne pas
   surcharger le plan. Quand on **ouvre la fiche d'une zone**, celle-ci reste mise en
   avant et les autres s'estompent un peu — sans cadre noir.
@@ -158,9 +183,14 @@ familles.
   se règlent de la même façon : les unes comme les autres peuvent être proposées aux
   visiteurs et devenir la mascotte par défaut.
 - **Une mascotte par défaut pour toute l'application**, quelle que soit la carte
-  affichée. Chaque visiteur reste libre d'en changer — depuis la fenêtre d'accueil de la
-  visite, le sélecteur du bandeau de plan, ou son profil s'il a un compte — et ce choix
-  vaut alors sur **toutes** les cartes.
+  affichée. Chaque visiteur reste libre d'en changer — depuis le bouton « Guide » du bandeau
+  de plan, ou son profil s'il a un compte — et ce choix vaut alors sur **toutes** les cartes.
+- **Une ligne par personnage** : un personnage décliné en deux packs (« Gnome néon » et
+  « Gnome néon (femme) ») n'occupe qu'une ligne du sélecteur, avec une case **« Version
+  féminine »**. Le lien entre les deux packs se règle au studio (« Version féminine de… »).
+- **Chargement léger** : la Visite ne télécharge au départ que le guide par défaut ; un autre
+  guide est chargé au moment où on le choisit (une silhouette s'affiche le temps du
+  chargement).
 - **C'est le dernier choix qui compte** : changer de mascotte pendant la visite n'est plus
   écrasé par la préférence enregistrée dans le profil ; à l'inverse, modifier la
   préférence dans le profil s'applique immédiatement.
@@ -171,10 +201,17 @@ familles.
 - L'administrateur choisit la **mascotte par défaut** dans **Paramètres → Visite** : la page
   présente les mascottes proposées avec leur vignette animée, et un bouton
   « par défaut ». Si la mascotte par défaut choisie a depuis été retirée de la visite, la page
-  le signale plutôt que de laisser deviner pourquoi les visiteurs en voient une autre.
-- **Proposer une mascotte aux visiteurs, c'est la publier**, et cela se fait au studio, là où
-  on la modifie. Il n'y a plus de liste de mascottes autorisées à tenir à jour : toute mascotte
-  publiée est proposée, y compris celles ajoutées plus tard. C'est ce qui corrige un défaut
+  le signale plutôt que de laisser deviner pourquoi les visiteurs en voient une autre ; les
+  visiteurs reçoivent alors le premier guide proposé.
+- **Publier et proposer dans la Visite sont deux réglages distincts**, tous deux au studio.
+  **Publier** rend un pack disponible (Visite **et** mascottes d'équipe de Gnomes & Licornes).
+  La case **« Proposé dans la Visite »** décide s'il figure dans le choix des visiteurs :
+  la décocher retire un guide de la Visite **sans le retirer aux équipes du jeu**. Un pack non
+  publié n'est jamais proposé, quelle que soit la case. Un pack nouvellement créé est proposé
+  par défaut ; au passage à cette version, chaque pack a gardé son état d'avant. La liste
+  exacte des guides de la Visite se règle donc au studio, pack par pack. Il n'y a toujours
+  pas de liste de mascottes autorisées à tenir à jour : un pack ajouté plus tard porte sa
+  propre case. C'est ce qui corrige un défaut
   ancien — une mascotte importée pouvait rester invisible parce qu'elle ne figurait pas dans une
   liste posée avant son arrivée.
 - **Le sélecteur montre exactement les mascottes du studio**, ni plus ni moins — dans la visite,
@@ -217,7 +254,9 @@ familles.
   animations image par image, comportements (réactions périodiques, réaction au
   toucher), bulles de dialogue par événement, aperçu animé en direct, bibliothèque
   d'images partagée. Un pack se travaille en **brouillon** puis se **publie** (seuls
-  les packs publiés apparaissent en visite) ; il s'exporte et s'importe en archive pour
+  les packs publiés, et cochés « Proposé dans la Visite », apparaissent en visite) ; le nom
+  saisi au studio est le seul nom affiché (il remplace aussi le nom interne du pack à
+  l'enregistrement) ; il s'exporte et s'importe en archive pour
   circuler entre établissements.
 - **Le studio ne dépend pas de la carte affichée** : il n'y a qu'**une seule liste de
   packs** et **une seule bibliothèque d'images**, communes à toutes les cartes. Une
@@ -267,7 +306,12 @@ familles.
   en haut de la liste seize noms qu'on ne pouvait ni ouvrir ni supprimer : c'était, à l'écran,
   une seconde liste. Il a disparu.
 - **Suivre la fréquentation** : un tableau de bord donne sessions, lieux vus et taux de
-  parcours complets, en séparant élèves connectés et visiteurs anonymes.
+  parcours complets, en séparant élèves connectés et visiteurs anonymes. Pour les visiteurs
+  anonymes, deux lignes : les dernières **24 heures** (progressions encore en mémoire), et les
+  **30 derniers jours** en **compteurs agrégés** — par jour et par carte, sans aucun
+  identifiant (une session au premier lieu vu, une visite terminée quand tous les lieux de la
+  carte sont vus). Les progressions anonymes s'effaçant au bout de 24 heures, c'est la seule
+  mesure qui dure ; elle ne compte que les visites postérieures à cette version.
 
 ## OLU, le narrateur de l'aide
 
