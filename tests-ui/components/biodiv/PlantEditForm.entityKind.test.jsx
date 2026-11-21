@@ -1,7 +1,6 @@
 import { describe, test, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { EMPTY_PLANT_FORM } from '../../../src/utils/plantFormValues.js';
-import { DataProvider } from '../../../src/contexts/DataContext.jsx';
+import { EMPTY_PLANT_FORM, extractPlantForm } from '../../../src/utils/plantFormValues.js';
 
 vi.mock('../../../src/services/api', () => ({ api: vi.fn(async () => ({})) }));
 vi.mock('../../../src/components/biodiv/PlantnetIdentifyPanel.jsx', () => ({
@@ -15,28 +14,24 @@ import { PlantEditForm } from '../../../src/components/biodiv/PlantEditForm.jsx'
 
 /**
  * Champ « Nature de la fiche » (`plants.entity_kind`) du formulaire de gestion : il montre la
- * nature enregistrée, et n'envoie une valeur qu'après un choix.
+ * nature enregistrée (portée par le formulaire, `extractPlantForm`) et la modifie.
  */
-const CATALOG = [
-  { id: 42, name: 'Litière de feuilles', entity_kind: 'ressource' },
-  { id: 43, name: 'Cloporte', entity_kind: 'taxon' },
-];
+const RESOURCE = { id: 42, name: 'Litière de feuilles', entity_kind: 'ressource' };
+const SPECIES = { id: 43, name: 'Cloporte', entity_kind: 'taxon' };
 
-function setup({ plantId = 42, form = { ...EMPTY_PLANT_FORM }, plants = CATALOG } = {}) {
+function setup({ plantId = 42, form = extractPlantForm(RESOURCE) } = {}) {
   const setForm = vi.fn();
   render(
-    <DataProvider value={{ plants }}>
-      <PlantEditForm
-        title="Modifier"
-        form={form}
-        setForm={setForm}
-        onSave={vi.fn()}
-        onCancel={vi.fn()}
-        saving={false}
-        plantId={plantId}
-        onToast={vi.fn()}
-      />
-    </DataProvider>,
+    <PlantEditForm
+      title="Modifier"
+      form={form}
+      setForm={setForm}
+      onSave={vi.fn()}
+      onCancel={vi.fn()}
+      saving={false}
+      plantId={plantId}
+      onToast={vi.fn()}
+    />,
   );
   return { setForm, select: screen.getByLabelText('Nature de la fiche') };
 }
@@ -60,13 +55,14 @@ describe('PlantEditForm — nature de la fiche', () => {
   });
 
   test('création : « taxon » par défaut, rien n’est écrit dans le formulaire sans choix', () => {
-    const { select, setForm } = setup({ plantId: null });
+    expect(EMPTY_PLANT_FORM.entity_kind).toBe('');
+    const { select, setForm } = setup({ plantId: null, form: { ...EMPTY_PLANT_FORM } });
     expect(select.value).toBe('taxon');
     expect(setForm).not.toHaveBeenCalled();
   });
 
   test('un choix est porté par le formulaire (donc envoyé à l’enregistrement)', () => {
-    const { select, setForm } = setup({ plantId: 43 });
+    const { select, setForm } = setup({ plantId: 43, form: extractPlantForm(SPECIES) });
     expect(select.value).toBe('taxon');
     // Le parent applique la mise à jour pendant l'évènement (comme `useState`) : on la rejoue
     // au même moment, avant que React ne rétablisse la valeur du champ contrôlé.
@@ -78,11 +74,8 @@ describe('PlantEditForm — nature de la fiche', () => {
     expect(next).toEqual({ name: 'Cloporte', entity_kind: 'ressource' });
   });
 
-  test('la valeur du formulaire l’emporte sur celle du catalogue', () => {
-    const { select } = setup({
-      plantId: 42,
-      form: { ...EMPTY_PLANT_FORM, entity_kind: 'consortium' },
-    });
-    expect(select.value).toBe('consortium');
+  test('extractPlantForm reprend la nature de la fiche, sans la transformer', () => {
+    expect(extractPlantForm(RESOURCE).entity_kind).toBe('ressource');
+    expect(extractPlantForm({ id: 9, name: 'Sans nature' }).entity_kind).toBe('');
   });
 });

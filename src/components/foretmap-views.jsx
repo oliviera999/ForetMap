@@ -81,6 +81,8 @@ function PlantManager({
     activeMapId,
     defaultZonePresence: ZONE_PRESENCE_FILTER.IN_MAP,
     enableObservationChips: true,
+    // Gestion : les fiches « ressource » (masquées de la liste des élèves) restent listées.
+    includeResourceEntities: true,
   });
 
   const editPlant = useMemo(
@@ -446,6 +448,7 @@ function PlantViewer({
   const helpPlants = resolveHelpPanelSection('plants', publicSettings);
 
   const {
+    catalogPlants,
     filteredPlants: filtered,
     displayedPlants,
     presenceByPlantId,
@@ -494,8 +497,10 @@ function PlantViewer({
       </div>
       <p className="section-sub">
         {displayedPlants.length} / {filtered.length} affichés
-        {filtered.length !== plants.length ? ` (${plants.length} au catalogue)` : ''} — affine avec
-        les filtres
+        {filtered.length !== catalogPlants.length
+          ? ` (${catalogPlants.length} au catalogue)`
+          : ''}{' '}
+        — affine avec les filtres
       </p>
 
       <PlantCatalogFilterPanel

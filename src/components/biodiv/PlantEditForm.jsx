@@ -28,7 +28,6 @@ import { PlantPhotosEditor } from './PlantPhotosEditor.jsx';
 import { PlantLookalikesEditor } from './PlantLookalikesEditor.jsx';
 import { addFormPhoto } from '../../utils/plantPhotos.js';
 import { IconSave } from '../../shared/icons.jsx';
-import { useData } from '../../contexts/DataContext.jsx';
 import {
   ENTITY_KIND_DEFAULT,
   ENTITY_KIND_ENUM,
@@ -76,15 +75,8 @@ function PlantEditForm({
   onUploadPhoto = null,
 }) {
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
-  // Nature de la fiche : tant que le formulaire ne la porte pas (il n'est rempli que des
-  // champs qu'il connaît), la valeur affichée est celle du catalogue ; elle n'est envoyée au
-  // serveur qu'après un choix, et le serveur garde la nature d'une fiche quand le champ manque.
-  const { plants: catalogPlants = [] } = useData();
-  const savedEntityKind =
-    plantId == null
-      ? ''
-      : catalogPlants.find((p) => String(p?.id) === String(plantId))?.entity_kind || '';
-  const entityKind = form.entity_kind || savedEntityKind || ENTITY_KIND_DEFAULT;
+  // Nature de la fiche : vide tant qu'elle n'est pas précisée (fiche neuve) → valeur par défaut.
+  const entityKind = form.entity_kind || ENTITY_KIND_DEFAULT;
   // Chaque libellé est ASSOCIÉ à son champ (`htmlFor`/`id`) : au lecteur d'écran, un
   // `<label>` simplement voisin ne nomme rien, et un toucher sur le libellé ne place pas
   // le curseur (audit du 25/09/2026, § 1.4.7). `useId` : deux formulaires peuvent coexister.
