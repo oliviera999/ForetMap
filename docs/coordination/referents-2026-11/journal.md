@@ -52,11 +52,18 @@
 - [x] Lot 4 — clonage (source + date recopiées), `setTaskReferents` différentiel, refus par
       série au PUT (`writeTaskReferents`), `source` dans `referents_linked` ;
       `tests/task-referents.test.js` étendu (3 tests).
-- [ ] Lot 5 — script de reprise, MCP, vérification lecture seule
+- [x] Lot 5 — `scripts/student-referents-sync.js` (simulation par défaut, surcharges de
+      simulation, `--adopt-existing`, `--apply` exige la fonction activée et refuse les surcharges),
+      liste blanche `student_referents_sync`, action `foretmap_tasks student_referents`,
+      `tests/student-referents-script.test.js`. Correctif : config déjà résolue relue par le plan.
+      **Vérification lecture seule prod (21/11, anonymisée)** : groupe `moodle-26-n3` actif ; plan
+      au seuil 2 = élève A : 9 séries, élève B : 2, élève C : 1 (12 couples) ; liens élève
+      existants sur séries actives : 12, tous dans le groupe, tous dans le plan → 0 ajout,
+      0 retrait (aucun lien `auto` en prod), 12 adoptables.
 - [ ] Lot 7 — notifications
 - [ ] Lot 8 — données personnelles
 - [ ] Lot 6 — interface
 - [ ] Lot 10 — documentation
 - [ ] Lot 9 (reste)
 
-Prochaine action : lot 5 (script de reprise, liste blanche, action MCP, vérification lecture seule).
+Prochaine action : lot 7 (tests de notifications, KIND_META front).
