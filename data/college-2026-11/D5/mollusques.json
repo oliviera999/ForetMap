@@ -1,0 +1,131 @@
+{
+ "_doc": "Étiquettes simples (plants.usage_label) du groupe d'usage « Mollusques ». Clé naturelle : plants.name (+ scientific_name). Valeur avant attendue : NULL. doute : cas à relire par Oliv.",
+ "groupe": "mollusques",
+ "libelle": "Mollusques",
+ "boites": [
+  "mollusques",
+  "gasteropodes",
+  "bivalves",
+  "cephalopodes"
+ ],
+ "fiches": [
+  {
+   "name": "Nérite tacheté",
+   "scientific_name": "Neritina turrita",
+   "usage_label": "un petit escargot d'eau douce"
+  },
+  {
+   "name": "Planorbe",
+   "scientific_name": "Planorbarius corneus",
+   "usage_label": "un escargot d'eau à coquille plate"
+  },
+  {
+   "name": "Limnée",
+   "scientific_name": "Lymnaea sp.",
+   "usage_label": "un escargot d'eau à coquille pointue"
+  },
+  {
+   "name": "Escargot petit-gris",
+   "scientific_name": "Cornu aspersum",
+   "usage_label": "un escargot des jardins"
+  },
+  {
+   "name": "Caragouille rosée",
+   "scientific_name": "Theba pisana",
+   "usage_label": "un escargot blanc des lieux secs"
+  },
+  {
+   "name": "Escargot espagnol",
+   "scientific_name": "Otala lactea",
+   "usage_label": "un gros escargot blanc et brun"
+  },
+  {
+   "name": "Bulime tronqué",
+   "scientific_name": "Rumina decollata",
+   "usage_label": "un escargot à coquille longue et cassée"
+  },
+  {
+   "name": "Cornet étroit",
+   "scientific_name": "Cochlicella acuta",
+   "usage_label": "un petit escargot à coquille pointue"
+  },
+  {
+   "name": "Limace",
+   "scientific_name": "Limacidae",
+   "usage_label": "une limace des jardins"
+  },
+  {
+   "name": "Littorine des rochers",
+   "scientific_name": "Melarhaphe neritoides",
+   "usage_label": "un minuscule escargot de mer"
+  },
+  {
+   "name": "Monodonte",
+   "scientific_name": "Phorcus lineatus",
+   "usage_label": "un escargot de mer à coquille épaisse"
+  },
+  {
+   "name": "Gibbule ombiliquée",
+   "scientific_name": "Steromphala umbilicalis",
+   "usage_label": "un petit escargot de mer rayé"
+  },
+  {
+   "name": "Bigorneau perceur",
+   "scientific_name": "Stramonita haemastoma",
+   "usage_label": "un escargot de mer chasseur"
+  },
+  {
+   "name": "Siphonaire",
+   "scientific_name": "Siphonaria pectinata",
+   "usage_label": "un escargot de mer qui respire de l'air",
+   "doute": "Siphonaire : gastéropode pulmoné (respire par un poumon), distinct des patelles malgré la forme."
+  },
+  {
+   "name": "Patelle rustique",
+   "scientific_name": "Patella rustica",
+   "usage_label": "un coquillage conique collé aux rochers"
+  },
+  {
+   "name": "Patelle déprimée",
+   "scientific_name": "Patella depressa",
+   "usage_label": "un coquillage plat collé aux rochers"
+  },
+  {
+   "name": "Patelle d'Ulysse",
+   "scientific_name": "Patella ulyssiponensis",
+   "usage_label": "un coquillage conique des rochers bas"
+  },
+  {
+   "name": "Lièvre de mer",
+   "scientific_name": "Aplysia spp.",
+   "usage_label": "une grande limace de mer",
+   "doute": "Nom trompeur (« lièvre »)."
+  },
+  {
+   "name": "Moule méditerranéenne",
+   "scientific_name": "Mytilus galloprovincialis",
+   "usage_label": "une moule noire des rochers"
+  },
+  {
+   "name": "Moule africaine",
+   "scientific_name": "Perna perna",
+   "usage_label": "une moule brune des rochers"
+  },
+  {
+   "name": "Flion (olive de mer)",
+   "scientific_name": "Donax trunculus",
+   "usage_label": "un petit coquillage des plages de sable",
+   "doute": "Nom trompeur (« olive »)."
+  },
+  {
+   "name": "Poulpe commun",
+   "scientific_name": "Octopus vulgaris",
+   "usage_label": "une pieuvre des côtes"
+  },
+  {
+   "name": "Seiche commune",
+   "scientific_name": "Sepia officinalis",
+   "usage_label": "un mollusque marin cousin de la pieuvre"
+  }
+ ]
+}

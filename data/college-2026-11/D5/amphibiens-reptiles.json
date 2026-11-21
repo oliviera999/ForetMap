@@ -1,0 +1,104 @@
+{
+ "_doc": "Étiquettes simples (plants.usage_label) du groupe d'usage « Amphibiens, lézards, serpents et tortues ». Clé naturelle : plants.name (+ scientific_name). Valeur avant attendue : NULL. doute : cas à relire par Oliv.",
+ "groupe": "amphibiens-reptiles",
+ "libelle": "Amphibiens, lézards, serpents et tortues",
+ "boites": [
+  "amphibiens",
+  "squamates",
+  "tortues"
+ ],
+ "fiches": [
+  {
+   "name": "Crapaud de Maurétanie",
+   "scientific_name": "Sclerophrys mauritanica",
+   "usage_label": "un gros crapaud des mares"
+  },
+  {
+   "name": "Crapaud vert d'Afrique du Nord",
+   "scientific_name": "Bufotes boulengeri",
+   "usage_label": "un crapaud tacheté de vert"
+  },
+  {
+   "name": "Discoglosse peint du Maroc",
+   "scientific_name": "Discoglossus scovazzi",
+   "usage_label": "une grenouille trapue au museau pointu"
+  },
+  {
+   "name": "Grenouille verte d'Afrique du Nord",
+   "scientific_name": "Pelophylax saharicus",
+   "usage_label": "une grenouille des mares"
+  },
+  {
+   "name": "Rainette méridionale",
+   "scientific_name": "Hyla meridionalis",
+   "usage_label": "une petite grenouille qui grimpe"
+  },
+  {
+   "name": "Pleurodèle de Waltl",
+   "scientific_name": "Pleurodeles waltl",
+   "usage_label": "un triton à queue aplatie",
+   "doute": "Nom opaque ; « triton » nom courant des urodèles."
+  },
+  {
+   "name": "Émyde lépreuse",
+   "scientific_name": "Mauremys leprosa",
+   "usage_label": "une tortue d'eau douce"
+  },
+  {
+   "name": "Tortue mauresque",
+   "scientific_name": "Testudo graeca",
+   "usage_label": "une tortue terrestre"
+  },
+  {
+   "name": "Tarente de Maurétanie",
+   "scientific_name": "Tarentola mauritanica",
+   "usage_label": "un gecko des murs"
+  },
+  {
+   "name": "Hémidactyle verruqueux",
+   "scientific_name": "Hemidactylus turcicus",
+   "usage_label": "un petit gecko rosé des murs"
+  },
+  {
+   "name": "Psammodrome algire",
+   "scientific_name": "Psammodromus algirus",
+   "usage_label": "un lézard à très longue queue"
+  },
+  {
+   "name": "Seps à écailles nombreuses",
+   "scientific_name": "Chalcides polylepis",
+   "usage_label": "un lézard brillant aux pattes courtes"
+  },
+  {
+   "name": "Seps mionecton",
+   "scientific_name": "Chalcides mionecton",
+   "usage_label": "un petit lézard aux pattes minuscules"
+  },
+  {
+   "name": "Caméléon commun",
+   "scientific_name": "Chamaeleo chamaeleon",
+   "usage_label": "un lézard qui change de couleur"
+  },
+  {
+   "name": "Trogonophis",
+   "scientific_name": "Trogonophis wiegmanni",
+   "usage_label": "un reptile sans pattes du sol",
+   "doute": "Ni serpent ni ver (amphisbène) : « reptile » (terme base)."
+  },
+  {
+   "name": "Couleuvre vipérine",
+   "scientific_name": "Natrix maura",
+   "usage_label": "un serpent d'eau inoffensif"
+  },
+  {
+   "name": "Couleuvre fer-à-cheval",
+   "scientific_name": "Hemorrhois hippocrepis",
+   "usage_label": "un serpent rapide non venimeux"
+  },
+  {
+   "name": "Couleuvre de Montpellier",
+   "scientific_name": "Malpolon monspessulanus",
+   "usage_label": "un grand serpent légèrement venimeux"
+  }
+ ]
+}

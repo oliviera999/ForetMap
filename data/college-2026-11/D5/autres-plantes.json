@@ -1,0 +1,48 @@
+{
+ "_doc": "Étiquettes simples (plants.usage_label) du groupe d'usage « Mousses, fougères et conifères ». Clé naturelle : plants.name (+ scientific_name). Valeur avant attendue : NULL. doute : cas à relire par Oliv.",
+ "groupe": "autres-plantes",
+ "libelle": "Mousses, fougères et conifères",
+ "boites": [
+  "bryophytes",
+  "fougeres",
+  "gymnospermes"
+ ],
+ "fiches": [
+  {
+   "name": "Tortule des murs",
+   "scientific_name": "Tortula muralis",
+   "usage_label": "une mousse des murs"
+  },
+  {
+   "name": "Fougère de Java",
+   "scientific_name": "Microsorum pteropus",
+   "usage_label": "une fougère d'aquarium"
+  },
+  {
+   "name": "Capillaire de Montpellier",
+   "scientific_name": "Adiantum capillus-veneris",
+   "usage_label": "une petite fougère des murs humides"
+  },
+  {
+   "name": "Pin d’Alep",
+   "scientific_name": "Pinus halepensis",
+   "usage_label": "un arbre à aiguilles",
+   "doute": "« conifère » évité : variante de « gymnosperme », palier avancé."
+  },
+  {
+   "name": "Ginkgo",
+   "scientific_name": "Ginkgo biloba",
+   "usage_label": "un arbre aux feuilles en éventail"
+  },
+  {
+   "name": "Éphédra fragile",
+   "scientific_name": "Ephedra fragilis",
+   "usage_label": "un arbuste presque sans feuilles"
+  },
+  {
+   "name": "Thuya de Berbérie",
+   "scientific_name": "Tetraclinis articulata",
+   "usage_label": "un arbre à feuilles en écailles"
+  }
+ ]
+}

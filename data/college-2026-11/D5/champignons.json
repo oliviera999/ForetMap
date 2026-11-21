@@ -1,0 +1,50 @@
+{
+ "_doc": "Étiquettes simples (plants.usage_label) du groupe d'usage « Champignons ». Clé naturelle : plants.name (+ scientific_name). Valeur avant attendue : NULL. doute : cas à relire par Oliv.",
+ "groupe": "champignons",
+ "libelle": "Champignons",
+ "boites": [
+  "champignons"
+ ],
+ "fiches": [
+  {
+   "name": "Champignons de litière",
+   "scientific_name": "Fungi (saprophytes)",
+   "usage_label": "des champignons des feuilles mortes"
+  },
+  {
+   "name": "Mycorhizes à Glomus",
+   "scientific_name": "Glomus sp.",
+   "usage_label": "un champignon allié des racines"
+  },
+  {
+   "name": "Trichoderma",
+   "scientific_name": "Trichoderma harzianum",
+   "usage_label": "une moisissure verte du compost"
+  },
+  {
+   "name": "Aspergillus du compost",
+   "scientific_name": "Aspergillus fumigatus",
+   "usage_label": "une moisissure grise du compost"
+  },
+  {
+   "name": "Moisissure noire du pain",
+   "scientific_name": "Rhizopus stolonifer",
+   "usage_label": "une moisissure des aliments"
+  },
+  {
+   "name": "Lichen noir des rochers",
+   "scientific_name": "Hydropunctaria maura",
+   "usage_label": "un lichen du bord de mer"
+  },
+  {
+   "name": "Xanthorie des murailles",
+   "scientific_name": "Xanthoria parietina",
+   "usage_label": "un lichen jaune des écorces et des murs"
+  },
+  {
+   "name": "Oïdium des cucurbitacées",
+   "scientific_name": "Podosphaera xanthii",
+   "usage_label": "un champignon qui blanchit les feuilles"
+  }
+ ]
+}

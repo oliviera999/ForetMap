@@ -1,0 +1,70 @@
+{
+ "_doc": "Étiquettes simples (plants.usage_label) du groupe d'usage « Bactéries, ciliés et plancton ». Clé naturelle : plants.name (+ scientific_name). Valeur avant attendue : NULL. doute : cas à relire par Oliv.",
+ "groupe": "microbes",
+ "libelle": "Bactéries, ciliés et plancton",
+ "boites": [
+  "bacteries",
+  "cilies",
+  "(sans clade)"
+ ],
+ "fiches": [
+  {
+   "name": "Nitrobacter",
+   "scientific_name": "Nitrobacter sp.",
+   "usage_label": "une bactérie du sol et des filtres"
+  },
+  {
+   "name": "Nitrospira",
+   "scientific_name": "Nitrospira sp.",
+   "usage_label": "une bactérie du sol et des filtres"
+  },
+  {
+   "name": "Nitrosomonas",
+   "scientific_name": "Nitrosomonas sp.",
+   "usage_label": "une bactérie du sol et des filtres"
+  },
+  {
+   "name": "Rhizobium",
+   "scientific_name": "Rhizobium sp.",
+   "usage_label": "une bactérie des racines"
+  },
+  {
+   "name": "Bactérie mésophile du compost",
+   "scientific_name": "Bacillus subtilis",
+   "usage_label": "une bactérie du compost"
+  },
+  {
+   "name": "Bactérie thermophile du compost",
+   "scientific_name": "Geobacillus stearothermophilus",
+   "usage_label": "une bactérie du compost chaud"
+  },
+  {
+   "name": "Actinomycète du compost",
+   "scientific_name": "Streptomyces sp.",
+   "usage_label": "une bactérie du sol à odeur de terre",
+   "doute": "Nom « actinomycète » trompeur (évoque un champignon) ; l'odeur de terre mouillée (géosmine) est due à Streptomyces."
+  },
+  {
+   "name": "Ciliés et amibes du compost",
+   "scientific_name": "Ciliophora",
+   "usage_label": "des êtres vivants minuscules du compost"
+  },
+  {
+   "name": "Biofilm",
+   "scientific_name": null,
+   "usage_label": "une pellicule vivante dans l'eau",
+   "doute": "Consortium sans clade (algues, bactéries) ; pas de groupe d'usage."
+  },
+  {
+   "name": "Phytoplancton",
+   "scientific_name": null,
+   "usage_label": "des algues minuscules qui flottent",
+   "doute": "Comprend aussi des cyanobactéries (bactéries) : « algues » au sens courant."
+  },
+  {
+   "name": "Zooplancton",
+   "scientific_name": null,
+   "usage_label": "des animaux minuscules qui flottent"
+  }
+ ]
+}
