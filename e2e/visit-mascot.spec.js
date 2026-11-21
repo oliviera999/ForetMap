@@ -93,30 +93,85 @@ async function expectVisitMascotPaintReady(stage) {
     .toBe(true);
 }
 
-async function openVisitMap(page, mapId = 'n3') {
-  await clearVisitMascotPositionStorage(page, mapId);
-  await openVisitTab(page);
-  await expect(page.locator('.visit-view')).toBeVisible({ timeout: 30_000 });
-  const mapSelect = page.getByRole('combobox', { name: 'Sélection de carte visite' });
-  if (mapId && (await mapSelect.isVisible({ timeout: 5000 }).catch(() => false))) {
-    const contentReady = page.waitForResponse(
+/**
+ * Réponse OK de `GET /api/visit/content` (pour une carte donnée si `mapId` est fourni).
+ * @param {import('@playwright/test').Page} page
+ * @param {string} [mapId]
+ */
+function waitForVisitContentResponse(page, mapId = '', timeout = 45_000) {
+  return page
+    .waitForResponse(
       (r) =>
         r.url().includes('/api/visit/content') &&
-        r.url().includes(`map_id=${encodeURIComponent(mapId)}`) &&
+        (!mapId || r.url().includes(`map_id=${encodeURIComponent(mapId)}`)) &&
         r.request().method() === 'GET' &&
         r.ok(),
-      { timeout: 45_000 },
-    );
-    await mapSelect.selectOption(mapId);
-    await contentReady.catch(() => null);
-  } else {
-    await page
-      .waitForResponse(
-        (r) => r.url().includes('/api/visit/content') && r.request().method() === 'GET' && r.ok(),
-        { timeout: 45_000 },
-      )
-      .catch(() => null);
+      { timeout },
+    )
+    .catch(() => null);
+}
+
+/**
+ * Affiche la carte `mapId` dans la Visite, quelle que soit la forme du sélecteur : liste
+ * déroulante au-delà de quatre cartes, boutons sinon (`VisitMapChrome.jsx`). Les boutons ne
+ * portent que le libellé de la carte : la bonne est reconnue à l'URL de la requête de
+ * contenu que son clic déclenche.
+ * @param {import('@playwright/test').Page} page
+ * @param {string} mapId
+ * @param {import('@playwright/test').Response | null} firstContent première réponse de contenu
+ */
+async function selectVisitMap(page, mapId, firstContent) {
+  const wanted = `map_id=${encodeURIComponent(mapId)}`;
+  const switcher = page.locator('.visit-map-switch');
+  /* Une seule carte : pas de sélecteur du tout. */
+  await switcher
+    .first()
+    .waitFor({ state: 'visible', timeout: 5_000 })
+    .catch(() => null);
+  const select = switcher.getByRole('combobox', { name: 'Sélection de carte visite' });
+  if (await select.isVisible().catch(() => false)) {
+    if ((await select.inputValue()) === mapId) return;
+    const contentReady = waitForVisitContentResponse(page, mapId);
+    await select.selectOption(mapId);
+    await contentReady;
+    return;
   }
+  if (firstContent && firstContent.url().includes(wanted)) return;
+  const buttons = switcher.getByRole('button');
+  const count = await buttons.count();
+  let initial = -1;
+  for (let i = 0; i < count; i += 1) {
+    const button = buttons.nth(i);
+    const isCurrent = /\bbtn-primary\b/.test((await button.getAttribute('class')) || '');
+    if (isCurrent) {
+      initial = i;
+    } else {
+      const contentReady = waitForVisitContentResponse(page, '', 15_000);
+      await button.click();
+      const response = await contentReady;
+      if (response && response.url().includes(wanted)) return;
+    }
+  }
+  /* Aucune autre carte ne répond à `mapId` : c'était celle affichée au départ. */
+  if (initial >= 0 && count > 1) await buttons.nth(initial).click();
+}
+
+async function openVisitMap(page, mapId = 'n3') {
+  await clearVisitMascotPositionStorage(page, mapId);
+  /*
+   * L'écoute est posée AVANT l'ouverture de l'onglet. Posée après (ancienne forme), elle
+   * manquait la réponse, déjà passée, et attendait pour rien ses 45 s — erreur avalée par
+   * le `catch`. Chaque test perdait ainsi 45 s sur les 120 s de son `beforeEach`, d'où des
+   * dépassements de délai dès que la machine ralentissait.
+   */
+  const firstContent = waitForVisitContentResponse(page);
+  await openVisitTab(page);
+  await expect(page.locator('.visit-view')).toBeVisible({ timeout: 30_000 });
+  const stageImg = page.locator('.visit-map-stage img.visit-map-img');
+  const stageShown = stageImg.waitFor({ state: 'visible', timeout: 45_000 }).catch(() => null);
+  /* Plan déjà affiché = contenu déjà reçu : l'attente d'une réponse n'est jamais bloquante. */
+  const first = await Promise.race([firstContent, stageShown.then(() => null)]);
+  if (mapId) await selectVisitMap(page, mapId, first);
   if (mapId === 'n3') {
     await waitForVisitN3EntranceMarker(page, mapId);
   }
