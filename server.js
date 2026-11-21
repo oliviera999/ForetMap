@@ -30,8 +30,11 @@ const {
   recordBoot,
   recordStop,
   recordCrash,
+  recordExit,
   resolveStopReason,
+  registerTracedSignalHandlers,
   startRssTick,
+  startHeartbeat,
 } = require('./lib/bootJournal');
 const { createDatabaseInitRetry } = require('./lib/databaseInitRetry');
 const { assignRequestId } = require('./lib/requestId');
@@ -800,8 +803,20 @@ function cancelRecurringTaskSpawn() {
 function registerGracefulShutdownHandlersOnce() {
   if (shutdownHandlersRegistered) return;
   shutdownHandlersRegistered = true;
-  process.once('SIGTERM', () => gracefulShutdown('SIGTERM'));
-  process.once('SIGINT', () => gracefulShutdown('SIGINT'));
+  // SIGTERM et SIGINT comme avant, plus les signaux jusque-là non suivis (SIGHUP, SIGQUIT,
+  // SIGXCPU… liste motivée dans lib/bootJournal.js, `TRACED_SIGNALS`) : même arrêt maîtrisé,
+  // motif écrit dans le journal au lieu d'un « arrêt sans trace ».
+  registerTracedSignalHandlers((signal) => gracefulShutdown(signal));
+  // Dernière chance : une sortie sans arrêt tracé. Passenger arrête une application Node en
+  // fermant son entrée standard, et son chargeur appelle `process.exit(0)` sans aucun signal
+  // (motif `passenger-stdin`). Écriture synchrone, best-effort, sans effet sur la sortie.
+  process.once('exit', (code) => {
+    try {
+      recordExit(code);
+    } catch {
+      // Ne jamais gêner la sortie du processus.
+    }
+  });
 }
 
 function gracefulShutdown(reason) {
@@ -958,6 +973,9 @@ function boot() {
     // (plafond mémoire LVE) ne laisse aucune trace d'arrêt ; le démarrage suivant pourra au
     // moins être rapproché de la dernière mémoire connue (`maxRssMbBeforeKill`).
     startRssTick();
+    // Battement : dernière minute de vie connue (une valeur réécrite), pour dater la mort
+    // d'un processus disparu sans trace au démarrage suivant.
+    startHeartbeat();
   }
 
   try {
