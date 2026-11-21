@@ -1,0 +1,516 @@
+{
+  "source": "champs de la base (description, taille, habitat, nutrition, critères, rôle) et science établie",
+  "especes": [
+    {
+      "name": "Rougequeue noir",
+      "scientific_name": "Phoenicurus ochruros",
+      "snapshot_id": 850,
+      "description_college": "Petit oiseau gris-noir ou gris-brun à la queue rousse qui tremble sans arrêt. Il arrive en automne pour passer l'hiver et se laisse tomber au sol pour saisir des insectes.",
+      "pourquoi": "passereau hivernant familier, queue rousse facile à repérer"
+    },
+    {
+      "name": "Huppe fasciée",
+      "scientific_name": "Upupa epops",
+      "snapshot_id": 848,
+      "description_college": "Oiseau rose orangé aux ailes rayées de noir et de blanc, coiffé d'une crête qu'il ouvre en éventail. Avec son long bec courbé, il fouille le sol à la recherche de larves d'insectes.",
+      "pourquoi": "oiseau spectaculaire, reconnaissable sans jumelles"
+    },
+    {
+      "name": "Basilic",
+      "scientific_name": "Ocimum basilicum",
+      "snapshot_id": 4,
+      "description_college": "Plante aromatique du potager aux feuilles vertes, ovales et très parfumées. Ses tiges sont carrées et ses petites fleurs blanches forment des épis au sommet.",
+      "pourquoi": "plante aromatique cultivée au potager, connue de tous"
+    },
+    {
+      "name": "Pourpier",
+      "scientific_name": "Portulaca oleracea",
+      "snapshot_id": 861,
+      "description_college": "Petite plante grasse qui rampe au sol, avec des tiges rougeâtres et des feuilles épaisses en forme de spatule. Elle pousse avec la chaleur et porte de petites fleurs jaunes.",
+      "pourquoi": "plante spontanée très commune, facile à reconnaître à ses feuilles charnues"
+    },
+    {
+      "name": "Mauve à petites fleurs",
+      "scientific_name": "Malva parviflora",
+      "snapshot_id": 863,
+      "description_college": "Plante basse et étalée aux feuilles rondes au bord ondulé et aux fleurs minuscules blanches à rose pâle. Très commune au bord des chemins, elle fait partie des mauves appelées khobbiza au Maroc.",
+      "pourquoi": "plante spontanée très commune, lien avec la cuisine marocaine"
+    },
+    {
+      "name": "Laiteron maraîcher",
+      "scientific_name": "Sonchus oleraceus",
+      "snapshot_id": 860,
+      "description_college": "Plante de la famille du pissenlit, aux feuilles vert bleuté qui entourent la tige. Ses petits capitules jaunes deviennent des boules d'aigrettes blanches qui emportent les graines dans le vent.",
+      "pourquoi": "plante spontanée présente toute l'année, cycle fleur-graine visible"
+    },
+    {
+      "name": "Coccinelle des friches",
+      "scientific_name": "Hippodamia variegata",
+      "snapshot_id": 773,
+      "description_college": "Petite coccinelle allongée, orange à rouge, aux points noirs en nombre très variable. Sa larve et l'adulte mangent des pucerons, ce qui en fait un auxiliaire du jardinier.",
+      "pourquoi": "auxiliaire commun, observable à la boîte-loupe"
+    },
+    {
+      "name": "Machaon",
+      "scientific_name": "Papilio machaon",
+      "snapshot_id": 324,
+      "description_college": "Grand papillon jaune pâle veiné de noir, dont l'aile arrière porte une queue et une tache rouge et bleue. Sa chenille verte annelée de noir mange les feuilles du fenouil et de la carotte.",
+      "pourquoi": "grand papillon emblématique, chenille visible sur les plantes du potager"
+    },
+    {
+      "name": "Belle-Dame",
+      "scientific_name": "Vanessa cardui",
+      "snapshot_id": 321,
+      "description_college": "Papillon orange saumon taché de noir, avec des taches blanches au bout des ailes avant. Il parcourt des milliers de kilomètres lors de grandes migrations.",
+      "pourquoi": "papillon migrateur, visible au printemps"
+    },
+    {
+      "name": "Xylocope violet",
+      "scientific_name": "Xylocopa violacea",
+      "snapshot_id": 325,
+      "description_college": "Très grosse abeille noire aux ailes sombres à reflets violets, au vol lourd et bruyant. Elle butine les fleurs profondes et creuse son nid dans le bois mort.",
+      "pourquoi": "pollinisateur très visible ; mention de danger (piqûre) relue"
+    },
+    {
+      "name": "Éristale gluant",
+      "scientific_name": "Eristalis tenax",
+      "snapshot_id": 784,
+      "description_college": "Grosse mouche brun-noir qui imite une abeille mais ne pique pas, et fait du sur-place devant les fleurs. Sa larve vit dans l'eau croupie et respire par un long tube.",
+      "pourquoi": "pollinisateur commun, exemple d'imitation d'une abeille"
+    },
+    {
+      "name": "Libellule écarlate",
+      "scientific_name": "Crocothemis erythraea",
+      "snapshot_id": 326,
+      "description_college": "Libellule à l'abdomen large et aplati, rouge vif chez le mâle et jaune-brun chez la femelle. Elle se pose à découvert près de l'eau et chasse les insectes en plein vol.",
+      "pourquoi": "libellule rouge vif, se pose à découvert"
+    },
+    {
+      "name": "Bulbul des jardins",
+      "scientific_name": "Pycnonotus barbatus",
+      "snapshot_id": 302,
+      "description_college": "Oiseau brun-gris à la tête noire, un peu plus petit qu'un merle, au chant flûté entendu toute la journée. Il mange des fruits et des insectes et disperse les graines.",
+      "pourquoi": "oiseau le plus entendu des jardins, présent toute l'année"
+    },
+    {
+      "name": "Moineau domestique",
+      "scientific_name": "Passer domesticus",
+      "snapshot_id": 303,
+      "description_college": "Petit oiseau brun rayé qui vit en groupes bruyants près des bâtiments. Le mâle porte une bavette noire et une calotte grise, la femelle est beige.",
+      "pourquoi": "oiseau très commun, mâle et femelle faciles à distinguer"
+    },
+    {
+      "name": "Chardonneret élégant",
+      "scientific_name": "Carduelis carduelis",
+      "snapshot_id": 308,
+      "description_college": "Petit oiseau à la face rouge vif et aux ailes noires barrées d'une bande jaune d'or. Il est granivore et se nourrit surtout des graines des chardons et d'autres plantes à capitules.",
+      "pourquoi": "oiseau coloré, lien avec les graines des plantes spontanées"
+    },
+    {
+      "name": "Caragouille rosée",
+      "scientific_name": "Theba pisana",
+      "snapshot_id": 822,
+      "description_college": "Escargot à coquille blanc crème ornée de fines lignes brunes en spirale. En été, il reste collé en grappes sur les tiges et les murets, loin du sol brûlant.",
+      "pourquoi": "mollusque très commun, visible en grappes en été"
+    },
+    {
+      "name": "Cloporte poudré",
+      "scientific_name": "Porcellionides pruinosus",
+      "snapshot_id": 343,
+      "description_college": "Petit crustacé terrestre gris bleuté, couvert d'une fine poudre, qui ne se roule pas en boule. Il vit dans le compost et se nourrit de débris de végétaux, qu'il aide à recycler.",
+      "pourquoi": "crustacé terrestre du compost, observable à la boîte-loupe"
+    },
+    {
+      "name": "Argiope à bandes",
+      "scientific_name": "Argiope trifasciata",
+      "snapshot_id": 804,
+      "description_college": "Grande araignée dont la femelle, à l'abdomen argenté rayé de fines lignes noires, se tient tête en bas au centre de sa toile ronde. Elle capture des criquets et d'autres insectes.",
+      "pourquoi": "grande araignée très visible dans sa toile ; mention de danger relue"
+    },
+    {
+      "name": "Ver de compost",
+      "scientific_name": "Eisenia fetida",
+      "snapshot_id": 49,
+      "description_college": "Ver rouge vif, plus petit que le ver de terre, qui vit en grand nombre dans le compost. Il se nourrit de déchets organiques et les transforme en engrais naturel.",
+      "pourquoi": "ver du compost, très facile à observer"
+    },
+    {
+      "name": "Tourterelle turque",
+      "scientific_name": "Streptopelia decaocto",
+      "snapshot_id": 304,
+      "description_college": "Tourterelle gris-beige avec un demi-collier noir sur la nuque. Son roucoulement en trois notes est répété sans relâche, et elle se nourrit de graines.",
+      "pourquoi": "oiseau très commun, chant reconnaissable"
+    },
+    {
+      "name": "Martinet pâle",
+      "scientific_name": "Apus pallidus",
+      "snapshot_id": 309,
+      "description_college": "Oiseau brun à la silhouette en faucille, qui vole en groupes en poussant des cris stridents. Il se nourrit des petits insectes qu'il capture en plein ciel.",
+      "pourquoi": "oiseau très visible en vol au-dessus des bâtiments"
+    },
+    {
+      "name": "Faucon crécerelle",
+      "scientific_name": "Falco tinnunculus",
+      "snapshot_id": 317,
+      "description_college": "Petit rapace roux tacheté de noir, à longue queue, qui fait du sur-place face au vent. Il repère d'en haut les petits rongeurs, les gros insectes et les lézards.",
+      "pourquoi": "rapace visible en ville, sommet d'une chaîne alimentaire"
+    },
+    {
+      "name": "Souci",
+      "scientific_name": "Colias croceus",
+      "snapshot_id": 322,
+      "description_college": "Papillon jaune orangé vif aux ailes bordées de noir, qui se pose toujours ailes fermées. Sa chenille se nourrit de plantes de la famille du pois.",
+      "pourquoi": "papillon commun presque toute l'année"
+    },
+    {
+      "name": "Xanthorie des murailles",
+      "scientific_name": "Xanthoria parietina",
+      "snapshot_id": 855,
+      "description_college": "Lichen jaune orangé en petites rosettes, très commun sur les écorces, les murs et les toits. C'est l'association d'un champignon et d'une algue, et il pousse mieux là où l'air est riche en azote.",
+      "pourquoi": "lichen très commun et coloré, visible à l'œil nu"
+    },
+    {
+      "name": "Pipistrelle de Kuhl",
+      "scientific_name": "Pipistrellus kuhlii",
+      "snapshot_id": 320,
+      "description_college": "Très petite chauve-souris brun clair, au bord des ailes souvent liséré de blanc. Au crépuscule, elle chasse les moustiques et les papillons de nuit autour des lampadaires.",
+      "pourquoi": "seul mammifère sauvage régulier ; mention de danger (ne jamais toucher) relue"
+    },
+    {
+      "name": "Hirondelle de fenêtre",
+      "scientific_name": "Delichon urbicum",
+      "snapshot_id": 311,
+      "description_college": "Petite hirondelle bleu-noir dessus et blanche dessous, avec un croupion blanc bien visible en vol. Elle construit sous les avant-toits un nid fermé en boue.",
+      "pourquoi": "oiseau facile à reconnaître en vol"
+    },
+    {
+      "name": "Bergeronnette grise",
+      "scientific_name": "Motacilla alba",
+      "snapshot_id": 316,
+      "description_college": "Oiseau fin gris, noir et blanc, qui court au sol en agitant sans arrêt sa longue queue. Il mange des insectes et se voit surtout d'octobre à mars.",
+      "pourquoi": "oiseau hivernant facile à reconnaître à sa queue"
+    },
+    {
+      "name": "Drosophile",
+      "scientific_name": "Drosophila melanogaster",
+      "snapshot_id": 346,
+      "description_college": "Toute petite mouche beige aux gros yeux rouge vif, qui apparaît vite autour des fruits mûrs. Elle se nourrit des sucres et des levures des fruits qui fermentent.",
+      "pourquoi": "insecte très commun, observable à la boîte-loupe"
+    },
+    {
+      "name": "Criquet à antennes rousses",
+      "scientific_name": "Acanthacris ruficornis",
+      "snapshot_id": 777,
+      "description_college": "Très grand criquet brun, avec une bande crème au milieu du dos et des ailes arrière jaune pâle. Il vit sur les arbustes et s'envole en faisant claquer ses ailes.",
+      "pourquoi": "très grand criquet, visible à l'œil nu"
+    },
+    {
+      "name": "Mouche soldat noire",
+      "scientific_name": "Hermetia illucens",
+      "snapshot_id": 783,
+      "description_college": "Grande mouche noire à l'allure de guêpe, totalement inoffensive. Ses larves vivent dans le compost humide et transforment très vite les déchets de cuisine.",
+      "pourquoi": "recycleur du compost, larves faciles à observer"
+    },
+    {
+      "name": "Géophile",
+      "scientific_name": "Geophilomorpha",
+      "snapshot_id": 348,
+      "description_college": "Mille-pattes très long et jaunâtre, sans yeux, avec une seule paire de pattes par anneau. Il se faufile dans la terre et chasse les petits vers et les larves.",
+      "pourquoi": "prédateur du sol, observable à la boîte-loupe"
+    },
+    {
+      "name": "Pholque de Pluche",
+      "scientific_name": "Holocnemus pluchei",
+      "snapshot_id": 809,
+      "description_college": "Araignée aux pattes très longues et fines, à l'abdomen marbré de brun. Elle se tient tête en bas dans une toile en désordre, sous les auvents et dans les angles des murs.",
+      "pourquoi": "araignée très commune près des bâtiments ; mention de danger relue"
+    },
+    {
+      "name": "Amarante verte",
+      "scientific_name": "Amaranthus viridis",
+      "snapshot_id": 870,
+      "description_college": "Plante aux feuilles ovales, souvent creusées au sommet, et aux fins épis de fleurs vertes. Elle pousse vite dans les potagers arrosés pendant la saison chaude.",
+      "pourquoi": "plante spontanée commune en été"
+    },
+    {
+      "name": "Goéland leucophée",
+      "scientific_name": "Larus michahellis",
+      "snapshot_id": 319,
+      "description_college": "Grand oiseau marin au dos gris, à la tête blanche et aux pattes jaunes, avec une tache rouge sur le bec jaune. Omnivore, il se nourrit de presque tout ce qu'il trouve.",
+      "pourquoi": "oiseau marin le plus visible ; mention de danger (nids) relue"
+    },
+    {
+      "name": "Gravelot à collier interrompu",
+      "scientific_name": "Charadrius alexandrinus",
+      "snapshot_id": 491,
+      "description_college": "Petit échassier couleur sable, au collier noir incomplet sur la poitrine. Il pond à même le sable et il est très sensible au dérangement pendant la nidification.",
+      "pourquoi": "oiseau du haut de plage, invite à observer sans déranger"
+    },
+    {
+      "name": "Figue marine",
+      "scientific_name": "Carpobrotus edulis",
+      "snapshot_id": 178,
+      "description_college": "Plante grasse rampante aux feuilles charnues à trois faces et aux grandes fleurs jaunes ou roses. Espèce exotique, elle forme des tapis épais qui étouffent les plantes locales.",
+      "pourquoi": "plante très visible du littoral, exemple d'espèce exotique"
+    },
+    {
+      "name": "Cakilier maritime",
+      "scientific_name": "Cakile maritima",
+      "snapshot_id": 354,
+      "description_college": "Plante charnue du haut de plage, aux feuilles découpées et aux fleurs lilas à quatre pétales. Ses fruits flottent et sont transportés par la mer, et la plante retient les premiers sables.",
+      "pourquoi": "plante typique du haut de plage"
+    },
+    {
+      "name": "Laitue de mer",
+      "scientific_name": "Ulva spp.",
+      "snapshot_id": 599,
+      "description_college": "Algue verte en lames très fines et translucides, comme une feuille de salade, fixée aux rochers. Elle est broutée par les patelles et les oursins.",
+      "pourquoi": "algue verte commune de l'estran ; mention de danger (rochers glissants) relue"
+    },
+    {
+      "name": "Fucus spiralé",
+      "scientific_name": "Fucus spiralis",
+      "snapshot_id": 601,
+      "description_college": "Algue brune en lanières plates, souvent tordues en spirale, aux extrémités renflées. Elle vit en haut de l'estran, sur des rochers découverts à marée basse.",
+      "pourquoi": "algue brune facile à reconnaître, repère de l'estran"
+    },
+    {
+      "name": "Patelle rustique",
+      "scientific_name": "Patella rustica",
+      "snapshot_id": 616,
+      "description_college": "Mollusque à coquille conique qui reste collé à la roche dans le haut de l'estran. Il broute la fine couche d'algues sur les rochers, puis revient toujours à sa place.",
+      "pourquoi": "mollusque emblématique de l'estran rocheux"
+    },
+    {
+      "name": "Monodonte",
+      "scientific_name": "Phorcus lineatus",
+      "snapshot_id": 622,
+      "description_college": "Escargot marin à coquille épaisse gris-vert, rayée de zigzags pourpres. Commun sur les rochers de l'estran, il racle les algues qui couvrent la roche.",
+      "pourquoi": "escargot marin commun, coquille reconnaissable"
+    },
+    {
+      "name": "Pagure des rochers",
+      "scientific_name": "Clibanarius erythropus",
+      "snapshot_id": 831,
+      "description_college": "Petit crustacé, appelé aussi bernard-l'ermite, qui protège son abdomen mou dans une coquille vide d'escargot marin. Il a des pattes rougeâtres et vit dans les cuvettes de l'estran.",
+      "pourquoi": "crustacé très commun des cuvettes, comportement facile à observer"
+    },
+    {
+      "name": "Crabe marbré",
+      "scientific_name": "Pachygrapsus marmoratus",
+      "snapshot_id": 626,
+      "description_college": "Crabe très rapide à carapace carrée, marbrée de vert sombre et de clair, qui court sur les rochers. Il broute les algues et capture de petites proies.",
+      "pourquoi": "crabe très visible sur l'estran ; mention de danger (pince) relue"
+    },
+    {
+      "name": "Anémone tomate",
+      "scientific_name": "Actinia equina",
+      "snapshot_id": 630,
+      "description_college": "Anémone de mer rouge sombre qui se referme en boule gélatineuse à marée basse. Sous l'eau, elle déploie une couronne de tentacules qui piquent et retiennent ses proies.",
+      "pourquoi": "animal fixé très visible des cuvettes ; mention de danger relue"
+    },
+    {
+      "name": "Oursin violet",
+      "scientific_name": "Paracentrotus lividus",
+      "snapshot_id": 632,
+      "description_college": "Oursin aux piquants violets à verdâtres, souvent couvert de débris de coquilles et d'algues. Il broute les algues et se creuse un abri dans la roche.",
+      "pourquoi": "échinoderme commun de l'estran ; mention de danger (piquants) relue"
+    },
+    {
+      "name": "Pimélie",
+      "scientific_name": "Pimelia sp.",
+      "snapshot_id": 771,
+      "description_college": "Coléoptère noir au corps rond et très bombé, incapable de voler, qui marche sur le sable. Il s'y enfouit quand il fait trop chaud et se nourrit de débris de plantes.",
+      "pourquoi": "insecte typique des sols sableux"
+    },
+    {
+      "name": "Gobie paganel",
+      "scientific_name": "Gobius paganellus",
+      "snapshot_id": 637,
+      "description_college": "Petit poisson brun marbré des cuvettes de l'estran, dont les nageoires du ventre forment une ventouse. Il se nourrit de petits crustacés et de vers.",
+      "pourquoi": "poisson des cuvettes, observable à marée basse"
+    },
+    {
+      "name": "Talitre (puce de mer)",
+      "scientific_name": "Talitrus saltator",
+      "snapshot_id": 638,
+      "description_college": "Petit crustacé sauteur, beige-gris, qui s'enfouit le jour dans le sable humide. La nuit, il mange les algues échouées et recycle la laisse de mer.",
+      "pourquoi": "crustacé très commun de la laisse de mer"
+    },
+    {
+      "name": "Blé tendre",
+      "scientific_name": "Triticum aestivum",
+      "snapshot_id": 209,
+      "description_college": "Céréale aux tiges creuses coupées de nœuds et aux épis serrés qui portent les grains. Ses grains donnent la farine du pain.",
+      "pourquoi": "culture de la vallée, plante alimentaire connue"
+    },
+    {
+      "name": "Pois chiche",
+      "scientific_name": "Cicer arietinum",
+      "snapshot_id": 121,
+      "description_college": "Plante basse et velue aux petites feuilles dentées, qui porte des gousses courtes et gonflées. Ses racines abritent des bactéries qui enrichissent le sol en azote.",
+      "pourquoi": "culture de la vallée, lien plante-bactéries"
+    },
+    {
+      "name": "Massette",
+      "scientific_name": "Typha sp.",
+      "snapshot_id": 573,
+      "description_college": "Grande plante des bords d'eau aux longues feuilles en ruban, avec un épi brun en forme de saucisse. Elle forme des peuplements serrés qui abritent les oiseaux nicheurs.",
+      "pourquoi": "plante des bords d'eau facile à reconnaître"
+    },
+    {
+      "name": "Tamaris de France",
+      "scientific_name": "Tamarix gallica",
+      "snapshot_id": 571,
+      "description_college": "Arbuste aux rameaux fins couverts de minuscules feuilles en écailles et aux grappes de petites fleurs roses. Il supporte les sols salés et humides des bords d'oued.",
+      "pourquoi": "arbuste typique des bords d'oued"
+    },
+    {
+      "name": "Héron garde-bœufs",
+      "scientific_name": "Bubulcus ibis",
+      "snapshot_id": 503,
+      "description_college": "Petit héron blanc et trapu au bec jaune, souvent au milieu du bétail. Il mange les insectes que les sabots des animaux font sortir de l'herbe.",
+      "pourquoi": "oiseau très visible près des troupeaux"
+    },
+    {
+      "name": "Cigogne blanche",
+      "scientific_name": "Ciconia ciconia",
+      "snapshot_id": 312,
+      "description_college": "Très grand échassier blanc aux plumes noires sur les ailes, au long bec et aux longues pattes rouges. Il vole le cou tendu et mange des insectes, des grenouilles et des petits rongeurs.",
+      "pourquoi": "grand oiseau emblématique, visible de loin"
+    },
+    {
+      "name": "Abeille domestique",
+      "scientific_name": "Apis mellifera intermissa",
+      "snapshot_id": 28,
+      "description_college": "Insecte au corps brun doré et velu, à quatre ailes, qui vit en colonie. En butinant le nectar et le pollen des fleurs, il les pollinise et produit du miel.",
+      "pourquoi": "pollinisateur majeur ; mention de danger (piqûre, allergie) relue"
+    },
+    {
+      "name": "Criquet égyptien",
+      "scientific_name": "Anacridium aegyptium",
+      "snapshot_id": 776,
+      "description_college": "Un des plus grands criquets de Méditerranée, gris, brun ou olive, qui vit dans les arbres et les arbustes. On le reconnaît à ses yeux rayés de noir et de blanc.",
+      "pourquoi": "très grand criquet, visible à l'œil nu"
+    },
+    {
+      "name": "Bousier sacré",
+      "scientific_name": "Scarabaeus sacer",
+      "snapshot_id": 772,
+      "description_college": "Gros coléoptère noir qui façonne des boules d'excréments et les roule à reculons avant de les enterrer. Il recycle les bouses des troupeaux et fertilise le sol.",
+      "pourquoi": "décomposeur des pâturages, comportement spectaculaire"
+    },
+    {
+      "name": "Escargot petit-gris",
+      "scientific_name": "Cornu aspersum",
+      "snapshot_id": 89,
+      "description_college": "Escargot à coquille brun clair barrée de bandes sombres, qui sort surtout par temps humide. Il mange les feuilles tendres et laisse derrière lui une trace brillante.",
+      "pourquoi": "mollusque très connu"
+    },
+    {
+      "name": "Grenouille verte d'Afrique du Nord",
+      "scientific_name": "Pelophylax saharicus",
+      "snapshot_id": 529,
+      "description_college": "Grenouille verte à brune, tachée de sombre, aux longues pattes arrière palmées, qui saute à l'eau au moindre bruit. Les mâles chantent grâce à deux sacs de peau sur les côtés de la tête.",
+      "pourquoi": "amphibien des points d'eau, visible et entendu"
+    },
+    {
+      "name": "Gambusie",
+      "scientific_name": "Gambusia affinis",
+      "snapshot_id": 21,
+      "description_college": "Très petit poisson gris-olive à la bouche tournée vers le haut, qui nage près de la surface. Il mange beaucoup de larves de moustiques.",
+      "pourquoi": "poisson le plus facile à voir dans les eaux calmes"
+    },
+    {
+      "name": "Psammodrome algire",
+      "scientific_name": "Psammodromus algirus",
+      "snapshot_id": 836,
+      "description_college": "Lézard brun à très longue queue, avec deux lignes claires le long du dos et des écailles pointues. Très rapide, il vit dans les broussailles et chasse araignées et insectes.",
+      "pourquoi": "lézard commun des broussailles"
+    },
+    {
+      "name": "Hérisson d’Algérie",
+      "scientific_name": "Atelerix algirus",
+      "snapshot_id": 132,
+      "description_college": "Petit mammifère au dos couvert de piquants clairs, au museau pointu, qui se roule en boule quand il a peur. Il chasse la nuit les insectes, les vers et les escargots.",
+      "pourquoi": "mammifère sauvage connu de tous ; mention de danger (piquants) relue"
+    },
+    {
+      "name": "Foulque macroule",
+      "scientific_name": "Fulica atra",
+      "snapshot_id": 486,
+      "description_college": "Oiseau d'eau noir et rond, au bec et à la plaque du front blancs. Il plonge pour arracher les plantes aquatiques dont il se nourrit.",
+      "pourquoi": "oiseau d'eau très visible"
+    },
+    {
+      "name": "Gallinule poule-d'eau",
+      "scientific_name": "Gallinula chloropus",
+      "snapshot_id": 484,
+      "description_college": "Oiseau d'eau noir ardoisé au bec rouge à pointe jaune, avec un trait blanc sur le flanc. Ses très longs doigts lui permettent de marcher sur les plantes flottantes.",
+      "pourquoi": "oiseau d'eau commun, bec coloré"
+    },
+    {
+      "name": "Échasse blanche",
+      "scientific_name": "Himantopus himantopus",
+      "snapshot_id": 489,
+      "description_college": "Échassier noir et blanc aux pattes roses très longues et au bec noir très fin. Il niche au bord de l'eau et défend son nid en criant fort.",
+      "pourquoi": "échassier spectaculaire, facile à reconnaître"
+    },
+    {
+      "name": "Aigrette garzette",
+      "scientific_name": "Egretta garzetta",
+      "snapshot_id": 502,
+      "description_college": "Petit héron tout blanc au bec noir et aux pattes noires terminées par des doigts jaunes. Il agite ses pieds dans l'eau pour faire sortir ses proies.",
+      "pourquoi": "héron blanc commun des zones humides"
+    },
+    {
+      "name": "Canard colvert",
+      "scientific_name": "Anas platyrhynchos",
+      "snapshot_id": 477,
+      "description_college": "Canard très commun, dont le mâle a la tête vert brillant et un collier blanc, et la femelle un plumage brun. Il se nourrit en basculant, la tête sous l'eau.",
+      "pourquoi": "canard le plus connu"
+    },
+    {
+      "name": "Roseau commun",
+      "scientific_name": "Phragmites australis",
+      "snapshot_id": 385,
+      "description_college": "Très grande plante des bords d'eau, aux tiges creuses coupées de nœuds, qui peut dépasser deux mètres. Elle forme la roselière, abri et dortoir de nombreux oiseaux d'eau.",
+      "pourquoi": "plante qui forme la roselière ; mention de danger (feuilles coupantes) relue"
+    },
+    {
+      "name": "Massette à larges feuilles",
+      "scientific_name": "Typha latifolia",
+      "snapshot_id": 394,
+      "description_college": "Grande plante des bords d'eau aux feuilles en ruban, avec un épi brun et velouté en forme de massue. Elle forme des peuplements serrés où nichent des oiseaux d'eau.",
+      "pourquoi": "plante des bords d'eau facile à reconnaître"
+    },
+    {
+      "name": "Tamaris",
+      "scientific_name": "Tamarix aphylla",
+      "snapshot_id": 351,
+      "description_college": "Arbre au feuillage gris-vert retombant, fait de rameaux fins couverts de feuilles minuscules. Il rejette le sel par ses feuilles et supporte la sécheresse et le vent chargé d'embruns.",
+      "pourquoi": "arbre des sols salés, très visible"
+    },
+    {
+      "name": "Trithémis pourpré",
+      "scientific_name": "Trithemis annulata",
+      "snapshot_id": 793,
+      "description_college": "Libellule dont le mâle est d'un rouge violacé rosé, avec des nervures rouges sur les ailes. Sa larve vit dans l'eau et chasse de petits animaux aquatiques.",
+      "pourquoi": "libellule colorée commune au Maroc"
+    },
+    {
+      "name": "Piéride de la rave",
+      "scientific_name": "Pieris rapae",
+      "snapshot_id": 656,
+      "description_college": "Papillon blanc très commun, à la pointe des ailes avant grise. Sa chenille verte et veloutée ronge les feuilles des choux et des plantes de la même famille.",
+      "pourquoi": "papillon blanc très commun"
+    },
+    {
+      "name": "Émyde lépreuse",
+      "scientific_name": "Mauremys leprosa",
+      "snapshot_id": 532,
+      "description_college": "Tortue d'eau à carapace aplatie brun-olive, au cou rayé de lignes orange. Omnivore, elle se chauffe souvent au soleil sur les berges.",
+      "pourquoi": "tortue d'eau visible au soleil sur les berges"
+    }
+  ]
+}
