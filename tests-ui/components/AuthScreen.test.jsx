@@ -1,5 +1,5 @@
 import { describe, expect, test, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { AuthScreen } from '../../src/components/auth-views.jsx';
 
@@ -68,6 +68,21 @@ describe('AuthScreen', () => {
     await user.click(screen.getByRole('button', { name: 'Créer un compte' }));
     expect(screen.getByLabelText('Prénom', { exact: true })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Créer le compte' })).toBeInTheDocument();
+  });
+
+  test('inscription : l’éditeur riche de la description arrive à la demande, sans champ manquant', async () => {
+    const user = userEvent.setup();
+    const { container } = render(
+      <AuthScreen onLogin={() => {}} uiSettings={{ auth: { allow_register: true } }} />,
+    );
+    // Écran de connexion : ni éditeur riche ni zone de saisie de description.
+    expect(container.querySelector('.rich-text-editor')).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Créer un compte' }));
+    // Le champ existe tout de suite (zone de saisie simple le temps du chargement)…
+    expect(screen.getByText('Description (optionnel)')).toBeInTheDocument();
+    // … puis l'éditeur riche prend sa place.
+    await waitFor(() => expect(container.querySelector('.rich-text-editor')).not.toBeNull());
+    expect(container.querySelectorAll('textarea.markdown-textarea-input')).toHaveLength(0);
   });
 
   test('affiche les crédits par défaut tant que les réglages ne les fournissent pas', () => {

@@ -17,7 +17,7 @@
 
 import { TERRAIN_COPY_HEADER, api, withAppBase, withTerrainCapture } from './api';
 import { plantPhotoList } from '../utils/plantPhotos.js';
-import { tutorialPreviewPayload } from '../components/TutorialPreviewModal.jsx';
+import { tutorialPreviewPayload } from '../utils/tutorialPreviewPayload.js';
 
 /** Nombre de téléchargements simultanés (réseau de terrain souvent faible). */
 export const FIELD_TRIP_CONCURRENCY = 4;

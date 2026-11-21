@@ -1,11 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-// Import statique volontaire (contrairement au côté GL où socket.io-client est importé
-// dynamiquement) : ici la connexion temps réel est systématique dès le montage pour toute
-// session élève/prof (`enabled: !!(student || effectiveIsTeacher)` dans App.jsx, session
-// restaurée du localStorage au démarrage). Un import dynamique ne ferait que retarder la
-// connexion sans alléger réellement le chargement du cas d'usage principal (utilisateur
-// connecté). Le chunk `socket-io` (manualChunks Vite) reste de toute façon séparé.
-import { io } from 'socket.io-client';
 import { api, AccountDeletedError, API, withAppBase, getAuthToken } from '../services/api';
 import { partitionByArchived } from '../utils/taskArchive';
 import { isSocketAuthRejection } from '../utils/realtimeAuthRejection';
@@ -17,6 +10,16 @@ import { setForetmapSocket } from '../services/foretmapSocketRegistry';
 const TASKS_RT_DEBOUNCE_MS = 220;
 /** Jardin = zones + plantes + repères (plus coûteux) : léger délai supplémentaire pour absorber les rafales. */
 const GARDEN_RT_DEBOUNCE_MS = 400;
+
+/**
+ * Client Socket.IO chargé à la demande (audit UI/UX du 19/11/2026, U1) : ce hook est monté
+ * par `App.jsx` dès l'écran de connexion, où `enabled` est faux — un import statique y
+ * faisait partir les 40 Ko du chunk `socket-io` pour rien. L'import ne part qu'avec une
+ * session (élève ou prof) ; pour une session restaurée, il part dès le premier effet, en
+ * parallèle du shell connecté. Le navigateur garde le module : une reconnexion (jeton
+ * renouvelé) ne le recharge pas.
+ */
+const loadSocketIoClient = () => import('socket.io-client');
 
 /**
  * Raisons `garden:changed` où la liste globale `/api/plants` ne change pas : on ne refetch que zones + repères de la carte active.
@@ -213,156 +216,198 @@ export function useForetmapRealtime({
     // Nouveau socket (jeton renouvelé, élévation, changement de session) : le refus
     // précédent ne vaut plus.
     authRejectedRef.current = false;
-    const origin =
-      API && String(API).trim()
-        ? new URL(API, window.location.href).origin
-        : window.location.origin;
-    const socket = io(origin, {
-      path: withAppBase('/socket.io'),
-      auth: { token: authToken, mapId: activeMapIdRef.current || undefined },
-      reconnection: true,
-      reconnectionAttempts: Infinity,
-      reconnectionDelay: 1000,
-      reconnectionDelayMax: 5000,
-      randomizationFactor: 0.3,
-      timeout: 20000,
-      ...getSocketIoClientOptions({ allowWebsocket }),
-    });
-    socketRef.current = socket;
-    // Socket exposée aux abonnements ciblés (plateaux de fresque), sans seconde connexion.
-    setForetmapSocket(socket);
-    const OFFLINE_GRACE_MS = 15000;
-    const subscribeCurrentMap = () => {
-      const mapId = activeMapIdRef.current;
-      if (!mapId) return;
-      if (subscribedMapIdRef.current === mapId) return;
-      socket.emit('subscribe:map', { mapId });
-      subscribedMapIdRef.current = mapId;
-    };
-    const clearOfflineTimer = () => {
-      if (offlineTimerRef.current) {
-        clearTimeout(offlineTimerRef.current);
-        offlineTimerRef.current = null;
+    let cancelled = false;
+    let teardown = null;
+    let retryOnOnline = null;
+    const clearRetry = () => {
+      if (retryOnOnline) {
+        window.removeEventListener('online', retryOnOnline);
+        retryOnOnline = null;
       }
     };
-    const scheduleOfflineFallback = () => {
-      clearOfflineTimer();
-      offlineTimerRef.current = setTimeout(() => {
-        offlineTimerRef.current = null;
-        setRtStatus('offline');
-      }, OFFLINE_GRACE_MS);
-    };
-    const onConnect = () => {
-      clearOfflineTimer();
-      setRtStatus('live');
-      subscribeCurrentMap();
-    };
-    const onDisconnect = (reason) => {
-      if (reason === 'io client disconnect') {
+    /** Ouvre la connexion une fois le client chargé ; renvoie le nettoyage du socket. */
+    const openSocket = (io) => {
+      const origin =
+        API && String(API).trim()
+          ? new URL(API, window.location.href).origin
+          : window.location.origin;
+      const socket = io(origin, {
+        path: withAppBase('/socket.io'),
+        auth: { token: authToken, mapId: activeMapIdRef.current || undefined },
+        reconnection: true,
+        reconnectionAttempts: Infinity,
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 5000,
+        randomizationFactor: 0.3,
+        timeout: 20000,
+        ...getSocketIoClientOptions({ allowWebsocket }),
+      });
+      socketRef.current = socket;
+      // Socket exposée aux abonnements ciblés (plateaux de fresque), sans seconde connexion.
+      setForetmapSocket(socket);
+      const OFFLINE_GRACE_MS = 15000;
+      const subscribeCurrentMap = () => {
+        const mapId = activeMapIdRef.current;
+        if (!mapId) return;
+        if (subscribedMapIdRef.current === mapId) return;
+        socket.emit('subscribe:map', { mapId });
+        subscribedMapIdRef.current = mapId;
+      };
+      const clearOfflineTimer = () => {
+        if (offlineTimerRef.current) {
+          clearTimeout(offlineTimerRef.current);
+          offlineTimerRef.current = null;
+        }
+      };
+      const scheduleOfflineFallback = () => {
         clearOfflineTimer();
-        setRtStatus('off');
-        return;
-      }
-      setRtStatus('connecting');
-      scheduleOfflineFallback();
-    };
-    const onConnectError = (err) => {
-      console.warn('[ForetMap] Socket.IO connect_error', err?.message || err);
-      if (isSocketAuthRejection(err)) {
-        // Jeton refusé : la reconnexion automatique (infinie, toutes les 1 à 5 s, en
-        // long-polling donc une requête HTTP par tentative) rejouerait éternellement le
-        // même jeton. On coupe ; le polling REST prend le relais, et une nouvelle session
-        // (`foretmap_session_changed` → `authToken`) relance cet effet avec un jeton neuf.
-        authRejectedRef.current = true;
+        offlineTimerRef.current = setTimeout(() => {
+          offlineTimerRef.current = null;
+          setRtStatus('offline');
+        }, OFFLINE_GRACE_MS);
+      };
+      const onConnect = () => {
         clearOfflineTimer();
-        setRtStatus('off');
-        socket.disconnect();
-        return;
-      }
-      setRtStatus('connecting');
-      scheduleOfflineFallback();
-    };
-    const onReconnectAttempt = () => {
-      clearOfflineTimer();
-      setRtStatus('connecting');
-    };
-    const onReconnect = () => {
-      clearOfflineTimer();
-      setRtStatus('live');
-      subscribeCurrentMap();
-      fetchAllRef.current();
-    };
-    const onReconnectFailed = () => {
-      scheduleOfflineFallback();
-    };
-    const onBrowserOnline = () => {
-      // Retour du réseau : inutile de relancer une connexion que le serveur refuse.
-      if (authRejectedRef.current) return;
-      if (!socket.connected) {
+        setRtStatus('live');
+        subscribeCurrentMap();
+      };
+      const onDisconnect = (reason) => {
+        if (reason === 'io client disconnect') {
+          clearOfflineTimer();
+          setRtStatus('off');
+          return;
+        }
         setRtStatus('connecting');
-        socket.connect();
-      }
-    };
+        scheduleOfflineFallback();
+      };
+      const onConnectError = (err) => {
+        console.warn('[ForetMap] Socket.IO connect_error', err?.message || err);
+        if (isSocketAuthRejection(err)) {
+          // Jeton refusé : la reconnexion automatique (infinie, toutes les 1 à 5 s, en
+          // long-polling donc une requête HTTP par tentative) rejouerait éternellement le
+          // même jeton. On coupe ; le polling REST prend le relais, et une nouvelle session
+          // (`foretmap_session_changed` → `authToken`) relance cet effet avec un jeton neuf.
+          authRejectedRef.current = true;
+          clearOfflineTimer();
+          setRtStatus('off');
+          socket.disconnect();
+          return;
+        }
+        setRtStatus('connecting');
+        scheduleOfflineFallback();
+      };
+      const onReconnectAttempt = () => {
+        clearOfflineTimer();
+        setRtStatus('connecting');
+      };
+      const onReconnect = () => {
+        clearOfflineTimer();
+        setRtStatus('live');
+        subscribeCurrentMap();
+        fetchAllRef.current();
+      };
+      const onReconnectFailed = () => {
+        scheduleOfflineFallback();
+      };
+      const onBrowserOnline = () => {
+        // Retour du réseau : inutile de relancer une connexion que le serveur refuse.
+        if (authRejectedRef.current) return;
+        if (!socket.connected) {
+          setRtStatus('connecting');
+          socket.connect();
+        }
+      };
 
-    socket.on('connect', onConnect);
-    socket.on('disconnect', onDisconnect);
-    socket.on('connect_error', onConnectError);
-    socket.io.on('reconnect_attempt', onReconnectAttempt);
-    socket.io.on('reconnect', onReconnect);
-    socket.io.on('reconnect_failed', onReconnectFailed);
-    socket.on('tasks:changed', scheduleTasksRefresh);
-    socket.on('students:changed', onStudentsRealtime);
-    socket.on('garden:changed', scheduleGardenRefresh);
-    socket.on('forum:changed', onForumRealtime);
-    socket.on('context-comments:changed', onContextCommentsRealtime);
-    socket.on('observations:changed', onObservationsRealtime);
-    const onPresenceUpdate = (payload) => {
-      try {
-        window.dispatchEvent(new CustomEvent('foretmap_presence', { detail: payload }));
-      } catch {
-        /* ignore */
-      }
+      socket.on('connect', onConnect);
+      socket.on('disconnect', onDisconnect);
+      socket.on('connect_error', onConnectError);
+      socket.io.on('reconnect_attempt', onReconnectAttempt);
+      socket.io.on('reconnect', onReconnect);
+      socket.io.on('reconnect_failed', onReconnectFailed);
+      socket.on('tasks:changed', scheduleTasksRefresh);
+      socket.on('students:changed', onStudentsRealtime);
+      socket.on('garden:changed', scheduleGardenRefresh);
+      socket.on('forum:changed', onForumRealtime);
+      socket.on('context-comments:changed', onContextCommentsRealtime);
+      socket.on('observations:changed', onObservationsRealtime);
+      const onPresenceUpdate = (payload) => {
+        try {
+          window.dispatchEvent(new CustomEvent('foretmap_presence', { detail: payload }));
+        } catch {
+          /* ignore */
+        }
+      };
+      socket.on('presence:update', onPresenceUpdate);
+      // Notification adressée à ce compte (salon personnel) : le centre de notifications
+      // recharge sa liste depuis le serveur.
+      const onNotificationsNew = (payload) => {
+        window.dispatchEvent(new CustomEvent('foretmap_notifications_new', { detail: payload }));
+      };
+      socket.on('notifications:new', onNotificationsNew);
+      window.addEventListener('online', onBrowserOnline);
+      if (socket.connected) setRtStatus('live');
+
+      return () => {
+        socketRef.current = null;
+        setForetmapSocket(null);
+        subscribedMapIdRef.current = null;
+        clearOfflineTimer();
+        socket.io.off('reconnect_attempt', onReconnectAttempt);
+        socket.io.off('reconnect', onReconnect);
+        socket.io.off('reconnect_failed', onReconnectFailed);
+        socket.off('connect', onConnect);
+        socket.off('disconnect', onDisconnect);
+        socket.off('connect_error', onConnectError);
+        socket.off('tasks:changed', scheduleTasksRefresh);
+        socket.off('students:changed', onStudentsRealtime);
+        socket.off('garden:changed', scheduleGardenRefresh);
+        socket.off('forum:changed', onForumRealtime);
+        socket.off('context-comments:changed', onContextCommentsRealtime);
+        socket.off('observations:changed', onObservationsRealtime);
+        socket.off('presence:update', onPresenceUpdate);
+        socket.off('notifications:new', onNotificationsNew);
+        window.removeEventListener('online', onBrowserOnline);
+        if (tasksRtDebounceRef.current) {
+          clearTimeout(tasksRtDebounceRef.current);
+          tasksRtDebounceRef.current = null;
+        }
+        if (gardenRtDebounceRef.current) {
+          clearTimeout(gardenRtDebounceRef.current);
+          gardenRtDebounceRef.current = null;
+        }
+        socket.disconnect();
+        setRtStatus('off');
+      };
     };
-    socket.on('presence:update', onPresenceUpdate);
-    // Notification adressée à ce compte (salon personnel) : le centre de notifications
-    // recharge sa liste depuis le serveur.
-    const onNotificationsNew = (payload) => {
-      window.dispatchEvent(new CustomEvent('foretmap_notifications_new', { detail: payload }));
+    const load = () => {
+      loadSocketIoClient()
+        .then(({ io }) => {
+          if (cancelled) return;
+          teardown = openSocket(io);
+        })
+        .catch((err) => {
+          if (cancelled) return;
+          // Module introuvable (hors ligne, déploiement en cours) : le polling REST tient
+          // l'écran à jour ; nouvel essai au retour du réseau.
+          console.warn('[ForetMap] Socket.IO indisponible', err?.message || err);
+          setRtStatus('offline');
+          clearRetry();
+          retryOnOnline = () => {
+            clearRetry();
+            if (cancelled) return;
+            setRtStatus('connecting');
+            load();
+          };
+          window.addEventListener('online', retryOnOnline);
+        });
     };
-    socket.on('notifications:new', onNotificationsNew);
-    window.addEventListener('online', onBrowserOnline);
-    if (socket.connected) setRtStatus('live');
+    load();
 
     return () => {
-      socketRef.current = null;
-      setForetmapSocket(null);
-      subscribedMapIdRef.current = null;
-      clearOfflineTimer();
-      socket.io.off('reconnect_attempt', onReconnectAttempt);
-      socket.io.off('reconnect', onReconnect);
-      socket.io.off('reconnect_failed', onReconnectFailed);
-      socket.off('connect', onConnect);
-      socket.off('disconnect', onDisconnect);
-      socket.off('connect_error', onConnectError);
-      socket.off('tasks:changed', scheduleTasksRefresh);
-      socket.off('students:changed', onStudentsRealtime);
-      socket.off('garden:changed', scheduleGardenRefresh);
-      socket.off('forum:changed', onForumRealtime);
-      socket.off('context-comments:changed', onContextCommentsRealtime);
-      socket.off('observations:changed', onObservationsRealtime);
-      socket.off('presence:update', onPresenceUpdate);
-      socket.off('notifications:new', onNotificationsNew);
-      window.removeEventListener('online', onBrowserOnline);
-      if (tasksRtDebounceRef.current) {
-        clearTimeout(tasksRtDebounceRef.current);
-        tasksRtDebounceRef.current = null;
-      }
-      if (gardenRtDebounceRef.current) {
-        clearTimeout(gardenRtDebounceRef.current);
-        gardenRtDebounceRef.current = null;
-      }
-      socket.disconnect();
-      setRtStatus('off');
+      cancelled = true;
+      clearRetry();
+      if (teardown) teardown();
+      else setRtStatus('off');
     };
   }, [
     enabled,

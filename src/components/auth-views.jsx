@@ -1,6 +1,5 @@
 import { Suspense, lazy, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { api, saveStoredSession, withAppBase } from '../services/api';
-import { MarkdownTextarea } from './MarkdownTextarea.jsx';
 import { getRoleTerms } from '../utils/n3-terminology';
 import { getContentText } from '../utils/content';
 import { getAppCredits } from '../utils/appCredits.js';
@@ -11,6 +10,25 @@ import { IconWarning } from '../shared/icons.jsx';
 import { PrivacyNoticeLink } from '../shared/privacy/PrivacyNoticeLink.jsx';
 import { getBuildBrand } from '../shared/brand/brandNames.js';
 import { DEFAULT_AUTH_SUBTITLE, stripLeadingAppName } from '../utils/authSubtitle.js';
+
+/** Zone de saisie simple : affichée le temps que l'éditeur riche arrive, ou à sa place. */
+function PlainDescriptionTextarea(props) {
+  return <textarea className="markdown-textarea-input" {...props} />;
+}
+
+/**
+ * Éditeur riche de la description du formulaire d'inscription, chargé à la demande (audit
+ * UI/UX du 19/11/2026, U1 — lot K) : importé statiquement, il faisait partir avec l'écran de
+ * connexion l'éditeur, `turndown`, `marked` et `dompurify` (plus de 100 Ko) pour un champ
+ * facultatif que seule l'inscription affiche. Si son code ne peut pas être téléchargé (hors
+ * ligne), la zone de saisie simple reste : la valeur est du Markdown dans les deux cas.
+ */
+const DescriptionEditorLazy = lazy(() =>
+  import('./MarkdownTextarea.jsx').then(
+    (m) => ({ default: m.MarkdownTextarea }),
+    () => ({ default: PlainDescriptionTextarea }),
+  ),
+);
 
 /**
  * Avis « une séance t'attend » (lien `?seance=`) : rare, chargé à la demande pour tenir le
@@ -490,15 +508,29 @@ function AuthScreen({
                     </div>
                     <div className="field">
                       <label htmlFor={fieldIds.description}>Description (optionnel)</label>
-                      <MarkdownTextarea
-                        id={fieldIds.description}
-                        value={description}
-                        onChange={(e) => setDescription(e.target.value)}
-                        maxLength={300}
-                        rows={3}
-                        placeholder="Je participe souvent à l'arrosage."
-                        onKeyDown={onKey}
-                      />
+                      <Suspense
+                        fallback={
+                          <PlainDescriptionTextarea
+                            id={fieldIds.description}
+                            value={description}
+                            onChange={(e) => setDescription(e.target.value)}
+                            maxLength={300}
+                            rows={3}
+                            placeholder="Je participe souvent à l'arrosage."
+                            onKeyDown={onKey}
+                          />
+                        }
+                      >
+                        <DescriptionEditorLazy
+                          id={fieldIds.description}
+                          value={description}
+                          onChange={(e) => setDescription(e.target.value)}
+                          maxLength={300}
+                          rows={3}
+                          placeholder="Je participe souvent à l'arrosage."
+                          onKeyDown={onKey}
+                        />
+                      </Suspense>
                     </div>
                     <div className="field">
                       <label htmlFor={fieldIds.pass2}>Confirmer le mot de passe</label>

@@ -53,9 +53,10 @@ vi.mock('../../src/services/api', () => ({
   AccountDeletedError: class AccountDeletedError extends Error {},
 }));
 
+import { io } from 'socket.io-client';
 import { useForetmapRealtime } from '../../src/hooks/useForetmapRealtime.js';
 
-function mountRealtime() {
+function mountRealtime(overrides = {}) {
   // Props STABLES : recréer les setters à chaque rendu relancerait l'effet de connexion
   // (et donc le socket) en boucle, ce qui n'a rien à voir avec ce qu'on teste ici.
   const props = {
@@ -68,18 +69,33 @@ function mountRealtime() {
     setZones: vi.fn(),
     setPlants: vi.fn(),
     setMarkers: vi.fn(),
+    ...overrides,
   };
   return renderHook(() => useForetmapRealtime(props));
 }
 
+/**
+ * Le client Socket.IO est chargé à la demande : le socket n'existe qu'une fois l'import
+ * résolu. Sans cette attente, `fakeSocket.fire(…)` partirait avant l'abonnement du hook et
+ * les assertions passeraient à vide.
+ */
+async function mountConnected(overrides) {
+  const view = mountRealtime(overrides);
+  await waitFor(() =>
+    expect(fakeSocket.on).toHaveBeenCalledWith('connect_error', expect.any(Function)),
+  );
+  return view;
+}
+
 beforeEach(() => {
   fakeSocket = createFakeSocket();
+  io.mockClear();
   vi.spyOn(console, 'warn').mockImplementation(() => {});
 });
 
 describe('useForetmapRealtime — refus d’authentification', () => {
   it('coupe la reconnexion quand le serveur refuse le jeton', async () => {
-    const { result } = mountRealtime();
+    const { result } = await mountConnected();
     await waitFor(() => expect(result.current).toBe('connecting'));
 
     const before = fakeSocket.disconnect.mock.calls.length;
@@ -92,7 +108,7 @@ describe('useForetmapRealtime — refus d’authentification', () => {
   });
 
   it('le retour du réseau ne relance pas une connexion refusée', async () => {
-    mountRealtime();
+    await mountConnected();
     act(() => {
       fakeSocket.fire('connect_error', new Error('unauthorized'));
     });
@@ -105,7 +121,7 @@ describe('useForetmapRealtime — refus d’authentification', () => {
   });
 
   it('une panne serveur passagère laisse la reconnexion automatique faire son travail', async () => {
-    const { result } = mountRealtime();
+    const { result } = await mountConnected();
 
     const before = fakeSocket.disconnect.mock.calls.length;
     act(() => {
@@ -117,7 +133,7 @@ describe('useForetmapRealtime — refus d’authentification', () => {
   });
 
   it('une erreur réseau ordinaire ne coupe pas la reconnexion', async () => {
-    const { result } = mountRealtime();
+    const { result } = await mountConnected();
 
     const before = fakeSocket.disconnect.mock.calls.length;
     act(() => {
@@ -126,5 +142,44 @@ describe('useForetmapRealtime — refus d’authentification', () => {
 
     expect(fakeSocket.disconnect.mock.calls.length).toBe(before);
     expect(result.current).toBe('connecting');
+  });
+});
+
+describe('useForetmapRealtime — client chargé à la demande', () => {
+  it('n’ouvre aucune connexion tant qu’aucune session n’existe (écran de connexion)', async () => {
+    const { result } = mountRealtime({ enabled: false });
+    // Laisse passer les microtâches : un import parti à tort aurait le temps d'aboutir.
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(io).not.toHaveBeenCalled();
+    expect(result.current).toBe('off');
+  });
+
+  it('annonce « connecting » dès le montage, puis ouvre le socket une fois le client chargé', async () => {
+    const { result } = mountRealtime();
+    expect(result.current).toBe('connecting');
+    await waitFor(() => expect(io).toHaveBeenCalledTimes(1));
+    act(() => {
+      fakeSocket.fire('connect');
+    });
+    expect(result.current).toBe('live');
+    expect(fakeSocket.emit).toHaveBeenCalledWith('subscribe:map', { mapId: 'm1' });
+  });
+
+  it('un démontage avant la fin du chargement n’ouvre pas de socket', async () => {
+    const { unmount } = mountRealtime();
+    unmount();
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(io).not.toHaveBeenCalled();
+  });
+
+  it('ferme le socket au démontage', async () => {
+    const { unmount } = await mountConnected();
+    unmount();
+    expect(fakeSocket.disconnect).toHaveBeenCalledTimes(1);
   });
 });

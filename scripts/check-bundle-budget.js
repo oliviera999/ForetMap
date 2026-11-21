@@ -11,8 +11,9 @@
  * Cliquet : le plafond ne peut que baisser. Une PR qui alourdit l'écran de connexion échoue ;
  * une PR qui l'allège abaisse `BUNDLE_BUDGETS` dans le même lot. L'objectif fixé par l'audit
  * est `TARGET_JS_KB` (400 Ko de JS décodé). Le shell connecté est chargé à la demande depuis
- * le 20/11/2026 (`src/components/app/authenticatedShellParts.js`) ; ce qui reste au-dessus de
- * l'objectif est listé dans `docs/AUDIT_UI_UX_2026-11-19.md`, U1.
+ * le 20/11/2026 (`src/components/app/authenticatedShellParts.js`), le temps réel, Markdown et
+ * l'éditeur riche depuis le 21/11/2026 (lot K, garde-fou `tests/login-entry-lazy.test.js`) ; ce
+ * qui reste au-dessus de l'objectif est listé dans `docs/AUDIT_UI_UX_2026-11-19.md`, U1.
  *
  * La mesure n'a de sens que sur un build **de production** : avec `NODE_ENV=test` ou
  * `development`, Vite embarque la version de développement de React (deux fois plus lourde).
@@ -36,15 +37,18 @@ const TARGET_JS_KB = 400;
 /**
  * Plafonds par entrée HTML (Ko décodés, 1 Ko = 1 024 octets). Mesures de référence au
  * 20/11/2026 : 1 525,8 Ko de JS en 24 fichiers au lot 2 du chantier UI/UX, puis 770,1 Ko en
- * 17 fichiers et 369,8 Ko de CSS une fois le shell connecté chargé à la demande.
- * Marge d'arrondi seulement : ce n'est pas une enveloppe à remplir.
+ * 17 fichiers et 369,8 Ko de CSS une fois le shell connecté chargé à la demande ; 774,4 Ko
+ * avant le lot K, **503,8 Ko en 11 fichiers** après (21/11/2026).
+ * Marge de 5 Ko environ : ce n'est pas une enveloppe à remplir.
  */
 const BUNDLE_BUDGETS = Object.freeze({
   'index.vite.html': Object.freeze({
     label: 'ForetMap (écran de connexion)',
     // 1 530 → 1 535 le 21/11/2026 (chantier CPT, provisoire), puis 775 / 372 : le shell connecté
     // est chargé à la demande (UI/UX, U1), le code ajouté par CPT quitte l'écran de connexion.
-    jsKb: 775,
+    // 775 → 509 le 21/11/2026 (lot K) : client Socket.IO, Markdown (`marked`, `dompurify`),
+    // éditeur riche (`turndown`), écran Séances et popover du glossaire chargés à la demande.
+    jsKb: 509,
     cssKb: 372,
   }),
 });

@@ -3,7 +3,7 @@ import { api } from '../services/api';
 import {
   readStoredPedagoSession,
   writeStoredPedagoSession,
-} from '../components/pedago/SessionsView.jsx';
+} from '../utils/pedagoSessionStorage.js';
 import { notifyLearningGatingChanged } from '../shared/utils/learningGatingEvents.js';
 import { markRewardsCelebrated } from '../shared/rewards/useRewardsCelebration.js';
 import {
@@ -11,7 +11,7 @@ import {
   clearPendingSessionLink,
 } from '../utils/pedagoSessionLink.js';
 import { PEDAGO_STEP_ACTION as A } from '../shared/enums/pedagoStepActions.js';
-import { tutorialPreviewPayload } from '../components/TutorialPreviewModal.jsx';
+import { tutorialPreviewPayload } from '../utils/tutorialPreviewPayload.js';
 
 /**
  * Traduit l'action d'une étape de séance en navigation dans l'application (fonction pure :
