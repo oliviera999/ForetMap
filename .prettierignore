@@ -23,3 +23,5 @@ tools/mascot-packs/*/manifest.json
 reports/
 # Prompt de chantier versé mot pour mot (mémoire entre les sessions) : ne pas le reformater.
 docs/prompts/GL_ECRANS_DE_SEANCE_PROMPT.md
+# Instantané de contenu du chantier collège (JSON exporté tel quel, supprimé par SI avant main).
+docs/coordination/college-2026-11/snapshot/

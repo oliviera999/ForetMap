@@ -54,6 +54,7 @@ test('la liste des paires couvre bien les noyaux attendus', () => {
     'n3beurRolesCore.js',
     'pedagoEnums.js',
     'pedagoStepActions.js',
+    'pedagoVisibilityCore.js',
     'platformEnums.js',
     'rewardsCore.js',
     'taskCategoryGuessCore.js',

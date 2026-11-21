@@ -183,6 +183,7 @@ test('summarizePresence et serializePresenceEntry', () => {
     emoji: '🐦',
     sources: ['registre', 'repere'],
     validation_status: 'attendu',
+    is_featured: false,
     zones: [{ id: 'z', name: 'Haie' }],
     markers: [{ id: 'm', label: 'Nichoir' }],
   });
@@ -206,6 +207,7 @@ test('listSpeciesForMap : réunion, provenance, lieux dédoublonnés, ordre fran
   assert.deepEqual(merle.registry, {
     validation_status: 'confirme_site',
     presence_status: 'resident',
+    is_featured: false,
   });
   assert.deepEqual(merle.markers, [{ id: MARKER, label: `Nichoir ${suffix}` }]);
   // Canaux restreints explicitement.
@@ -274,5 +276,6 @@ test('registre : un enregistrement de fiche ne réinitialise pas les données lu
   assert.deepEqual(species[0].registry, {
     validation_status: 'confirme_site',
     presence_status: 'resident',
+    is_featured: false,
   });
 });

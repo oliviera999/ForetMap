@@ -1852,6 +1852,7 @@ Réponse :
       "emoji": "🌿",
       "sources": ["registre", "zone"],
       "validation_status": "attendu",
+      "is_featured": false,
       "zones": [{ "id": "…", "name": "…" }],
       "markers": []
     }
@@ -1861,6 +1862,9 @@ Réponse :
 
 - `species` est trié par nom (ordre français), puis identifiant. `sources` suit toujours l'ordre
   `registre`, `zone`, `repere`. `validation_status` vient du registre (`null` hors registre).
+- `is_featured` (migration `college_socle`) : espèce **phare** de la carte (`map_species.is_featured`),
+  `false` hors registre. Même champ dans `site_species` de `GET /api/visit/content`. Lecture
+  seule pour l'instant.
 - `summary` : un compte par canal (une espèce peut compter dans plusieurs) et `registre_seul`
   (au registre, placée ni dans une zone ni sur un repère).
 - **Gardes** — les mêmes que `GET /api/zones` : surface décidée par le serveur (laissez-passer des
@@ -2999,6 +3003,20 @@ miroir `lib/shared/biodivEnums.js`).
   `entity_kind` facultatif. Absent, vide ou `null` : la fiche garde sa nature (`taxon` à la
   création). Valeur hors liste : **400** `{ "error": "Nature de fiche inconnue (attendu : …)" }`,
   rien n’est écrit. L’import tableur ne porte pas ce champ.
+
+**Champs du profil collège** (migration `college_socle`, lecture seule tant que les flux du
+chantier collège n'ont pas livré leur écriture) — rendus par `GET /api/plants` pour chaque
+fiche, `null` tant qu'ils ne sont pas renseignés (l'affichage actuel ne change pas) :
+
+- `usage_label` (VARCHAR 120) : étiquette simple (« une araignée sauteuse ») ;
+- `description_college` (TEXT) : description courte pour le collège (espèces phares) ;
+- `usage_group` (calculé, pas une colonne) : `{ id, label }` de la boîte de l'arbre des groupes
+  marquée `visible_college = 1` la plus proche de la fiche (en remontant depuis `clade_id`,
+  incluse), `label` = `label_simple` sinon `name` ; `null` si aucune boîte de la chaîne n'est
+  marquée (`usageGroupFor`, `lib/clades.js`).
+
+Ces champs ne sont pas dans la liste blanche d'écriture `PLANT_COLUMNS` : `POST`/`PUT` les
+ignorent et les laissent intacts.
 
 S’y ajoutent les quatre champs de **danger** (migration `251`). Ils répondent à une question que
 la détermination ne couvre pas : une espèce parfaitement identifiée peut rester dangereuse.
@@ -4939,7 +4957,7 @@ Routes publiques (lecture) sauf progression quiz. Voir aussi les routes GL `/api
 | GET | `/api/glossary/categories` | non | Catégories glossaire |
 | GET | `/api/glossary/terms` | non | Liste/recherche. La liste **sans filtre** (le cas courant : index des auto-liens, chargé une fois par session) est servie par un **cache mémoire de 30 s** ; toute requête filtrée (`q`, `niveau`, `categorie`, `notionId`, `notionNiveau`) repart en base |
 | GET | `/api/glossary/terms/:code` | non | Fiche terme. `notions` liste les notions de programme rattachées |
-| GET | `/api/quiz/categories` | non | Catégories QCM. `notionId` / `notionNiveau` ne laissent que les catégories rattachées à la notion (et restreignent le compte renvoyé avec `niveau`) |
+| GET | `/api/quiz/categories` | non | Catégories QCM (slug, nom, emoji, theme, description, `description_college` — description réécrite pour le collège, `null` sinon, migration `college_socle` —, order_index). `notionId` / `notionNiveau` ne laissent que les catégories rattachées à la notion (et restreignent le compte renvoyé avec `niveau`) |
 | GET | `/api/quiz/questions` | non | Liste questions (`theme`, `categorieSlug`, `niveau`, `q`, `notionId`, `notionNiveau`). `reponse_correcte` n’est présent **que** pour un appelant détenant `plants.manage` — même règle que le catalogue GL |
 | GET | `/api/quiz/draw` | non | Tirage QCM (`?illustrated=1` : questions avec photo ; `notionId` / `notionNiveau` : tirage par notion de programme) |
 | GET | `/api/quiz/questions/:code/present` | non (**oui avec contexte**) | Question présentée. **Avec contexte de validation** (`?resourceType=&resourceRef=`) : compte **exigé** depuis l'audit ForetMap du 19/11/2026 (P1) — sans compte, `401` `{ error, code: 'LOGIN_REQUIRED' }` ; le jeton porte alors l'identifiant du compte (claim `uid`). Sans contexte (Quiz libre), toujours public. Choix **mélangés** à chaque appel. La charge ne porte **pas** `photoLegende`, sauf pour `plants.manage` (voir « Présentation et réponse du quiz ForetMap ») |
@@ -5053,8 +5071,8 @@ sont refusés à l'écriture.
 
 | Méthode | URL | Auth | Description |
 | ------- | --- | ---- | ----------- |
-| GET | `/api/clades` | non | Liste plate ordonnée (`items[]` : id, parent_id, name, shared_attribute, description, sort_order) |
-| GET | `/api/clades/:id/path` | non | Fil d'ancêtres racine → nœud (pour le fil de fiche). **400** / **404** si id invalide / inconnu |
+| GET | `/api/clades` | non | Liste plate ordonnée (`items[]` : id, parent_id, name, label_simple, shared_attribute, attribute_simple, description, sort_order, visible_college) |
+| GET | `/api/clades/:id/path` | non | Fil d'ancêtres racine → nœud (pour le fil de fiche) : id, name, shared_attribute, label_simple, attribute_simple, visible_college. **400** / **404** si id invalide / inconnu |
 | POST | `/api/clades/activity/subtree` | non | Plus petit sous-arbre contenant les espèces : `{ plantIds: number[] }` **ou** `{ mapId, count }` (tirage de `count` espèces — 2 à 20 — parmi celles **présentes sur la carte** selon la définition commune, registre, zones ou repères, et classées dans l'arbre ; avant la décision Q10, le registre seul). Réponse `{ tree, plants, cladeOptions }` |
 | POST | `/api/clades/activity/check` | non | Correction : `{ placements: [{ plantId, cladeId }] }` → `{ results, correctCount, total, allCorrect }` |
 | POST | `/api/clades` | prof (`plants.manage`) | Créer un groupe (`id` slug, name, shared_attribute, parent_id?, sort_order?) |
@@ -5062,6 +5080,12 @@ sont refusés à l'écriture.
 | DELETE | `/api/clades/:id` | prof (`plants.manage`) | Supprimer. **409** s'il reste des sous-groupes (`ON DELETE RESTRICT`) |
 
 `plants.clade_id` est éditable via les routes plantes existantes (whitelist `PLANT_COLUMNS`).
+
+**Profil collège** (migration `college_socle`) : `label_simple` (libellé en mots simples, repli
+`name`), `attribute_simple` (attribut observable en mots simples, repli `shared_attribute`) et
+`visible_college` (0/1 : boîte gardée dans l'arbre réduit du collège, « groupe d'usage ») sont
+**lus** par `GET /api/clades`, `GET /api/clades/:id/path`, et rendus par `POST`/`PUT` ; ils ne
+s'écrivent pas encore par l'API.
 
 ### Clés d'identification dichotomiques (`/api/id-keys`)
 
