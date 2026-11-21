@@ -5,7 +5,12 @@
 import { visibleCurriculumNiveaux } from './pedagoScales.js';
 import { PEDAGO_ETAPE_ENUM } from '../shared/enums/pedagoEnums.js';
 import { COLLEGE_INTERACTION_TYPE_ENUM } from '../shared/enums/biodivEnums.js';
-import { visibilityFor, canShowFor } from '../shared/pedagoVisibilityCore.js';
+import {
+  visibilityFor,
+  canShowFor,
+  palierRuleFor,
+  visibilityProfileFor,
+} from '../shared/pedagoVisibilityCore.js';
 
 /** Étapes d'affichage et libellés : référentiel partagé (`src/shared/enums/pedagoEnums.js`). */
 export const PEDAGO_LEVELS = PEDAGO_ETAPE_ENUM.values;
@@ -91,11 +96,17 @@ export function canShowBiodivFeature(feature, levelOrLearner) {
   return canShowFor(feature, levelOrLearner);
 }
 
-export function foodWebTypesForPedagoLevel(level, allTypes) {
-  const lv = normalizePedagoLevel(level) || DEFAULT_SITE_LEVEL;
+/**
+ * Types d'interaction montrés dans le réseau trophique. Accepte une étape (`'college'`…) ou
+ * l'objet `learner` complet. Au collège : types « scolaires » (`COLLEGE_FOODWEB_TYPES`), moins
+ * ceux que la règle de palier `foodweb_types_cycle4_only` réserve au cycle 4 (symbiose,
+ * compétition masquées en cycle 3, et pour un collégien sans classe connue). Au-delà : tout.
+ */
+export function foodWebTypesForPedagoLevel(levelOrLearner, allTypes) {
   const list = Array.isArray(allTypes) ? allTypes : [];
-  if (lv !== 'college') return list;
-  const allowed = new Set(COLLEGE_FOODWEB_TYPES);
+  if (visibilityProfileFor(levelOrLearner) !== 'college') return list;
+  const hidden = new Set(palierRuleFor('foodweb_types_cycle4_only', levelOrLearner) || []);
+  const allowed = new Set(COLLEGE_FOODWEB_TYPES.filter((type) => !hidden.has(type)));
   return list.filter((t) => allowed.has(String(t || '').trim()));
 }
 

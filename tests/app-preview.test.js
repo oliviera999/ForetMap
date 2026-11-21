@@ -6,10 +6,12 @@ const { join } = require('node:path');
 const { pathToFileURL } = require('node:url');
 
 let describeAppPreview;
+let previewMod;
 
 before(async () => {
   const mod = await import(pathToFileURL(join(__dirname, '../src/utils/appPreview.js')).href);
   describeAppPreview = mod.describeAppPreview;
+  previewMod = mod;
 });
 
 test('describeAppPreview : aucun aperçu par défaut', () => {
@@ -44,4 +46,24 @@ test('describeAppPreview : rôle et niveau combinés, terminologie injectable', 
 
 test('describeAppPreview : niveau inconnu ignoré', () => {
   assert.equal(describeAppPreview({ teacherPreview: 'maternelle' }).active, false);
+});
+
+test('aperçu collège : 6e (cycle 3), 3e (cycle 4) et lycée', () => {
+  assert.deepEqual(
+    previewMod.PREVIEW_LEVEL_OPTIONS.map((o) => o.value),
+    ['cycle3', 'cycle4', 'lycee'],
+  );
+  assert.equal(
+    describeAppPreview({ teacherPreview: 'cycle3' }).summary,
+    'Affichage Collège · 6e (cycle 3)',
+  );
+  assert.equal(
+    describeAppPreview({ teacherPreview: 'CYCLE4' }).summary,
+    'Affichage Collège · 3e (cycle 4)',
+  );
+  // Aperçus mémorisés avant le chantier : toujours reconnus.
+  assert.equal(previewMod.normalizePreviewLevel('Collège'), 'college');
+  assert.equal(previewMod.normalizePreviewLevel('universite'), 'universite');
+  assert.equal(previewMod.normalizePreviewLevel('maternelle'), null);
+  assert.equal(describeAppPreview({ teacherPreview: 'maternelle' }).levelActive, false);
 });

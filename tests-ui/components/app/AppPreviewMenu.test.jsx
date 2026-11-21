@@ -70,10 +70,30 @@ describe('AppPreviewMenu — menu Aperçu de l’en-tête', () => {
     renderMenu();
     expect(screen.getByTestId('level-probe')).toHaveTextContent('universite');
     const panel = openPanel();
-    fireEvent.click(within(panel).getByLabelText('Collège'));
+    fireEvent.click(within(panel).getByLabelText('Collège · 6e (cycle 3)'));
     expect(screen.getByTestId('level-probe')).toHaveTextContent('college');
-    const trigger = screen.getByRole('button', { name: 'Aperçu actif : Affichage Collège' });
+    const trigger = screen.getByRole('button', {
+      name: 'Aperçu actif : Affichage Collège · 6e (cycle 3)',
+    });
     expect(trigger).toHaveClass('is-active');
+    expect(sessionStorage.getItem('foretmap.biodivPedagoPreview')).toBe('cycle3');
+  });
+
+  test('aperçu : 6e, 3e et lycée, sans entrée Université', () => {
+    renderMenu();
+    const panel = openPanel();
+    const group = within(panel).getByRole('group', { name: 'Affichage biodiversité' });
+    const labels = within(group)
+      .getAllByRole('radio')
+      .map((radio) => radio.closest('label').textContent);
+    expect(labels).toEqual([
+      'Complet (vue gestion)',
+      'Collège · 6e (cycle 3)',
+      'Collège · 3e (cycle 4)',
+      'Lycée',
+    ]);
+    fireEvent.click(within(panel).getByLabelText('Collège · 3e (cycle 4)'));
+    expect(screen.getByTestId('level-probe')).toHaveTextContent('college');
   });
 
   test('vue gestion : l’option automatique s’appelle « Complet »', () => {

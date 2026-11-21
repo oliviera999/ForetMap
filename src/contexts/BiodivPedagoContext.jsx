@@ -6,9 +6,9 @@ import {
   foodWebTypesForPedagoLevel,
   PEDAGO_LEVELS,
   PEDAGO_LEVEL_LABELS,
-  normalizePedagoLevel,
 } from '../utils/biodivPedagoLevel.js';
 import { resolveLearnerLevel } from '../utils/learnerLevel.js';
+import { normalizePreviewLevel } from '../utils/appPreview.js';
 import { palierRuleFor } from '../shared/pedagoVisibilityCore.js';
 
 const PREVIEW_STORAGE_KEY = 'foretmap.biodivPedagoPreview';
@@ -32,7 +32,8 @@ const EMPTY_LIST = Object.freeze([]);
  * @param {string|null} [props.sessionNotionNiveau] — niveau de notion de la séance en cours :
  *   la séance **impose** son niveau (décision du 25/09/2026)
  * @param {boolean} [props.canTeacherPreview] — autorise l'aperçu de niveau (menu « Aperçu »
- *   de l'en-tête)
+ *   de l'en-tête) : une classe de 6e (`cycle3`), de 3e (`cycle4`) ou le lycée ; une étape
+ *   mémorisée avant le chantier collège (`college`…) reste acceptée
  * @param {boolean} [props.fullViewByDefault] — sans aperçu choisi, vue gestion complète
  *   (chrome prof). Faux en « vue élève » : le niveau suit alors les règles élève.
  * @param {import('react').ReactNode} props.children
@@ -53,14 +54,14 @@ export function BiodivPedagoProvider({
   const [teacherPreview, setTeacherPreviewState] = useState(() => {
     if (typeof sessionStorage === 'undefined') return null;
     try {
-      return normalizePedagoLevel(sessionStorage.getItem(PREVIEW_STORAGE_KEY));
+      return normalizePreviewLevel(sessionStorage.getItem(PREVIEW_STORAGE_KEY));
     } catch {
       return null;
     }
   });
 
   const setTeacherPreview = useCallback((next) => {
-    const normalized = normalizePedagoLevel(next);
+    const normalized = normalizePreviewLevel(next);
     setTeacherPreviewState(normalized);
     try {
       if (normalized) sessionStorage.setItem(PREVIEW_STORAGE_KEY, normalized);
@@ -130,7 +131,9 @@ export function BiodivPedagoProvider({
       canShow: (feature) => canShowBiodivFeature(feature, learner),
       visibility: (feature) => biodivFeatureVisibility(feature, learner),
       palierRule: (rule) => palierRuleFor(rule, learner),
-      foodWebTypes: (allTypes) => foodWebTypesForPedagoLevel(level, allTypes),
+      // Types du réseau : profil d'affichage + règle de palier (symbiose et compétition
+      // réservées au cycle 4) — d'où l'apprenant complet, pas seulement l'étape.
+      foodWebTypes: (allTypes) => foodWebTypesForPedagoLevel(learner, allTypes),
       curriculumNiveaux,
       levels: PEDAGO_LEVELS,
       labels: PEDAGO_LEVEL_LABELS,
