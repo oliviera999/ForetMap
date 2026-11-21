@@ -348,3 +348,9 @@ composant de pôles mutualisé, une icône par onglet.
 
 Chaque session ajoute sa ligne « Corrigé » sous le constat qu'elle traite, sans réécrire le
 reste du document (fichier partagé entre sessions).
+
+> **Suite donnée (lot H, branche `claude/ui-ux-ci-au-vert`, 21/11)** — CI remise au vert sans
+> toucher à l'application : rejeu de la migration 375 accepté par MariaDB 11.4,
+> `MoodleAdminPanel.test.jsx` stabilisé (cause : effet de montage rejoué après la saisie),
+> `e2e/visit-mascot.spec.js` réparé (attente morte de 45 s, sélecteur de carte en boutons).
+> Détail : `CHANGELOG.md`.
