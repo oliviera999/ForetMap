@@ -22,6 +22,7 @@ import { IconSearch } from '../../shared/icons.jsx';
 import { withAppBase } from '../../shared/appBase.js';
 import { resolveExternalImageUrl } from '../../shared/privacy/externalAssets.js';
 import { PlantPhotoPendingBadge } from './PlantPhotoPendingBadge.jsx';
+import { useBiodivPedago } from '../../contexts/BiodivPedagoContext.jsx';
 
 /**
  * Affichage des métadonnées d'une fiche plante — extrait de `foretmap-views.jsx` (O6).
@@ -156,7 +157,13 @@ const CREDIT_STYLE = {
   overflowWrap: 'anywhere',
 };
 
+/**
+ * Sections repliables de la fiche. Une section qui porte une brique (`pedagoFeature`) n'est
+ * rendue que si la table de visibilité la montre (collège : Identité et Écologie masquées,
+ * Ressources gardée pour les crédits et licences des photos).
+ */
 export function PlantMetaSections({ plant, canConfirmPhotos = false, onConfirmPhoto = null }) {
+  const { canShow } = useBiodivPedago();
   const [bigPhoto, setBigPhoto] = useState(null);
   const [commonsPreviewByUrl, setCommonsPreviewByUrl] = useState({});
   const photosByUrl = useMemo(() => {
@@ -276,6 +283,7 @@ export function PlantMetaSections({ plant, canConfirmPhotos = false, onConfirmPh
         <Lightbox src={bigPhoto.src} caption={bigPhoto.caption} onClose={() => setBigPhoto(null)} />
       )}
       {PLANT_META_SECTIONS.map((section) => {
+        if (section.pedagoFeature && !canShow(section.pedagoFeature)) return null;
         const values = section.items
           .map((item) => {
             const raw = normalizedPlantValue(plant[item.key]);
