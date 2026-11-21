@@ -57,7 +57,9 @@ du lycée apparaît aussi discrètement en bas à gauche du plan.
 4. **Des lieux regroupés quand c'est trop dense.** Vu de loin, des repères qui se
    chevauchent sont remplacés par une **pastille chiffrée**. La toucher zoome sur le groupe ;
    si les lieux sont exactement au même endroit (deux salles d'un même bâtiment, par
-   exemple), la **liste des lieux du groupe** s'ouvre en bas d'écran.
+   exemple), la **liste des lieux du groupe** s'ouvre en bas d'écran. Un repère trop proche
+   d'une pastille pour être touché sans l'ouvrir rejoint son groupe : aucun lieu ne reste
+   caché dessous.
 5. **Des noms qui ne se marchent jamais dessus.** Tous les noms — bâtiments comme repères —
    sont écrits **de la même façon** (même police, même taille, même halo) et sont candidats
    à l'affichage dès la vue d'ensemble. Quand deux d'entre eux se recouvriraient, seul le

@@ -31,6 +31,27 @@ bundle abaissé de 775 à **509 Ko** (`scripts/check-bundle-budget.js`).
   `tests-ui/hooks/useForetmapRealtime.test.jsx` (chargement à la demande, démontage avant la
   fin du chargement), `tests-ui/components/AuthScreen.test.jsx`.
 - G&L et le plan : aucun fichier modifié, aucun module partagé touché.
+### Corrigé — carte : plus de repère intouchable sous une pastille de regroupement (UI/UX lot I)
+
+Suite du chantier UI/UX (`docs/AUDIT_UI_UX_2026-11-19.md`, U5 « Suite donnée »). Sur
+téléphone, un repère laissé seul pouvait tomber sous la pastille chiffrée du groupe voisin : le
+doigt ouvrait la pastille, la fiche du repère ne s'ouvrait jamais sans zoomer. Reproduit sur la
+Visite de la carte Forêt (iPhone 13) avant correction.
+
+- **Moteur partagé** (`src/shared/pct-map/clusterMarkers.js` — carte de travail, Visite, plan) :
+  après la grille, une passe de **séparation** fusionne de proche en proche ce qui se recouvre
+  encore, en pixels écran et avec la taille rendue des cibles (`clusterSeparationPx`,
+  `clusterPillRadiusPx`). Un repère seul n'est plus sous une pastille, deux repères ne se
+  prennent plus le toucher, deux pastilles ne se couvrent plus l'emoji ni le compteur.
+- Le lieu dont la fiche est ouverte et les lieux mis en avant du plan e-nov restent affichés
+  seuls, désormais **au-dessus** des pastilles (rendus en dernier).
+- **Effet visible** : sur petit écran, des pastilles moins nombreuses et plus fournies (carte
+  Forêt sur iPhone 13 : 4 pastilles et 1 repère au lieu de 7 pastilles et 5 repères, dont un
+  intouchable) ; rien ne change sur la carte Forêt à 1 440 px. G&L n'utilise pas ce
+  regroupement.
+- Tests : `tests-ui/shared/clusterMarkersSeparation.test.js`, e2e
+  `e2e/visit-markers-touch.spec.js`. Docs : audit U5, référence « Carte et zones », « Visite et
+  mascottes », « Plan » et « Plan e-nov ».
 ### Corrigé — CI au vert : rejeu de la migration 375, tests instables (UI/UX lot H)
 
 Lot H du chantier UI/UX (`docs/AUDIT_UI_UX_2026-11-19.md` § 4). Aucun changement de
