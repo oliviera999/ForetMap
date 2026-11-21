@@ -74,7 +74,10 @@
       `TaskFormReferentsField`, pastille « élève » et nombre masqué dans `TaskTileCard`, feuille
       `src/components/tasks/task-referents.css` ; tests `tests/student-referents-visibility.test.js`,
       `tests-ui` (sélecteur +5, tuile +3).
-- [ ] Lot 10 — documentation
-- [ ] Lot 9 (reste)
+- [x] Lot 10 — `docs/API.md` (réglages, référents/source/refus/visibilité, notifications),
+      `docs/MCP.md` (action, script, job), `docs/CRONTAB.md` (jobs serveur),
+      `docs/MCP_REGISTRE_TRAITEMENT.md` (refus), doc de référence tâches (section dédiée,
+      visibilité), `CHANGELOG.md`.
+- [x] Lot 9 (reste) — commentaire d'écart `creditedTasks.js` ; dette signalée (cf. PR).
 
-Prochaine action : lot 10 (documentation), puis reste du lot 9 (commentaire d'écart creditedTasks, code mort).
+Prochaine action : note de structure (skill database), suites complètes (lint, format, test, test:ui, test:content, build, G&L après), puis PR prête.

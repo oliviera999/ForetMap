@@ -25,6 +25,18 @@ description: Conventions base de données ForetMap (schéma MySQL, migrations id
 - **Pas de migration destructive** (DROP) sans avertissement explicite + note `docs/EVOLUTION.md`.
 - Documenter toute migration dans `CHANGELOG.md` (`[Non publié]`).
 
+## Notes de structure (repères pour les sessions suivantes)
+
+- **Référents de tâches** (migration `task_referents_auto`, 21/11/2026) : `task_referents` porte
+  `source` (`manual` | `auto`) et `added_at`. Écrire les référents d'une tâche par
+  `setTaskReferents` (différentiel, préserve `source`) ou `setTaskReferentLinks` (recopie
+  exacte) de `lib/tasks/taskQueries.js` — jamais par DELETE + INSERT brut, qui ramènerait tout
+  en `manual`. Lire par `getTaskReferentLinks` (chargeur unique). Refus par série :
+  `task_series_referent_vetoes (series_id, user_id, created_by, created_at)`, série =
+  `COALESCE(tasks.recurrence_series_id, tasks.id)`. Moteur : `lib/tasks/studentReferents.js`.
+- **Règle de progression n3beur** : `progressionCreditedAssignmentsQuery`
+  (`lib/tasks/progressionCredit.js`), une ligne par inscription créditée ; ne pas la recopier.
+
 ## Variables d'environnement
 
 `DB_HOST` (localhost), `DB_PORT` (3306), `DB_USER`, `DB_PASS`, `DB_NAME`, `TEST_DB_NAME`

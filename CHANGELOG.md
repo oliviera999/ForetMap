@@ -9,6 +9,40 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — élèves référents automatiques des tâches récurrentes (désactivé par défaut)
+
+Un élève actif du groupe de l'année qui a réalisé au moins N occurrences validées d'une même
+série récurrente (N = 2, règle de la progression n3beur) en devient référent `auto`, en plus
+des référents existants. **Inerte tant que `tasks.student_referent_enabled` reste faux.**
+
+- **Migration `task_referents_auto`** : `task_referents.source` (`manual` | `auto`) et
+  `added_at` ; table `task_series_referent_vetoes` (refus par série, clés étrangères vers
+  `users`). Structure seule, liens existants inchangés (`manual`).
+- **Moteur** `lib/tasks/studentReferents.js` : plan (seuil, éligibilité, refus, inactivité,
+  plafonds avec priorité aux séries sans référent puis sans référent élève, limite de
+  15 référents) puis application en transaction, journal d'audit (acteur `system`).
+  Déclencheurs : validation, clonage récurrent, réglages, membres du groupe de l'année, job
+  quotidien `student_referents_sync`. Un lien `manual` n'est jamais retiré.
+- **Réglages** `tasks.student_referent_*` (interrupteur, groupe, seuil, deux plafonds,
+  inactivité, notification des gestionnaires), bornes dans `lib/tasks/referentBounds.js`.
+- **PUT d'une tâche** : la source des référents gardés est préservée ; retirer un référent
+  `auto` enregistre un refus pour la série, un ajout manuel le lève. `referents_linked[]`
+  expose `source`.
+- **Visibilité** : l'identité d'un référent élève suit `tasks.assignees_visibility` comme les
+  inscrits (`referents_hidden_count` pour le reste) ; adultes toujours visibles.
+- **Interface** : pastille « auto » et confirmation du retrait dans le formulaire, pastille
+  « élève » sur la fiche.
+- **Notifications** : `task_referent_granted` (élève, une fois par série),
+  `task_referent_granted_manager` et `task_referent_removed_manager` (gestionnaires,
+  réglable).
+- **Données personnelles** : refus exportés, fusionnés, supprimés avec le compte.
+- **Exploitation** : script `scripts/student-referents-sync.js` (simulation par défaut,
+  `--adopt-existing`, `--apply`), liste blanche `student_referents_sync`, action
+  `foretmap_tasks student_referents`.
+- **Refactorisation** : règle de progression partagée (`lib/tasks/progressionCredit.js`),
+  recopie unique des jonctions au clonage (`writeTaskJoinRows`), chargeur unique des
+  référents.
+
 ### Modifié — écran de connexion allégé d'un tiers (UI/UX lot K, U1)
 
 Lot K du chantier UI/UX (`docs/AUDIT_UI_UX_2026-11-19.md`, U1). JavaScript chargé avant de
