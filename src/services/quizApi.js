@@ -38,9 +38,10 @@ export const quizApiPaths = {
 };
 
 /**
- * Catégories de quiz (`?theme=&niveau=&notionId=|notionNiveau=`), avec `questionCount`
- * quand un niveau est demandé.
- * @param {{ theme?: string, niveau?: string, notionId?: string, notionNiveau?: string }} [params]
+ * Catégories de quiz (`?theme=&niveau=&notionId=|notionNiveau=&palierMax=`), avec
+ * `questionCount` quand un niveau ou un plafond de palier (affichage collège) est demandé.
+ * @param {{ theme?: string, niveau?: string, notionId?: string, notionNiveau?: string,
+ *   palierMax?: number|null }} [params]
  * @returns {Promise<{ categories: Array<object> }>}
  */
 export function fetchQuizCategories(params = {}) {
@@ -51,7 +52,8 @@ export function fetchQuizCategories(params = {}) {
 /**
  * Tire une question au hasard parmi les filtres.
  * @param {{ categorieSlug?: string, niveau?: string, difficulte?: string|number,
- *   illustrated?: string, notionId?: string, notionNiveau?: string }} [params]
+ *   illustrated?: string, notionId?: string, notionNiveau?: string,
+ *   palierMax?: number|null }} [params] `palierMax` : plafond de palier d'entrée (collège)
  * @returns {Promise<{ question_code: string }>}
  */
 export function drawQuizQuestion(params = {}) {

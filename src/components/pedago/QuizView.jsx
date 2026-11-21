@@ -26,7 +26,11 @@ import {
   notionsForNiveauFilter,
   resolveNotionNiveaux,
 } from '../../utils/curriculumNotions.js';
-import { etapeForCurriculumNiveau, parseNotionNiveauFilter } from '../../utils/pedagoScales.js';
+import {
+  collegeQuizPalierMax,
+  etapeForCurriculumNiveau,
+  parseNotionNiveauFilter,
+} from '../../utils/pedagoScales.js';
 import { useBiodivPedago } from '../../contexts/BiodivPedagoContext.jsx';
 
 // Menus lus dans le référentiel partagé (audit du 25/09/2026, § 3.2.5). La difficulté va de
@@ -73,6 +77,24 @@ function notionNiveauParam(filter, curriculumNiveaux) {
   return niveaux ? niveaux.join(',') : '';
 }
 
+/**
+ * Catégories proposées : en affichage collège (`palierMax` connu), celles qui ont au moins
+ * une question au palier de l'élève — une catégorie à 0 ne tirerait rien.
+ */
+export function visibleQuizCategories(categories, palierMax) {
+  const list = Array.isArray(categories) ? categories : [];
+  if (palierMax == null) return list;
+  return list.filter((c) => c.questionCount == null || Number(c.questionCount) > 0);
+}
+
+/** Description collège d'une catégorie (affichage collège seulement), ou `null`. */
+export function collegeCategoryDescription(category, palierMax) {
+  if (palierMax == null || !category) return null;
+  const text =
+    typeof category.description_college === 'string' ? category.description_college.trim() : '';
+  return text || null;
+}
+
 /** Filtre de notion d'une requête : la notion choisie, sinon le niveau du programme. */
 function notionQueryParams(notionId, notionNiveau, curriculumNiveaux) {
   if (notionId) return { notionId };
@@ -86,7 +108,19 @@ export function QuizView({
   initialNotionId = null,
   initialNotionNiveau = null,
 }) {
-  const { curriculumNiveaux } = useBiodivPedago();
+  const { curriculumNiveaux, learner, palierRule } = useBiodivPedago();
+  // Affichage collège : tirage et compteurs bornés au palier de l'élève (chantier collège,
+  // flux C6) ; `null` hors collège (lycée, université, professeur en vue complète).
+  const ruleCap = palierRule('quiz_entry_palier_max');
+  const palierMax = useMemo(
+    () =>
+      collegeQuizPalierMax({
+        etape: learner?.etape,
+        maxPalier: learner?.maxPalier,
+        ruleCap: typeof ruleCap === 'number' ? ruleCap : null,
+      }),
+    [learner?.etape, learner?.maxPalier, ruleCap],
+  );
   const [theme, setTheme] = useState('');
   const [niveau, setNiveau] = useState(() =>
     initialQuestionNiveau(initialNotionNiveau, curriculumNiveaux),
@@ -118,16 +152,19 @@ export function QuizView({
         theme,
         niveau,
         ...notionQueryParams(notionId, notionNiveau, curriculumNiveaux),
+        palierMax,
       });
       if (seq !== loadCategoriesSeqRef.current) return;
-      setCategories(Array.isArray(data?.categories) ? data.categories : []);
+      setCategories(
+        visibleQuizCategories(Array.isArray(data?.categories) ? data.categories : [], palierMax),
+      );
     } catch (_) {
       if (seq !== loadCategoriesSeqRef.current) return;
       setCategories([]);
     } finally {
       if (seq === loadCategoriesSeqRef.current) setLoadingCategories(false);
     }
-  }, [theme, niveau, notionId, notionNiveau, curriculumNiveaux]);
+  }, [theme, niveau, notionId, notionNiveau, curriculumNiveaux, palierMax]);
 
   useEffect(() => {
     loadCategories();
@@ -208,6 +245,14 @@ export function QuizView({
     ],
     [categories],
   );
+  const categoryDescription = useMemo(
+    () =>
+      collegeCategoryDescription(
+        categories.find((c) => c.slug === categorieSlug),
+        palierMax,
+      ),
+    [categories, categorieSlug, palierMax],
+  );
 
   // Auto-liens : index partagé, complété par les termes déjà liés à la question
   // (comme `QcmPreviewModal` côté GL) — ces termes-là ne sont pas forcément
@@ -232,6 +277,7 @@ export function QuizView({
       difficulte,
       illustrated: illustratedOnly ? '1' : '',
       ...notionQueryParams(notionId, notionNiveau, curriculumNiveaux),
+      palierMax,
     });
   }
 
@@ -476,6 +522,10 @@ export function QuizView({
           {drawing ? 'Tirage…' : 'Tirer une question'}
         </button>
       </div>
+
+      {categoryDescription ? (
+        <p className="section-sub pedago-quiz__category-description">{categoryDescription}</p>
+      ) : null}
 
       {error ? <p className="pedago-error">{error}</p> : null}
 
