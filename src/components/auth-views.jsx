@@ -297,8 +297,7 @@ function AuthScreen({
                 Découvrir le lieu
               </h2>
               <p className="auth-door__text">
-                Parcours la carte, ses lieux et les êtres vivants qui y habitent, sans créer de
-                compte.
+                Parcours la carte, ses lieux et leurs êtres vivants.
               </p>
               <button
                 type="button"

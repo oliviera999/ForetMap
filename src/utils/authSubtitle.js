@@ -13,13 +13,6 @@ export const DEFAULT_AUTH_SUBTITLE = 'Le terrain d’apprentissage vivant du lyc
 export function stripLeadingAppName(subtitle, title) {
   const sub = String(subtitle || '').trim();
   const name = String(title || '').trim();
-  if (!sub || !name) return sub;
-  const norm = (v) =>
-    v
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .toLowerCase();
-  if (!norm(sub).startsWith(norm(name))) return sub;
-  const rest = sub.slice(name.length).replace(/^[\s\u00a0]*[—–:·,-]?[\s\u00a0]*/, '');
-  return rest || sub;
+  if (!name || sub.slice(0, name.length).toLowerCase() !== name.toLowerCase()) return sub;
+  return sub.slice(name.length).replace(/^[\s\u00a0—–:·,-]+/, '') || sub;
 }
