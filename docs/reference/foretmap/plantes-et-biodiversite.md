@@ -205,11 +205,28 @@ Dans les deux modes :
 
 Les énoncés décrivent des **caractères observables** — jamais une invitation à
 cueillir, goûter ou manipuler. Les enseignants autorisés créent et publient les clés
-(couplets, propositions, image optionnelle par proposition). Pour chaque proposition, le
+(couplets, propositions, image optionnelle par proposition). Une image se **crédite** :
+l’auteur (ou la source) et la licence se saisissent sous l’adresse de l’image et s’affichent
+sous la vignette, côté élèves. Tant qu’une image n’a pas d’auteur, l’écran de gestion affiche
+**Crédit manquant** sur la proposition et en tête des couplets. Pour chaque proposition, le
 menu **Mène à** choisit l’issue : couplet suivant, une espèce, un groupe d’espèces (nom du
 groupe et espèces candidates) ou un grand groupe ; un résultat peut renvoyer vers une autre
 clé. La clé elle-même indique le matériel nécessaire et une consigne de sécurité. Une clé
 n’est publiable que si chaque branche aboutit.
+
+Quand la clé demande du matériel, les élèves voient, avant la première question, un bloc
+**Avant de commencer** : le matériel, la consigne de sécurité et les **tutoriels** que
+l’enseignant y a rattachés (« Utiliser une loupe », par exemple), qui s’ouvrent sur place.
+Les tutoriels se choisissent et s’ordonnent dans la fiche de la clé ; sans matériel coché, le
+bloc ne s’affiche pas.
+
+Certaines clés mènent **volontairement** à la même espèce par plusieurs chemins — une clé de
+traces, où l’empreinte, la crotte et le terrier désignent le même animal. La case **Plusieurs
+chemins vers une même espèce sont voulus** le déclare : le contrôle des clés ne signale alors
+plus cette espèce « atteinte par plusieurs feuilles ».
+
+Enregistrer les propositions d’un couplet ne les recrée pas : chacune garde son identité, et
+seules celles que l’on retire de la liste disparaissent.
 Sur une clé déjà publiée, on ne peut supprimer ni le couplet de départ (n° 1), ni un
 couplet vers lequel mène encore une proposition : il faut d'abord rediriger cette
 proposition, pour que les élèves ne tombent jamais sur une branche sans issue.

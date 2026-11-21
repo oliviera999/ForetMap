@@ -270,7 +270,9 @@ de l'administrateur.
   photos, état).
 - **Clés d'identification** : créez des clés à questions successives pour faire identifier une
   espèce, un groupe d'espèces proches ou un grand groupe par les élèves, avec renvoi possible
-  vers une clé plus fine, le matériel nécessaire et une consigne de sécurité.
+  vers une clé plus fine, le matériel nécessaire et une consigne de sécurité. Créditez les
+  images des propositions (l'écran signale un **crédit manquant**) et rattachez à la clé les
+  tutoriels à lire **avant de commencer**.
 - **Médiathèque** : retrouvez et rangez les photos utilisées dans les fiches.
 
 ---

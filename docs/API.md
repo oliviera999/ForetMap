@@ -5017,7 +5017,7 @@ sont refusés à l'écriture.
 
 ### Clés d'identification dichotomiques (`/api/id-keys`)
 
-Migrations `275` et `366`. Lecture des clés **publiées** sans auth ; brouillons et écriture
+Migrations `275`, `366` et `id_keys_credits_chemins_tutoriels`. Lecture des clés **publiées** sans auth ; brouillons et écriture
 sous `id_keys.manage` (admin, prof). Les cycles et les formulations invitant à manipuler
 sont refusés.
 
@@ -5035,22 +5035,41 @@ Un résultat (`espece`, `groupe`, `clade`) peut porter `next_key_id` : « Pour a
 vers une autre clé (jamais la clé elle-même). `outcome` absent est **déduit** des champs.
 
 **Détail** (`GET /api/id-keys/:idOrSlug`) : la clé porte `tool_required` (tableau parmi
-`loupe`, `boite_loupe`, `jumelles`) et `safety_note` ; chaque lead porte `hint` (aide
-sous la proposition), `outcome`, `next_couplet_id`, `plant_id` / `plant_name` / `plant_emoji`, `clade_id` et `clade`
+`loupe`, `boite_loupe`, `jumelles`), `safety_note`, `allows_multiple_paths` (booléen : une même
+espèce atteinte par plusieurs feuilles est voulue, l'audit `id_key_dead_paths` ne le signale
+plus), `tutorial_ids` et `tutorials` (`[{ id, title, type, summary, source_url,
+source_file_path, is_active, sort_order }]`, tutoriels « avant de commencer » dans l'ordre ;
+un tutoriel archivé n'est servi qu'à `id_keys.manage`) ; chaque lead porte `hint` (aide
+sous la proposition), `image_url`, `image_credit` et `image_licence` (auteur et licence de
+l'image, `null` sans image), `outcome`, `next_couplet_id`, `plant_id` / `plant_name` / `plant_emoji`, `clade_id` et `clade`
 (`{ id, name, shared_attribute, description }`), `result_label`, `group_plant_ids` et
 `group_plants` (`[{ id, name, emoji, photo }]`), `next_key_id` et `next_key`
 (`{ id, slug, title, is_published }`). Un renvoi vers une clé **non publiée** est masqué
 (`null`) pour qui n'a pas `id_keys.manage`.
 
 **Écriture des leads** (`PUT …/couplets/:coupletId/leads`) : corps
-`{ leads: [{ id?, statement, hint?, image_url?, outcome?, next_couplet_id?, plant_id?, clade_id?,
-result_label?, group_plant_ids?, next_key_id?, sort_order? }] }`. Une proposition qui porte
-l'`id` d'une proposition existante du couplet **sans aucun champ d'issue** (`outcome`,
-`clade_id`, `result_label`, `group_plant_ids`, `next_key_id`) garde son issue en base : un
-ancien client ne fait plus perdre groupes, grands groupes et renvois. De même, `hint` absent
-garde l'aide existante. `PUT /api/id-keys/:id`
-accepte `tool_required` (tableau ou chaîne « a,b » ; valeur inconnue → 400) et
-`safety_note`.
+`{ leads: [{ id?, statement?, hint?, image_url?, image_credit?, image_licence?, outcome?,
+next_couplet_id?, plant_id?, clade_id?, result_label?, group_plant_ids?, next_key_id?,
+sort_order? }] }` — la liste **complète** des propositions du couplet (au moins deux).
+
+- **Avec `id`** : la proposition est **mise à jour en place**, elle garde son identifiant. Ce
+  qui n'est pas renvoyé n'est pas effacé : `statement`, `hint`, `image_url`, `image_credit`,
+  `image_licence` sont repris champ par champ (un champ envoyé à `null` ou vide est effacé) ;
+  l'issue **entière** (`outcome`, `next_couplet_id`, `plant_id`, `clade_id`, `result_label`,
+  `group_plant_ids`, `next_key_id`) est reprise quand la proposition n'en énonce aucune
+  (aucun champ d'issue, ou seulement `next_couplet_id` / `plant_id` vides). `{ id }` seul
+  laisse donc la proposition inchangée. Dès qu'une issue est énoncée, elle remplace l'ancienne.
+- **Sans `id`** : la proposition est créée (`statement` et une issue requis).
+- **Absente de la liste** : la proposition du couplet est supprimée.
+- Un `id` inconnu, d'un autre couplet ou envoyé deux fois → **400**, rien n'est écrit.
+- Le crédit suit l'image : sans `image_url`, `image_credit` et `image_licence` valent `null`.
+  `image_credit` ≤ 255 caractères, `image_licence` ≤ 64 (au-delà → **400**).
+
+`PUT /api/id-keys/:id` accepte `tool_required` (tableau ou chaîne « a,b » ; valeur inconnue
+→ 400), `safety_note`, `allows_multiple_paths` (aussi à la création) et `tutorial_ids` :
+liste **complète et ordonnée** des tutoriels « avant de commencer » (au plus 12 ; `[]` les
+retire tous ; champ absent : liens inchangés ; tutoriel inconnu → 400). L'écran n'affiche le
+bloc « Avant de commencer » que si `tool_required` n'est pas vide.
 
 Module `ui.modules.id_keys_enabled` éteint : **503** `{ error: 'Clés d’identification désactivées' }`
 sur toutes les routes ci-dessous, sauf pour un appelant `id_keys.manage` (voir « Modules
@@ -5058,14 +5077,14 @@ pédagogiques activables »).
 
 | Méthode | URL | Auth | Description |
 | ------- | --- | ---- | ----------- |
-| GET | `/api/id-keys` | non | Liste des clés publiées (`?all=1` + `id_keys.manage` pour inclure les brouillons) |
+| GET | `/api/id-keys` | non | Liste des clés publiées (`?all=1` + `id_keys.manage` pour inclure les brouillons ; `?tutorial_id=N` : seulement les clés qui proposent ce tutoriel « avant de commencer », `N` invalide → 400) |
 | GET | `/api/id-keys/:idOrSlug` | non / manage | Détail (couplets + leads). Brouillon → 404 sans `id_keys.manage` |
 | POST | `/api/id-keys` | `id_keys.manage` | Créer une clé (slug, title…) + couplet n°1 |
-| PUT | `/api/id-keys/:id` | `id_keys.manage` | Métadonnées / publication (graph validé si `is_published`) |
+| PUT | `/api/id-keys/:id` | `id_keys.manage` | Métadonnées, chemins multiples voulus, tutoriels liés, publication (graph validé si `is_published`) |
 | DELETE | `/api/id-keys/:id` | `id_keys.manage` | Supprimer la clé (cascade couplets/leads) |
 | POST | `/api/id-keys/:id/couplets` | `id_keys.manage` | Ajouter un couplet |
 | DELETE | `/api/id-keys/:id/couplets/:coupletId` | `id_keys.manage` | Supprimer un couplet. Clé **publiée** : couplet n° 1 → **409** ; couplet encore visé par une proposition d'un autre couplet → **409** `{ error, referencedBy: [numéros] }` |
-| PUT | `/api/id-keys/:id/couplets/:coupletId/leads` | `id_keys.manage` | Remplacer les propositions (`leads[]`) |
+| PUT | `/api/id-keys/:id/couplets/:coupletId/leads` | `id_keys.manage` | Écrire les propositions (`leads[]`) : mise à jour en place avec `id`, création sans, suppression des absentes |
 
 ### Séances pédagogiques (`/api/pedago-sessions`)
 
