@@ -1,0 +1,1871 @@
+{
+  "_doc": "Flux D4 (chantier collège, novembre 2026) : versions courtes de cinq clés de détermination et clé collège des oiseaux d'eau de la daya. Espèces désignées par nom + nom scientifique (clés naturelles), clades par identifiant, clés par slug. Lu par scripts/college-2026-11/check-d4-donnees.js et build-d4-migration.js.",
+  "cles": [
+    {
+      "slug": "araignees-college",
+      "full_key_slug": "araignees",
+      "title": "Araignées et autres animaux à 8 pattes (version courte)",
+      "description": "Version courte de la clé des araignées, pour le collège. On regarde d'abord la forme du corps, puis la toile ou la façon de chasser. Chaque résultat s'arrête au groupe ou à l'espèce commune ; la clé complète, proposée à la fin, permet d'aller jusqu'à l'espèce.",
+      "map_id": null,
+      "scope_label": "Tous les sites : bâtiments, jardins, compost, berges et matorral",
+      "tool_required": "loupe",
+      "safety_note": "On observe l'animal là où il se trouve, sans contact : à la loupe tenue au-dessus ou sur une photo. Un scorpion peut tuer un enfant : on recule aussitôt et on prévient un adulte, même s'il semble mort. On ne soulève jamais une pierre à la main et on ne glisse pas les doigts dans un trou. Une tique se signale à un adulte, qui la retire. En cas de piqûre ou de morsure : centre antipoison du Maroc (0801 000 180).",
+      "allows_multiple_paths": 0,
+      "couplets": [
+        {
+          "number": 1,
+          "leads": [
+            {
+              "statement": "Deux pinces bien visibles à l'avant du corps, comme un crabe.",
+              "hint": "Piège : l'araignée-crabe tient ses pattes avant écartées comme des pinces, mais ce sont des pattes, pointues au bout.",
+              "couplet": 2
+            },
+            {
+              "statement": "Corps d'une seule pièce, rond ou ovale, sans taille fine.",
+              "hint": "Les 8 pattes sont attachées sur les côtés du corps.",
+              "couplet": 3
+            },
+            {
+              "statement": "Corps en deux parties reliées par une taille fine : une araignée.",
+              "hint": "Vue de dessus, la taille fine est souvent cachée sous l'arrière du corps, mais on voit bien deux parties.",
+              "couplet": 4
+            }
+          ]
+        },
+        {
+          "number": 2,
+          "leads": [
+            {
+              "statement": "Longue queue relevée, terminée par un aiguillon (un dard) : un scorpion.",
+              "hint": "Danger : on recule tout de suite et on prévient un adulte. Les scorpions noirs et jaunes de la région sont très venimeux.",
+              "espece": {
+                "name": "Scorpions (Buthidés)",
+                "scientific_name": "Buthidae"
+              }
+            },
+            {
+              "statement": "Pas de queue, minuscule (quelques millimètres), dans le compost ou la litière.",
+              "hint": "C'est un pseudoscorpion : malgré ses pinces, il est inoffensif.",
+              "espece": {
+                "name": "Pseudoscorpion",
+                "scientific_name": "Chelifer cancroides"
+              }
+            },
+            {
+              "statement": "Pas de queue, grand (1 à 7 cm), velu, il court très vite.",
+              "hint": "C'est un solifuge (ou galéode) des terrains secs : il n'a pas de venin, mais il mord fort. On garde ses distances.",
+              "espece": {
+                "name": "Solifuges",
+                "scientific_name": "Solifugae"
+              }
+            }
+          ]
+        },
+        {
+          "number": 3,
+          "leads": [
+            {
+              "statement": "Huit pattes très longues et fines, bien plus longues que le corps.",
+              "hint": "C'est un faucheux : ce n'est pas une araignée. Il ne fait jamais de toile.",
+              "espece": {
+                "name": "Faucheux",
+                "scientific_name": "Opiliones"
+              }
+            },
+            {
+              "statement": "Pattes courtes, corps minuscule, rond ou en forme de pépin.",
+              "hint": "Ce sont des acariens : certains vivent dans le compost, d'autres sur les feuilles. La tique, qui boit le sang des animaux, en fait partie.",
+              "groupe": {
+                "label": "Acariens et tiques",
+                "clade": "arachnides",
+                "plants": [
+                  {
+                    "name": "Oribates",
+                    "scientific_name": "Oribatida"
+                  },
+                  {
+                    "name": "Acarien prédateur du compost",
+                    "scientific_name": "Macrocheles sp."
+                  },
+                  {
+                    "name": "Trombidions",
+                    "scientific_name": "Trombidiidae"
+                  },
+                  {
+                    "name": "Tique brune du chien",
+                    "scientific_name": "Rhipicephalus sanguineus"
+                  },
+                  {
+                    "name": "Tétranyque tisserand",
+                    "scientific_name": "Tetranychus urticae"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "number": 4,
+          "leads": [
+            {
+              "statement": "Elle se tient dans sa toile, ou dans un abri de soie au bord.",
+              "hint": null,
+              "couplet": 5
+            },
+            {
+              "statement": "Elle n'a pas de toile : elle court, saute ou attend sans bouger.",
+              "hint": "Un simple fil de soie laissé derrière elle ne compte pas comme une toile.",
+              "couplet": 7
+            }
+          ]
+        },
+        {
+          "number": 5,
+          "leads": [
+            {
+              "statement": "Toile ronde comme une roue de vélo, avec des rayons et une spirale.",
+              "hint": null,
+              "couplet": 6
+            },
+            {
+              "statement": "Toile en désordre, faite de fils tendus dans tous les sens.",
+              "hint": "Les pholques, aux pattes très longues, pendent souvent au plafond. Prudence : la morsure d'une veuve (gros ventre rond et luisant) peut être grave ; on reste à distance.",
+              "groupe": {
+                "label": "Araignées à toile en désordre : pholques, veuves et stéatodes",
+                "clade": "araignees",
+                "plants": [
+                  {
+                    "name": "Pholque phalangide",
+                    "scientific_name": "Pholcus phalangioides"
+                  },
+                  {
+                    "name": "Pholque de Pluche",
+                    "scientific_name": "Holocnemus pluchei"
+                  },
+                  {
+                    "name": "Veuve brune",
+                    "scientific_name": "Latrodectus geometricus"
+                  },
+                  {
+                    "name": "Stéatode noble",
+                    "scientific_name": "Steatoda nobilis"
+                  }
+                ]
+              }
+            },
+            {
+              "statement": "Toile serrée en nappe ou en dôme, ou tube de soie dans un mur.",
+              "hint": "Dans un tube de soie, on ne glisse jamais les doigts : la ségestrie mord.",
+              "groupe": {
+                "label": "Araignées à toile serrée",
+                "clade": "araignees",
+                "plants": [
+                  {
+                    "name": "Épeire de l'Opuntia",
+                    "scientific_name": "Cyrtophora citricola"
+                  },
+                  {
+                    "name": "Ségestrie florentine",
+                    "scientific_name": "Segestria florentina"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "number": 6,
+          "leads": [
+            {
+              "statement": "Grande araignée, tête en bas au centre, ventre rayé de jaune, de noir ou d'argent.",
+              "hint": "Son corps mesure 1,5 à 2,5 cm. Un ruban de soie en zigzag barre souvent la toile.",
+              "groupe": {
+                "label": "Argiopes",
+                "clade": "araignees",
+                "plants": [
+                  {
+                    "name": "Argiope",
+                    "scientific_name": "Argiope bruennichi"
+                  },
+                  {
+                    "name": "Argiope à bandes",
+                    "scientific_name": "Argiope trifasciata"
+                  },
+                  {
+                    "name": "Argiope lobée",
+                    "scientific_name": "Argiope lobata"
+                  }
+                ]
+              }
+            },
+            {
+              "statement": "Plus petite, brune, avec un dessin en forme de feuille sur le dos.",
+              "hint": "Sa toile est tendue entre les joncs, au bord de l'eau. Loin de l'eau, d'autres épeires lui ressemblent : choisis alors la proposition suivante.",
+              "espece": {
+                "name": "Épeire des joncs",
+                "scientific_name": "Larinioides suspicax"
+              }
+            },
+            {
+              "statement": "Autre araignée à toile ronde.",
+              "hint": "Plusieurs autres araignées à toile ronde vivent ici sans être encore décrites dans les fiches : photographie-la sans la déranger.",
+              "clade": "araignees"
+            }
+          ]
+        },
+        {
+          "number": 7,
+          "leads": [
+            {
+              "statement": "Elle avance par petits bonds ; deux énormes yeux ronds à l'avant de la tête.",
+              "hint": "Elle se tourne souvent pour te regarder. On les voit au soleil, sur les murs et les rebords de fenêtres.",
+              "groupe": {
+                "label": "Araignées sauteuses (saltiques)",
+                "clade": "araignees",
+                "plants": [
+                  {
+                    "name": "Saltique des murs",
+                    "scientific_name": "Menemerus semilimbatus"
+                  },
+                  {
+                    "name": "Plexippe de Paykull",
+                    "scientific_name": "Plexippus paykulli"
+                  },
+                  {
+                    "name": "Saltique d'Adanson",
+                    "scientific_name": "Hasarius adansoni"
+                  }
+                ]
+              }
+            },
+            {
+              "statement": "Elle court vite au sol sur de longues pattes, corps brun ou gris.",
+              "hint": "C'est une lycose : elle chasse à la course. La femelle porte parfois son cocon au bout du corps, ou ses petits sur le dos.",
+              "espece": {
+                "name": "Lycoses",
+                "scientific_name": "Lycosidae"
+              }
+            },
+            {
+              "statement": "Elle attend immobile, ses longues pattes avant écartées comme un crabe.",
+              "hint": "Elle guette sur une fleur ou au sol et saisit les insectes qui passent. Certaines prennent la couleur de la fleur.",
+              "groupe": {
+                "label": "Araignées-crabes (thomises)",
+                "clade": "araignees",
+                "plants": [
+                  {
+                    "name": "Thomise",
+                    "scientific_name": "Xysticus cristatus"
+                  },
+                  {
+                    "name": "Thomise enflée",
+                    "scientific_name": "Thomisus onustus"
+                  }
+                ]
+              }
+            },
+            {
+              "statement": "Autre araignée sans toile, souvent cachée le jour sous un abri.",
+              "hint": "On ne soulève jamais une pierre ou une écorce à la main : un scorpion peut s'y cacher.",
+              "clade": "araignees"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "papillons-college",
+      "full_key_slug": "papillons",
+      "title": "Quel est ce papillon ? (version courte)",
+      "description": "Version courte de la clé des papillons, pour le collège. On regarde d'abord comment il butine et la forme de ses antennes, puis la couleur et les dessins des ailes. Chaque résultat s'arrête au groupe ou à l'espèce commune ; la clé complète, proposée à la fin, permet d'aller plus loin.",
+      "map_id": null,
+      "scope_label": "Tous les sites : lycée, forêt comestible, n³, Beaulieu, plage des Sablettes, daya, oued Melah",
+      "tool_required": null,
+      "safety_note": "On observe le papillon sans le capturer et sans contact : ses ailes sont couvertes de minuscules écailles qui s'arrachent facilement, et un papillon abîmé vole mal. On s'approche lentement, sans projeter son ombre sur lui, et on le photographie de dessus et de dessous.",
+      "allows_multiple_paths": 0,
+      "couplets": [
+        {
+          "number": 1,
+          "leads": [
+            {
+              "statement": "Il butine en vol sur place, les ailes si rapides qu'elles paraissent floues.",
+              "hint": "C'est un sphinx, un papillon de nuit dont certains volent le jour. On le prend souvent pour un petit oiseau.",
+              "couplet": 2
+            },
+            {
+              "statement": "Antennes fines terminées par une petite boule, comme une allumette.",
+              "hint": "C'est un papillon de jour. Au repos, il serre souvent ses ailes dressées au-dessus du dos.",
+              "couplet": 3
+            },
+            {
+              "statement": "Antennes sans boule au bout : fines comme des fils, en plume ou en pointe.",
+              "hint": "C'est un papillon « de nuit », même si certains s'envolent des herbes en plein jour.",
+              "couplet": 7
+            }
+          ]
+        },
+        {
+          "number": 2,
+          "leads": [
+            {
+              "statement": "Ailes arrière orange visibles en vol ; il butine en plein jour.",
+              "hint": "C'est le moro-sphinx. Il revient chaque jour aux mêmes fleurs.",
+              "espece": {
+                "name": "Moro-sphinx",
+                "scientific_name": "Macroglossum stellatarum"
+              }
+            },
+            {
+              "statement": "Plus grand, ailes arrière roses et noires ; il vole surtout au crépuscule.",
+              "hint": "Le sphinx livournien a une bande crème en biais sur les ailes avant ; le sphinx phénix, une fine ligne argentée.",
+              "groupe": {
+                "label": "Sphinx aux ailes roses",
+                "clade": "lepidopteres",
+                "plants": [
+                  {
+                    "name": "Sphinx livournien",
+                    "scientific_name": "Hyles livornica"
+                  },
+                  {
+                    "name": "Sphinx phénix",
+                    "scientific_name": "Hippotion celerio"
+                  }
+                ]
+              }
+            },
+            {
+              "statement": "Très grand, gris comme une écorce, abdomen (arrière du corps) rayé de rose.",
+              "hint": "Sa trompe très longue atteint le nectar des fleurs en tube profond.",
+              "espece": {
+                "name": "Sphinx du liseron",
+                "scientific_name": "Agrius convolvuli"
+              }
+            }
+          ]
+        },
+        {
+          "number": 3,
+          "leads": [
+            {
+              "statement": "Grand papillon portant une ou deux queues au bas des ailes arrière.",
+              "hint": "Le machaon est jaune pâle aux nervures noires ; le flambé, blanc crème rayé de noir comme un zèbre.",
+              "groupe": {
+                "label": "Machaon et flambé",
+                "clade": "lepidopteres",
+                "plants": [
+                  {
+                    "name": "Machaon",
+                    "scientific_name": "Papilio machaon"
+                  },
+                  {
+                    "name": "Flambé ibérique",
+                    "scientific_name": "Iphiclides feisthamelii"
+                  }
+                ]
+              }
+            },
+            {
+              "statement": "Ailes blanches, parfois tachées de noir ou marbrées de vert dessous.",
+              "hint": null,
+              "couplet": 4
+            },
+            {
+              "statement": "Jaune orangé bordé de noir ; dessous vert pâle avec un point argenté.",
+              "hint": "C'est le souci. Il se pose presque toujours ailes fermées.",
+              "espece": {
+                "name": "Souci",
+                "scientific_name": "Colias croceus"
+              }
+            },
+            {
+              "statement": "Moyen ou grand, orange, rouge ou brun, couvert de taches ou de ronds.",
+              "hint": null,
+              "couplet": 5
+            },
+            {
+              "statement": "Petit (ailes ouvertes, moins de 3,5 cm), bleu, brun ou orange cuivré.",
+              "hint": "Pour estimer sa taille sans le déranger, compare-le à la fleur où il est posé.",
+              "couplet": 6
+            }
+          ]
+        },
+        {
+          "number": 4,
+          "leads": [
+            {
+              "statement": "Dessous des ailes arrière marbré ou rayé de vert et de blanc.",
+              "hint": "Ce « vert » est un mélange d'écailles noires et jaunes. La clé complète sépare les deux espèces.",
+              "groupe": {
+                "label": "Marbré de vert ou piéride du sisymbre",
+                "clade": "lepidopteres",
+                "plants": [
+                  {
+                    "name": "Marbré de vert",
+                    "scientific_name": "Pontia daplidice"
+                  },
+                  {
+                    "name": "Piéride du sisymbre",
+                    "scientific_name": "Euchloe belemia"
+                  }
+                ]
+              }
+            },
+            {
+              "statement": "Dessous jaune pâle uni ; bout de l'aile avant noir ou gris dessus.",
+              "hint": "Leurs chenilles mangent les feuilles de chou du potager.",
+              "groupe": {
+                "label": "Piéride du chou ou piéride de la rave",
+                "clade": "lepidopteres",
+                "plants": [
+                  {
+                    "name": "Piéride du chou",
+                    "scientific_name": "Pieris brassicae"
+                  },
+                  {
+                    "name": "Piéride de la rave",
+                    "scientific_name": "Pieris rapae"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "number": 5,
+          "leads": [
+            {
+              "statement": "Fond noir velouté, traversé d'une bande rouge orangé.",
+              "hint": "C'est le vulcain.",
+              "espece": {
+                "name": "Vulcain",
+                "scientific_name": "Vanessa atalanta"
+              }
+            },
+            {
+              "statement": "Fond orange saumon couvert de taches noires.",
+              "hint": "C'est la belle-dame, une grande voyageuse qui traverse la Méditerranée.",
+              "espece": {
+                "name": "Belle-Dame",
+                "scientific_name": "Vanessa cardui"
+              }
+            },
+            {
+              "statement": "Très grand et orange, au vol lent et plané.",
+              "hint": "Le monarque a des nervures noires épaisses, comme un vitrail ; le petit monarque, des ailes presque unies.",
+              "groupe": {
+                "label": "Monarque ou petit monarque",
+                "clade": "lepidopteres",
+                "plants": [
+                  {
+                    "name": "Monarque",
+                    "scientific_name": "Danaus plexippus"
+                  },
+                  {
+                    "name": "Petit monarque",
+                    "scientific_name": "Danaus chrysippus"
+                  }
+                ]
+              }
+            },
+            {
+              "statement": "Un rond noir à point blanc, comme un œil, près de la pointe de l'aile.",
+              "hint": "Ce rond qui ressemble à un œil s'appelle un ocelle.",
+              "groupe": {
+                "label": "Papillons à ocelles : mégère, tircis, myrtil",
+                "clade": "lepidopteres",
+                "plants": [
+                  {
+                    "name": "Mégère",
+                    "scientific_name": "Lasiommata megera"
+                  },
+                  {
+                    "name": "Tircis",
+                    "scientific_name": "Pararge aegeria"
+                  },
+                  {
+                    "name": "Myrtil",
+                    "scientific_name": "Maniola jurtina"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "number": 6,
+          "leads": [
+            {
+              "statement": "Dessus bleu ou brun ; dessous gris ou beige, à points ou fines lignes.",
+              "hint": "Ces petits papillons se posent presque toujours ailes fermées : regarde le dessous. Certains portent une fine queue au bas de l'aile arrière.",
+              "groupe": {
+                "label": "Azurés et brun des pélargoniums",
+                "clade": "lepidopteres",
+                "plants": [
+                  {
+                    "name": "Azuré de la bugrane",
+                    "scientific_name": "Polyommatus celina"
+                  },
+                  {
+                    "name": "Azuré porte-queue",
+                    "scientific_name": "Lampides boeticus"
+                  },
+                  {
+                    "name": "Azuré de Lang",
+                    "scientific_name": "Leptotes pirithous"
+                  },
+                  {
+                    "name": "Azuré de la surelle",
+                    "scientific_name": "Zizeeria knysna"
+                  },
+                  {
+                    "name": "Brun des pélargoniums",
+                    "scientific_name": "Cacyreus marshalli"
+                  }
+                ]
+              }
+            },
+            {
+              "statement": "Ailes avant orange cuivré brillant, semées de points noirs.",
+              "hint": "C'est le cuivré commun. Il se pose souvent ailes ouvertes au soleil.",
+              "espece": {
+                "name": "Cuivré commun",
+                "scientific_name": "Lycaena phlaeas"
+              }
+            },
+            {
+              "statement": "Corps trapu, grosse tête, vol très rapide en zigzag.",
+              "hint": "Une seule hespérie est décrite dans les fiches, l'hespérie almoravide ; d'autres vivent au Maroc.",
+              "groupe": {
+                "label": "Hespéries",
+                "clade": "lepidopteres",
+                "plants": [
+                  {
+                    "name": "Hespérie almoravide",
+                    "scientific_name": "Carcharodus tripolina"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "number": 7,
+          "leads": [
+            {
+              "statement": "Corps épais en fuseau, ailes repliées en triangle pointu sur le dos.",
+              "hint": "C'est un sphinx au repos.",
+              "couplet": 2
+            },
+            {
+              "statement": "Petit, jaune paille, traversé en biais par une ligne rose.",
+              "hint": "C'est la phalène sacrée. Elle s'envole des herbes basses en plein jour.",
+              "espece": {
+                "name": "Phalène sacrée",
+                "scientific_name": "Rhodometra sacraria"
+              }
+            },
+            {
+              "statement": "Ailes avant blanc crème, semées de petits points rouges et noirs.",
+              "hint": "C'est l'écaille du myosotis. En vol, elle paraît blanchâtre.",
+              "espece": {
+                "name": "Écaille du myosotis",
+                "scientific_name": "Utetheisa pulchella"
+              }
+            },
+            {
+              "statement": "Ailes gris-brun marquées au centre d'un petit signe argenté en « y ».",
+              "hint": "C'est le gamma. Il butine aussi le jour, les pattes posées sur la fleur.",
+              "espece": {
+                "name": "Gamma",
+                "scientific_name": "Autographa gamma"
+              }
+            },
+            {
+              "statement": "Autre papillon de nuit.",
+              "hint": "Il existe des centaines de papillons de nuit à Casablanca : photographie-le de dessus et signale-le.",
+              "clade": "lepidopteres"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "traces-mammiferes-melah-college",
+      "full_key_slug": "traces-mammiferes-melah",
+      "title": "Qui est passé par là ? Traces des mammifères (version courte)",
+      "description": "Version courte de la clé des traces de mammifères de la vallée de l'oued Melah, pour le collège. On choisit d'abord le type d'indice (empreinte, crotte ou autre indice), puis sa forme. Un même animal peut être trouvé par plusieurs indices. La clé complète, proposée à la fin, permet d'aller jusqu'à l'espèce.",
+      "map_id": "melah",
+      "scope_label": "Chemins, berges boueuses, matorral et pâturages (vallée de l'oued Melah)",
+      "tool_required": "loupe",
+      "safety_note": "On observe sans contact : une crotte, un os ou un piquant se regarde à la loupe et se photographie, et reste où il est. Les crottes de renard, de chacal et de chien peuvent transmettre des parasites graves : on se lave les mains après la sortie. On ne met jamais la main ni un bâton dans un terrier, et on ne reste pas devant l'entrée.",
+      "allows_multiple_paths": 1,
+      "couplets": [
+        {
+          "number": 1,
+          "leads": [
+            {
+              "statement": "Une empreinte : la marque d'un pied dans la boue ou le sable.",
+              "hint": "Les plus belles se trouvent le matin, dans la boue des berges et des flaques.",
+              "couplet": 2
+            },
+            {
+              "statement": "Une crotte, ou un tas de crottes.",
+              "hint": "On la regarde à la loupe, sans contact.",
+              "couplet": 5
+            },
+            {
+              "statement": "Un autre indice : piquant, terrier, ou terre retournée.",
+              "hint": null,
+              "couplet": 7
+            }
+          ]
+        },
+        {
+          "number": 2,
+          "leads": [
+            {
+              "statement": "Empreinte de sabot : une marque dure, d'un seul bloc ou fendue en deux.",
+              "hint": "Le sabot est un ongle très épais qui entoure le bout du doigt.",
+              "couplet": 3
+            },
+            {
+              "statement": "Empreinte de doigts : plusieurs petites marques séparées.",
+              "hint": "Souvent, une marque de griffe se voit devant chaque doigt.",
+              "couplet": 4
+            }
+          ]
+        },
+        {
+          "number": 3,
+          "leads": [
+            {
+              "statement": "Sabot d'un seul bloc, en forme de U, souvent marqué d'un fer.",
+              "hint": "Le sabot de l'âne est petit et plus long que large ; celui du cheval est grand et presque rond.",
+              "groupe": {
+                "label": "Âne, mulet ou cheval",
+                "clade": "mammiferes",
+                "plants": [
+                  {
+                    "name": "Âne",
+                    "scientific_name": "Equus asinus"
+                  },
+                  {
+                    "name": "Cheval Barbe",
+                    "scientific_name": "Equus caballus"
+                  },
+                  {
+                    "name": "Mulet",
+                    "scientific_name": "Equus asinus × Equus caballus"
+                  }
+                ]
+              }
+            },
+            {
+              "statement": "Sabot fendu, avec deux petites marques en arrière (les gardes).",
+              "hint": "Les gardes sont deux petits doigts placés en arrière du sabot : chez le sanglier, ils s'impriment dans la boue.",
+              "espece": {
+                "name": "Sanglier",
+                "scientific_name": "Sus scrofa"
+              }
+            },
+            {
+              "statement": "Sabot fendu en deux moitiés, sans marques en arrière.",
+              "hint": "Grand sabot aux moitiés arrondies : vache. Petit sabot aux moitiés pointues : chèvre ou mouton.",
+              "groupe": {
+                "label": "Vache, chèvre ou mouton",
+                "clade": "mammiferes",
+                "plants": [
+                  {
+                    "name": "Vache",
+                    "scientific_name": "Bos taurus"
+                  },
+                  {
+                    "name": "Mouton (race Sardi)",
+                    "scientific_name": "Ovis aries"
+                  },
+                  {
+                    "name": "Chèvre",
+                    "scientific_name": "Capra hircus"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "number": 4,
+          "leads": [
+            {
+              "statement": "Marques floues groupées par quatre : deux grandes côte à côte, deux petites.",
+              "hint": "Leurs pattes couvertes de poils ne laissent pas de marques nettes. Le lièvre fait de longs bonds ; le lapin, des bonds courts qui mènent aux terriers.",
+              "groupe": {
+                "label": "Lièvre ou lapin",
+                "clade": "glires",
+                "plants": [
+                  {
+                    "name": "Lièvre du Cap",
+                    "scientific_name": "Lepus capensis"
+                  },
+                  {
+                    "name": "Lapin de garenne",
+                    "scientific_name": "Oryctolagus cuniculus"
+                  }
+                ]
+              }
+            },
+            {
+              "statement": "Quatre doigts griffus, symétriques, devant un gros coussinet (coussin de peau nue).",
+              "hint": "La clé complète les sépare par la taille et la forme de l'empreinte.",
+              "groupe": {
+                "label": "Renard, chacal ou chien",
+                "clade": "carnivores",
+                "plants": [
+                  {
+                    "name": "Renard roux",
+                    "scientific_name": "Vulpes vulpes"
+                  },
+                  {
+                    "name": "Loup doré africain (chacal)",
+                    "scientific_name": "Canis lupaster"
+                  },
+                  {
+                    "name": "Chien",
+                    "scientific_name": "Canis familiaris"
+                  }
+                ]
+              }
+            },
+            {
+              "statement": "Petite empreinte ronde ou de travers, de 2,5 à 4,5 cm.",
+              "hint": "La genette laisse une empreinte ronde, sans marques de griffes ; la mangouste, une empreinte de travers aux griffes bien marquées.",
+              "groupe": {
+                "label": "Genette ou mangouste",
+                "clade": "carnivores",
+                "plants": [
+                  {
+                    "name": "Genette commune",
+                    "scientific_name": "Genetta genetta"
+                  },
+                  {
+                    "name": "Mangouste ichneumon",
+                    "scientific_name": "Herpestes ichneumon"
+                  }
+                ]
+              }
+            },
+            {
+              "statement": "Cinq doigts, ou large plante de pied marquée jusqu'au talon.",
+              "hint": "Minuscule (1 à 2 cm) : belette. Petite main en étoile : hérisson. Grande (5 à 9 cm) : porc-épic.",
+              "groupe": {
+                "label": "Hérisson, belette ou porc-épic",
+                "clade": "mammiferes",
+                "plants": [
+                  {
+                    "name": "Hérisson d’Algérie",
+                    "scientific_name": "Atelerix algirus"
+                  },
+                  {
+                    "name": "Belette",
+                    "scientific_name": "Mustela nivalis"
+                  },
+                  {
+                    "name": "Porc-épic à crête",
+                    "scientific_name": "Hystrix cristata"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "number": 5,
+          "leads": [
+            {
+              "statement": "Bouse : grande galette ronde et plate.",
+              "hint": null,
+              "espece": {
+                "name": "Vache",
+                "scientific_name": "Bos taurus"
+              }
+            },
+            {
+              "statement": "Crottin : grosses boules pleines de brins d'herbe, en tas.",
+              "hint": null,
+              "groupe": {
+                "label": "Âne, mulet ou cheval",
+                "clade": "mammiferes",
+                "plants": [
+                  {
+                    "name": "Âne",
+                    "scientific_name": "Equus asinus"
+                  },
+                  {
+                    "name": "Cheval Barbe",
+                    "scientific_name": "Equus caballus"
+                  },
+                  {
+                    "name": "Mulet",
+                    "scientific_name": "Equus asinus × Equus caballus"
+                  }
+                ]
+              }
+            },
+            {
+              "statement": "Petites billes ou petites olives, séparées, en tas ou en grappe.",
+              "hint": null,
+              "couplet": 6
+            },
+            {
+              "statement": "Boudin contenant des poils, des petits os ou des plumes.",
+              "hint": "Les carnivores mangent surtout d'autres animaux : on voit des restes de leurs proies dans leurs crottes.",
+              "groupe": {
+                "label": "Carnivores : renard, chacal, chien, genette, mangouste, belette",
+                "clade": "carnivores",
+                "plants": [
+                  {
+                    "name": "Renard roux",
+                    "scientific_name": "Vulpes vulpes"
+                  },
+                  {
+                    "name": "Loup doré africain (chacal)",
+                    "scientific_name": "Canis lupaster"
+                  },
+                  {
+                    "name": "Chien",
+                    "scientific_name": "Canis familiaris"
+                  },
+                  {
+                    "name": "Genette commune",
+                    "scientific_name": "Genetta genetta"
+                  },
+                  {
+                    "name": "Mangouste ichneumon",
+                    "scientific_name": "Herpestes ichneumon"
+                  },
+                  {
+                    "name": "Belette",
+                    "scientific_name": "Mustela nivalis"
+                  }
+                ]
+              }
+            },
+            {
+              "statement": "Petit boudin noir et brillant, plein d'éclats d'insectes.",
+              "hint": "Le hérisson mange beaucoup de coléoptères : les éclats brillants sont des morceaux de leurs ailes dures.",
+              "espece": {
+                "name": "Hérisson d’Algérie",
+                "scientific_name": "Atelerix algirus"
+              }
+            }
+          ]
+        },
+        {
+          "number": 6,
+          "leads": [
+            {
+              "statement": "Billes rondes et mates, en tas, près des terriers.",
+              "hint": null,
+              "espece": {
+                "name": "Lapin de garenne",
+                "scientific_name": "Oryctolagus cuniculus"
+              }
+            },
+            {
+              "statement": "Billes un peu aplaties, éparpillées, loin des terriers.",
+              "hint": null,
+              "espece": {
+                "name": "Lièvre du Cap",
+                "scientific_name": "Lepus capensis"
+              }
+            },
+            {
+              "statement": "Petites olives lisses et noires, nombreuses sur les chemins des troupeaux.",
+              "hint": "Les crottes de chèvre et de mouton se ressemblent trop pour être séparées.",
+              "groupe": {
+                "label": "Chèvre ou mouton",
+                "clade": "mammiferes",
+                "plants": [
+                  {
+                    "name": "Mouton (race Sardi)",
+                    "scientific_name": "Ovis aries"
+                  },
+                  {
+                    "name": "Chèvre",
+                    "scientific_name": "Capra hircus"
+                  }
+                ]
+              }
+            },
+            {
+              "statement": "Grosses olives (2 à 4 cm), près d'un grand terrier ou de piquants.",
+              "hint": null,
+              "espece": {
+                "name": "Porc-épic à crête",
+                "scientific_name": "Hystrix cristata"
+              }
+            }
+          ]
+        },
+        {
+          "number": 7,
+          "leads": [
+            {
+              "statement": "Un piquant tombé au sol.",
+              "hint": "Piquant court (moins de 3 cm) : hérisson. Long piquant rayé de noir et de blanc : porc-épic, qui le perd sans jamais le lancer.",
+              "groupe": {
+                "label": "Hérisson ou porc-épic",
+                "clade": "mammiferes",
+                "plants": [
+                  {
+                    "name": "Hérisson d’Algérie",
+                    "scientific_name": "Atelerix algirus"
+                  },
+                  {
+                    "name": "Porc-épic à crête",
+                    "scientific_name": "Hystrix cristata"
+                  }
+                ]
+              }
+            },
+            {
+              "statement": "Un trou de terrier qui s'enfonce sous la terre.",
+              "hint": "Nombreux trous rapprochés : lapins. Grand trou entre des rochers, avec des piquants : porc-épic.",
+              "groupe": {
+                "label": "Lapin, porc-épic, renard ou chacal",
+                "clade": "mammiferes",
+                "plants": [
+                  {
+                    "name": "Lapin de garenne",
+                    "scientific_name": "Oryctolagus cuniculus"
+                  },
+                  {
+                    "name": "Porc-épic à crête",
+                    "scientific_name": "Hystrix cristata"
+                  },
+                  {
+                    "name": "Renard roux",
+                    "scientific_name": "Vulpes vulpes"
+                  },
+                  {
+                    "name": "Loup doré africain (chacal)",
+                    "scientific_name": "Canis lupaster"
+                  }
+                ]
+              }
+            },
+            {
+              "statement": "De grandes plaques de terre retournée, comme labourée.",
+              "hint": "Le sanglier retourne le sol avec son groin pour trouver racines, vers et larves.",
+              "espece": {
+                "name": "Sanglier",
+                "scientific_name": "Sus scrofa"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "arbres-palmiers-college",
+      "full_key_slug": "arbres-palmiers",
+      "title": "Les arbres et les palmiers (version courte)",
+      "description": "Version courte de la clé des arbres et des palmiers du lycée et de la forêt comestible, pour le collège. On regarde le tronc, puis la forme des feuilles. Chaque résultat s'arrête au groupe ou à l'espèce commune ; la clé complète, proposée à la fin, permet d'aller plus loin.",
+      "map_id": null,
+      "scope_label": "Lycée Lyautey et forêt comestible",
+      "tool_required": null,
+      "safety_note": "On observe l'arbre sans casser de rameau ni arracher de feuille : la sève du figuier irrite la peau au soleil, et le laurier-rose est très toxique. On garde ses distances avec les épines du figuier de Barbarie.",
+      "allows_multiple_paths": 0,
+      "couplets": [
+        {
+          "number": 1,
+          "leads": [
+            {
+              "statement": "Un seul tronc sans branches, avec un bouquet de très grandes feuilles au sommet.",
+              "hint": "Le « tronc » des palmiers s'appelle un stipe ; celui du bananier est fait de feuilles emboîtées.",
+              "couplet": 2
+            },
+            {
+              "statement": "Feuilles en aiguilles, ou fins rameaux verts qui y ressemblent.",
+              "hint": "Le pin a de vraies aiguilles groupées par deux et des pommes de pin. Le filao a de fins rameaux faits de petits morceaux emboîtés.",
+              "groupe": {
+                "label": "Pin d'Alep ou filao",
+                "clade": null,
+                "plants": [
+                  {
+                    "name": "Pin d’Alep",
+                    "scientific_name": "Pinus halepensis"
+                  },
+                  {
+                    "name": "Filao",
+                    "scientific_name": "Casuarina equisetifolia"
+                  }
+                ]
+              }
+            },
+            {
+              "statement": "Grosses raquettes vertes et charnues, couvertes de petites épines.",
+              "hint": "C'est un cactus : les raquettes sont des tiges aplaties.",
+              "espece": {
+                "name": "Figuier de Barbarie",
+                "scientific_name": "Opuntia ficus-indica"
+              }
+            },
+            {
+              "statement": "Un tronc qui se divise en branches, avec des feuilles plates.",
+              "hint": null,
+              "couplet": 3
+            }
+          ]
+        },
+        {
+          "number": 2,
+          "leads": [
+            {
+              "statement": "Feuilles en éventail.",
+              "hint": "Le palmier nain (doum), en touffes basses sans tronc, a lui aussi des feuilles en éventail.",
+              "espece": {
+                "name": "Palmier de Chine",
+                "scientific_name": "Trachycarpus fortunei"
+              }
+            },
+            {
+              "statement": "Feuilles en longues plumes (les palmes).",
+              "hint": "Stipe fin et lisse : palmier de Romanzoff. Stipe très épais : palmier des Canaries. Rejets au pied : palmier-dattier.",
+              "groupe": {
+                "label": "Palmiers à palmes",
+                "clade": "arecacees",
+                "plants": [
+                  {
+                    "name": "Palmier de Romanzoff",
+                    "scientific_name": "Syagrus romanzoffiana"
+                  },
+                  {
+                    "name": "Palmier des Canaries",
+                    "scientific_name": "Phoenix canariensis"
+                  },
+                  {
+                    "name": "Palmier-dattier",
+                    "scientific_name": "Phoenix dactylifera"
+                  }
+                ]
+              }
+            },
+            {
+              "statement": "Feuilles entières géantes, souvent déchirées par le vent.",
+              "hint": null,
+              "espece": {
+                "name": "Bananier",
+                "scientific_name": "Musa sp."
+              }
+            },
+            {
+              "statement": "Feuilles découpées comme une main ; fruits collés au tronc.",
+              "hint": null,
+              "espece": {
+                "name": "Papayer",
+                "scientific_name": "Carica papaya"
+              }
+            }
+          ]
+        },
+        {
+          "number": 3,
+          "leads": [
+            {
+              "statement": "Chaque feuille est faite de plusieurs petites feuilles (folioles) sur une même tige.",
+              "hint": "On parle de feuille composée.",
+              "couplet": 4
+            },
+            {
+              "statement": "Feuilles en éventail, souvent fendues au milieu.",
+              "hint": "Le ginkgo est un arbre très ancien : ses ancêtres vivaient déjà au temps des dinosaures.",
+              "espece": {
+                "name": "Ginkgo",
+                "scientific_name": "Ginkgo biloba"
+              }
+            },
+            {
+              "statement": "Chaque feuille est d'une seule pièce.",
+              "hint": null,
+              "couplet": 5
+            }
+          ]
+        },
+        {
+          "number": 4,
+          "leads": [
+            {
+              "statement": "Folioles minuscules et très nombreuses, comme une fougère.",
+              "hint": "Fleurs mauves en clochettes, pas d'épines : jacaranda. Rameaux épineux, fleurs crème : gommier.",
+              "groupe": {
+                "label": "Jacaranda ou gommier",
+                "clade": null,
+                "plants": [
+                  {
+                    "name": "Jacaranda",
+                    "scientific_name": "Jacaranda mimosifolia"
+                  },
+                  {
+                    "name": "Gommier",
+                    "scientific_name": "Senegalia senegal"
+                  }
+                ]
+              }
+            },
+            {
+              "statement": "4 à 10 grandes folioles rondes et luisantes ; longues gousses brunes.",
+              "hint": null,
+              "espece": {
+                "name": "Caroubier",
+                "scientific_name": "Ceratonia siliqua"
+              }
+            },
+            {
+              "statement": "Folioles étroites ou vernissées ; grappes de petits fruits roses ou rouges.",
+              "hint": "Feuillage fin et retombant : faux-poivrier. Folioles larges et luisantes : poivre rose.",
+              "groupe": {
+                "label": "Faux-poivrier ou poivre rose",
+                "clade": null,
+                "plants": [
+                  {
+                    "name": "Faux-poivrier",
+                    "scientific_name": "Schinus molle"
+                  },
+                  {
+                    "name": "Poivre rose",
+                    "scientific_name": "Schinus terebinthifolia"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "number": 5,
+          "leads": [
+            {
+              "statement": "Feuilles étroites, gris-vert dessus et argentées dessous.",
+              "hint": null,
+              "espece": {
+                "name": "Olivier",
+                "scientific_name": "Olea europaea"
+              }
+            },
+            {
+              "statement": "Écorce qui part en lanières ; feuilles pendantes en forme de faucille.",
+              "hint": null,
+              "espece": {
+                "name": "Eucalyptus",
+                "scientific_name": "Eucalyptus sp."
+              }
+            },
+            {
+              "statement": "Grandes feuilles rêches, découpées en 3 à 5 parties profondes.",
+              "hint": "Sa sève blanche irrite la peau au soleil.",
+              "espece": {
+                "name": "Figuier commun",
+                "scientific_name": "Ficus carica"
+              }
+            },
+            {
+              "statement": "Tronc tortueux, rameaux piquants, petites feuilles en bouquets.",
+              "hint": null,
+              "espece": {
+                "name": "Arganier",
+                "scientific_name": "Argania spinosa"
+              }
+            },
+            {
+              "statement": "Autres feuilles d'une seule pièce.",
+              "hint": null,
+              "couplet": 6
+            }
+          ]
+        },
+        {
+          "number": 6,
+          "leads": [
+            {
+              "statement": "Feuilles par trois au même niveau ; grosses fleurs roses ou blanches.",
+              "hint": "Le laurier-rose est très toxique dans toutes ses parties.",
+              "espece": {
+                "name": "Laurier-rose",
+                "scientific_name": "Nerium oleander"
+              }
+            },
+            {
+              "statement": "Feuilles épaisses et luisantes, présentes toute l'année.",
+              "hint": null,
+              "couplet": 7
+            },
+            {
+              "statement": "Feuilles minces, qui tombent en hiver.",
+              "hint": null,
+              "couplet": 8
+            }
+          ]
+        },
+        {
+          "number": 7,
+          "leads": [
+            {
+              "statement": "Feuilles très longues (15 à 35 cm), étroites, en forme de lance.",
+              "hint": null,
+              "espece": {
+                "name": "Manguier",
+                "scientific_name": "Mangifera indica"
+              }
+            },
+            {
+              "statement": "Grandes feuilles gaufrées, au bord denté, duveteuses et rousses dessous.",
+              "hint": null,
+              "espece": {
+                "name": "Néflier du Japon",
+                "scientific_name": "Eriobotrya japonica"
+              }
+            },
+            {
+              "statement": "Racines qui pendent des branches, ou petites figues rondes sur les rameaux.",
+              "hint": null,
+              "espece": {
+                "name": "Ficus",
+                "scientific_name": "Ficus microcarpa"
+              }
+            },
+            {
+              "statement": "Feuilles par deux face à face ; écorce cuivrée qui s'écaille.",
+              "hint": null,
+              "espece": {
+                "name": "Goyavier",
+                "scientific_name": "Psidium guajava"
+              }
+            },
+            {
+              "statement": "Feuilles moyennes, une par une ; fleurs blanches parfumées ou petites fleurs jaunâtres.",
+              "hint": "Rameaux souvent épineux et citrons : citronnier. Bord des feuilles ondulé, pas d'épines : laurier-sauce.",
+              "groupe": {
+                "label": "Citronnier ou laurier-sauce",
+                "clade": null,
+                "plants": [
+                  {
+                    "name": "Citronnier",
+                    "scientific_name": "Citrus limon"
+                  },
+                  {
+                    "name": "Laurier-sauce",
+                    "scientific_name": "Laurus nobilis"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "number": 8,
+          "leads": [
+            {
+              "statement": "Feuilles par deux face à face ; fleurs rouge orangé.",
+              "hint": null,
+              "espece": {
+                "name": "Grenadier",
+                "scientific_name": "Punica granatum"
+              }
+            },
+            {
+              "statement": "Feuilles luisantes et dentées, entières ou découpées sur un même rameau.",
+              "hint": null,
+              "espece": {
+                "name": "Mûrier",
+                "scientific_name": "Morus alba"
+              }
+            },
+            {
+              "statement": "Autres feuilles, une par une : arbre fruitier à noyau ou à pépins.",
+              "hint": "Feuilles ovales et pointues : prunier. Feuilles en cœur : abricotier. Feuilles duveteuses dessous, grandes fleurs roses : cognassier.",
+              "groupe": {
+                "label": "Prunier, abricotier ou cognassier",
+                "clade": "rosacees",
+                "plants": [
+                  {
+                    "name": "Prunier",
+                    "scientific_name": "Prunus domestica"
+                  },
+                  {
+                    "name": "Abricotier",
+                    "scientific_name": "Prunus armeniaca"
+                  },
+                  {
+                    "name": "Cognassier",
+                    "scientific_name": "Cydonia oblonga"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "amphibiens-reptiles-melah-college",
+      "full_key_slug": "amphibiens-reptiles-melah",
+      "title": "Amphibiens et reptiles de l'oued Melah (version courte)",
+      "description": "Version courte de la clé des amphibiens et des reptiles de la vallée de l'oued Melah, pour le collège. On sépare d'abord la peau nue des amphibiens de la peau à écailles des reptiles, puis on regarde la forme du corps, les pattes et les dessins. La clé complète, proposée à la fin, permet d'aller jusqu'à l'espèce.",
+      "map_id": "melah",
+      "scope_label": "Oued, berges, murets, rochers et matorral (vallée de l'oued Melah)",
+      "tool_required": "jumelles",
+      "safety_note": "On observe de loin, aux jumelles ou sur une photo, sans contact ni capture. La peau des amphibiens est fragile, et celle du crapaud produit un liquide irritant pour les yeux. Un serpent dont on ne voit pas l'œil de près peut être une vipère, très venimeuse : on recule doucement et on prévient un adulte. Les tortues et le caméléon sont protégés : on les laisse où ils sont.",
+      "allows_multiple_paths": 0,
+      "couplets": [
+        {
+          "number": 1,
+          "leads": [
+            {
+              "statement": "Peau nue, sans écailles, et pas de queue : une grenouille ou un crapaud.",
+              "hint": "Ce sont des amphibiens : leur peau nue doit rester humide.",
+              "couplet": 2
+            },
+            {
+              "statement": "Peau nue, longue queue aplatie comme une rame, dans une mare ou un fossé.",
+              "hint": "C'est le pleurodèle, un amphibien à queue qui vit surtout dans l'eau.",
+              "espece": {
+                "name": "Pleurodèle de Waltl",
+                "scientific_name": "Pleurodeles waltl"
+              }
+            },
+            {
+              "statement": "Peau couverte d'écailles sèches, ou corps dans une carapace : un reptile.",
+              "hint": null,
+              "couplet": 3
+            }
+          ]
+        },
+        {
+          "number": 2,
+          "leads": [
+            {
+              "statement": "Peau sèche couverte de verrues ; deux gros bourrelets derrière les yeux.",
+              "hint": "Grandes taches brun-rouge : crapaud de Maurétanie. Taches vert olive : crapaud vert.",
+              "groupe": {
+                "label": "Crapauds",
+                "clade": "amphibiens",
+                "plants": [
+                  {
+                    "name": "Crapaud de Maurétanie",
+                    "scientific_name": "Sclerophrys mauritanica"
+                  },
+                  {
+                    "name": "Crapaud vert d'Afrique du Nord",
+                    "scientific_name": "Bufotes boulengeri"
+                  }
+                ]
+              }
+            },
+            {
+              "statement": "Petite grenouille vert vif, aux doigts terminés par des pastilles.",
+              "hint": "C'est la rainette : ses pastilles collantes lui permettent de grimper aux tiges.",
+              "espece": {
+                "name": "Rainette méridionale",
+                "scientific_name": "Hyla meridionalis"
+              }
+            },
+            {
+              "statement": "Grenouille à peau lisse, qui saute dans l'eau au moindre bruit.",
+              "hint": "La grenouille verte a deux plis de peau le long du dos ; le discoglosse, au museau pointu, n'en a pas.",
+              "groupe": {
+                "label": "Grenouilles",
+                "clade": "amphibiens",
+                "plants": [
+                  {
+                    "name": "Grenouille verte d'Afrique du Nord",
+                    "scientific_name": "Pelophylax saharicus"
+                  },
+                  {
+                    "name": "Discoglosse peint du Maroc",
+                    "scientific_name": "Discoglossus scovazzi"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "number": 3,
+          "leads": [
+            {
+              "statement": "Corps enfermé dans une carapace : une tortue.",
+              "hint": null,
+              "couplet": 4
+            },
+            {
+              "statement": "Corps très allongé, sans pattes, aux yeux bien visibles : un serpent.",
+              "hint": "Piège : le seps, un lézard aux pattes minuscules, ressemble à un serpent.",
+              "couplet": 5
+            },
+            {
+              "statement": "Quatre pattes et une queue : un lézard ou un gecko.",
+              "hint": null,
+              "couplet": 6
+            },
+            {
+              "statement": "Corps annelé comme un ver, sans pattes, sous les pierres.",
+              "hint": "C'est le trogonophis, un reptile qui creuse le sol : ce n'est ni un ver ni un serpent.",
+              "espece": {
+                "name": "Trogonophis",
+                "scientific_name": "Trogonophis wiegmanni"
+              }
+            }
+          ]
+        },
+        {
+          "number": 4,
+          "leads": [
+            {
+              "statement": "Carapace plate, cou rayé de jaune, dans l'eau ou sur la berge.",
+              "hint": null,
+              "espece": {
+                "name": "Émyde lépreuse",
+                "scientific_name": "Mauremys leprosa"
+              }
+            },
+            {
+              "statement": "Carapace très bombée, jaune-brun tachée de noir, à terre.",
+              "hint": "Espèce protégée : on la photographie sans la déplacer.",
+              "espece": {
+                "name": "Tortue mauresque",
+                "scientific_name": "Testudo graeca"
+              }
+            }
+          ]
+        },
+        {
+          "number": 5,
+          "leads": [
+            {
+              "statement": "Le rond noir de l'œil (la pupille) est en fente, ou invisible de loin.",
+              "hint": "Une pupille en fente signale souvent une vipère : on recule doucement et on prévient un adulte.",
+              "clade": "squamates"
+            },
+            {
+              "statement": "Pupille ronde ; dos taché en zigzag ; dans l'eau ou sur la berge.",
+              "hint": "C'est la couleuvre vipérine : elle imite la vipère, mais elle est inoffensive.",
+              "espece": {
+                "name": "Couleuvre vipérine",
+                "scientific_name": "Natrix maura"
+              }
+            },
+            {
+              "statement": "Pupille ronde ; dessin sans zigzag ; le plus souvent loin de l'eau.",
+              "hint": "Grand serpent presque uni : couleuvre de Montpellier. Grandes taches rondes : couleuvre fer-à-cheval.",
+              "groupe": {
+                "label": "Couleuvres",
+                "clade": "squamates",
+                "plants": [
+                  {
+                    "name": "Couleuvre de Montpellier",
+                    "scientific_name": "Malpolon monspessulanus"
+                  },
+                  {
+                    "name": "Couleuvre fer-à-cheval",
+                    "scientific_name": "Hemorrhois hippocrepis"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "number": 6,
+          "leads": [
+            {
+              "statement": "Gecko trapu et aplati, qui grimpe aux murs, souvent la nuit.",
+              "hint": "Gris-brun couvert de petites bosses : tarente. Rose pâle presque transparent : hémidactyle.",
+              "groupe": {
+                "label": "Geckos",
+                "clade": "squamates",
+                "plants": [
+                  {
+                    "name": "Tarente de Maurétanie",
+                    "scientific_name": "Tarentola mauritanica"
+                  },
+                  {
+                    "name": "Hémidactyle verruqueux",
+                    "scientific_name": "Hemidactylus turcicus"
+                  }
+                ]
+              }
+            },
+            {
+              "statement": "Corps aplati sur les côtés, yeux qui bougent chacun de leur côté.",
+              "hint": "C'est le caméléon, une espèce protégée.",
+              "espece": {
+                "name": "Caméléon commun",
+                "scientific_name": "Chamaeleo chamaeleon"
+              }
+            },
+            {
+              "statement": "Corps cylindrique, luisant comme vernis, aux pattes très courtes.",
+              "hint": null,
+              "espece": {
+                "name": "Seps à écailles nombreuses",
+                "scientific_name": "Chalcides polylepis"
+              }
+            },
+            {
+              "statement": "Lézard brun-olive à longue queue, deux lignes claires sur le dos.",
+              "hint": null,
+              "espece": {
+                "name": "Psammodrome algire",
+                "scientific_name": "Psammodromus algirus"
+              }
+            },
+            {
+              "statement": "Autre lézard.",
+              "hint": "D'autres lézards vivent dans la région : photographie-le de loin et signale-le.",
+              "clade": "squamates"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "oiseaux-eau-daya-college",
+      "full_key_slug": "oiseaux-daya",
+      "title": "Les oiseaux d'eau de la daya",
+      "description": "Clé collège des oiseaux d'eau de la daya de Dar Bouazza : ceux qui nagent, ceux qui marchent dans l'eau peu profonde, les mouettes et les goélands. On regarde d'abord ce que fait l'oiseau, puis la forme de son bec et ses couleurs. Les clés plus détaillées de la daya sont proposées à la fin pour aller plus loin.",
+      "map_id": "dayat",
+      "scope_label": "Plan d'eau, berges et vasières de la daya (depuis les chemins)",
+      "tool_required": "jumelles",
+      "safety_note": "On observe de loin, aux jumelles ou à la longue-vue, sans quitter les chemins ni entrer dans les roselières. Au printemps, plusieurs oiseaux pondent à même le sol : on ne s'approche jamais d'un nid. Un oiseau qui crie en tournant au-dessus du groupe protège ses petits : on s'éloigne. On reste loin du bord de l'eau.",
+      "allows_multiple_paths": 0,
+      "couplets": [
+        {
+          "number": 1,
+          "leads": [
+            {
+              "statement": "Il nage sur l'eau, ou plonge depuis la surface.",
+              "hint": null,
+              "couplet": 2
+            },
+            {
+              "statement": "Oiseau blanc et gris aux longues ailes pointues ; pieds palmés.",
+              "hint": "Mouettes, goélands et sternes volent au-dessus de l'eau et se posent aussi pour nager.",
+              "couplet": 6
+            },
+            {
+              "statement": "Il marche dans l'eau peu profonde ou sur la vase, sur des pattes nues.",
+              "hint": null,
+              "couplet": 4
+            },
+            {
+              "statement": "Petit oiseau bleu-vert brillant, au long bec, qui plonge depuis un perchoir.",
+              "hint": "C'est le martin-pêcheur. Il est surtout présent en hiver.",
+              "espece": {
+                "name": "Martin-pêcheur d'Europe",
+                "scientific_name": "Alcedo atthis"
+              },
+              "next_key": "oiseaux-daya"
+            }
+          ]
+        },
+        {
+          "number": 2,
+          "leads": [
+            {
+              "statement": "Bec plat et large, pattes palmées : un canard.",
+              "hint": null,
+              "couplet": 3
+            },
+            {
+              "statement": "Bec pointu prolongé sur le front par une plaque blanche ou rouge.",
+              "hint": "Cette plaque de peau nue s'appelle la plaque frontale.",
+              "couplet": 7
+            },
+            {
+              "statement": "Petit oiseau rond, sans queue visible, qui plonge sans cesse.",
+              "hint": "C'est le grèbe castagneux.",
+              "espece": {
+                "name": "Grèbe castagneux",
+                "scientific_name": "Tachybaptus ruficollis"
+              },
+              "next_key": "oiseaux-eau-daya"
+            }
+          ]
+        },
+        {
+          "number": 3,
+          "leads": [
+            {
+              "statement": "Bec énorme, élargi en spatule au bout.",
+              "hint": "C'est le canard souchet : il filtre l'eau avec son bec.",
+              "espece": {
+                "name": "Canard souchet",
+                "scientific_name": "Spatula clypeata"
+              },
+              "next_key": "oiseaux-eau-daya"
+            },
+            {
+              "statement": "Mâle à tête vert bouteille et collier blanc ; femelle brune.",
+              "hint": "C'est le canard colvert.",
+              "espece": {
+                "name": "Canard colvert",
+                "scientific_name": "Anas platyrhynchos"
+              },
+              "next_key": "oiseaux-eau-daya"
+            },
+            {
+              "statement": "Mâle à tête rousse et arrondie, au bec rouge vif.",
+              "hint": "C'est la nette rousse. La femelle est brun clair, aux joues gris pâle.",
+              "espece": {
+                "name": "Nette rousse",
+                "scientific_name": "Netta rufina"
+              },
+              "next_key": "oiseaux-eau-daya"
+            },
+            {
+              "statement": "Autre canard : brun sombre, gris-beige tacheté, ou à sourcil blanc.",
+              "hint": "Fuligule nyroca, sarcelle marbrée ou sarcelle d'été : la clé détaillée les sépare.",
+              "groupe": {
+                "label": "Autres canards de la daya",
+                "clade": "oiseaux",
+                "plants": [
+                  {
+                    "name": "Fuligule nyroca",
+                    "scientific_name": "Aythya nyroca"
+                  },
+                  {
+                    "name": "Sarcelle marbrée",
+                    "scientific_name": "Marmaronetta angustirostris"
+                  },
+                  {
+                    "name": "Sarcelle d'été",
+                    "scientific_name": "Spatula querquedula"
+                  }
+                ]
+              },
+              "next_key": "oiseaux-eau-daya"
+            }
+          ]
+        },
+        {
+          "number": 4,
+          "leads": [
+            {
+              "statement": "Grand oiseau au long cou, au bec droit et pointu comme un poignard.",
+              "hint": "C'est un héron ou une aigrette.",
+              "couplet": 5
+            },
+            {
+              "statement": "Grand oiseau blanc au long bec aplati en spatule au bout.",
+              "hint": "C'est la spatule blanche : elle balaie l'eau de gauche à droite avec son bec.",
+              "espece": {
+                "name": "Spatule blanche",
+                "scientific_name": "Platalea leucorodia"
+              },
+              "next_key": "oiseaux-daya"
+            },
+            {
+              "statement": "Plumage sombre à reflets brillants ; long bec courbé vers le bas.",
+              "hint": "C'est l'ibis falcinelle.",
+              "espece": {
+                "name": "Ibis falcinelle",
+                "scientific_name": "Plegadis falcinellus"
+              },
+              "next_key": "oiseaux-daya"
+            },
+            {
+              "statement": "Pattes roses très longues ; dos noir, tête et ventre blancs.",
+              "hint": "C'est l'échasse blanche.",
+              "espece": {
+                "name": "Échasse blanche",
+                "scientific_name": "Himantopus himantopus"
+              },
+              "next_key": "limicoles-daya"
+            },
+            {
+              "statement": "Petit oiseau brun, gris ou beige, au cou court, qui picore ou fouille la vase.",
+              "hint": "Les limicoles cherchent vers, larves et petits crustacés dans la vase : gravelots, bécasseau, bécassine, chevaliers, œdicnème.",
+              "groupe": {
+                "label": "Petits échassiers de la vase (limicoles)",
+                "clade": "oiseaux",
+                "plants": [
+                  {
+                    "name": "Œdicnème criard",
+                    "scientific_name": "Burhinus oedicnemus"
+                  },
+                  {
+                    "name": "Petit gravelot",
+                    "scientific_name": "Charadrius dubius"
+                  },
+                  {
+                    "name": "Gravelot à collier interrompu",
+                    "scientific_name": "Charadrius alexandrinus"
+                  },
+                  {
+                    "name": "Bécasseau variable",
+                    "scientific_name": "Calidris alpina"
+                  },
+                  {
+                    "name": "Bécassine des marais",
+                    "scientific_name": "Gallinago gallinago"
+                  },
+                  {
+                    "name": "Chevalier culblanc",
+                    "scientific_name": "Tringa ochropus"
+                  },
+                  {
+                    "name": "Chevalier gambette",
+                    "scientific_name": "Tringa totanus"
+                  }
+                ]
+              },
+              "next_key": "limicoles-daya"
+            }
+          ]
+        },
+        {
+          "number": 5,
+          "leads": [
+            {
+              "statement": "Tout blanc, élancé ; bec noir, pattes noires et doigts jaunes.",
+              "hint": "C'est l'aigrette garzette.",
+              "espece": {
+                "name": "Aigrette garzette",
+                "scientific_name": "Egretta garzetta"
+              },
+              "next_key": "oiseaux-daya"
+            },
+            {
+              "statement": "Tout blanc, petit et trapu, au bec jaune ; souvent près du bétail.",
+              "hint": "C'est le héron garde-bœufs.",
+              "espece": {
+                "name": "Héron garde-bœufs",
+                "scientific_name": "Bubulcus ibis"
+              },
+              "next_key": "oiseaux-daya"
+            },
+            {
+              "statement": "Très grand et gris, plus grand que les aigrettes.",
+              "hint": "C'est le héron cendré, surtout présent en hiver.",
+              "espece": {
+                "name": "Héron cendré",
+                "scientific_name": "Ardea cinerea"
+              },
+              "next_key": "oiseaux-daya"
+            },
+            {
+              "statement": "Héron plus petit, brun, chamois ou noir et blanc.",
+              "hint": "Ils se cachent souvent dans les roseaux ; la clé détaillée les sépare.",
+              "groupe": {
+                "label": "Petits hérons : crabier, bihoreau, blongios",
+                "clade": "oiseaux",
+                "plants": [
+                  {
+                    "name": "Crabier chevelu",
+                    "scientific_name": "Ardeola ralloides"
+                  },
+                  {
+                    "name": "Bihoreau gris",
+                    "scientific_name": "Nycticorax nycticorax"
+                  },
+                  {
+                    "name": "Blongios nain",
+                    "scientific_name": "Ixobrychus minutus"
+                  }
+                ]
+              },
+              "next_key": "oiseaux-daya"
+            }
+          ]
+        },
+        {
+          "number": 6,
+          "leads": [
+            {
+              "statement": "Petite et fine ; calotte noire et front blanc ; plonge en piqué.",
+              "hint": "C'est la sterne naine, présente au printemps et en été.",
+              "espece": {
+                "name": "Sterne naine",
+                "scientific_name": "Sternula albifrons"
+              },
+              "next_key": "oiseaux-daya"
+            },
+            {
+              "statement": "De la taille d'un pigeon ; bec et pattes rouges.",
+              "hint": "C'est la mouette rieuse. En été, sa tête est brun chocolat.",
+              "espece": {
+                "name": "Mouette rieuse",
+                "scientific_name": "Chroicocephalus ridibundus"
+              },
+              "next_key": "oiseaux-daya"
+            },
+            {
+              "statement": "Grand goéland au bec fort et épais.",
+              "hint": "Le goéland leucophée, au bec jaune taché de rouge, est le plus commun.",
+              "groupe": {
+                "label": "Goélands",
+                "clade": "oiseaux",
+                "plants": [
+                  {
+                    "name": "Goéland leucophée",
+                    "scientific_name": "Larus michahellis"
+                  },
+                  {
+                    "name": "Goéland brun",
+                    "scientific_name": "Larus fuscus"
+                  },
+                  {
+                    "name": "Goéland d'Audouin",
+                    "scientific_name": "Ichthyaetus audouinii"
+                  }
+                ]
+              },
+              "next_key": "oiseaux-daya"
+            }
+          ]
+        },
+        {
+          "number": 7,
+          "leads": [
+            {
+              "statement": "Plumage tout noir ; bec et plaque frontale blancs.",
+              "hint": "Foulque macroule ou foulque caronculée : la clé détaillée les sépare.",
+              "groupe": {
+                "label": "Foulques",
+                "clade": "oiseaux",
+                "plants": [
+                  {
+                    "name": "Foulque macroule",
+                    "scientific_name": "Fulica atra"
+                  },
+                  {
+                    "name": "Foulque caronculée",
+                    "scientific_name": "Fulica cristata"
+                  }
+                ]
+              },
+              "next_key": "oiseaux-eau-daya"
+            },
+            {
+              "statement": "Plumage brun-noir ; bec rouge à pointe jaune ; ligne blanche sur le flanc.",
+              "hint": "C'est la gallinule poule-d'eau.",
+              "espece": {
+                "name": "Gallinule poule-d'eau",
+                "scientific_name": "Gallinula chloropus"
+              },
+              "next_key": "oiseaux-eau-daya"
+            },
+            {
+              "statement": "Plumage bleu-violet ; gros bec et plaque frontale rouges.",
+              "hint": "C'est la talève sultane.",
+              "espece": {
+                "name": "Talève sultane",
+                "scientific_name": "Porphyrio porphyrio"
+              },
+              "next_key": "oiseaux-eau-daya"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
