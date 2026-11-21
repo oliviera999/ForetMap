@@ -104,6 +104,9 @@ familles.
   reste disponible pour marquer tout de suite.
 - **La biodiversité du lieu est visible d'emblée**, sous le texte : une vignette par espèce
   (photo de la fiche ou pictogramme, nom courant, nom scientifique, une ligne sur son rôle).
+  La Visite sans compte et les collégiens voient la **vignette allégée** : pas de nom
+  scientifique, l'**étiquette simple** de l'espèce sous son nom (« Arbre fruitier »…), et la
+  ligne tirée de la **description collège** (à défaut, de la description, puis du rôle).
   Toucher une vignette ouvre la **fiche complète de l'espèce** — la même que dans l'onglet
   Biodiversité. Les espèces rattachées au lieu par une **mission** apparaissent à part, sous
   « Également dans les missions ». Les lieux d'**infrastructure** (bâtiment, mare, compostage…)
