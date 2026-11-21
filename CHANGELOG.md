@@ -9,6 +9,31 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — CI au vert : rejeu de la migration 375, tests instables (UI/UX lot H)
+
+Lot H du chantier UI/UX (`docs/AUDIT_UI_UX_2026-11-19.md` § 4). Aucun changement de
+comportement de l'application : une migration rendue portable et deux fichiers de test corrigés.
+Le premier point vient du chantier CPT (#727).
+
+- **Migration `375_contenus_terrain_2026_11_20.sql`** : les deux suppressions du bloc 15 sont
+  réécrites en `EXISTS` corrélé, le tutoriel étant résolu par deux jointures externes sur le
+  slug (unique). MariaDB 11.4 (CI) refusait l'ancienne forme — tables dérivées imbriquées et
+  sous-requête corrélée dans un `ON` — à la **seconde exécution d'une instruction préparée**
+  (« Unknown column 'v.ref' in 'WHERE' ») : la première passait, d'où une base de CI saine
+  mais trois tests de rejeu et un test de contenu rouges. Même résultat, même idempotence ;
+  vérifié sur MariaDB 11.4.10 et 10.11. Migration déjà appliquée en production : la modifier
+  n'y rejoue rien, elle ne sert qu'aux bases neuves et aux tests.
+- **`tests-ui/settings/MoodleAdminPanel.test.jsx`** : cause réelle des échecs intermittents
+  trouvée et reproduite. Le chargement du panneau se terminait hors `act` ; sur un exécuteur
+  chargé, le test saisissait avant que React ait rejoué l'effet de montage de l'éditeur, qui
+  écrasait alors la saisie. Le panneau est désormais monté et chargé dans `act` ; les délais
+  allongés des essais précédents, devenus inutiles, sont retirés.
+- **`e2e/visit-mascot.spec.js`** : deux défauts du test. Une écoute de réponse posée trop tard
+  faisait perdre 45 s à chaque cas (d'où les dépassements de délai) ; le choix de la carte N3
+  visait une liste déroulante alors que la Visite affiche des boutons jusqu'à quatre cartes —
+  le test restait sur la mauvaise carte, ce que le mode « serial » masquait. Les 14 cas
+  passent en moins d'une minute dans Chromium.
+
 ### Corrigé — carte : noms entiers, cadrage, plus de chevauchements (UI/UX lot 4, U5)
 
 Lot 4 du chantier UI/UX (`docs/AUDIT_UI_UX_2026-11-19.md`, U5), reproduit sur la carte Forêt
