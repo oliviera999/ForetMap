@@ -3,6 +3,7 @@
  */
 
 import { trophicRoleLabel } from './plantTrophicRole.js';
+import { isStudentHiddenEntity } from '../shared/enums/biodivEnums.js';
 
 function nv(value) {
   if (value == null) return '';
@@ -40,6 +41,21 @@ export const ZONE_PRESENCE_FILTER = {
   IN_MAP: 'in_map',
   NOT_IN_MAP: 'not_in_map',
 };
+
+/**
+ * Fiches proposées dans une liste ou une recherche d'**élève** : tout le catalogue, sauf les
+ * fiches « ressource » (matière non vivante : litière, compost…). Elles restent dans le
+ * réseau trophique, les liens, les clés et la gestion, qui lisent le catalogue entier.
+ *
+ * @param {object[]} plants catalogue (`GET /api/plants`)
+ * @param {{ includeResourceEntities?: boolean }} [options] `true` côté gestion : rien n'est retiré
+ * @returns {object[]} la même référence quand rien n'est retiré
+ */
+export function plantsForStudentCatalog(plants, { includeResourceEntities = false } = {}) {
+  const list = Array.isArray(plants) ? plants : [];
+  if (includeResourceEntities || !list.some(isStudentHiddenEntity)) return list;
+  return list.filter((p) => !isStudentHiddenEntity(p));
+}
 
 function plantIdOf(plant) {
   const id = Number(plant?.id);
