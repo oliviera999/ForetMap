@@ -10,6 +10,19 @@ import {
 } from '../../src/utils/notificationTargets.js';
 
 describe('notificationFromServer', () => {
+  test('élèves référents automatiques : rangés dans la catégorie « tâches » (préférences)', () => {
+    for (const kind of [
+      'task_referent_granted',
+      'task_referent_granted_manager',
+      'task_referent_removed_manager',
+    ]) {
+      expect(notificationFromServer({ id: 1, kind, title: 't' })).toMatchObject({
+        level: 'info',
+        category: 'tasks',
+      });
+    }
+  });
+
   test('niveau et catégorie selon le type ; cible conservée', () => {
     const item = notificationFromServer({
       id: 12,

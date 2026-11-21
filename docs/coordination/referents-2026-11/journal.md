@@ -60,10 +60,15 @@
       au seuil 2 = élève A : 9 séries, élève B : 2, élève C : 1 (12 couples) ; liens élève
       existants sur séries actives : 12, tous dans le groupe, tous dans le plan → 0 ajout,
       0 retrait (aucun lien `auto` en prod), 12 adoptables.
-- [ ] Lot 7 — notifications
-- [ ] Lot 8 — données personnelles
+- [x] Lot 7 — `lib/tasks/studentReferentNotifications.js` : `task_referent_granted` (élève,
+      clé anti-doublon par série), `task_referent_granted_manager` et `task_referent_removed_manager`
+      (comptes `tasks.manage`, sous `notify_managers`) ; catégorie « tâches » (`KIND_META`) ;
+      `tests/notifications-events.test.js` (+1), `tests-ui/utils/notificationTargets.test.js` (+1).
+      Écart : troisième évènement pour le retrait (le prompt n'en nomme que deux).
+- [x] Lot 8 — export (`taches_referent_refus`), conservation (`ACCOUNT_LIFETIME_TABLES`),
+      fusion et suppression par clé étrangère ; `tests/student-referents-privacy.test.js`.
 - [ ] Lot 6 — interface
 - [ ] Lot 10 — documentation
 - [ ] Lot 9 (reste)
 
-Prochaine action : lot 7 (tests de notifications, KIND_META front).
+Prochaine action : lot 6 (interface + masquage des référents élèves selon `assignees_visibility`).

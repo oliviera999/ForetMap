@@ -287,3 +287,89 @@ test('rappel d’échéance : une seule notification par tâche et par échéanc
   assert.strictEqual(rows[0].title, `« ${task.title} » est à rendre demain`);
   assert.strictEqual(rows[0].target_id, task.id);
 });
+
+// --- Élèves référents automatiques (lot 7) --------------------------------------------------
+
+test('référents automatiques : élève prévenu une fois par série, gestionnaires selon le réglage, rien en double après clonage', async () => {
+  const { execute } = require('../database');
+  const {
+    computeStudentReferentPlan,
+    applyStudentReferentPlan,
+  } = require('../lib/tasks/studentReferents');
+  const { spawnRecurringTaskNow } = require('../lib/recurringTasks');
+  const { createStudentReferentsFixture } = require('./helpers/studentReferentsFixture');
+  await ensureAdminTeacherAuthToken();
+  const adminId = await getAdminTeacherUserId();
+  const fx = await createStudentReferentsFixture();
+  const kinds = "('task_referent_granted_manager','task_referent_removed_manager')";
+  const managerRows = async () =>
+    queryAll(
+      `SELECT kind, title FROM notifications WHERE user_id = ? AND kind IN ${kinds} AND title LIKE ?`,
+      [adminId, `%${fx.stamp}%`],
+    );
+  try {
+    // Gestionnaires non prévenus quand le réglage est faux.
+    const quiet = await computeStudentReferentPlan({
+      config: fx.config({ notify_managers: false, max_series_per_student: 1 }),
+    });
+    await applyStudentReferentPlan(quiet);
+    const studentB = await queryAll(
+      "SELECT kind, title, body, target_id FROM notifications WHERE user_id = ? AND kind = 'task_referent_granted'",
+      [fx.users.B],
+    );
+    assert.equal(studentB.length, 1, 'B : une notification (plafond 1)');
+    assert.match(studentB[0].title, /^Tu es désormais référent·e de la tâche « /);
+    assert.doesNotMatch(
+      `${studentB[0].title} ${studentB[0].body}`,
+      /cueill|goût|touch|frott|manipul|ramass|attrap/i,
+    );
+    assert.equal((await managerRows()).length, 0);
+
+    // Plafond levé, gestionnaires prévenus.
+    const loud = await computeStudentReferentPlan({ config: fx.config() });
+    await applyStudentReferentPlan(loud);
+    const rowsA = await queryAll(
+      "SELECT target_id FROM notifications WHERE user_id = ? AND kind = 'task_referent_granted'",
+      [fx.users.A],
+    );
+    assert.equal(rowsA.length, 9, 'A : une par série');
+    const managers = await managerRows();
+    assert.ok(managers.length >= 1);
+    assert.ok(managers.every((m) => m.kind === 'task_referent_granted_manager'));
+
+    // Clonage de l'occurrence active de S10 : le lien auto est recopié, aucun nouvel envoi.
+    await execute(
+      "UPDATE tasks SET status = 'validated', validated_at = NOW(), due_date = '2020-01-08' WHERE id = ?",
+      [fx.series.S10.active],
+    );
+    const { created } = await spawnRecurringTaskNow(fx.series.S10.active);
+    assert.ok(created);
+    fx.taskIds.push(created);
+    const link = await queryAll(
+      'SELECT source FROM task_referents WHERE task_id = ? AND user_id = ?',
+      [created, fx.users.B],
+    );
+    assert.deepEqual(
+      link.map((l) => l.source),
+      ['auto'],
+    );
+    await applyStudentReferentPlan(await computeStudentReferentPlan({ config: fx.config() }));
+    const afterClone = await queryAll(
+      "SELECT id FROM notifications WHERE user_id = ? AND kind = 'task_referent_granted'",
+      [fx.users.B],
+    );
+    assert.equal(afterClone.length, 2, 'B : toujours deux (S10, S11), rien en double');
+
+    // Retrait automatique : gestionnaires prévenus, pas l'élève.
+    await execute('UPDATE users SET is_active = 0 WHERE id = ?', [fx.users.C]);
+    await applyStudentReferentPlan(await computeStudentReferentPlan({ config: fx.config() }));
+    const removed = (await managerRows()).filter((m) => m.kind === 'task_referent_removed_manager');
+    assert.equal(removed.length, 1);
+  } finally {
+    await execute(
+      `DELETE FROM notifications WHERE user_id = ? AND kind IN ${kinds} AND title LIKE ?`,
+      [adminId, `%${fx.stamp}%`],
+    );
+    await fx.cleanup();
+  }
+});
