@@ -1,0 +1,305 @@
+[
+ {
+  "code": "QF9722",
+  "categorie": "milieux_terrain",
+  "palier": 3,
+  "raison": "aménagement du lieu n³ (culture sur dalle)"
+ },
+ {
+  "code": "QF9728",
+  "categorie": "milieux_terrain",
+  "palier": 3,
+  "raison": "besoins des êtres vivants pendant les vacances"
+ },
+ {
+  "code": "QF9729",
+  "categorie": "milieux_terrain",
+  "palier": 3,
+  "raison": "règles de visite : observer sans prélever"
+ },
+ {
+  "code": "QF9730",
+  "categorie": "milieux_terrain",
+  "palier": 3,
+  "raison": "connaissance des espaces vivants du lycée"
+ },
+ {
+  "code": "QF9731",
+  "categorie": "milieux_terrain",
+  "palier": 3,
+  "raison": "règle de visite : droit à l’image"
+ },
+ {
+  "code": "QF9737",
+  "categorie": "milieux_terrain",
+  "palier": 3,
+  "raison": "dépôts d’un cours d’eau (paysage)"
+ },
+ {
+  "code": "QF9738",
+  "categorie": "milieux_terrain",
+  "palier": 3,
+  "raison": "indice d’une plantation humaine dans un paysage"
+ },
+ {
+  "code": "QF9739",
+  "categorie": "milieux_terrain",
+  "palier": 3,
+  "raison": "type de végétation d’un milieu"
+ },
+ {
+  "code": "QF9740",
+  "categorie": "milieux_terrain",
+  "palier": 4,
+  "raison": "barrage et ressource en eau (action humaine)"
+ },
+ {
+  "code": "QF9741",
+  "categorie": "milieux_terrain",
+  "palier": 3,
+  "raison": "oiseaux qui se nourrissent des insectes dérangés"
+ },
+ {
+  "code": "QF9742",
+  "categorie": "milieux_terrain",
+  "palier": 3,
+  "raison": "nom local d’un sol"
+ },
+ {
+  "code": "QF9743",
+  "categorie": "milieux_terrain",
+  "palier": 3,
+  "raison": "rythme des marées"
+ },
+ {
+  "code": "QF9744",
+  "categorie": "milieux_terrain",
+  "palier": 4,
+  "raison": "coefficient de marée"
+ },
+ {
+  "code": "QF9745",
+  "categorie": "milieux_terrain",
+  "palier": 4,
+  "raison": "zonation du littoral selon l’émersion"
+ },
+ {
+  "code": "QF9746",
+  "categorie": "milieux_terrain",
+  "palier": 3,
+  "raison": "geste de respect du milieu"
+ },
+ {
+  "code": "QF9747",
+  "categorie": "milieux_terrain",
+  "palier": 4,
+  "raison": "pollution par excès de nutriments"
+ },
+ {
+  "code": "QF9748",
+  "categorie": "milieux_terrain",
+  "palier": 3,
+  "raison": "eau saumâtre d’une embouchure"
+ },
+ {
+  "code": "QF9749",
+  "categorie": "milieux_terrain",
+  "palier": 3,
+  "raison": "espèce protégée du littoral"
+ },
+ {
+  "code": "QF9750",
+  "categorie": "milieux_terrain",
+  "palier": 3,
+  "raison": "laisse de mer"
+ },
+ {
+  "code": "QF9785",
+  "categorie": "milieux_terrain",
+  "palier": 3,
+  "raison": "ponte sur le sable et dérangement"
+ },
+ {
+  "code": "QF0040",
+  "categorie": "plantes_biologie",
+  "palier": 3,
+  "raison": "photosynthèse : terme « base » du glossaire, rôle des feuilles"
+ },
+ {
+  "code": "QF0041",
+  "categorie": "plantes_biologie",
+  "palier": 4,
+  "raison": "dioxygène rejeté par la photosynthèse (échanges gazeux)"
+ },
+ {
+  "code": "QF0240",
+  "categorie": "plantes_biologie",
+  "palier": 3,
+  "raison": "rôle des racines"
+ },
+ {
+  "code": "QF0241",
+  "categorie": "plantes_biologie",
+  "palier": 3,
+  "raison": "rôle de la fleur dans la reproduction"
+ },
+ {
+  "code": "QF0504",
+  "categorie": "plantes_biologie",
+  "palier": 3,
+  "raison": "usage alimentaire d’un produit végétal",
+  "ajouts": [
+   "C3-ALIM"
+  ]
+ },
+ {
+  "code": "QF0509",
+  "categorie": "plantes_biologie",
+  "palier": 4,
+  "raison": "espèce dioïque"
+ },
+ {
+  "code": "QF0512",
+  "categorie": "plantes_biologie",
+  "palier": 4,
+  "raison": "fleurs unisexuées et pollinisation par les insectes"
+ },
+ {
+  "code": "QF0526",
+  "categorie": "plantes_biologie",
+  "palier": 3,
+  "raison": "capitule : un ensemble de fleurs"
+ },
+ {
+  "code": "QF0540",
+  "categorie": "plantes_biologie",
+  "palier": 3,
+  "raison": "dissémination des graines par les animaux"
+ },
+ {
+  "code": "QF7001",
+  "categorie": "plantes_biologie",
+  "palier": 3,
+  "raison": "partie de la plante que l’on mange"
+ },
+ {
+  "code": "QF7002",
+  "categorie": "plantes_biologie",
+  "palier": 3,
+  "raison": "montée en graines : cycle de vie d’une plante"
+ },
+ {
+  "code": "QF7003",
+  "categorie": "plantes_biologie",
+  "palier": 3,
+  "raison": "partie de la plante que l’on mange"
+ },
+ {
+  "code": "QF7004",
+  "categorie": "plantes_biologie",
+  "palier": 4,
+  "raison": "bisannuelle (terme « approfondissement » du glossaire)"
+ },
+ {
+  "code": "QF7006",
+  "categorie": "plantes_biologie",
+  "palier": 3,
+  "raison": "partie de la plante que l’on mange"
+ },
+ {
+  "code": "QF7007",
+  "categorie": "plantes_biologie",
+  "palier": 3,
+  "raison": "fruit et graines"
+ },
+ {
+  "code": "QF7020",
+  "categorie": "plantes_biologie",
+  "palier": 3,
+  "raison": "rôle des étamines"
+ },
+ {
+  "code": "QF9011",
+  "categorie": "plantes_biologie",
+  "palier": 4,
+  "raison": "respiration des plantes le jour et la nuit"
+ },
+ {
+  "code": "QF9250",
+  "categorie": "plantes_biologie",
+  "palier": "lycee",
+  "raison": "fixation biologique de l’azote par Rhizobium : lycée (liste du prompt)"
+ },
+ {
+  "code": "QF9265",
+  "categorie": "plantes_biologie",
+  "palier": 4,
+  "raison": "épiphyte et liane : modes de vie"
+ },
+ {
+  "code": "QF9270",
+  "categorie": "plantes_biologie",
+  "palier": 3,
+  "raison": "flore méditerranéenne du jardin"
+ },
+ {
+  "code": "QF9501",
+  "categorie": "plantes_biologie",
+  "palier": 3,
+  "raison": "organes récoltés chez deux plantes cultivées"
+ },
+ {
+  "code": "QF9502",
+  "categorie": "plantes_biologie",
+  "palier": 3,
+  "raison": "légumes racines, organe de réserve"
+ },
+ {
+  "code": "QF9503",
+  "categorie": "plantes_biologie",
+  "palier": 3,
+  "raison": "le bulbe, organe de la plante"
+ },
+ {
+  "code": "QF9505",
+  "categorie": "plantes_biologie",
+  "palier": 4,
+  "raison": "famille botanique et organe consommé"
+ },
+ {
+  "code": "QF9506",
+  "categorie": "plantes_biologie",
+  "palier": 4,
+  "raison": "caractères d’une famille botanique"
+ },
+ {
+  "code": "QF9508",
+  "categorie": "plantes_biologie",
+  "palier": 3,
+  "raison": "organe récolté (bouton floral)"
+ },
+ {
+  "code": "QF9546",
+  "categorie": "plantes_biologie",
+  "palier": 4,
+  "raison": "plante indicatrice d’un sol acide"
+ },
+ {
+  "code": "QF9547",
+  "categorie": "plantes_biologie",
+  "palier": 4,
+  "raison": "famille botanique"
+ },
+ {
+  "code": "QF9551",
+  "categorie": "plantes_biologie",
+  "palier": 3,
+  "raison": "port de deux plantes cultivées"
+ },
+ {
+  "code": "QF9603",
+  "categorie": "plantes_biologie",
+  "palier": 3,
+  "raison": "organe d’une plante grasse : tige aplatie"
+ }
+]

@@ -29,7 +29,7 @@
 SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------------------
--- 1. Ajouts de l'autre cycle supprimés (49 lignes)
+-- 1. Ajouts de l'autre cycle supprimés (53 lignes)
 --    Notion ajoutée à la main qui ne vient pas de la catégorie.
 -- ---------------------------------------------------------------------
 DELETE qn
@@ -84,6 +84,10 @@ DELETE qn
     UNION ALL SELECT 'QF0403', 'glossaire_definitions', 'C4-TERRE'
     UNION ALL SELECT 'QF0404', 'glossaire_definitions', 'C4-TERRE'
     UNION ALL SELECT 'QF0404', 'glossaire_definitions', 'C4-VIV'
+    UNION ALL SELECT 'QF9882', 'glossaire_definitions', 'C4-VIV'
+    UNION ALL SELECT 'QF9892', 'glossaire_definitions', 'C4-RESS'
+    UNION ALL SELECT 'QF9892', 'glossaire_definitions', 'C4-TERRE'
+    UNION ALL SELECT 'QF7004', 'plantes_biologie', 'C3-DEV'
   ) v ON qn.question_code = v.code COLLATE utf8mb4_unicode_ci AND qn.notion_id = v.notion COLLATE utf8mb4_unicode_ci
   JOIN quiz_questions q ON q.question_code = qn.question_code
                        AND q.categorie_slug = v.categorie COLLATE utf8mb4_unicode_ci
@@ -107,7 +111,7 @@ UPDATE quiz_question_notions qn
  WHERE qn.mode = 'ajout';
 
 -- ---------------------------------------------------------------------
--- 3. Exclusions des notions héritées de l'autre cycle (105 lignes)
+-- 3. Exclusions des notions héritées de l'autre cycle (258 lignes)
 --    Parents : la question (code, catégorie, niveau college) et la notion.
 -- ---------------------------------------------------------------------
 INSERT INTO quiz_question_notions (question_code, notion_id, mode)
@@ -218,6 +222,159 @@ SELECT q.question_code, cn.id, 'exclusion'
     UNION ALL SELECT 'QF9916', 'evolution_biodiversite', 'C4-VIV'
     UNION ALL SELECT 'QF9922', 'evolution_biodiversite', 'C4-VIV'
     UNION ALL SELECT 'QF9928', 'evolution_biodiversite', 'C4-VIV'
+    UNION ALL SELECT 'QF0351', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF0352', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF0353', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF0354', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF0355', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF0356', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF0357', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF0358', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF0359', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF0360', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF0361', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF0362', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF0363', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF0364', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF0413', 'identification_especes', 'C3-VIV'
+    UNION ALL SELECT 'QF0415', 'identification_especes', 'C3-VIV'
+    UNION ALL SELECT 'QF0417', 'identification_especes', 'C3-VIV'
+    UNION ALL SELECT 'QF0425', 'identification_especes', 'C3-VIV'
+    UNION ALL SELECT 'QF0429', 'identification_especes', 'C3-VIV'
+    UNION ALL SELECT 'QF0435', 'identification_especes', 'C3-VIV'
+    UNION ALL SELECT 'QF0437', 'identification_especes', 'C3-VIV'
+    UNION ALL SELECT 'QF0522', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF0529', 'identification_especes', 'C3-VIV'
+    UNION ALL SELECT 'QF0530', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF7009', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF7011', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF7014', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF7015', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF7017', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF7019', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF7021', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF7022', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF7033', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF7039', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF7041', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF7043', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF7044', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF7045', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF7047', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF7058', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF7060', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF7061', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF9420', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF9422', 'identification_especes', 'C3-VIV'
+    UNION ALL SELECT 'QF9423', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF9425', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF9427', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF9428', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF9430', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF9433', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF9435', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF9437', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF9439', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF9440', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF9515', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF9521', 'identification_especes', 'C3-VIV'
+    UNION ALL SELECT 'QF9532', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF9535', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF9543', 'identification_especes', 'C3-VIV'
+    UNION ALL SELECT 'QF9549', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF9862', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF9863', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF9864', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF9865', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF9866', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF9867', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF9868', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF9869', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF9870', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF9871', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF9872', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF9879', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF9889', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF9899', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF9907', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF9913', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF9919', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF9925', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF9931', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF9932', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF9933', 'identification_especes', 'C4-VIV'
+    UNION ALL SELECT 'QF9878', 'microbes_sante', 'C4-MICRO'
+    UNION ALL SELECT 'QF9888', 'microbes_sante', 'C4-MICRO'
+    UNION ALL SELECT 'QF9906', 'microbes_sante', 'C4-MICRO'
+    UNION ALL SELECT 'QF7010', 'milieux_terrain', 'C4-TERRE'
+    UNION ALL SELECT 'QF7013', 'milieux_terrain', 'C4-TERRE'
+    UNION ALL SELECT 'QF7016', 'milieux_terrain', 'C4-TERRE'
+    UNION ALL SELECT 'QF7025', 'milieux_terrain', 'C4-TERRE'
+    UNION ALL SELECT 'QF7028', 'milieux_terrain', 'C4-TERRE'
+    UNION ALL SELECT 'QF7054', 'milieux_terrain', 'C4-TERRE'
+    UNION ALL SELECT 'QF7055', 'milieux_terrain', 'C4-TERRE'
+    UNION ALL SELECT 'QF7062', 'milieux_terrain', 'C4-TERRE'
+    UNION ALL SELECT 'QF9720', 'milieux_terrain', 'C4-TERRE'
+    UNION ALL SELECT 'QF9721', 'milieux_terrain', 'C4-TERRE'
+    UNION ALL SELECT 'QF9722', 'milieux_terrain', 'C4-TERRE'
+    UNION ALL SELECT 'QF9728', 'milieux_terrain', 'C4-TERRE'
+    UNION ALL SELECT 'QF9729', 'milieux_terrain', 'C4-TERRE'
+    UNION ALL SELECT 'QF9730', 'milieux_terrain', 'C4-TERRE'
+    UNION ALL SELECT 'QF9731', 'milieux_terrain', 'C4-TERRE'
+    UNION ALL SELECT 'QF9737', 'milieux_terrain', 'C4-TERRE'
+    UNION ALL SELECT 'QF9738', 'milieux_terrain', 'C4-TERRE'
+    UNION ALL SELECT 'QF9739', 'milieux_terrain', 'C4-TERRE'
+    UNION ALL SELECT 'QF9740', 'milieux_terrain', 'C3-ENV'
+    UNION ALL SELECT 'QF9741', 'milieux_terrain', 'C4-TERRE'
+    UNION ALL SELECT 'QF9742', 'milieux_terrain', 'C4-TERRE'
+    UNION ALL SELECT 'QF9743', 'milieux_terrain', 'C4-TERRE'
+    UNION ALL SELECT 'QF9744', 'milieux_terrain', 'C3-ENV'
+    UNION ALL SELECT 'QF9745', 'milieux_terrain', 'C3-ENV'
+    UNION ALL SELECT 'QF9746', 'milieux_terrain', 'C4-TERRE'
+    UNION ALL SELECT 'QF9747', 'milieux_terrain', 'C3-ENV'
+    UNION ALL SELECT 'QF9748', 'milieux_terrain', 'C4-TERRE'
+    UNION ALL SELECT 'QF9749', 'milieux_terrain', 'C4-TERRE'
+    UNION ALL SELECT 'QF9750', 'milieux_terrain', 'C4-TERRE'
+    UNION ALL SELECT 'QF9785', 'milieux_terrain', 'C4-TERRE'
+    UNION ALL SELECT 'QF0040', 'plantes_biologie', 'C4-VIV'
+    UNION ALL SELECT 'QF0041', 'plantes_biologie', 'C3-DEVREPRO'
+    UNION ALL SELECT 'QF0041', 'plantes_biologie', 'C3-MATORG'
+    UNION ALL SELECT 'QF0240', 'plantes_biologie', 'C4-VIV'
+    UNION ALL SELECT 'QF0241', 'plantes_biologie', 'C4-VIV'
+    UNION ALL SELECT 'QF0504', 'plantes_biologie', 'C4-VIV'
+    UNION ALL SELECT 'QF0509', 'plantes_biologie', 'C3-DEVREPRO'
+    UNION ALL SELECT 'QF0509', 'plantes_biologie', 'C3-MATORG'
+    UNION ALL SELECT 'QF0512', 'plantes_biologie', 'C3-DEVREPRO'
+    UNION ALL SELECT 'QF0512', 'plantes_biologie', 'C3-MATORG'
+    UNION ALL SELECT 'QF0526', 'plantes_biologie', 'C4-VIV'
+    UNION ALL SELECT 'QF0540', 'plantes_biologie', 'C4-VIV'
+    UNION ALL SELECT 'QF7001', 'plantes_biologie', 'C4-VIV'
+    UNION ALL SELECT 'QF7002', 'plantes_biologie', 'C4-VIV'
+    UNION ALL SELECT 'QF7003', 'plantes_biologie', 'C4-VIV'
+    UNION ALL SELECT 'QF7004', 'plantes_biologie', 'C3-DEVREPRO'
+    UNION ALL SELECT 'QF7004', 'plantes_biologie', 'C3-MATORG'
+    UNION ALL SELECT 'QF7006', 'plantes_biologie', 'C4-VIV'
+    UNION ALL SELECT 'QF7007', 'plantes_biologie', 'C4-VIV'
+    UNION ALL SELECT 'QF7020', 'plantes_biologie', 'C4-VIV'
+    UNION ALL SELECT 'QF9011', 'plantes_biologie', 'C3-DEVREPRO'
+    UNION ALL SELECT 'QF9011', 'plantes_biologie', 'C3-MATORG'
+    UNION ALL SELECT 'QF9265', 'plantes_biologie', 'C3-DEVREPRO'
+    UNION ALL SELECT 'QF9265', 'plantes_biologie', 'C3-MATORG'
+    UNION ALL SELECT 'QF9270', 'plantes_biologie', 'C4-VIV'
+    UNION ALL SELECT 'QF9501', 'plantes_biologie', 'C4-VIV'
+    UNION ALL SELECT 'QF9502', 'plantes_biologie', 'C4-VIV'
+    UNION ALL SELECT 'QF9503', 'plantes_biologie', 'C4-VIV'
+    UNION ALL SELECT 'QF9505', 'plantes_biologie', 'C3-DEVREPRO'
+    UNION ALL SELECT 'QF9505', 'plantes_biologie', 'C3-MATORG'
+    UNION ALL SELECT 'QF9506', 'plantes_biologie', 'C3-DEVREPRO'
+    UNION ALL SELECT 'QF9506', 'plantes_biologie', 'C3-MATORG'
+    UNION ALL SELECT 'QF9508', 'plantes_biologie', 'C4-VIV'
+    UNION ALL SELECT 'QF9546', 'plantes_biologie', 'C3-DEVREPRO'
+    UNION ALL SELECT 'QF9546', 'plantes_biologie', 'C3-MATORG'
+    UNION ALL SELECT 'QF9547', 'plantes_biologie', 'C3-DEVREPRO'
+    UNION ALL SELECT 'QF9547', 'plantes_biologie', 'C3-MATORG'
+    UNION ALL SELECT 'QF9551', 'plantes_biologie', 'C4-VIV'
+    UNION ALL SELECT 'QF9603', 'plantes_biologie', 'C4-VIV'
   ) v
   JOIN quiz_questions q ON q.question_code = v.code COLLATE utf8mb4_unicode_ci
                        AND q.categorie_slug = v.categorie COLLATE utf8mb4_unicode_ci
@@ -229,7 +386,7 @@ SELECT q.question_code, cn.id, 'exclusion'
             AND x.notion_id = cn.id);
 
 -- ---------------------------------------------------------------------
--- 4. Ajouts d'une notion précise du palier retenu (6 lignes)
+-- 4. Ajouts d'une notion précise du palier retenu (7 lignes)
 --    Quand la catégorie ne porte pas la notion qui décrit la question.
 -- ---------------------------------------------------------------------
 INSERT INTO quiz_question_notions (question_code, notion_id, mode)
@@ -241,6 +398,7 @@ SELECT q.question_code, cn.id, 'ajout'
     UNION ALL SELECT 'QF0281', 'eau_arrosage', 'C3-ENV'
     UNION ALL SELECT 'QF0283', 'eau_arrosage', 'C3-ENV'
     UNION ALL SELECT 'QF9201', 'eau_arrosage', 'C3-ENV'
+    UNION ALL SELECT 'QF0504', 'plantes_biologie', 'C3-ALIM'
   ) v
   JOIN quiz_questions q ON q.question_code = v.code COLLATE utf8mb4_unicode_ci
                        AND q.categorie_slug = v.categorie COLLATE utf8mb4_unicode_ci
@@ -252,7 +410,7 @@ SELECT q.question_code, cn.id, 'ajout'
             AND x.notion_id = cn.id);
 
 -- ---------------------------------------------------------------------
--- 5. Questions passées au lycée : ajouts de collège supprimés (11 lignes)
+-- 5. Questions passées au lycée : ajouts de collège supprimés (13 lignes)
 --    Avant le bloc 6 (garde niveau = college).
 -- ---------------------------------------------------------------------
 DELETE qn
@@ -269,6 +427,8 @@ DELETE qn
     UNION ALL SELECT 'QF0375', 'glossaire_definitions', 'C3-MATORG'
     UNION ALL SELECT 'QF0375', 'glossaire_definitions', 'C3-VIV'
     UNION ALL SELECT 'QF0375', 'glossaire_definitions', 'C4-VIV'
+    UNION ALL SELECT 'QF0410', 'glossaire_definitions', 'C3-ENV'
+    UNION ALL SELECT 'QF0410', 'glossaire_definitions', 'C4-VIV'
   ) v ON qn.question_code = v.code COLLATE utf8mb4_unicode_ci AND qn.notion_id = v.notion COLLATE utf8mb4_unicode_ci
   JOIN quiz_questions q ON q.question_code = qn.question_code
                        AND q.categorie_slug = v.categorie COLLATE utf8mb4_unicode_ci
@@ -276,7 +436,7 @@ DELETE qn
  WHERE qn.mode = 'ajout';
 
 -- ---------------------------------------------------------------------
--- 6. Niveau college → lycee (4 questions)
+-- 6. Niveau college → lycee (9 questions)
 --    La garde de palier retire alors d'elle-même les notions de collège héritées.
 -- ---------------------------------------------------------------------
 UPDATE quiz_questions q
@@ -285,6 +445,11 @@ UPDATE quiz_questions q
     UNION ALL SELECT 'QF0369', 'glossaire_definitions'
     UNION ALL SELECT 'QF0371', 'glossaire_definitions'
     UNION ALL SELECT 'QF0375', 'glossaire_definitions'
+    UNION ALL SELECT 'QF0410', 'glossaire_definitions'
+    UNION ALL SELECT 'QF0419', 'identification_especes'
+    UNION ALL SELECT 'QF0439', 'identification_especes'
+    UNION ALL SELECT 'QF9538', 'identification_especes'
+    UNION ALL SELECT 'QF9250', 'plantes_biologie'
   ) v ON q.question_code = v.code COLLATE utf8mb4_unicode_ci AND q.categorie_slug = v.categorie COLLATE utf8mb4_unicode_ci
    SET q.niveau = 'lycee'
  WHERE q.niveau <=> 'college';
