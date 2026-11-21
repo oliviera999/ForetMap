@@ -122,7 +122,7 @@ Contenus → Chapitres (`GET/POST /api/gl/admin/tenir/catalogues[/sync]`).
 | `lib/glRoundPhases.js`                                                                                                             | chronométrage des phases (`gl_game_round_phases`) : `demarrerTourTx`, `changerPhaseTx`, `fermerPhasesTx`, durées par tour (`dureesParTour`), libellé « ouverture 1 min 10, jeu 6 min 40, souffle 0 min 50 » servi au prof dans `GET /tenir/tour` (`round.durees`) et au diagnostic                                                                                                                                                                                                                                                                                                                                                                      |
 | `lib/glSablier.js`, `src/shared/glSablierCore.js`                                                                                  | sabliers réglables d'un clic : vue servie à tous (`buildSablierView`), réglage par le prof (`reglerSablierTx`, surcharges `sablier_*` de la partie, évènement `sablier_regle`), calcul pur du temps restant (départ, pause, remise à zéro) ; composant unique `src/gl/components/tenir/GLSablier.jsx` (équipe active, tour, défis)                                                                                                                                                                                                                                                                                                                      |
 | `lib/glGuestToken.js`, `lib/glActeur.js`, `lib/glDemandes.js`                                                                      | lot 2 : jetons invités (projection, session d'équipe de 3 h : émission, hachage, révocation) ; acteur unique d'une requête (`req.glAuth.actor` : `mj`, `player`, `team`, `projection`), `resolveGameActor` et « au nom de » (`resolveActingPlayer`) ; demandes au prof (`creerDemandeTx`, `resoudreDemandeTx`, `annulerDemandesTx` : aucune demande sans sortie automatique). `lib/glSpellCast.js › rembourserCastTx` rend un sort lancé (contributions et réserve, cause `sort_rembourse`, statut `rembourse`)                                                                                                                                         |
-| `lib/glClassLink.js`, `routes/gl/class-link.js`                                                                                    | lot 2 : lien de classe (QR permanent, code, régénération qui révoque les sessions), ouverture par une tablette (classe, partie en cours, équipes — aucun nom d'élève), session d'équipe. Côté client : `src/gl/components/tenir/GLClassLinkEntry.jsx` (« J'ai le code de la classe »), `GLTeamSessionView.jsx` (écran de la tablette : même `GLTenirEquipeView` que l'élève connecté), `src/gl/components/mj/GLClassLinkPanel.jsx` (feuille A4 imprimable, tablettes connectées, « Déconnecter ») ; session gardée dans `sessionStorage` (`src/gl/services/apiGL.js`)                                                                                   |
+| `lib/glClassLink.js`, `routes/gl/class-link.js`                                                                                    | lot 2 : lien de classe (QR permanent, code, régénération qui révoque les sessions), ouverture par une tablette (classe, partie en cours, équipes — aucun nom d'élève), session d'équipe. Côté client : `src/gl/components/tenir/GLClassLinkEntry.jsx` (« J'ai le code de la classe »), `GLTeamSessionView.jsx` (écran de la tablette : même `GLTenirEcranEquipe` que l'élève connecté), `src/gl/components/mj/GLClassLinkPanel.jsx` (feuille A4 imprimable, tablettes connectées, « Déconnecter ») ; session gardée dans `sessionStorage` (`src/gl/services/apiGL.js`)                                                                                  |
 | `lib/glPresences.js`                                                                                                               | présences du tour par équipe (« Il manque quelqu'un ? », « Quelqu'un vient d'arriver ») — `confirmerPresenceTx`, `arriveeRetardataireTx`, `buildPresencesView` ; les absents restent dans `gl_game_round_absences`. Ensemble unifié (M14) : **tout le monde est présent par défaut**, plus de demande dans la file ni de refus `PRESENCE_A_CONFIRMER`. Écran : `src/gl/components/tenir/GLPresencePanel.jsx` (un simple bouton, qui s'ouvre s'il manque quelqu'un)                                                                                                                                                                                      |
 | `lib/glDefisCase.js`, `routes/gl/games/defis-case.js`                                                                              | lot 2 : défi de case — tirage sans répétition (`tirerDefiTx`), réception à l'arrêt ou au passage (`recevoirDefisTx`, appelé par `applyArrivalTx`), décision unique du prof (`deciderDefiTx` : recul du voile par `retreatVoileTx`), annulation au Seuil (`annulerDefisEnCoursTx`), lecture par rôle (`listDefis` : critère pour le prof seul). Case marquée par `event_config_json.tenir.defi` (`isDefiMarker` du cœur `glMarkerEventConfigCore`)                                                                                                                                                                                                       |
 | `lib/glTrameImport.js`, `lib/glTrameDefis.js`, `routes/gl/games/defis.js`, `src/gl/defis/trameCore.js`                             | lot 3 : défis de la Trame — chargeurs des trois catalogues ; cœur pur (classement des flèches, fin de niveau, cascade, indices, bornes d'un état) ; données de partie (modèles sans solutions, sauvegarde stricte, récompense sans ressource, suivi) ; routes. Détail : `docs/GL_DEFIS.md`                                                                                                                                                                                                                                                                                                                                                              |
@@ -279,6 +279,15 @@ Lot « Défis de la Trame » (15 novembre 2026, partie d'exemple, élèves ficti
 `defis-alteree-telephone.png` (la trame altérée en mode liste, 390 × 844, un retour « Pas
 encore. »), `defis-suivi-console.png` (onglet « Défis » de la console, 1920 × 1080).
 
+Lot « Écrans de séance » (20 et 21 novembre 2026, parties d'exemple, élèves fictifs) :
+`docs/captures/ecrans-de-seance/avant/` et `apres/` — tablette 1024 × 768 (geste, fouille,
+retour, jet en suspens, main ailleurs, tiroir), compte d'un élève, téléphone 390 × 844, console
+1440 × 900 (mode séance), projection 1920 × 1080 (jeu, souffle, accroche), visite guidée,
+connexion. Les images « après » sont réécrites par `e2e/gl-tenir-tablettes.spec.js`,
+`gl-tenir-escalier`, `gl-tenir-ecrans-relus` et `gl-tenir-projection`. Les images de
+`docs/captures/tenir-v2/` restent celles **d'avant** ce lot (les mêmes e2e les réécrivent à
+chaque passage : ne pas les recommiter par mégarde).
+
 ## Surfaces et verrous
 
 | Surface  | Lancer / répondre                                                  | Fouiller                                       | Lire | Marché pendant `jeu` |
@@ -391,6 +400,50 @@ clôture du tour, la carte « À la prochaine séance » remplace l'écran (page
 d'une page endormie, défis à préparer) ; « Voir le plateau » y ramène. Aucune route ne change.
 Styles : bloc « Projection, mode tableau » de `src/gl/styles/gl-tenir.css` ; e2e
 `e2e/gl-tenir-projection.spec.js`.
+
+## Écrans de séance (20 novembre 2026)
+
+Trois écrans servent en classe ; ce lot n'a changé aucune règle, aucun schéma, et une seule
+route (un champ optionnel sur l'envoi d'un média, voir « Accueil » plus bas).
+
+**Écran d'équipe, en trois choses** — `GLTenirEcranEquipe` (`src/gl/components/tenir/`), le
+même sur la tablette (`GLTeamSessionView`, tour ouvert ou non) et sur le compte d'un élève
+(`AppGL`, onglet du plateau) :
+
+- le plateau, reçu par la prop `board` (`<GLMapView presentation="tenir" />` : ni titre, ni
+  panneau, un seul bouton « Recentrer ») ;
+- la carte du moment, `GLTenirMoment` : `momentDeLEquipe` (`src/gl/utils/glTenirMoment.js`,
+  fonction pure) rend **un seul** état, le premier vrai de `ETATS_DU_MOMENT` ; en état `geste`,
+  un gros bouton selon `ORDRE_DES_GESTES` (répondre, lancer, fouiller, lire, sorts) et
+  `PUCES_MAX` puces. Un geste fermé est **absent** (plus de bouton grisé) ;
+- le bandeau `GLTenirBandeau` (phase, sablier, bourses, icône « Relire l'écran » si le temps
+  réel est coupé — `useGlTempsReelCoupe` — ou l'état périmé) et son tiroir `GLTenirTiroir`.
+
+Toute la logique (instantané du tour, question de case, Olu, péripétie, main, version d'état,
+présences) vit dans `useGlTenirEquipe` (`src/gl/hooks/`), lue aussi par l'ancien écran
+`GLTenirEquipeView`, **gardé tel quel en surface `tableau`**. La ligne d'Olu `olu-pf-comptes`
+est dite par l'écran lui-même (`useGlTenirOlu`, option `ligneDeLEcran`), sans évènement.
+Phases en mots d'élève : `src/gl/constants/tenirPhases.js`. Tests : `tests-ui/gl/glTenirMoment.test.js`,
+`GLTenirEcranEquipe.test.jsx`, e2e `gl-tenir-tablettes`, `gl-tenir-escalier`.
+
+**Console, mode séance** — `GLTourScreen` déclare le mode (`useDeclarerModeSeance`,
+`src/gl/utils/glModeSeance.js`), `GLTopBar` le lit et se réduit à une ligne. Ordre de l'écran :
+bandeau du tour, demandes, équipes, le reste ; `GLClassLinkPanel` en une ligne ; avance libre
+derrière « Corriger la position… » (`GLTourDesSaisie`). Les morceaux paresseux de la console
+passent par `lazyAvecReprise` ; une panne réseau rend une phrase française selon la session
+(`src/gl/constants/glPanneReseau.js`, `src/shared/networkFailureMessages.js`).
+
+**Projection** — voir la section « Projection ».
+
+**Accueil** — une image de marque envoyée depuis `GLBrandEditor` (`POST
+/api/gl/admin/media-library`, champ optionnel `usage: 'brand'`) reçoit une variante WebP
+(`lib/glBrandImages.js` › `ensureGlBrandVariant` : 1 600 px de large au plus, 200 Ko visés),
+rangée sous `uploads/gl_brand/optim/` ; l'emplacement de `platform.brand` pointe vers elle,
+l'original reste dans la médiathèque. Pour les images déjà en base (logo compris, 512 px) :
+`scripts/gl-brand-optimiser.js`, à blanc par défaut. `GLBrandHub` et `GLAuthView` posent
+`decoding="async"` et des dimensions explicites. Test : `tests/gl-brand-images.test.js`.
+
+Captures avant / après : `docs/captures/ecrans-de-seance/`.
 
 ## Tests
 

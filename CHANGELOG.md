@@ -9,6 +9,43 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — G&L : écrans de séance, lot 6 (l'accueil allégé, docs et clôture)
+
+Sixième et dernier lot du chantier « écrans de séance »
+(`docs/prompts/GL_ECRANS_DE_SEANCE_PROMPT.md`, étapes 6 et 7 ; suivi dans
+`docs/prompts/GL_ECRANS_DE_SEANCE_ETAT.md`). La page de connexion de G&L pèse moins, et les
+documents disent les écrans tels qu'ils sont. Aucune règle, aucun schéma, aucun réglage ne
+change ; une route existante reçoit un champ optionnel.
+
+- **Variante WebP des images de marque** (`lib/glBrandImages.js`) : 1 600 px de large au plus,
+  200 Ko visés (qualité abaissée par paliers), rangée sous `uploads/gl_brand/optim/` avec
+  l'empreinte de l'original dans son nom — la même image rend toujours la même adresse.
+  L'original n'est ni modifié ni supprimé. Rien n'est produit pour une image déjà légère, un
+  format non pris en charge ou une adresse hors de `/uploads` : l'adresse d'origine reste.
+- **À l'envoi** : `POST /api/gl/admin/media-library` accepte `usage: 'brand'` et rend alors
+  `optimized` (`{ url, size, width, height }` ou `null`) ; `GLBrandEditor` range cette adresse
+  dans l'emplacement (« Image de charte importée, en version allégée pour l'accueil. »). Sans
+  ce champ, la route répond comme avant.
+- **Pour les images déjà en base** : `scripts/gl-brand-optimiser.js`, **à blanc par défaut**
+  (`--apply` pour écrire), idempotent, sans écriture s'il n'y a rien à faire ; il traite le
+  héros, les trois vignettes et le logo (512 px, 60 Ko visés). À lancer sur le serveur après
+  la fusion, à blanc d'abord (`docs/EXPLOITATION.md`).
+- **Écran de connexion** : les trois vignettes (`GLBrandHub`) portent `decoding="async"` et
+  des dimensions explicites au ratio de leur cadre (elles avaient déjà `loading="lazy"`) ; le
+  logo (`GLAuthView`) annonce 88 × 88.
+- **Projection, lien fermé** (relecture garde-fous du chantier) : quand le lien de projection
+  est révoqué (clôture du chapitre) ou échu, l'écran déjà ouvert dit « Cette projection est
+  fermée. Le prof peut en ouvrir une nouvelle depuis son écran. » au lieu du refus brut du
+  serveur (« Accès refusé à cette partie »).
+- **Docs** : `docs/GL_TENIR_A_DEUX_REGLES.md` (§ 3 « Les écrans de séance » : écran d'équipe
+  en trois choses, projection, console ; rôles, erreur d'Olu, « Ce qui change », accroche),
+  `docs/GL_TENIR_A_DEUX.md` (section « Écrans de séance »), `docs/reference/gl/guide-du-mj.md`
+  (note « l'accueil, plus léger »), `docs/API.md`, `docs/EXPLOITATION.md`, skills
+  `gl-tenir-moteur` et `foretmap-gl-project`. Captures « après » de la connexion.
+- **Tests** : `tests/gl-brand-images.test.js` (module, script à blanc puis appliqué puis sans
+  effet, route), `tests-ui/gl/GLBrandEditor.test.jsx` (l'emplacement pointe vers la variante
+  après l'envoi), `GLBrandHub.test.jsx`, `GLAuthView.test.jsx`.
+
 ### Modifié — G&L : écrans de séance, lot 5 (la console du prof en mode séance)
 
 Cinquième lot du chantier « écrans de séance » (`docs/prompts/GL_ECRANS_DE_SEANCE_PROMPT.md`,

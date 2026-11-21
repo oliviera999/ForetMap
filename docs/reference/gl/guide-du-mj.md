@@ -345,11 +345,12 @@ s'applique tout de suite, comme avant.
 
 - Au **chapitre 1**, tant que l'escalier n'a pas ouvert Relance (séance 4), un jet s'applique
   tout de suite : plus de « Gardez ce jet, ou lancez Relance » pour un sort pas encore ouvert.
-- La **question d'une case** se présente et se joue pendant la phase « jeu ». Une fois le
-  souffle lancé, une question restée à l'écran d'une équipe ne se joue plus ; depuis votre
+- La **question d'une case** se présente et se joue pendant « À vous de jouer » (la phase
+  « jeu »). Une fois le souffle lancé (« Le voile avance »), une question restée à l'écran d'une équipe ne se joue plus ; depuis votre
   écran, vous pouvez toujours la présenter. Au tableau, c'est vous qui la présentez et qui
   validez la réponse ; en hybride et sur tablette, l'équipe répond depuis sa tablette.
-- En **hybride**, l'équipe lance aussi ses **dés** depuis sa tablette, pendant la phase « jeu »,
+- En **hybride**, l'équipe lance aussi ses **dés** depuis sa tablette, pendant « À vous de
+  jouer »,
   comme sur tablette ; vous pouvez toujours lancer pour elle depuis votre écran. Avec des dés
   **physiques** (le réglage de départ en hybride), l'équipe saisit ses faces et vous les validez
   d'un clic dans « Jouer le tour » ; pour que l'app tire les dés elle-même, passez le mode de
@@ -646,7 +647,9 @@ salle (réglée pour un vidéoprojecteur en 1920 × 1080).
   « Voir le plateau ». Ce sont les deux seuls boutons de la projection : ils changent ce qui est
   affiché, jamais la partie.
 - **Au camp** (chapitre clos), « Ce qui change au prochain chapitre » prend la place des faits
-  marquants, en bas.
+  marquants, en bas. **Attention : clore le chapitre ferme le lien de projection en cours.** La
+  projection déjà ouverte affiche alors « Cette projection est fermée. Le prof peut en ouvrir
+  une nouvelle depuis son écran. » : créez un nouveau lien de projection pour montrer le camp.
 - Sur une fenêtre étroite (moins de 1 024 points de large, un téléphone par exemple), les mêmes
   blocs s'empilent et la page défile.
 
@@ -744,6 +747,23 @@ tour. Rien ne change dans les règles ni dans ce que font les boutons.
   faisait la même chose) ; une visite d'une seule étape n'affiche plus « Étape 1 / 1 » ni son
   point de progression. Dans G&L, les boutons de la visite ont pris le style des autres boutons
   du jeu. Ces deux retouches valent aussi pour les visites guidées de ForêtMap.
+
+### Écrans de séance : l'accueil, plus léger (21 novembre 2026)
+
+- **La page de connexion se charge plus vite.** Ses images (la grande illustration du haut et
+  les trois vignettes « Un monde », « Les règles du jeu », « Les sortilèges ») pesaient plus
+  d'un mégaoctet chacune. Désormais, quand un Admin envoie une image depuis la **charte
+  visuelle** des Réglages, l'application en garde une **version allégée** pour l'accueil
+  (même image, 1 600 points de large au plus, autour de 200 Ko). Le message le dit : « Image de
+  charte importée, en version allégée pour l'accueil. » Rien d'autre à faire.
+- **L'image d'origine n'est pas perdue** : elle reste dans la médiathèque, telle qu'elle a été
+  envoyée. Seule l'adresse rangée dans la charte change.
+- **Pour les images déjà en place**, deux façons de faire : les renvoyer une à une depuis la
+  charte visuelle, ou demander à la personne qui gère le serveur de lancer l'outil prévu
+  (voir le guide d'exploitation, « Images de l'accueil de Gnomes & Licornes ») — il montre
+  d'abord ce qu'il ferait, sans rien changer.
+- Les trois vignettes ne se chargent qu'au moment où elles arrivent à l'écran, et leur place
+  est réservée d'avance : la page ne saute plus pendant le chargement.
 
 ## Pour aller plus loin
 
