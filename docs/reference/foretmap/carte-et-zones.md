@@ -457,6 +457,12 @@ repère principal si les repères sont exactement au même point. Un bouton de l
 de la carte désactive ce regroupement quand on veut voir tous les repères, par exemple pour en
 placer un nouveau (le regroupement est d'ailleurs toujours inactif en mode édition).
 
+Un repère n'est jamais laissé **sous** une pastille : s'il est trop près d'un groupe pour
+qu'on puisse le toucher sans ouvrir la pastille, il rejoint ce groupe (le chiffre augmente
+d'autant), et deux pastilles qui se couvriraient n'en font plus qu'une. Sur un petit écran, on
+voit donc parfois moins de pastilles, plus fournies ; chaque repère redevient visible dès qu'on
+zoome. Le lieu dont la fiche est ouverte reste toujours affiché seul, au-dessus des pastilles.
+
 Deux réglages complètent cela, dans _Réglages → Catégories de lieux_ : **l'ordre des
 catégories** sert de priorité (les premières sont nommées en premier et regroupées en
 dernier), et **« Visible seulement au zoom »** retire les lieux d'une catégorie tant que la

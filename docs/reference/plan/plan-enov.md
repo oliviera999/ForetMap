@@ -69,8 +69,8 @@ _Modifier_) : décocher l'une, cocher l'autre.
    public. Un lieu retiré du plan public (par exemple pour des raisons de sécurité) est aussi
    absent du plan e-nov.
 2. **Les innovations mises en avant.** Elles restent affichées même vue d'ensemble (elles ne
-   sont jamais regroupées dans une pastille chiffrée, et leur nom passe devant les autres quand
-   la place manque). Si l'établissement l'a activée, une petite **pastille « e-nov »** est
+   sont jamais regroupées dans une pastille chiffrée, restent affichées au-dessus d'une
+   pastille voisine, et leur nom passe devant les autres quand la place manque). Si l'établissement l'a activée, une petite **pastille « e-nov »** est
    accolée à chacune.
 3. **La puce « Innovations »** ouvre la liste des lieux innovants dans la feuille du bas ; la
    carte reste visible et manipulable. Toucher un lieu de la liste ouvre sa fiche. Dans la liste
