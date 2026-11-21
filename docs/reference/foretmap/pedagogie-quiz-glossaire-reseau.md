@@ -126,10 +126,17 @@ d'observation** pour l'écriture naturaliste libre.
 - **L'aperçu « Présenter »** montre la question telle que l'élève la verra —
   **illustration comprise**, avec sa légende et son crédit — et permet de répondre pour
   vérifier le retour pédagogique.
-- **Légende de la photo** : elle est visible **du professeur seulement** (fiche et
-  aperçu). Dans le catalogue livré, cette légende nomme le plus souvent le sujet
-  photographié : l'afficher à l'élève donnerait la réponse. Ce qui accompagne l'image
-  côté élève, c'est le **crédit et la licence**, affichés partout où la photo apparaît.
+- **Légende de la photo** : l'élève ne la voit **qu'après avoir répondu**. Dans le catalogue
+  livré, cette légende nomme le plus souvent le sujet photographié : l'afficher avant
+  donnerait la réponse. Une fois la réponse validée, la photo revient avec sa légende. Dans
+  le parcours de validation d'une fiche, elle n'apparaît pas après une erreur, puisque la
+  question sera reposée. Le professeur la voit toujours, dans la fiche et dans l'aperçu
+  « Présenter ». Avant la réponse, ce qui accompagne l'image côté élève, c'est le **crédit
+  et la licence**.
+- **Le retour de la bonne proposition ne s'affiche jamais.** L'élève qui choisit la bonne
+  réponse lit « l'explication affichée après une bonne réponse » ; le champ « Explication si
+  l'élève choisit … » de la bonne lettre n'est lu par personne. Un texte utile saisi là est à
+  déplacer dans l'explication de la bonne réponse.
 - **Le glossaire n'est pas consultable pendant la question.** Les termes reconnus dans
   l'énoncé et dans les propositions de réponse étaient cliquables : sur une question du
   type « Comment appelle-t-on le processus par lequel… ? », ouvrir le terme lié **donnait

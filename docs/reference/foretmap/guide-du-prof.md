@@ -114,6 +114,11 @@ L'onglet **Séances** sert à dérouler une activité étape par étape avec la 
 - L'onglet **Fresque** propose **La Fresque du Climat (version Enfant)** en autonomie : l'élève
   la fait seul, quand il veut ; vous suivez l'avancement en lecture seule, sans classement. Une
   étape de séance peut la lancer. Détail : [La Fresque du Climat](fresque-du-climat.md).
+- **Étape « Tutoriel ».** Dans une séance libre, l'outil « Tutoriel » ouvre un tutoriel
+  par-dessus la séance. Choisissez-le dans la liste des tutoriels actifs. L'élève le lit,
+  confirme sa lecture s'il est connecté, le ferme, puis passe à l'étape suivante avec le
+  bandeau ; le bouton « Tutoriel » du bandeau le rouvre. Un tutoriel désactivé ne peut pas
+  être choisi, et il empêche de publier la séance tant qu'il y figure.
 
 ### 4. Préparer les contenus
 
