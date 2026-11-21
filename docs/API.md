@@ -4998,6 +4998,18 @@ l'autre est indifférent), la mycophagie (brouter un mycélium vivant n'est pas 
 matière morte), l'allélopathie et la facilitation (deux relations de voisinage que
 `competition` recouvrait par défaut).
 
+**Types montrés au collège** (`COLLEGE_INTERACTION_TYPE_ENUM`, `src/shared/enums/biodivEnums.js`) :
+`pollinisation`, `herbivorie`, `frugivorie`, `granivorie`, `predation`, `plante_hote`,
+`decomposition`, `detritivorie`, `parasitisme`, et, au **cycle 4 seulement**
+(`CYCLE4_ONLY_INTERACTION_TYPE_ENUM`, règle de palier `foodweb_types_cycle4_only`), `symbiose`
+et `competition` — frugivorie et granivorie depuis le chantier collège (décision 8 du
+21/11/2026). Chaque type du collège porte un libellé en verbe (`labelsSimple` : « mange des
+fruits », « pond sur »…), affiché avant le mot savant (`interactionTypeLabelSimple`). Le
+filtrage se fait côté interface (`GET /api/food-web` rend toujours tout) : au collège, pas de
+réseau complet par défaut — l'élève part d'une espèce (espèces phares de la carte, `is_featured`
+de `GET /api/maps/:id/species`, puis recherche), à profondeur 1 extensible à 2 ; les liens vers
+une espèce hors de la carte ou de la zone (`from_in_scope` / `to_in_scope` à 0) sont retirés.
+
 > **Les 14 premiers types seulement sont partagés avec GL.** `gl_species_interactions` garde son
 > ENUM d'origine : `GET /api/gl/food-web/interaction-types` en expose 14, et les routes d'écriture
 > GL refusent les cinq types ForetMap avec `400`. La frontière est tenue par `allowedTypes` dans
@@ -5187,8 +5199,8 @@ appelant `plants.manage` (préparation, suivi, démonstration).
 | GET | `/api/pedago-sessions/:idOrSlug/share` | `plants.manage` | `{ link, qrDataUrl, isPublished }` — lien direct `/?seance=<slug>` et QR code PNG (data URL) ; `?base_url=` pour forcer l’hôte |
 | DELETE  | `/api/pedago-sessions/:idOrSlug` | `plants.manage` | Supprime une séance : passages en cascade, tâches liées détachées (`pedago_session_id` à NULL), badges obtenus conservés. `{ ok, deleted, slug, runs_deleted, tasks_detached }` ; journal `delete_pedago_session`. |
 
-Actions d’étape (`action.type`) : `message`, `open_id_key`, `open_plant`, `open_foodweb`,
-`open_quiz`, `open_glossary`, `open_individual` (`individualId`), `open_nested_groups`
+Actions d’étape (`action.type`) : `message`, `open_id_key`, `open_plant`, `open_foodweb`
+(`mapId`, `highlightPlantId`, `plantIds` facultatif), `open_quiz`, `open_glossary`, `open_individual` (`individualId`), `open_nested_groups`
 (`plantIds`, 2 à 6), `open_map_route` (`routeSlug`, `mapId`), `open_fresque` (`deckId`
 facultatif), `open_tutorial` (`tutorialId`). Source unique de cette liste :
 `src/shared/enums/pedagoStepActions.js` (miroir `lib/shared/pedagoStepActions.js`), lue par la
@@ -5196,6 +5208,15 @@ validation, le client et l’outil MCP `foretmap_pedago_sessions`. MVP : `comple
 uniquement. Séance `custom` : chaque étape porte ses cibles (la config ne sert que de défaut) ;
 à la publication, les plantes, arbres suivis, parcours, clés et tutoriels référencés doivent
 exister, sinon 400 `Publication impossible : …`.
+
+Étape `open_foodweb` (chantier collège, flux C3) : `payload.plantIds`, facultatif, liste
+d’identifiants d’espèces (entiers > 0, sans doublon, **12 au plus**) montrées **ensemble avec
+leurs liens mutuels** (profondeur 0) ; `highlightPlantId` garde sa forme et son rôle (espèce mise
+en avant). Contrôle à chaque écriture de `steps` (`validateStepActionPayload`, partagé avec le
+client et l’outil MCP) : **400** `étape N : plantIds …` pour une liste qui n’en est pas une, un
+identifiant invalide ou plus de 12 espèces. Une liste vide est retirée (forme de l’étape
+inchangée) ; `plantIds` n’est jamais déduit de la config de séance. Les espèces citées comptent
+parmi les cibles vérifiées à la publication.
 
 Étape `open_tutorial` : `payload.tutorialId` (identifiant de `GET /api/tutorials`) ; le tutoriel
 s’ouvre par-dessus la séance, avec son accusé de lecture pour un compte connecté. Contrôle **à
