@@ -46,9 +46,16 @@ function normalizeCladePayload(body) {
   return { id, name, sharedAttribute, description, parentId, sortOrder };
 }
 
+/**
+ * Colonnes lues d'une boîte. `label_simple`, `attribute_simple` et `visible_college` (socle
+ * collège, migration `college_socle`) sont exposées en lecture seule.
+ */
+const CLADE_READ_COLUMNS =
+  'id, parent_id, name, label_simple, shared_attribute, attribute_simple, description, sort_order, visible_college';
+
 async function loadAllClades() {
   return queryAll(
-    `SELECT id, parent_id, name, shared_attribute, description, sort_order
+    `SELECT ${CLADE_READ_COLUMNS}
        FROM clades
       ORDER BY sort_order ASC, name ASC`,
   );
@@ -224,6 +231,9 @@ router.get(
       id: n.id,
       name: n.name,
       shared_attribute: n.shared_attribute,
+      label_simple: n.label_simple ?? null,
+      attribute_simple: n.attribute_simple ?? null,
+      visible_college: Number(n.visible_college) === 1 ? 1 : 0,
     }));
     return res.json({ path });
   }),
@@ -259,10 +269,9 @@ router.post(
         payload.sortOrder,
       ],
     );
-    const row = await queryOne(
-      `SELECT id, parent_id, name, shared_attribute, description, sort_order FROM clades WHERE id = ?`,
-      [payload.id],
-    );
+    const row = await queryOne(`SELECT ${CLADE_READ_COLUMNS} FROM clades WHERE id = ?`, [
+      payload.id,
+    ]);
     return res.status(201).json(row);
   }),
 );
@@ -323,10 +332,7 @@ router.put(
         WHERE id = ?`,
       [parentId, name, sharedAttribute, description, sortOrder, id],
     );
-    const row = await queryOne(
-      `SELECT id, parent_id, name, shared_attribute, description, sort_order FROM clades WHERE id = ?`,
-      [id],
-    );
+    const row = await queryOne(`SELECT ${CLADE_READ_COLUMNS} FROM clades WHERE id = ?`, [id]);
     return res.json(row);
   }),
 );

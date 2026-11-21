@@ -3,6 +3,7 @@
     "accepted_scientific_name": null,
     "clade_id": null,
     "description": "Rosette de feuilles dentées.",
+    "description_college": null,
     "ecosystem_role": null,
     "edit_revision": 0,
     "emoji": "🌿",
@@ -154,12 +155,14 @@
     "temp_max_c": 25,
     "temp_min_c": 5,
     "toxicity_level": "aucune",
-    "trophic_role": "producteur"
+    "trophic_role": "producteur",
+    "usage_label": null
   },
   "post_minimal": {
     "accepted_scientific_name": null,
     "clade_id": null,
     "description": "",
+    "description_college": null,
     "ecosystem_role": null,
     "edit_revision": 0,
     "emoji": "🌱",
@@ -249,12 +252,14 @@
     "temp_max_c": null,
     "temp_min_c": null,
     "toxicity_level": null,
-    "trophic_role": null
+    "trophic_role": null,
+    "usage_label": null
   },
   "list_rich": {
     "accepted_scientific_name": null,
     "clade_id": null,
     "description": "Rosette de feuilles dentées.",
+    "description_college": null,
     "ecosystem_role": null,
     "edit_revision": 0,
     "emoji": "🌿",
@@ -406,12 +411,15 @@
     "temp_max_c": 25,
     "temp_min_c": 5,
     "toxicity_level": "aucune",
-    "trophic_role": "producteur"
+    "trophic_role": "producteur",
+    "usage_group": null,
+    "usage_label": null
   },
   "list_minimal": {
     "accepted_scientific_name": null,
     "clade_id": null,
     "description": "",
+    "description_college": null,
     "ecosystem_role": null,
     "edit_revision": 0,
     "emoji": "🌱",
@@ -501,12 +509,15 @@
     "temp_max_c": null,
     "temp_min_c": null,
     "toxicity_level": null,
-    "trophic_role": null
+    "trophic_role": null,
+    "usage_group": null,
+    "usage_label": null
   },
   "put_rich_partial": {
     "accepted_scientific_name": null,
     "clade_id": null,
     "description": "Description modifiée.",
+    "description_college": null,
     "ecosystem_role": null,
     "edit_revision": 1,
     "emoji": "🌿",
@@ -657,12 +668,14 @@
     "temp_max_c": 25,
     "temp_min_c": 5,
     "toxicity_level": "aucune",
-    "trophic_role": "producteur"
+    "trophic_role": "producteur",
+    "usage_label": null
   },
   "list_rich_after_put": {
     "accepted_scientific_name": null,
     "clade_id": null,
     "description": "Description modifiée.",
+    "description_college": null,
     "ecosystem_role": null,
     "edit_revision": 1,
     "emoji": "🌿",
@@ -814,7 +827,9 @@
     "temp_max_c": 25,
     "temp_min_c": 5,
     "toxicity_level": "aucune",
-    "trophic_role": "producteur"
+    "trophic_role": "producteur",
+    "usage_group": null,
+    "usage_label": null
   },
   "get_by_id": {
     "body": {
@@ -855,6 +870,7 @@
     "accepted_scientific_name": null,
     "clade_id": null,
     "description": "Description modifiée.",
+    "description_college": null,
     "ecosystem_role": null,
     "edit_revision": 2,
     "emoji": "🌿",
@@ -1004,6 +1020,7 @@
     "temp_max_c": 25,
     "temp_min_c": 5,
     "toxicity_level": "aucune",
-    "trophic_role": "producteur"
+    "trophic_role": "producteur",
+    "usage_label": null
   }
 }

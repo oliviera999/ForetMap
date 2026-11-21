@@ -258,6 +258,11 @@ Précisions du 21/11/2026 :
   fiche (`taxon`, `groupe_fonctionnel`, `consortium`, `ressource`) ; `create` et `update`
   l'acceptent dans `data`. Une fiche `ressource` est absente de la liste et de la recherche des
   élèves, pas du réseau trophique (`docs/API.md`, « Nature de la fiche »).
+- Profil collège (migration `college_socle`, lecture seule) : `foretmap_species` `get` rend
+  `usage_label`, `description_college` et `usage_group` (champs de `GET /api/plants`), `list` rend
+  `usage_label` et `usage_group` ; `foretmap_get_species` rend `usage_label`,
+  `description_college` et `is_featured` dans `presence.maps[]` ; `foretmap_maps` (espèces d'une
+  carte) et `foretmap_quiz` (`categories`) suivent l'API (`is_featured`, `description_college`).
 - `foretmap_ops` : `retention_preview` et `retention_run` connaissent la catégorie
   `observations` (photos des observations refusées, observations refusées, observations jamais
   examinées ; jamais une observation validée). L'aperçu ne rend que des **comptages** et les

@@ -273,6 +273,7 @@ test('categories — forme des lignes, sans compteur tant que le niveau est abse
     emoji: '🧪',
     theme: 'jardinage',
     description: 'Catégorie de test',
+    description_college: null,
     order_index: 9990,
   });
   assert.ok(res.body.categories.every((c) => c.theme === 'jardinage'));
