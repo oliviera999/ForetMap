@@ -302,6 +302,35 @@ test('recordBoot : battement tronqué ou illisible -> démarrage normal, mort no
   assert.strictEqual(boot.lastAliveAt, undefined);
 });
 
+test('recordBoot : la description du processus disparu en échec laisse l’entrée normale s’écrire', () => {
+  const now = Date.parse('2026-11-20T03:00:00.000Z');
+  const file = useTempJournal([
+    { event: 'boot', at: '2026-11-20T01:00:00.000Z', pid: process.pid, previousStop: 'none' },
+  ]);
+  let boot;
+  assert.doesNotThrow(() => {
+    boot = journal.recordBoot({
+      now,
+      version: '9.9.9',
+      describeVanished: () => {
+        throw new Error('battement illisible');
+      },
+    });
+  });
+  assert.strictEqual(boot.event, 'boot');
+  assert.strictEqual(boot.previousStop, 'hard');
+  assert.strictEqual(boot.version, '9.9.9');
+  assert.strictEqual(boot.lastAliveAt, undefined);
+  assert.strictEqual(fs.readFileSync(file, 'utf8').trim().split('\n').length, 2);
+
+  // Entrée de journal inattendue (champs de mauvais type) : pas d'exception non plus.
+  useTempJournal([{ event: 'boot', at: { x: 1 }, pid: 'abc', previousStop: 7 }]);
+  fs.writeFileSync(journal.heartbeatPath(), '[1,2,3]', 'utf8');
+  const odd = journal.recordBoot({ now });
+  assert.strictEqual(odd.previousStop, 'hard');
+  assert.strictEqual(odd.lastAliveAt, undefined);
+});
+
 test('previousPidAlive : vrai quand le processus « disparu » vit encore (second processus)', async () => {
   if (process.platform === 'win32') return;
   const child = spawn(process.execPath, ['-e', 'setInterval(() => {}, 1000)'], { stdio: 'ignore' });
