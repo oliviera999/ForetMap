@@ -4,6 +4,7 @@ const { createVisitContentCache } = require('../lib/visitContentCache');
 const { listPublishedVisitMascotPacks } = require('../lib/visitMascotRegistry');
 const { getVisitMascotSettings } = require('../lib/settings');
 const { FULL_PACKS_KEY, withVisitContentMascots } = require('../lib/visitContentMascots');
+const { listPublishedVisitMascotPackUuids } = require('../lib/visitMascotPackThumbnail');
 const { recordAnonymousSeen, readAnonymousTotals } = require('../lib/visitAnonymousCounters');
 const { createSignedCookieGate, resolveCookieSecret } = require('../lib/accessGate');
 const { requirePermission, JWT_SECRET, authenticate } = require('../middleware/requireTeacher');
@@ -440,6 +441,12 @@ router.get(
       },
     );
 
+    // UUID des packs (dossier de leur vignette) : un échec ne coûte que les vignettes.
+    const packUuidsPromise = listPublishedVisitMascotPackUuids({ queryAll }).catch((uuidErr) => {
+      logRouteError(uuidErr, req);
+      return null;
+    });
+
     /** Parcours publiés sur la surface Visite (mêmes tables que le Plan / la carte). */
     const routeRowsPromise = queryAll(
       `SELECT id, map_id, slug, title, description, audience, surfaces,
@@ -524,6 +531,7 @@ router.get(
       markerMapPhotoRows,
       tutorials,
       packRows,
+      packUuids,
       infrastructureZoneRows,
       zoneSpeciesMap,
       markerSpeciesMap,
@@ -543,6 +551,7 @@ router.get(
       markerMapPhotosPromise,
       tutorialsPromise,
       packRowsPromise,
+      packUuidsPromise,
       infrastructureZoneIdsPromise,
       zoneSpeciesPromise,
       markerSpeciesPromise,
@@ -570,7 +579,11 @@ router.get(
     const markerMapLeadById = pickNewestMapPhotoByTarget(markerMapPhotoRows);
     // Packs complets gardés dans le cache seulement : la réponse n'en sert qu'un (le guide par
     // défaut) et une liste légère (`lib/visitContentMascots.js`).
-    const mascotPacksFull = Array.isArray(packRows) ? packRows : [];
+    // `pack_uuid` : identifiant de ligne, sous lequel la vignette du pack est rangée.
+    const mascotPacksFull = (Array.isArray(packRows) ? packRows : []).map((entry) => ({
+      ...entry,
+      pack_uuid: (packUuids && packUuids.get(String(entry.id))) || null,
+    }));
 
     const publicZones = zones
       .filter((z) => visitContentRowIsPublicActive(z))
