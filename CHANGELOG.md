@@ -55,6 +55,193 @@ partaient avec l'écran de connexion et la Visite publique, qui n'en affichent r
   publique sans préchargement, aucune erreur de console.
 - Aucun changement visible ni de comportement métier ; G&L n'est pas concerné (`gl.html` a sa
   propre entrée).
+### Ajouté — Contenus de terrain du 20/11/2026 repris en migration
+
+- **Migration `contenus_terrain_2026_11_20`** : les contenus écrits directement en production
+  le 20/11/2026 par le connecteur sont désormais portés par le dépôt. Sans effet sur la
+  production, qui les a déjà ; une autre base les reçoit au prochain démarrage, dans la limite
+  des parents qu'elle possède.
+  - Référentiels : trois catégories de quiz (« Mesurer & raisonner », « Vocabulaire &
+    définitions », « Micro-organismes & santé ») et quatre notions du programme (`2-MICRO`,
+    `EST-DEMO`, `EST-EVOL`, `T-EVO`) qui n'existaient qu'en production : une base neuve reçoit
+    ainsi les 61 questions et toutes leurs notions.
+  - Quiz : 61 questions de niveau collège (`QF9873` à `QF9933`) avec leurs notions (ajouts de
+    cycle 3, exclusion des notions de lycée héritées de la catégorie) ; 9 questions remplacées
+    passent à `inactif` ; le créneau de retour de la bonne lettre est vidé quand il recopiait
+    `feedback_correct` (le même texte s'affichait deux fois).
+  - Liens question ↔ ressource (`resource_question_links`, source unique) : 54 vers une fiche
+    espèce, 10 vers le glossaire, 8 vers un tutoriel. Les 14 liens repris d'une ancienne
+    version de question gardent leur note et, pour 12 d'entre eux, leur caractère bloquant.
+  - Tutoriels : « Observer à la boîte-loupe », « Observer aux jumelles », « Observer sans
+    déranger », « Prendre une photo utile pour identifier », « Sécurité sur l'estran », avec
+    leurs zones et repères, et leur place dans la Visite de six cartes.
+  - Visite : 58 médias de zone (lien d'image, légende avec crédit) sur 29 zones des cartes
+    Sablettes, oued Melah et daya.
+  - Clés d'identification : doublon « Nette rousse » du couplet n° 4 de `oiseaux-eau-daya`
+    supprimé (l'espèce reste atteinte par le couplet n° 3) ; consigne de sécurité de
+    `insectes-ordres` et `coleopteres`.
+  - Séances guidées : « L'eau de nos lieux » (publiée) et « Inventaire de n³ » (**en
+    brouillon, laissée telle quelle**) ; « Pas là par hasard » et « Passer la mauvaise saison à
+    n³ » ramenées de sept à six étapes ; « Reconnaître sans toucher » réglée sur la clé
+    `arbres-palmiers`.
+  - Espèces : une photo proposée (non confirmée) pour Phytoplancton et Zooplancton ; présence
+    de la Gracilaire cervicorne aux Sablettes passée à « à confirmer ».
+- **Suppression décidée par Oliv le 21/11/2026** (seule partie de la migration qui agit en
+  production) : les trois questions retirées qui validaient un tutoriel (`QF0062` sur « Les
+  semences », `QF9213` et `QF9214` sur « Le rempotage ») perdent leur lien bloquant, que
+  portent désormais leurs nouvelles versions. Le jumeau de chaque lien est aussi retiré de la
+  table historique figée `quiz_question_tutorials` : exception limitée à ces trois lignes,
+  décidée par la coordination pour que le contrôle de retrait de cette table reste à zéro.
+- **Règles de la reprise** : aucun identifiant auto-incrémenté de la production (espèces
+  résolues par nom, tutoriels par slug, termes par code, clés par slug et numéro de couplet) ;
+  chaque insertion est jointe à son parent et sautée sans erreur s'il manque ; aucun parent
+  n'est créé, hors les sept lignes de référence ci-dessus ; un lien vers un tutoriel renommé
+  en production (`le-rempotage`, `les-semences`) se pose à défaut sur le slug du dépôt ; chaque modification est gardée par la valeur d'avant ou, quand elle n'a pas été
+  conservée, par la forme d'avant et la date de l'écriture ; un second passage ne touche
+  aucune ligne.
+- **Tests** : `tests/contenus-terrain-2026-11-20-rejeu.test.js` (parents minimaux semés, chaque
+  bloc et chaque garde exercés, trois passages, zéro doublon) et
+  `tests/content/contenus-terrain-2026-11-20.test.js` (données posées sur base fraîche).
+
+### Corrigé — Clés de détermination : une proposition garde son identifiant, son issue et son aide
+
+Constat du 20/11/2026 : un `upsert_node` qui renvoyait trois propositions avec leur `id`, sans
+champ d'issue, était refusé (« Espèce manquante ») ; avec l'issue, il **recréait** les
+propositions sous de nouveaux identifiants.
+
+- **Mise à jour en place** (`PUT /api/id-keys/:id/couplets/:coupletId/leads`) : une
+  proposition renvoyée avec son `id` est modifiée, plus supprimée puis réinsérée. Une
+  proposition sans `id` est créée ; une proposition du couplet absente de la liste est
+  supprimée. La contrainte `chk_idkey_lead_outcome` est tenue (une seule instruction par
+  ligne).
+- **Ce qui n'est pas renvoyé n'est pas effacé** : l'issue entière (`outcome`, `plant_id`,
+  `next_couplet_id`, `clade_id`, `result_label`, `group_plant_ids`, `next_key_id`), l'énoncé,
+  l'aide, l'image et son crédit sont repris de la proposition existante. `{ id }` seul laisse
+  la proposition inchangée.
+- **Identifiant inconnu, d'un autre couplet ou en double** : refus (400) sans rien écrire, au
+  lieu de créer une proposition en double.
+
+### Ajouté — Clés de détermination : crédit des images, chemins multiples voulus, tutoriels « avant de commencer »
+
+Migration `id_keys_credits_chemins_tutoriels` (colonnes, drapeau et table ; aucun lien posé).
+
+- **Crédit des images de propositions** : `id_key_leads.image_credit` et `image_licence`, lus
+  et écrits par l'API, l'écran et `upsert_node`. Le crédit s'affiche sous la vignette (et sous
+  le schéma) ; l'écran de gestion signale **Crédit manquant** sur la proposition et en tête des
+  couplets.
+- **Chemins multiples voulus** : `id_keys.allows_multiple_paths`. À 1, l'audit
+  `id_key_dead_paths` ne signale plus « espèce atteinte par plusieurs feuilles » ; les autres
+  constats restent. Posé pour la clé `traces-mammiferes-melah` (par slug), éditable par l'écran
+  et `update_key`.
+- **Lien clé ↔ tutoriel** : table `id_key_tutorials`. Liste ordonnée dans la fiche de la clé
+  (`tutorial_ids` de `PUT /api/id-keys/:id` et de `update_key`) ; bloc **Avant de commencer**
+  sur la clé quand elle demande du matériel, les tutoriels s'ouvrant dans l'aperçu existant.
+  `GET /api/id-keys?tutorial_id=N` liste les clés d'un tutoriel ; `foretmap_tutorials get`
+  renvoie `linked_id_keys`.
+
+### Modifié — Clés de détermination : un seul sérialiseur des propositions
+
+- `serializeLead` (`src/shared/idKeyLeadCore.js`) donne la forme d'une proposition à l'API
+  (`lib/idKeyBundle.js`), donc à `foretmap_id_keys`, et à l'audit `id_key_dead_paths`, qui lit
+  désormais les espèces candidates réelles d'un groupe.
+- Code mort retiré : réexports inutilisés de `lib/idKeys.js`, `TERMINAL_OUTCOMES`, tableau
+  factice et `group_count` de l'audit, double import de `pedagoEnums` dans la route.
+
+### Ajouté — Espèces : nature de la fiche, fiches « ressource » hors de la liste des élèves
+
+- **Nature de la fiche** (`plants.entity_kind`, migration `plants_entity_kind`) : `taxon`
+  (défaut), `groupe_fonctionnel`, `consortium`, `ressource`. La colonne existait en production
+  hors dépôt ; la migration la crée à l'identique sur une base neuve (type, index, valeurs
+  posées par nom de fiche) et ne change rien en production. Référentiel unique
+  `ENTITY_KIND_ENUM` (`src/shared/enums/biodivEnums.js`, miroir généré).
+- **Liste et recherche des élèves** : les fiches « ressource » (litière, compost, bois mort…)
+  n'y sont plus proposées, ni dans la liste « Espèce observée » du formulaire d'observation.
+  Elles restent dans `GET /api/plants`, le réseau trophique, les liens, les clés et la gestion.
+- **Gestion** : champ « Nature de la fiche » dans le formulaire de fiche ; `POST` et
+  `PUT /api/plants` acceptent `entity_kind` (valeur inconnue : 400, rien n'est écrit) ;
+  `foretmap_species` la rend, la filtre (`list`) et la modifie.
+
+### Ajouté — Observations d'espèces : durées de conservation, notice, garanties testées
+
+- **Conservation** : nouvelle catégorie `observations` de la purge planifiée
+  (`lib/retention/categories/observations.js`), durées en constantes nommées de
+  `lib/retention/policy.js`, **proposées et à confirmer par l'établissement** — photo d'une
+  observation refusée supprimée du disque 7 jours après la décision ; observation refusée
+  supprimée au bout de 90 jours ; observation jamais examinée supprimée au bout d'un an, avec
+  ses photos. Une observation validée n'est jamais purgée (elle suit le compte de son auteur).
+  `foretmap_ops retention_preview` en donne les comptages, sans rien supprimer.
+- **Notice « Vos données »** : section « Tes observations de terrain » (ce qui est gardé,
+  finalité d'inventaire, qui les voit, durées), finalité ajoutée ; la mention « observations
+  partagées » des destinataires est corrigée (les autres élèves ne voient ni texte ni photo).
+- **Garanties vérifiées par des tests** (aucune correction de code n'a été nécessaire) : le
+  texte et les photos d'une observation ne sont rendus qu'à l'auteur et aux validateurs ;
+  les métadonnées des photos (EXIF, GPS, appareil) sont retirées pour JPEG, PNG et WebP, sur
+  le fichier écrit et sur le fichier servi.
+- Documentation : `docs/API.md`, `docs/MCP.md`, `docs/MCP_REGISTRE_TRAITEMENT.md`,
+  `docs/reference/foretmap/plantes-et-biodiversite.md`,
+  `docs/reference/exploitation/durees-de-conservation.md`.
+
+### Ajouté — Séances pédagogiques : étape « Tutoriel » (`open_tutorial`)
+
+- **Nouvelle action d'étape `open_tutorial`** : une séance libre peut ouvrir un tutoriel
+  par-dessus l'onglet Séances. L'aperçu réutilise la fenêtre des tutoriels (accusé de lecture
+  compris pour un compte connecté) ; une fois fermé, le bouton « Tutoriel » du bandeau le
+  rouvre, et la consigne de l'étape reste lisible dans l'onglet. Un tutoriel désactivé depuis
+  la publication ne bloque pas l'élève : il est prévenu et poursuit la séance.
+- **Validation serveur** : à chaque écriture des étapes (`POST` et `PUT /api/pedago-sessions`,
+  brouillon compris), le tutoriel visé doit exister et être actif, sinon 400 avec le numéro de
+  l'étape. `tutorialSlug` est accepté à l'écriture et résolu en `tutorialId`, seule forme
+  enregistrée. Le contrôle de publication des séances libres couvre aussi les tutoriels.
+- **Éditeur d'étape** : entrée « Tutoriel » dans « Outil ouvert », avec la liste des tutoriels
+  actifs ; un tutoriel devenu indisponible reste affiché comme tel.
+- **Connecteur** : le schéma de `foretmap_pedago_sessions` décrit la forme d'une étape, les
+  actions disponibles et les champs de chaque `payload`.
+
+### Modifié — Séances pédagogiques : source unique des actions d'étape
+
+- Les onze actions d'étape (`message`, `open_id_key`, `open_plant`, `open_foodweb`,
+  `open_quiz`, `open_glossary`, `open_individual`, `open_nested_groups`, `open_map_route`,
+  `open_fresque`, `open_tutorial`) sont définies une seule fois, avec leurs libellés, dans
+  `src/shared/enums/pedagoStepActions.js` (miroir généré `lib/shared/pedagoStepActions.js`).
+  La validation (`lib/pedagoSessions.js`), l'exécution (`usePedagoSession`), l'éditeur d'étape
+  et l'outil MCP la lisent ; les listes en dur sont retirées.
+- Garde `tests/pedago-step-actions-literals.test.js` : plus aucune valeur `open_*` en
+  littéral dans `src/`, `lib/` et `routes/` hors de cette source.
+- `docs/API.md` : `open_fresque`, absent de la liste des actions, y est ajouté.
+
+### Modifié — Quiz : rattachements à l'enregistrement, légende de photo, règle des retours (chantier CPT, flux F4)
+
+- **Rattacher une question en l'enregistrant** : `POST` et `PUT /api/quiz/admin/questions`
+  acceptent `plant_ids`, `glossary_codes` et `tutorial_ids`. Les liens sont écrits dans
+  `resource_question_links` par le service unique, dans la transaction de la question : ajout
+  seulement (rien n'est détaché), lien approuvé, **non bloquant**, `origin = 'manual'` ; un
+  lien déjà approuvé n'est pas modifié (caractère bloquant, origine, poids et note conservés),
+  un lien seulement proposé ou rejeté est approuvé. Référence inconnue ou champ mal formé →
+  `400`, rien n'est enregistré. La réponse porte alors `links` (`created`, `approved`,
+  `unchanged`). L'outil `foretmap_quiz` (`create`, `update`) accepte les trois mêmes champs, en
+  paramètre ou dans `data`.
+- **Légende de la photo d'une question** : elle n'est plus dans la charge de
+  `GET /api/quiz/questions/:code/present` (elle nomme le plus souvent le sujet photographié,
+  donc la réponse — elle n'était pas affichée, mais restait lisible dans la réponse du
+  serveur). Elle arrive avec `POST …/answer` (`photoLegende`), et le Quiz réaffiche alors la
+  photo avec sa légende. Elle est tue après une erreur du parcours de validation d'une fiche
+  (la même question y est reposée). Qui détient `plants.manage` la reçoit toujours dès la
+  présentation : l'aperçu « Présenter » du catalogue est inchangé. Les QCM de Gnomes &
+  Licornes ne sont pas concernés (`lib/qcmChoices.js` intact).
+- **Mélange des choix** : il existait ; il est désormais prouvé par un test sur la route
+  (`tests/quiz-present-melange-legende.test.js` : ordre variable, bonne réponse reconnue à
+  chaque place, rien dans la charge ni dans le jeton ne la désigne).
+- **Règle d'affichage des retours** documentée dans `docs/API.md` (« Présentation et réponse
+  du quiz ForetMap ») : bonne réponse → `feedback_correct` ; mauvaise réponse → retour du choix
+  sélectionné. Le retour rangé dans le créneau de la **bonne lettre** n'est jamais affiché ;
+  la requête de contrôle des questions concernées y figure.
+- **Retrait T3 de `quiz_question_species` et `quiz_question_tutorials`** : prérequis mis à
+  jour dans `docs/RUNBOOK_RETRAITS_T3.md` (lectures restantes dans le connecteur), fichier du
+  `DROP` préparé hors de `migrations/`, sans numéro
+  (`docs/coordination/cpt-f4-drop-t3-quiz-question-links.md`). Aucune suppression n'est faite.
+- **Garde-fou G&L** : `tests/quiz-gl-charge-inchangee.test.js` fige, par les routes, la charge
+  de présentation, le jeton et le corps de réponse de `/api/gl/qcm` et `/api/gl/lore/qcm`.
+
 ### Exploitation — diagnostic des arrêts sans trace du serveur (chantier CPT, flux F6)
 
 En production, le journal des démarrages comptait 447 arrêts « sans trace » pour 542
@@ -80,6 +267,7 @@ change rien d'autre au comportement du serveur.
   l'arrêt est bas ou inconnu, et distingue « signal reçu » de « tué sans signal ».
 - Tests : `tests/boot-journal-heartbeat.test.js`. Doc : `docs/EXPLOITATION.md` (« Arrêts sans
   trace »), `docs/API.md`, `docs/MCP.md`.
+
 ### Tests — deux scénarios fiabilisés (chantier UI/UX, 21 novembre 2026)
 
 - **`e2e/mobile-webkit-smoke.spec.js`** (« accueil → carte de la Visite en un clic, fiche en
@@ -137,6 +325,7 @@ Constats U3, U4, U6, U8, U9 et U11 de `docs/AUDIT_UI_UX_2026-11-19.md`, et point
   à icône de la barre à partir de 640 px, `h1` en Visite invitée.
 - **Interne** : points de bascule de la fiche ramenés dans l'échelle (980, 760, 700 → 1024,
   768) ; plafonds du garde-fou abaissés à 51 bornes / 21 valeurs.
+
 ### Modifié — G&L : écrans de séance, lot 6 (l'accueil allégé, docs et clôture)
 
 Sixième et dernier lot du chantier « écrans de séance »
@@ -296,6 +485,7 @@ suivant les monte). Aucune règle, aucune route, aucun schéma, aucun réglage n
   `GLTenirBandeau.test.jsx`, `GLTenirTiroir.test.jsx`, `useGlTenirMomentHooks.test.jsx` (100
   tests) ; `tests/content/gl-adresse-ecran-equipe.test.js` relit aussi le moteur (vous, jamais
   tu ; aucun mot interdit).
+
 ### Modifié — G&L : écrans de séance, lot 2 (la projection en mode tableau)
 
 La projection tient sur un seul écran, sans défilement à 1920 × 1080, et se lit du fond de la
@@ -372,6 +562,7 @@ désormais seulement après la fin du premier.
   96 px par pack (`uploads/visit_mascot_packs/<id>/_vignette.png`, servie par la route des
   assets de pack), sans migration ; rattrapage : `node scripts/generate-visit-mascot-thumbnails.js`.
   Branchement dans la grille de choix : lot suivant (session B).
+
 ### Modifié — UI/UX lot 6 : navigation élève en quatre pôles (U10)
 
 La barre élève empilait jusqu'à 19 onglets à plat sur ordinateur. Elle s'organise désormais
@@ -398,6 +589,7 @@ mémorisé). Aucun onglet n'est ajouté, retiré ni renommé.
   (comparées à une copie figée de l'ancienne liste), montage des deux navigations dans
   `AppShellWiring`, aide e2e `openStudentTab` (pôle sur ordinateur, « Plus » en compact)
   reprise par les specs élève.
+
 ### Modifié — UI/UX lot 5 : glossaire, homographes et densité des liens (U7)
 
 Commun à ForêtMap (fiches, zones, Visite, quiz), aux tutoriels servis par l'API et à Gnomes &
@@ -444,6 +636,7 @@ portent la mention « traité » et leur numéro de PR. Nouveau § 13 : vérific
 de contenu, scénarios de l'audit rejoués par requêtes et dans un navigateur), choix faits par les
 lots à relire et décisions déjà livrées par #687, #688 et #690, restes (39 constats ouverts, quatre
 décisions à trancher). Aucun code modifié.
+
 ### Ajouté — journaux d'audit et de sécurité lisibles, filtres « principaux / étendus », onglet Utilisateurs
 
 - **Événements enrichis** : chaque ligne de l'historique et du journal de sécurité porte le
@@ -479,6 +672,7 @@ décisions à trancher). Aucun code modifié.
 - Constaté en chemin : `tests/gl-tenir-jets-paralleles.test.js` échoue sur `main` depuis la
   PR #688 (§ 1.1 de l'audit) ; la PR #690 annonce sa réparation.
 - Index `docs/audits/README.md` mis à jour.
+
 ### Corrigé — audit ForetMap du 19/11, lot 6 (vie sociale : forum, commentaires, observations, carnet)
 
 Constats de `docs/AUDIT_BUGS_FORETMAP_2026-11-19.md` § 4 ; tests `tests/audit-fm-lot6-social.test.js`.

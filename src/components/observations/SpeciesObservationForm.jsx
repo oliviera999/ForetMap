@@ -10,6 +10,7 @@ import {
 } from '../../services/observationsApi';
 import { compressImageWithPreset, isLikelyImageFile } from '../../shared/platform/image';
 import { isDeviceOffline } from '../../shared/networkStatus.js';
+import { isStudentHiddenEntity } from '../../shared/enums/biodivEnums.js';
 import {
   enqueueSpeciesObservation,
   newSpeciesObservationClientUuid,
@@ -95,9 +96,12 @@ export function SpeciesObservationForm({
     () =>
       (Array.isArray(plants) ? plants : [])
         .filter((p) => p && p.id != null)
+        // Une ressource (litière, compost…) n'est pas un être vivant : elle n'est pas proposée
+        // à l'observation, sauf si le formulaire a été ouvert depuis sa propre fiche.
+        .filter((p) => !isStudentHiddenEntity(p) || String(p.id) === String(initialPlantId ?? ''))
         .slice()
         .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'fr')),
-    [plants],
+    [plants, initialPlantId],
   );
   const zoneOptions = useMemo(
     () =>

@@ -111,16 +111,18 @@ Si le site est aussi utilisé le soir ou le week-end, élargir la plage (`*/3 * 
 > — des données personnelles d'élèves mineurs. Référence fonctionnelle (non technique) :
 > [`docs/reference/exploitation/durees-de-conservation.md`](reference/exploitation/durees-de-conservation.md).
 
-`scripts/retention-purge-cron.sh` lance `scripts/retention-purge.js`, qui traite cinq
+`scripts/retention-purge-cron.sh` lance `scripts/retention-purge.js`, qui traite sept
 catégories, dans cet ordre (`--only=a,b` pour en restreindre la liste) :
 
-| Catégorie (`--only=`) | Ce qu'elle fait                                                                                                                                                                | Durée                   |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------- |
-| `desactivations`      | date les désactivations restées sans date (`users.deactivated_at`) et efface celle des comptes réactivés                                                                       | —                       |
-| `eleves`              | supprime les comptes **élèves** désactivés depuis plus de 12 mois, ou sans aucune activité pendant toute une année scolaire                                                    | fin de scolarité + 1 an |
-| `personnels`          | supprime les comptes **personnels** désactivés depuis plus de 12 mois ; compte « à revoir » les comptes actifs sans activité depuis plus d'une année scolaire (sans y toucher) | départ + 1 an           |
-| `journaux`            | supprime les lignes de journaux au-delà de leur durée (tableau ci-dessous)                                                                                                     | 12 mois au plus         |
-| `ip`                  | tronque les adresses IP (IPv4 → /24, IPv6 → /48) de `security_events` (colonne et `payload_json.ip`) et d'`audit_log` (`payload_json.ip`), efface le navigateur                | 3 mois (`--ip-days`)    |
+| Catégorie (`--only=`) | Ce qu'elle fait                                                                                                                                                                                                                                             | Durée                   |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
+| `desactivations`      | date les désactivations restées sans date (`users.deactivated_at`) et efface celle des comptes réactivés                                                                                                                                                    | —                       |
+| `eleves`              | supprime les comptes **élèves** désactivés depuis plus de 12 mois, ou sans aucune activité pendant toute une année scolaire                                                                                                                                 | fin de scolarité + 1 an |
+| `personnels`          | supprime les comptes **personnels** désactivés depuis plus de 12 mois ; compte « à revoir » les comptes actifs sans activité depuis plus d'une année scolaire (sans y toucher)                                                                              | départ + 1 an           |
+| `journaux`            | supprime les lignes de journaux au-delà de leur durée (tableau ci-dessous)                                                                                                                                                                                  | 12 mois au plus         |
+| `ip`                  | tronque les adresses IP (IPv4 → /24, IPv6 → /48) de `security_events` (colonne et `payload_json.ip`) et d'`audit_log` (`payload_json.ip`), efface le navigateur                                                                                             | 3 mois (`--ip-days`)    |
+| `observations`        | supprime la photo d'une observation d'espèce **refusée** après 7 jours, l'observation refusée après 90 jours, et une observation jamais examinée après 365 jours ; une observation **validée** n'est jamais touchée (durées dans `lib/retention/policy.js`) |
+| `mcp_exports`         | supprime les exports et sauvegardes du connecteur Claude (`uploads/mcp-exports/`) 24 h après leur création                                                                                                                                                  |
 
 **Comptes** (critères détaillés dans `lib/retention/policy.js`). « Activité » = la plus
 récente de la dernière connexion, de la création du compte, de la dernière visite du joueur

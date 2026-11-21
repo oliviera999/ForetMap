@@ -24,6 +24,7 @@ const {
   TEMPLATE_DEFAULT_TITLES,
   TEMPLATE_LEVELS,
   collectStepReferences,
+  tutorialStepTargets,
   resolveSteps,
   validateSteps,
   normalizeConfig,
@@ -127,7 +128,68 @@ async function findMissingReferences(steps) {
     ]);
     if (!row) missing.push(`clé « ${ref} » introuvable`);
   }
+  for (const target of tutorialStepTargets(steps)) {
+    const check = await checkTutorialTarget(target);
+    if (!check.ok) missing.push(check.error);
+  }
   return missing;
+}
+
+/**
+ * Cible d'une étape « tutoriel » : le tutoriel doit exister **et** être actif (un tutoriel
+ * désactivé répond 404 aux élèves). L'identifiant l'emporte sur le slug quand les deux sont
+ * fournis.
+ * @param {{ index: number, tutorialId: number|null, tutorialSlug: string|null }} target
+ * @returns {Promise<{ ok: true, tutorialId: number } | { ok: false, error: string }>}
+ */
+async function checkTutorialTarget(target) {
+  const label = `étape ${target.index + 1}`;
+  if (!target.tutorialId && !target.tutorialSlug) {
+    return { ok: false, error: `${label} : tutoriel à choisir (tutorialId ou tutorialSlug)` };
+  }
+  const row = target.tutorialId
+    ? await queryOne('SELECT id, title, is_active FROM tutorials WHERE id = ? LIMIT 1', [
+        target.tutorialId,
+      ])
+    : await queryOne('SELECT id, title, is_active FROM tutorials WHERE slug = ? LIMIT 1', [
+        target.tutorialSlug,
+      ]);
+  if (!row) {
+    const ref = target.tutorialId ? `n° ${target.tutorialId}` : `« ${target.tutorialSlug} »`;
+    return { ok: false, error: `${label} : tutoriel ${ref} introuvable` };
+  }
+  if (Number(row.is_active) !== 1) {
+    return { ok: false, error: `${label} : tutoriel « ${row.title} » inactif` };
+  }
+  return { ok: true, tutorialId: Number(row.id) };
+}
+
+/**
+ * Contrôle à l'écriture des étapes « tutoriel » d'une séance libre (brouillon compris) :
+ * tutoriel existant et actif. Un `tutorialSlug` est résolu en `tutorialId`, seule forme
+ * enregistrée : l'identifiant survit au renommage du tutoriel, pas le slug.
+ * @returns {Promise<{ ok: true, steps: object[] } | { ok: false, error: string }>}
+ */
+async function resolveTutorialSteps(steps) {
+  const out = steps.map((step) => step);
+  for (const target of tutorialStepTargets(steps)) {
+    const check = await checkTutorialTarget(target);
+    if (!check.ok) return check;
+    const step = steps[target.index];
+    const { tutorialSlug: _slug, ...rest } = step.action.payload || {};
+    out[target.index] = {
+      ...step,
+      action: { ...step.action, payload: { ...rest, tutorialId: check.tutorialId } },
+    };
+  }
+  return { ok: true, steps: out };
+}
+
+/** Validation d'étapes reçues par l'API : structure, puis cibles « tutoriel » en base. */
+async function validateStepsWithTargets(raw) {
+  const check = validateSteps(raw);
+  if (!check.ok) return check;
+  return resolveTutorialSteps(check.steps);
 }
 
 router.get(
@@ -357,7 +419,7 @@ router.post(
       templateKey === 'custom' && Array.isArray(req.body?.steps)
         ? req.body.steps
         : stepsForTemplate(templateKey);
-    const stepsCheck = validateSteps(steps);
+    const stepsCheck = await validateStepsWithTargets(steps);
     if (!stepsCheck.ok) return res.status(400).json({ error: stepsCheck.error });
 
     const title =
@@ -509,7 +571,7 @@ router.put(
           error: 'Les étapes d’un modèle sont figées : crée une séance libre pour les modifier',
         });
       }
-      const stepsCheck = validateSteps(req.body.steps);
+      const stepsCheck = await validateStepsWithTargets(req.body.steps);
       if (!stepsCheck.ok) return res.status(400).json({ error: stepsCheck.error });
       stepsJson = JSON.stringify(stepsCheck.steps);
     }

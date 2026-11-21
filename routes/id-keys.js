@@ -3,6 +3,8 @@
 /**
  * Clés d'identification dichotomiques (migration 275).
  * Lecture publique des clés publiées ; édition sous `id_keys.manage`.
+ * Une proposition garde son identifiant d'une écriture à l'autre (mise à jour en place) ;
+ * une clé porte ses tutoriels « avant de commencer » (`id_key_tutorials`).
  */
 
 const express = require('express');
@@ -18,16 +20,15 @@ const {
 const { verifyJwtToken } = require('../lib/auth/jwtPipeline');
 const asyncHandler = require('../lib/asyncHandler');
 const { normalizeOptionalString } = require('../lib/shared/httpHelpers');
-const { QUESTION_NIVEAU_ENUM } = require('../lib/shared/pedagoEnums');
+const { QUESTION_NIVEAU_ENUM, ID_KEY_TOOL_ENUM } = require('../lib/shared/pedagoEnums');
 const { requirePedagoModuleOrManager } = require('../lib/pedagoModuleGate');
 const {
   validateLeadOutcome,
   findManipulationInvitation,
   hasCoupletCycle,
   assertLeadWellFormed,
+  mergeLeadInput,
 } = require('../lib/idKeys');
-const { ID_KEY_TOOL_ENUM } = require('../lib/shared/pedagoEnums');
-const { resolveLeadOutcome } = require('../lib/shared/idKeyLeadCore');
 
 const router = express.Router();
 const manageKeys = requirePermission('id_keys.manage');
@@ -62,6 +63,40 @@ function normalizeNiveau(raw) {
   return NIVEAUX.has(s) ? s : null;
 }
 
+/** Longueurs des colonnes `id_key_leads.image_credit` / `image_licence`. */
+const IMAGE_CREDIT_MAX = 255;
+const IMAGE_LICENCE_MAX = 64;
+/** Plafond de tutoriels « avant de commencer » par clé. */
+const KEY_TUTORIALS_MAX = 12;
+
+/** Valeur du corps sous son nom SQL ou son alias camelCase ; `undefined` si absente. */
+function bodyValue(body, snake, camel) {
+  if (body?.[snake] !== undefined) return body[snake];
+  return body?.[camel];
+}
+
+/**
+ * Liste ordonnée d'identifiants de tutoriels (`tutorial_ids`), dédoublonnée et vérifiée.
+ * @returns {Promise<{ ids: number[] } | { error: string }>}
+ */
+async function resolveTutorialIds(raw) {
+  if (!Array.isArray(raw)) return { error: 'tutorial_ids doit être une liste d’identifiants' };
+  const ids = [];
+  for (const value of raw) {
+    const id = Number(value);
+    if (!Number.isInteger(id) || id <= 0) return { error: `Tutoriel invalide : ${value}` };
+    if (!ids.includes(id)) ids.push(id);
+  }
+  if (ids.length > KEY_TUTORIALS_MAX) {
+    return { error: `Au plus ${KEY_TUTORIALS_MAX} tutoriels par clé` };
+  }
+  for (const id of ids) {
+    const t = await queryOne('SELECT id FROM tutorials WHERE id = ?', [id]);
+    if (!t) return { error: `Tutoriel introuvable : ${id}` };
+  }
+  return { ids };
+}
+
 function validateKeyGraph(bundle) {
   const coupletIds = new Set(bundle.couplets.map((c) => Number(c.id)));
   for (const couplet of bundle.couplets) {
@@ -79,7 +114,10 @@ function validateKeyGraph(bundle) {
   return null;
 }
 
-/** GET /api/id-keys — publiées ; `?all=1` + `id_keys.manage` pour inclure les brouillons. */
+/**
+ * GET /api/id-keys — publiées ; `?all=1` + `id_keys.manage` pour inclure les brouillons ;
+ * `?tutorial_id=N` : seulement les clés qui proposent ce tutoriel « avant de commencer ».
+ */
 router.get(
   '/',
   asyncHandler(async (req, res) => {
@@ -89,15 +127,28 @@ router.get(
       const auth = await tryResolveAuth(req);
       includeDrafts = hasPermission(auth, 'id_keys.manage');
     }
-    const rows = includeDrafts
-      ? await queryAll(
-          `SELECT id, slug, title, description, map_id, scope_label, niveau, is_published, updated_at
-             FROM id_keys ORDER BY title ASC`,
-        )
-      : await queryAll(
-          `SELECT id, slug, title, description, map_id, scope_label, niveau, is_published, updated_at
-             FROM id_keys WHERE is_published = 1 ORDER BY title ASC`,
-        );
+    const where = [];
+    const params = [];
+    if (!includeDrafts) where.push('k.is_published = 1');
+    const rawTutorial = normalizeOptionalString(req.query?.tutorial_id);
+    if (rawTutorial) {
+      const tutorialId = Number(rawTutorial);
+      if (!Number.isInteger(tutorialId) || tutorialId <= 0) {
+        return res.status(400).json({ error: 'Tutoriel invalide' });
+      }
+      where.push(
+        'EXISTS (SELECT 1 FROM id_key_tutorials kt WHERE kt.key_id = k.id AND kt.tutorial_id = ?)',
+      );
+      params.push(tutorialId);
+    }
+    const rows = await queryAll(
+      `SELECT k.id, k.slug, k.title, k.description, k.map_id, k.scope_label, k.niveau,
+              k.is_published, k.updated_at
+         FROM id_keys k
+        ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
+        ORDER BY k.title ASC`,
+      params,
+    );
     return res.json({
       items: rows.map((r) => ({
         ...r,
@@ -143,6 +194,9 @@ router.post(
     const scopeLabel =
       normalizeOptionalString(req.body?.scope_label ?? req.body?.scopeLabel) || null;
     const niveau = normalizeNiveau(req.body?.niveau) || 'college';
+    const allowsMultiplePaths = Boolean(
+      bodyValue(req.body, 'allows_multiple_paths', 'allowsMultiplePaths'),
+    );
     if (!slug) return res.status(400).json({ error: 'Slug invalide' });
     if (!title) return res.status(400).json({ error: 'Titre requis' });
     if (mapId) {
@@ -153,9 +207,20 @@ router.post(
     if (existing) return res.status(409).json({ error: 'Ce slug existe déjà' });
 
     const result = await execute(
-      `INSERT INTO id_keys (slug, title, description, map_id, scope_label, niveau, is_published, created_by)
-       VALUES (?, ?, ?, ?, ?, ?, 0, ?)`,
-      [slug, title, description, mapId, scopeLabel, niveau, req.auth?.userId || null],
+      `INSERT INTO id_keys
+         (slug, title, description, map_id, scope_label, niveau, allows_multiple_paths,
+          is_published, created_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?)`,
+      [
+        slug,
+        title,
+        description,
+        mapId,
+        scopeLabel,
+        niveau,
+        allowsMultiplePaths ? 1 : 0,
+        req.auth?.userId || null,
+      ],
     );
     // Premier couplet de départ
     await execute(`INSERT INTO id_key_couplets (key_id, number) VALUES (?, 1)`, [result.insertId]);
@@ -167,7 +232,11 @@ router.post(
   }),
 );
 
-/** PUT /api/id-keys/:id — métadonnées + publication. */
+/**
+ * PUT /api/id-keys/:id — métadonnées, publication, chemins multiples voulus
+ * (`allows_multiple_paths`) et tutoriels « avant de commencer » (`tutorial_ids`, liste
+ * complète et ordonnée ; absente : liens inchangés).
+ */
 router.put(
   '/:id',
   manageKeys,
@@ -221,6 +290,16 @@ router.put(
     if (req.body?.is_published !== undefined || req.body?.isPublished !== undefined) {
       isPublished = Boolean(req.body?.is_published ?? req.body?.isPublished);
     }
+    const rawMultiple = bodyValue(req.body, 'allows_multiple_paths', 'allowsMultiplePaths');
+    const allowsMultiplePaths =
+      rawMultiple === undefined ? Boolean(current.allows_multiple_paths) : Boolean(rawMultiple);
+    const rawTutorials = bodyValue(req.body, 'tutorial_ids', 'tutorialIds');
+    let tutorialIds = null;
+    if (rawTutorials !== undefined) {
+      const resolved = await resolveTutorialIds(rawTutorials);
+      if (resolved.error) return res.status(400).json({ error: resolved.error });
+      tutorialIds = resolved.ids;
+    }
 
     if (isPublished) {
       const bundle = await loadKeyBundle(id, { includeUnpublished: true, forManager: true });
@@ -228,23 +307,36 @@ router.put(
       if (graphErr) return res.status(400).json({ error: graphErr });
     }
 
-    await execute(
-      `UPDATE id_keys
-          SET title = ?, description = ?, map_id = ?, scope_label = ?, niveau = ?,
-              tool_required = ?, safety_note = ?, is_published = ?
-        WHERE id = ?`,
-      [
-        title,
-        description,
-        mapId,
-        scopeLabel,
-        niveau,
-        toolRequired,
-        safetyNote,
-        isPublished ? 1 : 0,
-        id,
-      ],
-    );
+    await withTransaction(async (tx) => {
+      await tx.execute(
+        `UPDATE id_keys
+            SET title = ?, description = ?, map_id = ?, scope_label = ?, niveau = ?,
+                tool_required = ?, safety_note = ?, allows_multiple_paths = ?, is_published = ?
+          WHERE id = ?`,
+        [
+          title,
+          description,
+          mapId,
+          scopeLabel,
+          niveau,
+          toolRequired,
+          safetyNote,
+          allowsMultiplePaths ? 1 : 0,
+          isPublished ? 1 : 0,
+          id,
+        ],
+      );
+      if (tutorialIds) {
+        // Lignes de jointure sans identité propre : la liste reçue remplace la précédente.
+        await tx.execute('DELETE FROM id_key_tutorials WHERE key_id = ?', [id]);
+        for (let i = 0; i < tutorialIds.length; i += 1) {
+          await tx.execute(
+            'INSERT INTO id_key_tutorials (key_id, tutorial_id, sort_order) VALUES (?, ?, ?)',
+            [id, tutorialIds[i], i],
+          );
+        }
+      }
+    });
     const bundle = await loadKeyBundle(id, { includeUnpublished: true, forManager: true });
     return res.json(bundle);
   }),
@@ -352,31 +444,16 @@ router.delete(
   }),
 );
 
-/** Champs d'issue d'une proposition (migration 366). */
-const OUTCOME_FIELD_ALIASES = [
-  ['outcome'],
-  ['clade_id', 'cladeId'],
-  ['result_label', 'resultLabel'],
-  ['next_key_id', 'nextKeyId'],
-  ['group_plant_ids', 'groupPlantIds', 'group_plants'],
-];
-
-function hasOwn(obj, key) {
-  return Object.prototype.hasOwnProperty.call(obj || {}, key);
-}
-
-/** La proposition reçue précise-t-elle elle-même son issue groupe / clade / clé suivante ? */
-function carriesOutcomeFields(raw) {
-  return OUTCOME_FIELD_ALIASES.some((aliases) => aliases.some((k) => hasOwn(raw, k)));
-}
-
 /**
- * PUT /api/id-keys/:id/couplets/:coupletId/leads — remplace les propositions d'un couplet.
- * Corps : `{ leads: [{ id?, statement, hint?, image_url?, outcome?, next_couplet_id?, plant_id?,
- * clade_id?, result_label?, group_plant_ids?, next_key_id?, sort_order? }] }`.
- * Une proposition qui porte l'`id` d'une proposition existante du couplet sans préciser ses
- * champs d'issue (outcome, clade_id, result_label, group_plant_ids, next_key_id) les garde :
- * un ancien client ou l'outil MCP ne fait ainsi plus perdre groupes, clades et renvois.
+ * PUT /api/id-keys/:id/couplets/:coupletId/leads — propositions d'un couplet (liste complète).
+ * Corps : `{ leads: [{ id?, statement?, hint?, image_url?, image_credit?, image_licence?,
+ * outcome?, next_couplet_id?, plant_id?, clade_id?, result_label?, group_plant_ids?,
+ * next_key_id?, sort_order? }] }`.
+ *
+ * - une proposition renvoyée avec son `id` est **mise à jour en place** : elle garde son
+ *   identifiant ; un champ absent n'efface rien (`mergeLeadInput`, `lib/idKeys.js`) ;
+ * - une proposition sans `id` est créée ;
+ * - une proposition du couplet absente de la liste est supprimée.
  */
 router.put(
   '/:id/couplets/:coupletId/leads',
@@ -395,11 +472,8 @@ router.put(
       return res.status(400).json({ error: 'Au moins deux propositions sont requises' });
     }
 
-    const allCouplets = await queryAll('SELECT id FROM id_key_couplets WHERE key_id = ?', [keyId]);
-    const coupletIds = new Set(allCouplets.map((c) => Number(c.id)));
-
-    // Propositions actuelles du couplet, pour conserver les issues non renvoyées.
     const before = await loadKeyBundle(keyId, { includeUnpublished: true, forManager: true });
+    const coupletIds = new Set(before.couplets.map((c) => Number(c.id)));
     const existingLeads = new Map(
       (before.couplets.find((c) => Number(c.id) === coupletId)?.leads || []).map((l) => [
         Number(l.id),
@@ -408,32 +482,43 @@ router.put(
     );
 
     const normalized = [];
+    const keptIds = new Set();
     for (let i = 0; i < leadsIn.length; i += 1) {
       const raw = leadsIn[i] || {};
-      const statement = normalizeOptionalString(raw.statement);
+      let previous = null;
+      if (raw.id != null) {
+        const leadId = Number(raw.id);
+        previous = existingLeads.get(leadId) || null;
+        if (!previous) {
+          return res.status(400).json({
+            error: `Proposition ${raw.id} introuvable dans ce couplet : omettre « id » pour en créer une`,
+          });
+        }
+        if (keptIds.has(leadId)) {
+          return res.status(400).json({ error: `Proposition ${raw.id} envoyée deux fois` });
+        }
+        keptIds.add(leadId);
+      }
+      const merged = mergeLeadInput(raw, previous);
+      const statement = normalizeOptionalString(merged.statement);
       const manip = findManipulationInvitation(statement);
       if (manip) return res.status(400).json({ error: manip });
 
-      const previous = raw.id != null ? existingLeads.get(Number(raw.id)) : null;
-      const merged = { ...raw };
-      // Aide sous la proposition : conservée si le client ne l'envoie pas (outil MCP, ancien
-      // client) — elle était effacée à chaque réécriture du couplet avant la migration 366.
-      const hint =
-        raw.hint === undefined ? previous?.hint || null : normalizeOptionalString(raw.hint) || null;
-      if (previous && !carriesOutcomeFields(raw)) {
-        // Issue lisible dans ce que le client envoie (couplet suivant ou espèce) ?
-        const sentOutcome = resolveLeadOutcome({ ...raw, outcome: null });
-        if (sentOutcome == null) {
-          // Ni couplet ni espèce : c'est une feuille groupe / clade, on la garde entière.
-          merged.outcome = previous.outcome;
-          merged.clade_id = previous.clade_id;
-          merged.result_label = previous.result_label;
-          merged.group_plant_ids = previous.group_plant_ids;
-          merged.next_key_id = previous.next_key_id;
-        } else if (sentOutcome === 'espece') {
-          merged.next_key_id = previous.next_key_id;
-        }
+      const imageUrl = normalizeOptionalString(merged.image_url);
+      // Le crédit suit l'image : sans image, ni crédit ni licence.
+      const imageCredit = imageUrl ? normalizeOptionalString(merged.image_credit) : null;
+      const imageLicence = imageUrl ? normalizeOptionalString(merged.image_licence) : null;
+      if (imageCredit && imageCredit.length > IMAGE_CREDIT_MAX) {
+        return res
+          .status(400)
+          .json({ error: `Crédit de l’image trop long (${IMAGE_CREDIT_MAX} caractères au plus)` });
       }
+      if (imageLicence && imageLicence.length > IMAGE_LICENCE_MAX) {
+        return res.status(400).json({
+          error: `Licence de l’image trop longue (${IMAGE_LICENCE_MAX} caractères au plus)`,
+        });
+      }
+
       const outcome = validateLeadOutcome(merged, { keyId });
       if (!outcome.ok) return res.status(400).json({ error: outcome.error });
       const f = outcome.fields;
@@ -450,13 +535,10 @@ router.put(
             .json({ error: 'Une proposition ne peut pas renvoyer au même couplet' });
         }
       }
-      if (f.plant_id != null) {
-        const p = await queryOne('SELECT id FROM plants WHERE id = ?', [f.plant_id]);
-        if (!p) return res.status(400).json({ error: `Espèce introuvable : ${f.plant_id}` });
-      }
-      for (const gid of f.group_plant_ids) {
-        const p = await queryOne('SELECT id FROM plants WHERE id = ?', [gid]);
-        if (!p) return res.status(400).json({ error: `Espèce introuvable : ${gid}` });
+      for (const plantId of [f.plant_id, ...f.group_plant_ids]) {
+        if (plantId == null) continue;
+        const p = await queryOne('SELECT id FROM plants WHERE id = ?', [plantId]);
+        if (!p) return res.status(400).json({ error: `Espèce introuvable : ${plantId}` });
       }
       if (f.clade_id) {
         const c = await queryOne('SELECT id FROM clades WHERE id = ?', [f.clade_id]);
@@ -466,14 +548,16 @@ router.put(
         const k = await queryOne('SELECT id FROM id_keys WHERE id = ?', [f.next_key_id]);
         if (!k) return res.status(400).json({ error: `Clé introuvable : ${f.next_key_id}` });
       }
+      const sortOrder = Number(raw.sort_order ?? i);
       normalized.push({
+        id: previous ? Number(previous.id) : null,
         statement,
-        hint,
-        image_url: normalizeOptionalString(raw.image_url ?? raw.imageUrl) || null,
+        hint: normalizeOptionalString(merged.hint),
+        image_url: imageUrl,
+        image_credit: imageCredit,
+        image_licence: imageLicence,
         ...f,
-        sort_order: Number.isFinite(Number(raw.sort_order ?? i))
-          ? Math.trunc(Number(raw.sort_order ?? i))
-          : i,
+        sort_order: Number.isFinite(sortOrder) ? Math.trunc(sortOrder) : i,
       });
     }
 
@@ -485,29 +569,53 @@ router.put(
       return res.status(400).json({ error: 'Ces propositions créeraient un cycle dans la clé' });
     }
 
+    const removedIds = [...existingLeads.keys()].filter((leadId) => !keptIds.has(leadId));
     await withTransaction(async (tx) => {
-      await tx.execute('DELETE FROM id_key_leads WHERE couplet_id = ?', [coupletId]);
+      for (const leadId of removedIds) {
+        await tx.execute('DELETE FROM id_key_leads WHERE id = ? AND couplet_id = ?', [
+          leadId,
+          coupletId,
+        ]);
+      }
       for (const lead of normalized) {
-        const inserted = await tx.execute(
-          `INSERT INTO id_key_leads
-             (couplet_id, sort_order, statement, hint, image_url, outcome, next_couplet_id,
-              plant_id, clade_id, result_label, next_key_id)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [
-            coupletId,
-            lead.sort_order,
-            lead.statement,
-            lead.hint,
-            lead.image_url,
-            lead.outcome,
-            lead.next_couplet_id,
-            lead.plant_id,
-            lead.clade_id,
-            lead.result_label,
-            lead.next_key_id,
-          ],
-        );
-        const leadId = inserted?.insertId;
+        const values = [
+          lead.sort_order,
+          lead.statement,
+          lead.hint,
+          lead.image_url,
+          lead.image_credit,
+          lead.image_licence,
+          lead.outcome,
+          lead.next_couplet_id,
+          lead.plant_id,
+          lead.clade_id,
+          lead.result_label,
+          lead.next_key_id,
+        ];
+        let leadId = lead.id;
+        if (leadId) {
+          // Une seule instruction : la contrainte `chk_idkey_lead_outcome` est évaluée sur la
+          // ligne finale, jamais sur un état intermédiaire.
+          await tx.execute(
+            `UPDATE id_key_leads
+                SET sort_order = ?, statement = ?, hint = ?, image_url = ?, image_credit = ?,
+                    image_licence = ?, outcome = ?, next_couplet_id = ?, plant_id = ?,
+                    clade_id = ?, result_label = ?, next_key_id = ?
+              WHERE id = ? AND couplet_id = ?`,
+            [...values, leadId, coupletId],
+          );
+          await tx.execute('DELETE FROM id_key_lead_plants WHERE lead_id = ?', [leadId]);
+        } else {
+          const inserted = await tx.execute(
+            `INSERT INTO id_key_leads
+               (couplet_id, sort_order, statement, hint, image_url, image_credit, image_licence,
+                outcome, next_couplet_id, plant_id, clade_id, result_label, next_key_id)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [coupletId, ...values],
+          );
+          leadId = inserted?.insertId;
+        }
+        // Espèces candidates : lignes de jointure sans identité propre, réécrites.
         for (let j = 0; j < lead.group_plant_ids.length; j += 1) {
           await tx.execute(
             `INSERT INTO id_key_lead_plants (lead_id, plant_id, sort_order) VALUES (?, ?, ?)`,

@@ -80,14 +80,31 @@ de la production : seul `db:t3-status` lancé sur le serveur fait foi.
 
 ### Liens question ↔ ressource (`quiz_question_species`, `quiz_question_tutorials`)
 
-- **État** : plus lues ni écrites ; `resource_question_links` est la seule source.
+- **État** : plus **écrites** par aucun code, plus lues par l'application ;
+  `resource_question_links` est la seule source. Il reste des **lectures dans le connecteur
+  MCP** (relevé du 21/11/2026, liste ci-dessous) : tant qu'elles existent, le `DROP` casse ces
+  outils. Les rattachements d'une question se saisissent par l'écran des liens ou avec la
+  question (champs `plant_ids`, `glossary_codes`, `tutorial_ids` des routes d'administration
+  du quiz), toujours dans `resource_question_links`.
+- **Prérequis du T3 — lectures à retirer d'abord** (elles doivent lire
+  `resource_question_links`, liens approuvés) :
+  - `lib/mcp/audits/index.js` : chargeur `quizQuestionSpecies`, consommé par
+    `lib/mcp/audits/checks.js` ;
+  - `lib/mcp/tools/content.js` : la fiche d'une espèce (`UNION` avec la table figée) et le
+    filtre `species_id` de la liste des questions ForetMap — ce filtre ne lit **que** la table
+    figée : une question rattachée depuis la migration 300 n'y est pas trouvée ;
+  - `lib/mcp/sqlGuard.js` : les deux tables dans la liste des tables de contenu.
 - **T3** : `DROP TABLE IF EXISTS quiz_question_species; DROP TABLE IF EXISTS quiz_question_tutorials;`
+  Fichier préparé, hors de `migrations/` et sans numéro :
+  `docs/coordination/cpt-f4-drop-t3-quiz-question-links.md` (numéro attribué le jour
+  où il est versé : un numéro réservé à l'avance serait sauté par le runner).
 - **À retirer dans la même PR** : leur mention dans `SYNC_IGNORED_TABLES_RE` (`database.js`) —
-  **ligne partagée avec les tables `gl_*`**, à modifier avec l'accord du mainteneur G&L ; les
-  contrôles d'alignement (`tests/content/pedago-tutorial-links.test.js`,
+  **ligne partagée avec les tables `gl_*`**, à modifier avec l'accord du mainteneur G&L ; le
+  candidat `quiz_question_links` de `lib/schemaRetirements.js` (ses contrôles lisent les deux
+  tables) ; les contrôles d'alignement (`tests/content/pedago-tutorial-links.test.js`,
   `tests/content/learning-links-single-source.test.js`) et les tests qui simulent une base
   d'avant la bascule (`tests/learning-links-sheet.test.js`,
-  `tests/learning-links-migration-300.test.js`).
+  `tests/learning-links-migration-300.test.js`, `tests/learning-links-suggest.test.js`).
 - **Export** : `quiz_question_species quiz_question_tutorials` (étape 2).
 - **Retour arrière** : recréer les tables (DDL de la migration 128) et recharger l'export ; à
   défaut, les reconstruire depuis `resource_question_links` (requête dans la migration 300).

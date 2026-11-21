@@ -66,6 +66,9 @@ export const EMPTY_PLANT_FORM = {
   gbif_checked_at: '',
   habitat_type: '',
   trophic_role: '',
+  // Nature de la fiche (`plants.entity_kind`) : vide = non précisée, le serveur garde la
+  // nature de la fiche (« taxon » à la création).
+  entity_kind: '',
   life_cycle: '',
   is_edible: '',
   origin_status: '',

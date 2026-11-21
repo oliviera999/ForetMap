@@ -1,10 +1,11 @@
 /**
- * Ligne d'édition d'une proposition de clé : énoncé, image et issue (couplet suivant,
+ * Ligne d'édition d'une proposition de clé : énoncé, image créditée et issue (couplet suivant,
  * espèce, groupe d'espèces, grand groupe), avec renvoi facultatif vers une autre clé.
  */
 import { IconDelete } from '../../shared/icons.jsx';
 import { ID_KEY_LEAD_OUTCOME_ENUM } from '../../shared/enums/pedagoEnums.js';
-import { resolveLeadOutcome } from '../../shared/idKeyLeadCore.js';
+import { isLeadImageCreditMissing, resolveLeadOutcome } from '../../shared/idKeyLeadCore.js';
+import './idKeys.css';
 
 /** Brouillon éditable à partir d'une proposition du bundle (tous les champs d'issue gardés). */
 export function leadToDraft(lead = {}) {
@@ -13,6 +14,8 @@ export function leadToDraft(lead = {}) {
     statement: lead.statement || '',
     hint: lead.hint || '',
     image_url: lead.image_url || '',
+    image_credit: lead.image_credit || '',
+    image_licence: lead.image_licence || '',
     outcome: resolveLeadOutcome(lead) || 'couplet',
     next_couplet_id: lead.next_couplet_id || '',
     plant_id: lead.plant_id || '',
@@ -37,6 +40,8 @@ export function draftToPayload(draft, index) {
     statement: draft.statement,
     hint: draft.hint || null,
     image_url: draft.image_url || null,
+    image_credit: draft.image_url ? draft.image_credit || null : null,
+    image_licence: draft.image_url ? draft.image_licence || null : null,
     outcome: o,
     next_couplet_id: o === 'couplet' ? idOrNull(draft.next_couplet_id) : null,
     plant_id: o === 'espece' ? idOrNull(draft.plant_id) : null,
@@ -79,6 +84,31 @@ export function IdKeyLeadEditor({
         Image (URL)
         <input value={draft.image_url} onChange={(e) => set({ image_url: e.target.value })} />
       </label>
+      {draft.image_url ? (
+        <>
+          <label>
+            Crédit de l’image (auteur ou source)
+            <input
+              value={draft.image_credit}
+              maxLength={255}
+              onChange={(e) => set({ image_credit: e.target.value })}
+              placeholder="Ex. Marie Curie"
+            />
+          </label>
+          <label>
+            Licence de l’image
+            <input
+              value={draft.image_licence}
+              maxLength={64}
+              onChange={(e) => set({ image_licence: e.target.value })}
+              placeholder="Ex. CC BY-SA 4.0"
+            />
+          </label>
+          {isLeadImageCreditMissing(draft) ? (
+            <p className="id-key-editor__credit-missing">Crédit manquant</p>
+          ) : null}
+        </>
+      ) : null}
       <label>
         Mène à
         <select value={draft.outcome} onChange={(e) => set({ outcome: e.target.value })}>

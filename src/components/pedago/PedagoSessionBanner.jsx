@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 
 import { Button } from '../../shared/ui/Button.jsx';
+import { PEDAGO_STEP_ACTION } from '../../shared/enums/pedagoStepActions.js';
+import { usePedagoSessionContext } from '../../contexts/PedagoSessionContext.jsx';
+import { TutorialPreviewModal } from '../TutorialPreviewModal.jsx';
 
 /** Variable posée sur `<html>` : hauteur du bandeau, réservée par la page et les fenêtres. */
 export const SESSION_BANNER_HEIGHT_VAR = '--fm-session-banner-h';
@@ -40,6 +43,10 @@ function useBannerHeightVar(ref) {
  * (étape « message »), recouvert par la fiche ouverte (étape « fiche »).
  *
  * « Quitter » demande confirmation et rappelle que la séance se reprend à la même étape.
+ *
+ * Étape « tutoriel » (`open_tutorial`) : le bandeau rend lui-même l'aperçu du tutoriel, lu
+ * dans le contexte de séance (`sessionTutorial`), sans passer par le shell. Une fois fermé,
+ * le bouton « Tutoriel » le rouvre.
  */
 export function PedagoSessionBanner({
   sessionTitle,
@@ -54,6 +61,16 @@ export function PedagoSessionBanner({
   const ref = useRef(null);
   const [confirmExit, setConfirmExit] = useState(false);
   useBannerHeightVar(ref);
+  // Hors fournisseur (tests de rendu isolés) : pas d'aperçu de tutoriel.
+  const sessionCtx = usePedagoSessionContext();
+  const sessionTutorial = sessionCtx?.sessionTutorial || null;
+  const [tutorialHidden, setTutorialHidden] = useState(false);
+  const tutorialId = sessionTutorial?.tutorial?.id ?? null;
+
+  // Nouveau tutoriel (ou nouvelle étape) : l'aperçu se rouvre.
+  useEffect(() => {
+    setTutorialHidden(false);
+  }, [tutorialId, stepIndex]);
 
   // Changer d'étape referme une confirmation restée ouverte.
   useEffect(() => {
@@ -61,116 +78,148 @@ export function PedagoSessionBanner({
   }, [stepIndex]);
 
   if (!step) return null;
-  const isMessage = step.action?.type === 'message';
+  const isMessage = step.action?.type === PEDAGO_STEP_ACTION.MESSAGE;
+  const isTutorial = step.action?.type === PEDAGO_STEP_ACTION.OPEN_TUTORIAL;
+  const showTutorial = isTutorial && sessionTutorial?.tutorial && !tutorialHidden;
   const isLast = stepIndex >= stepCount - 1;
   const stepNumber = stepIndex + 1;
   const progressPct = stepCount > 0 ? Math.round((stepNumber / stepCount) * 100) : 0;
 
   return (
-    <aside
-      ref={ref}
-      className="pedago-session-banner"
-      data-testid="pedago-session-banner"
-      aria-label={`Séance ${sessionTitle}`}
-    >
-      <div className="pedago-session-banner__text">
-        <p className="pedago-session-banner__session">
-          <span className="pedago-session-banner__session-title">{sessionTitle}</span>
-          <span className="pedago-session-banner__num" data-testid="pedago-session-progress">
-            Étape {stepNumber} sur {stepCount}
-          </span>
-        </p>
-        <div
-          className="pedago-session-banner__bar"
-          role="progressbar"
-          aria-label="Progression de la séance"
-          aria-valuemin={1}
-          aria-valuemax={stepCount}
-          aria-valuenow={stepNumber}
-          aria-valuetext={`Étape ${stepNumber} sur ${stepCount}`}
-        >
-          <span className="pedago-session-banner__bar-fill" style={{ width: `${progressPct}%` }} />
-        </div>
-        <h2 className="pedago-session-banner__step">{step.title}</h2>
-        {!isMessage && step.body ? (
-          <p className="pedago-session-banner__hint">{step.body}</p>
-        ) : null}
-      </div>
-      {confirmExit ? (
-        <div
-          className="pedago-session-banner__confirm"
-          role="group"
-          aria-label="Quitter la séance ?"
-          data-testid="pedago-session-exit-confirm"
-        >
-          <p className="pedago-session-banner__confirm-text">
-            Quitter la séance ? Tu pourras la reprendre à l’étape {stepNumber} depuis l’onglet
-            Séances.
+    <>
+      {showTutorial ? (
+        <TutorialPreviewModal
+          tutorial={sessionTutorial.tutorial}
+          onClose={() => setTutorialHidden(true)}
+          readAcknowledge={
+            sessionTutorial.canAcknowledge
+              ? {
+                  isRead: !!sessionTutorial.isRead,
+                  onAcknowledged: sessionCtx.markSessionTutorialRead,
+                }
+              : null
+          }
+        />
+      ) : null}
+      <aside
+        ref={ref}
+        className="pedago-session-banner"
+        data-testid="pedago-session-banner"
+        aria-label={`Séance ${sessionTitle}`}
+      >
+        <div className="pedago-session-banner__text">
+          <p className="pedago-session-banner__session">
+            <span className="pedago-session-banner__session-title">{sessionTitle}</span>
+            <span className="pedago-session-banner__num" data-testid="pedago-session-progress">
+              Étape {stepNumber} sur {stepCount}
+            </span>
           </p>
+          <div
+            className="pedago-session-banner__bar"
+            role="progressbar"
+            aria-label="Progression de la séance"
+            aria-valuemin={1}
+            aria-valuemax={stepCount}
+            aria-valuenow={stepNumber}
+            aria-valuetext={`Étape ${stepNumber} sur ${stepCount}`}
+          >
+            <span
+              className="pedago-session-banner__bar-fill"
+              style={{ width: `${progressPct}%` }}
+            />
+          </div>
+          <h2 className="pedago-session-banner__step">{step.title}</h2>
+          {!isMessage && step.body ? (
+            <p className="pedago-session-banner__hint">{step.body}</p>
+          ) : null}
+        </div>
+        {confirmExit ? (
+          <div
+            className="pedago-session-banner__confirm"
+            role="group"
+            aria-label="Quitter la séance ?"
+            data-testid="pedago-session-exit-confirm"
+          >
+            <p className="pedago-session-banner__confirm-text">
+              Quitter la séance ? Tu pourras la reprendre à l’étape {stepNumber} depuis l’onglet
+              Séances.
+            </p>
+            <div className="pedago-session-banner__actions">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="pedago-session-banner__btn pedago-session-banner__btn--light"
+                onClick={() => setConfirmExit(false)}
+              >
+                Continuer
+              </Button>
+              <Button
+                type="button"
+                variant="primary"
+                size="sm"
+                className="pedago-session-banner__btn pedago-session-banner__btn--main"
+                onClick={onExit}
+              >
+                Oui, quitter
+              </Button>
+            </div>
+          </div>
+        ) : (
           <div className="pedago-session-banner__actions">
+            {isTutorial && sessionTutorial?.tutorial && tutorialHidden ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="pedago-session-banner__btn pedago-session-banner__btn--light"
+                onClick={() => setTutorialHidden(false)}
+              >
+                Tutoriel
+              </Button>
+            ) : null}
+            {isMessage && onShowMessage ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="pedago-session-banner__btn pedago-session-banner__btn--light"
+                onClick={onShowMessage}
+              >
+                Lire
+              </Button>
+            ) : null}
             <Button
               type="button"
               variant="ghost"
               size="sm"
               className="pedago-session-banner__btn pedago-session-banner__btn--light"
-              onClick={() => setConfirmExit(false)}
+              onClick={onPrev}
+              disabled={stepIndex <= 0}
             >
-              Continuer
+              Précédent
             </Button>
             <Button
               type="button"
               variant="primary"
               size="sm"
               className="pedago-session-banner__btn pedago-session-banner__btn--main"
-              onClick={onExit}
+              onClick={onNext}
             >
-              Oui, quitter
+              {isLast ? 'Terminer' : 'Suivant'}
             </Button>
-          </div>
-        </div>
-      ) : (
-        <div className="pedago-session-banner__actions">
-          {isMessage && onShowMessage ? (
             <Button
               type="button"
               variant="ghost"
               size="sm"
               className="pedago-session-banner__btn pedago-session-banner__btn--light"
-              onClick={onShowMessage}
+              onClick={() => setConfirmExit(true)}
             >
-              Lire
+              Quitter
             </Button>
-          ) : null}
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="pedago-session-banner__btn pedago-session-banner__btn--light"
-            onClick={onPrev}
-            disabled={stepIndex <= 0}
-          >
-            Précédent
-          </Button>
-          <Button
-            type="button"
-            variant="primary"
-            size="sm"
-            className="pedago-session-banner__btn pedago-session-banner__btn--main"
-            onClick={onNext}
-          >
-            {isLast ? 'Terminer' : 'Suivant'}
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="pedago-session-banner__btn pedago-session-banner__btn--light"
-            onClick={() => setConfirmExit(true)}
-          >
-            Quitter
-          </Button>
-        </div>
-      )}
-    </aside>
+          </div>
+        )}
+      </aside>
+    </>
   );
 }

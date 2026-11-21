@@ -2981,6 +2981,25 @@ accents sont tolérés (« Détritivore » → `detritivore`) ; une valeur hors 
 Listes du code : `lib/plantTrophicRole.js` (serveur) et `src/utils/plantTrophicRole.js`
 (libellés et définitions de l’interface).
 
+**Nature de la fiche** — `entity_kind`, ENUM non nul, `taxon` par défaut : `taxon` \|
+`groupe_fonctionnel` (plancton, champignons de litière…) \| `consortium` (lichen, biofilm,
+mycorhize) \| `ressource` (matière non vivante : litière, compost, bois mort…). Colonne créée
+par la migration `plants_entity_kind` (elle existait déjà en production, hors dépôt : la
+migration y est sans effet). Référentiel : `ENTITY_KIND_ENUM` (`src/shared/enums/biodivEnums.js`,
+miroir `lib/shared/biodivEnums.js`).
+
+- **Lecture** : `GET /api/plants` rend `entity_kind` pour chaque fiche et **garde toutes les
+  fiches**, « ressource » comprises : le réseau trophique, les liens entre fiches, les clés de
+  détermination et la gestion lisent ce catalogue entier.
+- **Liste et recherche des élèves** : les fiches `ressource` n’y sont pas proposées
+  (`plantsForStudentCatalog`, `src/utils/plantFilters.js` ; liste « Espèce observée » du
+  formulaire d’observation). Le filtrage est fait par l’interface, à partir de `entity_kind` :
+  la fiche reste lisible par son lien (réseau trophique, fiche d’une espèce qui la consomme).
+- **Écriture** (`POST /api/plants`, `PUT /api/plants/:id`, permission `plants.manage`) :
+  `entity_kind` facultatif. Absent, vide ou `null` : la fiche garde sa nature (`taxon` à la
+  création). Valeur hors liste : **400** `{ "error": "Nature de fiche inconnue (attendu : …)" }`,
+  rien n’est écrit. L’import tableur ne porte pas ce champ.
+
 S’y ajoutent les quatre champs de **danger** (migration `251`). Ils répondent à une question que
 la détermination ne couvre pas : une espèce parfaitement identifiée peut rester dangereuse.
 
@@ -3720,6 +3739,33 @@ partent en cascade et leurs fichiers photo sont effacés après validation de la
 | GET     | `/api/species-observations/:id/interactions`                        | `observations.validate`                 | Relations du réseau trophique où figure l’espèce observée : `{ items: [{ id, interaction_type, evidence_level, from, to, attached }] }`                                                                                                                                                                                                                                                                   |
 | POST    | `/api/species-observations/:id/interaction-evidence`                | `observations.validate`                 | `{ interaction_id }` — rattache l’observation comme preuve (espèce de départ ou d’arrivée de la relation, sinon **400** ; observation refusée → **409**). Observation validée : la relation passe à `observe_site`. **201** `{ attached: true, evidence_level, upgraded }` (**200** `attached: false` si déjà rattachée)                                                                                    |
 | DELETE  | `/api/species-observations/:id/interaction-evidence/:interactionId` | `observations.validate`                 | Détache une preuve **non validée** ; validée → **409** `EVIDENCE_VALIDATED`                                                                                                                                                                                                                                                                                                                             |
+
+**Visibilité** (public : élèves mineurs) : le texte et les photos d’une observation ne sont
+rendus qu’à son **auteur** et aux **validateurs** (`observations.validate`, carte dans leur
+périmètre), quel que soit son statut. Tout autre compte reçoit **404** sur la fiche et sur le
+fichier photo, **403** sur la file d’examen ; sans connexion, **401**. `/uploads` ne sert jamais
+ces fichiers (**403** `PRIVATE_UPLOAD`). La diffusion temps réel (`observations:changed`) ne
+porte que l’identifiant, la carte et le statut. Vérifié par
+`tests/species-observations-visibility.test.js`.
+
+**Photos — métadonnées** : EXIF (position GPS, modèle d’appareil, date de prise de vue), XMP et
+IPTC sont retirés à l’écriture par `lib/uploads.js`, pour JPEG, PNG et WebP ; une image qui ne
+peut pas être nettoyée est refusée. Le fichier servi est le fichier nettoyé. Vérifié par
+`tests/species-observations-exif.test.js`.
+
+**Conservation** (catégorie `observations` de la purge planifiée, `lib/retention/` ; durées en
+constantes dans `lib/retention/policy.js`, **proposées et à confirmer par l’établissement**) :
+
+| Donnée                                         | Durée                                   | Constante                                  |
+| ---------------------------------------------- | --------------------------------------- | ------------------------------------------ |
+| Photo d’une observation **refusée**            | 7 jours après la décision               | `OBSERVATION_REFUSED_PHOTO_RETENTION_DAYS` |
+| Observation **refusée** (texte, note)          | 90 jours après la décision              | `OBSERVATION_REFUSED_RETENTION_DAYS`       |
+| Observation **soumise** jamais examinée        | 365 jours après sa création, avec photos | `OBSERVATION_PENDING_RETENTION_DAYS`       |
+| Observation **validée** (preuve d’inventaire) | autant que le compte de son auteur      | — (cascade à la suppression du compte)     |
+
+La purge supprime la ligne puis le fichier, par lots, et ne touche jamais une observation
+validée (le statut est revérifié dans chaque suppression). En simulation — mode par défaut, et
+seul mode de `foretmap_ops retention_preview` — elle ne rend que des comptages.
 
 **Idempotence (file hors ligne)** : `client_uuid` facultatif (8 à 64 caractères
 `[A-Za-z0-9-]`, sinon **400**), clé propre à l’observateur (index unique
@@ -4896,16 +4942,16 @@ Routes publiques (lecture) sauf progression quiz. Voir aussi les routes GL `/api
 | GET | `/api/quiz/categories` | non | Catégories QCM. `notionId` / `notionNiveau` ne laissent que les catégories rattachées à la notion (et restreignent le compte renvoyé avec `niveau`) |
 | GET | `/api/quiz/questions` | non | Liste questions (`theme`, `categorieSlug`, `niveau`, `q`, `notionId`, `notionNiveau`). `reponse_correcte` n’est présent **que** pour un appelant détenant `plants.manage` — même règle que le catalogue GL |
 | GET | `/api/quiz/draw` | non | Tirage QCM (`?illustrated=1` : questions avec photo ; `notionId` / `notionNiveau` : tirage par notion de programme) |
-| GET | `/api/quiz/questions/:code/present` | non (**oui avec contexte**) | Question présentée. **Avec contexte de validation** (`?resourceType=&resourceRef=`) : compte **exigé** depuis l'audit ForetMap du 19/11/2026 (P1) — sans compte, `401` `{ error, code: 'LOGIN_REQUIRED' }` ; le jeton porte alors l'identifiant du compte (claim `uid`). Sans contexte (Quiz libre), toujours public |
-| POST | `/api/quiz/questions/:code/answer` | non (**oui avec contexte**) | Validation réponse. **Jeton à usage unique** : rejeu du même `presentationToken` refusé `409` « Présentation déjà utilisée » (interdit de brute-forcer les choix, y compris pour débloquer un conditionnement). **Contexte** (jeton présenté avec contexte, ou corps `{ resourceType, resourceRef }`) **sans compte** → `401` `LOGIN_REQUIRED` ; jeton présenté pour un **autre compte** → `403` `{ error, code: 'PRESENTATION_OTHER_ACCOUNT' }`. Ces refus ne consomment pas le jeton (P1, audit du 19/11/2026) |
+| GET | `/api/quiz/questions/:code/present` | non (**oui avec contexte**) | Question présentée. **Avec contexte de validation** (`?resourceType=&resourceRef=`) : compte **exigé** depuis l'audit ForetMap du 19/11/2026 (P1) — sans compte, `401` `{ error, code: 'LOGIN_REQUIRED' }` ; le jeton porte alors l'identifiant du compte (claim `uid`). Sans contexte (Quiz libre), toujours public. Choix **mélangés** à chaque appel. La charge ne porte **pas** `photoLegende`, sauf pour `plants.manage` (voir « Présentation et réponse du quiz ForetMap ») |
+| POST | `/api/quiz/questions/:code/answer` | non (**oui avec contexte**) | Validation réponse. **Jeton à usage unique** : rejeu du même `presentationToken` refusé `409` « Présentation déjà utilisée » (interdit de brute-forcer les choix, y compris pour débloquer un conditionnement). **Contexte** (jeton présenté avec contexte, ou corps `{ resourceType, resourceRef }`) **sans compte** → `401` `LOGIN_REQUIRED` ; jeton présenté pour un **autre compte** → `403` `{ error, code: 'PRESENTATION_OTHER_ACCOUNT' }`. Ces refus ne consomment pas le jeton (P1, audit du 19/11/2026). Réponse : `{ correct, feedback, correctChoiceId?, glossaryTerms?, photoLegende?, cooldown? }` (voir « Présentation et réponse du quiz ForetMap ») |
 | GET | `/api/quiz/me/progress` | élève | Progression |
 | GET | `/api/quiz/stats` | prof (`stats.read.all`) | Agrégation tentatives par élève et catégorie |
 | GET | `/api/quiz/admin/stats` | prof (`plants.manage`) | Agrégats catalogue (totaux, thèmes, catégories) |
 | GET | `/api/quiz/admin/questions` | prof (`plants.manage`) | Liste complète (`theme`, `categorieSlug`, `niveau`, `q`, `statut`, `sort`) |
 | GET | `/api/quiz/admin/questions/next-code` | prof (`plants.manage`) | Prochain code libre (`QF0001`…) |
 | GET | `/api/quiz/admin/questions/:code` | prof (`plants.manage`) | Fiche complète pour édition |
-| POST | `/api/quiz/admin/questions` | prof (`plants.manage`) | Création d’une question (question et liens glossaire par mots-clés `origin='keyword'` dans une même transaction). Emplacement (`categorie_slug`, `numero_dans_categorie`) déjà pris par une autre question → `409` (auparavant, l'autre question était écrasée ; P2, audit du 19/11/2026) |
-| PUT | `/api/quiz/admin/questions/:code` | prof (`plants.manage`) | Mise à jour d’une question existante (même transaction ; seuls ses liens `origin='keyword'` **non bloquants** sont remplacés — un lien par mots-clés rendu bloquant par un professeur est conservé, P3). Déplacement sur un emplacement pris → `409` |
+| POST | `/api/quiz/admin/questions` | prof (`plants.manage`) | Création d’une question (question et liens glossaire par mots-clés `origin='keyword'` dans une même transaction). Emplacement (`categorie_slug`, `numero_dans_categorie`) déjà pris par une autre question → `409` (auparavant, l'autre question était écrasée ; P2, audit du 19/11/2026). Champs facultatifs `plant_ids`, `glossary_codes`, `tutorial_ids` : rattachements écrits dans la même transaction, réponse enrichie de `links` (voir « Rattacher une question en l'enregistrant ») |
+| PUT | `/api/quiz/admin/questions/:code` | prof (`plants.manage`) | Mise à jour d’une question existante (même transaction ; seuls ses liens `origin='keyword'` **non bloquants** sont remplacés — un lien par mots-clés rendu bloquant par un professeur est conservé, P3). Déplacement sur un emplacement pris → `409`. Mêmes champs `plant_ids`, `glossary_codes`, `tutorial_ids` que la création : ils **ajoutent** des rattachements, sans en retirer |
 | GET | `/api/quiz/admin/import/template` | prof (`plants.manage`) | Modèle XLSX (`categories` + `questions`) |
 | GET | `/api/quiz/admin/export` | prof (`plants.manage`) | Export ré-importable (`statut`, `theme`, `categorieSlug`) |
 | POST | `/api/quiz/admin/import` | prof (`plants.manage`) | Import XLSX (`dryRun` optionnel) — transaction unique (tout ou rien, y compris reconstruction des rattachements glossaire `origin=import`). **Emplacement** (P2, audit du 19/11/2026) : une ligne dont le couple (`categorie_slug`, `numero_dans_categorie`) est déjà pris par une autre question, en base ou par une ligne précédente du fichier, est écartée avec une erreur de ligne (elle écrasait l'autre question). **Liens glossaire par mots-clés** (P4) : seuls ceux des questions **du fichier** sont recalculés (un import partiel purgeait ceux de tout le catalogue), et un lien `keyword` rendu bloquant n'est jamais purgé (P3). Colonne `statut` : `actif` ou `inactif` (casse indifférente ; autre valeur → erreur de ligne). **Cellule vide** : une question existante **garde** son statut, une nouvelle est `actif` (avant le 25/09/2026, un fichier sans statut réactivait toutes les questions désactivées). **Libellé de difficulté** (depuis le 27/09/2026) : la colonne `difficulte_label` du fichier est ignorée, le libellé est dérivé de `difficulte` par le référentiel (`quizDifficulteLabel`, `src/shared/enums/pedagoEnums.js`) : 1 → « ⭐ Facile », 2 → « ⭐⭐ Moyen », 3 → « ⭐⭐⭐ Difficile », autre valeur ou vide → `null`. Même règle pour `POST`/`PUT /api/quiz/admin/questions` (libellé saisi ignoré), la liste `GET /api/quiz/admin/questions`, l'export et le modèle. |
@@ -5019,7 +5065,7 @@ sont refusés à l'écriture.
 
 ### Clés d'identification dichotomiques (`/api/id-keys`)
 
-Migrations `275` et `366`. Lecture des clés **publiées** sans auth ; brouillons et écriture
+Migrations `275`, `366` et `id_keys_credits_chemins_tutoriels`. Lecture des clés **publiées** sans auth ; brouillons et écriture
 sous `id_keys.manage` (admin, prof). Les cycles et les formulations invitant à manipuler
 sont refusés.
 
@@ -5037,22 +5083,41 @@ Un résultat (`espece`, `groupe`, `clade`) peut porter `next_key_id` : « Pour a
 vers une autre clé (jamais la clé elle-même). `outcome` absent est **déduit** des champs.
 
 **Détail** (`GET /api/id-keys/:idOrSlug`) : la clé porte `tool_required` (tableau parmi
-`loupe`, `boite_loupe`, `jumelles`) et `safety_note` ; chaque lead porte `hint` (aide
-sous la proposition), `outcome`, `next_couplet_id`, `plant_id` / `plant_name` / `plant_emoji`, `clade_id` et `clade`
+`loupe`, `boite_loupe`, `jumelles`), `safety_note`, `allows_multiple_paths` (booléen : une même
+espèce atteinte par plusieurs feuilles est voulue, l'audit `id_key_dead_paths` ne le signale
+plus), `tutorial_ids` et `tutorials` (`[{ id, title, type, summary, source_url,
+source_file_path, is_active, sort_order }]`, tutoriels « avant de commencer » dans l'ordre ;
+un tutoriel archivé n'est servi qu'à `id_keys.manage`) ; chaque lead porte `hint` (aide
+sous la proposition), `image_url`, `image_credit` et `image_licence` (auteur et licence de
+l'image, `null` sans image), `outcome`, `next_couplet_id`, `plant_id` / `plant_name` / `plant_emoji`, `clade_id` et `clade`
 (`{ id, name, shared_attribute, description }`), `result_label`, `group_plant_ids` et
 `group_plants` (`[{ id, name, emoji, photo }]`), `next_key_id` et `next_key`
 (`{ id, slug, title, is_published }`). Un renvoi vers une clé **non publiée** est masqué
 (`null`) pour qui n'a pas `id_keys.manage`.
 
 **Écriture des leads** (`PUT …/couplets/:coupletId/leads`) : corps
-`{ leads: [{ id?, statement, hint?, image_url?, outcome?, next_couplet_id?, plant_id?, clade_id?,
-result_label?, group_plant_ids?, next_key_id?, sort_order? }] }`. Une proposition qui porte
-l'`id` d'une proposition existante du couplet **sans aucun champ d'issue** (`outcome`,
-`clade_id`, `result_label`, `group_plant_ids`, `next_key_id`) garde son issue en base : un
-ancien client ne fait plus perdre groupes, grands groupes et renvois. De même, `hint` absent
-garde l'aide existante. `PUT /api/id-keys/:id`
-accepte `tool_required` (tableau ou chaîne « a,b » ; valeur inconnue → 400) et
-`safety_note`.
+`{ leads: [{ id?, statement?, hint?, image_url?, image_credit?, image_licence?, outcome?,
+next_couplet_id?, plant_id?, clade_id?, result_label?, group_plant_ids?, next_key_id?,
+sort_order? }] }` — la liste **complète** des propositions du couplet (au moins deux).
+
+- **Avec `id`** : la proposition est **mise à jour en place**, elle garde son identifiant. Ce
+  qui n'est pas renvoyé n'est pas effacé : `statement`, `hint`, `image_url`, `image_credit`,
+  `image_licence` sont repris champ par champ (un champ envoyé à `null` ou vide est effacé) ;
+  l'issue **entière** (`outcome`, `next_couplet_id`, `plant_id`, `clade_id`, `result_label`,
+  `group_plant_ids`, `next_key_id`) est reprise quand la proposition n'en énonce aucune
+  (aucun champ d'issue, ou seulement `next_couplet_id` / `plant_id` vides). `{ id }` seul
+  laisse donc la proposition inchangée. Dès qu'une issue est énoncée, elle remplace l'ancienne.
+- **Sans `id`** : la proposition est créée (`statement` et une issue requis).
+- **Absente de la liste** : la proposition du couplet est supprimée.
+- Un `id` inconnu, d'un autre couplet ou envoyé deux fois → **400**, rien n'est écrit.
+- Le crédit suit l'image : sans `image_url`, `image_credit` et `image_licence` valent `null`.
+  `image_credit` ≤ 255 caractères, `image_licence` ≤ 64 (au-delà → **400**).
+
+`PUT /api/id-keys/:id` accepte `tool_required` (tableau ou chaîne « a,b » ; valeur inconnue
+→ 400), `safety_note`, `allows_multiple_paths` (aussi à la création) et `tutorial_ids` :
+liste **complète et ordonnée** des tutoriels « avant de commencer » (au plus 12 ; `[]` les
+retire tous ; champ absent : liens inchangés ; tutoriel inconnu → 400). L'écran n'affiche le
+bloc « Avant de commencer » que si `tool_required` n'est pas vide.
 
 Module `ui.modules.id_keys_enabled` éteint : **503** `{ error: 'Clés d’identification désactivées' }`
 sur toutes les routes ci-dessous, sauf pour un appelant `id_keys.manage` (voir « Modules
@@ -5060,14 +5125,14 @@ pédagogiques activables »).
 
 | Méthode | URL | Auth | Description |
 | ------- | --- | ---- | ----------- |
-| GET | `/api/id-keys` | non | Liste des clés publiées (`?all=1` + `id_keys.manage` pour inclure les brouillons) |
+| GET | `/api/id-keys` | non | Liste des clés publiées (`?all=1` + `id_keys.manage` pour inclure les brouillons ; `?tutorial_id=N` : seulement les clés qui proposent ce tutoriel « avant de commencer », `N` invalide → 400) |
 | GET | `/api/id-keys/:idOrSlug` | non / manage | Détail (couplets + leads). Brouillon → 404 sans `id_keys.manage` |
 | POST | `/api/id-keys` | `id_keys.manage` | Créer une clé (slug, title…) + couplet n°1 |
-| PUT | `/api/id-keys/:id` | `id_keys.manage` | Métadonnées / publication (graph validé si `is_published`) |
+| PUT | `/api/id-keys/:id` | `id_keys.manage` | Métadonnées, chemins multiples voulus, tutoriels liés, publication (graph validé si `is_published`) |
 | DELETE | `/api/id-keys/:id` | `id_keys.manage` | Supprimer la clé (cascade couplets/leads) |
 | POST | `/api/id-keys/:id/couplets` | `id_keys.manage` | Ajouter un couplet |
 | DELETE | `/api/id-keys/:id/couplets/:coupletId` | `id_keys.manage` | Supprimer un couplet. Clé **publiée** : couplet n° 1 → **409** ; couplet encore visé par une proposition d'un autre couplet → **409** `{ error, referencedBy: [numéros] }` |
-| PUT | `/api/id-keys/:id/couplets/:coupletId/leads` | `id_keys.manage` | Remplacer les propositions (`leads[]`) |
+| PUT | `/api/id-keys/:id/couplets/:coupletId/leads` | `id_keys.manage` | Écrire les propositions (`leads[]`) : mise à jour en place avec `id`, création sans, suppression des absentes |
 
 ### Séances pédagogiques (`/api/pedago-sessions`)
 
@@ -5100,10 +5165,23 @@ appelant `plants.manage` (préparation, suivi, démonstration).
 
 Actions d’étape (`action.type`) : `message`, `open_id_key`, `open_plant`, `open_foodweb`,
 `open_quiz`, `open_glossary`, `open_individual` (`individualId`), `open_nested_groups`
-(`plantIds`, 2 à 6), `open_map_route` (`routeSlug`, `mapId`). MVP : `completeWhen` = `manual`
+(`plantIds`, 2 à 6), `open_map_route` (`routeSlug`, `mapId`), `open_fresque` (`deckId`
+facultatif), `open_tutorial` (`tutorialId`). Source unique de cette liste :
+`src/shared/enums/pedagoStepActions.js` (miroir `lib/shared/pedagoStepActions.js`), lue par la
+validation, le client et l’outil MCP `foretmap_pedago_sessions`. MVP : `completeWhen` = `manual`
 uniquement. Séance `custom` : chaque étape porte ses cibles (la config ne sert que de défaut) ;
-à la publication, les plantes, arbres suivis, parcours et clés référencés doivent exister,
-sinon 400 `Publication impossible : …`. Prérequis (`config.requiresSessionId`) : une autre
+à la publication, les plantes, arbres suivis, parcours, clés et tutoriels référencés doivent
+exister, sinon 400 `Publication impossible : …`.
+
+Étape `open_tutorial` : `payload.tutorialId` (identifiant de `GET /api/tutorials`) ; le tutoriel
+s’ouvre par-dessus la séance, avec son accusé de lecture pour un compte connecté. Contrôle **à
+chaque écriture** de `steps` (`POST` et `PUT`, brouillon compris) : le tutoriel doit exister et
+être **actif**, sinon **400** `étape N : tutoriel n° 12 introuvable`, `étape N : tutoriel
+« Titre » inactif` ou `étape N : tutoriel à choisir (tutorialId ou tutorialSlug)`. Un
+`payload.tutorialSlug` est accepté à l’écriture et **résolu en `tutorialId`**, seule forme
+enregistrée (l’identifiant survit au renommage du tutoriel, pas le slug) ; si les deux sont
+fournis, l’identifiant l’emporte. Un tutoriel désactivé après coup bloque la publication (même
+400) ; pour une séance déjà publiée, l’élève est prévenu et poursuit la séance. Prérequis (`config.requiresSessionId`) : une autre
 séance existante, jamais elle-même, et jamais une séance qui en dépend déjà (cycle de toute
 longueur → **400** `{ error, code: 'PREREQUISITE_CYCLE' }`) ; les gestionnaires (`plants.manage`)
 ne sont jamais bloqués. Un prérequis non publié (brouillon, dépublié) ou supprimé est ignoré :
@@ -5284,6 +5362,69 @@ propre) ou un identifiant mal formé donnent **400**, jamais un filtre ignoré e
 correspondances entre toutes les échelles sont déclarées dans `lib/pedagoScales.js` (miroir
 `src/utils/pedagoScales.js`).
 
+### Présentation et réponse du quiz ForetMap
+
+Propre à `/api/quiz` (les QCM de Gnomes & Licornes ne sont pas concernés).
+
+**Présentation** — `GET /api/quiz/questions/:code/present` renvoie
+`{ presentationToken, questionCode, resource, question, choices: [{ id, text }], glossaryTerms,
+photoUrl, photoCredit, photoLicence, wikipediaUrl }`.
+
+- Les choix sont **mélangés à chaque appel** (Fisher-Yates, `lib/qcmChoices.js`) et numérotés
+  `0…n-1` dans l'ordre servi : deux présentations de la même question n'ont pas le même ordre,
+  et `id` ne dit rien de la lettre d'origine.
+- **`photoLegende` n'y figure pas.** La légende d'une photo est le plus souvent le nom du sujet
+  photographié, donc la réponse. L'image, son crédit et sa licence sont servis ; la légende
+  attend la réponse. Seule exception : un appelant qui détient `plants.manage` la reçoit dès la
+  présentation, pour l'aperçu « Présenter » du catalogue — même règle que `reponse_correcte`
+  dans `GET /api/quiz/questions`.
+
+**Réponse** — `POST /api/quiz/questions/:code/answer` renvoie :
+
+| Champ             | Présent quand                                                                                 |
+| ----------------- | --------------------------------------------------------------------------------------------- |
+| `correct`         | toujours                                                                                      |
+| `feedback`        | toujours (règle ci-dessous)                                                                   |
+| `correctChoiceId` | réponse juste seulement                                                                       |
+| `glossaryTerms`   | réponse juste seulement                                                                       |
+| `photoLegende`    | la question a une légende, **et** la réponse est juste ou le jeton n'a pas de contexte ressource |
+| `cooldown`        | un verrou de re-tentative vient d'être posé (parcours de validation)                          |
+
+Après une **erreur du parcours de validation** d'une fiche (jeton présenté avec
+`?resourceType=&resourceRef=`), `photoLegende` est tue : la même question sera reposée, et la
+légende donnerait la réponse — même règle que `correctChoiceId`.
+
+**Règle du champ `feedback`** (`resolveQcmAnswerFeedback`, `lib/qcmChoices.js`) :
+
+1. réponse **juste** → `feedback_correct` de la question ; s'il est vide, « Bonne réponse ! » ;
+2. réponse **fausse** → le retour du choix sélectionné (`feedback_a` … `feedback_e`, retrouvé
+   par la lettre d'origine du choix, quel que soit l'ordre servi) ; s'il est vide, « Ce n’est
+   pas la bonne réponse. ».
+
+Conséquence à connaître en rédigeant : le retour rangé dans le créneau de la **bonne lettre**
+(par exemple `feedback_b` quand `reponse_correcte = 'B'`) **n'est jamais affiché**. L'élève qui
+choisit la bonne réponse lit `feedback_correct`, et personne d'autre ne peut sélectionner ce
+choix. Un texte utile saisi là est donc perdu : il se met dans `feedback_correct`. Les deux
+textes de repli ci-dessus sont remplacés à l'écran par la voix d'OLU quand le professeur n'a
+rien écrit (`src/shared/qcm/qcmFeedback.js`).
+
+Requête de contrôle (questions actives dont le créneau de la bonne lettre est rempli et
+diffère de `feedback_correct`) :
+
+```sql
+SELECT question_code, reponse_correcte, feedback_correct,
+       CASE reponse_correcte WHEN 'A' THEN feedback_a WHEN 'B' THEN feedback_b
+            WHEN 'C' THEN feedback_c WHEN 'D' THEN feedback_d ELSE feedback_e END AS feedback_bonne_lettre
+  FROM quiz_questions
+ WHERE statut = 'actif'
+   AND NULLIF(TRIM(CASE reponse_correcte WHEN 'A' THEN feedback_a WHEN 'B' THEN feedback_b
+            WHEN 'C' THEN feedback_c WHEN 'D' THEN feedback_d ELSE feedback_e END), '') IS NOT NULL
+   AND NOT (TRIM(CASE reponse_correcte WHEN 'A' THEN feedback_a WHEN 'B' THEN feedback_b
+            WHEN 'C' THEN feedback_c WHEN 'D' THEN feedback_d ELSE feedback_e END)
+            <=> TRIM(feedback_correct))
+ ORDER BY question_code;
+```
+
 ### Le `presentationToken` (QCM ForetMap et GL)
 
 Les routes `…/present` renvoient les choix **mélangés** et un `presentationToken` (JWT signé,
@@ -5419,7 +5560,7 @@ Les liens vivent dans **une seule table**, `resource_question_links`, lue et éc
 
 | `origin`    | Qui l'écrit                                                                                 | Purgé par un traitement automatique ?        |
 | ----------- | ------------------------------------------------------------------------------------------- | -------------------------------------------- |
-| `manual`    | un professeur, dans l'écran des liens (`POST /api/learning-links`)                          | jamais                                       |
+| `manual`    | un professeur, dans l'écran des liens (`POST /api/learning-links`) ou en enregistrant une question avec `plant_ids`, `glossary_codes`, `tutorial_ids` | jamais                                       |
 | `import`    | migrations 144, 226, 227 (curation relue, souvent bloquante)                                | jamais                                       |
 | `generated` | scripts d'enrichissement                                                                    | jamais                                       |
 | `auto`      | `scripts/suggest-learning-links.js` (propositions)                                          | jamais                                       |
@@ -5435,6 +5576,38 @@ source unique (fixture v297) sont repris en `editorial`, approuvés et **non blo
 affichés et ne changent rien au verrouillage. L'édition d'une question (`POST`/`PUT
 /api/quiz/admin/questions`) s'exécute dans une transaction, liens par mots-clés compris, comme
 l'import du catalogue.
+
+#### Rattacher une question en l'enregistrant
+
+`POST` et `PUT /api/quiz/admin/questions` acceptent trois champs facultatifs, en plus des champs
+de la question :
+
+| Champ            | Contenu                                   | Ressource liée (`resource_type`) |
+| ---------------- | ----------------------------------------- | -------------------------------- |
+| `plant_ids`      | tableau d'identifiants de fiches espèce   | `plant`                          |
+| `glossary_codes` | tableau de codes de termes du glossaire   | `glossary`                       |
+| `tutorial_ids`   | tableau d'identifiants de tutoriels       | `tutorial`                       |
+
+Les liens sont écrits par le service unique (`lib/pedago/learningLinks.js`), dans la
+transaction de la question (`lib/fmQuizCrud.js`, `linkQuestionToResources`) :
+
+- **ajout seulement** : une ressource absente de la liste n'est pas détachée, une liste vide ne
+  retire rien. Détacher reste un geste de l'écran des liens (`DELETE /api/learning-links/:id`) ;
+- lien **nouveau** : `status = 'approved'`, **non bloquant** (`is_gating = 0`),
+  `origin = 'manual'`, auteur enregistré ;
+- lien **déjà approuvé** : inchangé (caractère bloquant, origine, poids et note conservés).
+  Rejouer la même demande n'écrit rien ;
+- lien seulement **proposé** ou **rejeté** : approuvé, sans changer son origine ni son caractère
+  bloquant ;
+- un champ **absent** (ou `null`) est ignoré ; un champ présent doit être un tableau de 50
+  éléments au plus (identifiants entiers positifs, codes non vides) ;
+- une référence **inconnue** ou un champ mal formé → `400`
+  (`Fiche(s) espèce introuvable(s) : 12, 13`), et **rien n'est enregistré**, pas même la
+  question.
+
+Quand au moins un de ces champs est fourni, la réponse porte
+`links: { created: [...], approved: [...], unchanged: [...] }`, chaque entrée valant
+`{ resource_type, resource_ref }`. Sans eux, la réponse est inchangée.
 
 Réglages site (table `app_settings`, scope `teacher`, modifiables via `/api/settings`) :
 `learning.gating.enabled` (def. `false`),

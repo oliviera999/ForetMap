@@ -42,6 +42,8 @@ const TARGET_JS_KB = 400;
 const BUNDLE_BUDGETS = Object.freeze({
   'index.vite.html': Object.freeze({
     label: 'ForetMap (écran de connexion)',
+    // 1 530 → 1 535 le 21/11/2026 (chantier CPT, provisoire), puis 775 / 372 : le shell connecté
+    // est chargé à la demande (UI/UX, U1), le code ajouté par CPT quitte l'écran de connexion.
     jsKb: 775,
     cssKb: 372,
   }),

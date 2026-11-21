@@ -1,0 +1,91 @@
+/* Clés de détermination — crédit des images, bloc « Avant de commencer », tutoriels liés.
+   Les styles historiques du module restent dans la feuille commune ; les ajouts vont ici. */
+
+.id-key-lead-figure {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+  max-width: 96px;
+}
+
+.id-key-lead-credit {
+  display: block;
+  color: var(--ink-dim);
+  font-size: var(--text-2xs);
+  font-weight: normal;
+  line-height: 1.2;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.id-key-schema__credits {
+  margin: 6px 0 0;
+  color: var(--ink-dim);
+  font-size: var(--text-xs);
+}
+
+.id-key-reader__kit-title {
+  margin: 0 0 4px;
+  font-size: var(--text-base);
+}
+
+.id-key-reader__tutorials {
+  list-style: none;
+  margin: 6px 0 2px;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.id-key-reader__tutorials .btn {
+  min-height: 44px;
+}
+
+.id-key-editor__credit-missing {
+  align-self: center;
+  margin: 0;
+  padding: 4px 8px;
+  border-left: 3px solid var(--accent-warning-solid);
+  border-radius: 0 8px 8px 0;
+  background: var(--tint-warning);
+  color: var(--ink-warning);
+  font-size: var(--text-sm);
+}
+
+.id-key-editor__tutorials {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border: 1px solid var(--line-pedago);
+  border-radius: 8px;
+}
+
+.id-key-editor__tutorial-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.id-key-editor__tutorial-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+}
+
+.id-key-editor__tutorial-title {
+  flex: 1 1 160px;
+}
+
+.id-key-editor__tutorial-list .btn {
+  min-width: 44px;
+  min-height: 44px;
+}

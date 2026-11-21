@@ -108,10 +108,27 @@ Deux précisions :
   autres lisent « dans une zone », sans son nom.
 
 Le catalogue contient aussi quelques **fiches-ressources** qui ne sont pas des êtres
-vivants : litière de feuilles, compost, bois mort, biofilm, fruits tombés, carton de
+vivants : litière de feuilles, compost, bois mort, fruits tombés, carton de
 lombricompost, crottes. Elles servent d’exemples de nourriture pour les vers, cloportes
 et autres recycleurs, afin que le réseau trophique montre clairement ce qu’ils
 mangent.
+
+### La nature de la fiche
+
+Chaque fiche a une **nature**, choisie dans le formulaire de la fiche (champ « Nature de la
+fiche », réservé à la gestion) :
+
+- **Espèce ou groupe d’espèces** : le cas général, et la valeur d’une fiche neuve ;
+- **Groupe fonctionnel** : des êtres vivants réunis par leur rôle (phytoplancton,
+  zooplancton, champignons de litière) ;
+- **Association d’êtres vivants** : lichen, biofilm, mycorhize ;
+- **Ressource non vivante** : les fiches-ressources ci-dessus.
+
+Une fiche **« Ressource non vivante » n’apparaît ni dans la liste ni dans la recherche du
+catalogue des élèves**, et n’est pas proposée dans la liste « Espèce observée » du formulaire
+d’observation : ce n’est pas un être vivant. Elle reste visible dans le **réseau trophique**,
+dans les liens depuis les autres fiches, dans les clés d’identification et côté gestion. Les
+trois autres natures restent dans la liste des élèves.
 
 ### Le rôle trophique
 
@@ -205,11 +222,28 @@ Dans les deux modes :
 
 Les énoncés décrivent des **caractères observables** — jamais une invitation à
 cueillir, goûter ou manipuler. Les enseignants autorisés créent et publient les clés
-(couplets, propositions, image optionnelle par proposition). Pour chaque proposition, le
+(couplets, propositions, image optionnelle par proposition). Une image se **crédite** :
+l’auteur (ou la source) et la licence se saisissent sous l’adresse de l’image et s’affichent
+sous la vignette, côté élèves. Tant qu’une image n’a pas d’auteur, l’écran de gestion affiche
+**Crédit manquant** sur la proposition et en tête des couplets. Pour chaque proposition, le
 menu **Mène à** choisit l’issue : couplet suivant, une espèce, un groupe d’espèces (nom du
 groupe et espèces candidates) ou un grand groupe ; un résultat peut renvoyer vers une autre
 clé. La clé elle-même indique le matériel nécessaire et une consigne de sécurité. Une clé
 n’est publiable que si chaque branche aboutit.
+
+Quand la clé demande du matériel, les élèves voient, avant la première question, un bloc
+**Avant de commencer** : le matériel, la consigne de sécurité et les **tutoriels** que
+l’enseignant y a rattachés (« Utiliser une loupe », par exemple), qui s’ouvrent sur place.
+Les tutoriels se choisissent et s’ordonnent dans la fiche de la clé ; sans matériel coché, le
+bloc ne s’affiche pas.
+
+Certaines clés mènent **volontairement** à la même espèce par plusieurs chemins — une clé de
+traces, où l’empreinte, la crotte et le terrier désignent le même animal. La case **Plusieurs
+chemins vers une même espèce sont voulus** le déclare : le contrôle des clés ne signale alors
+plus cette espèce « atteinte par plusieurs feuilles ».
+
+Enregistrer les propositions d’un couplet ne les recrée pas : chacune garde son identité, et
+seules celles que l’on retire de la liste disparaissent.
 Sur une clé déjà publiée, on ne peut supprimer ni le couplet de départ (n° 1), ni un
 couplet vers lequel mène encore une proposition : il faut d'abord rediriger cette
 proposition, pour que les élèves ne tombent jamais sur une branche sans issue.
@@ -527,9 +561,18 @@ professeur vérifie avant qu'elle compte pour le site.
    de son auteur. Dans « Mes observations », elle apparaît « En attente de réseau » jusqu'à
    son envoi.
 
-Les photos d'observation sont **privées** : seuls leur auteur et les professeurs habilités
-les voient ; les informations cachées dans la photo (lieu GPS, appareil) sont effacées à
-l'envoi. Un compte « Visiteur » ne peut pas signaler d'observation.
+Le texte et les photos d'une observation sont **privés** : seuls leur auteur et les
+professeurs habilités les voient, qu'elle soit en attente, validée ou non retenue ; les
+informations cachées dans la photo (lieu GPS, appareil) sont effacées à l'envoi. Un compte
+« Visiteur » ne peut pas signaler d'observation.
+
+**Combien de temps sont-elles gardées ?** Une observation **validée** est gardée autant que
+le compte de l'élève : c'est une preuve de l'inventaire du site. Une observation **non
+retenue** perd ses photos au bout de 7 jours, puis disparaît au bout de 90 jours. Une
+observation que personne n'a examinée au bout d'un an est supprimée. Ces durées sont des
+propositions, à confirmer par l'établissement (voir
+`docs/reference/exploitation/durees-de-conservation.md`). La notice « Vos données » de
+l'application les annonce aux élèves.
 
 ## Comment ça se passe — côté professeur
 
