@@ -5944,9 +5944,18 @@
       flex-direction:column;
       min-height:0;
     }
-    .visit-view--map-forward .visit-map-stage {
-      min-height:min(58dvh, 720px);
-      aspect-ratio:unset;
+    /* Cadre à la forme du plan (audit UI/UX du 19/11/2026, U5) : un cadre de hauteur fixe
+       (58 dvh) laissait de grandes bandes vides au-dessus et au-dessous d'un plan large sur
+       téléphone. La forme vient de la scène (`--fm-pct-content-aspect`, `SharedMapStage`) ;
+       la hauteur reste plafonnée, et un plan en hauteur se centre au lieu de s'étirer. Plancher
+       de 300 px : la colonne de commandes (cinq boutons de 44 px) doit tenir dans le cadre. */
+    .visit-view--map-forward .visit-map-stage:not(.visit-map-stage--fullscreen) {
+      width:100%;
+      min-height:min(300px, 60dvh);
+      max-height:min(70dvh, 880px);
+      max-width:max(320px, calc(min(70dvh, 880px) * var(--fm-pct-content-ratio, 1.6)));
+      margin-inline:auto;
+      aspect-ratio:var(--fm-pct-content-aspect, 16 / 10);
     }
     .visit-prof-tools .visit-mascot-preview-card {
       margin-bottom:0;
@@ -6453,6 +6462,12 @@
       transform-origin:0 0;
       /* `will-change: transform` est posé impérativement pendant les gestes (cf. markVisitInteracting)
          puis retiré au repos : le calque se re-pixellise net à l'échelle affichée (texte/emoji). */
+    }
+    /* Noms de zones au-dessus de la mascotte guide (`.visit-map-mascot`, z-index 16, partagée
+       avec G&L — on ne la touche pas) : posée sur un lieu, elle masquait son nom (audit UI/UX
+       du 19/11/2026, U5). Le nom garde son halo blanc ; la mascotte reste visible autour. */
+    .visit-map-stage .fm-pct-labels {
+      z-index:17;
     }
     /* Calque aligné sur le rectangle réel de l’image (comme MapView), pas sur toute la scène 16:10 — évite décalage/distorsion des % avec object-fit:contain. */
     .visit-map-fit-layer {
@@ -7275,10 +7290,11 @@
         display:flex;
         flex-direction:column;
       }
-      .visit-view.visit-view--guest-public .visit-map-stage {
-        flex:1 1 auto;
-        min-height:min(70dvh, 880px);
-        aspect-ratio:unset;
+      /* Plus haute sur grand écran, toujours à la forme du plan (U5). */
+      .visit-view.visit-view--guest-public .visit-map-stage:not(.visit-map-stage--fullscreen) {
+        flex:0 0 auto;
+        max-height:min(78dvh, 960px);
+        max-width:max(320px, calc(min(78dvh, 960px) * var(--fm-pct-content-ratio, 1.6)));
       }
     }
 

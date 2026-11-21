@@ -80,6 +80,9 @@ import { computeContainRect } from './pctMapFit.js';
  *   (boutons superposés, poignées d'édition…).
  * @param {(container: HTMLElement) => ({ w: number, h: number }|null)} [options.resolveStageBox]
  *   mesure du cadre imposée au conteneur (largeur/hauteur écrites en style) ; défaut : client box.
+ * @param {number} [options.contentInsetPx=0] mode `stage` : marge intérieure (px) entre le cadre
+ *   et le rectangle du contenu au cadrage d'ouverture — 0 conserve le comportement historique
+ *   (G&L, plan, carte de travail).
  * @param {Array<{ current: Element|null }>} [options.observeRefs] éléments supplémentaires observés.
  * @param {string} [options.resetKey] changement de carte : réajustement.
  * @param {(fit: { fitScale: number, fitRect: object, stage: object }) => void} [options.onFit]
@@ -162,6 +165,7 @@ export function usePctMapViewport({
   onResize = 'fit',
   isGestureTarget = null,
   resolveStageBox = null,
+  contentInsetPx = 0,
   observeRefs = null,
   resetKey = '',
   initialView = null,
@@ -262,6 +266,7 @@ export function usePctMapViewport({
     onResize,
     isGestureTarget,
     resolveStageBox,
+    contentInsetPx,
     onFit,
     onGestureStart,
     onGestureEnd,
@@ -499,7 +504,17 @@ export function usePctMapViewport({
       let nextFitScale = 1;
       let nextFitRect;
       if (opt.contentMode === 'stage') {
-        nextFitRect = computeContainRect(iw > 1 ? iw : 0, ih > 1 ? ih : 0, box.w, box.h);
+        // Marge intérieure (`contentInsetPx`) : le plan ne touche plus les bords du cadre, et les
+        // noms posés près d'un bord restent lisibles au cadrage d'ouverture (audit UI/UX du
+        // 19/11/2026, U5). Jamais plus d'un quart du cadre par côté.
+        const inset = Math.max(0, Math.min(Number(opt.contentInsetPx) || 0, box.w / 4, box.h / 4));
+        const inner = computeContainRect(
+          iw > 1 ? iw : 0,
+          ih > 1 ? ih : 0,
+          box.w - 2 * inset,
+          box.h - 2 * inset,
+        );
+        nextFitRect = { ...inner, offsetX: inner.offsetX + inset, offsetY: inner.offsetY + inset };
       } else {
         nextFitRect = { offsetX: 0, offsetY: 0, width: iw, height: ih };
         nextFitScale = fitPctMapTransform({ w: iw, h: ih }, box).s;

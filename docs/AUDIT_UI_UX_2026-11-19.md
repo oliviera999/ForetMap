@@ -75,6 +75,15 @@ charger à la demande le shell connecté importé statiquement par `src/App.jsx`
 périmètre de la session C : mesure 1 526 → 795 Ko en neuf imports) ; branchement de la
 vignette dans la grille (session B) ; allègement de `/api/visit/content` (session B).
 
+**Corrigé** (lot à part « découpage d'`App.jsx` », 20/11) : le shell connecté est chargé à la
+demande depuis un seul module (`src/components/app/authenticatedShellParts.js`, `lazyScreen`
+sous `ScreenLoadBoundary`), préchargé à l'inactivité sur l'écran de connexion mais pas
+pendant la Visite publique. JS de l'écran de connexion : **1 529 → 770 Ko** ; cliquet abaissé
+à 775 Ko. **Reste** pour l'objectif de 400 Ko, encore chargés d'emblée : React (206 Ko,
+incompressible), `main` (203 Ko), `ImageLightboxProvider` (93 Ko), Markdown (76 Ko),
+`VisitMascotFallbackSvg` (57 Ko), `socket.io` (40 Ko, importé par `useForetmapRealtime` alors
+qu'il ne sert qu'une fois connecté).
+
 ### U2 — 🔴 Indisponibilité vue par l'utilisateur
 
 Deux redémarrages du serveur pendant l'audit. Côté écran : bandeau « Serveur momentanément
@@ -146,6 +155,34 @@ dans la Visite » par pack (pas de liste blanche figée, retirée volontairement
 
 Piste : cadrage _fit-to-content_, `hyphens: auto` avec `lang="fr"`, coupure aux espaces, nom
 court optionnel, masquage par collision à faible zoom.
+
+**Corrigé** (lot 4, branche `claude/ui-ux-visite-lot4`, 21/11) — reproduit sur la carte Forêt
+(noms réels, base locale) avant correction, vérifié après dans Chromium (ordinateur 1 280 px et
+iPhone 13) :
+
+- **Coupures** : la cause était double — `overflow-wrap: anywhere` et une largeur de nom bornée
+  à 96 px quelle que soit la longueur du mot (« Jardinières » : 123 px à 22,4 px). Le nom reçoit
+  désormais la largeur de son mot le plus long (`zoneLabelUnbrokenWidthPx`, estimation glyphe
+  par glyphe `estimateTextWidthPx` relevée sur DM Sans 700), replié aux espaces
+  (`overflow-wrap: break-word`, `text-wrap: balance`). Pas de `hyphens: auto` : le navigateur
+  couperait un mot qui tient sur la ligne suivante. Les noms de **repères** passent sur deux
+  lignes (`markerLabelWidthPx`) au lieu de « Butte Eros… ». Moteur et rendu appellent les mêmes
+  fonctions (option `wrapNamesAtSpaces`, calques HTML de `SharedMapStage` ; le calque d'édition
+  SVG garde son calcul).
+- **Cadrage** : marge intérieure optionnelle du moteur de vue (`contentInsetPx`, 0 par défaut —
+  G&L, plan et carte de travail inchangés ; 20 px dans la Visite) ; cadre de la Visite à la
+  forme du plan (`--fm-pct-content-aspect` exposé par la scène), plafonné, plancher de 300 px
+  pour la colonne de commandes ; moteur d'étiquettes conscient du **cadre visible**
+  (`labelFrameFromView`) : un nom qui en sortirait change de côté ou attend le zoom.
+- **Chevauchements** : dans la Visite, épingles et pastilles **masquent** les noms
+  (`obstaclesHideNames`, le contrat historique « un obstacle ne masque jamais » reste le défaut
+  ailleurs) ; boutons de la carte et cartouche d'échelle sont des obstacles pour toutes les
+  cartes de `SharedMapStage` (`chromeBoxes`) ; noms au-dessus de la mascotte guide (règle
+  limitée à `.visit-map-stage`, la CSS de la mascotte étant partagée avec G&L).
+- **Reste** : l'emoji du repère Fumier (donnée, dans l'app) ; « nom court optionnel » non fait
+  (aucun nom de production ne le requiert une fois les coupures réglées) ; sur téléphone, la
+  taille des noms (22 px environ sur un plan de 345 px, préférence « Aa » et pointeur tactile)
+  laisse peu de noms à l'ouverture — ils apparaissent au zoom.
 
 ### U6 — 🟠 La fiche de zone cache ce qu'elle décrit
 

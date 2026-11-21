@@ -9,6 +9,52 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — carte : noms entiers, cadrage, plus de chevauchements (UI/UX lot 4, U5)
+
+Lot 4 du chantier UI/UX (`docs/AUDIT_UI_UX_2026-11-19.md`, U5), reproduit sur la carte Forêt
+avant correction et vérifié dans Chromium après (ordinateur et téléphone).
+
+- **Plus de mot coupé** : « Bananera / ie », « Aromati / ques » venaient d'une largeur de nom
+  bornée à 96 px et de `overflow-wrap: anywhere`. Le nom d'une zone reçoit la largeur de son mot
+  le plus long, replié aux espaces, lignes équilibrées ; le nom d'un repère tient sur deux lignes
+  au lieu de finir en « … ». Moteur et rendu partagent le même calcul
+  (`zoneLabelUnbrokenWidthPx`, `markerLabelWidthPx`, `estimateTextWidthPx`).
+- **Bords de carte** : un nom qui sortirait du cadre change de côté ou attend le zoom (cadre
+  visible connu du moteur d'étiquettes) ; les boutons de la carte et le cartouche d'échelle sont
+  des obstacles pour les noms.
+- **Visite** : le plan garde une marge de 20 px dans son cadre (`contentInsetPx`, optionnel, 0
+  ailleurs — G&L inchangé), le cadre prend la forme du plan (plus de bandes vides sur
+  téléphone), un nom ne se pose plus sur une épingle ou une pastille (`obstaclesHideNames`), et
+  la mascotte guide passe sous les noms.
+- Tests : `tests-ui/shared/pctMapLabels.test.js`, `mapOverlayLabelCollision.test.js`,
+  `usePctMapViewport.test.jsx`, `PctMarkersLayer.test.jsx`. Docs : audit U5, référence
+  « Carte et zones » et « Visite et mascottes ».
+
+### Modifié — écran de connexion deux fois plus léger : le shell connecté est chargé à la demande
+
+Lot à part du chantier UI/UX (`docs/AUDIT_UI_UX_2026-11-19.md`, U1). `src/App.jsx` importait
+statiquement tout le shell connecté (tables de rendu prof et élève, modales globales, en-tête,
+bandeaux…) : son code et ses dépendances (récompenses, catalogue des découpes de sprites…)
+partaient avec l'écran de connexion et la Visite publique, qui n'en affichent rien.
+
+- **JS chargé avant connexion : 1 529 Ko → 770 Ko** (24 → 17 fichiers ; build de production,
+  `node scripts/check-bundle-budget.js --report`). CSS : 377 → 370 Ko.
+- Les briques du shell connecté sont regroupées dans `src/components/app/authenticatedShellParts.js`
+  (un seul chunk, une seule requête) et chargées par `lazyScreen` sous `ScreenLoadBoundary` :
+  pendant le téléchargement, le loader « feuille » habituel ; en cas d'échec réseau, le message
+  existant et une nouvelle tentative au retour du réseau. L'arrivée LTI (`LtiArrivee`) suit le
+  même chemin.
+- **Préchargement** quand le navigateur est inactif, 1,5 s après l'affichage de l'écran de
+  connexion : se connecter ne fait pas attendre. Pas de préchargement pendant la Visite
+  publique (données mobiles d'un visiteur qui ne se connectera pas). Avec une session déjà
+  ouverte, le premier rendu demande le module lui-même ; le service worker l'a en cache.
+- Budget de bundle abaissé (cliquet) : 775 Ko de JS, 372 Ko de CSS.
+- Test : `tests/app-shell-lazy.test.js` (aucun import statique d'une brique du shell connecté
+  dans `App.jsx`). Vérifié dans Chromium sur un build de production : écran de connexion sans
+  le module, préchargement après inactivité, connexion prof, rechargement connecté, Visite
+  publique sans préchargement, aucune erreur de console.
+- Aucun changement visible ni de comportement métier ; G&L n'est pas concerné (`gl.html` a sa
+  propre entrée).
 ### Ajouté — Contenus de terrain du 20/11/2026 repris en migration
 
 - **Migration `contenus_terrain_2026_11_20`** : les contenus écrits directement en production

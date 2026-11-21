@@ -30,7 +30,11 @@ familles.
   l'application : pincer pour zoomer et déplacer d'un seul geste, double-tap sur un point,
   glisser lancé, butée souple qui empêche le plan de sortir du cadre. Le plan peut être
   **dézoomé un peu sous le cadre** (jusqu'à la moitié) pour prendre du recul ; le bouton
-  ⊡ le réajuste. **Cliquer un lieu envoie la mascotte s'y rendre et, en même temps**, la
+  ⊡ le réajuste. Le cadre prend la **forme du plan** (pas de bande vide sur téléphone) et le
+  plan y garde une petite marge, pour que les noms posés en bordure restent lisibles. Les noms
+  ne se coupent jamais au milieu d'un mot et ne se posent ni sur un repère, ni sur une
+  pastille chiffrée, ni sur un bouton : ceux qui n'ont pas la place apparaissent au zoom
+  (détail dans « Carte et zones », _Quand la carte devient trop chargée_). **Cliquer un lieu envoie la mascotte s'y rendre et, en même temps**, la
   carte fait un **zoom bref et fluide** sur le lieu : sa fiche s'ouvre environ une demi-seconde
   après le clic, sans attendre la fin de la marche (sans le zoom, la fiche s'ouvre quand la
   mascotte arrive). Le lieu ouvert est **mis en évidence** (petite pastille sous son repère,
