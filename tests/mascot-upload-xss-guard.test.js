@@ -81,7 +81,8 @@ test('POST /api/visit/mascot-packs/:id/assets refuse une page HTML', async () =>
       .send({ filename: 'vraie.png', image_data: TINY_PNG_B64 })
       .expect(201);
     const dir = path.join(UPLOADS_DIR, 'visit_mascot_packs', packId);
-    assert.deepEqual(fs.readdirSync(dir).sort(), ['vraie.png']);
+    // `_vignette.png` : vignette du sélecteur de guide, écrite par le serveur depuis `vraie.png`.
+    assert.deepEqual(fs.readdirSync(dir).sort(), ['_vignette.png', 'vraie.png']);
   } finally {
     await request(app)
       .delete(`/api/visit/mascot-packs/${packId}`)
