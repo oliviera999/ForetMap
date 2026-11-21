@@ -1,0 +1,6 @@
+/* Catalogue et fil des groupes au collège (chantier collège, flux C4) — thème forêt, tokens. */
+
+.plant-clade-breadcrumb__depth {
+  min-height: 44px;
+  margin-top: var(--space-1);
+}
