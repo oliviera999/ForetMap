@@ -9,6 +9,15 @@
 > session S0 relancée la modifie. SI la **supprime** (avec `snapshot/`, `journal/`, le chargeur
 > `scripts/college-2026-11/load-snapshot.js`) avant la PR vers `main`.
 >
+> **Mise à jour n° 2 (S0, 21/11, 19 h 45 UTC)** : le socle est **sur `main`** — PR #732
+> (`integration/college` → `main`, à l'état `06ecb1d`) ouverte et fusionnée par Oliv à 18 h 43,
+> release **v1.260.0** ; la **prod est au schéma 378** (colonnes vides, aucun effet visible).
+> Conséquences : `378_college_socle` est **définitif** ; la série des flux D commence à **379**
+> (§ 1, numéros relatifs : premier arrivé sur `main` parmi D1… et R1, qui a lui aussi pris `379`) ;
+> le dossier `docs/coordination/college-2026-11/` et le chargeur sont **déjà sur `main`** : la PR
+> finale de SI les **supprime** (commit de suppression, rien à réécrire). `integration/college` a
+> été réalignée sur `main` (fusion, version 1.260.0) ; les flux rebasent dessus comme prévu.
+>
 > **Mise à jour n° 1 (S0, 21/11 au soir)** : ajout du flux **R1** (élèves référents automatiques
 > des tâches récurrentes), chantier indépendant mené dans la même orchestration. Section de
 > session prête à coller : `sessions/R1-referents-eleves.md`. Voir E7, § 1, § 3, § 4 « R1 »,
