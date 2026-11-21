@@ -3,8 +3,9 @@
 // Contenus de terrain du 20/11/2026 repris par la migration « contenus_terrain_2026_11_20 »
 // (chantier CPT, flux F1) : assertions sur les DONNÉES posées sur une base fraîche.
 //
-// Une base fraîche ne porte que les blocs autonomes : les questions dont la catégorie existe,
-// leurs notions, les tutoriels, les liens vers les fiches et tutoriels présents, les retraits.
+// Une base fraîche porte les blocs autonomes : les 61 questions (avec les trois catégories et
+// les quatre notions de référence créées par la migration), leurs notions, les tutoriels, les
+// liens vers les fiches et tutoriels présents, les retraits.
 // Le reste (zones de visite, clés, séances de site) attend ses parents ; la mécanique de
 // rejeu avec parents semés est dans `tests/contenus-terrain-2026-11-20-rejeu.test.js`.
 // Tests BDD partagée : exécution séquentielle.
@@ -43,8 +44,7 @@ before(async () => {
 });
 
 test('contenus du 20/11 : les questions reprises existent, actives, niveau collège', () => {
-  // 61 en production ; une base fraîche n'a pas trois des catégories (14 questions sautées).
-  assert.ok(questions.length >= 47 && questions.length <= 61, `${questions.length} questions`);
+  assert.equal(questions.length, 61);
   for (const q of questions) {
     assert.equal(q.statut, 'actif', q.question_code);
     assert.equal(q.niveau, 'college', q.question_code);
@@ -102,6 +102,7 @@ test('contenus du 20/11 : notions de cycle 3 ajoutées, notions de lycée hérit
        JOIN curriculum_notions cn ON cn.id = n.notion_id
       WHERE n.${RANGE}`,
   );
+  assert.equal(notions.length, 168);
   // Chaque question a sa ligne de notions : au moins un ajout ou une exclusion.
   for (const q of questions) {
     assert.ok(
@@ -163,7 +164,7 @@ test('contenus du 20/11 : liens des questions vers des ressources présentes, so
     `SELECT l.resource_type, l.resource_ref, l.question_code, l.is_gating, l.origin, l.status, l.note
        FROM resource_question_links l WHERE l.${RANGE}`,
   );
-  assert.ok(liens.length >= 21, `${liens.length} liens`);
+  assert.ok(liens.length >= 24, `${liens.length} liens`);
   for (const l of liens) {
     assert.equal(l.origin, 'manual');
     assert.equal(l.status, 'approved');

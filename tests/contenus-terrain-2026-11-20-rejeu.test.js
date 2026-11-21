@@ -4,7 +4,7 @@
 //
 // Les contenus écrits en production le 20/11/2026 sont repris par une migration dont chaque
 // insertion est jointe à son parent par clé naturelle. Une base fraîche n'a presque aucun de
-// ces parents : ce test sème les parents minimaux (catégories, notions, espèces, cartes, une
+// ces parents : ce test sème les parents minimaux (espèces, cartes, une
 // zone de visite par site, une clé avec ses couplets n° 3 et n° 4, des séances dans leur
 // ancienne forme), rejoue le fichier et vérifie chaque bloc, les gardes et l'absence d'effet
 // d'un second passage.
@@ -38,9 +38,9 @@ const RETRAITS = [
   'QF0431',
   'QF0427',
 ];
-/** Catégories de quiz absentes d'une base fraîche, et nombre de questions qu'elles portent. */
-const CATEGORIES_HORS_DEPOT = { demarche_mesure: 8, glossaire_definitions: 2, microbes_sante: 4 };
-const NOTIONS_HORS_DEPOT = ['2-MICRO', 'EST-DEMO', 'EST-EVOL', 'T-EVO'];
+/** Lignes de référence créées par le bloc 0 (absentes du dépôt avant cette migration). */
+const CATEGORIES_CREEES = ['demarche_mesure', 'glossaire_definitions', 'microbes_sante'];
+const NOTIONS_CREEES = ['2-MICRO', 'EST-DEMO', 'EST-EVOL', 'T-EVO'];
 const ESPECES = [
   'Massette',
   'Lentisque',
@@ -93,7 +93,6 @@ const TABLES = [
 
 const undo = [];
 const plantIds = {};
-let categoriesManquantes = [];
 let configReconnaitre = null;
 let coupletIds = {};
 
@@ -169,12 +168,6 @@ before(async () => {
       "SELECT config_json FROM pedago_sessions WHERE slug = 'college-reconaitre-sans-toucher'",
     )
   )?.config_json;
-  const slugs = Object.keys(CATEGORIES_HORS_DEPOT);
-  const present = await queryAll(
-    `SELECT slug FROM quiz_categories WHERE slug IN (${slugs.map(() => '?').join(', ')})`,
-    slugs,
-  );
-  categoriesManquantes = slugs.filter((s) => !present.some((r) => r.slug === s));
 });
 
 after(async () => {
@@ -205,20 +198,8 @@ after(async () => {
     "DELETE FROM resource_question_links WHERE resource_type = 'glossary' AND resource_ref = 'FM0010' AND " +
       RANGE,
   );
-  await run(
-    `DELETE l FROM resource_question_links l
-       JOIN tutorials t ON t.id = l.resource_ref
-      WHERE l.resource_type = 'tutorial' AND t.slug = 'le-rempotage'`,
-  );
   const maps = Object.keys(ZONES_VISITE);
   await run(`DELETE FROM visit_tutorials WHERE map_id IN (${marks(maps)})`, maps);
-  if (categoriesManquantes.length) {
-    await run(
-      `DELETE FROM quiz_questions
-        WHERE ${RANGE} AND categorie_slug IN (${marks(categoriesManquantes)})`,
-      categoriesManquantes,
-    );
-  }
   for (const fn of undo.reverse()) await fn().catch(() => {});
 });
 
@@ -273,11 +254,43 @@ test('contenus du 20/11 : aucun identifiant auto-incrémenté de la production',
 
 test('contenus du 20/11 : sans parents, les blocs autonomes sont posés et rien n’échoue', async () => {
   // `initSchema()` a déjà appliqué la migration sur la base de test.
-  const sautees = categoriesManquantes.reduce((n, s) => n + CATEGORIES_HORS_DEPOT[s], 0);
+  // Les sept lignes de référence du bloc 0 existent : les 61 questions et leurs 168 notions aussi.
   assert.equal(
-    await count(`SELECT COUNT(*) AS n FROM quiz_questions WHERE ${RANGE}`),
-    61 - sautees,
+    await count(
+      `SELECT COUNT(*) AS n FROM quiz_categories WHERE theme = 'sciences'
+          AND slug IN (${CATEGORIES_CREEES.map(() => '?').join(', ')})`,
+      CATEGORIES_CREEES,
+    ),
+    3,
   );
+  assert.equal(
+    await count(
+      `SELECT COUNT(*) AS n FROM curriculum_notions
+        WHERE niveau IN ('seconde', 'terminale_spe', 'es_terminale')
+          AND id IN (${NOTIONS_CREEES.map(() => '?').join(', ')})`,
+      NOTIONS_CREEES,
+    ),
+    4,
+  );
+  assert.equal(await count(`SELECT COUNT(*) AS n FROM quiz_questions WHERE ${RANGE}`), 61);
+  assert.equal(await count(`SELECT COUNT(*) AS n FROM quiz_question_notions WHERE ${RANGE}`), 168);
+  // Tutoriels renommés en production : faute du slug de production, le lien repris se pose
+  // sur le slug que sème le dépôt, une seule fois.
+  for (const [slug, code, ancien] of [
+    ['rempotage', 'QF9891', 'QF9213'],
+    ['rempotage', 'QF9900', 'QF9214'],
+    ['semences', 'QF9881', 'QF0062'],
+  ]) {
+    const liens = await queryAll(
+      `SELECT l.is_gating, l.note FROM resource_question_links l
+         JOIN tutorials t ON t.id = l.resource_ref AND t.slug = ?
+        WHERE l.resource_type = 'tutorial' AND l.question_code = ?`,
+      [slug, code],
+    );
+    assert.equal(liens.length, 1, `${code} → ${slug}`);
+    assert.equal(Number(liens[0].is_gating), 1);
+    assert.ok(liens[0].note.startsWith(`Repris de ${ancien} `), liens[0].note);
+  }
   assert.equal(
     await count(
       `SELECT COUNT(*) AS n FROM tutorials
@@ -318,27 +331,6 @@ test('contenus du 20/11 : sans parents, les blocs autonomes sont posés et rien 
 // ---------------------------------------------------------------------------------------
 
 test('contenus du 20/11 : semis des parents minimaux', async () => {
-  for (const slug of Object.keys(CATEGORIES_HORS_DEPOT)) {
-    await seedIfAbsent(
-      'SELECT slug FROM quiz_categories WHERE slug = ?',
-      [slug],
-      "INSERT INTO quiz_categories (slug, nom, theme, order_index) VALUES (?, ?, 'sciences', 990)",
-      [slug, `Reprise ${slug}`],
-      'DELETE FROM quiz_categories WHERE slug = ?',
-      [slug],
-    );
-  }
-  for (const id of NOTIONS_HORS_DEPOT) {
-    await seedIfAbsent(
-      'SELECT id FROM curriculum_notions WHERE id = ?',
-      [id],
-      `INSERT INTO curriculum_notions (id, niveau, discipline, theme, notion, sort_order)
-       VALUES (?, 'seconde', 'SVT', 'Reprise', 'Notion semée pour le test', 990)`,
-      [id],
-      'DELETE FROM curriculum_notions WHERE id = ?',
-      [id],
-    );
-  }
   for (const name of ESPECES) {
     const added = await seedIfAbsent(
       'SELECT id FROM plants WHERE name = ?',
@@ -392,16 +384,6 @@ test('contenus du 20/11 : semis des parents minimaux', async () => {
     "DELETE FROM glossary_terms WHERE glossary_code = 'FM0010'",
     [],
   );
-  await seedIfAbsent(
-    "SELECT id FROM tutorials WHERE slug = 'le-rempotage'",
-    [],
-    `INSERT INTO tutorials (title, slug, type, html_content, is_active, sort_order)
-     VALUES ('Le rempotage (semé)', 'le-rempotage', 'html', '<p>semé</p>', 1, 990)`,
-    [],
-    "DELETE FROM tutorials WHERE slug = 'le-rempotage'",
-    [],
-  );
-
   // Clés : anciennes consignes ; « insectes-ordres » date d'avant le 20/11, « coleopteres » a
   // été retouchée depuis (date du jour) et ne doit donc pas être écrasée.
   await execute(
@@ -488,20 +470,13 @@ test('contenus du 20/11 : questions, notions et liens rejoignent leurs parents',
     { ...fiche, is_gating: Number(fiche.is_gating), weight: Number(fiche.weight) },
     { is_gating: 0, origin: 'manual', status: 'approved', weight: 1, created_by_user_id: null },
   );
-  // Liens repris d'une ancienne version : note d'origine, glossaire par code, tutoriel par slug.
+  // Lien repris d'une ancienne version : note d'origine, terme de glossaire par code.
   const glossaire = await queryOne(
     `SELECT is_gating, note FROM resource_question_links
       WHERE resource_type = 'glossary' AND resource_ref = 'FM0010' AND question_code = 'QF9880'`,
   );
   assert.equal(Number(glossaire.is_gating), 1);
   assert.match(glossaire.note, /^Repris de QF0010 /);
-  const tutoriel = await queryOne(
-    `SELECT l.is_gating, l.note FROM resource_question_links l
-       JOIN tutorials t ON t.id = l.resource_ref AND t.slug = 'le-rempotage'
-      WHERE l.resource_type = 'tutorial' AND l.question_code = 'QF9891'`,
-  );
-  assert.equal(Number(tutoriel.is_gating), 1);
-  assert.match(tutoriel.note, /^Repris de QF9213 /);
   // Aucun lien vers une ressource absente.
   assert.equal(
     await count(

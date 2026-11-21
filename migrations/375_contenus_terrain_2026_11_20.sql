@@ -10,13 +10,15 @@
 --  - aucun identifiant auto-incrémenté de la production : espèces résolues par nom,
 --    tutoriels par slug, termes de glossaire par code, clés par slug et numéro de couplet ;
 --  - insertion par `INSERT … SELECT … WHERE NOT EXISTS` sur la clé naturelle, JOINTE AU
---    PARENT : si le parent manque (catégorie de quiz, notion, espèce, zone, carte, clé,
---    séance, tutoriel), la ligne n'est pas insérée, sans erreur. Aucun parent n'est créé ;
+--    PARENT : si le parent manque (espèce, zone, carte, clé, séance, tutoriel, terme de
+--    glossaire), la ligne n'est pas insérée, sans erreur. Aucun parent n'est créé, sauf
+--    les sept lignes de référence du bloc 0 ;
 --  - modification gardée par la valeur d'avant (`<=>`) quand elle est connue, sinon par la
 --    forme d'avant et la date de l'écriture du 20/11 (ligne non retouchée depuis) ;
 --  - rejouable : un second passage n'insère ni ne modifie rien.
 --
 -- Blocs :
+--   0. quiz_categories, curriculum_notions   3 catégories et 4 notions de référence
 --   1. quiz_questions            61 questions (QF9873 à QF9933)
 --   2. quiz_question_notions     notions de ces questions (ajouts cycle 3, exclusions lycée)
 --   3. quiz_questions            9 questions retirées (statut inactif)
@@ -40,6 +42,31 @@
 -- =====================================================================
 
 SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- ---------------------------------------------------------------------
+-- 0. Lignes de référence dont dépendent 14 des 61 questions et 28 de leurs notions : trois
+--    catégories de quiz et quatre notions du référentiel n'existaient qu'en production.
+--    Seule exception à « aucun parent créé » (sept lignes, décision de coordination) ;
+--    seules les colonnes présentes dans le schéma du dépôt sont écrites.
+-- ---------------------------------------------------------------------
+INSERT INTO quiz_categories (slug, nom, emoji, theme, description, order_index)
+SELECT v.slug, v.nom, v.emoji, v.theme, v.description, v.order_index
+  FROM (
+    SELECT 'demarche_mesure' AS slug, 'Mesurer & raisonner' AS nom, '📏' AS emoji, 'sciences' AS theme, 'Protocoles, calculs, ordres de grandeur et incertitudes.' AS description, 18 AS order_index
+    UNION ALL SELECT 'glossaire_definitions', 'Vocabulaire & définitions', '📖', 'sciences', 'Reconnaître la définition des termes du glossaire.', 100
+    UNION ALL SELECT 'microbes_sante', 'Micro-organismes & santé', '🦠', 'sciences', 'Bactéries, levures et moisissures : utiles pour la plupart, parfois pathogènes. Hygiène au jardin, vaccins, antibiotiques.', 19
+  ) v
+ WHERE NOT EXISTS (SELECT 1 FROM quiz_categories c WHERE c.slug = v.slug COLLATE utf8mb4_unicode_ci);
+
+INSERT INTO curriculum_notions (id, niveau, discipline, theme, notion, sort_order)
+SELECT v.id, v.niveau, v.discipline, v.theme, v.notion, v.sort_order
+  FROM (
+    SELECT '2-MICRO' AS id, 'seconde' AS niveau, 'SVT' AS discipline, 'Corps humain et santé' AS theme, 'Microorganismes et santé' AS notion, 12 AS sort_order
+    UNION ALL SELECT 'EST-DEMO', 'es_terminale', 'Enseignement scientifique', 'Une histoire du vivant', 'Les modèles démographiques', 20
+    UNION ALL SELECT 'EST-EVOL', 'es_terminale', 'Enseignement scientifique', 'Une histoire du vivant', 'L''évolution comme grille de lecture du monde', 19
+    UNION ALL SELECT 'T-EVO', 'terminale_spe', 'SVT', 'Génétique et évolution', 'Endosymbioses, transferts de gènes et évolution des populations (sélection naturelle, dérive génétique)', 14
+  ) v
+ WHERE NOT EXISTS (SELECT 1 FROM curriculum_notions cn WHERE cn.id = v.id COLLATE utf8mb4_unicode_ci);
 
 -- ---------------------------------------------------------------------
 -- 1. Les 61 questions. Parent : la catégorie de quiz. Une question dont la catégorie
@@ -471,6 +498,9 @@ SELECT t.id, m.id
 --    espèce (résolue par nom), 10 vers un terme de glossaire (par code), 8 vers un
 --    tutoriel (par slug). Les liens repris d'une ancienne version de question portent leur
 --    note et, pour la plupart, restent bloquants ; les autres ne le sont pas.
+--    Deux tutoriels ont été renommés en production (« le-rempotage », « les-semences ») et
+--    le dépôt sème encore « rempotage » et « semences » : le lien se pose sur le slug de
+--    production s'il existe, sinon sur celui du dépôt (colonne slug_depot).
 -- ---------------------------------------------------------------------
 INSERT INTO resource_question_links
   (resource_type, resource_ref, question_code, is_gating, weight, origin, status, note)
@@ -567,17 +597,21 @@ INSERT INTO resource_question_links
   (resource_type, resource_ref, question_code, is_gating, weight, origin, status, note)
 SELECT 'tutorial', CAST(t.id AS CHAR), v.question_code, v.is_gating, v.weight, v.origin, v.status, v.note
   FROM (
-    SELECT 'les-semences' AS ref, 'QF9881' AS question_code, 1 AS is_gating, 1 AS weight, 'manual' AS origin, 'approved' AS status, 'Repris de QF0062 (nouvelle version du 20/11/2026)' AS note
-    UNION ALL SELECT 'observer-a-la-boite-loupe', 'QF9883', 0, 1, 'manual', 'approved', NULL
-    UNION ALL SELECT 'le-rempotage', 'QF9891', 1, 1, 'manual', 'approved', 'Repris de QF9213 (nouvelle version du 20/11/2026)'
-    UNION ALL SELECT 'observer-aux-jumelles', 'QF9899', 0, 1, 'manual', 'approved', NULL
-    UNION ALL SELECT 'le-rempotage', 'QF9900', 1, 1, 'manual', 'approved', 'Repris de QF9214 (nouvelle version du 20/11/2026)'
-    UNION ALL SELECT 'observer-aux-jumelles', 'QF9907', 0, 1, 'manual', 'approved', NULL
-    UNION ALL SELECT 'prendre-une-photo-utile-pour-identifier', 'QF9918', 0, 1, 'manual', 'approved', NULL
-    UNION ALL SELECT 'observer-sans-deranger', 'QF9930', 0, 1, 'manual', 'approved', NULL
+    SELECT 'les-semences' AS ref, 'QF9881' AS question_code, 1 AS is_gating, 1 AS weight, 'manual' AS origin, 'approved' AS status, 'Repris de QF0062 (nouvelle version du 20/11/2026)' AS note, 'semences' AS slug_depot
+    UNION ALL SELECT 'observer-a-la-boite-loupe', 'QF9883', 0, 1, 'manual', 'approved', NULL, 'observer-a-la-boite-loupe'
+    UNION ALL SELECT 'le-rempotage', 'QF9891', 1, 1, 'manual', 'approved', 'Repris de QF9213 (nouvelle version du 20/11/2026)', 'rempotage'
+    UNION ALL SELECT 'observer-aux-jumelles', 'QF9899', 0, 1, 'manual', 'approved', NULL, 'observer-aux-jumelles'
+    UNION ALL SELECT 'le-rempotage', 'QF9900', 1, 1, 'manual', 'approved', 'Repris de QF9214 (nouvelle version du 20/11/2026)', 'rempotage'
+    UNION ALL SELECT 'observer-aux-jumelles', 'QF9907', 0, 1, 'manual', 'approved', NULL, 'observer-aux-jumelles'
+    UNION ALL SELECT 'prendre-une-photo-utile-pour-identifier', 'QF9918', 0, 1, 'manual', 'approved', NULL, 'prendre-une-photo-utile-pour-identifier'
+    UNION ALL SELECT 'observer-sans-deranger', 'QF9930', 0, 1, 'manual', 'approved', NULL, 'observer-sans-deranger'
   ) v
   JOIN quiz_questions q ON q.question_code = v.question_code COLLATE utf8mb4_unicode_ci
-  JOIN tutorials t ON t.slug = v.ref COLLATE utf8mb4_unicode_ci
+  JOIN tutorials t ON t.id = (
+         SELECT t2.id FROM tutorials t2
+          WHERE t2.slug IN (v.ref COLLATE utf8mb4_unicode_ci, v.slug_depot COLLATE utf8mb4_unicode_ci)
+          ORDER BY (t2.slug = v.ref COLLATE utf8mb4_unicode_ci) DESC
+          LIMIT 1)
  WHERE NOT EXISTS (
          SELECT 1 FROM resource_question_links x
           WHERE x.resource_type = 'tutorial'
@@ -716,8 +750,9 @@ DELETE FROM id_key_leads
 
 -- ---------------------------------------------------------------------
 -- 11. Consigne de sécurité de deux clés. L'ancien texte n'a été conservé nulle part : la
---     garde est la date de l'écriture du 20/11 (heure du serveur de base). Une clé retouchée
---     depuis n'est pas écrasée ; en production la ligne porte exactement cette date.
+--     garde est double, `updated_at` strictement antérieur à l'écriture du 20/11 (heure du
+--     serveur de base) ET texte différent de la cible. Une clé retouchée depuis n'est pas
+--     écrasée ; en production la ligne porte exactement cette date.
 -- ---------------------------------------------------------------------
 UPDATE id_keys
    SET safety_note = 'On observe sans toucher : abeilles et guêpes piquent, certaines punaises aussi. L''adulte place l''insecte dans une boîte-loupe, puis le relâche là où il a été trouvé.'
@@ -784,7 +819,8 @@ UPDATE pedago_sessions s
    SET s.steps_json = REPLACE(REPLACE(REPLACE(REPLACE('[{"id":"p2","title":"Au bord de l''oued : la massette","body":"Dans un même paysage, les êtres vivants ne sont pas répartis au hasard. La massette pousse au fond de la vallée, au bord de l''oued Melah. Que dit sa fiche de son milieu de vie ?","action":{"type":"open_plant","payload":{"plantId":@@P1@@}},"completeWhen":"manual"},{"id":"p3","title":"Sur les versants : le lentisque","body":"Le lentisque pousse sur les versants de la vallée, dans le matorral. Compare avec la massette : qu''est-ce qui change d''un endroit à l''autre ?","action":{"type":"open_plant","payload":{"plantId":@@P2@@}},"completeWhen":"manual"},{"id":"p4","title":"Sur les rochers : la patelle","body":"La patelle reste fixée aux rochers de l''estran des Sablettes, recouverts par la mer à marée haute.","action":{"type":"open_plant","payload":{"plantId":@@P3@@}},"completeWhen":"manual"},{"id":"p5","title":"Dans le sable : le talitre","body":"Le talitre, ou puce de mer, vit dans le sable du haut de la plage, sous les algues rejetées par la mer.","action":{"type":"open_plant","payload":{"plantId":@@P4@@}},"completeWhen":"manual"},{"id":"p6","title":"Ta conclusion","body":"Pour chaque espèce, écris le paramètre physique qui explique sa place : la quantité d''eau, la nature du sol (rocher ou sable), le temps passé sous la mer, l''ensoleillement.","action":{"type":"message","payload":{}},"completeWhen":"manual"},{"id":"p7","title":"Mini-quiz","body":"Une question sur le peuplement des milieux.","action":{"type":"open_quiz","payload":{"notionId":"C3-ENV","notionNiveau":"cycle3","questionCode":null}},"completeWhen":"manual"}]', '@@P1@@', p1.id), '@@P2@@', p2.id), '@@P3@@', p3.id), '@@P4@@', p4.id)
  WHERE s.slug = '6e-pas-la-par-hasard'
    AND JSON_LENGTH(s.steps_json) = 7
-   AND s.updated_at < '2026-11-20 10:18:29';
+   AND s.updated_at < '2026-11-20 10:18:29'
+   AND NOT (s.steps_json <=> REPLACE(REPLACE(REPLACE(REPLACE('[{"id":"p2","title":"Au bord de l''oued : la massette","body":"Dans un même paysage, les êtres vivants ne sont pas répartis au hasard. La massette pousse au fond de la vallée, au bord de l''oued Melah. Que dit sa fiche de son milieu de vie ?","action":{"type":"open_plant","payload":{"plantId":@@P1@@}},"completeWhen":"manual"},{"id":"p3","title":"Sur les versants : le lentisque","body":"Le lentisque pousse sur les versants de la vallée, dans le matorral. Compare avec la massette : qu''est-ce qui change d''un endroit à l''autre ?","action":{"type":"open_plant","payload":{"plantId":@@P2@@}},"completeWhen":"manual"},{"id":"p4","title":"Sur les rochers : la patelle","body":"La patelle reste fixée aux rochers de l''estran des Sablettes, recouverts par la mer à marée haute.","action":{"type":"open_plant","payload":{"plantId":@@P3@@}},"completeWhen":"manual"},{"id":"p5","title":"Dans le sable : le talitre","body":"Le talitre, ou puce de mer, vit dans le sable du haut de la plage, sous les algues rejetées par la mer.","action":{"type":"open_plant","payload":{"plantId":@@P4@@}},"completeWhen":"manual"},{"id":"p6","title":"Ta conclusion","body":"Pour chaque espèce, écris le paramètre physique qui explique sa place : la quantité d''eau, la nature du sol (rocher ou sable), le temps passé sous la mer, l''ensoleillement.","action":{"type":"message","payload":{}},"completeWhen":"manual"},{"id":"p7","title":"Mini-quiz","body":"Une question sur le peuplement des milieux.","action":{"type":"open_quiz","payload":{"notionId":"C3-ENV","notionNiveau":"cycle3","questionCode":null}},"completeWhen":"manual"}]', '@@P1@@', p1.id), '@@P2@@', p2.id), '@@P3@@', p3.id), '@@P4@@', p4.id));
 
 UPDATE pedago_sessions s
   JOIN plants p1 ON p1.name = 'Tomate' COLLATE utf8mb4_unicode_ci
@@ -800,7 +836,8 @@ UPDATE pedago_sessions s
    SET s.steps_json = REPLACE(REPLACE(REPLACE(REPLACE(REPLACE('[{"id":"m2","title":"La tomate, une annuelle","body":"À Casablanca, l''hiver est doux, mais les êtres vivants changent quand même au fil de l''année. La tomate est une plante annuelle : elle vit moins d''un an. Sous quelle forme l''espèce traverse-t-elle la mauvaise saison ?","action":{"type":"open_plant","payload":{"plantId":@@P1@@}},"completeWhen":"manual"},{"id":"m3","title":"L''ail, une vivace à bulbe","body":"L''ail est vivace : il se conserve d''une année sur l''autre grâce à son bulbe, fait de caïeux. Où se trouve cet organe ?","action":{"type":"open_plant","payload":{"plantId":@@P2@@}},"completeWhen":"manual"},{"id":"m4","title":"Le romarin, un arbuste toujours vert","body":"Le romarin est un arbuste vivace qui garde ses feuilles toute l''année.","action":{"type":"open_plant","payload":{"plantId":@@P3@@}},"completeWhen":"manual"},{"id":"m5","title":"L''hirondelle de fenêtre part","body":"L''hirondelle de fenêtre niche au lycée au printemps et en été, puis part passer l''hiver plus au sud, en Afrique : c''est une migratrice.","action":{"type":"open_plant","payload":{"plantId":@@P4@@}},"completeWhen":"manual"},{"id":"m6","title":"Le rougequeue noir arrive","body":"Le rougequeue noir fait l''inverse : il vient d''Europe passer l''hiver chez nous. Pour lui, Casablanca est un refuge pendant la mauvaise saison.","action":{"type":"open_plant","payload":{"plantId":@@P5@@}},"completeWhen":"manual"},{"id":"m7","title":"Mini-quiz","body":"Une question sur le développement des êtres vivants.","action":{"type":"open_quiz","payload":{"notionId":"C3-DEVREPRO","notionNiveau":"cycle3","questionCode":null}},"completeWhen":"manual"}]', '@@P1@@', p1.id), '@@P2@@', p2.id), '@@P3@@', p3.id), '@@P4@@', p4.id), '@@P5@@', p5.id)
  WHERE s.slug = '6e-mauvaise-saison'
    AND JSON_LENGTH(s.steps_json) = 7
-   AND s.updated_at < '2026-11-20 10:18:51';
+   AND s.updated_at < '2026-11-20 10:18:51'
+   AND NOT (s.steps_json <=> REPLACE(REPLACE(REPLACE(REPLACE(REPLACE('[{"id":"m2","title":"La tomate, une annuelle","body":"À Casablanca, l''hiver est doux, mais les êtres vivants changent quand même au fil de l''année. La tomate est une plante annuelle : elle vit moins d''un an. Sous quelle forme l''espèce traverse-t-elle la mauvaise saison ?","action":{"type":"open_plant","payload":{"plantId":@@P1@@}},"completeWhen":"manual"},{"id":"m3","title":"L''ail, une vivace à bulbe","body":"L''ail est vivace : il se conserve d''une année sur l''autre grâce à son bulbe, fait de caïeux. Où se trouve cet organe ?","action":{"type":"open_plant","payload":{"plantId":@@P2@@}},"completeWhen":"manual"},{"id":"m4","title":"Le romarin, un arbuste toujours vert","body":"Le romarin est un arbuste vivace qui garde ses feuilles toute l''année.","action":{"type":"open_plant","payload":{"plantId":@@P3@@}},"completeWhen":"manual"},{"id":"m5","title":"L''hirondelle de fenêtre part","body":"L''hirondelle de fenêtre niche au lycée au printemps et en été, puis part passer l''hiver plus au sud, en Afrique : c''est une migratrice.","action":{"type":"open_plant","payload":{"plantId":@@P4@@}},"completeWhen":"manual"},{"id":"m6","title":"Le rougequeue noir arrive","body":"Le rougequeue noir fait l''inverse : il vient d''Europe passer l''hiver chez nous. Pour lui, Casablanca est un refuge pendant la mauvaise saison.","action":{"type":"open_plant","payload":{"plantId":@@P5@@}},"completeWhen":"manual"},{"id":"m7","title":"Mini-quiz","body":"Une question sur le développement des êtres vivants.","action":{"type":"open_quiz","payload":{"notionId":"C3-DEVREPRO","notionNiveau":"cycle3","questionCode":null}},"completeWhen":"manual"}]', '@@P1@@', p1.id), '@@P2@@', p2.id), '@@P3@@', p3.id), '@@P4@@', p4.id), '@@P5@@', p5.id));
 
 -- 12d. « Reconnaître sans toucher » : la clé de la séance devient « arbres-palmiers ». Garde : aucune clé
 --      n'était réglée (les deux écritures JSON possibles), et la clé existe.
