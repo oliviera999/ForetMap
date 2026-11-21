@@ -161,7 +161,7 @@ test('collège : la détritivorie est un type scolaire, miroir ESM compris (migr
   // Sans elle, un élève de collège voyait la pastille « Détritivore » d'un ver de terre
   // mais aucune flèche vers ce qu'il mange.
   assert.ok(COLLEGE_FOODWEB_TYPES.includes('detritivorie'));
-  assert.deepEqual(foodWebTypesForPedagoLevel('college', ['detritivorie', 'frugivorie']), [
+  assert.deepEqual(foodWebTypesForPedagoLevel('college', ['detritivorie', 'mutualisme']), [
     'detritivorie',
   ]);
   const path = require('node:path');
