@@ -109,23 +109,28 @@ test.describe.serial('Visite : chaque repère visible est touchable', () => {
       await mapSelect.selectOption(MAP_ID);
     }
     await expect(stage.locator('img.visit-map-img')).toBeVisible({ timeout: 30_000 });
-    // Repères seuls + repères fondus dans une pastille = tous les repères posés.
+    // Repères seuls + repères fondus dans une pastille = tous les repères que la carte sert
+    // au visiteur : ceux de ce scénario, et ceux qu'une base locale partagée avec d'autres
+    // suites aurait gardés (ils sont vérifiés comme les autres).
+    const served = await page.request.get(`/api/visit/content?map_id=${MAP_ID}`);
+    expect(served.ok()).toBe(true);
+    const servedMarkers = (await served.json()).markers || [];
+    expect(
+      servedMarkers.filter((m) => String(m.label || '').startsWith(LABEL_PREFIX)),
+    ).toHaveLength(FOREST_PCT.length);
     await expect
       .poll(
         () =>
-          stage.evaluate((el, prefix) => {
-            let total = 0;
-            for (const marker of el.querySelectorAll('.fm-pct-marker')) {
-              if ((marker.getAttribute('aria-label') || '').startsWith(prefix)) total += 1;
-            }
+          stage.evaluate((el) => {
+            let total = el.querySelectorAll('.fm-pct-marker').length;
             for (const pill of el.querySelectorAll('.fm-pct-cluster')) {
               total += Number.parseInt(pill.getAttribute('aria-label') || '0', 10) || 0;
             }
             return total;
-          }, LABEL_PREFIX),
+          }),
         { timeout: 30_000 },
       )
-      .toBe(FOREST_PCT.length);
+      .toBe(servedMarkers.length);
     await stage.scrollIntoViewIfNeeded();
     return stage;
   }
