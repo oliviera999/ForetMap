@@ -1156,6 +1156,8 @@ sont rangées les images de l'accueil en prod (`/uploads/gl_brand/…` par l'imp
 9. Propositions non faites : bandeau de la partie en mode séance, mode séance sur le compte
    d'un élève, `lazyAvecReprise` pour `AppGL` (S5) ; relecture de la projection à la
    reconnexion.
+10. Le banc : le scénario `tablette-parallele-absences` n'est pas déterministe, attendus
+    compris (vérifications ci-dessous).
 
 ### Après la fusion, à faire par Oliv
 
@@ -1192,19 +1194,35 @@ sont rangées les images de l'accueil en prod (`/uploads/gl_brand/…` par l'imp
 | `NODE_ENV=production npm run build`, `check:bundle`, `check:runtime` | JS 1 529,3 Ko (plafond 1 530), CSS 376,9 Ko ; conforme            |
 | e2e `e2e/gl-*.spec.js`, tous                                         | 63 verts, 2 ignorés, 0 échec                                      |
 | e2e `gl-tenir-projection`, `gl-intro`, rejoués sur le dernier build  | 3 / 3                                                             |
-| Banc `tablette-parallele-absences --seed 1` (base `foretmap_sim`)    | ok, **attendus 8/11**, mêmes trois manqués (détail ci-dessous)    |
+| Banc `tablette-parallele-absences --seed 1` (base `foretmap_sim`)    | ok ; attendus 7 à 9 sur 11, comme avant le chantier (ci-dessous)  |
 
 Les e2e complets ont tourné sur l'état d'après l'étape 6 et les docs ; la correction de la
 projection (une phrase d'erreur) est venue ensuite : la suite d'écran, le lint, le build et les
 e2e de la projection ont été rejoués après elle, `npm test` et `test:content` aussi. Le budget
 du bundle n'a pas bougé : le lot n'ajoute rien à l'entrée ForêtMap.
 
-**Banc, avant / après.** Référence de S1 : `ok · 562 appels · 5 séances, tenues 9/10, pâlies
-0, voile 75 %`, attendus 8/11 (manqués : `equipesSousVoile`, `carnetComplet`, `partGnomes`).
-Après le lot (état final, une exécution) : `ok · 554 appels · 5 séances, tenues 6/10, pâlies 2, voile 75 %`, **attendus 8/11 (manqués : `equipesSousVoile`, `carnetComplet`, `partGnomes`)** : les mêmes attendus, les trois mêmes manqués. Les chiffres bruts diffèrent (554 appels contre 562, 6 pages tenues contre 9), dans la fourchette relevée par S4 sur `main`. Le scénario n'est pas reproductible au chiffre près, sur `main` comme sur la
-branche (constat de S4) : ce sont les attendus qui se comparent, pas les décimales. Le lot 6 ne
-touche aucun fichier du moteur (`lib/glBrandImages.js` et la route d'envoi d'un média ne sont
-pas lus par une partie).
+**Banc, avant / après : le scénario ne peut pas montrer « mêmes chiffres ».** Référence de
+S1 : `ok · 562 appels · 5 séances, tenues 9/10, pâlies 0, voile 75 %`, attendus 8/11 (manqués :
+`equipesSousVoile`, `carnetComplet`, `partGnomes`). Première exécution après le lot :
+`ok · 554 appels · 5 séances, tenues 6/10, pâlies 2, voile 75 %`, attendus 8/11, mêmes trois
+manqués. Mais quatre exécutions de plus ont rendu **7, 9, 9 et 8 attendus sur 11**, avec 4 à 6
+séances : **les attendus varient aussi**, pas seulement les décimales (S4 ne l'avait vu que
+pour les décimales). Le banc a donc été rejoué cinq fois sur le code **d'avant le chantier**
+(`1d24be74f`, v1.253.4, arbre de travail séparé, même base `foretmap_sim`) :
+
+| Code                             | Attendus tenus (sur 11) | Séances | Pages tenues |
+| -------------------------------- | ----------------------- | ------- | ------------ |
+| avant le chantier (`1d24be74f`)  | 7, 8, 7, 8, 8           | 4 à 6   | 60 à 100 %   |
+| après (état final de la branche) | 8, 7, 9, 9, 8           | 4 à 6   | 40 à 80 %    |
+
+Toutes « ok », aucun invariant rompu, même dispersion des deux côtés. Ce qui assure que le
+moteur n'a pas bougé, c'est le diff : entre `1d24be74f` et la branche, côté `lib/`, `routes/`,
+`migrations/`, `data/` et `tools/`, seuls changent les lignes d'Olu (`olu-lignes.json`, trois
+lignes de `lib/glTenirOlu.js`), `lib/glBrandImages.js`, un commentaire de
+`lib/uploadsPrivatePaths.js` et la route d'envoi d'un média. **À signaler à Oliv** : la
+vérification « mêmes chiffres » du § 8 du prompt n'est pas tenable avec ce scénario (équipes
+jouées en parallèle, ordre d'arrivée des requêtes) ; le rendre déterministe serait un chantier
+du banc.
 
 ## Ce que la session suivante doit savoir
 
