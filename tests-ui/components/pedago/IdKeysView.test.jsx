@@ -201,3 +201,136 @@ describe('IdKeysView — issues groupe, grand groupe et renvoi (migration 366)',
     });
   });
 });
+
+const KEY_TRACES = {
+  id: 4,
+  slug: 'traces',
+  title: 'Traces',
+  is_published: true,
+  tool_required: ['loupe'],
+  safety_note: null,
+  allows_multiple_paths: true,
+  tutorial_ids: [9],
+  tutorials: [{ id: 9, title: 'Utiliser une loupe', type: 'html', is_active: true }],
+  couplets: [
+    {
+      id: 40,
+      number: 1,
+      leads: [
+        {
+          id: 401,
+          statement: 'Empreinte à quatre doigts',
+          image_url: '/uploads/renard.jpg',
+          image_credit: 'Marie Curie',
+          image_licence: 'CC BY-SA 4.0',
+          outcome: 'espece',
+          plant_id: 5,
+          plant_name: 'Renard',
+        },
+        {
+          id: 402,
+          statement: 'Crotte torsadée',
+          image_url: '/uploads/crotte.jpg',
+          image_credit: null,
+          image_licence: null,
+          outcome: 'espece',
+          plant_id: 5,
+          plant_name: 'Renard',
+        },
+      ],
+    },
+  ],
+};
+
+describe('IdKeysView — crédit des images, tutoriels liés, chemins multiples', () => {
+  let currentKey = KEY_TRACES;
+  beforeEach(() => {
+    currentKey = KEY_TRACES;
+    apiMock.mockImplementation(async (url) => {
+      if (url.startsWith('/api/id-keys/')) return currentKey;
+      if (url.startsWith('/api/clades')) return { items: [] };
+      if (url.startsWith('/api/tutorials')) {
+        return [
+          { id: 9, title: 'Utiliser une loupe', type: 'html', is_active: true },
+          { id: 12, title: 'Régler des jumelles', type: 'html', is_active: true },
+        ];
+      }
+      return { items: [{ id: 4, title: 'Traces', is_published: true }] };
+    });
+  });
+
+  test('le crédit est affiché sous l’image ; rien sous une image sans crédit', async () => {
+    render(<IdKeysView initialKey="traces" />);
+    await screen.findByRole('heading', { name: /Traces/ });
+    const credited = screen.getByRole('button', { name: /Empreinte à quatre doigts/ });
+    expect(credited.querySelector('.id-key-lead-credit').textContent).toBe(
+      'Photo : Marie Curie · CC BY-SA 4.0',
+    );
+    const bare = screen.getByRole('button', { name: /Crotte torsadée/ });
+    expect(bare.querySelector('img')).toBeTruthy();
+    expect(bare.querySelector('.id-key-lead-credit')).toBeNull();
+  });
+
+  test('schéma : les crédits des vignettes sont listés une fois', async () => {
+    render(<IdKeysView initialKey="traces" />);
+    await screen.findByRole('heading', { name: /Traces/ });
+    fireEvent.click(screen.getByRole('button', { name: 'Schéma' }));
+    expect(screen.getByText('Images : Marie Curie · CC BY-SA 4.0')).toBeTruthy();
+  });
+
+  test('« Avant de commencer » : matériel et tutoriel, ouvert dans l’aperçu', async () => {
+    render(<IdKeysView initialKey="traces" />);
+    await screen.findByRole('heading', { name: /Traces/ });
+    expect(screen.getByRole('heading', { name: 'Avant de commencer' })).toBeTruthy();
+    expect(screen.getByText(/Loupe/)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: /Utiliser une loupe/ }));
+    const dialog = await screen.findByRole('dialog');
+    expect(dialog.textContent).toContain('Utiliser une loupe');
+    expect(dialog.querySelector('iframe').getAttribute('src')).toBe('/api/tutorials/9/view');
+  });
+
+  test('sans matériel : pas de bloc « Avant de commencer », même avec un tutoriel lié', async () => {
+    currentKey = { ...KEY_TRACES, tool_required: [] };
+    render(<IdKeysView initialKey="traces" />);
+    await screen.findByRole('heading', { name: /Traces/ });
+    expect(screen.queryByRole('heading', { name: 'Avant de commencer' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Utiliser une loupe/ })).toBeNull();
+  });
+
+  test('éditeur : « crédit manquant » signalé, crédit envoyé avec les propositions', async () => {
+    render(<IdKeysView canManage />);
+    fireEvent.click(await screen.findByRole('button', { name: /Éditer/ }));
+    await screen.findByDisplayValue('Marie Curie');
+    expect(screen.getByRole('status').textContent).toContain('Crédit manquant : 1 image');
+    expect(screen.getAllByText('Crédit manquant').length).toBe(1);
+    const credits = screen.getAllByLabelText(/Crédit de l’image/);
+    fireEvent.change(credits[1], { target: { value: 'Jean Rostand' } });
+    expect(screen.queryByText('Crédit manquant')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer les propositions' }));
+    const call = apiMock.mock.calls.find(
+      ([url, method]) => url.endsWith('/leads') && method === 'PUT',
+    );
+    expect(call[2].leads[0]).toMatchObject({
+      id: 401,
+      image_credit: 'Marie Curie',
+      image_licence: 'CC BY-SA 4.0',
+    });
+    expect(call[2].leads[1]).toMatchObject({ id: 402, image_credit: 'Jean Rostand' });
+  });
+
+  test('éditeur : chemins multiples et tutoriels liés enregistrés avec la clé', async () => {
+    render(<IdKeysView canManage />);
+    fireEvent.click(await screen.findByRole('button', { name: /Éditer/ }));
+    const multiple = await screen.findByLabelText(/Plusieurs chemins vers une même espèce/);
+    expect(multiple.checked).toBe(true);
+    fireEvent.click(multiple);
+    await screen.findByRole('option', { name: 'Régler des jumelles' });
+    fireEvent.change(screen.getByLabelText('Ajouter un tutoriel'), { target: { value: '12' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Monter Régler des jumelles' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer la clé' }));
+    const call = apiMock.mock.calls.find(
+      ([url, method]) => url === '/api/id-keys/4' && method === 'PUT',
+    );
+    expect(call[2]).toMatchObject({ allows_multiple_paths: false, tutorial_ids: [12, 9] });
+  });
+});

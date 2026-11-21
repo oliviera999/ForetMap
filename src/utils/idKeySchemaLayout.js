@@ -333,6 +333,8 @@ export function layoutIdKeySchema(keyBundle) {
         labelBox: { x: child.x - LABEL_W / 2, y: labelTop, width: LABEL_W, height: labelH },
         imageBox: image,
         image_url: lead.image_url || null,
+        image_credit: lead.image_credit || null,
+        image_licence: lead.image_licence || null,
         plant_id: lead.plant_id != null && lead.plant_id !== '' ? Number(lead.plant_id) : null,
         next_couplet_id: hasNext ? Number(lead.next_couplet_id) : null,
         plant_name: lead.plant_name || null,
