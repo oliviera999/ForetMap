@@ -5165,10 +5165,23 @@ appelant `plants.manage` (préparation, suivi, démonstration).
 
 Actions d’étape (`action.type`) : `message`, `open_id_key`, `open_plant`, `open_foodweb`,
 `open_quiz`, `open_glossary`, `open_individual` (`individualId`), `open_nested_groups`
-(`plantIds`, 2 à 6), `open_map_route` (`routeSlug`, `mapId`). MVP : `completeWhen` = `manual`
+(`plantIds`, 2 à 6), `open_map_route` (`routeSlug`, `mapId`), `open_fresque` (`deckId`
+facultatif), `open_tutorial` (`tutorialId`). Source unique de cette liste :
+`src/shared/enums/pedagoStepActions.js` (miroir `lib/shared/pedagoStepActions.js`), lue par la
+validation, le client et l’outil MCP `foretmap_pedago_sessions`. MVP : `completeWhen` = `manual`
 uniquement. Séance `custom` : chaque étape porte ses cibles (la config ne sert que de défaut) ;
-à la publication, les plantes, arbres suivis, parcours et clés référencés doivent exister,
-sinon 400 `Publication impossible : …`. Prérequis (`config.requiresSessionId`) : une autre
+à la publication, les plantes, arbres suivis, parcours, clés et tutoriels référencés doivent
+exister, sinon 400 `Publication impossible : …`.
+
+Étape `open_tutorial` : `payload.tutorialId` (identifiant de `GET /api/tutorials`) ; le tutoriel
+s’ouvre par-dessus la séance, avec son accusé de lecture pour un compte connecté. Contrôle **à
+chaque écriture** de `steps` (`POST` et `PUT`, brouillon compris) : le tutoriel doit exister et
+être **actif**, sinon **400** `étape N : tutoriel n° 12 introuvable`, `étape N : tutoriel
+« Titre » inactif` ou `étape N : tutoriel à choisir (tutorialId ou tutorialSlug)`. Un
+`payload.tutorialSlug` est accepté à l’écriture et **résolu en `tutorialId`**, seule forme
+enregistrée (l’identifiant survit au renommage du tutoriel, pas le slug) ; si les deux sont
+fournis, l’identifiant l’emporte. Un tutoriel désactivé après coup bloque la publication (même
+400) ; pour une séance déjà publiée, l’élève est prévenu et poursuit la séance. Prérequis (`config.requiresSessionId`) : une autre
 séance existante, jamais elle-même, et jamais une séance qui en dépend déjà (cycle de toute
 longueur → **400** `{ error, code: 'PREREQUISITE_CYCLE' }`) ; les gestionnaires (`plants.manage`)
 ne sont jamais bloqués. Un prérequis non publié (brouillon, dépublié) ou supprimé est ignoré :

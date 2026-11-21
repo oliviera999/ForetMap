@@ -1,18 +1,12 @@
 import { Button } from '../../shared/ui/Button.jsx';
 import { NOTION_NIVEAU_FILTER_OPTIONS } from '../../utils/curriculumNotions.js';
+import {
+  PEDAGO_STEP_ACTION as A,
+  PEDAGO_STEP_ACTION_ENUM,
+} from '../../shared/enums/pedagoStepActions.js';
 
-export const STEP_ACTION_LABELS = Object.freeze({
-  message: 'Consigne (texte seul)',
-  open_id_key: 'Clé d’identification',
-  open_plant: 'Fiche espèce',
-  open_foodweb: 'Réseau trophique',
-  open_quiz: 'Mini-quiz',
-  open_glossary: 'Terme du glossaire',
-  open_individual: 'Arbre suivi',
-  open_nested_groups: 'Boîtes emboîtées',
-  open_map_route: 'Parcours sur la carte',
-  open_fresque: 'Fresque du Climat (cartes et flèches)',
-});
+/** Libellés du menu « Outil ouvert » : source unique des actions d'étape. */
+export const STEP_ACTION_LABELS = PEDAGO_STEP_ACTION_ENUM.labels;
 
 const MAX_STEPS = 40;
 const MAX_NESTED_PLANTS = 6;
@@ -22,7 +16,7 @@ export function newStep(index = 0) {
     id: `s${Date.now().toString(36)}${index}`,
     title: '',
     body: '',
-    action: { type: 'message', payload: {} },
+    action: { type: A.MESSAGE, payload: {} },
     completeWhen: 'manual',
   };
 }
@@ -37,10 +31,18 @@ export function moveStep(steps, index, delta) {
   return next;
 }
 
-function PayloadFields({ step, onPayload, plantOptions, idKeys, individuals, mapRoutes }) {
+function PayloadFields({
+  step,
+  onPayload,
+  plantOptions,
+  idKeys,
+  individuals,
+  mapRoutes,
+  tutorials,
+}) {
   const type = step.action?.type;
   const payload = step.action?.payload || {};
-  if (type === 'open_id_key') {
+  if (type === A.OPEN_ID_KEY) {
     return (
       <label className="form-field">
         <span>Clé</span>
@@ -58,11 +60,11 @@ function PayloadFields({ step, onPayload, plantOptions, idKeys, individuals, map
       </label>
     );
   }
-  if (type === 'open_plant' || type === 'open_foodweb') {
-    const key = type === 'open_plant' ? 'plantId' : 'highlightPlantId';
+  if (type === A.OPEN_PLANT || type === A.OPEN_FOODWEB) {
+    const key = type === A.OPEN_PLANT ? 'plantId' : 'highlightPlantId';
     return (
       <label className="form-field">
-        <span>{type === 'open_plant' ? 'Espèce' : 'Espèce mise en avant (optionnel)'}</span>
+        <span>{type === A.OPEN_PLANT ? 'Espèce' : 'Espèce mise en avant (optionnel)'}</span>
         <select
           value={payload[key] != null ? String(payload[key]) : ''}
           onChange={(e) => onPayload({ [key]: e.target.value ? Number(e.target.value) : null })}
@@ -77,7 +79,7 @@ function PayloadFields({ step, onPayload, plantOptions, idKeys, individuals, map
       </label>
     );
   }
-  if (type === 'open_quiz') {
+  if (type === A.OPEN_QUIZ) {
     return (
       <>
         <label className="form-field">
@@ -105,7 +107,7 @@ function PayloadFields({ step, onPayload, plantOptions, idKeys, individuals, map
       </>
     );
   }
-  if (type === 'open_glossary') {
+  if (type === A.OPEN_GLOSSARY) {
     return (
       <label className="form-field">
         <span>Code du terme</span>
@@ -116,7 +118,7 @@ function PayloadFields({ step, onPayload, plantOptions, idKeys, individuals, map
       </label>
     );
   }
-  if (type === 'open_individual') {
+  if (type === A.OPEN_INDIVIDUAL) {
     return (
       <label className="form-field">
         <span>Arbre suivi</span>
@@ -136,7 +138,7 @@ function PayloadFields({ step, onPayload, plantOptions, idKeys, individuals, map
       </label>
     );
   }
-  if (type === 'open_nested_groups') {
+  if (type === A.OPEN_NESTED_GROUPS) {
     const selected = (Array.isArray(payload.plantIds) ? payload.plantIds : []).map(String);
     return (
       <fieldset className="form-field">
@@ -165,7 +167,7 @@ function PayloadFields({ step, onPayload, plantOptions, idKeys, individuals, map
       </fieldset>
     );
   }
-  if (type === 'open_fresque') {
+  if (type === A.OPEN_FRESQUE) {
     return (
       <label className="form-field">
         <span>Jeu de cartes (identifiant, vide = jeu unique)</span>
@@ -177,7 +179,33 @@ function PayloadFields({ step, onPayload, plantOptions, idKeys, individuals, map
       </label>
     );
   }
-  if (type === 'open_map_route') {
+  if (type === A.OPEN_TUTORIAL) {
+    const current = payload.tutorialId != null ? String(payload.tutorialId) : '';
+    // Tutoriel désactivé depuis : il reste affiché, le serveur le refusera à l'enregistrement.
+    const known = tutorials.some((t) => String(t.id) === current);
+    return (
+      <label className="form-field">
+        <span>Tutoriel</span>
+        <select
+          value={current}
+          onChange={(e) =>
+            onPayload({ tutorialId: e.target.value ? Number(e.target.value) : null })
+          }
+        >
+          <option value="">— choisir —</option>
+          {current && !known ? (
+            <option value={current}>Tutoriel n° {current} (indisponible)</option>
+          ) : null}
+          {tutorials.map((t) => (
+            <option key={t.id} value={String(t.id)}>
+              {t.title}
+            </option>
+          ))}
+        </select>
+      </label>
+    );
+  }
+  if (type === A.OPEN_MAP_ROUTE) {
     return (
       <label className="form-field">
         <span>Parcours</span>
@@ -214,6 +242,7 @@ export function SessionStepEditor({
   idKeys = [],
   individuals = [],
   mapRoutes = [],
+  tutorials = [],
 }) {
   const update = (index, patch) =>
     onChange(steps.map((s, i) => (i === index ? { ...s, ...patch } : s)));
@@ -276,7 +305,7 @@ export function SessionStepEditor({
             <label className="form-field">
               <span>Outil ouvert</span>
               <select
-                value={step.action?.type || 'message'}
+                value={step.action?.type || A.MESSAGE}
                 onChange={(e) => update(index, { action: { type: e.target.value, payload: {} } })}
               >
                 {Object.entries(STEP_ACTION_LABELS).map(([value, label]) => (
@@ -292,6 +321,7 @@ export function SessionStepEditor({
               idKeys={idKeys}
               individuals={individuals}
               mapRoutes={mapRoutes}
+              tutorials={tutorials}
               onPayload={(patch) =>
                 update(index, {
                   action: {

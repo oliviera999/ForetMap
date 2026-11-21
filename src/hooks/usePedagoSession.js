@@ -10,6 +10,8 @@ import {
   consumeSessionLinkFromLocation,
   clearPendingSessionLink,
 } from '../utils/pedagoSessionLink.js';
+import { PEDAGO_STEP_ACTION as A } from '../shared/enums/pedagoStepActions.js';
+import { tutorialPreviewPayload } from '../components/TutorialPreviewModal.jsx';
 
 /**
  * Traduit l'action d'une étape de séance en navigation dans l'application (fonction pure :
@@ -20,17 +22,32 @@ import {
  *   `openPlantCatalogPreviewById`, `openPedagoFoodWeb`, `chooseMap`, `idKeysAvailable`,
  *   `individualsAvailable`, `setPedagoIdKeysInitialKey`, `setPedagoQuizQuestionCode`,
  *   `setPedagoQuizNotionId`, `setPedagoQuizNotionNiveau`, `setPedagoGlossaryCode`,
- *   `setPedagoEntry`, `setPedagoMapRouteRequest`
+ *   `setPedagoEntry`, `setPedagoMapRouteRequest` ; et, fournies par `usePedagoSession`
+ *   lui-même (pas par le shell), `openSessionTutorial` / `closeSessionTutorial`
  */
 export function runPedagoSessionStepAction(step, nav) {
   if (!step?.action) return;
   const { type, payload = {} } = step.action;
   nav.setPlantCatalogPreview(null);
-  if (type === 'message') {
+  // Le tutoriel d'une étape précédente ne reste pas ouvert par-dessus la suivante.
+  nav.closeSessionTutorial?.();
+  if (type === A.MESSAGE) {
     nav.navigateTab('sessions');
     return;
   }
-  if (type === 'open_id_key') {
+  if (type === A.OPEN_TUTORIAL) {
+    // Le tutoriel s'ouvre par-dessus l'onglet Séances (consigne lisible à la fermeture) :
+    // aucun onglet du shell n'est requis, l'aperçu est rendu par le bandeau de séance.
+    nav.navigateTab('sessions');
+    const tid = Number(payload.tutorialId);
+    const slug = payload.tutorialSlug ? String(payload.tutorialSlug).trim() : '';
+    nav.openSessionTutorial?.({
+      tutorialId: Number.isInteger(tid) && tid > 0 ? tid : null,
+      tutorialSlug: slug || null,
+    });
+    return;
+  }
+  if (type === A.OPEN_ID_KEY) {
     // Module éteint : l'étape reste lisible dans le bandeau, sans ouvrir un onglet masqué
     // que `useTabNavigationGuards` renverrait aussitôt vers la carte.
     if (!nav.idKeysAvailable) {
@@ -41,17 +58,17 @@ export function runPedagoSessionStepAction(step, nav) {
     nav.navigateTab('id-keys');
     return;
   }
-  if (type === 'open_plant') {
+  if (type === A.OPEN_PLANT) {
     const pid = payload.plantId != null ? Number(payload.plantId) : null;
     if (Number.isFinite(pid) && pid > 0) nav.openPlantCatalogPreviewById(pid);
     else nav.navigateTab('plants');
     return;
   }
-  if (type === 'open_foodweb') {
+  if (type === A.OPEN_FOODWEB) {
     nav.openPedagoFoodWeb(payload.highlightPlantId ?? null, payload.mapId ?? null);
     return;
   }
-  if (type === 'open_quiz') {
+  if (type === A.OPEN_QUIZ) {
     const code = payload.questionCode ? String(payload.questionCode).trim().toUpperCase() : null;
     nav.setPedagoQuizQuestionCode(code || null);
     nav.setPedagoQuizNotionId(payload.notionId ? String(payload.notionId).trim() : null);
@@ -61,13 +78,13 @@ export function runPedagoSessionStepAction(step, nav) {
     nav.navigateTab('quiz');
     return;
   }
-  if (type === 'open_glossary') {
+  if (type === A.OPEN_GLOSSARY) {
     const c = payload.termCode ? String(payload.termCode).trim() : '';
     if (c) nav.setPedagoGlossaryCode(c);
     nav.navigateTab('glossary');
     return;
   }
-  if (type === 'open_fresque') {
+  if (type === A.OPEN_FRESQUE) {
     if (!nav.fresqueAvailable) {
       nav.navigateTab('sessions');
       return;
@@ -80,7 +97,7 @@ export function runPedagoSessionStepAction(step, nav) {
     return;
   }
   const map = payload.mapId ? String(payload.mapId).trim() : '';
-  if (type === 'open_individual') {
+  if (type === A.OPEN_INDIVIDUAL) {
     if (!nav.individualsAvailable) {
       nav.navigateTab('sessions');
       return;
@@ -94,7 +111,7 @@ export function runPedagoSessionStepAction(step, nav) {
     nav.navigateTab('individuals');
     return;
   }
-  if (type === 'open_nested_groups') {
+  if (type === A.OPEN_NESTED_GROUPS) {
     if (map) nav.chooseMap(map);
     const plantIds = (Array.isArray(payload.plantIds) ? payload.plantIds : [])
       .map(Number)
@@ -106,7 +123,7 @@ export function runPedagoSessionStepAction(step, nav) {
     nav.navigateTab('nested-groups');
     return;
   }
-  if (type === 'open_map_route') {
+  if (type === A.OPEN_MAP_ROUTE) {
     if (map) nav.chooseMap(map);
     const slug = payload.routeSlug ? String(payload.routeSlug).trim() : '';
     if (slug) nav.setPedagoMapRouteRequest({ slug, nonce: Date.now() });
@@ -156,9 +173,76 @@ export function usePedagoSession({ available, authenticated, onToast, navigation
   );
   const [runsVersion, setRunsVersion] = useState(0);
 
+  // Tutoriel d'une étape `open_tutorial` : état porté ici, aperçu rendu par
+  // `PedagoSessionBanner` (aucune cible nouvelle demandée au shell).
+  const [sessionTutorial, setSessionTutorial] = useState(null);
+  const tutorialRequestRef = useRef(0);
+
+  const closeSessionTutorial = useCallback(() => {
+    tutorialRequestRef.current += 1;
+    setSessionTutorial(null);
+  }, []);
+
+  /** Marque lu le tutoriel affiché (bouton « J'ai lu » de l'aperçu). */
+  const markSessionTutorialRead = useCallback((tutorialId) => {
+    setSessionTutorial((cur) =>
+      cur && Number(cur.tutorial?.id) === Number(tutorialId) ? { ...cur, isRead: true } : cur,
+    );
+  }, []);
+
+  /**
+   * Charge puis affiche le tutoriel d'une étape. Par identifiant : `GET /api/tutorials/:id`
+   * (404 si désactivé). Par slug seul (étape écrite hors API, par une migration) : recherche
+   * dans la liste des tutoriels actifs. Une réponse arrivée après un changement d'étape est
+   * ignorée.
+   */
+  const openSessionTutorial = useCallback(
+    async ({ tutorialId = null, tutorialSlug = null } = {}) => {
+      const requestId = tutorialRequestRef.current + 1;
+      tutorialRequestRef.current = requestId;
+      setSessionTutorial(null);
+      if (!tutorialId && !tutorialSlug) {
+        onToast('Cette étape n’a pas de tutoriel : préviens ton professeur.');
+        return;
+      }
+      let tutorial = null;
+      try {
+        if (tutorialId) {
+          tutorial = await api(`/api/tutorials/${encodeURIComponent(tutorialId)}`);
+        } else {
+          const list = await api('/api/tutorials');
+          tutorial = (Array.isArray(list) ? list : []).find((t) => t.slug === tutorialSlug) || null;
+        }
+      } catch {
+        tutorial = null;
+      }
+      if (tutorialRequestRef.current !== requestId) return;
+      const payload = tutorialPreviewPayload(tutorial);
+      if (!payload) {
+        onToast('Ce tutoriel n’est plus disponible. Tu peux continuer la séance.');
+        return;
+      }
+      setSessionTutorial({ tutorial: payload, isRead: false, canAcknowledge: false });
+      if (!authenticated) return;
+      // Accusé de lecture : proposé seulement une fois l'état « déjà lu » connu.
+      api('/api/tutorials/me/read-ids')
+        .then((res) => {
+          if (tutorialRequestRef.current !== requestId) return;
+          const ids = Array.isArray(res?.tutorial_ids) ? res.tutorial_ids.map(Number) : [];
+          setSessionTutorial((cur) =>
+            cur ? { ...cur, isRead: ids.includes(Number(payload.id)), canAcknowledge: true } : cur,
+          );
+        })
+        .catch(() => {});
+    },
+    [authenticated, onToast],
+  );
+
   const dispatchStep = useCallback(
     (step) =>
       runPedagoSessionStepAction(step, {
+        openSessionTutorial,
+        closeSessionTutorial,
         navigateTab,
         setPlantCatalogPreview,
         openPlantCatalogPreviewById,
@@ -176,6 +260,8 @@ export function usePedagoSession({ available, authenticated, onToast, navigation
         setPedagoMapRouteRequest,
       }),
     [
+      openSessionTutorial,
+      closeSessionTutorial,
       navigateTab,
       setPlantCatalogPreview,
       openPlantCatalogPreviewById,
@@ -305,11 +391,13 @@ export function usePedagoSession({ available, authenticated, onToast, navigation
    * depuis l'onglet Séances (la confirmation est demandée par le bandeau).
    */
   const exitSession = useCallback(() => {
+    closeSessionTutorial();
     persistSession(null);
-  }, [persistSession]);
+  }, [persistSession, closeSessionTutorial]);
 
   const completeSession = useCallback(
     (prev) => {
+      closeSessionTutorial();
       persistSession(null);
       setCompletedSession(prev);
       if (!authenticated || !prev.id) return;
@@ -339,7 +427,7 @@ export function usePedagoSession({ available, authenticated, onToast, navigation
         })
         .finally(() => setRunsVersion((v) => v + 1));
     },
-    [authenticated, persistSession],
+    [authenticated, persistSession, closeSessionTutorial],
   );
 
   const goStep = useCallback(
@@ -411,6 +499,9 @@ export function usePedagoSession({ available, authenticated, onToast, navigation
       runsVersion,
       imposedLevel,
       imposedNotionNiveau,
+      sessionTutorial,
+      closeSessionTutorial,
+      markSessionTutorialRead,
       startSession,
       launchSession,
       exitSession,
@@ -425,6 +516,9 @@ export function usePedagoSession({ available, authenticated, onToast, navigation
       runsVersion,
       imposedLevel,
       imposedNotionNiveau,
+      sessionTutorial,
+      closeSessionTutorial,
+      markSessionTutorialRead,
       startSession,
       launchSession,
       exitSession,

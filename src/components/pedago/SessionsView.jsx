@@ -9,6 +9,7 @@ import { MyRewardsPanel } from '../rewards/MyRewardsPanel.jsx';
 import { NOTION_NIVEAU_FILTER_OPTIONS } from '../../utils/curriculumNotions.js';
 import { PEDAGO_SESSION_STORAGE_KEY as STORAGE_KEY } from '../../utils/pedagoSessionScope.js';
 import { PEDAGO_ETAPE_ENUM } from '../../shared/enums/pedagoEnums.js';
+import { PEDAGO_STEP_ACTION } from '../../shared/enums/pedagoStepActions.js';
 
 export const CREATABLE_TEMPLATES = Object.freeze([
   { key: 'lycee_arbre', label: 'Lycée · Un arbre qui grandit' },
@@ -343,7 +344,14 @@ export function SessionsView({
     }
   }
 
-  const showMessage = activeSession && currentStep && currentStep.action?.type === 'message';
+  // Consigne affichée dans l'onglet : étape « texte seul », et étape « tutoriel » (l'aperçu
+  // s'ouvre par-dessus cet onglet, la consigne reste lisible une fois l'aperçu fermé).
+  const showMessage =
+    activeSession &&
+    currentStep &&
+    [PEDAGO_STEP_ACTION.MESSAGE, PEDAGO_STEP_ACTION.OPEN_TUTORIAL].includes(
+      currentStep.action?.type,
+    );
   const isLastStep =
     !!activeSession && activeSession.stepIndex >= (activeSession.steps?.length || 0) - 1;
 
@@ -501,6 +509,26 @@ function useIndividuals(enabled) {
   return individuals;
 }
 
+/** Tutoriels actifs, proposés à l'étape « Tutoriel » d'une séance libre. */
+function useTutorials(enabled) {
+  const [tutorials, setTutorials] = useState([]);
+  useEffect(() => {
+    if (!enabled) return;
+    let cancelled = false;
+    api('/api/tutorials')
+      .then((rows) => {
+        if (!cancelled) setTutorials(Array.isArray(rows) ? rows : []);
+      })
+      .catch(() => {
+        if (!cancelled) setTutorials([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [enabled]);
+  return tutorials;
+}
+
 function useMapRoutes(mapId, enabled) {
   const [routes, setRoutes] = useState([]);
   useEffect(() => {
@@ -528,7 +556,10 @@ function stripResolvedStep(step) {
     id: step.id,
     title: step.title || '',
     body: step.body || '',
-    action: { type: step.action?.type || 'message', payload: { ...(step.action?.payload || {}) } },
+    action: {
+      type: step.action?.type || PEDAGO_STEP_ACTION.MESSAGE,
+      payload: { ...(step.action?.payload || {}) },
+    },
     completeWhen: 'manual',
   };
 }
@@ -571,6 +602,7 @@ function SessionConfigForm({ session, sessions = [], maps, plants, idKeys, onCan
 
   const individuals = useIndividuals(isC || isCustom);
   const mapRoutes = useMapRoutes(mapId, isCustom);
+  const tutorials = useTutorials(isCustom);
 
   const plantOptions = useMemo(
     () =>
@@ -727,6 +759,7 @@ function SessionConfigForm({ session, sessions = [], maps, plants, idKeys, onCan
           idKeys={idKeys}
           individuals={individuals}
           mapRoutes={mapRoutes}
+          tutorials={tutorials}
         />
       )}
 

@@ -140,6 +140,33 @@ describe('runPedagoSessionStepAction', () => {
   });
 });
 
+describe('runPedagoSessionStepAction — tutoriel', () => {
+  it('ouvre le tutoriel par-dessus l’onglet Séances, par identifiant ou par slug', () => {
+    const nav = fakeNavigation({ openSessionTutorial: vi.fn(), closeSessionTutorial: vi.fn() });
+    runPedagoSessionStepAction(step('open_tutorial', { tutorialId: '7' }), nav);
+    expect(nav.closeSessionTutorial).toHaveBeenCalledTimes(1);
+    expect(nav.navigateTab).toHaveBeenLastCalledWith('sessions');
+    expect(nav.openSessionTutorial).toHaveBeenLastCalledWith({ tutorialId: 7, tutorialSlug: null });
+    runPedagoSessionStepAction(step('open_tutorial', { tutorialSlug: ' ma-fiche ' }), nav);
+    expect(nav.openSessionTutorial).toHaveBeenLastCalledWith({
+      tutorialId: null,
+      tutorialSlug: 'ma-fiche',
+    });
+    // Toute autre action referme l'aperçu resté ouvert, sans en ouvrir un autre.
+    runPedagoSessionStepAction(step('message'), nav);
+    expect(nav.closeSessionTutorial).toHaveBeenCalledTimes(3);
+    expect(nav.openSessionTutorial).toHaveBeenCalledTimes(2);
+  });
+
+  it('sans les cibles du hook (appel isolé) : la navigation reste sûre', () => {
+    const nav = fakeNavigation();
+    expect(() =>
+      runPedagoSessionStepAction(step('open_tutorial', { tutorialId: 7 }), nav),
+    ).not.toThrow();
+    expect(nav.navigateTab).toHaveBeenLastCalledWith('sessions');
+  });
+});
+
 const SEANCE = {
   id: 5,
   slug: 's5',
@@ -310,6 +337,108 @@ describe('usePedagoSession', () => {
       expect(await result.current.launchSession('  ')).toBe(false);
     });
     expect(apiMock).not.toHaveBeenCalled();
+  });
+
+  const SEANCE_TUTO = {
+    id: 8,
+    slug: 's8',
+    title: 'S8',
+    steps: [step('open_tutorial', { tutorialId: 7 }), step('message')],
+  };
+
+  it('étape tutoriel : chargé, exposé avec son état « lu », refermé à l’étape suivante', async () => {
+    apiMock.mockImplementation(async (url) => {
+      if (url === '/api/tutorials/7') return { id: 7, title: 'Semis', type: 'html' };
+      if (url === '/api/tutorials/me/read-ids') return { tutorial_ids: [3, 7] };
+      return {};
+    });
+    const { result, navigation } = renderSession();
+    await act(async () => {
+      await result.current.startSession(SEANCE_TUTO);
+    });
+    expect(navigation.navigateTab).toHaveBeenLastCalledWith('sessions');
+    expect(result.current.sessionTutorial).toMatchObject({
+      tutorial: { id: 7, title: 'Semis', preview_url: '/api/tutorials/7/view' },
+      isRead: true,
+      canAcknowledge: true,
+    });
+    act(() => result.current.goStep(1));
+    expect(result.current.sessionTutorial).toBeNull();
+  });
+
+  it('accusé de lecture : `markSessionTutorialRead` passe le tutoriel affiché à « lu »', async () => {
+    apiMock.mockImplementation(async (url) => {
+      if (url === '/api/tutorials/7') return { id: 7, title: 'Semis', type: 'html' };
+      if (url === '/api/tutorials/me/read-ids') return { tutorial_ids: [] };
+      return {};
+    });
+    const { result } = renderSession();
+    await act(async () => {
+      await result.current.startSession(SEANCE_TUTO);
+    });
+    expect(result.current.sessionTutorial.isRead).toBe(false);
+    act(() => result.current.markSessionTutorialRead(99));
+    expect(result.current.sessionTutorial.isRead).toBe(false);
+    act(() => result.current.markSessionTutorialRead(7));
+    expect(result.current.sessionTutorial.isRead).toBe(true);
+    act(() => result.current.exitSession());
+    expect(result.current.sessionTutorial).toBeNull();
+  });
+
+  it('tutoriel désactivé (404) ou étape sans cible : message, la séance continue', async () => {
+    apiMock.mockImplementation(async (url) => {
+      if (url === '/api/tutorials/7') throw Object.assign(new Error('404'), { status: 404 });
+      return {};
+    });
+    const { result, onToast } = renderSession();
+    await act(async () => {
+      await result.current.startSession(SEANCE_TUTO);
+    });
+    expect(result.current.sessionTutorial).toBeNull();
+    expect(result.current.activeSession.stepIndex).toBe(0);
+    expect(onToast).toHaveBeenLastCalledWith(
+      'Ce tutoriel n’est plus disponible. Tu peux continuer la séance.',
+    );
+    await act(async () => {
+      await result.current.startSession(
+        { ...SEANCE_TUTO, id: 9, steps: [step('open_tutorial', {})] },
+        { restart: true },
+      );
+    });
+    expect(onToast).toHaveBeenLastCalledWith(
+      'Cette étape n’a pas de tutoriel : préviens ton professeur.',
+    );
+  });
+
+  it('étape écrite avec un slug seul : tutoriel retrouvé dans la liste des actifs', async () => {
+    apiMock.mockImplementation(async (url) => {
+      if (url === '/api/tutorials') {
+        return [
+          { id: 1, slug: 'autre', title: 'Autre' },
+          {
+            id: 4,
+            slug: 'ma-fiche',
+            title: 'Ma fiche',
+            type: 'link',
+            source_url: 'https://x.test/',
+          },
+        ];
+      }
+      return {};
+    });
+    const { result } = renderSession({ authenticated: false });
+    await act(async () => {
+      await result.current.startSession({
+        ...SEANCE_TUTO,
+        steps: [step('open_tutorial', { tutorialSlug: 'ma-fiche' })],
+      });
+    });
+    expect(result.current.sessionTutorial).toMatchObject({
+      tutorial: { id: 4, preview_url: 'https://x.test/' },
+      canAcknowledge: false,
+    });
+    // Non authentifié : aucun appel à l'accusé de lecture.
+    expect(apiMock).not.toHaveBeenCalledWith('/api/tutorials/me/read-ids');
   });
 
   it('le contexte partage la valeur du hook avec l’arbre', async () => {
