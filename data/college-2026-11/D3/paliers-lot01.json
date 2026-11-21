@@ -1,0 +1,320 @@
+[
+ {
+  "code": "QF0130",
+  "categorie": "agroecologie_permaculture",
+  "palier": 4,
+  "raison": "notion d’écosystème (cycle 4)"
+ },
+ {
+  "code": "QF0131",
+  "categorie": "agroecologie_permaculture",
+  "palier": 3,
+  "raison": "strates de végétation, description simple d’un jardin"
+ },
+ {
+  "code": "QF0133",
+  "categorie": "agroecologie_permaculture",
+  "palier": 4,
+  "raison": "lutte biologique : action humaine sur les relations entre êtres vivants"
+ },
+ {
+  "code": "QF0330",
+  "categorie": "agroecologie_permaculture",
+  "palier": 3,
+  "raison": "besoin de lumière des plantes, étages de végétation"
+ },
+ {
+  "code": "QF0331",
+  "categorie": "agroecologie_permaculture",
+  "palier": 4,
+  "raison": "équilibres naturels et agroécologie (gestion des ressources)"
+ },
+ {
+  "code": "QF0511",
+  "categorie": "agroecologie_permaculture",
+  "palier": 3,
+  "raison": "culture associée, origine des aliments"
+ },
+ {
+  "code": "QF0525",
+  "categorie": "agroecologie_permaculture",
+  "palier": 4,
+  "raison": "compagnonnage contre un parasite du sol (relations entre êtres vivants)"
+ },
+ {
+  "code": "QF9209",
+  "categorie": "agroecologie_permaculture",
+  "palier": 4,
+  "raison": "mycorhizes : symbiose (cycle 4)"
+ },
+ {
+  "code": "QF9210",
+  "categorie": "agroecologie_permaculture",
+  "palier": 3,
+  "raison": "besoins en eau d’une plante, observation de jardin"
+ },
+ {
+  "code": "QF9211",
+  "categorie": "agroecologie_permaculture",
+  "palier": 4,
+  "raison": "BRF et vie du sol : vocabulaire et raisonnement de cycle 4"
+ },
+ {
+  "code": "QF9212",
+  "categorie": "agroecologie_permaculture",
+  "palier": 3,
+  "raison": "devenir de la matière organique au jardin",
+  "ajouts": [
+   "C3-MATORG"
+  ]
+ },
+ {
+  "code": "QF9518",
+  "categorie": "agroecologie_permaculture",
+  "palier": 4,
+  "raison": "fixation de l’azote par les légumineuses"
+ },
+ {
+  "code": "QF9732",
+  "categorie": "agroecologie_permaculture",
+  "palier": 3,
+  "raison": "geste simple de respect du sol"
+ },
+ {
+  "code": "QF9733",
+  "categorie": "agroecologie_permaculture",
+  "palier": 3,
+  "raison": "ombre et eau du sol, observation directe"
+ },
+ {
+  "code": "QF0020",
+  "categorie": "cycle_azote_aquaponie",
+  "palier": 4,
+  "raison": "ammonium et déjections : cycle de l’azote"
+ },
+ {
+  "code": "QF0021",
+  "categorie": "cycle_azote_aquaponie",
+  "palier": 4,
+  "raison": "absorption des nitrates par les plantes"
+ },
+ {
+  "code": "QF0506",
+  "categorie": "cycle_azote_aquaponie",
+  "palier": 4,
+  "raison": "symbiose racinaire avec des bactéries fixatrices (cycle 4)"
+ },
+ {
+  "code": "QF9523",
+  "categorie": "cycle_azote_aquaponie",
+  "palier": 3,
+  "raison": "mode de vie de plantes aquatiques (peuplement du milieu)"
+ },
+ {
+  "code": "QF9525",
+  "categorie": "cycle_azote_aquaponie",
+  "palier": 3,
+  "raison": "régime alimentaire de brouteurs d’algues"
+ },
+ {
+  "code": "QF9530",
+  "categorie": "cycle_azote_aquaponie",
+  "palier": 4,
+  "raison": "déjections et nitrification"
+ },
+ {
+  "code": "QF9531",
+  "categorie": "cycle_azote_aquaponie",
+  "palier": 3,
+  "raison": "rôle d’une plante dans un bassin (abri, ombre)"
+ },
+ {
+  "code": "QF9615",
+  "categorie": "cycle_azote_aquaponie",
+  "palier": 3,
+  "raison": "reproduction et soins aux jeunes chez un poisson",
+  "ajouts": [
+   "C3-DEVREPRO"
+  ]
+ },
+ {
+  "code": "QF9701",
+  "categorie": "cycle_azote_aquaponie",
+  "palier": 4,
+  "raison": "bactéries nitrifiantes"
+ },
+ {
+  "code": "QF9703",
+  "categorie": "cycle_azote_aquaponie",
+  "palier": 4,
+  "raison": "maladie et hygiène d’un élevage (monde microbien)"
+ },
+ {
+  "code": "QF9704",
+  "categorie": "cycle_azote_aquaponie",
+  "palier": 4,
+  "raison": "dioxygène dissous et respiration des poissons"
+ },
+ {
+  "code": "QF9706",
+  "categorie": "cycle_azote_aquaponie",
+  "palier": 4,
+  "raison": "substrat filtrant et bactéries nitrifiantes"
+ },
+ {
+  "code": "QF9877",
+  "categorie": "demarche_mesure",
+  "palier": 4,
+  "raison": "bilan d’eau d’une zone humide (ressource en eau)"
+ },
+ {
+  "code": "QF9887",
+  "categorie": "demarche_mesure",
+  "palier": 3,
+  "raison": "démarche : ne faire varier qu’un facteur"
+ },
+ {
+  "code": "QF9912",
+  "categorie": "demarche_mesure",
+  "palier": 3,
+  "raison": "calcul simple de pourcentage"
+ },
+ {
+  "code": "QF9918",
+  "categorie": "demarche_mesure",
+  "palier": 3,
+  "raison": "observer pour identifier un animal"
+ },
+ {
+  "code": "QF9924",
+  "categorie": "demarche_mesure",
+  "palier": 4,
+  "raison": "échantillonnage et variabilité"
+ },
+ {
+  "code": "QF0080",
+  "categorie": "eau_arrosage",
+  "palier": 3,
+  "raison": "geste d’économie d’eau",
+  "ajouts": [
+   "C3-ENV"
+  ]
+ },
+ {
+  "code": "QF0280",
+  "categorie": "eau_arrosage",
+  "palier": 3,
+  "raison": "besoin en eau de la plante, racines"
+ },
+ {
+  "code": "QF0281",
+  "categorie": "eau_arrosage",
+  "palier": 3,
+  "raison": "économie d’eau potable",
+  "ajouts": [
+   "C3-ENV"
+  ]
+ },
+ {
+  "code": "QF0283",
+  "categorie": "eau_arrosage",
+  "palier": 3,
+  "raison": "paillage et économie d’eau",
+  "ajouts": [
+   "C3-ENV"
+  ]
+ },
+ {
+  "code": "QF9201",
+  "categorie": "eau_arrosage",
+  "palier": 3,
+  "raison": "évaporation et économie d’eau",
+  "ajouts": [
+   "C3-ENV"
+  ]
+ },
+ {
+  "code": "QF9202",
+  "categorie": "eau_arrosage",
+  "palier": 3,
+  "raison": "observation du sol avant d’arroser"
+ },
+ {
+  "code": "QF9203",
+  "categorie": "eau_arrosage",
+  "palier": 3,
+  "raison": "arrosage et développement des racines"
+ },
+ {
+  "code": "QF9204",
+  "categorie": "eau_arrosage",
+  "palier": 4,
+  "raison": "champignons pathogènes (monde microbien)"
+ },
+ {
+  "code": "QF9225",
+  "categorie": "eau_arrosage",
+  "palier": 4,
+  "raison": "calcul de volume à partir d’une formule"
+ },
+ {
+  "code": "QF9226",
+  "categorie": "eau_arrosage",
+  "palier": 4,
+  "raison": "pH et chlore de l’eau"
+ },
+ {
+  "code": "QF9227",
+  "categorie": "eau_arrosage",
+  "palier": 4,
+  "raison": "croûte de battance (érosion du sol)"
+ },
+ {
+  "code": "QF9228",
+  "categorie": "eau_arrosage",
+  "palier": 4,
+  "raison": "matière organique et rétention d’eau en pourcentage"
+ },
+ {
+  "code": "QF9723",
+  "categorie": "eau_arrosage",
+  "palier": 3,
+  "raison": "arrosage par jarre poreuse, observation"
+ },
+ {
+  "code": "QF9724",
+  "categorie": "eau_arrosage",
+  "palier": 4,
+  "raison": "conversion millimètre de pluie / litre par mètre carré"
+ },
+ {
+  "code": "QF0013",
+  "categorie": "ecologie_reseaux",
+  "palier": 3,
+  "raison": "régime alimentaire : herbivore"
+ },
+ {
+  "code": "QF0210",
+  "categorie": "ecologie_reseaux",
+  "palier": 3,
+  "raison": "régime alimentaire : omnivore"
+ },
+ {
+  "code": "QF0211",
+  "categorie": "ecologie_reseaux",
+  "palier": 4,
+  "raison": "production de matière et de dioxygène (photosynthèse)"
+ },
+ {
+  "code": "QF0212",
+  "categorie": "ecologie_reseaux",
+  "palier": 3,
+  "raison": "décomposeurs et devenir de la matière morte"
+ },
+ {
+  "code": "QF0510",
+  "categorie": "ecologie_reseaux",
+  "palier": 4,
+  "raison": "ressource pour les pollinisateurs (relations entre êtres vivants)"
+ }
+]

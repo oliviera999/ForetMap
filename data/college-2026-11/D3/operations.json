@@ -1,0 +1,902 @@
+{
+ "operations": {
+  "exclusion_insert": [
+   {
+    "code": "QF0130",
+    "categorie": "agroecologie_permaculture",
+    "notion": "C3-ALIM"
+   },
+   {
+    "code": "QF0131",
+    "categorie": "agroecologie_permaculture",
+    "notion": "C4-RESS"
+   },
+   {
+    "code": "QF0133",
+    "categorie": "agroecologie_permaculture",
+    "notion": "C3-ALIM"
+   },
+   {
+    "code": "QF0330",
+    "categorie": "agroecologie_permaculture",
+    "notion": "C4-RESS"
+   },
+   {
+    "code": "QF0331",
+    "categorie": "agroecologie_permaculture",
+    "notion": "C3-ALIM"
+   },
+   {
+    "code": "QF0511",
+    "categorie": "agroecologie_permaculture",
+    "notion": "C4-RESS"
+   },
+   {
+    "code": "QF0525",
+    "categorie": "agroecologie_permaculture",
+    "notion": "C3-ALIM"
+   },
+   {
+    "code": "QF9209",
+    "categorie": "agroecologie_permaculture",
+    "notion": "C3-ALIM"
+   },
+   {
+    "code": "QF9210",
+    "categorie": "agroecologie_permaculture",
+    "notion": "C4-RESS"
+   },
+   {
+    "code": "QF9211",
+    "categorie": "agroecologie_permaculture",
+    "notion": "C3-ALIM"
+   },
+   {
+    "code": "QF9212",
+    "categorie": "agroecologie_permaculture",
+    "notion": "C4-RESS"
+   },
+   {
+    "code": "QF9518",
+    "categorie": "agroecologie_permaculture",
+    "notion": "C3-ALIM"
+   },
+   {
+    "code": "QF9732",
+    "categorie": "agroecologie_permaculture",
+    "notion": "C4-RESS"
+   },
+   {
+    "code": "QF9733",
+    "categorie": "agroecologie_permaculture",
+    "notion": "C4-RESS"
+   },
+   {
+    "code": "QF0020",
+    "categorie": "cycle_azote_aquaponie",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF0021",
+    "categorie": "cycle_azote_aquaponie",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF0506",
+    "categorie": "cycle_azote_aquaponie",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF9523",
+    "categorie": "cycle_azote_aquaponie",
+    "notion": "C4-RESS"
+   },
+   {
+    "code": "QF9525",
+    "categorie": "cycle_azote_aquaponie",
+    "notion": "C4-RESS"
+   },
+   {
+    "code": "QF9530",
+    "categorie": "cycle_azote_aquaponie",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF9531",
+    "categorie": "cycle_azote_aquaponie",
+    "notion": "C4-RESS"
+   },
+   {
+    "code": "QF9615",
+    "categorie": "cycle_azote_aquaponie",
+    "notion": "C4-RESS"
+   },
+   {
+    "code": "QF9701",
+    "categorie": "cycle_azote_aquaponie",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF9703",
+    "categorie": "cycle_azote_aquaponie",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF9704",
+    "categorie": "cycle_azote_aquaponie",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF9706",
+    "categorie": "cycle_azote_aquaponie",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF9887",
+    "categorie": "demarche_mesure",
+    "notion": "C4-TERRE"
+   },
+   {
+    "code": "QF9912",
+    "categorie": "demarche_mesure",
+    "notion": "C4-TERRE"
+   },
+   {
+    "code": "QF9918",
+    "categorie": "demarche_mesure",
+    "notion": "C4-TERRE"
+   },
+   {
+    "code": "QF0080",
+    "categorie": "eau_arrosage",
+    "notion": "C4-RESS"
+   },
+   {
+    "code": "QF0280",
+    "categorie": "eau_arrosage",
+    "notion": "C4-RESS"
+   },
+   {
+    "code": "QF0281",
+    "categorie": "eau_arrosage",
+    "notion": "C4-RESS"
+   },
+   {
+    "code": "QF0283",
+    "categorie": "eau_arrosage",
+    "notion": "C4-RESS"
+   },
+   {
+    "code": "QF9201",
+    "categorie": "eau_arrosage",
+    "notion": "C4-RESS"
+   },
+   {
+    "code": "QF9202",
+    "categorie": "eau_arrosage",
+    "notion": "C4-RESS"
+   },
+   {
+    "code": "QF9203",
+    "categorie": "eau_arrosage",
+    "notion": "C4-RESS"
+   },
+   {
+    "code": "QF9204",
+    "categorie": "eau_arrosage",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF9225",
+    "categorie": "eau_arrosage",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF9226",
+    "categorie": "eau_arrosage",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF9227",
+    "categorie": "eau_arrosage",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF9228",
+    "categorie": "eau_arrosage",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF9723",
+    "categorie": "eau_arrosage",
+    "notion": "C4-RESS"
+   },
+   {
+    "code": "QF9724",
+    "categorie": "eau_arrosage",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF0013",
+    "categorie": "ecologie_reseaux",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF0210",
+    "categorie": "ecologie_reseaux",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF0211",
+    "categorie": "ecologie_reseaux",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF0212",
+    "categorie": "ecologie_reseaux",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF0510",
+    "categorie": "ecologie_reseaux",
+    "notion": "C3-ENV"
+   }
+  ],
+  "ajout_to_exclusion": [],
+  "ajout_delete": [
+   {
+    "code": "QF9877",
+    "categorie": "demarche_mesure",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF9924",
+    "categorie": "demarche_mesure",
+    "notion": "C3-ENV"
+   }
+  ],
+  "ajout_insert": [
+   {
+    "code": "QF9212",
+    "categorie": "agroecologie_permaculture",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF9615",
+    "categorie": "cycle_azote_aquaponie",
+    "notion": "C3-DEVREPRO"
+   },
+   {
+    "code": "QF0080",
+    "categorie": "eau_arrosage",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF0281",
+    "categorie": "eau_arrosage",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF0283",
+    "categorie": "eau_arrosage",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF9201",
+    "categorie": "eau_arrosage",
+    "notion": "C3-ENV"
+   }
+  ],
+  "lycee_ajout_delete": [],
+  "lycee_niveau": [],
+  "lycee_ajout_insert": []
+ },
+ "decisions": [
+  {
+   "code": "QF0130",
+   "categorie": "agroecologie_permaculture",
+   "palier": 4,
+   "before": [
+    "C3-ALIM",
+    "C4-RESS"
+   ],
+   "after": [
+    "C4-RESS"
+   ]
+  },
+  {
+   "code": "QF0131",
+   "categorie": "agroecologie_permaculture",
+   "palier": 3,
+   "before": [
+    "C3-ALIM",
+    "C4-RESS"
+   ],
+   "after": [
+    "C3-ALIM"
+   ]
+  },
+  {
+   "code": "QF0133",
+   "categorie": "agroecologie_permaculture",
+   "palier": 4,
+   "before": [
+    "C3-ALIM",
+    "C4-RESS"
+   ],
+   "after": [
+    "C4-RESS"
+   ]
+  },
+  {
+   "code": "QF0330",
+   "categorie": "agroecologie_permaculture",
+   "palier": 3,
+   "before": [
+    "C3-ALIM",
+    "C4-RESS"
+   ],
+   "after": [
+    "C3-ALIM"
+   ]
+  },
+  {
+   "code": "QF0331",
+   "categorie": "agroecologie_permaculture",
+   "palier": 4,
+   "before": [
+    "C3-ALIM",
+    "C4-RESS"
+   ],
+   "after": [
+    "C4-RESS"
+   ]
+  },
+  {
+   "code": "QF0511",
+   "categorie": "agroecologie_permaculture",
+   "palier": 3,
+   "before": [
+    "C3-ALIM",
+    "C4-RESS"
+   ],
+   "after": [
+    "C3-ALIM"
+   ]
+  },
+  {
+   "code": "QF0525",
+   "categorie": "agroecologie_permaculture",
+   "palier": 4,
+   "before": [
+    "C3-ALIM",
+    "C4-RESS"
+   ],
+   "after": [
+    "C4-RESS"
+   ]
+  },
+  {
+   "code": "QF9209",
+   "categorie": "agroecologie_permaculture",
+   "palier": 4,
+   "before": [
+    "C3-ALIM",
+    "C4-RESS"
+   ],
+   "after": [
+    "C4-RESS"
+   ]
+  },
+  {
+   "code": "QF9210",
+   "categorie": "agroecologie_permaculture",
+   "palier": 3,
+   "before": [
+    "C3-ALIM",
+    "C4-RESS"
+   ],
+   "after": [
+    "C3-ALIM"
+   ]
+  },
+  {
+   "code": "QF9211",
+   "categorie": "agroecologie_permaculture",
+   "palier": 4,
+   "before": [
+    "C3-ALIM",
+    "C4-RESS"
+   ],
+   "after": [
+    "C4-RESS"
+   ]
+  },
+  {
+   "code": "QF9212",
+   "categorie": "agroecologie_permaculture",
+   "palier": 3,
+   "before": [
+    "C3-ALIM",
+    "C4-RESS"
+   ],
+   "after": [
+    "C3-ALIM",
+    "C3-MATORG"
+   ]
+  },
+  {
+   "code": "QF9518",
+   "categorie": "agroecologie_permaculture",
+   "palier": 4,
+   "before": [
+    "C3-ALIM",
+    "C4-RESS"
+   ],
+   "after": [
+    "C4-RESS"
+   ]
+  },
+  {
+   "code": "QF9732",
+   "categorie": "agroecologie_permaculture",
+   "palier": 3,
+   "before": [
+    "C3-ALIM",
+    "C4-RESS"
+   ],
+   "after": [
+    "C3-ALIM"
+   ]
+  },
+  {
+   "code": "QF9733",
+   "categorie": "agroecologie_permaculture",
+   "palier": 3,
+   "before": [
+    "C3-ALIM",
+    "C4-RESS"
+   ],
+   "after": [
+    "C3-ALIM"
+   ]
+  },
+  {
+   "code": "QF0020",
+   "categorie": "cycle_azote_aquaponie",
+   "palier": 4,
+   "before": [
+    "C3-MATORG",
+    "C4-RESS"
+   ],
+   "after": [
+    "C4-RESS"
+   ]
+  },
+  {
+   "code": "QF0021",
+   "categorie": "cycle_azote_aquaponie",
+   "palier": 4,
+   "before": [
+    "C3-MATORG",
+    "C4-RESS"
+   ],
+   "after": [
+    "C4-RESS"
+   ]
+  },
+  {
+   "code": "QF0506",
+   "categorie": "cycle_azote_aquaponie",
+   "palier": 4,
+   "before": [
+    "C3-MATORG",
+    "C4-RESS"
+   ],
+   "after": [
+    "C4-RESS"
+   ]
+  },
+  {
+   "code": "QF9523",
+   "categorie": "cycle_azote_aquaponie",
+   "palier": 3,
+   "before": [
+    "C3-MATORG",
+    "C4-RESS"
+   ],
+   "after": [
+    "C3-MATORG"
+   ]
+  },
+  {
+   "code": "QF9525",
+   "categorie": "cycle_azote_aquaponie",
+   "palier": 3,
+   "before": [
+    "C3-MATORG",
+    "C4-RESS"
+   ],
+   "after": [
+    "C3-MATORG"
+   ]
+  },
+  {
+   "code": "QF9530",
+   "categorie": "cycle_azote_aquaponie",
+   "palier": 4,
+   "before": [
+    "C3-MATORG",
+    "C4-RESS"
+   ],
+   "after": [
+    "C4-RESS"
+   ]
+  },
+  {
+   "code": "QF9531",
+   "categorie": "cycle_azote_aquaponie",
+   "palier": 3,
+   "before": [
+    "C3-MATORG",
+    "C4-RESS"
+   ],
+   "after": [
+    "C3-MATORG"
+   ]
+  },
+  {
+   "code": "QF9615",
+   "categorie": "cycle_azote_aquaponie",
+   "palier": 3,
+   "before": [
+    "C3-MATORG",
+    "C4-RESS"
+   ],
+   "after": [
+    "C3-DEVREPRO",
+    "C3-MATORG"
+   ]
+  },
+  {
+   "code": "QF9701",
+   "categorie": "cycle_azote_aquaponie",
+   "palier": 4,
+   "before": [
+    "C3-MATORG",
+    "C4-RESS"
+   ],
+   "after": [
+    "C4-RESS"
+   ]
+  },
+  {
+   "code": "QF9703",
+   "categorie": "cycle_azote_aquaponie",
+   "palier": 4,
+   "before": [
+    "C3-MATORG",
+    "C4-RESS"
+   ],
+   "after": [
+    "C4-RESS"
+   ]
+  },
+  {
+   "code": "QF9704",
+   "categorie": "cycle_azote_aquaponie",
+   "palier": 4,
+   "before": [
+    "C3-MATORG",
+    "C4-RESS"
+   ],
+   "after": [
+    "C4-RESS"
+   ]
+  },
+  {
+   "code": "QF9706",
+   "categorie": "cycle_azote_aquaponie",
+   "palier": 4,
+   "before": [
+    "C3-MATORG",
+    "C4-RESS"
+   ],
+   "after": [
+    "C4-RESS"
+   ]
+  },
+  {
+   "code": "QF9877",
+   "categorie": "demarche_mesure",
+   "palier": 4,
+   "before": [
+    "C3-ENV",
+    "C4-TERRE"
+   ],
+   "after": [
+    "C4-TERRE"
+   ]
+  },
+  {
+   "code": "QF9887",
+   "categorie": "demarche_mesure",
+   "palier": 3,
+   "before": [
+    "C3-ENV",
+    "C4-TERRE"
+   ],
+   "after": [
+    "C3-ENV"
+   ]
+  },
+  {
+   "code": "QF9912",
+   "categorie": "demarche_mesure",
+   "palier": 3,
+   "before": [
+    "C3-ENV",
+    "C4-TERRE"
+   ],
+   "after": [
+    "C3-ENV"
+   ]
+  },
+  {
+   "code": "QF9918",
+   "categorie": "demarche_mesure",
+   "palier": 3,
+   "before": [
+    "C3-VIV",
+    "C4-TERRE"
+   ],
+   "after": [
+    "C3-VIV"
+   ]
+  },
+  {
+   "code": "QF9924",
+   "categorie": "demarche_mesure",
+   "palier": 4,
+   "before": [
+    "C3-ENV",
+    "C4-TERRE"
+   ],
+   "after": [
+    "C4-TERRE"
+   ]
+  },
+  {
+   "code": "QF0080",
+   "categorie": "eau_arrosage",
+   "palier": 3,
+   "before": [
+    "C3-MATORG",
+    "C4-RESS"
+   ],
+   "after": [
+    "C3-ENV",
+    "C3-MATORG"
+   ]
+  },
+  {
+   "code": "QF0280",
+   "categorie": "eau_arrosage",
+   "palier": 3,
+   "before": [
+    "C3-MATORG",
+    "C4-RESS"
+   ],
+   "after": [
+    "C3-MATORG"
+   ]
+  },
+  {
+   "code": "QF0281",
+   "categorie": "eau_arrosage",
+   "palier": 3,
+   "before": [
+    "C3-MATORG",
+    "C4-RESS"
+   ],
+   "after": [
+    "C3-ENV",
+    "C3-MATORG"
+   ]
+  },
+  {
+   "code": "QF0283",
+   "categorie": "eau_arrosage",
+   "palier": 3,
+   "before": [
+    "C3-MATORG",
+    "C4-RESS"
+   ],
+   "after": [
+    "C3-ENV",
+    "C3-MATORG"
+   ]
+  },
+  {
+   "code": "QF9201",
+   "categorie": "eau_arrosage",
+   "palier": 3,
+   "before": [
+    "C3-MATORG",
+    "C4-RESS"
+   ],
+   "after": [
+    "C3-ENV",
+    "C3-MATORG"
+   ]
+  },
+  {
+   "code": "QF9202",
+   "categorie": "eau_arrosage",
+   "palier": 3,
+   "before": [
+    "C3-MATORG",
+    "C4-RESS"
+   ],
+   "after": [
+    "C3-MATORG"
+   ]
+  },
+  {
+   "code": "QF9203",
+   "categorie": "eau_arrosage",
+   "palier": 3,
+   "before": [
+    "C3-MATORG",
+    "C4-RESS"
+   ],
+   "after": [
+    "C3-MATORG"
+   ]
+  },
+  {
+   "code": "QF9204",
+   "categorie": "eau_arrosage",
+   "palier": 4,
+   "before": [
+    "C3-MATORG",
+    "C4-RESS"
+   ],
+   "after": [
+    "C4-RESS"
+   ]
+  },
+  {
+   "code": "QF9225",
+   "categorie": "eau_arrosage",
+   "palier": 4,
+   "before": [
+    "C3-MATORG",
+    "C4-RESS"
+   ],
+   "after": [
+    "C4-RESS"
+   ]
+  },
+  {
+   "code": "QF9226",
+   "categorie": "eau_arrosage",
+   "palier": 4,
+   "before": [
+    "C3-MATORG",
+    "C4-RESS"
+   ],
+   "after": [
+    "C4-RESS"
+   ]
+  },
+  {
+   "code": "QF9227",
+   "categorie": "eau_arrosage",
+   "palier": 4,
+   "before": [
+    "C3-MATORG",
+    "C4-RESS"
+   ],
+   "after": [
+    "C4-RESS"
+   ]
+  },
+  {
+   "code": "QF9228",
+   "categorie": "eau_arrosage",
+   "palier": 4,
+   "before": [
+    "C3-MATORG",
+    "C4-RESS"
+   ],
+   "after": [
+    "C4-RESS"
+   ]
+  },
+  {
+   "code": "QF9723",
+   "categorie": "eau_arrosage",
+   "palier": 3,
+   "before": [
+    "C3-MATORG",
+    "C4-RESS"
+   ],
+   "after": [
+    "C3-MATORG"
+   ]
+  },
+  {
+   "code": "QF9724",
+   "categorie": "eau_arrosage",
+   "palier": 4,
+   "before": [
+    "C3-MATORG",
+    "C4-RESS"
+   ],
+   "after": [
+    "C4-RESS"
+   ]
+  },
+  {
+   "code": "QF0013",
+   "categorie": "ecologie_reseaux",
+   "palier": 3,
+   "before": [
+    "C3-ENV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C3-ENV"
+   ]
+  },
+  {
+   "code": "QF0210",
+   "categorie": "ecologie_reseaux",
+   "palier": 3,
+   "before": [
+    "C3-ENV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C3-ENV"
+   ]
+  },
+  {
+   "code": "QF0211",
+   "categorie": "ecologie_reseaux",
+   "palier": 4,
+   "before": [
+    "C3-ENV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C4-VIV"
+   ]
+  },
+  {
+   "code": "QF0212",
+   "categorie": "ecologie_reseaux",
+   "palier": 3,
+   "before": [
+    "C3-ENV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C3-ENV"
+   ]
+  },
+  {
+   "code": "QF0510",
+   "categorie": "ecologie_reseaux",
+   "palier": 4,
+   "before": [
+    "C3-ENV",
+    "C4-VIV"
+   ],
+   "after": [
+    "C4-VIV"
+   ]
+  }
+ ]
+}
