@@ -32,7 +32,13 @@
 
 - [x] Lot 1 — migration `task_referents_auto` + `tests/task-referents-auto-migration.test.js`
       (deux rejeux sur base fraîche : OK).
-- [ ] Lot 9 (partie 1) — requête de progression partagée, utilitaire de recopie des jonctions
+- [x] Lot 9 (partie 1) — `lib/tasks/progressionCredit.js` (`progressionCreditedAssignmentsQuery`),
+      `countValidatedAssignmentsForStudent` = `COUNT(*)` dessus (caractérisation
+      `tests/progression-credit-characterization.test.js`) ; `writeTaskJoinRows` /
+      `setTaskReferentLinks` / `getTaskReferentLinks` (chargeur unique) dans `taskQueries.js`, clonage
+      branché dessus (`tests/recurring-tasks-joins-characterization.test.js`) ; `setTaskReferents`
+      devient différentiel (préserve `source`, nouveaux liens `manual` + `added_at`, renvoie
+      ajouts / retraits) — avance du lot 4.
 - [ ] Lot 2 — réglages
 - [ ] Lot 3 — moteur
 - [ ] Lot 4 — clonage et services
@@ -43,4 +49,4 @@
 - [ ] Lot 10 — documentation
 - [ ] Lot 9 (reste)
 
-Prochaine action : lot 9 partie 1 (tests de caractérisation de `countValidatedAssignmentsForStudent`).
+Prochaine action : lot 2 (réglages).
