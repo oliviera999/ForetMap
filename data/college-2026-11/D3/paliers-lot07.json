@@ -285,7 +285,10 @@
   "code": "QF0508",
   "categorie": "semis_recolte",
   "palier": 4,
-  "raison": "parthénocarpie"
+  "raison": "parthénocarpie (C4-VIV en complément : C4-REPRO n’existe qu’en prod)",
+  "ajouts": [
+   "C4-VIV"
+  ]
  },
  {
   "code": "QF0515",
@@ -297,6 +300,9 @@
   "code": "QF0538",
   "categorie": "semis_recolte",
   "palier": 4,
-  "raison": "espèce dioïque"
+  "raison": "espèce dioïque (C4-VIV en complément : C4-REPRO n’existe qu’en prod)",
+  "ajouts": [
+   "C4-VIV"
+  ]
  }
 ]

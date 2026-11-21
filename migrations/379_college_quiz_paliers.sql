@@ -986,7 +986,7 @@ SELECT q.question_code, cl.notion_id, 'exclusion'
             AND x.notion_id = cl.notion_id);
 
 -- ---------------------------------------------------------------------
--- 4. Ajouts explicites des notions du palier retenu (406 lignes)
+-- 4. Ajouts explicites des notions du palier retenu (409 lignes)
 --    Notion précise quand la catégorie ne porte pas celle qui décrit la question, et ancrage
 --    des notions héritées du palier retenu (sans effet en prod ; le palier ne dépend plus des
 --    liaisons de catégorie).
@@ -1289,9 +1289,11 @@ SELECT q.question_code, cn.id, 'ajout'
     UNION ALL SELECT 'QF0264', 'semis_recolte', 'C3-DEVREPRO'
     UNION ALL SELECT 'QF0265', 'semis_recolte', 'C3-DEV'
     UNION ALL SELECT 'QF0265', 'semis_recolte', 'C3-DEVREPRO'
+    UNION ALL SELECT 'QF0508', 'semis_recolte', 'C4-VIV'
     UNION ALL SELECT 'QF0508', 'semis_recolte', 'C4-REPRO'
     UNION ALL SELECT 'QF0515', 'semis_recolte', 'C3-DEV'
     UNION ALL SELECT 'QF0515', 'semis_recolte', 'C3-DEVREPRO'
+    UNION ALL SELECT 'QF0538', 'semis_recolte', 'C4-VIV'
     UNION ALL SELECT 'QF0538', 'semis_recolte', 'C4-REPRO'
     UNION ALL SELECT 'QF9215', 'semis_recolte', 'C3-DEV'
     UNION ALL SELECT 'QF9215', 'semis_recolte', 'C3-DEVREPRO'
@@ -1299,6 +1301,7 @@ SELECT q.question_code, cn.id, 'ajout'
     UNION ALL SELECT 'QF9216', 'semis_recolte', 'C3-DEVREPRO'
     UNION ALL SELECT 'QF9230', 'semis_recolte', 'C3-DEV'
     UNION ALL SELECT 'QF9230', 'semis_recolte', 'C3-DEVREPRO'
+    UNION ALL SELECT 'QF9231', 'semis_recolte', 'C4-VIV'
     UNION ALL SELECT 'QF9231', 'semis_recolte', 'C4-REPRO'
     UNION ALL SELECT 'QF9232', 'semis_recolte', 'C3-DEV'
     UNION ALL SELECT 'QF9232', 'semis_recolte', 'C3-DEVREPRO'

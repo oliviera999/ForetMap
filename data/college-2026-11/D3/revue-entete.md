@@ -39,6 +39,17 @@ périmètre D3) : semer les quatre notions et les onze liaisons propres à la pr
 migration de référentiel, et dédoublonner `C3-DEV` / `C3-DEVREPRO` et `C3-MAT` / `C3-MATORG`
 (libellés identiques).
 
+**Complément `C4-VIV`.** QF0508, QF0538 et QF9231 (cycle 4) ne s’appuyaient que sur
+`C4-REPRO`, absente d’une base semée par les migrations : `C4-VIV` leur est ajoutée pour qu’elles
+gardent une notion de collège partout (test de couverture `curriculum-notions-coverage`).
+
+**Tests de la migration du 20/11 retouchés (écart de périmètre).** Ils figeaient l’état laissé
+par cette migration (168 lignes de notions sur QF9873–QF9933, aucune exclusion de cycle 3 ou 4),
+que le retri contredit par construction : comptes portés à 200 (211 après le rejeu propre au test),
+et règle « une exclusion de cycle n’est admise que si la question garde un ajout de l’autre
+cycle ». Fichiers : `tests/content/contenus-terrain-2026-11-20.test.js`,
+`tests/contenus-terrain-2026-11-20-rejeu.test.js`.
+
 **Ajouts supprimés.** 59 lignes `ajout` de l’autre cycle (souvent `C3-ENV` / `C3-VIV` posés par
 la migration du 20/11 sur des questions tranchées au cycle 4) et 14 sur les questions passées au
 lycée : détail dans la colonne « Opérations ».

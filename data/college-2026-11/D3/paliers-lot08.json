@@ -27,7 +27,10 @@
   "code": "QF9231",
   "categorie": "semis_recolte",
   "palier": 4,
-  "raison": "humidité relative et conservation des graines"
+  "raison": "humidité relative et conservation des graines (C4-VIV en complément : C4-REPRO n’existe qu’en prod)",
+  "ajouts": [
+   "C4-VIV"
+  ]
  },
  {
   "code": "QF9232",

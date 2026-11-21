@@ -6042,6 +6042,11 @@
    {
     "code": "QF0508",
     "categorie": "semis_recolte",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF0508",
+    "categorie": "semis_recolte",
     "notion": "C4-REPRO"
    },
    {
@@ -6053,6 +6058,11 @@
     "code": "QF0515",
     "categorie": "semis_recolte",
     "notion": "C3-DEVREPRO"
+   },
+   {
+    "code": "QF0538",
+    "categorie": "semis_recolte",
+    "notion": "C4-VIV"
    },
    {
     "code": "QF0538",
@@ -6088,6 +6098,11 @@
     "code": "QF9230",
     "categorie": "semis_recolte",
     "notion": "C3-DEVREPRO"
+   },
+   {
+    "code": "QF9231",
+    "categorie": "semis_recolte",
+    "notion": "C4-VIV"
    },
    {
     "code": "QF9231",
@@ -11258,7 +11273,8 @@
     "C4-REPRO"
    ],
    "after": [
-    "C4-REPRO"
+    "C4-REPRO",
+    "C4-VIV"
    ]
   },
   {
@@ -11285,7 +11301,8 @@
     "C4-REPRO"
    ],
    "after": [
-    "C4-REPRO"
+    "C4-REPRO",
+    "C4-VIV"
    ]
   },
   {
@@ -11353,7 +11370,8 @@
     "C4-REPRO"
    ],
    "after": [
-    "C4-REPRO"
+    "C4-REPRO",
+    "C4-VIV"
    ]
   },
   {
