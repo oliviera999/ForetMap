@@ -11,7 +11,7 @@
 }
 
 .biodiv-filters__usage-group select {
-  background: var(--surface-plain);
+  background-color: var(--surface-plain);
 }
 
 /* Sections du catalogue groupé (une par groupe d'usage). */
