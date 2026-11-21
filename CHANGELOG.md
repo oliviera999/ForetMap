@@ -31,6 +31,28 @@ bundle abaissé de 775 à **509 Ko** (`scripts/check-bundle-budget.js`).
   `tests-ui/hooks/useForetmapRealtime.test.jsx` (chargement à la demande, démontage avant la
   fin du chargement), `tests-ui/components/AuthScreen.test.jsx`.
 - G&L et le plan : aucun fichier modifié, aucun module partagé touché.
+### Ajouté — Visite : une vignette par guide dans le sélecteur (UI/UX lot J, U1 et U4)
+
+Lot J du chantier UI/UX (`docs/AUDIT_UI_UX_2026-11-19.md`) : la vignette de pack livrée par le
+lot 2 est enfin écrite et affichée.
+
+- **Génération** : le serveur écrit `_vignette.png` (PNG ≤ 96 px, première trame de `idle`) à
+  la création, à l'import, à l'enregistrement, à la réinitialisation d'un pack de mascotte et à
+  chaque dépôt, renommage ou suppression d'une de ses images. Un échec est journalisé, la
+  requête réussit quand même ; une vignette devenue fausse (image retirée) est supprimée.
+- **API** : `thumbnail_url` dans `mascot_catalog` (`GET /api/visit/content`) et dans
+  `GET /api/visit/mascots` (avec ou sans `?light=1`), `null` sans vignette. La vignette n'est
+  ni listée parmi les images du pack au studio, ni dupliquée, ni exportée.
+- **Sélecteur « Guide »** : chaque personnage du menu porte sa vignette (32 px, chargement
+  différé, celle de la version féminine quand la case est cochée) ; silhouette de repli sans
+  vignette ou si l'image ne se charge pas. Aucune planche de sprites n'est chargée pour le menu.
+- **Après déploiement** (packs enregistrés avant ce lot) :
+  `node scripts/generate-visit-mascot-thumbnails.js --published` (`docs/EXPLOITATION.md`,
+  « Vignettes des mascottes de la Visite »).
+- G&L : catalogue des mascottes d'équipe inchangé (même liste, mêmes packs).
+- Tests : `tests/visit-mascot-thumbnail-wiring.test.js`,
+  `tests-ui/components/visit/VisitMascotPickerThumbnails.test.jsx`,
+  `tests-ui/hooks/useVisitMascotLazyPacksThumbnails.test.jsx`, e2e `visit-mascot-thumbnails`.
 ### Corrigé — carte : plus de repère intouchable sous une pastille de regroupement (UI/UX lot I)
 
 Suite du chantier UI/UX (`docs/AUDIT_UI_UX_2026-11-19.md`, U5 « Suite donnée »). Sur

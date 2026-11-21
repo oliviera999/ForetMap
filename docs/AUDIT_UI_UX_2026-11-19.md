@@ -84,6 +84,14 @@ incompressible), `main` (203 Ko), `ImageLightboxProvider` (93 Ko), Markdown (76 
 `VisitMascotFallbackSvg` (57 Ko), `socket.io` (40 Ko, importé par `useForetmapRealtime` alors
 qu'il ne sert qu'une fois connecté).
 
+**Corrigé** (lot J, branche `claude/ui-ux-vignettes-mascotte`) : la vignette est branchée. Le
+serveur l'écrit à la création, à l'import, à l'enregistrement, à la réinitialisation d'un pack
+et à chaque changement de ses images (`routes/visit/mascot.js`, échec journalisé sans bloquer
+la réponse) ; `mascot_catalog[].thumbnail_url` (`/api/visit/content`, `/api/visit/mascots`) ;
+le sélecteur « Guide » l'affiche (32 px, `loading="lazy"`), silhouette en repli — aucune
+planche de sprites chargée pour le menu. Packs antérieurs :
+`node scripts/generate-visit-mascot-thumbnails.js --published` (`docs/EXPLOITATION.md`).
+
 **Corrigé** (lot K « poids de l'écran de connexion », 21/11, branche
 `claude/ui-ux-poids-connexion`) : JS de l'écran de connexion **774,4 → 503,8 Ko** (17 → 11
 fichiers) ; cliquet abaissé de 775 à **509 Ko**. Le constat précédent nommait mal le coupable :
@@ -164,6 +172,9 @@ dans la Visite » par pack (pas de liste blanche figée, retirée volontairement
 > case « Version féminine » au sélecteur (une ligne par personnage) ; `/api/visit/content`
 > réduit au pack par défaut + catalogue léger (pack à la demande). Le `label` du JSON d'un pack
 > est réaligné sur la colonne (« Oiseau noir ») ; il n'était affiché nulle part dans la Visite.
+>
+> **Suite donnée (lot J)** — le menu « Guide » montre une vignette par personnage (celle de la
+> version féminine quand la case est cochée), silhouette de repli sinon.
 
 ### U5 — 🟠 La carte n'est pas lisible d'emblée
 

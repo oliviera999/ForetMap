@@ -184,6 +184,7 @@ test('projection pure : catalogue léger, choix du défaut et repli', () => {
     label: 'B (femme)',
     variant_of: 'a',
     fallback_silhouette: 'gnome',
+    thumbnail_url: null,
   });
   assert.equal(pickDefaultVisitMascotPack(packs, 'b').id, 'b');
   assert.equal(

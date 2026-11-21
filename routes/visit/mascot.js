@@ -75,6 +75,13 @@ const {
   recordBuiltinMascotDeletion,
 } = require('../../lib/visitMascotBuiltinSeed');
 const { isValidVisitMascotId } = require('../../lib/settings');
+const logger = require('../../lib/logger');
+const {
+  THUMBNAIL_FILENAME,
+  generateVisitMascotPackThumbnail,
+  listPublishedVisitMascotPackUuids,
+  visitMascotPackThumbnailUrlIfPresent,
+} = require('../../lib/visitMascotPackThumbnail');
 
 const router = express.Router();
 
@@ -90,6 +97,9 @@ function listVisitMascotPackAssetFilenames(packId) {
     const safe = sanitizeMascotPackImageFilename(raw);
     if (!safe || safe !== raw) continue;
     if (!/\.png$/i.test(safe)) continue;
+    // Vignette générée par le serveur : ce n'est pas une image du pack (ni listée au studio,
+    // ni copiée à la duplication, ni exportée — elle est refaite à chaque enregistrement).
+    if (safe === THUMBNAIL_FILENAME) continue;
     const fp = path.join(absDir, safe);
     try {
       if (fs.statSync(fp).isFile()) out.push(safe);
@@ -292,6 +302,33 @@ async function writeVisitArchiveAssetsFromMap(packUuid, assetsMap) {
     // Seules de vraies images sont posées (N1) ; `writeBufferToDisk` retire aussi l'EXIF (N3).
     if (!mascotAssetImageKindFromBuffer(buffer)) continue;
     await writeBufferToDisk(`${relDir}/${filename}`, buffer);
+  }
+}
+
+/**
+ * (Re)génère la vignette d'un pack (`_vignette.png`, sélecteur de guide de la Visite) après une
+ * écriture. Ne lève jamais : un échec est journalisé et la réponse de la route part quand même
+ * (le sélecteur garde la silhouette de repli).
+ * @param {string} packId UUID du pack
+ * @param {object|string|null} [packOrJson] pack déjà en main ; sinon relu en base
+ */
+async function refreshVisitMascotPackThumbnail(packId, packOrJson = null) {
+  try {
+    let pack = packOrJson;
+    if (pack == null) {
+      const row = await queryOne('SELECT pack_json FROM visit_mascot_packs WHERE id = ? LIMIT 1', [
+        packId,
+      ]);
+      pack = row ? row.pack_json : null;
+    }
+    if (typeof pack === 'string') pack = JSON.parse(pack);
+    if (!pack || typeof pack !== 'object') return;
+    const result = await generateVisitMascotPackThumbnail({ packId, pack });
+    if (!result.ok && result.skipped !== 'aucune_image') {
+      logger.info({ packId, skipped: result.skipped }, 'Vignette de mascotte non générée');
+    }
+  } catch (err) {
+    logger.warn({ err, packId }, 'Vignette de mascotte : génération en échec');
   }
 }
 
@@ -544,6 +581,12 @@ router.get(
   '/mascots',
   mascotRoute(ERRORS_PLAIN, async (req, res) => {
     const mascots = await listVisitMascotRegistry();
+    // Vignette du sélecteur (`thumbnail_url`, `null` sans vignette ou pour une mascotte servie
+    // par le seul catalogue en code). Un échec de cette lecture ne coûte que les vignettes.
+    const packUuids = await listPublishedVisitMascotPackUuids({ queryAll }).catch((err) => {
+      logRouteError(err, req);
+      return new Map();
+    });
     // `?light=1` : identifiants, libellés et variantes seulement, sans le JSON des packs
     // (plus de 30 états par pack). La Visite charge ensuite le pack choisi à la demande
     // (`GET /api/visit/mascots/:catalogId`) — audit UI/UX du 19/11/2026, lot 2 point 3.
@@ -556,6 +599,10 @@ router.get(
           // `catalog_id`/`label`/`pack` (même forme que `mascot_packs` de /api/visit/content).
           catalog_id: entry.id,
           variant_of: entry.variant_of || null,
+          thumbnail_url:
+            entry.source === 'pack' && packUuids.has(String(entry.id))
+              ? visitMascotPackThumbnailUrlIfPresent(packUuids.get(String(entry.id)))
+              : null,
         };
         if (!light) return base;
         const { pack, ...rest } = base;
@@ -779,6 +826,7 @@ router.post(
     if (sourcePackIdForCopy) {
       await copyVisitMascotPackAssetDirectory(sourcePackIdForCopy, packUuid);
     }
+    await refreshVisitMascotPackThumbnail(packUuid, validated.pack);
     const row = await queryOne('SELECT * FROM visit_mascot_packs WHERE id = ? LIMIT 1', [packUuid]);
     await logAudit('visit_mascot_pack_create', 'visit_mascot_pack', packUuid, label, {
       req,
@@ -859,6 +907,7 @@ router.put(
         WHERE id = ?`,
       [label, packJson, isPublished, visitListed, variantOf, now, packId],
     );
+    await refreshVisitMascotPackThumbnail(packId, packJson);
     const row = await queryOne('SELECT * FROM visit_mascot_packs WHERE id = ? LIMIT 1', [packId]);
     await logAudit('visit_mascot_pack_update', 'visit_mascot_pack', packId, label, {
       req,
@@ -1115,6 +1164,7 @@ router.post(
       );
     }
 
+    await refreshVisitMascotPackThumbnail(packUuid, validated.pack);
     const row = await queryOne('SELECT * FROM visit_mascot_packs WHERE id = ? LIMIT 1', [packUuid]);
     const autoDeclared = Array.isArray(validated.autoDeclaredStates)
       ? validated.autoDeclaredStates
@@ -1252,6 +1302,7 @@ router.post(
       'UPDATE visit_mascot_packs SET label = ?, pack_json = ?, updated_at = ? WHERE id = ?',
       [String(pack.label || catalogId), JSON.stringify(pack), now, packId],
     );
+    await refreshVisitMascotPackThumbnail(packId, pack);
     const fresh = await queryOne('SELECT * FROM visit_mascot_packs WHERE id = ? LIMIT 1', [packId]);
     return res.json(serializeVisitMascotPackRow(fresh));
   }),
@@ -1302,6 +1353,8 @@ router.post(
       logRouteError(fileErr, req);
       return res.status(400).json({ error: 'Image invalide ou trop volumineuse' });
     }
+    // L'image déposée peut être la première trame de `idle` (remplacement à nom égal).
+    await refreshVisitMascotPackThumbnail(packId);
     const publicUrl = `/api/visit/mascot-packs/${packId}/assets/${encodeURIComponent(filename)}`;
     res.status(201).json({
       ok: true,
@@ -1322,6 +1375,7 @@ router.delete(
     if (!row) return res.status(404).json({ error: 'Pack introuvable' });
     const rel = `${visitMascotPackAssetRelativeDir(packId)}/${filename}`;
     deleteFile(rel);
+    await refreshVisitMascotPackThumbnail(packId);
     res.json({ ok: true });
   }),
 );
@@ -1350,6 +1404,7 @@ router.patch(
       return res.status(409).json({ error: 'Un fichier porte déjà ce nom' });
     }
     await fs.promises.rename(absFrom, absTo);
+    await refreshVisitMascotPackThumbnail(packId);
     const publicUrl = `/api/visit/mascot-packs/${packId}/assets/${encodeURIComponent(newFilename)}`;
     res.json({
       ok: true,
