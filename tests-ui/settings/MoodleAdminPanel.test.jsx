@@ -5,7 +5,7 @@
 // chapitre → cours avec le nom du cours.
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { act, render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 
 vi.mock('../../src/services/api', () => ({
   api: vi.fn(async () => ({})),
@@ -169,20 +169,38 @@ const settings = {
   ],
 };
 
-function renderPanel(props = {}) {
+/**
+ * Monte le panneau et attend, DANS `act`, la fin de son chargement initial (état, cohortes,
+ * cours) et de ses effets de montage.
+ *
+ * Cause des échecs intermittents de ce fichier en CI (27/09, puis 20 et 21/11/2026) : avec
+ * un `render` synchrone, le chargement se termine hors `act`, pendant un `findBy*`. React
+ * peint alors le panneau, mais remet à plus tard les effets de montage de ses enfants.
+ * Testing Library ne laisse passer qu'un `setTimeout(0)` avant de rendre la main au test :
+ * sur un exécuteur chargé, cette minuterie passe avant la tâche de l'ordonnanceur de React.
+ * Le test saisissait donc dans un éditeur dont l'effet de montage
+ * (`if (!dirty) setRows(valeur)`, lu avec `dirty = false`) était encore en attente ; React
+ * le rejouait juste après la saisie et l'écrasait. La ligne ajoutée ou le message d'erreur
+ * n'apparaissait jamais, et l'attente tombait au bout de ses 5 s — allonger les délais
+ * (essais précédents) n'y changeait donc rien. Dans un navigateur, cette fenêtre
+ * dure moins d'une image : aucun effet pour l'utilisateur.
+ */
+async function renderPanel(props = {}) {
   const saveSetting = vi.fn(async () => {});
   const onMessage = vi.fn();
   const onError = vi.fn();
-  render(
-    <MoodleAdminPanel
-      get={(key, fallback) => (key in settings ? settings[key] : fallback)}
-      saveSetting={saveSetting}
-      savingKey=""
-      onMessage={onMessage}
-      onError={onError}
-      {...props}
-    />,
-  );
+  await act(async () => {
+    render(
+      <MoodleAdminPanel
+        get={(key, fallback) => (key in settings ? settings[key] : fallback)}
+        saveSetting={saveSetting}
+        savingKey=""
+        onMessage={onMessage}
+        onError={onError}
+        {...props}
+      />,
+    );
+  });
   return { saveSetting, onMessage, onError };
 }
 
@@ -194,7 +212,7 @@ beforeEach(() => {
 describe('MoodleAdminPanel', () => {
   it('affiche l’état configuré, les cohortes de l’année et grise « Appliquer » avant toute simulation', async () => {
     mockApi();
-    renderPanel();
+    await renderPanel();
     await screen.findByText('Configuré');
     expect(screen.getByText('https://moodle.test')).toBeInTheDocument();
     await screen.findByLabelText('Cohorte 26#603');
@@ -213,7 +231,7 @@ describe('MoodleAdminPanel', () => {
         throw boom;
       },
     });
-    renderPanel();
+    await renderPanel();
     await screen.findByTestId('moodle-remote-error');
     expect(screen.getByTestId('moodle-remote-error').textContent).toMatch(/Moodle injoignable/);
   });
@@ -227,7 +245,7 @@ describe('MoodleAdminPanel', () => {
         enabled: false,
       }),
     });
-    renderPanel();
+    await renderPanel();
     await screen.findByText('Non configuré');
     expect(screen.getByTestId('moodle-remote-error').textContent).toMatch(/non configurée/);
     expect(api).not.toHaveBeenCalledWith(`${BASE}/cohorts`);
@@ -237,7 +255,7 @@ describe('MoodleAdminPanel', () => {
   it('simule puis rend le rapport (totaux, listes) et libère « Appliquer » sur le même périmètre', async () => {
     const startRun = vi.fn(async () => DRY_RUN_RESULT);
     mockApi({ [`POST ${BASE}/runs`]: startRun });
-    const { onMessage } = renderPanel();
+    const { onMessage } = await renderPanel();
     fireEvent.click(await screen.findByLabelText('Cohorte 26#603'));
     fireEvent.click(screen.getByRole('button', { name: 'Simuler' }));
 
@@ -275,7 +293,7 @@ describe('MoodleAdminPanel', () => {
       },
     };
     mockApi({ [`POST ${BASE}/runs`]: async () => blocked });
-    renderPanel();
+    await renderPanel();
     fireEvent.click(await screen.findByLabelText('Cohorte 26#603'));
     fireEvent.click(screen.getByRole('button', { name: 'Simuler' }));
     await screen.findByText(/12 comptes à créer/);
@@ -286,7 +304,7 @@ describe('MoodleAdminPanel', () => {
   it('liste les conflits ouverts et envoie la résolution choisie', async () => {
     const resolve = vi.fn(async () => ({ id: 7, resolution: 'keep_master' }));
     mockApi({ [`POST ${BASE}/conflicts/7`]: resolve });
-    const { onMessage } = renderPanel();
+    const { onMessage } = await renderPanel();
     await screen.findByTestId('moodle-conflicts');
     expect(screen.getByText('Retiré côté ForetMap, toujours dans Moodle')).toBeInTheDocument();
     expect(screen.getByText('Zoé Martin')).toBeInTheDocument();
@@ -297,17 +315,13 @@ describe('MoodleAdminPanel', () => {
 
   it('table chapitre → cours : affiche le nom du cours Moodle et enregistre la table en objet', async () => {
     mockApi();
-    const { saveSetting } = renderPanel();
+    const { saveSetting } = await renderPanel();
     await screen.findByTestId('moodle-chapter-courses');
     expect(screen.getByText('Cours G&L chapitre 1 [GL1]')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Ajouter un chapitre' }));
-    // La ligne ajoutée est cherchée en asynchrone : une requête synchrone juste après un clic
-    // suppose que React a déjà repeint, ce qui ne tient plus sur un exécuteur CI chargé.
-    // Le délai par défaut de `findBy*` (1 s) n'y suffit pas non plus : le job `quality` est
-    // tombé ici à 1 156 ms sur un exécuteur saturé, alors que le fichier passe en local.
-    // Même budget que les autres attentes sensibles à la charge du dépôt (cf.
-    // `tests-ui/gl/GLGameMasterConsole.test.jsx`).
-    fireEvent.change(await screen.findByLabelText('Cours de la ligne 2', {}, { timeout: 5000 }), {
+    // Le job `quality` est tombé ici plusieurs fois : la ligne ajoutée n'apparaissait jamais
+    // (voir `renderPanel` : effet de montage en attente, rejoué après le clic).
+    fireEvent.change(await screen.findByLabelText('Cours de la ligne 2'), {
       target: { value: '43' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Enregistrer la table' }));
@@ -318,34 +332,29 @@ describe('MoodleAdminPanel', () => {
         'Table chapitre → cours enregistrée',
       ),
     );
-    // Budget du test au-dessus de l'attente de 5 s qu'il contient : avec le délai par défaut
-    // (5 s aussi), le job `quality` l'interrompait deux fois de suite sur exécuteur chargé.
-  }, 15000);
+  });
 
   it('éditeur de politiques : refuse une regex invalide, enregistre la liste normalisée', async () => {
     mockApi();
-    const { saveSetting } = renderPanel();
+    const { saveSetting } = await renderPanel();
     await screen.findByTestId('moodle-policies');
     const pattern = screen.getByLabelText('Motif ({year} = préfixe d’année) — classe6');
     const save = screen.getByRole('button', { name: 'Enregistrer les politiques' });
-    // Chaque état est ATTENDU, pas lu aussitôt après la saisie : sur un exécuteur CI chargé,
-    // React n'a pas toujours repeint quand la ligne suivante s'exécute (le job `quality` est
-    // tombé ici le 27/09/2026 : message introuvable). Cliquer un bouton encore désactivé ne
-    // ferait rien, d'où l'attente explicite de sa réactivation.
+    // Le job `quality` est tombé ici plusieurs fois : le message d'erreur n'apparaissait
+    // jamais (voir `renderPanel` : effet de montage en attente, rejoué après la saisie).
+    // Cliquer un bouton encore désactivé ne ferait rien, d'où l'attente de sa réactivation.
     fireEvent.change(pattern, { target: { value: '^{year}#(' } });
-    expect(
-      await screen.findByText(/expression régulière invalide/, {}, { timeout: 5000 }),
-    ).toBeInTheDocument();
-    await waitFor(() => expect(save).toBeDisabled(), { timeout: 5000 });
+    expect(await screen.findByText(/expression régulière invalide/)).toBeInTheDocument();
+    await waitFor(() => expect(save).toBeDisabled());
     fireEvent.change(pattern, { target: { value: '^{year}#6\\d{2}(-6\\d{2})?$' } });
-    await waitFor(() => expect(save).not.toBeDisabled(), { timeout: 5000 });
+    await waitFor(() => expect(save).not.toBeDisabled());
     fireEvent.click(save);
-    await waitFor(() => expect(saveSetting).toHaveBeenCalled(), { timeout: 5000 });
+    await waitFor(() => expect(saveSetting).toHaveBeenCalled());
     const [key, value] = saveSetting.mock.calls[0];
     expect(key).toBe('integration.moodle.policies');
     expect(value[0].pattern).toBe('^{year}#6\\d{2}(-6\\d{2})?$');
     expect(value[0].role).toBe('visiteur');
-  }, 15000);
+  });
 
   it('contrôle : site_info absente du service → conseil affiché, aucune fonction dite « manquante »', async () => {
     const check = vi.fn(async () => ({
@@ -377,7 +386,7 @@ describe('MoodleAdminPanel', () => {
       ],
     }));
     mockApi({ [`POST ${BASE}/check`]: check });
-    renderPanel();
+    await renderPanel();
     fireEvent.click(await screen.findByRole('button', { name: 'Contrôler la connexion' }));
     const report = await screen.findByTestId('moodle-check-report');
     expect(check).toHaveBeenCalled();
@@ -390,7 +399,7 @@ describe('MoodleAdminPanel', () => {
   it('Entrée depuis le cours : affiche le nom du cours et refuse create comme unknown_user', async () => {
     mockApi();
     window.localStorage.setItem('foretmap.adminSection.moodle-lti', '1');
-    renderPanel();
+    await renderPanel();
     await screen.findByTestId('moodle-lti');
     expect(screen.getByText('Cours G&L chapitre 1')).toBeInTheDocument();
     expect(screen.getByRole('radio', { name: /Refuser/ })).toBeChecked();
