@@ -79,7 +79,9 @@ test('connexion puis déconnexion : clé unique et nettoyage local confirmé', a
   await expect(dialog).toContainText('1 action n’a pas encore été envoyée');
   await dialog.getByRole('button', { name: 'Se déconnecter' }).click();
 
-  await page.getByRole('button', { name: 'Connexion', exact: true }).waitFor({ state: 'visible' });
+  await page
+    .getByRole('button', { name: 'Se connecter', exact: true })
+    .waitFor({ state: 'visible' });
   const after = await page.evaluate(() => ({
     session: localStorage.getItem('foretmap_session'),
     queue: localStorage.getItem('foretmap_task_done_queue'),

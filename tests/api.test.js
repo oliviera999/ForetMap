@@ -2588,9 +2588,15 @@ test(
   },
 );
 
-test('GET /api/visit/content expose mascot_packs (tableau)', async () => {
+test('GET /api/visit/content expose mascot_packs (tableau) et mascot_catalog (léger)', async () => {
   const res = await request(app).get('/api/visit/content?map_id=foret').expect(200);
   assert.ok(Array.isArray(res.body.mascot_packs));
+  assert.ok(res.body.mascot_packs.length <= 1, 'au plus le pack du guide par défaut');
+  assert.ok(Array.isArray(res.body.mascot_catalog));
+  for (const entry of res.body.mascot_catalog) {
+    assert.ok(!('pack' in entry), 'catalogue léger : aucun JSON de pack');
+  }
+  assert.ok(!('_mascot_packs_full' in res.body), 'clé interne du cache jamais servie');
 });
 
 test('visit mascot packs : CRUD prof + présence dans content si publié', async () => {
@@ -2606,7 +2612,7 @@ test('visit mascot packs : CRUD prof + présence dans content si publié', async
   assert.ok(String(catalogId || '').startsWith('srv-'));
 
   const beforePub = await request(app).get('/api/visit/content?map_id=foret').expect(200);
-  assert.ok(!beforePub.body.mascot_packs.some((p) => p.catalog_id === catalogId));
+  assert.ok(!beforePub.body.mascot_catalog.some((p) => p.catalog_id === catalogId));
 
   const list = await request(app)
     .get('/api/visit/mascot-packs')
@@ -2634,7 +2640,7 @@ test('visit mascot packs : CRUD prof + présence dans content si publié', async
     .expect(200);
 
   const afterPub = await request(app).get('/api/visit/content?map_id=foret').expect(200);
-  assert.ok(afterPub.body.mascot_packs.some((p) => p.catalog_id === catalogId));
+  assert.ok(afterPub.body.mascot_catalog.some((p) => p.catalog_id === catalogId));
 
   await request(app)
     .delete(`/api/visit/mascot-packs/${packId}`)
@@ -2642,7 +2648,7 @@ test('visit mascot packs : CRUD prof + présence dans content si publié', async
     .expect(200);
 
   const afterDel = await request(app).get('/api/visit/content?map_id=foret').expect(200);
-  assert.ok(!afterDel.body.mascot_packs.some((p) => p.catalog_id === catalogId));
+  assert.ok(!afterDel.body.mascot_catalog.some((p) => p.catalog_id === catalogId));
 });
 
 test('visit mascot packs : PUT invalide renvoie details de validation exploitables', async () => {
@@ -2706,7 +2712,7 @@ test('visit mascot packs : liste studio globale (aucun filtre carte)', async () 
     for (const mapId of ['foret', 'n3']) {
       const content = await request(app).get(`/api/visit/content?map_id=${mapId}`).expect(200);
       assert.ok(
-        content.body.mascot_packs.some((p) => p.catalog_id === catalogId),
+        content.body.mascot_catalog.some((p) => p.catalog_id === catalogId),
         `pack publié attendu sur la carte ${mapId}`,
       );
     }

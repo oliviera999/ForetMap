@@ -48,7 +48,7 @@ function HelpPanel({
       <button
         type="button"
         className={`fm-help-btn ${isPulsing ? 'is-pulsing' : ''}`}
-        aria-label={`Ouvrir l aide: ${title}`}
+        aria-label={`Ouvrir l'aide : ${title}`}
         onClick={() => {
           onOpen?.(sectionId);
           setOpen(true);

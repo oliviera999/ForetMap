@@ -3,7 +3,7 @@
  * via `content.auth.credit_*`. Défauts alignés sur `lib/settings/identity.js`.
  */
 const DEFAULT_CREDITS = Object.freeze({
-  author: 'Mohammed El Farrai',
+  author: 'Mohammed',
   contributor: 'Olivier Arnould-Laurent',
   message: '',
 });

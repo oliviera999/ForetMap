@@ -1,4 +1,4 @@
-import { useCallback, useId, useMemo } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useDialogA11y } from '../../shared/platform/useDialogA11y.js';
 import { useExitAnimation } from '../../shared/hooks/useExitAnimation.js';
 import { GlossaryMarkdown } from '../GlossaryMarkdown.jsx';
@@ -18,6 +18,9 @@ import { LocationTutorialPreviewList } from '../map/mapModalShared.jsx';
 import { VisitBiodiversityPanel } from './VisitBiodiversityPanel.jsx';
 import { VisitEditorPanel } from './VisitEditorPanel.jsx';
 import { IconCheck, IconEye } from '../../shared/icons.jsx';
+import { BottomSheet } from '../../shared/ui/BottomSheet.jsx';
+import { useMediaQuery } from '../../shared/hooks/useMediaQuery.js';
+import { MEDIA } from '../../shared/breakpoints.js';
 
 /** Vignette cliquable : aperçu sans rognage (CSS `object-fit: contain`) + lightbox plein écran. */
 function VisitMediaGalleryThumb({ media, onOpenLightbox }) {
@@ -129,9 +132,60 @@ function VisitEditorialRenderer({
 }
 
 /**
- * Panneau détail zone/repère de la visite (dialogue bas de carte), extrait de `VisitView` (O6).
- * Contenu éditorial (blocs ou description + galerie), biodiversité et tutoriels du lieu,
- * bouton « vu » et panneau d'édition prof. Comportement inchangé (déplacement pur).
+ * « Vu » automatique (audit UI/UX du 19/11/2026, U6 ; décision du 20/11/2026) : un lieu est
+ * marqué vu après une lecture réelle — fiche ouverte `delayMs`, ou défilement jusqu'en bas —
+ * et l'élève peut annuler. Une annulation vaut pour toute l'ouverture de la fiche : la
+ * minuterie ne remarque pas un lieu qu'on vient de démarquer.
+ *
+ * @param {object} params
+ * @param {string|null} params.itemKey clé du lieu ouvert (`zone:12`), `null` sans lieu
+ * @param {boolean} params.isSeen le lieu est déjà vu
+ * @param {number} params.delayMs délai ; 0 ou moins = jamais automatique
+ * @param {(() => void)|null} params.onMark marque le lieu vu
+ * @returns {{ autoMarked: boolean, cancelled: boolean, markNow: () => void, cancel: () => void }}
+ */
+export function useVisitAutoSeen({ itemKey, isSeen, delayMs, onMark }) {
+  const [state, setState] = useState({ key: itemKey, autoMarked: false, cancelled: false });
+  const current =
+    state.key === itemKey ? state : { key: itemKey, autoMarked: false, cancelled: false };
+  if (current !== state) setState(current);
+  const onMarkRef = useRef(onMark);
+  onMarkRef.current = onMark;
+  const enabled = !!itemKey && typeof onMark === 'function' && Number(delayMs) > 0;
+  const canAutoMark = enabled && !isSeen && !current.cancelled && !current.autoMarked;
+
+  const markNow = useCallback(() => {
+    if (!canAutoMark) return;
+    setState({ key: itemKey, autoMarked: true, cancelled: false });
+    onMarkRef.current?.();
+  }, [canAutoMark, itemKey]);
+
+  useEffect(() => {
+    if (!canAutoMark) return undefined;
+    const timer = setTimeout(markNow, Number(delayMs));
+    return () => clearTimeout(timer);
+  }, [canAutoMark, delayMs, markNow]);
+
+  const cancel = useCallback(() => {
+    setState({ key: itemKey, autoMarked: false, cancelled: true });
+  }, [itemKey]);
+
+  return { autoMarked: current.autoMarked, cancelled: current.cancelled, markNow, cancel };
+}
+
+/**
+ * Fiche d'un lieu de la Visite (zone ou repère), extraite de `VisitView` (O6). Contenu
+ * éditorial (blocs ou description + galerie), biodiversité et tutoriels du lieu, statut « vu »
+ * et panneau d'édition prof.
+ *
+ * Mise en page (audit UI/UX du 19/11/2026, U6) — la fiche ne cache plus ce qu'elle décrit :
+ *  - **à partir de 1024 px** (`MEDIA.desktop`) : panneau latéral droit, **non modal**, sans
+ *    voile ; la carte reste visible et cliquable (cliquer un autre lieu remplace la fiche).
+ *    Largeur `--visit-side-panel-w`, haut aligné sur la carte (`--visit-side-panel-top`) ;
+ *  - **en dessous** : feuille basse partagée (`shared/ui/BottomSheet.jsx`), non bloquante,
+ *    au cran « moitié » — la moitié haute de la carte reste visible.
+ * Dans les deux cas : le focus entre dans la fiche à l'ouverture et revient au déclencheur
+ * à la fermeture ; Échap ferme ; la tabulation n'est pas piégée (fiche non modale).
  */
 export function VisitDetailPanel({
   selected,
@@ -149,7 +203,11 @@ export function VisitDetailPanel({
   seen,
   savingSeen,
   onToggleSeen,
-  /** Afficher « Marquer comme vu ». */
+  /** Marque / démarque un lieu précis (« vu » automatique et son annulation). */
+  onSetItemSeen = null,
+  /** Délai du « vu » automatique en millisecondes (`ui.visit.auto_seen_delay_seconds`). */
+  autoSeenDelayMs = 0,
+  /** Afficher le statut « vu ». */
   showSeenStatus = true,
   plants = [],
   onOpenPlantCatalogPreview = null,
@@ -176,6 +234,8 @@ export function VisitDetailPanel({
   onGoTo = null,
   isGuideTarget = false,
   guideDistanceLabel = '',
+  /** Haut du panneau latéral en px (aligné sur la carte) ; `null` = valeur CSS par défaut. */
+  sidePanelTop = null,
   /** Édition visite : prof hors « aperçu comme élève ». */
   canEditVisit = false,
   onSaved,
@@ -184,17 +244,69 @@ export function VisitDetailPanel({
   markerEmojis,
 }) {
   const visitDetailPanelTitleId = useId();
-  /**
-   * `aria-modal` sans piège de focus laissait la tabulation repartir dans la carte derrière
-   * le panneau, et le focus n'était pas rendu à la zone/au repère à la fermeture.
-   * Même coque a11y que les autres dialogues (`useDialogA11y` : focus initial, piège Tab,
-   * Échap, restitution du focus).
-   */
+  const isDesktop = useMediaQuery(MEDIA.desktop);
   const { closing, runExit, onAnimationEnd } = useExitAnimation({
     animationName: 'visitDetailPanelOut',
   });
-  const closeAnimated = useCallback(() => runExit(onClose), [runExit, onClose]);
-  const dialogRef = useDialogA11y(() => runExit(onRequestClose || onClose));
+  const closeAnimated = useCallback(
+    () => (isDesktop ? runExit(onClose) : onClose?.()),
+    [isDesktop, runExit, onClose],
+  );
+  const requestClose = useCallback(
+    () => (isDesktop ? runExit(onRequestClose || onClose) : (onRequestClose || onClose)?.()),
+    [isDesktop, runExit, onRequestClose, onClose],
+  );
+  // Panneau latéral : Échap seulement (la feuille basse gère le sien). Non modal : ni focus
+  // initial imposé au premier contrôle, ni piège de tabulation.
+  const sideRef = useDialogA11y(requestClose, { manageFocus: false, active: isDesktop });
+
+  /** Racine du contenu : sert à retrouver le dialogue (latéral ou feuille) et son défilement. */
+  const contentRef = useRef(null);
+  const hasSelection = !!selected;
+
+  // Focus : entre dans la fiche à l'ouverture, revient au déclencheur à la fermeture. Géré ici
+  // et non par `useDialogA11y` : la fiche est non modale (aucun piège), mais le clavier doit
+  // quand même y arriver sans parcourir toute la carte.
+  useEffect(() => {
+    if (!hasSelection || typeof document === 'undefined') return undefined;
+    const previous = document.activeElement;
+    const dialog = contentRef.current?.closest?.('[role="dialog"]');
+    if (dialog && typeof dialog.focus === 'function') dialog.focus();
+    return () => {
+      if (previous && typeof previous.focus === 'function' && previous.isConnected !== false) {
+        previous.focus();
+      }
+    };
+  }, [hasSelection, isDesktop]);
+
+  const itemKey = selected ? itemSeenKey(selectedType, selected.id) : null;
+  const isSeen = !!(itemKey && seen?.has?.(itemKey));
+  const autoSeen = useVisitAutoSeen({
+    itemKey: showSeenStatus ? itemKey : null,
+    isSeen,
+    delayMs: autoSeenDelayMs,
+    onMark:
+      typeof onSetItemSeen === 'function' && selected
+        ? () => onSetItemSeen(selectedType, selected.id, true)
+        : null,
+  });
+  const { markNow } = autoSeen;
+
+  // Lecture jusqu'en bas = lecture réelle : le « vu » n'attend pas la minuterie.
+  useEffect(() => {
+    if (!hasSelection) return undefined;
+    const root = contentRef.current;
+    const scroller = root?.closest?.('.fm-bottom-sheet__body') || root;
+    if (!scroller || typeof scroller.addEventListener !== 'function') return undefined;
+    const onScroll = () => {
+      const { scrollTop, clientHeight, scrollHeight } = scroller;
+      if (scrollHeight > clientHeight + 8 && scrollTop + clientHeight >= scrollHeight - 8) {
+        markNow();
+      }
+    };
+    scroller.addEventListener('scroll', onScroll, { passive: true });
+    return () => scroller.removeEventListener('scroll', onScroll);
+  }, [hasSelection, isDesktop, markNow]);
 
   /** Biodiversité et tutoriels liés au lieu (aligné sur les panneaux zone/repère de la carte). */
   const visitLocationAside = useMemo(
@@ -212,6 +324,7 @@ export function VisitDetailPanel({
 
   if (!selected) return null;
 
+  const title = selectedType === 'zone' ? selected.name : selected.label;
   const selectedVisitMedia = selected.visit_media || [];
   const selectedEditorialBlocks = normalizeEditorialBlocks(selected.visit_editorial_blocks || []);
   const hasEditorialBlocks = selectedEditorialBlocks.length > 0;
@@ -252,211 +365,254 @@ export function VisitDetailPanel({
     mapExtraPhotos.length > 0
   );
 
-  return (
-    <>
-      {/* Voile : sur grand écran le panneau est une carte centrée — sans lui, la carte
-          restait cliquable sous un dialogue `aria-modal` (un clic ouvrait une autre zone
-          ou déplaçait la mascotte derrière le panneau). */}
-      <div
-        className={`visit-detail-panel__scrim${closing ? ' fm-is-exiting' : ''}`}
-        data-testid="visit-detail-panel-scrim"
-        onClick={closeAnimated}
-        aria-hidden="true"
-      />
-      <div
-        ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={visitDetailPanelTitleId}
-        tabIndex={-1}
-        data-testid="visit-detail-panel"
-        className={`visit-detail-panel${comfortableReading ? ' visit-detail-panel--comfortable' : ''} visit-detail-panel--tone-paper${closing ? ' fm-is-exiting' : ''}`}
-        onAnimationEnd={onAnimationEnd}
-      >
-        <div className="visit-detail-panel__handle" aria-hidden="true" />
-        <div className="visit-detail-panel__head">
-          <h3 id={visitDetailPanelTitleId} className="visit-detail-panel__title">
-            {selectedType === 'zone' ? selected.name : selected.label}
-          </h3>
+  const readingToggle = (
+    <button
+      type="button"
+      className={`btn btn-ghost btn-sm ${comfortableReading ? 'is-active' : ''}`}
+      aria-pressed={comfortableReading}
+      aria-label="Lecture confortable (Aa)"
+      title="Basculer le mode lecture confortable"
+      onClick={onToggleComfortableReading}
+    >
+      Aa
+    </button>
+  );
+
+  /**
+   * Statut « vu » : automatique et annulable. Le bouton manuel reste pour qui veut marquer
+   * tout de suite (ou démarquer un lieu vu lors d'une visite précédente).
+   */
+  const seenStatus = showSeenStatus ? (
+    <div className="visit-seen-status" data-testid="visit-seen-status" aria-live="polite">
+      {isSeen ? (
+        <>
+          <span className="visit-seen-status__label">
+            <IconCheck size={14} /> {autoSeen.autoMarked ? 'Marqué comme vu' : 'Déjà vu'}
+          </span>
           <button
             type="button"
-            className={`btn btn-ghost btn-sm ${comfortableReading ? 'is-active' : ''}`}
-            aria-pressed={comfortableReading}
-            aria-label="Lecture confortable (Aa)"
-            title="Basculer le mode lecture confortable"
-            onClick={onToggleComfortableReading}
+            className="btn btn-ghost btn-sm"
+            disabled={savingSeen}
+            data-testid="visit-seen-undo"
+            onClick={() => {
+              autoSeen.cancel();
+              if (typeof onSetItemSeen === 'function') {
+                onSetItemSeen(selectedType, selected.id, false);
+              } else onToggleSeen?.();
+            }}
           >
-            Aa
+            {autoSeen.autoMarked ? 'Annuler' : 'Marquer comme non vu'}
           </button>
-          <button type="button" className="btn btn-ghost btn-sm" onClick={closeAnimated}>
-            Fermer
-          </button>
-        </div>
-        <div className="visit-detail-panel__body visit-selection-aside">
-          {selected.visit_subtitle && <p className="visit-subtitle">{selected.visit_subtitle}</p>}
-          {mapLeadPhoto && (
-            <div className="visit-media-gallery visit-media-gallery--lead">
-              <VisitMediaGalleryThumb
-                media={{
-                  image_url: mapLeadPhoto.image_url,
-                  thumb_url: mapLeadPhoto.thumb_url,
-                  caption: mapLeadPhoto.caption,
-                }}
-                onOpenLightbox={onOpenLightbox}
-              />
-            </div>
-          )}
-          {hasEditorialBlocks ? (
-            <VisitEditorialRenderer
-              blocks={selectedEditorialBlocks}
-              selectedVisitMedia={selectedVisitMedia}
-              onOpenLightbox={onOpenLightbox}
-              glossaryItems={glossaryItems}
-              onOpenGlossaryTerm={onOpenGlossaryTerm}
-              excludeLeadPhoto={mapLeadPhoto}
-              suppressFirstHeroImage={Boolean(mapLeadPhoto)}
-            />
-          ) : (
-            <>
-              {selected.visit_short_description && (
-                <GlossaryMarkdown
-                  glossaryItems={glossaryItems}
-                  onOpenGlossaryTerm={onOpenGlossaryTerm}
-                >
-                  {selected.visit_short_description}
-                </GlossaryMarkdown>
-              )}
-              {showFirstVisitAsLead && (
-                <div className="visit-media-gallery visit-media-gallery--lead">
-                  <VisitMediaGalleryThumb media={firstVisitPhoto} onOpenLightbox={onOpenLightbox} />
-                </div>
-              )}
-              {showVisitDetailsBlock && (
-                <details className="visit-details">
-                  <summary>{selected.visit_details_title || 'Détails'}</summary>
-                  {(restVisitPhotos.length > 0 || mapExtraPhotos.length > 0) && (
-                    <div className="visit-media-gallery visit-media-gallery--details-extra">
-                      {restVisitPhotos.map((m) => (
-                        <VisitMediaGalleryThumb
-                          key={m.id}
-                          media={m}
-                          onOpenLightbox={onOpenLightbox}
-                        />
-                      ))}
-                      {mapExtraPhotos.map((ph) => (
-                        <VisitMediaGalleryThumb
-                          key={`map-extra-${ph.id}`}
-                          media={{
-                            image_url: ph.image_url,
-                            thumb_url: ph.thumb_url,
-                            caption: ph.caption,
-                          }}
-                          onOpenLightbox={onOpenLightbox}
-                        />
-                      ))}
-                    </div>
-                  )}
-                  {visitDetailsTextTrim ? (
-                    <GlossaryMarkdown
-                      className="visit-details__body"
-                      glossaryItems={glossaryItems}
-                      onOpenGlossaryTerm={onOpenGlossaryTerm}
-                    >
-                      {selected.visit_details_text}
-                    </GlossaryMarkdown>
-                  ) : null}
-                </details>
-              )}
-            </>
-          )}
-          {/*
-            Compléments réservés (`location_notes`, migration 263). Nouveauté : la Visite les
-            recevait déjà — filtrés note par note par le serveur — mais ne les affichait nulle
-            part. Un prof en visite avec sa classe ne voyait donc pas la consigne qui lui était
-            destinée. Rien à refiltrer ici : ce qui arrive est ce que ce lecteur a le droit de
-            lire.
-          */}
-          {(selected.notes || [])
-            .filter((note) => note && String(note.body || '').trim())
-            .map((note) => (
-              <section className="visit-restricted-note" key={note.id ?? note.body}>
-                <h4 className="visit-restricted-note__title">
-                  <span aria-hidden>🔒</span>{' '}
-                  {String(note.title || '').trim() || 'Complément réservé'}
-                </h4>
-                <GlossaryMarkdown
-                  glossaryItems={glossaryItems}
-                  onOpenGlossaryTerm={onOpenGlossaryTerm}
-                >
-                  {note.body}
-                </GlossaryMarkdown>
-              </section>
-            ))}
-          {visitLocationAside.showBiodiversity && (
-            <VisitBiodiversityPanel
-              locationKind={visitLocationAside.locationKind}
-              names={visitLocationAside.primaryLivingNames}
-              species={visitLocationAside.primaryLivingSpecies}
-              plants={plants}
-              namesOnlyOnTasks={visitLocationAside.livingBeingsOnlyOnTasks}
-              onOpenPlant={onOpenPlantCatalogPreview}
-            />
-          )}
-          {visitLocationAside.showTutos && (
-            <details className="visit-details">
-              <summary>Tuto</summary>
-              <div className="visit-details__section">
-                <LocationTutorialPreviewList
-                  tutorials={visitLocationAside.tutorialListForPreview}
-                  locationKind={visitLocationAside.locationKind}
-                  locationId={selected.id}
-                  onOpenTutorialPreview={onOpenTutorialPreview}
-                />
-              </div>
-            </details>
-          )}
-          {onGoTo && canGuide ? (
-            <div className="visit-detail-panel__go">
-              <button
-                type="button"
-                className="btn btn-primary btn-sm visit-detail-panel__go-btn"
-                data-testid="visit-detail-go"
-                title="Afficher la direction et la distance depuis votre position"
-                onClick={() => onGoTo(selected)}
-              >
-                {isGuideTarget ? 'Revoir la direction' : 'Y aller'}
-              </button>
-              <p className="visit-detail-panel__go-hint section-sub">
-                {isGuideTarget && guideDistanceLabel
-                  ? `À ${guideDistanceLabel} à vol d’oiseau. La fiche se referme : le guidage reste en bas.`
-                  : 'Direction à vol d’oiseau, pas un itinéraire. La fiche se referme.'}
-              </p>
-            </div>
-          ) : null}
-          {showSeenStatus ? (
-            <button className="btn btn-primary btn-sm" disabled={savingSeen} onClick={onToggleSeen}>
-              {seen.has(itemSeenKey(selectedType, selected.id)) ? (
-                <>
-                  <IconCheck size={14} /> Marqué comme vu
-                </>
-              ) : (
-                <>
-                  <IconEye size={14} /> Marquer comme vu
-                </>
-              )}
-            </button>
-          ) : null}
-          <VisitEditorPanel
-            selected={selected}
-            selectedType={selectedType}
-            onSaved={onSaved}
-            onForceLogout={onForceLogout}
-            isTeacher={canEditVisit}
-            roleTerms={roleTerms}
-            markerEmojis={markerEmojis}
+        </>
+      ) : (
+        <button
+          type="button"
+          className="btn btn-ghost btn-sm"
+          disabled={savingSeen}
+          onClick={() => {
+            if (typeof onSetItemSeen === 'function') {
+              onSetItemSeen(selectedType, selected.id, true);
+            } else onToggleSeen?.();
+          }}
+        >
+          <IconEye size={14} /> Marquer comme vu
+        </button>
+      )}
+    </div>
+  ) : null;
+
+  const content = (
+    <div
+      ref={contentRef}
+      className="visit-detail-panel__body visit-selection-aside"
+      data-testid="visit-detail-body"
+    >
+      <div className="visit-detail-panel__tools">
+        {seenStatus}
+        {!isDesktop ? readingToggle : null}
+      </div>
+      {selected.visit_subtitle && <p className="visit-subtitle">{selected.visit_subtitle}</p>}
+      {mapLeadPhoto && (
+        <div className="visit-media-gallery visit-media-gallery--lead">
+          <VisitMediaGalleryThumb
+            media={{
+              image_url: mapLeadPhoto.image_url,
+              thumb_url: mapLeadPhoto.thumb_url,
+              caption: mapLeadPhoto.caption,
+            }}
+            onOpenLightbox={onOpenLightbox}
           />
         </div>
+      )}
+      {hasEditorialBlocks ? (
+        <VisitEditorialRenderer
+          blocks={selectedEditorialBlocks}
+          selectedVisitMedia={selectedVisitMedia}
+          onOpenLightbox={onOpenLightbox}
+          glossaryItems={glossaryItems}
+          onOpenGlossaryTerm={onOpenGlossaryTerm}
+          excludeLeadPhoto={mapLeadPhoto}
+          suppressFirstHeroImage={Boolean(mapLeadPhoto)}
+        />
+      ) : (
+        <>
+          {selected.visit_short_description && (
+            <GlossaryMarkdown glossaryItems={glossaryItems} onOpenGlossaryTerm={onOpenGlossaryTerm}>
+              {selected.visit_short_description}
+            </GlossaryMarkdown>
+          )}
+          {showFirstVisitAsLead && (
+            <div className="visit-media-gallery visit-media-gallery--lead">
+              <VisitMediaGalleryThumb media={firstVisitPhoto} onOpenLightbox={onOpenLightbox} />
+            </div>
+          )}
+          {showVisitDetailsBlock && (
+            <details className="visit-details">
+              <summary>{selected.visit_details_title || 'Détails'}</summary>
+              {(restVisitPhotos.length > 0 || mapExtraPhotos.length > 0) && (
+                <div className="visit-media-gallery visit-media-gallery--details-extra">
+                  {restVisitPhotos.map((m) => (
+                    <VisitMediaGalleryThumb key={m.id} media={m} onOpenLightbox={onOpenLightbox} />
+                  ))}
+                  {mapExtraPhotos.map((ph) => (
+                    <VisitMediaGalleryThumb
+                      key={`map-extra-${ph.id}`}
+                      media={{
+                        image_url: ph.image_url,
+                        thumb_url: ph.thumb_url,
+                        caption: ph.caption,
+                      }}
+                      onOpenLightbox={onOpenLightbox}
+                    />
+                  ))}
+                </div>
+              )}
+              {visitDetailsTextTrim ? (
+                <GlossaryMarkdown
+                  className="visit-details__body"
+                  glossaryItems={glossaryItems}
+                  onOpenGlossaryTerm={onOpenGlossaryTerm}
+                >
+                  {selected.visit_details_text}
+                </GlossaryMarkdown>
+              ) : null}
+            </details>
+          )}
+        </>
+      )}
+      {/*
+        Compléments réservés (`location_notes`, migration 263) : filtrés note par note par
+        le serveur ; ce qui arrive est ce que ce lecteur a le droit de lire.
+      */}
+      {(selected.notes || [])
+        .filter((note) => note && String(note.body || '').trim())
+        .map((note) => (
+          <section className="visit-restricted-note" key={note.id ?? note.body}>
+            <h4 className="visit-restricted-note__title">
+              <span aria-hidden>🔒</span> {String(note.title || '').trim() || 'Complément réservé'}
+            </h4>
+            <GlossaryMarkdown glossaryItems={glossaryItems} onOpenGlossaryTerm={onOpenGlossaryTerm}>
+              {note.body}
+            </GlossaryMarkdown>
+          </section>
+        ))}
+      {visitLocationAside.showBiodiversity && (
+        <VisitBiodiversityPanel
+          locationKind={visitLocationAside.locationKind}
+          names={visitLocationAside.primaryLivingNames}
+          species={visitLocationAside.primaryLivingSpecies}
+          plants={plants}
+          namesOnlyOnTasks={visitLocationAside.livingBeingsOnlyOnTasks}
+          onOpenPlant={onOpenPlantCatalogPreview}
+        />
+      )}
+      {visitLocationAside.showTutos && (
+        <details className="visit-details">
+          <summary>Tuto</summary>
+          <div className="visit-details__section">
+            <LocationTutorialPreviewList
+              tutorials={visitLocationAside.tutorialListForPreview}
+              locationKind={visitLocationAside.locationKind}
+              locationId={selected.id}
+              onOpenTutorialPreview={onOpenTutorialPreview}
+            />
+          </div>
+        </details>
+      )}
+      {onGoTo && canGuide ? (
+        <div className="visit-detail-panel__go">
+          <button
+            type="button"
+            className="btn btn-primary btn-sm visit-detail-panel__go-btn"
+            data-testid="visit-detail-go"
+            title="Afficher la direction et la distance depuis ta position"
+            onClick={() => onGoTo(selected)}
+          >
+            {isGuideTarget ? 'Revoir la direction' : 'Y aller'}
+          </button>
+          {/* Une seule ligne d'aide (U6) : la fiche ne se referme plus sur ordinateur, la
+              phrase qui l'annonçait n'a plus lieu d'être. */}
+          <p className="visit-detail-panel__go-hint section-sub">
+            {isGuideTarget && guideDistanceLabel
+              ? `À ${guideDistanceLabel} à vol d’oiseau.`
+              : 'Direction à vol d’oiseau, pas un itinéraire.'}
+          </p>
+        </div>
+      ) : null}
+      <VisitEditorPanel
+        selected={selected}
+        selectedType={selectedType}
+        onSaved={onSaved}
+        onForceLogout={onForceLogout}
+        isTeacher={canEditVisit}
+        roleTerms={roleTerms}
+        markerEmojis={markerEmojis}
+      />
+    </div>
+  );
+
+  const panelClass = `visit-detail-panel${comfortableReading ? ' visit-detail-panel--comfortable' : ''} visit-detail-panel--tone-paper`;
+
+  if (!isDesktop) {
+    return (
+      <BottomSheet
+        open
+        onClose={requestClose}
+        title={title}
+        blockBackground={false}
+        closeOnOverlay={false}
+        snapPoints={['peek', 'half', 'full']}
+        initialSnap="half"
+        testId="visit-detail-panel"
+        className={`${panelClass} visit-detail-panel--sheet`}
+      >
+        {content}
+      </BottomSheet>
+    );
+  }
+
+  return (
+    <div
+      ref={sideRef}
+      role="dialog"
+      aria-modal="false"
+      aria-labelledby={visitDetailPanelTitleId}
+      tabIndex={-1}
+      data-testid="visit-detail-panel"
+      className={`${panelClass} visit-detail-panel--side${closing ? ' fm-is-exiting' : ''}`}
+      style={sidePanelTop != null ? { '--visit-side-panel-top': `${sidePanelTop}px` } : undefined}
+      onAnimationEnd={onAnimationEnd}
+    >
+      <div className="visit-detail-panel__head">
+        <h3 id={visitDetailPanelTitleId} className="visit-detail-panel__title">
+          {title}
+        </h3>
+        {readingToggle}
+        <button type="button" className="btn btn-ghost btn-sm" onClick={closeAnimated}>
+          Fermer
+        </button>
       </div>
-    </>
+      {content}
+    </div>
   );
 }

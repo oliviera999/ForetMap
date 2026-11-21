@@ -13,6 +13,7 @@ export const SECTION_DEFS = {
   tasks: { title: 'Tâches & inscriptions n3beurs', order: 23 },
   routes: { title: 'Parcours guidés (Visite, carte, plans)', order: 24 },
   place_focus: { title: 'Zoom sur le lieu avant sa fiche (carte, Visite, plans)', order: 24.5 },
+  visit: { title: 'Visite', order: 24.7 },
   progression: { title: 'Progression n3beurs', order: 25 },
   imports: { title: 'Imports de comptes', order: 28 },
   security: { title: 'Sécurité', order: 30 },
@@ -608,6 +609,11 @@ export const KEY_META = {
     label:
       'Carte de travail : au clic sur une zone ou un repère, zoomer dessus avant d’ouvrir sa fiche',
     section: 'place_focus',
+    order: 10,
+  },
+  'ui.visit.auto_seen_delay_seconds': {
+    label: 'Visite : marquer un lieu « vu » après N secondes de fiche ouverte (0 = jamais)',
+    section: 'visit',
     order: 10,
   },
   'ui.place_focus.visit_enabled': {

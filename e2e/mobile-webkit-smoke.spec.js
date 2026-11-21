@@ -32,3 +32,34 @@ test('webkit : barre Plus puis retour Carte', async ({ page }) => {
   await bottomNav.getByRole('button', { name: 'Carte', exact: true }).click();
   await expect(page.locator(MAP_STAGE).first()).toBeVisible({ timeout: 60_000 });
 });
+
+/**
+ * Audit UI/UX du 19/11/2026 (U3, U4, U6) : sur téléphone, la porte « Découvrir le lieu » est
+ * visible sans défiler, la carte s'affiche en un clic (aucune fenêtre de mascotte), et la
+ * fiche d'un lieu s'ouvre en feuille basse non bloquante.
+ */
+test('webkit : accueil → carte de la Visite en un clic, fiche en feuille basse', async ({
+  page,
+}) => {
+  test.setTimeout(180_000);
+  await page.goto('/');
+  const door = page.getByRole('button', { name: /Découvrir le lieu/i });
+  await expect(door).toBeVisible({ timeout: 60_000 });
+  await expect(door).toBeInViewport();
+  await door.click();
+
+  await expect(page.locator('.visit-view--guest-public')).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByRole('dialog', { name: /Choix de la mascotte/i })).toHaveCount(0);
+  const stage = page.locator('.visit-map-stage');
+  await expect(stage.locator('img.visit-map-img')).toBeVisible({ timeout: 30_000 });
+
+  const marker = stage.locator('.fm-pct-marker').first();
+  if ((await marker.count()) === 0) return;
+  await marker.click({ force: true });
+  const sheet = page.getByTestId('visit-detail-panel');
+  await expect(sheet).toBeVisible({ timeout: 20_000 });
+  await expect(sheet).toHaveClass(/fm-bottom-sheet/);
+  await expect(sheet).toHaveAttribute('aria-modal', 'false');
+  await sheet.getByRole('button', { name: 'Fermer' }).click();
+  await expect(sheet).toHaveCount(0);
+});

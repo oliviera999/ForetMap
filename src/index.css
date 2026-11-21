@@ -2608,12 +2608,43 @@
       background:radial-gradient(ellipse at 30% 70%, #d8f3dc 0%, var(--cream) 60%);
       padding:20px; padding-top:max(20px, var(--safe-top));
     }
+    /* Accueil à deux portes (audit UI/UX du 19/11/2026, U3) : en-tête commun, puis
+       « Découvrir le lieu » et « Me connecter » de même poids, côte à côte à partir de
+       768 px (plus de carte de 280 px perdue au milieu d'un grand écran). */
+    .auth-shell { width:100%; max-width:420px; display:flex; flex-direction:column; gap:var(--space-4); }
+    .auth-shell--doors { max-width:420px; }
+    .auth-head { text-align:center; }
+    .auth-head .sub { margin-bottom:0; }
+    .auth-welcome { margin-top:4px; }
+    .auth-doors { display:grid; grid-template-columns:1fr; gap:var(--space-4); align-items:start; }
+    @media (min-width: 768px) {
+      .auth-shell--doors { max-width:880px; }
+      .auth-shell--doors .auth-doors { grid-template-columns:1fr 1fr; align-items:stretch; }
+    }
+    .auth-door { display:flex; flex-direction:column; }
+    .auth-door__eyebrow {
+      margin:0 0 2px; font-size:var(--text-xs); font-weight:var(--fw-semibold);
+      letter-spacing:.04em; text-transform:uppercase; color:var(--ink-soft);
+    }
+    .auth-door__title { margin:0 0 12px; font-size:var(--text-lg); color:var(--forest); }
+    .auth-door__text { margin:0 0 16px; color:var(--ink-soft); font-size:var(--text-sm); line-height:1.45; }
+    .auth-door--visit .auth-door__cta { margin-top:auto; }
+    .auth-submit { margin-top:4px; }
+    .auth-secondary-btn { margin-top:8px; }
+    .auth-field-hint { margin:4px 0 0; font-size:var(--text-sm); color:var(--ink-soft); }
+    .auth-forgot { margin-top:10px; border-top:1px solid var(--line); padding-top:10px; }
+    .auth-forgot__btn { margin-top:6px; }
+    .auth-forgot__reset { margin-top:8px; }
+    .auth-forgot__label,
+    .auth-forgot__input { margin-top:6px; }
+    .auth-foot { text-align:center; }
     .auth-card {
       background:white; border-radius:20px;
       padding:var(--space-card-lg) var(--space-card-lg-x); max-width:420px; width:100%;
       box-shadow:var(--shadow), 0 0 0 1px rgba(45,106,79,.06);
       animation:popIn .4s var(--spring);
     }
+    .auth-shell--doors .auth-card { max-width:none; }
     .auth-brand-logo {
       display:block;
       width:72px;
@@ -2622,8 +2653,8 @@
       object-fit:contain;
     }
     @media(max-width:400px) { .auth-card { border-radius:16px; } }
-    .auth-card h1 { font-size:clamp(1.45rem, 1.25rem + .8vw, 1.8rem); color:var(--forest); margin-bottom:4px; }
-    .auth-card .sub { color:var(--leaf); font-size:var(--text-sm); margin-bottom:24px; }
+    .auth-head h1 { font-size:clamp(1.45rem, 1.25rem + .8vw, 1.8rem); color:var(--forest); margin-bottom:4px; }
+    .auth-head .sub { color:var(--leaf); font-size:var(--text-sm); margin-bottom:24px; }
     /* Bascule connexion / inscription : c'était le quatrième style d'onglets du produit
        (`.auth-tabs` / `.auth-tab`), très proche des trois autres sans leur être identique.
        Elle passe sur `.fm-subtabs` comme le reste ; il ne reste ici que ses marges et le
@@ -5688,62 +5719,99 @@
       color:#5b655f;
       font-size:var(--text-sm);
     }
-    /* Voile du panneau lieu visite : rétablit la modalité annoncée par `aria-modal`.
-       Sur mobile le panneau le recouvre entièrement ; sur grand écran (panneau centré)
-       il assombrit la carte et absorbe les clics qui, sans lui, ouvraient une autre zone
-       ou déplaçaient la mascotte derrière le dialogue. */
-    .visit-detail-panel__scrim {
-      position:fixed;
-      inset:0;
-      z-index:calc(var(--fm-z-panel) - 1);
-      background:rgba(12,26,20,.42);
-    }
-    /* Panneau lieu visite : plein viewport (repère/zone), au-dessus de la barre du bas. */
+    /* Fiche d'un lieu de la Visite (audit UI/UX du 19/11/2026, U6) : elle ne cache plus ce
+       qu'elle décrit. À partir de 1024 px, panneau latéral droit NON modal, sans voile : la
+       carte reste visible et cliquable à gauche. En dessous, feuille basse partagée
+       (`.fm-bottom-sheet`, cran « moitié »). Largeur réservée au panneau :
+       `--visit-side-panel-w` (reprise comme marge de recadrage côté droit). */
     .visit-detail-panel {
-      /* Décalage horizontal de centrage, repris tel quel par l'animation d'ouverture :
-         les keyframes écrasent `transform`, donc un `translateY` nu y perdait le
-         `translateX(-50%)` du mode centré — le panneau s'ouvrait décalé d'une demi-largeur
-         puis sautait en place. */
+      --visit-side-panel-w:min(420px, 36vw);
+      /* Décalage horizontal repris par les animations d'ouverture et de fermeture. */
       --visit-detail-panel-x:0px;
+    }
+    .visit-detail-panel--side {
       position:fixed;
-      inset:0;
+      top:var(--visit-side-panel-top, 12px);
+      right:max(12px, env(safe-area-inset-right, 0px));
+      bottom:max(12px, env(safe-area-inset-bottom, 0px));
       z-index:var(--fm-z-panel);
-      width:100%;
-      max-width:none;
-      height:100%;
-      max-height:100dvh;
+      width:var(--visit-side-panel-w);
       box-sizing:border-box;
-      padding-top:env(safe-area-inset-top, 0px);
-      padding-right:env(safe-area-inset-right, 0px);
-      padding-bottom:env(safe-area-inset-bottom, 0px);
-      padding-left:env(safe-area-inset-left, 0px);
-      background:var(--surface-1);
-      border:none;
-      border-radius:0;
-      box-shadow:none;
       display:flex;
       flex-direction:column;
+      background:var(--surface-1);
+      border:1px solid var(--outline-soft);
+      border-radius:16px;
+      box-shadow:var(--shadow-soft);
+      overflow:hidden;
       overscroll-behavior:contain;
     }
     @media (prefers-reduced-motion: no-preference) {
-      .visit-detail-panel {
+      .visit-detail-panel--side {
         animation:visitDetailPanelIn .2s ease-out;
       }
     }
     @keyframes visitDetailPanelIn {
-      from { opacity:0; transform:translate(var(--visit-detail-panel-x, 0px), 10px); }
+      from { opacity:0; transform:translate(calc(var(--visit-detail-panel-x, 0px) + 12px), 0); }
       to { opacity:1; transform:translate(var(--visit-detail-panel-x, 0px), 0); }
     }
-    /* Fermeture (`useExitAnimation`) : même décalage de centrage que l'ouverture. */
+    /* Fermeture (`useExitAnimation`, panneau latéral seulement). */
     .visit-detail-panel.fm-is-exiting {
       animation:visitDetailPanelOut var(--motion-exit) var(--ease-in) forwards;
     }
-    .visit-detail-panel__scrim.fm-is-exiting {
-      animation:overlayFadeOut var(--motion-exit) var(--ease-in) forwards;
-    }
     @keyframes visitDetailPanelOut {
-      from { opacity:1; transform:translate(var(--visit-detail-panel-x, 0px), 0) scale(1); }
-      to { opacity:0; transform:translate(var(--visit-detail-panel-x, 0px), 0) scale(.96); }
+      from { opacity:1; transform:translate(var(--visit-detail-panel-x, 0px), 0); }
+      to { opacity:0; transform:translate(calc(var(--visit-detail-panel-x, 0px) + 12px), 0); }
+    }
+    /* Feuille basse : le défilement est celui de la feuille, pas un second ascenseur. */
+    .visit-detail-panel--sheet .visit-detail-panel__body {
+      overflow:visible;
+      padding:4px 2px 12px;
+    }
+    .visit-detail-panel__tools {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+      flex-wrap:wrap;
+      margin-bottom:8px;
+    }
+    /* Progression par carte (U6) : « 6 / 45 lieux » à côté du donut, et message de fin. */
+    .visit-progress--chrome-inline.visit-progress--donut { display:flex; align-items:center; gap:6px; }
+    .visit-progress__count {
+      font-size:var(--text-xs);
+      font-weight:var(--fw-semibold);
+      color:var(--forest);
+      white-space:nowrap;
+    }
+    .visit-complete {
+      margin:6px 0 0;
+      padding:8px 12px;
+      border-radius:10px;
+      background:var(--tint-success);
+      color:var(--ink-success);
+      font-size:var(--text-sm);
+      font-weight:var(--fw-semibold);
+    }
+    .visit-complete__link {
+      color:var(--forest);
+      text-decoration:underline;
+      font-weight:var(--fw-bold);
+    }
+    .visit-seen-status {
+      display:flex;
+      align-items:center;
+      gap:8px;
+      flex-wrap:wrap;
+      min-height:var(--tap-target);
+    }
+    .visit-seen-status__label {
+      display:inline-flex;
+      align-items:center;
+      gap:4px;
+      color:var(--ink-success);
+      font-weight:var(--fw-semibold);
+      font-size:var(--text-sm);
     }
     .visit-detail-panel__handle {
       display:none;
@@ -5821,26 +5889,7 @@
       background:#f3f9ff;
       border-color:#c8def3;
     }
-    @media (min-width: 980px) {
-      .visit-detail-panel {
-        top:4dvh;
-        left:50%;
-        right:auto;
-        bottom:auto;
-        width:min(820px, calc(100vw - 40px));
-        height:auto;
-        max-height:92dvh;
-        border:1px solid var(--outline-soft);
-        border-radius:16px;
-        box-shadow:0 24px 48px rgba(0,0,0,.18);
-        --visit-detail-panel-x:-50%;
-        transform:translateX(var(--visit-detail-panel-x));
-      }
-      .visit-detail-panel__body {
-        padding:16px 20px 22px;
-      }
-    }
-    @media (max-width: 760px) {
+    @media (max-width: 767px) {
       .visit-reading-tone-switch {
         width:100%;
         order:3;
@@ -6027,6 +6076,24 @@
       font-size:var(--text-sm);
       text-align:left;
       cursor:pointer;
+    }
+    /* Studio : réglages « Visite » d'un pack (proposé dans la Visite, version féminine). */
+    .mascot-pack-visit-listing { margin:4px 0 0; padding:8px 10px; border:1px solid var(--line); border-radius:8px; display:flex; flex-direction:column; gap:6px; }
+    .mascot-pack-visit-listing__legend { padding:0 4px; font-size:var(--text-xs); font-weight:var(--fw-semibold); color:var(--ink-soft); }
+    .mascot-pack-visit-listing__check { display:flex; align-items:center; gap:8px; min-height:var(--tap-target); }
+    .mascot-pack-visit-listing__hint { margin:0; font-size:var(--text-xs); }
+    .mascot-pack-visit-listing__base { display:flex; flex-direction:column; gap:4px; font-size:var(--text-xs); }
+    /* Option « Version féminine » (U4) : séparée des personnages par un filet. */
+    .visit-mascot-picker__variant { margin-top:4px; padding-top:4px; border-top:1px solid var(--line); }
+    /* Boutons à icône seule de la barre (⤢, Aa, 🐾) : libellé visible à partir de 640 px
+       (U11) ; en dessous, le nom accessible (`aria-label`) et l'infobulle restent. */
+    .visit-display-group__label { display:none; }
+    @media (min-width: 640px) {
+      .visit-display-group .fm-map-fullscreen-open--compact { gap:6px; padding:8px 10px; }
+      .visit-display-group .fm-map-fullscreen-open--compact .fm-map-fullscreen-open__label,
+      .visit-display-group .visit-display-group__label { display:inline; font-size:var(--text-xs); }
+      .visit-display-group .map-toolbar-text-size-btn { display:inline-flex; align-items:center; gap:6px; }
+      .visit-display-group .visit-mascot-picker__trigger { width:auto; padding:0 10px; gap:6px; }
     }
     .visit-mascot-picker__option.is-selected,
     .visit-mascot-picker__option:hover {
@@ -6777,7 +6844,7 @@
       color:#486056;
       text-align:center;
     }
-    @media (max-width: 700px) {
+    @media (max-width: 767px) {
       .visit-editorial-image--multi .visit-media-gallery {
         grid-template-columns:1fr;
       }
@@ -6785,7 +6852,7 @@
         height:190px;
       }
     }
-    @media (min-width: 701px) and (max-width: 1024px) {
+    @media (min-width: 768px) and (max-width: 1023px) {
       .visit-editorial-image--multi .visit-media-gallery {
         grid-template-columns:repeat(2, minmax(0, 1fr));
       }
@@ -6920,7 +6987,7 @@
       -webkit-box-orient:vertical;
       overflow:hidden;
     }
-    @media (max-width: 700px) {
+    @media (max-width: 767px) {
       .visit-biodiv__grid { grid-template-columns:1fr; }
     }
     .visit-details__section {
@@ -7184,107 +7251,6 @@
       display:grid; gap:6px; margin:8px 0;
       max-height:180px; overflow:auto;
     }
-    .visit-mascot-onboarding {
-      position:fixed;
-      inset:0;
-      z-index:var(--fm-z-modal);
-      background:rgba(15, 23, 42, 0.5);
-      backdrop-filter:blur(2px);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      padding:18px;
-    }
-    .visit-mascot-onboarding__card {
-      width:min(920px, 100%);
-      max-height:min(92dvh, 760px);
-      overflow:auto;
-      border-radius:18px;
-      border:1px solid rgba(82, 183, 136, 0.45);
-      background:linear-gradient(165deg, #f8fff8 0%, #eefcf4 100%);
-      box-shadow:0 30px 70px rgba(15, 23, 42, 0.32);
-      padding:18px;
-    }
-    .visit-mascot-onboarding__eyebrow {
-      margin:0 0 4px;
-      color:var(--accent-success-deep);
-      font-weight:var(--fw-bold);
-      text-transform:uppercase;
-      letter-spacing:.03em;
-      font-size:var(--text-xs);
-    }
-    .visit-mascot-onboarding__card h3 {
-      margin:0 0 8px;
-      color:var(--forest);
-      font-size:var(--text-lg);
-    }
-    .visit-mascot-onboarding__card p {
-      margin:0;
-      color:#365314;
-    }
-    .visit-mascot-onboarding__grid {
-      margin-top:14px;
-      display:grid;
-      grid-template-columns:repeat(auto-fill, minmax(150px, 1fr));
-      gap:10px;
-    }
-    .visit-mascot-onboarding__option {
-      min-height:150px;
-      border-radius:12px;
-      border:1px solid rgba(82, 183, 136, 0.45);
-      background:var(--surface-plain);
-      color:var(--forest);
-      cursor:pointer;
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      justify-content:center;
-      gap:8px;
-      padding:10px;
-      transition:transform .16s ease, box-shadow .16s ease, border-color .16s ease;
-    }
-    .visit-mascot-onboarding__option:hover {
-      transform:translateY(-1px);
-      box-shadow:0 10px 22px rgba(26, 71, 49, 0.15);
-      border-color:var(--sage);
-    }
-    .visit-mascot-onboarding__option.is-active {
-      border-color:var(--accent-success-solid);
-      box-shadow:0 0 0 2px rgba(22, 163, 74, 0.22);
-      background:var(--tint-success);
-    }
-    .visit-mascot-onboarding__preview {
-      width:84px;
-      height:84px;
-      border-radius:10px;
-      border:1px dashed rgba(82, 183, 136, 0.5);
-      background:linear-gradient(145deg, rgba(240, 253, 244, 0.95), rgba(255, 255, 255, 0.95));
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      overflow:hidden;
-    }
-    .visit-mascot-onboarding__preview .visit-map-mascot-rive-shell,
-    .visit-mascot-onboarding__preview .visit-map-mascot-spritesheet-shell,
-    .visit-mascot-onboarding__preview .visit-map-mascot-sprite-cut-shell {
-      width:74px;
-      height:82px;
-    }
-    .visit-mascot-onboarding__label {
-      font-weight:var(--fw-bold);
-      font-size:var(--text-sm);
-      text-align:center;
-      line-height:1.25;
-    }
-    .visit-mascot-onboarding__actions {
-      margin-top:14px;
-      display:flex;
-      align-items:center;
-      gap:10px;
-      justify-content:space-between;
-      flex-wrap:wrap;
-    }
-
     /* Visite publique (sans compte) : pleine largeur et carte plus haute sur grand écran */
     @media (min-width:1024px) {
       .visit-view.visit-view--guest-public {

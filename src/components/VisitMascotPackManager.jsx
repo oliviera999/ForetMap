@@ -39,6 +39,7 @@ import VisitMascotDialogEditor from './VisitMascotDialogEditor.jsx';
 import VisitMascotDialogStudioView from './VisitMascotDialogStudioView.jsx';
 import VisitMascotStudioPreviewSection from './mascot/VisitMascotStudioPreviewSection.jsx';
 import MascotPackListAside from './mascot/MascotPackListAside.jsx';
+import MascotPackVisitListing from './mascot/MascotPackVisitListing.jsx';
 import MascotPackImagesPanel from './mascot/MascotPackImagesPanel.jsx';
 import MascotInteractionProfileEditor from './mascot/MascotInteractionProfileEditor.jsx';
 import MascotPackRenderPreview from './mascot/MascotPackRenderPreview.jsx';
@@ -513,6 +514,29 @@ export default function VisitMascotPackManager({
     ],
   );
 
+  /**
+   * « Proposé dans la Visite » / « Version féminine de… » (migration 374) : enregistrés tout
+   * de suite, sans toucher au JSON du pack ni au brouillon en cours d'édition.
+   */
+  const saveVisitListing = useCallback(
+    async (patch) => {
+      if (!selectedId) return;
+      setActionBusy(true);
+      setActionError('');
+      try {
+        await api(`/api/visit/mascot-packs/${encodeURIComponent(selectedId)}`, 'PUT', patch);
+        invalidateVisitMascotCatalogExtras();
+        await refreshFromServer();
+      } catch (e) {
+        if (e instanceof AccountDeletedError) onForceLogout?.();
+        else setActionError(e.message || 'Mise à jour impossible');
+      } finally {
+        setActionBusy(false);
+      }
+    },
+    [selectedId, refreshFromServer, onForceLogout],
+  );
+
   const onSave = useCallback(() => savePack(), [savePack]);
   const onTogglePublish = useCallback(() => savePack({ togglePublish: true }), [savePack]);
 
@@ -888,6 +912,14 @@ export default function VisitMascotPackManager({
             isDirty={isDirty}
             onSave={() => void onSave()}
             onTogglePublish={() => void onTogglePublish()}
+            visitListingSlot={
+              <MascotPackVisitListing
+                row={selectedRow}
+                packs={packs}
+                busy={actionBusy}
+                onChange={(patch) => void saveVisitListing(patch)}
+              />
+            }
             onDelete={() => void onDelete()}
             onResetFromOrigin={() => void onResetFromOrigin()}
             selectedValidation={selectedValidation}

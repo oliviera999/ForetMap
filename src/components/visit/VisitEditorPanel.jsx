@@ -409,8 +409,8 @@ export function VisitEditorPanel({
         )}
       </button>
       <p className="hint">
-        La visite reflète la carte : pour supprimer ce lieu, supprimez-le depuis la carte ; pour le
-        cacher au public, décochez « Visible en visite ».
+        La visite reflète la carte : pour supprimer ce lieu, supprime-le depuis la carte ; pour le
+        cacher au public, décoche « Visible en visite ».
       </p>
 
       <VisitMediaEditor

@@ -22,6 +22,46 @@ describe('AuthScreen', () => {
     expect(screen.getByRole('button', { name: 'Créer un compte' })).toBeInTheDocument();
   });
 
+  test('inscription fermée : pas de barre d’onglets à un seul onglet (U3)', () => {
+    render(<AuthScreen onLogin={() => {}} uiSettings={{ auth: { allow_register: false } }} />);
+    expect(screen.queryByRole('button', { name: 'Connexion', exact: true })).toBeNull();
+    expect(screen.getByRole('heading', { name: 'Me connecter' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Se connecter' })).toBeInTheDocument();
+  });
+
+  test('deux portes de poids égal : « Découvrir le lieu » et « Me connecter » (U3)', async () => {
+    const user = userEvent.setup();
+    const onVisitGuest = vi.fn();
+    render(
+      <AuthScreen
+        onLogin={() => {}}
+        onVisitGuest={onVisitGuest}
+        uiSettings={{ auth: { allow_register: false } }}
+      />,
+    );
+    const visitDoor = screen.getByTestId('auth-door-visit');
+    const loginDoor = screen.getByTestId('auth-door-login');
+    expect(visitDoor).toHaveClass('auth-card');
+    expect(loginDoor).toHaveClass('auth-card');
+    const cta = screen.getByRole('button', { name: /Découvrir le lieu/ });
+    expect(cta).toHaveClass('btn-primary');
+    await user.click(cta);
+    expect(onVisitGuest).toHaveBeenCalledTimes(1);
+  });
+
+  test('le sous-titre ne répète pas le nom du logiciel (U3)', () => {
+    render(
+      <AuthScreen
+        onLogin={() => {}}
+        uiSettings={{
+          auth: { allow_register: false },
+          content: { auth: { title: 'ForêtMap', subtitle: 'ForêtMap — Le terrain vivant' } },
+        }}
+      />,
+    );
+    expect(screen.getByText('Le terrain vivant')).toBeInTheDocument();
+  });
+
   test('bascule vers le formulaire de création de compte', async () => {
     const user = userEvent.setup();
     render(<AuthScreen onLogin={() => {}} uiSettings={{ auth: { allow_register: true } }} />);
@@ -33,7 +73,7 @@ describe('AuthScreen', () => {
   test('affiche les crédits par défaut tant que les réglages ne les fournissent pas', () => {
     render(<AuthScreen onLogin={() => {}} uiSettings={{ auth: { allow_register: true } }} />);
     const credits = screen.getByTestId('auth-credits');
-    expect(credits).toHaveTextContent('Auteur : Mohammed El Farrai');
+    expect(credits).toHaveTextContent('Auteur : Mohammed');
     expect(credits).toHaveTextContent('Contributeur : Olivier Arnould-Laurent');
     expect(screen.queryByTestId('auth-credit-message')).toBeNull();
   });

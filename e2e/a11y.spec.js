@@ -30,7 +30,7 @@ test.describe('Accessibilité — écrans publics', () => {
   test('écran de connexion', async ({ page }) => {
     await page.goto('/');
     await page
-      .getByRole('button', { name: /Visiter sans compte|Se connecter|Connexion/i })
+      .getByRole('button', { name: /Découvrir le lieu|Se connecter|Connexion/i })
       .first()
       .waitFor({ state: 'visible', timeout: 30_000 });
     await verifierA11y(page, 'auth-connexion');
@@ -38,17 +38,12 @@ test.describe('Accessibilité — écrans publics', () => {
 
   test('visite publique invitée', async ({ page }) => {
     await page.goto('/');
-    const cta = page.getByRole('button', { name: /Visiter sans compte/i });
+    const cta = page.getByRole('button', { name: /Découvrir le lieu/i });
     if ((await cta.count()) === 0) {
       test.skip();
       return;
     }
     await cta.click();
-    const onboarding = page.locator('.visit-mascot-onboarding');
-    if (await onboarding.isVisible().catch(() => false)) {
-      await onboarding.locator('.visit-mascot-onboarding__option').first().click();
-      await onboarding.getByRole('button', { name: /Commencer la visite/i }).click();
-    }
     await page.locator('.visit-view').waitFor({ state: 'visible', timeout: 30_000 });
     await page.waitForTimeout(1_500);
     await verifierA11y(page, 'visite-invite');
