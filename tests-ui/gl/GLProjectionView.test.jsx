@@ -39,6 +39,7 @@ vi.mock('../../src/gl/components/mj/GLTourJournal.jsx', () => ({
 
 import {
   GLProjectionView,
+  PROJECTION_FERMEE,
   mentionsDEquipe,
   pageEtatLabel,
   pageEtatLigne,
@@ -406,6 +407,28 @@ describe('GLProjectionView', () => {
       fireEvent.click(screen.getByRole('button', { name: 'La page du jour' }));
       expect(screen.getByTestId('gl-projection-page').textContent).toContain('Le chemin continue.');
     });
+  });
+
+  // Relecture garde-fous (lot 6) : à la clôture du chapitre le lien est révoqué, et la classe
+  // lisait le refus brut du serveur, sans savoir quoi faire (garde-fou 11).
+  test('lien révoqué ou échu (403) : une phrase qui dit qui a la main, pas le refus du serveur', async () => {
+    apiGlMock.mockImplementation((path) => {
+      if (path === '/api/gl/games/9/chasse') return Promise.resolve(null);
+      return Promise.reject(
+        Object.assign(new Error('Accès refusé à cette partie'), { status: 403 }),
+      );
+    });
+    render(<GLProjectionView gameId={9} token="t" />);
+    await waitFor(() => expect(screen.getByText(PROJECTION_FERMEE)).toBeTruthy());
+    expect(screen.queryByText(/Accès refusé/)).toBeNull();
+  });
+
+  test('une autre erreur garde son message', async () => {
+    apiGlMock.mockImplementation(() =>
+      Promise.reject(Object.assign(new Error('Erreur serveur'), { status: 500 })),
+    );
+    render(<GLProjectionView gameId={9} token="t" />);
+    await waitFor(() => expect(screen.getByText('Erreur serveur')).toBeTruthy());
   });
 
   test('pageEtatLigne : l’état, et l’équipe qui a révélé, trouvé ou tenu la page', () => {

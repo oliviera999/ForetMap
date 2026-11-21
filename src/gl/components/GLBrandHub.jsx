@@ -8,6 +8,19 @@ import { useScrollReveal } from '../../shared/hooks/useScrollReveal.js';
 const CARD_SLOT_IDS = ['card_world', 'card_rules', 'card_spells'];
 
 /**
+ * Dimensions annoncées d'une vignette (`width` / `height` de l'`<img>`), au ratio de son
+ * cadre : le navigateur réserve la place avant que l'image n'arrive (pas de saut de page).
+ * La taille affichée reste celle de la feuille de style.
+ */
+const CARD_IMAGE_BASE_WIDTH = 800;
+export function cardImageDimensions(aspectRatio) {
+  const match = /^\s*(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)\s*$/.exec(String(aspectRatio || ''));
+  const ratio = match && Number(match[2]) > 0 ? Number(match[1]) / Number(match[2]) : 4 / 3;
+  const safe = ratio > 0 && Number.isFinite(ratio) ? ratio : 4 / 3;
+  return { width: CARD_IMAGE_BASE_WIDTH, height: Math.round(CARD_IMAGE_BASE_WIDTH / safe) };
+}
+
+/**
  * Hub visuel (hero + cartes) calqué sur yo.olution.info.
  * @param {{ slots?: Record<string, { imageUrl?: string, title?: string, subtitle?: string, tab?: string }>, onOpenTab?: (tab: string) => void, compact?: boolean }} props
  */
@@ -60,6 +73,7 @@ export function GLBrandHub({ slots, onOpenTab, compact = false }) {
             const title = String(card.title || '').trim();
             const tab = String(card.tab || '').trim();
             const cardFrame = normalizeGlImageFrame(card?.frame, 'brand-card');
+            const cardDimensions = cardImageDimensions(cardFrame.aspectRatio);
             const canNavigate = typeof onOpenTab === 'function' && tab;
             const Tag = canNavigate ? 'button' : 'div';
             return (
@@ -79,6 +93,9 @@ export function GLBrandHub({ slots, onOpenTab, compact = false }) {
                       alt=""
                       className="gl-brand-hub__card-image"
                       loading="lazy"
+                      decoding="async"
+                      width={cardDimensions.width}
+                      height={cardDimensions.height}
                       style={glImageFrameToImgFillStyle(cardFrame, 'brand-card')}
                     />
                   </div>

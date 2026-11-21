@@ -45,6 +45,7 @@ const {
   createMediaLibraryUsageCache,
 } = require('../../lib/mediaLibraryUsage');
 const { loadMediaKeyIndex } = require('../../lib/glAssetManifest');
+const { ensureGlBrandVariant } = require('../../lib/glBrandImages');
 const { auditGlMediaKeys } = require('../../lib/glMediaKeysAudit');
 const { auditMarkerPromises } = require('../../lib/glMarkerPromiseAudit');
 const { listChapterRecitScenes, updateChapterSceneMeta } = require('../../lib/glChapterScenes');
@@ -1370,6 +1371,21 @@ router.post(
       const originalName =
         String(req.body?.original_name || req.body?.originalName || '').trim() || null;
       const saved = await saveMediaFromDataUrl(mediaData, { originalName, app: 'gl' });
+      // Image de marque (héros, vignettes de l'accueil) : variante WebP allégée, rangée à
+      // côté ; l'original reste tel quel dans la médiathèque. `optimized` vaut `null` quand
+      // rien n'a été produit (image déjà légère, `sharp` absent) : l'appelant garde `url`.
+      if (String(req.body?.usage || '').trim() === 'brand' && saved.mediaType === 'image') {
+        const variant = await ensureGlBrandVariant(saved.url, { profile: 'slot' });
+        saved.optimized =
+          variant.status === 'creee' || variant.status === 'existante'
+            ? {
+                url: variant.url,
+                size: variant.bytesAfter,
+                width: variant.width ?? null,
+                height: variant.height ?? null,
+              }
+            : null;
+      }
       return res.status(201).json(saved);
     } catch (err) {
       if (Number.isFinite(err?.status)) {

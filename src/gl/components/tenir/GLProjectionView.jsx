@@ -57,6 +57,13 @@ export function mentionsDEquipe(team, voile) {
 }
 
 const NOOP = () => {};
+
+/**
+ * Lien de projection révoqué (clôture du chapitre) ou échu : le serveur refuse la relecture.
+ * La classe lit ce qu'il se passe et qui a la main, pas le refus brut du serveur.
+ */
+export const PROJECTION_FERMEE =
+  'Cette projection est fermée. Le prof peut en ouvrir une nouvelle depuis son écran.';
 /** Rechargement après un évènement temps réel : les rafales (jet, case, voile) sont regroupées. */
 const RELOAD_DELAY_MS = 250;
 const RELOAD_JITTER_MS = 500;
@@ -135,7 +142,10 @@ export function GLProjectionView({ gameId, token, refreshKey = 0 }) {
         setCarnet(c);
         setError('');
       } catch (err) {
-        if (!cancelled) setError(err.message || 'Projection indisponible');
+        if (cancelled) return;
+        setError(
+          err?.status === 403 ? PROJECTION_FERMEE : err.message || 'Projection indisponible',
+        );
       }
     }
     if (gameId) load();
