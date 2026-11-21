@@ -9,6 +9,28 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — écran de connexion allégé d'un tiers (UI/UX lot K, U1)
+
+Lot K du chantier UI/UX (`docs/AUDIT_UI_UX_2026-11-19.md`, U1). JavaScript chargé avant de
+pouvoir se connecter : **774,4 → 503,8 Ko** décodés (17 → 11 fichiers). Plafond du budget de
+bundle abaissé de 775 à **509 Ko** (`scripts/check-bundle-budget.js`).
+
+- **Temps réel après connexion** : le client Socket.IO (40 Ko) n'est plus importé par l'écran
+  de connexion, où il ne se connectait à rien. Il part avec la session, en parallèle du shell
+  connecté ; s'il ne peut pas être téléchargé (hors ligne), l'indicateur passe à « hors ligne »
+  et un nouvel essai part au retour du réseau (`src/hooks/useForetmapRealtime.js`).
+- **Markdown, éditeur riche, écran Séances, glossaire** (230 Ko) : ils arrivaient par trois
+  fonctions utilitaires exportées depuis des fichiers de composants. Elles sont déplacées dans
+  des modules sans composant (`src/utils/glossaryTermMessage.js`, `tutorialPreviewPayload.js`,
+  `pedagoSessionStorage.js`) ; les anciens points d'import restent valables (réexports).
+- **Inscription** : l'éditeur riche du champ « Description » est chargé à l'ouverture du
+  formulaire ; une zone de saisie simple tient sa place le temps du chargement, et la garde
+  si le code ne peut pas être téléchargé.
+- Tests : `tests/login-entry-lazy.test.js` (suit les imports statiques depuis `src/main.jsx`
+  et nomme le chemin par lequel un module interdit revient),
+  `tests-ui/hooks/useForetmapRealtime.test.jsx` (chargement à la demande, démontage avant la
+  fin du chargement), `tests-ui/components/AuthScreen.test.jsx`.
+- G&L et le plan : aucun fichier modifié, aucun module partagé touché.
 ### Ajouté — Visite : une vignette par guide dans le sélecteur (UI/UX lot J, U1 et U4)
 
 Lot J du chantier UI/UX (`docs/AUDIT_UI_UX_2026-11-19.md`) : la vignette de pack livrée par le
