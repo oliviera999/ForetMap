@@ -81,8 +81,8 @@ function toSearchSuffix(name, toSearchNames) {
 
 /** Liste d'êtres vivants cliquable + extrait catalogue (description, rôle, utilité, remarques). */
 export function LivingBeingsCatalogPanel({ plants, names, showHeading = true, toSearchNames }) {
-  const list = names || [];
-  const listKey = useMemo(() => list.join('\u0001'), [list]);
+  const list = useMemo(() => names || [], [names]);
+  const listKey = list.join('\u0001');
   const [selectedName, setSelectedName] = useState(() => list[0] || null);
 
   useEffect(() => {
@@ -91,6 +91,9 @@ export function LivingBeingsCatalogPanel({ plants, names, showHeading = true, to
       return;
     }
     setSelectedName((prev) => (prev && list.includes(prev) ? prev : list[0]));
+    // `listKey` porte le contenu de `list` : l'appelant passe souvent un tableau neuf à chaque
+    // rendu (même contenu), qui ne doit pas réinitialiser la sélection.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [listKey]);
 
   if (!list.length) return null;
