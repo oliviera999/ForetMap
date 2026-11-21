@@ -87,3 +87,101 @@ describe('Référents de tâche', () => {
     await request(app).get('/api/tasks/referent-candidates').expect(401);
   });
 });
+
+describe('Référents automatiques : source préservée, refus par série (élèves référents)', () => {
+  async function createRecurringTaskWithAutoReferent() {
+    const res = await request(app)
+      .post('/api/tasks')
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .send({
+        title: `Récurrente référent auto ${Date.now()}`,
+        required_students: 1,
+        recurrence: 'weekly',
+        referent_user_ids: [studentId],
+      })
+      .expect(201);
+    await execute("UPDATE task_referents SET source = 'auto' WHERE task_id = ? AND user_id = ?", [
+      res.body.id,
+      studentId,
+    ]);
+    return res.body.id;
+  }
+
+  async function sourceOf(taskId) {
+    const row = await queryOne(
+      'SELECT source FROM task_referents WHERE task_id = ? AND user_id = ?',
+      [taskId, studentId],
+    );
+    return row?.source || null;
+  }
+
+  it('un PUT qui ne touche pas aux référents ne change aucune source ; la réponse expose source', async () => {
+    const taskId = await createRecurringTaskWithAutoReferent();
+    const res = await request(app)
+      .put(`/api/tasks/${taskId}`)
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .send({ title: 'Titre modifié, référents intacts' })
+      .expect(200);
+    assert.equal(await sourceOf(taskId), 'auto');
+    const linked = res.body.referents_linked.find((r) => String(r.id) === String(studentId));
+    assert.equal(linked.source, 'auto');
+    // Liste identique renvoyée : le lien gardé reste `auto`.
+    await request(app)
+      .put(`/api/tasks/${taskId}`)
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .send({ referent_user_ids: [studentId] })
+      .expect(200);
+    assert.equal(await sourceOf(taskId), 'auto');
+    await execute('DELETE FROM tasks WHERE id = ?', [taskId]);
+  });
+
+  it('retirer un référent auto enregistre un refus ; le rajouter à la main le lève (manual)', async () => {
+    const taskId = await createRecurringTaskWithAutoReferent();
+    const { series_id: seriesId } = await queryOne(
+      'SELECT COALESCE(recurrence_series_id, id) AS series_id FROM tasks WHERE id = ?',
+      [taskId],
+    );
+    await request(app)
+      .put(`/api/tasks/${taskId}`)
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .send({ referent_user_ids: [] })
+      .expect(200);
+    const veto = await queryOne(
+      'SELECT series_id, created_by FROM task_series_referent_vetoes WHERE user_id = ? AND series_id = ?',
+      [studentId, seriesId],
+    );
+    assert.ok(veto, 'refus enregistré sur la série');
+    assert.ok(veto.created_by, 'auteur du refus');
+    await request(app)
+      .put(`/api/tasks/${taskId}`)
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .send({ referent_user_ids: [studentId] })
+      .expect(200);
+    assert.equal(await sourceOf(taskId), 'manual');
+    const lifted = await queryOne(
+      'SELECT COUNT(*) AS n FROM task_series_referent_vetoes WHERE user_id = ? AND series_id = ?',
+      [studentId, seriesId],
+    );
+    assert.equal(Number(lifted.n), 0);
+    await execute('DELETE FROM tasks WHERE id = ?', [taskId]);
+  });
+
+  it('retirer un référent manuel n’enregistre aucun refus', async () => {
+    const res = await request(app)
+      .post('/api/tasks')
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .send({ title: `Référent manuel ${Date.now()}`, referent_user_ids: [studentId] })
+      .expect(201);
+    await request(app)
+      .put(`/api/tasks/${res.body.id}`)
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .send({ referent_user_ids: [] })
+      .expect(200);
+    const n = await queryOne(
+      'SELECT COUNT(*) AS n FROM task_series_referent_vetoes WHERE user_id = ?',
+      [studentId],
+    );
+    assert.equal(Number(n.n), 0);
+    await execute('DELETE FROM tasks WHERE id = ?', [res.body.id]);
+  });
+});

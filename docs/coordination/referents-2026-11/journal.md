@@ -42,8 +42,16 @@
 - [x] Lot 2 — 7 réglages `tasks.student_referent_*` (bornes : `lib/tasks/referentBounds.js`,
       `MAX_TASK_REFERENTS` déplacé) ; libellés `settingsAdminMeta.js` (section `tasks`, panneau
       générique) ; `tests/student-referents-settings.test.js`.
-- [ ] Lot 3 — moteur
-- [ ] Lot 4 — clonage et services
+- [x] Lot 3 — moteur `lib/tasks/studentReferents.js` (plan / application / déclencheurs, verrou
+      de processus), crochets `lib/tasks/studentReferentHooks.js` (validation PUT et POST /validate,
+      clonage, réglage `tasks.student_referent_*` via `setSetting`, membres du groupe via
+      `lib/groupMembers.js`), job quotidien `student_referents_sync` (+ `cron.js`, `run_cron`) ;
+      jeu fictif `tests/helpers/studentReferentsFixture.js`, `tests/student-referents-plan.test.js`
+      (15 tests). Choix : plan toujours calculé sur toutes les séries (plafonds globaux), un
+      déclencheur ciblé n'applique que les entrées de sa série.
+- [x] Lot 4 — clonage (source + date recopiées), `setTaskReferents` différentiel, refus par
+      série au PUT (`writeTaskReferents`), `source` dans `referents_linked` ;
+      `tests/task-referents.test.js` étendu (3 tests).
 - [ ] Lot 5 — script de reprise, MCP, vérification lecture seule
 - [ ] Lot 7 — notifications
 - [ ] Lot 8 — données personnelles
@@ -51,4 +59,4 @@
 - [ ] Lot 10 — documentation
 - [ ] Lot 9 (reste)
 
-Prochaine action : lot 3 (moteur `lib/tasks/studentReferents.js`).
+Prochaine action : lot 5 (script de reprise, liste blanche, action MCP, vérification lecture seule).
