@@ -206,7 +206,12 @@
 /* Nom de zone sur deux lignes : un nom replié se lit, un nom tronqué ne sert à personne —
    « Cour du lycée » n'entrait pas dans les 96 px d'une petite zone et s'affichait « Cour du… »
    (`docs/AUDIT_PLAN_NAVIGATION_UX_2026-09-16.md` N11). Le moteur de collisions réserve la même
-   hauteur (`ZONE_LABEL_MAX_LINES`). Les repères restent sur une ligne : ils sont trop denses. */
+   hauteur (`ZONE_LABEL_MAX_LINES`). Les repères restent sur une ligne : ils sont trop denses.
+   Repli **aux espaces** : `overflow-wrap: anywhere` coupait au milieu d'un mot, sans trait
+   d'union (« Bananera / ie », audit UI/UX du 19/11/2026, U5). La largeur allouée suffit
+   désormais au mot le plus long (`zoneLabelUnbrokenWidthPx`) ; seul un mot plus large que son
+   plafond se coupe encore, en dernier recours. Pas de `hyphens: auto` : le navigateur couperait
+   alors un mot qui tient sur la ligne suivante (« aro-matiques ») pour remplir la première. */
 .fm-pct-label .fm-pct-overlay__name {
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -214,7 +219,9 @@
   -webkit-box-orient: vertical;
   white-space: normal;
   overflow: hidden;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+  /* Lignes équilibrées : « Potager / zone 3 » plutôt que « Potager zone / 3 ». */
+  text-wrap: balance;
   line-height: 1.2;
 }
 
@@ -536,12 +543,27 @@
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
 }
 
+/* Nom d'un repère : deux lignes au plus, repliées **aux espaces** — sur une seule ligne de
+   132 px, « Butte Erosion » ou « Mare des abeilles » finissaient en « Butte Eros… »,
+   « Mare des… » (audit UI/UX du 19/11/2026, U5). La première ligne garde la place qu'avait
+   le nom sur une ligne (centrée sur l'écart sous l'épingle) ; la seconde pend dessous. La
+   largeur (`--fm-pct-marker-label-w`) vient du moteur (`markerLabelWidthPx`), qui réserve la
+   même boîte de collision. */
 .fm-pct-marker__label {
   position: absolute;
-  top: calc(50% + var(--map-overlay-marker-label-offset, 26px));
+  top: calc(50% + var(--map-overlay-marker-label-offset, 26px) - 0.6em);
   left: 50%;
-  max-width: 132px;
-  transform: translate(-50%, -50%);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  width: max-content;
+  max-width: var(--fm-pct-marker-label-w, 132px);
+  white-space: normal;
+  overflow-wrap: break-word;
+  text-wrap: balance;
+  line-height: 1.2;
+  transform: translateX(-50%);
 }
 
 .fm-pct-marker:focus-visible {

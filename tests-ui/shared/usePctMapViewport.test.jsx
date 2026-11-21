@@ -115,6 +115,24 @@ describe('usePctMapViewport', () => {
     expect(apiRef.current.fitRect).toEqual({ offsetX: 0, offsetY: 50, width: 400, height: 200 });
   });
 
+  it('mode scène + marge intérieure : le plan ne touche plus le cadre (U5)', () => {
+    // Cadre 400 × 300, image 1000 × 500, marge 20 px : boîte utile 360 × 260, plan 360 × 180.
+    const { apiRef } = setup({ contentMode: 'stage', contentInsetPx: 20 });
+    expect(apiRef.current.fitRect).toEqual({ offsetX: 20, offsetY: 60, width: 360, height: 180 });
+    expect(apiRef.current.committed).toEqual({ x: 0, y: 0, s: 1 });
+  });
+
+  it('marge intérieure bornée au quart du cadre', () => {
+    const { apiRef } = setup({ contentMode: 'stage', contentInsetPx: 1000 });
+    // Bornée à 75 px (300 / 4) : boîte utile 250 × 150, plan 250 × 125.
+    expect(apiRef.current.fitRect).toEqual({
+      offsetX: 75,
+      offsetY: 87.5,
+      width: 250,
+      height: 125,
+    });
+  });
+
   it("retourne une API mémoïsée d'un rendu à l'autre", () => {
     const { apiRef, rerender } = setup();
     const first = apiRef.current;

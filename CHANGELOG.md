@@ -9,6 +9,27 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — carte : noms entiers, cadrage, plus de chevauchements (UI/UX lot 4, U5)
+
+Lot 4 du chantier UI/UX (`docs/AUDIT_UI_UX_2026-11-19.md`, U5), reproduit sur la carte Forêt
+avant correction et vérifié dans Chromium après (ordinateur et téléphone).
+
+- **Plus de mot coupé** : « Bananera / ie », « Aromati / ques » venaient d'une largeur de nom
+  bornée à 96 px et de `overflow-wrap: anywhere`. Le nom d'une zone reçoit la largeur de son mot
+  le plus long, replié aux espaces, lignes équilibrées ; le nom d'un repère tient sur deux lignes
+  au lieu de finir en « … ». Moteur et rendu partagent le même calcul
+  (`zoneLabelUnbrokenWidthPx`, `markerLabelWidthPx`, `estimateTextWidthPx`).
+- **Bords de carte** : un nom qui sortirait du cadre change de côté ou attend le zoom (cadre
+  visible connu du moteur d'étiquettes) ; les boutons de la carte et le cartouche d'échelle sont
+  des obstacles pour les noms.
+- **Visite** : le plan garde une marge de 20 px dans son cadre (`contentInsetPx`, optionnel, 0
+  ailleurs — G&L inchangé), le cadre prend la forme du plan (plus de bandes vides sur
+  téléphone), un nom ne se pose plus sur une épingle ou une pastille (`obstaclesHideNames`), et
+  la mascotte guide passe sous les noms.
+- Tests : `tests-ui/shared/pctMapLabels.test.js`, `mapOverlayLabelCollision.test.js`,
+  `usePctMapViewport.test.jsx`, `PctMarkersLayer.test.jsx`. Docs : audit U5, référence
+  « Carte et zones » et « Visite et mascottes ».
+
 ### Modifié — G&L : écrans de séance, lot 6 (l'accueil allégé, docs et clôture)
 
 Sixième et dernier lot du chantier « écrans de séance »

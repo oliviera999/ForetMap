@@ -466,6 +466,21 @@ Enfin, le **nom d'une zone** s'affiche désormais au point le plus « à l'inté
 contour, et non plus à son centre géométrique : sur une zone en L ou en croissant, le nom
 tombait à côté, parfois sur la zone voisine.
 
+Les noms se lisent **en entier** (novembre 2026) :
+
+- un nom trop long pour une ligne passe à la ligne **entre deux mots**, jamais au milieu d'un
+  mot (« Bananera / ie » n'existe plus) : une petite zone dont le nom contient un mot long
+  reçoit la place de ce mot ;
+- le nom d'un **repère** peut tenir sur **deux lignes** (« Mare des / abeilles ») au lieu de
+  finir en « Mare des… » ;
+- un nom qui sortirait du **bord de la carte** se pose d'un autre côté de son emoji ; s'il n'a
+  aucune place, il attend que l'on zoome ou que l'on déplace la carte.
+
+Dans la **Visite**, la carte va un peu plus loin pour les visiteurs : le plan garde une petite
+marge dans son cadre, le cadre prend la forme du plan (plus de bandes vides au-dessus et
+au-dessous sur téléphone), et un nom ne se pose jamais sur un repère, une pastille chiffrée ou
+un bouton de la carte : il apparaît au zoom. La mascotte guide passe sous les noms.
+
 ### Qui peut voir un lieu (rôles)
 
 Par défaut, un lieu est **public** : toute personne autorisée à ouvrir la carte (ou la

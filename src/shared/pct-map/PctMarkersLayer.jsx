@@ -18,6 +18,7 @@ export const PctMarkerButton = React.memo(function PctMarkerButton({
   onMarkerClick,
   labelOf,
   nameOf = defaultName,
+  labelWidthOf = null,
   highlightBadge = '',
   highlightLabel = '',
 }) {
@@ -30,6 +31,9 @@ export const PctMarkerButton = React.memo(function PctMarkerButton({
   // anonyme au lecteur d'écran.
   const label = labelOf(marker);
   const accessibleName = nameOf(marker) || label;
+  // Largeur du nom replié aux espaces, fixée par le moteur d'étiquettes du produit
+  // (`markerLabelWidthPx`) ; sans elle, le plafond CSS par défaut s'applique.
+  const labelWidth = label && typeof labelWidthOf === 'function' ? labelWidthOf(marker, label) : 0;
   const seenClass = isSeen === true ? ' is-seen' : isSeen === false ? ' is-unseen' : '';
   const haloClass = isDiscoverHalo ? ' is-discover-halo' : '';
   const statusSuffix = isSeen === true ? ' — Vu' : isSeen === false ? ' — À découvrir' : '';
@@ -47,7 +51,11 @@ export const PctMarkerButton = React.memo(function PctMarkerButton({
       className={`fm-pct-marker${isActive ? ' is-active' : ''}${seenClass}${haloClass}${
         highlighted ? ' is-highlight' : ''
       }${secondary ? ' is-highlight-secondary' : ''}`}
-      style={{ left: `${marker.x_pct}%`, top: `${marker.y_pct}%` }}
+      style={{
+        left: `${marker.x_pct}%`,
+        top: `${marker.y_pct}%`,
+        ...(labelWidth > 0 ? { '--fm-pct-marker-label-w': `${labelWidth}px` } : null),
+      }}
       aria-current={isActive ? 'true' : undefined}
       aria-label={`${accessibleName || 'Lieu'}${highlightSuffix}${statusSuffix}${dotsSuffix ? ` — ${dotsSuffix}` : ''}`}
       onClick={handleClick}
@@ -88,6 +96,8 @@ function defaultName(marker) {
  * @param {(marker: object) => string} [props.labelOf] étiquette **visible** (le produit peut
  *   la masquer au dézoom sans rendre le repère anonyme : voir `nameOf`).
  * @param {(marker: object) => string} [props.nameOf] nom **accessible** du bouton.
+ * @param {(marker: object, label: string) => number} [props.labelWidthOf] largeur du nom replié
+ *   aux espaces (`markerLabelWidthPx`) ; omise, le plafond CSS par défaut (132 px) s'applique.
  * @param {string} [props.highlightBadge] pastille des repères mis en avant (`map_highlight`).
  * @param {string} [props.highlightLabel] complément du nom accessible d'un repère mis en avant.
  */
@@ -100,6 +110,7 @@ function PctMarkersLayerImpl({
   getStatusDots = null,
   labelOf = defaultName,
   nameOf = defaultName,
+  labelWidthOf = null,
   highlightBadge = '',
   highlightLabel = '',
 }) {
@@ -114,6 +125,7 @@ function PctMarkersLayerImpl({
       onMarkerClick={onMarkerClick}
       labelOf={labelOf}
       nameOf={nameOf}
+      labelWidthOf={labelWidthOf}
       highlightBadge={highlightBadge}
       highlightLabel={highlightLabel}
     />

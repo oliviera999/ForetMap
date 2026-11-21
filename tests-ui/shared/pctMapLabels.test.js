@@ -7,6 +7,7 @@ import {
   LABEL_EMOJI_SIZE_PX,
   LABEL_FONT_SIZE_PX,
   MARKER_LABEL_MAX_WIDTH_PX,
+  MARKER_LABEL_OFFSET_PX,
   ZONE_LABEL_MAX_WIDTH_PX,
   ZONE_LABEL_MIN_WIDTH_PX,
   ZONE_NAME_GAP_PX,
@@ -14,8 +15,11 @@ import {
   buildZoneLabelSpecs,
   contentAspect,
   defaultLabelPriority,
+  labelBoxesFromScreen,
+  labelFrameFromView,
   labelKey,
   labelPriority,
+  markerLabelWidthPx,
   markerObstaclesFrom,
   polygonAreaPct,
   resolveLabelLayout,
@@ -24,7 +28,9 @@ import {
   zoneEmojiLabelKey,
   zoneLabelMaxWidthPx,
   zoneLabelSideExtraWidthPx,
+  zoneLabelUnbrokenWidthPx,
 } from '../../src/shared/pct-map/pctMapLabels.js';
+import { estimateTextWidthPx } from '../../src/shared/pct-map/mapOverlayLabelCollision.js';
 import {
   detectLeadingEmojiPrefix,
   stripLeadingEmojiPrefix,
@@ -718,7 +724,7 @@ describe('markerObstaclesFrom / zoneLabelSideExtraWidthPx', () => {
       ],
       { emojiSizePx: 16 },
     );
-    expect(pin).toEqual({ xPct: 10, yPct: 20, widthPx: 20, heightPx: 20 });
+    expect(pin).toEqual({ id: '', xPct: 10, yPct: 20, widthPx: 20, heightPx: 20 });
     expect(cluster.heightPx).toBe(CLUSTER_OBSTACLE_HEIGHT_PX);
     expect(cluster.widthPx).toBeGreaterThanOrEqual(CLUSTER_OBSTACLE_HEIGHT_PX);
     expect(big.widthPx).toBeGreaterThan(cluster.widthPx);
@@ -731,5 +737,206 @@ describe('markerObstaclesFrom / zoneLabelSideExtraWidthPx', () => {
     expect(zoneLabelSideExtraWidthPx('left', 16, 4)).toBe(20);
     expect(zoneLabelSideExtraWidthPx('below', 16, 4)).toBe(0);
     expect(zoneLabelSideExtraWidthPx('above', 16, 4)).toBe(0);
+  });
+});
+
+describe('U5 — noms repliés aux espaces, cadre, obstacles (audit UI/UX du 19/11/2026)', () => {
+  const view = { contentWidthPx: 400, contentHeightPx: 400, scale: 1 };
+
+  test('zoneLabelUnbrokenWidthPx : le mot le plus long tient, dans la limite du plafond', () => {
+    const [spec] = buildZoneLabelSpecs(
+      [{ id: 'j', name: 'Jardinières', points: rect(40, 40, 5, 5) }],
+      splitEmoji,
+    );
+    // Petite zone : 96 px par le polygone, mais « Jardinières » en demande plus à 22,4 px.
+    expect(zoneLabelMaxWidthPx(spec, 400, 1)).toBe(ZONE_LABEL_MIN_WIDTH_PX);
+    const w = zoneLabelUnbrokenWidthPx(spec, 400, 1, { fontSizePx: 22.4 });
+    expect(w).toBeGreaterThanOrEqual(estimateTextWidthPx('Jardinières', 22.4));
+    expect(w).toBeLessThanOrEqual(ZONE_LABEL_MAX_WIDTH_PX);
+    // Nom court : la largeur du polygone reste celle d'avant.
+    const [short] = buildZoneLabelSpecs(
+      [{ id: 's', name: 'Mare', points: rect(40, 40, 5, 5) }],
+      splitEmoji,
+    );
+    expect(zoneLabelUnbrokenWidthPx(short, 400, 1, { fontSizePx: 12 })).toBe(
+      ZONE_LABEL_MIN_WIDTH_PX,
+    );
+    // Mot démesuré : plafonné (le rendu replie en dernier recours).
+    const [huge] = buildZoneLabelSpecs(
+      [{ id: 'h', name: 'Anticonstitutionnellement', points: rect(40, 40, 5, 5) }],
+      splitEmoji,
+    );
+    expect(zoneLabelUnbrokenWidthPx(huge, 400, 1, { fontSizePx: 22.4 })).toBe(
+      ZONE_LABEL_MAX_WIDTH_PX,
+    );
+  });
+
+  test('markerLabelWidthPx : une ligne si elle tient, sinon deux lignes sans couper de mot', () => {
+    expect(markerLabelWidthPx('', 20)).toBe(0);
+    const ruches = markerLabelWidthPx('Ruches', 22.4);
+    expect(ruches).toBeCloseTo(estimateTextWidthPx('Ruches', 22.4), 6);
+    const mare = markerLabelWidthPx('Mare des abeilles', 22.4);
+    expect(mare).toBeGreaterThanOrEqual(MARKER_LABEL_MAX_WIDTH_PX);
+    expect(mare).toBeGreaterThanOrEqual(estimateTextWidthPx('abeilles', 22.4));
+    expect(mare).toBeLessThanOrEqual(ZONE_LABEL_MAX_WIDTH_PX);
+  });
+
+  test('wrapNamesAtSpaces : la première ligne d’un repère garde sa place, la boîte descend', () => {
+    const markers = [{ id: 'm', x_pct: 50, y_pct: 50, label: 'Mare des abeilles' }];
+    const fontSizePx = 22.4;
+    const base = { ...view, zoneSpecs: [], markers, fontSizePx };
+    expect(resolveLabelLayout(base).visible.has(labelKey('marker', 'm'))).toBe(true);
+    expect(
+      resolveLabelLayout({ ...base, wrapNamesAtSpaces: true }).visible.has(labelKey('marker', 'm')),
+    ).toBe(true);
+    // Un repère voisin juste sous la première ligne : masqué dans les deux cas ; un voisin
+    // sous la seconde ligne seulement : masqué quand le nom se replie sur deux lignes.
+    const twoLinesBelow = 200 + MARKER_LABEL_OFFSET_PX + fontSizePx * 1.2;
+    const neighbour = {
+      id: 'n',
+      x_pct: 50,
+      y_pct: ((twoLinesBelow + 4) / 400) * 100,
+      label: 'Ruches',
+      category_ids: ['x'],
+    };
+    const categoriesById = new Map([['x', { sort_order: 0 }]]);
+    const wrapped = resolveLabelLayout({
+      ...base,
+      markers: [...markers, neighbour],
+      categoriesById,
+      wrapNamesAtSpaces: true,
+    });
+    expect(wrapped.visible.has(labelKey('marker', 'n'))).toBe(true);
+    expect(wrapped.visible.has(labelKey('marker', 'm'))).toBe(false);
+  });
+
+  test('labelFrameFromView / labelBoxesFromScreen : même origine (coin du contenu)', () => {
+    const frame = labelFrameFromView(
+      { x: -30, y: 10, s: 2 },
+      { offsetX: 20, offsetY: 5 },
+      { w: 400, h: 300 },
+    );
+    // Origine du contenu à l'écran : x + s·offsetX = 10, y + s·offsetY = 20.
+    expect(frame).toEqual({ left: -10, top: -20, right: 390, bottom: 280 });
+    expect(labelFrameFromView({ x: 0, y: 0, s: 1 }, {}, { w: 0, h: 0 })).toBeNull();
+    expect(
+      labelBoxesFromScreen(
+        [{ left: 350, top: 0, right: 400, bottom: 60 }],
+        { x: -30, y: 10, s: 2 },
+        { offsetX: 20, offsetY: 5 },
+      ),
+    ).toEqual([{ left: 340, top: -20, right: 390, bottom: 40 }]);
+  });
+
+  test('frame : un nom qui sortirait du cadre change de côté, ou attend', () => {
+    // Zone collée au bord bas : le nom posé dessous sortirait du cadre.
+    const zoneSpecs = buildZoneLabelSpecs(
+      [{ id: 'a', name: 'Verger', emoji: '🍏', points: rect(45, 92, 10, 8) }],
+      splitEmoji,
+    );
+    const frame = { left: 0, top: 0, right: 400, bottom: 400 };
+    const free = resolveLabelLayout({ ...view, zoneSpecs, markers: [] });
+    expect(free.placements.get('a').nameSide).toBe('below');
+    const framed = resolveLabelLayout({ ...view, zoneSpecs, markers: [], frame });
+    expect(framed.visible.has(labelKey('zone', 'a'))).toBe(true);
+    expect(framed.placements.get('a').nameSide).not.toBe('below');
+    // Cadre serré autour de l'emoji (ni dessous, ni au-dessus, ni sur les côtés) : le nom
+    // attend le zoom…
+    const tight = resolveLabelLayout({
+      ...view,
+      zoneSpecs,
+      markers: [],
+      frame: { left: 170, top: 370, right: 230, bottom: 400 },
+    });
+    expect(tight.visible.has(labelKey('zone', 'a'))).toBe(false);
+    // …sauf le lieu épinglé, toujours affiché.
+    const pinned = resolveLabelLayout({
+      ...view,
+      zoneSpecs,
+      markers: [],
+      frame: { left: 170, top: 370, right: 230, bottom: 400 },
+      pinnedKey: labelKey('zone', 'a'),
+    });
+    expect(pinned.visible.has(labelKey('zone', 'a'))).toBe(true);
+  });
+
+  test('obstaclesHideNames : un nom ne se pose jamais sur un repère (sauf épinglé)', () => {
+    const zoneSpecs = buildZoneLabelSpecs(
+      [{ id: 'a', name: 'Verger', emoji: '🍏', points: rect(20, 20, 40, 20) }],
+      splitEmoji,
+    );
+    const obstacles = [{ xPct: 50, yPct: 50, widthPx: 2000, heightPx: 2000 }];
+    // Par défaut (contrat historique) : l'obstacle ne masque jamais.
+    expect(
+      resolveLabelLayout({ ...view, zoneSpecs, markers: [], obstacles }).visible.has(
+        labelKey('zone', 'a'),
+      ),
+    ).toBe(true);
+    const hidden = resolveLabelLayout({
+      ...view,
+      zoneSpecs,
+      markers: [],
+      obstacles,
+      obstaclesHideNames: true,
+    });
+    expect(hidden.visible.has(labelKey('zone', 'a'))).toBe(false);
+    // L'emoji, lui, garde son repli.
+    expect(hidden.visible.has(zoneEmojiLabelKey('a'))).toBe(true);
+    const pinned = resolveLabelLayout({
+      ...view,
+      zoneSpecs,
+      markers: [],
+      obstacles,
+      obstaclesHideNames: true,
+      pinnedKey: labelKey('zone', 'a'),
+    });
+    expect(pinned.visible.has(labelKey('zone', 'a'))).toBe(true);
+  });
+
+  test('obstaclesHideNames : un repère n’évite pas sa propre épingle, mais celle d’un voisin', () => {
+    const markers = [
+      { id: 'm', x_pct: 50, y_pct: 50, label: 'Ruches' },
+      { id: 'n', x_pct: 50, y_pct: 54, label: 'Compost' },
+    ];
+    const obstacles = markerObstaclesFrom([
+      { id: 'm', x_pct: 50, y_pct: 50 },
+      { id: 'n', x_pct: 50, y_pct: 54 },
+    ]);
+    const { visible } = resolveLabelLayout({
+      ...view,
+      zoneSpecs: [],
+      markers: markers.slice(0, 1),
+      obstacles: obstacles.slice(0, 1),
+      obstaclesHideNames: true,
+    });
+    expect(visible.has(labelKey('marker', 'm'))).toBe(true);
+    // L'épingle de « Compost » (4 % plus bas, soit 16 px) tombe sous le nom de « Ruches ».
+    const crowded = resolveLabelLayout({
+      ...view,
+      zoneSpecs: [],
+      markers,
+      obstacles,
+      obstaclesHideNames: true,
+    });
+    expect(crowded.visible.has(labelKey('marker', 'm'))).toBe(false);
+  });
+
+  test('chromeBoxes : aucune étiquette sous les commandes posées sur la carte', () => {
+    const zoneSpecs = buildZoneLabelSpecs(
+      [{ id: 'a', name: 'Verger', emoji: '🍏', points: rect(40, 40, 20, 20) }],
+      splitEmoji,
+    );
+    const chromeBoxes = [{ left: 150, top: 150, right: 250, bottom: 260 }];
+    const { visible } = resolveLabelLayout({ ...view, zoneSpecs, markers: [], chromeBoxes });
+    expect(visible.has(zoneEmojiLabelKey('a'))).toBe(false);
+    // Carte orientée : ignorées (comme le cadre).
+    const rotated = resolveLabelLayout({
+      ...view,
+      zoneSpecs,
+      markers: [],
+      chromeBoxes,
+      orientationDeg: 30,
+    });
+    expect(rotated.visible.has(zoneEmojiLabelKey('a'))).toBe(true);
   });
 });

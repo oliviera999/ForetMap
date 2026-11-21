@@ -31,7 +31,10 @@ import {
   boxesOverlap,
   estimateGlyphBox,
   estimateLabelBox,
+  estimateTextWidthPx,
+  LABEL_LINE_HEIGHT_RATIO,
   orderLabelCandidates,
+  unbrokenTextWidthPx,
 } from './mapOverlayLabelCollision.js';
 import { rotatePointAround } from './pctMapOrientation.js';
 import { parsePctPolygonPoints } from './pctPolygon.js';
@@ -80,6 +83,31 @@ export const ZONE_LABEL_MAX_WIDTH_PX = 168;
 
 /** Largeur maximale du nom d'un repère. */
 export const MARKER_LABEL_MAX_WIDTH_PX = 132;
+
+/** Lignes autorisées pour le nom d'un repère replié aux espaces (`wrapNamesAtSpaces`). */
+export const MARKER_LABEL_MAX_LINES = 2;
+
+/**
+ * Largeur du nom d'un repère replié aux espaces : sa largeur naturelle s'il tient sur une
+ * ligne de {@link MARKER_LABEL_MAX_WIDTH_PX}, sinon de quoi tenir sur deux lignes sans couper de
+ * mot, dans la limite de {@link ZONE_LABEL_MAX_WIDTH_PX}.
+ *
+ * Pourquoi : sur une ligne de 132 px, « Butte Erosion », « Mare des abeilles » ou « Cuve à
+ * eau — centre » finissaient en « Butte Eros… », « Mare des… » (audit UI/UX du 19/11/2026,
+ * U5). Le moteur (`resolveLabelLayout`) et le rendu (`--fm-pct-marker-label-w`) appellent
+ * cette même fonction.
+ * @param {string} text
+ * @param {number} fontSizePx
+ * @returns {number} px écran (0 pour un nom vide).
+ */
+export function markerLabelWidthPx(text, fontSizePx) {
+  const name = String(text ?? '').trim();
+  if (!name) return 0;
+  const natural = estimateTextWidthPx(name, fontSizePx);
+  if (natural <= MARKER_LABEL_MAX_WIDTH_PX) return natural;
+  const twoLines = unbrokenTextWidthPx(name, fontSizePx, MARKER_LABEL_MAX_LINES);
+  return Math.min(ZONE_LABEL_MAX_WIDTH_PX, Math.max(MARKER_LABEL_MAX_WIDTH_PX, twoLines));
+}
 
 /** Écart vertical entre le point d'un repère et le centre de son étiquette (px écran). */
 export const MARKER_LABEL_OFFSET_PX = 26;
@@ -292,6 +320,75 @@ export function zoneLabelMaxWidthPx(spec, contentWidthPx, scale) {
 }
 
 /**
+ * Largeur allouée au nom d'une zone **sans couper de mot** : celle de son polygone
+ * (`zoneLabelMaxWidthPx`), élargie s'il le faut jusqu'à ce que le nom tienne sur
+ * `maxLines` lignes coupées aux espaces, dans la limite de {@link ZONE_LABEL_MAX_WIDTH_PX}.
+ *
+ * Pourquoi : dans une petite zone, le nom recevait 96 px quelle que soit sa longueur ; un mot
+ * plus large (« Jardinières », 123 px à 22,4 px) se coupait alors n'importe où —
+ * « Bananera / ie », « Aromati / ques » (audit UI/UX du 19/11/2026, U5). Au-delà du plafond,
+ * le rendu replie en dernier recours (`overflow-wrap: break-word`, coupure syllabique).
+ *
+ * Le moteur (`resolveLabelLayout`, option `zoneNameMaxWidthPx`) et le rendu (`maxWidthPx` de
+ * l'étiquette) doivent appeler cette même fonction : la boîte de collision est celle du rendu.
+ *
+ * @param {object} spec spécification d'étiquette (`buildZoneLabelSpecs`).
+ * @param {number} contentWidthPx largeur du rectangle image à l'échelle 1.
+ * @param {number} scale échelle courante.
+ * @param {{ fontSizePx?: number, maxLines?: number }} [options]
+ * @returns {number}
+ */
+export function zoneLabelUnbrokenWidthPx(
+  spec,
+  contentWidthPx,
+  scale,
+  { fontSizePx = LABEL_FONT_SIZE_PX, maxLines = ZONE_LABEL_MAX_LINES } = {},
+) {
+  const base = zoneLabelMaxWidthPx(spec, contentWidthPx, scale);
+  const need = unbrokenTextWidthPx(spec?.name, fontSizePx, maxLines);
+  return Math.min(ZONE_LABEL_MAX_WIDTH_PX, Math.max(base, need));
+}
+
+/**
+ * Cadre visible dans le repère des ancres de `resolveLabelLayout` : origine au coin du rectangle
+ * du contenu, à l'échelle courante. Le calque « monde » est translaté de (`x`, `y`) puis mis à
+ * l'échelle `s` ; le rectangle du contenu y est décalé de (`offsetX`, `offsetY`).
+ * @param {{ x: number, y: number, s: number }} transform vue posée (`committed`).
+ * @param {{ offsetX: number, offsetY: number }} fitRect
+ * @param {{ w: number, h: number }} stage taille du cadre (px).
+ * @returns {{ left: number, top: number, right: number, bottom: number }|null}
+ */
+export function labelFrameFromView(transform, fitRect, stage) {
+  const w = toFinite(stage?.w);
+  const h = toFinite(stage?.h);
+  const s = toFinite(transform?.s, 1);
+  if (!(w > 1) || !(h > 1) || !(s > 0)) return null;
+  const ox = toFinite(transform?.x) + s * toFinite(fitRect?.offsetX);
+  const oy = toFinite(transform?.y) + s * toFinite(fitRect?.offsetY);
+  return { left: -ox, top: -oy, right: w - ox, bottom: h - oy };
+}
+
+/**
+ * Boîtes mesurées en px **du cadre** (commandes posées sur la carte), ramenées dans le repère
+ * des ancres de `resolveLabelLayout` — même origine que `labelFrameFromView`.
+ * @param {Array<{ left: number, top: number, right: number, bottom: number }>} boxes
+ * @param {{ x: number, y: number, s: number }} transform
+ * @param {{ offsetX: number, offsetY: number }} fitRect
+ * @returns {Array<{ left: number, top: number, right: number, bottom: number }>}
+ */
+export function labelBoxesFromScreen(boxes, transform, fitRect) {
+  const s = toFinite(transform?.s, 1);
+  const ox = toFinite(transform?.x) + s * toFinite(fitRect?.offsetX);
+  const oy = toFinite(transform?.y) + s * toFinite(fitRect?.offsetY);
+  return (boxes || []).map((b) => ({
+    left: toFinite(b?.left) - ox,
+    top: toFinite(b?.top) - oy,
+    right: toFinite(b?.right) - ox,
+    bottom: toFinite(b?.bottom) - oy,
+  }));
+}
+
+/**
  * Côtés possibles du nom d'une zone par rapport à son emoji, par ordre de préférence. `below`
  * est le rendu par défaut ; les autres ne servent que si la place sous l'emoji est prise.
  */
@@ -316,7 +413,8 @@ export const CLUSTER_OBSTACLE_HEIGHT_PX = 44;
  * @param {Array<{ x_pct: number, y_pct: number, count?: number }>} items repères ou groupes
  *   (`clusterMarkers`).
  * @param {{ emojiSizePx?: number }} [options]
- * @returns {Array<{ xPct: number, yPct: number, widthPx: number, heightPx: number }>}
+ * @returns {Array<{ id: string, xPct: number, yPct: number, widthPx: number,
+ *   heightPx: number }>}
  */
 export function markerObstaclesFrom(items, { emojiSizePx = LABEL_EMOJI_SIZE_PX } = {}) {
   const pin = Math.max(toFinite(emojiSizePx, LABEL_EMOJI_SIZE_PX), 1) + 4;
@@ -326,13 +424,15 @@ export function markerObstaclesFrom(items, { emojiSizePx = LABEL_EMOJI_SIZE_PX }
     const yPct = Number(item?.y_pct);
     if (!Number.isFinite(xPct) || !Number.isFinite(yPct)) continue;
     const count = Math.max(Math.round(toFinite(item?.count, 1)), 1);
+    // Identifiant du repère (ou du groupe) : le nom d'un repère n'évite pas sa propre épingle.
+    const id = item?.id == null ? '' : String(item.id);
     if (count > 1) {
       // Pilule « emoji + nombre » : 10 px de marge de chaque côté, 4 px d'écart, ~9 px par
       // chiffre, bordure de 2 px ; au moins une cible tactile.
       const width = Math.max(CLUSTER_OBSTACLE_HEIGHT_PX, 28 + pin + 9 * String(count).length);
-      out.push({ xPct, yPct, widthPx: width, heightPx: CLUSTER_OBSTACLE_HEIGHT_PX });
+      out.push({ id, xPct, yPct, widthPx: width, heightPx: CLUSTER_OBSTACLE_HEIGHT_PX });
     } else {
-      out.push({ xPct, yPct, widthPx: pin, heightPx: pin });
+      out.push({ id, xPct, yPct, widthPx: pin, heightPx: pin });
     }
   }
   return out;
@@ -413,9 +513,28 @@ function zoneNameBoxAt(side, at, emojiBox, emojiPx, gapPx, labelBoxOptions) {
  * @param {number} [params.zoneNameMaxLines] lignes d'un nom de zone (le calque d'édition, en
  *   SVG, n'en rend qu'une).
  * @param {(spec: object) => number} [params.zoneNameMaxWidthPx] largeur allouée au nom (défaut :
- *   `zoneLabelMaxWidthPx`).
+ *   `zoneLabelMaxWidthPx`, ou `zoneLabelUnbrokenWidthPx` avec `wrapNamesAtSpaces`).
+ * @param {boolean} [params.wrapNamesAtSpaces=false] noms repliés **aux espaces** (calques HTML
+ *   de `SharedMapStage`) : noms de zone élargis pour qu'aucun mot ne soit coupé, noms de repère
+ *   sur deux lignes au plus (`markerLabelWidthPx`), largeurs naturelles estimées glyphe par
+ *   glyphe. Le calque d'édition (SVG, une ligne tronquée) garde l'ancien calcul.
  * @param {Array<{ xPct: number, yPct: number, widthPx: number, heightPx: number }>}
  *   [params.obstacles] épingles et pastilles de repères (`markerObstaclesFrom`).
+ * @param {boolean} [params.obstaclesHideNames=false] épingles et pastilles **masquent** les noms
+ *   au lieu de les laisser se poser dessus faute de mieux : un nom (de zone ou de repère) qui ne
+ *   trouve aucune place libre de repères attend le zoom — « mieux vaut moins de noms, tous
+ *   lisibles ». Les emojis de zone gardent l'ancien repli. Activé par la Visite (audit UI/UX du
+ *   19/11/2026, U5 : pastilles et épingles sur les noms) ; le lieu épinglé reste affiché.
+ * @param {Array<{ left: number, top: number, right: number, bottom: number }>}
+ *   [params.chromeBoxes] commandes posées **sur** la carte (boutons de zoom, cartouche
+ *   d'échelle), dans le repère des ancres (`labelBoxesFromScreen`) : aucune étiquette ne s'y
+ *   pose, sauf le lieu épinglé. Ignorées quand la carte est orientée, comme `frame`.
+ * @param {{ left: number, top: number, right: number, bottom: number }|null} [params.frame]
+ *   cadre **visible**, dans le repère des ancres (px écran, origine au coin du contenu à
+ *   l'échelle courante — `labelFrameFromView`). Une étiquette qui en sortirait est traitée
+ *   comme une collision : son nom essaie un autre côté, sinon il est masqué et revient au
+ *   zoom ou au déplacement. Sans cadre, ou carte orientée, rien ne change. Le lieu épinglé
+ *   reste toujours affiché (audit UI/UX du 19/11/2026, U5 : noms rognés au bord du cadre).
  * @returns {{ visible: Set<string>, placements: Map<string, { xp: number, yp: number,
  *   nameSide: string }> }} `visible` : clés `zone-emoji:<id>`, `zone:<id>`, `marker:<id>` ;
  *   `placements` : par id de zone, point d'ancrage retenu (en % de l'image) et côté du nom
@@ -435,9 +554,13 @@ export function resolveLabelLayout({
   includeZoneNames = true,
   zoneNameMaxLines = ZONE_LABEL_MAX_LINES,
   zoneNameMaxWidthPx = null,
+  wrapNamesAtSpaces = false,
   orientationDeg = 0,
   orientOriginPct = null,
   obstacles = [],
+  obstaclesHideNames = false,
+  chromeBoxes = [],
+  frame = null,
 }) {
   const visible = new Set();
   const placements = new Map();
@@ -465,7 +588,10 @@ export function resolveLabelLayout({
   const widthOf =
     typeof zoneNameMaxWidthPx === 'function'
       ? zoneNameMaxWidthPx
-      : (spec) => zoneLabelMaxWidthPx(spec, width, s);
+      : wrapNamesAtSpaces
+        ? (spec) =>
+            zoneLabelUnbrokenWidthPx(spec, width, s, { fontSizePx, maxLines: zoneNameMaxLines })
+        : (spec) => zoneLabelMaxWidthPx(spec, width, s);
 
   const softBoxes = [];
   for (const o of obstacles || []) {
@@ -475,21 +601,56 @@ export function resolveLabelLayout({
     const at = anchorPx(xPct, yPct);
     const w = Math.max(toFinite(o.widthPx, 0), 0) / 2;
     const h = Math.max(toFinite(o.heightPx, 0), 0) / 2;
-    softBoxes.push({ left: at.x - w, right: at.x + w, top: at.y - h, bottom: at.y + h });
+    softBoxes.push({
+      id: o?.id == null ? '' : String(o.id),
+      left: at.x - w,
+      right: at.x + w,
+      top: at.y - h,
+      bottom: at.y + h,
+    });
   }
   const kept = [];
-  const hitsKept = (box) => kept.some((k) => boxesOverlap(k, box));
-  const hitsSoft = (box) => softBoxes.some((k) => boxesOverlap(k, box));
+  // Cadre visible : ignoré quand la carte est orientée (boîtes alignées sur l'écran, ancres
+  // tournées autour d'un pivot — le calcul du bord n'aurait plus de sens simple).
+  const frameBox =
+    !rotates &&
+    frame &&
+    [frame.left, frame.top, frame.right, frame.bottom].every((v) => Number.isFinite(Number(v)))
+      ? frame
+      : null;
+  // Commandes posées sur la carte : places déjà prises (carte non orientée seulement).
+  if (!rotates) {
+    for (const b of chromeBoxes || []) {
+      if ([b?.left, b?.top, b?.right, b?.bottom].every((v) => Number.isFinite(Number(v)))) {
+        kept.push({
+          left: Number(b.left),
+          top: Number(b.top),
+          right: Number(b.right),
+          bottom: Number(b.bottom),
+        });
+      }
+    }
+  }
+  const outside = (box) =>
+    !!frameBox &&
+    (box.left < frameBox.left ||
+      box.right > frameBox.right ||
+      box.top < frameBox.top ||
+      box.bottom > frameBox.bottom);
+  const hitsKept = (box) => outside(box) || kept.some((k) => boxesOverlap(k, box));
+  const hitsSoft = (box, exceptId = null) =>
+    softBoxes.some((k) => (exceptId == null || k.id !== exceptId) && boxesOverlap(k, box));
   /**
    * Première option libre d'étiquettes et d'obstacles, sinon première libre d'étiquettes ;
    * une étiquette épinglée est toujours gardée (de préférence hors obstacle).
    */
-  const choose = (boxes, pinned, avoidSoft = true) => {
+  const choose = (boxes, pinned, avoidSoft = true, strictSoft = false) => {
     let firstFree = -1;
     for (let i = 0; i < boxes.length; i += 1) {
       if (!pinned && hitsKept(boxes[i])) continue;
       if (!avoidSoft || !hitsSoft(boxes[i])) return i;
-      if (firstFree < 0) firstFree = i;
+      // `strictSoft` : pas de repli sur un repère (`obstaclesHideNames`).
+      if (firstFree < 0 && !(strictSoft && !pinned)) firstFree = i;
     }
     if (firstFree >= 0) return firstFree;
     return pinned && boxes.length ? 0 : -1;
@@ -510,9 +671,10 @@ export function resolveLabelLayout({
   const placeZoneNameWithEmoji = (entry, anchors, labelBoxOptions) => {
     const current = emojiAt.get(entry.spec.id);
     const others = kept.filter((k) => k !== current.box);
-    const hitsOthers = (box) => others.some((k) => boxesOverlap(k, box));
+    const hitsOthers = (box) => outside(box) || others.some((k) => boxesOverlap(k, box));
     const order = [current.index, ...anchors.map((_, i) => i).filter((i) => i !== current.index)];
     let fallback = null;
+    let nameOnly = null;
     let chosen = null;
     for (const index of order) {
       const at = anchorPx(anchors[index].xp, anchors[index].yp);
@@ -529,12 +691,18 @@ export function resolveLabelLayout({
           chosen = option;
           break;
         }
+        if (obstaclesHideNames) {
+          // Nom libre de repères, emoji resté à sa place (posé sur une épingle faute de mieux) :
+          // admis. Un nom sur un repère, jamais — il attendra le zoom.
+          if (!nameOnly && index === current.index && !hitsSoft(nameBox)) nameOnly = option;
+          continue;
+        }
         // L'emoji ne quitte pas sa place pour se poser sur un repère.
         if (!fallback && index === current.index) fallback = option;
       }
       if (chosen) break;
     }
-    chosen = chosen || fallback;
+    chosen = chosen || nameOnly || fallback;
     if (!chosen && entry.pinned) {
       const at = anchorPx(anchors[current.index].xp, anchors[current.index].yp);
       chosen = {
@@ -615,17 +783,33 @@ export function resolveLabelLayout({
   for (const entry of orderLabelCandidates(names)) {
     if (entry.kind === 'marker') {
       const at = anchorPx(entry.xPct, entry.yPct);
-      const box = estimateLabelBox({
-        x: at.x,
-        // L'écart au point est **vertical à l'écran** : l'étiquette étant contre-tournée,
-        // il s'ajoute après la rotation de l'ancre, jamais avant.
-        y: at.y + MARKER_LABEL_OFFSET_PX,
-        text: entry.text,
-        fontSizePx,
-        maxWidthPx: MARKER_LABEL_MAX_WIDTH_PX,
-        extraWidthPx: entry.pinned ? ACTIVE_LABEL_EXTRA_WIDTH_PX : 0,
-      });
+      // L'écart au point est **vertical à l'écran** : l'étiquette étant contre-tournée, il
+      // s'ajoute après la rotation de l'ancre, jamais avant.
+      const box = wrapNamesAtSpaces
+        ? // Repliée : la première ligne garde sa place d'avant (centrée sur l'écart), la
+          // seconde pend dessous (`.fm-pct-marker__label`).
+          estimateLabelBox({
+            x: at.x,
+            y: at.y + MARKER_LABEL_OFFSET_PX - (fontSizePx * LABEL_LINE_HEIGHT_RATIO) / 2,
+            anchorY: 'top',
+            text: entry.text,
+            fontSizePx,
+            maxWidthPx: markerLabelWidthPx(entry.text, fontSizePx),
+            maxLines: MARKER_LABEL_MAX_LINES,
+            naturalWidthPx: estimateTextWidthPx(entry.text, fontSizePx),
+            extraWidthPx: entry.pinned ? ACTIVE_LABEL_EXTRA_WIDTH_PX : 0,
+          })
+        : estimateLabelBox({
+            x: at.x,
+            y: at.y + MARKER_LABEL_OFFSET_PX,
+            text: entry.text,
+            fontSizePx,
+            maxWidthPx: MARKER_LABEL_MAX_WIDTH_PX,
+            extraWidthPx: entry.pinned ? ACTIVE_LABEL_EXTRA_WIDTH_PX : 0,
+          });
       if (choose([box], entry.pinned, false) < 0) continue;
+      // Sur une autre épingle ou une pastille (sa propre épingle exceptée) : masqué (Visite).
+      if (obstaclesHideNames && !entry.pinned && hitsSoft(box, String(entry.marker.id))) continue;
       kept.push(box);
       visible.add(entry.key);
       continue;
@@ -636,6 +820,7 @@ export function resolveLabelLayout({
       fontSizePx,
       maxWidthPx: widthOf(spec),
       maxLines: zoneNameMaxLines,
+      naturalWidthPx: wrapNamesAtSpaces ? estimateTextWidthPx(spec.name, fontSizePx) : null,
       extraWidthPx: entry.pinned ? ACTIVE_LABEL_EXTRA_WIDTH_PX : 0,
     };
     const anchors = anchorsOf(spec);
@@ -650,7 +835,7 @@ export function resolveLabelLayout({
       const at = anchorPx(a.xp, a.yp);
       return estimateLabelBox({ ...labelBoxOptions, x: at.x, y: at.y });
     });
-    const i = choose(boxes, entry.pinned);
+    const i = choose(boxes, entry.pinned, true, obstaclesHideNames);
     if (i < 0) continue;
     kept.push(boxes[i]);
     visible.add(spec.key);
