@@ -43,6 +43,7 @@ const PAIRS = Object.freeze([
   ['src/shared/enums/terrainEnums.js', 'terrainEnums.js'],
   ['src/shared/enums/moodleSyncEnums.js', 'moodleSyncEnums.js'],
   ['src/shared/enums/platformEnums.js', 'platformEnums.js'],
+  ['src/shared/enums/pedagoStepActions.js', 'pedagoStepActions.js'],
   // Taxonomie des tâches (métier, format, phase, type de projet), migration 329.
   ['src/shared/taskTaxonomyCore.js', 'taskTaxonomyCore.js'],
   ['src/shared/taskCategoryGuessCore.js', 'taskCategoryGuessCore.js'],

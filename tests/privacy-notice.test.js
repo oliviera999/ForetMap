@@ -139,3 +139,73 @@ test('notice ForêtMap : section « Tes badges » (sources, qui les voit, durée
     );
   }
 });
+
+test('notice : les durées des observations sont celles de la purge planifiée', async () => {
+  const { PRIVACY_RETENTION: R } = await loadNotice();
+  const policy = require('../lib/retention/policy');
+  assert.equal(R.observationRefusedPhotoDays, policy.OBSERVATION_REFUSED_PHOTO_RETENTION_DAYS);
+  assert.equal(R.observationRefusedDays, policy.OBSERVATION_REFUSED_RETENTION_DAYS);
+  assert.equal(R.observationPendingDays, policy.OBSERVATION_PENDING_RETENTION_DAYS);
+  // La purge applique bien ces durées : la catégorie est branchée et les annonce.
+  const { CATEGORY_KEYS } = require('../lib/retention/retentionPurge');
+  assert.ok(CATEGORY_KEYS.includes('observations'));
+});
+
+test('notice ForêtMap : section « Tes observations de terrain » (collecte, finalité, qui les voit, durées), tutoyée', async () => {
+  const { buildPrivacyNotice, PRIVACY_RETENTION: R } = await loadNotice();
+  const notice = buildPrivacyNotice({ product: 'foret' });
+  const section = notice.sections.find((s) => s.id === 'observations');
+  assert.ok(section, 'section observations absente');
+  const text = [...section.paragraphs, ...section.items].join(' ');
+
+  // Collecte : observations ET photos ; finalité : l'inventaire de l'établissement.
+  assert.match(text, /ce que tu écris et les photos que tu ajoutes/);
+  assert.match(text, /inventaire des êtres vivants de l’établissement/);
+  // Retrait des informations cachées (annoncé seulement parce qu'il est testé :
+  // tests/species-observations-exif.test.js).
+  assert.match(text, /position GPS/);
+  assert.match(text, /effacées à l’envoi/);
+  // Qui les voit (tests/species-observations-visibility.test.js).
+  assert.match(text, /toi, et les enseignants chargés de les vérifier/);
+  assert.match(text, /Les autres élèves ne voient ni ton texte ni tes photos/);
+  // Durées : chaque nombre affiché vient de la table des durées.
+  assert.ok(text.includes(`au bout de ${R.observationRefusedPhotoDays} jours`), 'photo refusée');
+  assert.ok(text.includes(`au bout de ${R.observationRefusedDays} jours`), 'observation refusée');
+  assert.equal(R.observationPendingDays, 365);
+  assert.match(text, /personne ne l’a examinée au bout de 1 an/);
+  assert.match(text, /autant que ton compte/);
+  assert.match(text, /1 an après ton départ/);
+  assert.match(text, /export de tes données/);
+  assert.doesNotMatch(text, /\bvous\b|\bvotre\b|\bvos\b/i, 'texte élève tutoyé');
+
+  // Le reste de la notice dit la même chose.
+  const all = (id) => {
+    const s = notice.sections.find((x) => x.id === id);
+    return [...s.paragraphs, ...s.items].join(' ');
+  };
+  assert.match(all('finalites'), /inventaire des êtres vivants/);
+  assert.match(all('donnees'), /photos, observations/);
+  assert.doesNotMatch(all('destinataires'), /observations partagées/);
+  assert.match(all('destinataires'), /ni tes observations de terrain ni leurs photos/);
+
+  // Rien n'est retiré de l'existant : la section des durées annonce toujours l'effacement
+  // des observations et des photos avec le compte.
+  assert.match(JSON.stringify(notice.sections), /observations, messages et photos sont effacés/);
+
+  for (const product of ['gl', 'plan', 'staff', 'enov']) {
+    assert.ok(
+      !buildPrivacyNotice({ product }).sections.some((s) => s.id === 'observations'),
+      `${product} : pas de section observations`,
+    );
+  }
+});
+
+test('notice ForêtMap : aucun nom de marque ou d’établissement en dur dans la section observations', async () => {
+  const { buildPrivacyNotice } = await loadNotice();
+  const brand = { appName: 'LogicielTemoin', orgName: 'EtablissementTemoin', orgShortName: 'ET' };
+  const section = buildPrivacyNotice({ product: 'foret', brand }).sections.find(
+    (s) => s.id === 'observations',
+  );
+  const text = [...section.paragraphs, ...section.items].join(' ');
+  assert.doesNotMatch(text, /For[êe]t\s?Map|Lyautey|lycée/i);
+});

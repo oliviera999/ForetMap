@@ -161,6 +161,35 @@ describe('QuizView — montage et parcours élève', () => {
     );
   });
 
+  it('légende de la photo : absente avant la réponse, affichée avec elle', async () => {
+    // Le serveur ne livre la légende (souvent le nom du sujet, donc la réponse) qu'à la réponse.
+    answerResponse = { ...answerResponse, photoLegende: 'Trèfle blanc en fleur' };
+    const { container } = render(<QuizView />);
+    await drawAndPresent();
+    expect(container.querySelectorAll('img')).toHaveLength(1);
+    expect(screen.queryByText('Trèfle blanc en fleur')).toBeNull();
+
+    fireEvent.click(screen.getByLabelText('Le trèfle'));
+    fireEvent.click(screen.getByRole('button', { name: 'Valider ma réponse' }));
+    await screen.findByText('Oui : ses nodosités hébergent des bactéries.');
+
+    // La photo revient avec sa légende, suivie du crédit.
+    expect(screen.getByText('Trèfle blanc en fleur')).toBeTruthy();
+    expect(container.querySelectorAll('img')).toHaveLength(1);
+    expect(container.querySelector('figcaption').textContent).toBe(
+      'Trèfle blanc en fleur — A. Auteur — CC BY',
+    );
+  });
+
+  it('réponse sans légende : la photo ne revient pas', async () => {
+    const { container } = render(<QuizView />);
+    await drawAndPresent();
+    fireEvent.click(screen.getByLabelText('Le trèfle'));
+    fireEvent.click(screen.getByRole('button', { name: 'Valider ma réponse' }));
+    await screen.findByText('Oui : ses nodosités hébergent des bactéries.');
+    expect(container.querySelectorAll('img')).toHaveLength(0);
+  });
+
   it('« Nouvelle question » revient à l’invitation ; « Re-tirer » relance un tirage', async () => {
     render(<QuizView />);
     await drawAndPresent();

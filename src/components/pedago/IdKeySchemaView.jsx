@@ -6,6 +6,8 @@ import {
   coupletNodeId,
   layoutIdKeySchema,
 } from '../../utils/idKeySchemaLayout.js';
+import { leadImageCreditLine } from '../../shared/idKeyLeadCore.js';
+import './idKeys.css';
 
 const NODE_R = 22;
 const PLANT_RX = 56;
@@ -143,6 +145,8 @@ export function IdKeySchemaView({
 
   const currentNode = layout.nodes.find((n) => n.id === currentNodeId);
   const missingCount = layout.edges.filter((e) => !e.usable).length;
+  /** Crédits des vignettes du schéma, sans doublon (une même photo sert parfois deux fois). */
+  const imageCredits = [...new Set(layout.edges.map(leadImageCreditLine).filter(Boolean))];
 
   return (
     <div className="id-key-schema">
@@ -354,6 +358,9 @@ export function IdKeySchemaView({
             ))}
           </ul>
         </div>
+      ) : null}
+      {imageCredits.length ? (
+        <p className="id-key-schema__credits">Images : {imageCredits.join(' ; ')}</p>
       ) : null}
       {authorMode && (layout.orphanNumbers.length || missingCount) ? (
         <p className="id-key-schema__author-note">

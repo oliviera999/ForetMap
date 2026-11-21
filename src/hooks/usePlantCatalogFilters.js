@@ -1,5 +1,9 @@
 import { useMemo, useState } from 'react';
-import { ZONE_PRESENCE_FILTER, plantMatchesAllFilters } from '../utils/plantFilters';
+import {
+  ZONE_PRESENCE_FILTER,
+  plantMatchesAllFilters,
+  plantsForStudentCatalog,
+} from '../utils/plantFilters';
 import {
   BIODIV_SORT,
   applyBiodivQuickChips,
@@ -23,6 +27,11 @@ export function usePlantCatalogFilters(
     countsById = null,
     /** Inclure les chips d’observation (élève) et le tri « récemment observées ». */
     enableObservationChips = false,
+    /**
+     * Garder les fiches « ressource » (matière non vivante). `false` par défaut : elles sont
+     * absentes de la liste et de la recherche des élèves ; la gestion passe `true`.
+     */
+    includeResourceEntities = false,
   } = {},
 ) {
   const [search, setSearch] = useState('');
@@ -56,16 +65,22 @@ export function usePlantCatalogFilters(
 
   const queryTrimmedLower = search.trim().toLowerCase();
 
+  /** Catalogue proposé à ce public : base de la liste, de la recherche et des compteurs. */
+  const catalogPlants = useMemo(
+    () => plantsForStudentCatalog(plants, { includeResourceEntities }),
+    [plants, includeResourceEntities],
+  );
+
   const baseFiltered = useMemo(
     () =>
-      (Array.isArray(plants) ? plants : []).filter((p) =>
+      catalogPlants.filter((p) =>
         plantMatchesAllFilters(
           p,
           { structured, queryTrimmedLower, zonePresence },
           presenceByPlantId,
         ),
       ),
-    [plants, structured, queryTrimmedLower, zonePresence, presenceByPlantId],
+    [catalogPlants, structured, queryTrimmedLower, zonePresence, presenceByPlantId],
   );
 
   const chipFiltered = useMemo(() => {
@@ -127,6 +142,7 @@ export function usePlantCatalogFilters(
   ].join('|');
 
   return {
+    catalogPlants,
     filteredPlants,
     baseFiltered,
     countScopePlants,

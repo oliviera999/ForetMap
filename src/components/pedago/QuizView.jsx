@@ -309,6 +309,17 @@ export function QuizView({
             onOpenGlossaryTerm={onOpenGlossaryTerm}
             seed={questionCode}
           />
+          {/* La légende nomme le plus souvent le sujet photographié : le serveur ne la livre
+              qu'avec la réponse. La photo revient alors, légendée. */}
+          {answerResult?.photoLegende && presentation ? (
+            <QcmQuestionPhoto
+              presentation={{ ...presentation, photoLegende: answerResult.photoLegende }}
+              showLegende
+              figureClassName="pedago-quiz__photo-wrap"
+              imgClassName="pedago-quiz__photo"
+              captionClassName="pedago-quiz__photo-credit"
+            />
+          ) : null}
           {remediationTerms.length > 0 ? (
             <div className="pedago-remediation">
               <strong>Pour approfondir — glossaire</strong>

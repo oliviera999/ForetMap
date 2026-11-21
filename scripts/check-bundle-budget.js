@@ -40,7 +40,10 @@ const TARGET_JS_KB = 400;
 const BUNDLE_BUDGETS = Object.freeze({
   'index.vite.html': Object.freeze({
     label: 'ForetMap (écran de connexion)',
-    jsKb: 1530,
+    // 1 530 → 1 535 le 21/11/2026 : le chantier CPT ajoute 4,3 Ko au shell connecté (étape
+    // « Tutoriel » des séances, nature des fiches). Hausse provisoire : le chargement à la
+    // demande du shell (UI/UX lot 4) sort ce code de l'écran de connexion et abaisse le plafond.
+    jsKb: 1535,
     cssKb: 380,
   }),
 });

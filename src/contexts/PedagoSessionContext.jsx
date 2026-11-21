@@ -22,7 +22,9 @@ export function PedagoSessionProvider({ value, children }) {
 /**
  * Séance en cours (`activeSession`, `currentStep`, `completedSession`, `runsVersion`,
  * `imposedLevel`, `imposedNotionNiveau`) et actions (`startSession`, `launchSession`,
- * `exitSession`, `goStep`, `setCompletedSession`) ; `null` hors du fournisseur.
+ * `exitSession`, `goStep`, `setCompletedSession`) ; tutoriel d'une étape `open_tutorial`
+ * (`sessionTutorial`, `closeSessionTutorial`, `markSessionTutorialRead`), lu par le bandeau
+ * de séance ; `null` hors du fournisseur.
  */
 export function usePedagoSessionContext() {
   return useContext(PedagoSessionContext);

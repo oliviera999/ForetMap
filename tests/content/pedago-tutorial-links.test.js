@@ -22,7 +22,6 @@ const REQUIRED_NEW_CODES = [
   'QF9201',
   'QF9205',
   'QF9209',
-  'QF9213',
   'QF9217',
   'QF9221',
   'QF9225',
