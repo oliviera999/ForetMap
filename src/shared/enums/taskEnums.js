@@ -149,3 +149,13 @@ export const TASK_PROJECT_TYPE_ENUM = defineEnum('TASK_PROJECT_TYPE_ENUM', {
   },
   columns: ['task_projects.project_type'],
 });
+
+/** Origine d'un lien référent (migration `task_referents_auto`, élèves référents automatiques). */
+export const TASK_REFERENT_SOURCE_ENUM = defineEnum('TASK_REFERENT_SOURCE_ENUM', {
+  values: ['manual', 'auto'],
+  labels: {
+    manual: 'Posé à la main',
+    auto: 'Automatique',
+  },
+  columns: ['task_referents.source'],
+});
