@@ -213,7 +213,8 @@ describe('Mascotte — contrôles des corps', () => {
     assert.equal(ok.status, 201);
     assert.deepEqual(Object.keys(ok.body).sort(), ['filename', 'ok', 'preview_url', 'url']);
     assert.equal(ok.body.url, `/api/visit/mascot-packs/${packId}/assets/vraie.png`);
-    assert.deepEqual(fs.readdirSync(packDir(packId)), ['vraie.png']);
+    // `_vignette.png` : vignette du sélecteur de guide, écrite par le serveur au dépôt.
+    assert.deepEqual(fs.readdirSync(packDir(packId)).sort(), ['_vignette.png', 'vraie.png']);
   });
 
   it('bibliothèque de sprites : mêmes refus que le dépôt dans un pack', async () => {
@@ -272,7 +273,7 @@ describe('Mascotte — contrôles des corps', () => {
       'previous_filename',
       'url',
     ]);
-    assert.deepEqual(fs.readdirSync(packDir(packId)).sort(), ['b.png', 'c.png']);
+    assert.deepEqual(fs.readdirSync(packDir(packId)).sort(), ['_vignette.png', 'b.png', 'c.png']);
 
     const lib = '/api/visit/mascot-sprite-library/assets';
     const libName = `carac-ren-${Date.now()}.png`;
