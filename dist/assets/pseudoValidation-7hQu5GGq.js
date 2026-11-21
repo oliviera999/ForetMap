@@ -1,0 +1,1 @@
+var e=/^[\p{L}\p{N}._+-]{3,50}$/u,t=`Pseudo invalide (3-50 caractères : lettres — y compris accentuées —, chiffres, . _ - +)`;export{e as n,t};

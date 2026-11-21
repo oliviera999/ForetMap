@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="fr"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Gnomes &amp; Licornes — Le carnet de Selene</title>
+
+<!-- Polices hébergées en local (hors-ligne) -->
+<style>/* Polices hébergées en local — Gnomes & Licornes */
+@font-face{font-family:'Caveat';font-style:normal;font-weight:500;font-display:swap;src:url("assets/7a639813-c881-4c56-840e-9a1146692ce4.woff2") format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;}
+@font-face{font-family:'Caveat';font-style:normal;font-weight:600;font-display:swap;src:url("assets/97b48111-6562-4347-86e6-85068e31500a.woff2") format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;}
+@font-face{font-family:'Caveat';font-style:normal;font-weight:700;font-display:swap;src:url("assets/7d17a787-ea1b-4fe8-a96a-0d52ac1449c1.woff2") format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;}
+@font-face{font-family:'Cormorant Garamond';font-style:italic;font-weight:500;font-display:swap;src:url("assets/52cc46f5-23e3-4040-86cc-7dca0115fc9b.woff2") format('woff2');unicode-range:U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;}
+@font-face{font-family:'Cormorant Garamond';font-style:italic;font-weight:500;font-display:swap;src:url("assets/5b33db9e-adfc-4ad2-bbe2-2be9117d4e8d.woff2") format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;}
+@font-face{font-family:'Cormorant Garamond';font-style:italic;font-weight:600;font-display:swap;src:url("assets/d7b0bebd-bbdf-45d6-b782-fd369acafd57.woff2") format('woff2');unicode-range:U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;}
+@font-face{font-family:'Cormorant Garamond';font-style:italic;font-weight:600;font-display:swap;src:url("assets/7e0968c1-f2c1-48ba-8f78-cc8543163fa7.woff2") format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;}
+@font-face{font-family:'Cormorant Garamond';font-style:normal;font-weight:500;font-display:swap;src:url("assets/be4d1687-ab65-47d6-88af-116ab679120a.woff2") format('woff2');unicode-range:U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;}
+@font-face{font-family:'Cormorant Garamond';font-style:normal;font-weight:500;font-display:swap;src:url("assets/95343566-ce52-4632-8bd3-3e4e26a1482b.woff2") format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;}
+@font-face{font-family:'Cormorant Garamond';font-style:normal;font-weight:600;font-display:swap;src:url("assets/7b969ac4-4fa0-4ec6-92e5-4261312ffba6.woff2") format('woff2');unicode-range:U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;}
+@font-face{font-family:'Cormorant Garamond';font-style:normal;font-weight:600;font-display:swap;src:url("assets/5c0676fe-aadc-4646-a433-0a4763fc8db5.woff2") format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;}
+@font-face{font-family:'Cormorant Garamond';font-style:normal;font-weight:700;font-display:swap;src:url("assets/27f64468-d81b-4746-8e32-629118d5317c.woff2") format('woff2');unicode-range:U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;}
+@font-face{font-family:'Cormorant Garamond';font-style:normal;font-weight:700;font-display:swap;src:url("assets/d12a3828-0171-4b7e-b533-d850fbb30ff6.woff2") format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;}
+@font-face{font-family:'EB Garamond';font-style:italic;font-weight:400;font-display:swap;src:url("assets/8e0dafeb-c14d-4590-a2e1-3eca0b800b88.woff2") format('woff2');unicode-range:U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;}
+@font-face{font-family:'EB Garamond';font-style:italic;font-weight:400;font-display:swap;src:url("assets/8a94299c-a24c-482f-94c2-3571c3e89196.woff2") format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;}
+@font-face{font-family:'EB Garamond';font-style:normal;font-weight:400;font-display:swap;src:url("assets/57f1681e-a132-4380-b1cd-306a3bff668e.woff2") format('woff2');unicode-range:U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;}
+@font-face{font-family:'EB Garamond';font-style:normal;font-weight:400;font-display:swap;src:url("assets/14e6cc57-1b2c-4e85-bc41-d99f49e0c703.woff2") format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;}
+@font-face{font-family:'EB Garamond';font-style:normal;font-weight:500;font-display:swap;src:url("assets/88fad01a-f005-45ae-829c-a016d39a8b77.woff2") format('woff2');unicode-range:U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;}
+@font-face{font-family:'EB Garamond';font-style:normal;font-weight:500;font-display:swap;src:url("assets/298298de-8561-4348-a529-64334ccec224.woff2") format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;}
+
+/* --- voix protagonistes : copiste (machine à écrire) + Selene (manuscrit élégant) --- */
+@font-face{font-family:'Petit Formal Script';font-style:normal;font-weight:400;font-display:swap;src:url("assets/0e5d98d7-aa3c-43ad-8f00-d7798e256513.woff2") format('woff2');unicode-range:U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;}
+@font-face{font-family:'Petit Formal Script';font-style:normal;font-weight:400;font-display:swap;src:url("assets/7071998c-06b4-4b64-9232-c4b5bb0ac2da.woff2") format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;}
+@font-face{font-family:'Special Elite';font-style:normal;font-weight:400;font-display:swap;src:url("assets/c4de7c2c-f391-424f-b0da-bbd2c148aedb.woff2") format('woff2');unicode-range:U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;}
+@font-face{font-family:'Special Elite';font-style:normal;font-weight:400;font-display:swap;src:url("assets/3a480e6b-47cb-4287-8515-f432092463c4.woff2") format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;}
+
+/* --- alternatives manuscrites élégantes pour Selene (tweak) --- */
+@font-face{font-family:'Parisienne';font-style:normal;font-weight:400;font-display:swap;src:url("assets/7c835fac-19f8-411b-8698-f115cdae6e93.woff2") format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;}
+@font-face{font-family:'Tangerine';font-style:normal;font-weight:400;font-display:swap;src:url("assets/9edef5d0-34ea-426b-85a3-ed0048b68e3d.woff2") format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;}
+@font-face{font-family:'Tangerine';font-style:normal;font-weight:700;font-display:swap;src:url("assets/23eaacce-9220-4d5d-a23a-8bfa37c325c2.woff2") format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;}
+</style>
+
+
+
+
+
+
+
+
+
+
+
+<style>
+/* ============================================================
+   GNOMES & LICORNES — INTRO ANIMÉE — passe Claude Design
+   9 scènes + 2 cartes-titres. Textes fidèles au Livre de Selene.
+   Deux directions : « Conte » (chaud, classique) / « Cinéma ».
+   ============================================================ */
+
+:root{
+  --ink:        #15110c;   /* nuit chaude, encre */
+  --ink-2:      #1f1810;
+  --parch:      #f2e6cf;   /* parchemin */
+  --parch-dim:  #cdbfa3;
+  --gold:       #e6c074;   /* Selene / le passage */
+  --gold-deep:  #c89a45;
+  --ash:        #b6ada0;   /* le Souffle, la cendre */
+  --shadow:     rgba(0,0,0,.55);
+
+  /* pilotés par les Tweaks */
+  --atmo: 1;                       /* 0..1.4 intensité atmosphère */
+  --bg-filter: saturate(1.02) brightness(1.0) sepia(.08);
+  --kb-amp: 1;                     /* amplitude Ken Burns */
+  --type-rate: 1;                  /* multiplicateur vitesse frappe (info JS) */
+  --bar: 0px;                      /* hauteur bandes cinémascope */
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:#000;
+  color:var(--parch);
+  font-family:"EB Garamond",Georgia,serif;
+  overflow:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* la scène est un cadre 16:9 centré, letterboxé sur fond noir */
+#frame{
+  position:fixed;inset:0;
+  background:var(--ink);
+  overflow:hidden;
+}
+
+#stage{position:absolute;inset:0;overflow:hidden;cursor:pointer}
+
+/* ---------- couches scène ---------- */
+.scene{
+  position:absolute;inset:0;
+  opacity:0;visibility:hidden;
+  transition:opacity 1.7s ease;
+  display:flex;align-items:flex-end;justify-content:center;
+}
+.scene.active{opacity:1;visibility:visible}
+
+.bg{
+  position:absolute;inset:-9%;
+  background-size:cover;background-position:center;
+  transform:scale(1.06);
+  filter:var(--bg-filter);
+  will-change:transform;
+}
+.scene.active .bg{
+  animation:kenburns var(--kb-dur,20s) ease-out forwards;
+}
+@keyframes kenburns{
+  from{transform:scale(calc(1.02 + .02*var(--kb-amp)))
+        translate(calc(var(--kb-x0,0%)),calc(var(--kb-y0,0%)))}
+  to{transform:scale(calc(1.08 + .06*var(--kb-amp)))
+        translate(calc(var(--kb-x,-2%) * var(--kb-amp)),calc(var(--kb-y,-2%) * var(--kb-amp)))}
+}
+
+/* voile pour la lisibilité + atmosphère (lower-third) */
+.scene::after{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:
+    radial-gradient(125% 95% at 50% 16%, transparent 40%, rgba(0,0,0,calc(.5*var(--atmo))) 100%),
+    linear-gradient(to top, rgba(8,6,4,.94) 0%, rgba(8,6,4,.5) 32%, rgba(8,6,4,.08) 58%, transparent 76%);
+}
+
+/* placeholder (jamais visible ici, images câblées) */
+.ph-tag{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  font-family:"Caveat",cursive;font-size:clamp(18px,2.4vw,26px);
+  color:rgba(242,230,207,.30);border:1px dashed rgba(242,230,207,.18);
+  padding:.5em 1.1em;border-radius:6px;text-align:center;z-index:1;pointer-events:none;
+}
+.has-img .ph-tag{display:none}
+
+/* ---------- bloc texte ---------- */
+.textwrap{
+  position:relative;z-index:3;
+  width:min(960px,84vw);
+  padding:0 4vw calc(12vh + var(--bar));
+  text-align:center;
+  transition:padding .6s ease;
+}
+.kicker{
+  font-family:"Cormorant Garamond",serif;font-style:italic;font-weight:500;
+  font-size:clamp(13px,1.5vw,18px);
+  letter-spacing:.24em;text-transform:uppercase;
+  color:var(--gold);
+  opacity:0;transform:translateY(8px);
+  transition:opacity 1s ease,transform 1s ease;
+  margin-bottom:1.15rem;
+}
+.scene.active .kicker{opacity:.92;transform:none;transition-delay:.45s}
+
+.line{
+  line-height:1.34;
+  text-shadow:0 2px 26px rgba(0,0,0,.9),0 1px 3px rgba(0,0,0,.95);
+  letter-spacing:.005em;
+  min-height:1.34em;
+  text-wrap:balance;
+}
+/* Selene : carnet intime, manuscrit élégant (police choisie via Tweak) */
+.voice-selene .line{
+  font-family:var(--selene-font,"Petit Formal Script"),"Cormorant Garamond",cursive;
+  font-weight:var(--selene-weight,400);
+  font-size:calc(clamp(26px,4.3vw,54px) * var(--selene-scale,1));
+  line-height:1.5;color:#fbf3e2;letter-spacing:.01em;
+}
+/* Le copiste : machine à écrire usée (il recopie) */
+.voice-copiste .line{
+  font-family:"Special Elite","Courier New",monospace;font-weight:400;
+  font-size:clamp(20px,3.3vw,40px);line-height:1.62;color:var(--parch);
+  letter-spacing:.005em;
+}
+.voice-passeur .line{
+  font-family:"Cormorant Garamond",serif;font-style:italic;font-weight:500;
+  font-size:clamp(26px,4.4vw,52px);color:#efe2c7;
+}
+
+/* révélation lettre par lettre */
+.ch{opacity:0;transition:opacity .18s ease}
+.ch.show{opacity:1}
+.caret{
+  display:inline-block;width:.055em;height:.95em;vertical-align:-.1em;
+  background:var(--gold);margin-left:.05em;border-radius:1px;
+  animation:blink .9s steps(1) infinite;
+}
+@keyframes blink{50%{opacity:0}}
+.caret.hidden{display:none}
+
+/* effet « le carnet s'efface » (scène 3) */
+.ch.erase{animation:erase 1.1s ease forwards}
+@keyframes erase{to{opacity:0;filter:blur(4px);transform:translateY(-7px) scale(.96)}}
+
+/* ---------- particules de cendre ---------- */
+#ash{position:absolute;inset:0;pointer-events:none;z-index:4;opacity:calc(.55*var(--atmo))}
+.fleck{
+  position:absolute;bottom:-12px;border-radius:50%;
+  background:rgba(182,173,160,.7);
+  animation:rise linear infinite;
+}
+@keyframes rise{
+  0%{transform:translateY(0) translateX(0);opacity:0}
+  10%{opacity:.7}
+  90%{opacity:.5}
+  100%{transform:translateY(-104vh) translateX(var(--drift,20px));opacity:0}
+}
+
+/* ---------- grain ---------- */
+#grain{
+  position:absolute;inset:0;pointer-events:none;z-index:5;
+  opacity:calc(.07*var(--atmo));mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+}
+
+/* vignettage global supplémentaire (atmosphère) */
+#vignette{
+  position:absolute;inset:0;pointer-events:none;z-index:5;
+  box-shadow:inset 0 0 calc(22vmin * var(--atmo)) calc(8vmin * var(--atmo)) rgba(0,0,0,.6);
+  opacity:calc(.7*var(--atmo));
+}
+
+/* bandes cinémascope (direction Cinéma) */
+.cinebar{position:absolute;left:0;right:0;height:var(--bar);background:#000;z-index:7;pointer-events:none;
+  transition:height .6s ease}
+#cinebar-top{top:0}
+#cinebar-bot{bottom:0}
+
+/* veil pour transitions « volet sombre » */
+#veil{position:absolute;inset:0;background:#06040a;z-index:6;opacity:0;pointer-events:none;
+  transition:opacity .5s ease}
+
+/* ---------- direction CINÉMA : texte calé à gauche, type sous-titre ---------- */
+body.dir-cinema .scene{align-items:flex-end;justify-content:flex-start}
+body.dir-cinema .textwrap{
+  text-align:left;width:min(820px,72vw);
+  padding-left:max(7vw,56px);padding-bottom:calc(7vh + var(--bar) + 18px);
+}
+body.dir-cinema .kicker{letter-spacing:.3em}
+body.dir-cinema .scene::after{
+  background:
+    linear-gradient(to top, rgba(6,5,9,.95) 0%, rgba(6,5,9,.55) 30%, rgba(6,5,9,.06) 56%, transparent 74%),
+    linear-gradient(105deg, rgba(6,5,9,.55) 0%, rgba(6,5,9,.12) 38%, transparent 60%);
+}
+/* la voix du copiste devient une note manuscrite épinglée (Cinéma) */
+body.dir-cinema .scene.voice-copiste .textwrap{
+  background:linear-gradient(180deg, rgba(28,22,14,.62), rgba(20,15,9,.52));
+  border-left:2px solid var(--gold-deep);
+  padding:1.4em 1.6em 1.4em 1.8em;border-radius:3px;
+  backdrop-filter:blur(2px);
+  box-shadow:0 18px 50px rgba(0,0,0,.45);
+  width:min(640px,68vw);margin-bottom:calc(7vh + var(--bar));
+}
+body.dir-cinema .scene.voice-copiste .textwrap{padding-bottom:1.4em}
+
+/* ---------- HUD ---------- */
+.hud{position:fixed;z-index:12;color:var(--parch-dim);font-family:"Cormorant Garamond",serif}
+#skip{
+  top:max(20px,env(safe-area-inset-top));right:24px;
+  font-style:italic;font-size:16px;letter-spacing:.12em;
+  background:none;border:none;color:var(--parch-dim);cursor:pointer;
+  opacity:.65;transition:opacity .3s,color .3s;
+}
+#skip:hover{opacity:1;color:var(--gold)}
+#sound{
+  top:max(18px,env(safe-area-inset-top));left:24px;
+  width:36px;height:36px;border-radius:50%;
+  background:rgba(0,0,0,.3);border:1px solid rgba(242,230,207,.22);
+  color:var(--parch-dim);cursor:pointer;font-size:15px;
+  display:flex;align-items:center;justify-content:center;
+  transition:color .3s,border-color .3s;
+}
+#sound:hover{color:var(--gold);border-color:var(--gold-deep)}
+
+#dots{
+  bottom:max(22px,calc(env(safe-area-inset-bottom) + 6px));left:50%;transform:translateX(-50%);
+  display:flex;gap:11px;align-items:center;
+  transition:bottom .6s ease;
+}
+.dot{width:8px;height:8px;border-radius:50%;background:rgba(242,230,207,.22);cursor:pointer;
+  transition:background .4s,transform .4s}
+.dot.on{background:var(--gold);transform:scale(1.3)}
+
+.hint{
+  position:fixed;z-index:12;left:50%;transform:translateX(-50%);
+  bottom:max(48px,calc(env(safe-area-inset-bottom) + 32px));
+  font-family:"Cormorant Garamond",serif;font-style:italic;
+  font-size:14px;letter-spacing:.1em;color:rgba(242,230,207,.42);
+  opacity:0;transition:opacity 1s ease;pointer-events:none;
+}
+.hint.show{opacity:1}
+
+/* ---------- CTA final ---------- */
+#cta{
+  margin-top:2.2rem;
+  opacity:0;transform:translateY(14px);
+  transition:opacity 1s ease,transform 1s ease;
+}
+#cta.show{opacity:1;transform:none}
+#enter{
+  font-family:"Cormorant Garamond",serif;font-weight:600;
+  font-size:clamp(20px,2.6vw,30px);letter-spacing:.04em;
+  color:var(--ink);background:linear-gradient(180deg,#f4dca0,var(--gold));
+  border:none;border-radius:999px;padding:.62em 2.15em;cursor:pointer;
+  box-shadow:0 0 0 1px rgba(255,255,255,.25) inset,0 12px 38px rgba(230,192,116,.4);
+  transition:transform .25s ease,box-shadow .25s ease;
+}
+#enter:hover{transform:translateY(-2px) scale(1.02);
+  box-shadow:0 0 0 1px rgba(255,255,255,.4) inset,0 16px 52px rgba(230,192,116,.55)}
+
+/* ---------- scène finale « bienvenue » (carte-titre) ---------- */
+/* voile dédié (élément réel) : assombrit le haut/centre pour faire respirer le titre clair */
+.finale-veil{
+  position:absolute;inset:0;z-index:2;pointer-events:none;
+  background:
+    radial-gradient(78% 58% at 50% 26%, rgba(8,6,4,.8) 0%, rgba(8,6,4,.4) 42%, transparent 68%),
+    linear-gradient(to top, rgba(8,6,4,.55) 0%, rgba(8,6,4,.06) 32%, transparent 54%);
+}
+.scene.finale{align-items:flex-start;justify-content:center}
+.scene.finale .textwrap{
+  padding-top:clamp(48px, 12vh, 150px);padding-bottom:0;
+  display:flex;flex-direction:column;align-items:center;text-align:center;
+  width:min(1100px,90vw);
+}
+body.dir-cinema .scene.finale .textwrap{align-items:center;text-align:center;padding-left:4vw}
+.scene.finale .line{
+  font-family:"Cormorant Garamond",serif;font-weight:500;
+  font-size:clamp(18px,2.6vw,30px);color:#f3e6cf;letter-spacing:.05em;
+  opacity:0;transform:translateY(20px);
+}
+.scene.finale.active .line.finale-in{opacity:1;transform:none;
+  transition:opacity 1.6s ease,transform 1.6s ease}
+.scene.finale .line .big{
+  display:block;margin-top:.16em;font-weight:700;
+  font-size:clamp(44px,8.4vw,104px);line-height:1.02;
+  color:#fbf3e2;text-shadow:0 4px 54px rgba(230,192,116,.5);
+}
+.scene.finale .line .big i{color:var(--gold);font-style:italic;font-weight:600}
+
+/* ---------- écran d'ouverture ---------- */
+#opening{
+  position:fixed;inset:0;z-index:20;
+  background:radial-gradient(120% 120% at 50% 30%,#241a10,#0b0805 76%);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;padding:6vw;transition:opacity 1.3s ease;
+}
+#opening.gone{opacity:0;pointer-events:none}
+#opening .o-mark{
+  width:54px;height:54px;margin-bottom:2.1rem;opacity:0;animation:fadeUp 1.2s .1s both;
+}
+#opening .o-mark svg{width:100%;height:100%;display:block}
+#opening .o-sub{
+  font-family:"Cormorant Garamond",serif;font-style:italic;color:var(--gold);
+  letter-spacing:.3em;text-transform:uppercase;font-size:clamp(12px,1.6vw,15px);
+  margin-bottom:1.5rem;animation:fadeUp 1.2s .25s both;
+}
+#opening h1{
+  font-family:"Cormorant Garamond",serif;font-weight:600;
+  font-size:clamp(42px,9vw,108px);line-height:1.0;color:#fbf3e2;
+  text-shadow:0 4px 46px rgba(230,192,116,.3);animation:fadeUp 1.2s .4s both;
+}
+#opening h1 .amp{color:var(--gold);font-style:italic;font-weight:500}
+#opening .o-cred{
+  font-family:"Petit Formal Script","Cormorant Garamond",cursive;color:var(--parch-dim);font-size:clamp(18px,2.3vw,24px);
+  margin-top:1.5rem;letter-spacing:.01em;animation:fadeUp 1.2s .6s both;
+}
+#open-btn{
+  margin-top:2.8rem;animation:fadeUp 1.2s .85s both;
+  font-family:"Cormorant Garamond",serif;font-style:italic;font-size:clamp(17px,2.2vw,22px);
+  letter-spacing:.06em;color:var(--ink);
+  background:linear-gradient(180deg,#f4dca0,var(--gold));border:none;border-radius:999px;
+  padding:.58em 2rem;cursor:pointer;box-shadow:0 10px 36px rgba(230,192,116,.34);
+  transition:transform .25s,box-shadow .25s;
+}
+#open-btn:hover{transform:translateY(-2px) scale(1.02);box-shadow:0 14px 48px rgba(230,192,116,.5)}
+#opening .o-foot{
+  position:absolute;bottom:max(22px,env(safe-area-inset-bottom));left:0;right:0;
+  font-family:"Cormorant Garamond",serif;font-style:italic;font-size:13px;
+  letter-spacing:.14em;color:rgba(242,230,207,.32);animation:fadeUp 1.2s 1.1s both;
+}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+
+@media (prefers-reduced-motion: reduce){
+  .scene.active .bg{animation:none;transform:scale(1.04)}
+  .ch{transition:none}
+  .fleck{display:none}
+}
+
+</style>
+</head>
+<body class="dir-conte tr-fade">
+
+
+
+<div id="frame">
+  <div id="stage"></div>
+  <div id="ash"></div>
+  <div id="grain"></div>
+  <div id="vignette"></div>
+  <div id="veil"></div>
+  <div id="cinebar-top" class="cinebar"></div>
+  <div id="cinebar-bot" class="cinebar"></div>
+</div>
+
+<button id="sound" class="hud" title="Son" aria-label="Activer ou couper le son">♪</button>
+<button id="skip" class="hud">passer ›</button>
+<div id="dots" class="hud"></div>
+<div id="hint" class="hint">cliquez pour avancer</div>
+
+<!-- écran d'ouverture : capte le geste utilisateur (requis pour le son) -->
+<div id="opening">
+  <div class="o-mark">
+    <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <circle cx="50" cy="50" r="34" stroke="#e6c074" stroke-width="1.4" opacity=".55"></circle>
+      <path d="M50 16 C50 36 50 64 50 84" stroke="#e6c074" stroke-width="1.4" opacity=".5"></path>
+      <path d="M34 26 A40 40 0 0 1 66 26" stroke="#e6c074" stroke-width="1.4" opacity=".5"></path>
+      <path d="M34 74 A40 40 0 0 0 66 74" stroke="#e6c074" stroke-width="1.4" opacity=".5"></path>
+      <circle cx="50" cy="50" r="4.4" fill="#e6c074"></circle>
+    </svg>
+  </div>
+  <div class="o-sub">une boîte vous a été confiée</div>
+  <h1>Gnomes <span class="amp">&amp;</span> Licornes</h1>
+  <div class="o-cred">le carnet de Selene — recopié par le copiste</div>
+  <button id="open-btn">Ouvrir la boîte</button>
+  <div class="o-foot">jeu pédagogique d'écologie · cycle 3</div>
+</div>
+
+<!-- audio câblé -->
+<audio id="aud-loop" src="assets/audio/loop.mp3" loop preload="auto"></audio>
+<audio id="aud-final" src="assets/audio/final.mp3" preload="auto"></audio>
+
+<script>
+/* ===========================================================
+   CONFIG
+   =========================================================== */
+const GAME_URL = ""; // intégration ForetMap : postMessage uniquement
+
+const IMAGES = {
+  boite:"assets/img/boite.png", copiste:"assets/img/copiste.png", carnet:"assets/img/carnet.png",
+  miroir:"assets/img/miroir.png", selene:"assets/img/selene.png", corbeau:"assets/img/corbeau.png",
+  souffle:"assets/img/souffle.png", seuil:"assets/img/seuil.png", bienvenue:"assets/img/bienvenue.png",
+};
+
+/* ===========================================================
+   LA SÉQUENCE — texte fidèle au Livre de Selene
+   kb = [x%, y%] cible du Ken Burns (cadrage choisi par image)
+   =========================================================== */
+const SCENES = [
+  { id:"boite", voice:"copiste", kicker:"avant d'ouvrir",
+    text:"Cette boîte m'est tombée dessus. Une morte, un carnet qui s'efface, des feuillets dans tous les sens.",
+    kb:[-3,-2], kb0:[2,1], hold:2600, tag:"[1] La boîte oubliée" },
+
+  { id:"copiste", voice:"copiste", kicker:"celui qui recopie",
+    text:"Je recopie quand même. Les blancs que tu verras ne sont pas des erreurs — ce sont des morceaux que le Souffle a mangés avant moi.",
+    kb:[3,-1], kb0:[-2,1], hold:3000, tag:"[2] Le copiste à sa table" },
+
+  { id:"carnet", voice:"selene", kicker:"la première page de la boîte",
+    text:"Des noms s'effacent. J'en ai tenu autant que j'ai pu. Il en reste beaucoup, et moi, je ne peux plus.",
+    kb:[-2,1], kb0:[2,-1], hold:1600, erase:true, tag:"[3] Le carnet qui s'efface" },
+
+  { id:"miroir", voice:"selene", kicker:"comment on passe",
+    text:"Ne vous regardez pas dans la plaque. Regardez au travers.",
+    kb:[3,-2], kb0:[-2,1], hold:2800, tag:"[4] La plaque-miroir (le passage)" },
+
+  { id:"selene", voice:"selene", kicker:"celle qui est passée avant",
+    text:"Je m'appelle Selene. Je suis seulement passée par là avant vous.",
+    kb:[-2,-2], kb0:[2,1], hold:2800, tag:"[5] Selene, la voyageuse" },
+
+  { id:"corbeau", voice:"copiste", kicker:"de l'équateur au pôle",
+    text:"Elle a marché de la chaleur de l'équateur jusqu'à la glace du pôle. Puis son carnet est revenu seul, à moitié vide.",
+    kb:[3,1], kb0:[-3,-1], hold:2900, tag:"[6] Le corbeau messager" },
+
+  { id:"souffle", voice:"passeur", kicker:"ici, maintenant",
+    text:"Quelque chose ne va pas. Et ça commence ici, chez nous.",
+    kb:[-2,1], kb0:[2,-1], hold:2900, tag:"[7] Les signes du Souffle" },
+
+  { id:"seuil", voice:"selene", kicker:"votre tour",
+    text:"Choisissez une chose vivante. Dites son nom, tous, à voix haute. Vous serez déjà de l'autre côté.",
+    kb:[2,-2], kb0:[-2,1], hold:3600, tag:"[8] Le seuil de la savane" },
+
+  { id:"bienvenue", voice:"selene", kicker:"de l'autre côté du miroir",
+    finale:true, cta:true,
+    text:"Bienvenue dans le monde de<br><span class=\"big\">Gnomes <i>&amp;</i> Licornes</span>",
+    kb:[0,-1], kb0:[0,1], hold:99999, tag:"[9] Bienvenue" },
+];
+
+/* ===========================================================
+   MOTEUR
+   =========================================================== */
+const stage  = document.getElementById('stage');
+const dotsEl = document.getElementById('dots');
+const hintEl = document.getElementById('hint');
+const veil   = document.getElementById('veil');
+const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+let idx = -1, typing = false, autoTimer = null, finishType = null, started = false;
+
+SCENES.forEach((s, i) => {
+  const el = document.createElement('div');
+  el.className = 'scene voice-' + s.voice + (s.finale ? ' finale' : '');
+  el.dataset.i = i;
+  el.setAttribute('data-screen-label', s.tag);
+
+  const bg = document.createElement('div');
+  bg.className = 'bg';
+  if (IMAGES[s.id]) { bg.style.backgroundImage = `url("${IMAGES[s.id]}")`; el.classList.add('has-img'); }
+  bg.style.setProperty('--kb-x',  s.kb[0] + '%');
+  bg.style.setProperty('--kb-y',  s.kb[1] + '%');
+  bg.style.setProperty('--kb-x0', (s.kb0?s.kb0[0]:0) + '%');
+  bg.style.setProperty('--kb-y0', (s.kb0?s.kb0[1]:0) + '%');
+  bg.style.setProperty('--kb-dur', (s.hold > 9000 ? 26 : 22) + 's');
+  el.appendChild(bg);
+
+  const tag = document.createElement('div');
+  tag.className = 'ph-tag'; tag.textContent = s.tag; el.appendChild(tag);
+
+  if (s.finale){ const fv = document.createElement('div'); fv.className = 'finale-veil'; el.appendChild(fv); }
+
+  const wrap = document.createElement('div'); wrap.className = 'textwrap';
+  const k = document.createElement('div'); k.className = 'kicker'; k.textContent = s.kicker;
+  const line = document.createElement('div'); line.className = 'line';
+  wrap.appendChild(k); wrap.appendChild(line);
+
+  if (s.cta) {
+    const cta = document.createElement('div'); cta.id = 'cta';
+    const btn = document.createElement('button'); btn.id = 'enter';
+    btn.textContent = 'Prends le crayon. Cours.';
+    btn.addEventListener('click', (e) => { e.stopPropagation(); enterGame(); });
+    cta.appendChild(btn); wrap.appendChild(cta);
+  }
+  el.appendChild(wrap);
+  stage.appendChild(el);
+
+  const d = document.createElement('div'); d.className = 'dot'; d.dataset.i = i;
+  d.setAttribute('role','button'); d.setAttribute('aria-label','scène ' + (i+1));
+  d.addEventListener('click', (e) => { e.stopPropagation(); go(i); });
+  dotsEl.appendChild(d);
+});
+
+const sceneEls = [...stage.querySelectorAll('.scene')];
+const dotEls   = [...dotsEl.querySelectorAll('.dot')];
+
+/* ---- machine à écrire ---- */
+function typeText(lineEl, text, opts, onDone){
+  lineEl.innerHTML = '';
+  const chars = [...text];
+  const caret = document.createElement('span'); caret.className = 'caret';
+  const spans = chars.map(c => {
+    const sp = document.createElement('span'); sp.className = 'ch'; sp.textContent = c;
+    lineEl.appendChild(sp); return sp;
+  });
+  // le curseur suit la frappe : on le place au tout début, puis après chaque caractère révélé
+  lineEl.insertBefore(caret, spans[0] || null);
+
+  if (reduce){ spans.forEach(s=>s.classList.add('show')); caret.classList.add('hidden'); onDone&&onDone(spans,caret); return ()=>{}; }
+
+  const rate = window.GL_TYPE_RATE || 1;   // <1 = plus rapide, >1 = plus lent
+  let i = 0, timer = null;
+  const step = () => {
+    if (i >= spans.length){ typing=false; caret.classList.add('hidden'); onDone&&onDone(spans,caret); return; }
+    spans[i].classList.add('show');
+    spans[i].after(caret);                 // le curseur avance avec le texte
+    const c = chars[i]; i++;
+    const base = /[.,;—:]/.test(c) ? 240 : (c===' ' ? 26 : 32);
+    timer = setTimeout(step, base * rate);
+  };
+  timer = setTimeout(step, 240 * rate);
+  typing = true;
+  return () => { clearTimeout(timer); spans.forEach(s=>s.classList.add('show')); typing=false; caret.classList.add('hidden'); onDone&&onDone(spans,caret); };
+}
+
+function clearTimers(){ clearTimeout(autoTimer); }
+
+function doWipe(){
+  // transition « volet sombre » : flash d'un voile entre deux scènes
+  if (!document.body.classList.contains('tr-wipe') || reduce) return 0;
+  veil.style.transition = 'opacity .42s ease';
+  veil.style.opacity = '.92';
+  setTimeout(()=>{ veil.style.opacity = '0'; }, 460);
+  return 300; // décalage avant d'afficher le texte
+}
+
+function go(n){
+  if (n < 0 || n >= SCENES.length) return;
+  clearTimers();
+  const wipeDelay = doWipe();
+
+  const swap = () => {
+    if (idx >= 0) sceneEls[idx].classList.remove('active');
+    idx = n;
+    const s = SCENES[idx];
+    const el = sceneEls[idx];
+    el.classList.add('active');
+    dotEls.forEach((d,i)=>d.classList.toggle('on', i===idx));
+
+    // crossfade audio à l'entrée de la scène finale
+    if (s.id === 'bienvenue') crossfadeToFinal();
+
+    const lineEl = el.querySelector('.line');
+    const cta = el.querySelector('#cta');
+    if (cta) cta.classList.remove('show');
+
+    setTimeout(() => {
+      if (s.finale){
+        lineEl.innerHTML = s.text;
+        typing = false; finishType = null;
+        void lineEl.offsetWidth;
+        lineEl.classList.add('finale-in');
+        if (cta) setTimeout(()=>cta.classList.add('show'), 1300);
+        return;
+      }
+      finishType = typeText(lineEl, s.text, s, (spans) => {
+        if (s.erase){
+          const m = spans.length;
+          setTimeout(() => {
+            spans.forEach((sp, i) => {
+              const fromEdge = Math.min(i, m-1-i);
+              setTimeout(()=>sp.classList.add('erase'), fromEdge*28);
+            });
+            autoTimer = setTimeout(next, 1700 + (m/2)*28);
+          }, 800);
+        } else if (s.cta){
+          setTimeout(()=>cta.classList.add('show'), 600);
+        } else {
+          autoTimer = setTimeout(next, s.hold);
+        }
+      });
+    }, 480);
+  };
+
+  if (wipeDelay) setTimeout(swap, wipeDelay); else swap();
+}
+
+function next(){ if (idx < SCENES.length-1) go(idx+1); }
+function prev(){ if (idx > 0) go(idx-1); }
+
+document.getElementById('stage').addEventListener('click', () => {
+  if (!started) return;
+  if (typing && finishType){
+    finishType(); finishType=null;
+    const s = SCENES[idx];
+    if (!s.erase && !s.cta){ clearTimers(); autoTimer = setTimeout(next, 1200); }
+    return;
+  }
+  if (!SCENES[idx]?.cta) next();
+});
+document.addEventListener('keydown', (e)=>{
+  if (!started) return;
+  if (e.key==='ArrowRight'||e.key===' ') { e.preventDefault(); next(); }
+  if (e.key==='ArrowLeft') prev();
+  if (e.key==='Escape') go(SCENES.length-1);
+});
+document.getElementById('skip').addEventListener('click',(e)=>{e.stopPropagation();go(SCENES.length-1);});
+
+function enterGame(){
+  try { if (window.parent && window.parent !== window) window.parent.postMessage({type:'gl-intro-done'}, '*'); } catch(e){}
+  if (window.self === window.top && GAME_URL) window.location.href = GAME_URL;
+}
+
+/* ----- particules de cendre ----- */
+(function ash(){
+  if (reduce) return;
+  const c = document.getElementById('ash');
+  for (let i=0;i<28;i++){
+    const f = document.createElement('div'); f.className='fleck';
+    f.style.left = Math.random()*100+'%';
+    const dur = 10+Math.random()*13;
+    f.style.animationDuration = dur+'s';
+    f.style.animationDelay = -Math.random()*dur+'s';
+    f.style.setProperty('--drift',(Math.random()*64-32)+'px');
+    const sz = 2+Math.random()*2.6; f.style.width=f.style.height=sz+'px';
+    f.style.opacity = .3+Math.random()*.4;
+    c.appendChild(f);
+  }
+})();
+
+/* ===========================================================
+   AUDIO — boucle (1→8) + cue final (9), crossfade, sans autoplay
+   =========================================================== */
+const audLoop  = document.getElementById('aud-loop');
+const audFinal = document.getElementById('aud-final');
+let soundOn = true, audioStarted = false, fadeRAF = null;
+const LOOP_VOL = 0.55, FINAL_VOL = 0.7;
+
+function rampVolume(el, from, to, ms, onEnd){
+  const t0 = performance.now();
+  function tick(now){
+    const k = Math.min(1, (now - t0)/ms);
+    el.volume = Math.max(0, Math.min(1, from + (to-from)*k));
+    if (k < 1) requestAnimationFrame(tick);
+    else if (onEnd) onEnd();
+  }
+  requestAnimationFrame(tick);
+}
+
+function startAudio(){
+  if (audioStarted || !soundOn) return;
+  audioStarted = true;
+  audLoop.volume = 0;
+  audLoop.play().then(()=> rampVolume(audLoop, 0, LOOP_VOL, 2400)).catch(()=>{});
+}
+function crossfadeToFinal(){
+  if (!soundOn || !audioStarted) return;
+  rampVolume(audLoop, audLoop.volume, 0, 2600, ()=>audLoop.pause());
+  audFinal.volume = 0;
+  audFinal.play().then(()=> rampVolume(audFinal, 0, FINAL_VOL, 3000)).catch(()=>{});
+}
+
+document.getElementById('sound').addEventListener('click',(e)=>{
+  e.stopPropagation();
+  soundOn = !soundOn;
+  const btn = e.currentTarget;
+  if (soundOn){
+    btn.textContent='♫'; btn.style.color='var(--gold)';
+    if (started){ if (!audioStarted) startAudio(); else { audLoop.play().catch(()=>{}); audFinal.paused||audFinal.play().catch(()=>{}); } }
+  } else {
+    btn.textContent='♪'; btn.style.color='';
+    audLoop.pause(); audFinal.pause();
+  }
+});
+
+/* ----- démarrage ----- */
+document.getElementById('open-btn').addEventListener('click',()=>{
+  document.getElementById('opening').classList.add('gone');
+  started = true;
+  if (soundOn){ document.getElementById('sound').textContent='♫'; document.getElementById('sound').style.color='var(--gold)'; startAudio(); }
+  setTimeout(()=>{ go(0); hintEl.classList.add('show'); setTimeout(()=>hintEl.classList.remove('show'),4400); }, 760);
+});
+
+/* ===========================================================
+   API Tweaks (appelée par le panneau React)
+   =========================================================== */
+const GRADES = {
+  chaud:   "saturate(1.06) brightness(1.02) contrast(1.02) sepia(.10)",
+  neutre:  "saturate(.99) brightness(1.0) contrast(1.0)",
+  desat:   "saturate(.7) brightness(.97) contrast(1.05) sepia(.04)",
+};
+window.applyGLTweaks = function(t){
+  const b = document.body;
+  // écriture de Selene (manuscrit élégant)
+  const SEL = {
+    formelle:    ["'Petit Formal Script'", 400, 1],
+    romantique:  ["'Parisienne'", 400, 1.12],
+    calligraphie:["'Tangerine'", 700, 1.55],
+  };
+  const sel = SEL[t.selene] || SEL.formelle;
+  document.documentElement.style.setProperty('--selene-font', sel[0]);
+  document.documentElement.style.setProperty('--selene-weight', sel[1]);
+  document.documentElement.style.setProperty('--selene-scale', sel[2]);
+  // direction
+  b.classList.toggle('dir-cinema', t.direction === 'cinema');
+  b.classList.toggle('dir-conte',  t.direction !== 'cinema');
+  document.documentElement.style.setProperty('--bar', t.direction === 'cinema' ? '7.2vh' : '0px');
+  // transitions
+  b.classList.remove('tr-fade','tr-zoom','tr-wipe');
+  b.classList.add('tr-' + (t.transition || 'fade'));
+  // étalonnage
+  document.documentElement.style.setProperty('--bg-filter', GRADES[t.grade] || GRADES.chaud);
+  // atmosphère
+  document.documentElement.style.setProperty('--atmo', (t.atmo ?? 100)/100);
+  // ken burns
+  document.documentElement.style.setProperty('--kb-amp', (t.kenburns ?? 100)/100);
+  // rythme frappe
+  window.GL_TYPE_RATE = ({lent:1.5, standard:1, rapide:0.6})[t.rhythm] || 1;
+};
+</script>
+
+<!-- ===== Panneau Tweaks (React island) ===== -->
+<script src="assets/960174da-012b-46d8-ad07-7482b2d7830a.bin" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="assets/572e87c8-a33b-44b0-8175-6cb3198dc266.bin" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="assets/cfcef1a8-2c5e-494f-9acb-af0b7ae1d640.bin" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script>
+(function loadGlIntroConfig() {
+  const apply = (payload) => {
+    if (!payload || typeof payload !== 'object') return;
+    if (Array.isArray(payload.scenes) && typeof SCENES !== 'undefined') {
+      for (const scene of payload.scenes) {
+        const target = SCENES.find((s) => s.id === scene.id);
+        if (!target) continue;
+        if (scene.kicker != null) target.kicker = scene.kicker;
+        if (scene.text != null) target.text = scene.text;
+        if (scene.hold != null) target.hold = scene.hold;
+        if (scene.voice != null) target.voice = scene.voice;
+        if (scene.erase != null) target.erase = !!scene.erase;
+        if (scene.finale != null) target.finale = !!scene.finale;
+        if (scene.cta != null) target.cta = !!scene.cta;
+      }
+    }
+    if (payload.images && typeof IMAGES !== 'undefined') {
+      for (const [id, url] of Object.entries(payload.images)) {
+        if (url) IMAGES[id] = url;
+      }
+    }
+    if (payload.audio && typeof audLoop !== 'undefined') {
+      if (payload.audio.loopUrl) audLoop.src = payload.audio.loopUrl;
+      if (payload.audio.finalUrl) audFinal.src = payload.audio.finalUrl;
+    }
+    if (payload.opening) {
+      const o = payload.opening;
+      const sub = document.querySelector('#opening .o-sub');
+      const title = document.querySelector('#opening h1');
+      const credit = document.querySelector('#opening .o-cred');
+      const btn = document.getElementById('open-btn');
+      if (sub && o.kicker) sub.textContent = o.kicker;
+      if (title && o.titleHtml) title.innerHTML = o.titleHtml;
+      if (credit && o.credit) credit.textContent = o.credit;
+      if (btn && o.button) btn.textContent = o.button;
+    }
+    if (payload.finale?.button) {
+      const enter = document.getElementById('enter');
+      if (enter) enter.textContent = payload.finale.button;
+    }
+  };
+  fetch('/api/gl/content/intro', { credentials: 'same-origin' })
+    .then((r) => (r.ok ? r.json() : null))
+    .then(apply)
+    .catch(() => {});
+})();
+</script>
+</body></html>

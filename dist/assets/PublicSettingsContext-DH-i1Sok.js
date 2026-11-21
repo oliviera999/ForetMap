@@ -1,0 +1,1 @@
+import{r as e}from"./rolldown-runtime-XKyaHtl9.js";import{en as t}from"./icons-DLPkQdsV.js";import{t as n}from"./react-vendor-C4JJtGyn.js";var r=e(t()),i=n(),a=(0,r.createContext)(null);function o({value:e,children:t}){return(0,i.jsx)(a.Provider,{value:e??null,children:t})}function s(e=null){return(0,r.useContext)(a)??e}export{s as n,o as t};

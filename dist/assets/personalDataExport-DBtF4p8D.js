@@ -1,0 +1,1 @@
+function e(e=`mes-donnees`,t=new Date){return`${String(e||``).normalize(`NFD`).replace(/[\u0300-\u036f]/g,``).replace(/[^a-zA-Z0-9_-]+/g,`-`).replace(/^-+|-+$/g,``).slice(0,60)||`mes-donnees`}-${t.toISOString().slice(0,10)}.zip`}export{e as t};
