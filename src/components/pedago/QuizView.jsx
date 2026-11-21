@@ -95,6 +95,34 @@ export function collegeCategoryDescription(category, palierMax) {
   return text || null;
 }
 
+/** Menu de filtre du quiz : libellé englobant (cible de `getByLabelText`), options `{ value, label }`. */
+function QuizFilterSelect({
+  label,
+  className = 'pedago-filter-field',
+  value,
+  onChange,
+  options,
+  disabled,
+}) {
+  return (
+    <label className={className}>
+      <span>{label}</span>
+      <select
+        className="form-select"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        disabled={disabled}
+      >
+        {options.map((opt) => (
+          <option key={opt.value || 'all'} value={opt.value}>
+            {opt.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
 /** Filtre de notion d'une requête : la notion choisie, sinon le niveau du programme. */
 function notionQueryParams(notionId, notionNiveau, curriculumNiveaux) {
   if (notionId) return { notionId };
@@ -429,87 +457,39 @@ export function QuizView({
       </header>
 
       <div className="pedago-filters card">
-        <label className="pedago-filter-field">
-          <span>Thème</span>
-          <select className="form-select" value={theme} onChange={(e) => setTheme(e.target.value)}>
-            {THEME_OPTIONS.map((opt) => (
-              <option key={opt.value || 'all'} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="pedago-filter-field">
-          <span>Niveau</span>
-          <select
-            className="form-select"
-            value={niveau}
-            onChange={(e) => setNiveau(e.target.value)}
-          >
-            {NIVEAU_OPTIONS.map((opt) => (
-              <option key={opt.value || 'all'} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="pedago-filter-field">
-          <span>Difficulté</span>
-          <select
-            className="form-select"
-            value={difficulte}
-            onChange={(e) => setDifficulte(e.target.value)}
-          >
-            {DIFFICULTE_OPTIONS.map((opt) => (
-              <option key={opt.value || 'all'} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="pedago-filter-field">
-          <span>Niveau du programme</span>
-          <select
-            className="form-select"
-            value={notionNiveau}
-            onChange={(e) => setNotionNiveau(e.target.value)}
-          >
-            {curriculumNiveauOptions.map((opt) => (
-              <option key={opt.value || 'all'} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="pedago-filter-field pedago-filter-field--wide">
-          <span>Notion du programme</span>
-          <select
-            className="form-select"
-            value={notionId}
-            onChange={(e) => setNotionId(e.target.value)}
-          >
-            {notionOptions.map((opt) => (
-              <option key={opt.value || 'all'} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="pedago-filter-field">
-          <span>Catégorie</span>
-          <select
-            className="form-select"
-            value={categorieSlug}
-            onChange={(e) => setCategorieSlug(e.target.value)}
-            disabled={loadingCategories}
-          >
-            {categorieOptions.map((opt) => (
-              <option key={opt.value || 'all'} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </label>
+        <QuizFilterSelect label="Thème" value={theme} onChange={setTheme} options={THEME_OPTIONS} />
+        <QuizFilterSelect
+          label="Niveau"
+          value={niveau}
+          onChange={setNiveau}
+          options={NIVEAU_OPTIONS}
+        />
+        <QuizFilterSelect
+          label="Difficulté"
+          value={difficulte}
+          onChange={setDifficulte}
+          options={DIFFICULTE_OPTIONS}
+        />
+        <QuizFilterSelect
+          label="Niveau du programme"
+          value={notionNiveau}
+          onChange={setNotionNiveau}
+          options={curriculumNiveauOptions}
+        />
+        <QuizFilterSelect
+          label="Notion du programme"
+          className="pedago-filter-field pedago-filter-field--wide"
+          value={notionId}
+          onChange={setNotionId}
+          options={notionOptions}
+        />
+        <QuizFilterSelect
+          label="Catégorie"
+          value={categorieSlug}
+          onChange={setCategorieSlug}
+          options={categorieOptions}
+          disabled={loadingCategories}
+        />
         <label className="pedago-filter-field pedago-filter-field--checkbox">
           <span>Illustrées</span>
           <input

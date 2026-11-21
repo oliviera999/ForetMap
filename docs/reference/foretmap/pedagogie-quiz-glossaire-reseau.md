@@ -90,6 +90,14 @@ d'observation** pour l'écriture naturaliste libre.
   immédiatement si sa réponse est juste et progresse à son rythme. **Chaque question
   présentée n'autorise qu'un essai** : un second choix sur la même présentation est
   refusé, il faut en relancer une (les propositions sont alors remélangées).
+- **Au collège, le quiz suit le palier de l'élève** (novembre 2026). Le même affichage vaut
+  de la 6ᵉ à la 3ᵉ, mais une classe de cycle 3 ne tire que les questions de cycle 3, une
+  classe de cycle 4 celles des cycles 3 et 4 ; les questions de lycée n'y sont jamais
+  tirées. Le palier d'une question se déduit de ses notions du programme : une question
+  « Collège » qui porte au moins une notion de cycle 3 est posée dès la 6ᵉ, sinon à partir
+  de la 5ᵉ. Le menu « Catégorie » ne propose que les catégories qui ont des questions à ce
+  palier, et la catégorie choisie affiche sa **description collège** quand elle est
+  rédigée. Lycée et université : inchangés.
 - **Le professeur** administre le catalogue de questions : création, édition,
   activation. Les questions peuvent être reliées aux termes du glossaire, ce qui aide
   l'élève à réviser le vocabulaire au passage. Un import du catalogue par fichier
@@ -165,6 +173,11 @@ d'observation** pour l'écriture naturaliste libre.
   2026, on pouvait y répondre sans compte, essai après essai, sans jamais être bloqué —
   puis répondre juste du premier coup une fois connecté. Le Quiz libre, lui, reste ouvert
   à tous.
+  **Un collégien n'est jamais interrogé au-delà du cycle 4** : si une fiche n'a pas de
+  question à son palier, on lui pose ses questions de collège ; si elle n'est gardée que
+  par des questions de lycée, elle ne lui est pas verrouillée (le cas est noté dans le
+  journal du serveur). Un élève de lycée garde l'ancienne règle : faute de question à son
+  niveau, toutes restent posées.
   Les rattachements livrés ont été relus : une question n’est plus accrochée à une
   fiche qui ne l’enseigne pas (par exemple la photosynthèse n’est plus collée au
   tutoriel « Sol vivant »). L'écran « Rattacher des questions aux contenus », sous

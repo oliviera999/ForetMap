@@ -4957,9 +4957,9 @@ Routes publiques (lecture) sauf progression quiz. Voir aussi les routes GL `/api
 | GET | `/api/glossary/categories` | non | Catégories glossaire |
 | GET | `/api/glossary/terms` | non | Liste/recherche. La liste **sans filtre** (le cas courant : index des auto-liens, chargé une fois par session) est servie par un **cache mémoire de 30 s** ; toute requête filtrée (`q`, `niveau`, `categorie`, `notionId`, `notionNiveau`) repart en base |
 | GET | `/api/glossary/terms/:code` | non | Fiche terme. `notions` liste les notions de programme rattachées |
-| GET | `/api/quiz/categories` | non | Catégories QCM (slug, nom, emoji, theme, description, `description_college` — description réécrite pour le collège, `null` sinon, migration `college_socle` —, order_index). `notionId` / `notionNiveau` ne laissent que les catégories rattachées à la notion (et restreignent le compte renvoyé avec `niveau`) |
+| GET | `/api/quiz/categories` | non | Catégories QCM (slug, nom, emoji, theme, description, `description_college` — description réécrite pour le collège, `null` sinon, migration `college_socle` —, order_index). `notionId` / `notionNiveau` ne laissent que les catégories rattachées à la notion (et restreignent le compte renvoyé avec `niveau`). `palierMax` (entier 1–5, chantier collège) : chaque catégorie porte `questionCount`, nombre de questions actives dont le palier d'entrée effectif ne dépasse pas `palierMax` (l'affichage collège masque les catégories à 0) ; **400** `palierMax invalide` hors de 1–5 |
 | GET | `/api/quiz/questions` | non | Liste questions (`theme`, `categorieSlug`, `niveau`, `q`, `notionId`, `notionNiveau`). `reponse_correcte` n’est présent **que** pour un appelant détenant `plants.manage` — même règle que le catalogue GL |
-| GET | `/api/quiz/draw` | non | Tirage QCM (`?illustrated=1` : questions avec photo ; `notionId` / `notionNiveau` : tirage par notion de programme) |
+| GET | `/api/quiz/draw` | non | Tirage QCM (`?illustrated=1` : questions avec photo ; `notionId` / `notionNiveau` : tirage par notion de programme ; `palierMax` (1–5) : seulement les questions dont le palier d'entrée effectif ne le dépasse pas — envoyé par l'affichage collège, 1 en cycle 3, 2 en cycle 4 ; **400** `palierMax invalide`) |
 | GET | `/api/quiz/questions/:code/present` | non (**oui avec contexte**) | Question présentée. **Avec contexte de validation** (`?resourceType=&resourceRef=`) : compte **exigé** depuis l'audit ForetMap du 19/11/2026 (P1) — sans compte, `401` `{ error, code: 'LOGIN_REQUIRED' }` ; le jeton porte alors l'identifiant du compte (claim `uid`). Sans contexte (Quiz libre), toujours public. Choix **mélangés** à chaque appel. La charge ne porte **pas** `photoLegende`, sauf pour `plants.manage` (voir « Présentation et réponse du quiz ForetMap ») |
 | POST | `/api/quiz/questions/:code/answer` | non (**oui avec contexte**) | Validation réponse. **Jeton à usage unique** : rejeu du même `presentationToken` refusé `409` « Présentation déjà utilisée » (interdit de brute-forcer les choix, y compris pour débloquer un conditionnement). **Contexte** (jeton présenté avec contexte, ou corps `{ resourceType, resourceRef }`) **sans compte** → `401` `LOGIN_REQUIRED` ; jeton présenté pour un **autre compte** → `403` `{ error, code: 'PRESENTATION_OTHER_ACCOUNT' }`. Ces refus ne consomment pas le jeton (P1, audit du 19/11/2026). Réponse : `{ correct, feedback, correctChoiceId?, glossaryTerms?, photoLegende?, cooldown? }` (voir « Présentation et réponse du quiz ForetMap ») |
 | GET | `/api/quiz/me/progress` | élève | Progression |
@@ -5350,7 +5350,7 @@ de quiz et la base biodiversité.
 | GET | `/api/curriculum/notions/:id` | non | Notion, `etape`, effectifs, catégories de quiz (`quizCategories`) et de glossaire (`glossaryCategories`) rattachées. **400** si l'identifiant est mal formé, **404** s'il est inconnu |
 | GET | `/api/curriculum/quiz-categories/:slug/notions` | non | Notions d'une catégorie (celles dont ses questions héritent) |
 | PUT | `/api/curriculum/quiz-categories/:slug/notions` | prof (`plants.manage`) | Remplace l'ensemble : `{ notion_ids: [...] }` |
-| GET | `/api/curriculum/quiz-questions/:code/notions` | non | `{ niveau, inherited, out_of_level, added, excluded, effective }` — dit *pourquoi* chaque notion s'applique (`out_of_level` : notions de la catégorie écartées par le palier de la question) |
+| GET | `/api/curriculum/quiz-questions/:code/notions` | non | `{ niveau, inherited, out_of_level, added, excluded, effective, entry_palier }` — dit *pourquoi* chaque notion s'applique (`out_of_level` : notions de la catégorie écartées par le palier de la question). `entry_palier` : palier d'entrée effectif (question de collège : 1 si une notion effective est de cycle 3, sinon 2 ; lycée : 3) |
 | PUT | `/api/curriculum/quiz-questions/:code/notions` | prof (`plants.manage`) | Exceptions d'une question : `{ ajouts: [...], exclusions: [...] }`. **400** si une notion figure des deux côtés |
 | GET | `/api/curriculum/glossary-categories/:categorie/notions` | non | Notions d'une catégorie de glossaire (celles dont ses termes héritent, migration `290`). **404** si aucun terme ne porte cette catégorie |
 | PUT | `/api/curriculum/glossary-categories/:categorie/notions` | prof (`plants.manage`) | Remplace l'ensemble : `{ notion_ids: [...] }` |
@@ -5695,10 +5695,19 @@ l'échelle unique (niveaux du programme + `universite`) : séance en cours, sino
 (`groups.curriculum_niveau`, hérité, le plus haut), sinon replis (`groups.pedago_level`,
 carte, défaut établissement). Palier maximal = celui du niveau (cycle 3 → 1 … terminale → 5 ;
 université : aucun plafond ; niveau inconnu : 2 au collège, 5 au lycée). La préférence
-d'affichage de l'élève n'y entre pas. Si **aucune** question de la ressource n'est à son niveau,
-toutes restent posées (décision du mainteneur : garder les questions plutôt qu'ouvrir la
-ressource) et la réponse porte `level_fallback: "all_levels"` (sinon `"none"`). Comptes non
-élèves : aucun filtre, pas de `level_fallback`.
+d'affichage de l'élève n'y entre pas ; la règle de palier `quiz_entry_palier_max` de la table de
+visibilité peut abaisser ce plafond. Le palier d'une question est son **palier d'entrée
+effectif** (chantier collège, novembre 2026) : question de collège → 1 si une de ses notions
+effectives (catégorie + ajouts − exclusions) est de cycle 3, sinon 2 ; question de lycée → 3.
+Si **aucune** question de la ressource n'est à son niveau :
+
+- **collégien** (niveau de contenu collège) : jamais au-delà du cycle 4 — ses questions de
+  collège sont posées (`level_fallback: "college_levels"`) ; s'il ne reste que des questions de
+  lycée, la ressource **n'est pas verrouillée** pour lui (`required: false`, repli journalisé) ;
+- autres élèves : toutes restent posées (décision du mainteneur : garder les questions plutôt
+  qu'ouvrir la ressource), `level_fallback: "all_levels"`.
+
+Sinon `level_fallback: "none"`. Comptes non élèves : aucun filtre, pas de `level_fallback`.
 
 **Séance en cours : `?pedagoSession=<id ou slug>`** (paramètre de requête facultatif, accepté
 aussi dans le corps des accusés). La séance impose son niveau, verrouillage compris : un élève de

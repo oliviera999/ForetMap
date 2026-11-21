@@ -262,7 +262,9 @@ Précisions du 21/11/2026 :
   `usage_label`, `description_college` et `usage_group` (champs de `GET /api/plants`), `list` rend
   `usage_label` et `usage_group` ; `foretmap_get_species` rend `usage_label`,
   `description_college` et `is_featured` dans `presence.maps[]` ; `foretmap_maps` (espèces d'une
-  carte) et `foretmap_quiz` (`categories`) suivent l'API (`is_featured`, `description_college`).
+  carte) et `foretmap_quiz` (`categories`) suivent l'API (`is_featured`, `description_college`) ;
+  `foretmap_quiz` `categories` accepte `palier_max` (compteur au palier d'un élève de collège) et
+  `get` renvoie le palier d'entrée effectif de la question (`notions.entry_palier`).
 - `foretmap_ops` : `retention_preview` et `retention_run` connaissent la catégorie
   `observations` (photos des observations refusées, observations refusées, observations jamais
   examinées ; jamais une observation validée). L'aperçu ne rend que des **comptages** et les
