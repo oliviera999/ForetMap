@@ -3,7 +3,8 @@
 --
 -- Le 20/11/2026, ces contenus ont été écrits directement en production par le connecteur,
 -- sans migration. Ce fichier les reprend pour qu'une autre base les reçoive aussi, et il
--- est SANS EFFET sur la production, qui les porte déjà.
+-- est SANS EFFET sur la production, qui les porte déjà — sauf le bloc 15, une suppression
+-- de trois liens décidée le 21/11.
 --
 -- Règles suivies par chaque bloc :
 --  - chaque valeur vient d'une lecture de la production (aucune n'est retapée) ;
@@ -34,9 +35,12 @@
 --  12. pedago_sessions           deux séances créées, deux ramenées à six étapes, une réglée
 --  13. plant_photos              deux photos proposées (non confirmées)
 --  14. map_species               registre de présence : une espèce à confirmer
+--  15. quiz_question_tutorials, resource_question_links   liens tutoriel de trois questions
+--                                retirées (suppression)
 --
--- Non repris, volontairement : `quiz_question_species` et `quiz_question_tutorials` (figées
--- depuis la reprise des liens dans `resource_question_links`), l'auteur des lignes
+-- Non repris, volontairement : rien n'est AJOUTÉ à `quiz_question_species` ni à
+-- `quiz_question_tutorials` (figées depuis la reprise des liens dans
+-- `resource_question_links` ; seule écriture : les trois suppressions du bloc 15), l'auteur des lignes
 -- (`created_by`, `created_by_user_id` : comptes de la production), les horodatages.
 -- Aucune table gl_*, aucun DDL, aucun trigger, aucune donnée personnelle.
 -- =====================================================================
@@ -872,3 +876,57 @@ UPDATE map_species ms
    SET ms.validation_status = 'a_confirmer'
  WHERE ms.map_id = 'sablettes'
    AND ms.validation_status <=> 'documentaire';
+
+-- ---------------------------------------------------------------------
+-- 15. Suppression décidée le 21/11/2026 (elle n'a PAS été faite le 20/11 : ce bloc est le
+--     seul qui agit en production, sur trois couples tutoriel-question). Les trois
+--     questions retirées qui validaient un tutoriel gardaient leur lien bloquant ; leurs
+--     nouvelles versions portent désormais ce lien (bloc 7). Tutoriel résolu par le slug de
+--     production, à défaut par celui du dépôt ; rien n'est supprimé tant que la question
+--     est active.
+--     EXCEPTION, limitée à ces trois lignes : le jumeau de chaque lien est aussi supprimé
+--     de la table historique figée quiz_question_tutorials. Sans cela, le contrôle de
+--     retrait de cette table (« lien historique absent de la source unique ») passerait de
+--     0 à 3. Le jumeau part en premier : entre les deux instructions le contrôle reste à 0.
+-- ---------------------------------------------------------------------
+DELETE FROM quiz_question_tutorials
+ WHERE (question_code, tutorial_id) IN (
+         SELECT ancien.question_code, ancien.tutorial_id
+           FROM (
+                 SELECT qq.question_code, t.id AS tutorial_id
+                   FROM (
+                    SELECT 'les-semences' AS ref, 'semences' AS slug_depot, 'QF0062' AS question_code
+                    UNION ALL SELECT 'le-rempotage', 'rempotage', 'QF9213'
+                    UNION ALL SELECT 'le-rempotage', 'rempotage', 'QF9214'
+                        ) v
+                   JOIN quiz_questions qq ON qq.question_code = v.question_code COLLATE utf8mb4_unicode_ci
+                    AND qq.statut <> 'actif'
+                   JOIN tutorials t ON t.id = (
+                          SELECT t2.id FROM tutorials t2
+                           WHERE t2.slug IN (v.ref COLLATE utf8mb4_unicode_ci, v.slug_depot COLLATE utf8mb4_unicode_ci)
+                           ORDER BY (t2.slug = v.ref COLLATE utf8mb4_unicode_ci) DESC
+                           LIMIT 1)
+                ) ancien);
+
+DELETE FROM resource_question_links
+ WHERE id IN (
+         SELECT ancien.id
+           FROM (
+                 SELECT l.id
+                   FROM (
+                    SELECT 'les-semences' AS ref, 'semences' AS slug_depot, 'QF0062' AS question_code
+                    UNION ALL SELECT 'le-rempotage', 'rempotage', 'QF9213'
+                    UNION ALL SELECT 'le-rempotage', 'rempotage', 'QF9214'
+                        ) v
+                   JOIN quiz_questions qq ON qq.question_code = v.question_code COLLATE utf8mb4_unicode_ci
+                    AND qq.statut <> 'actif'
+                   JOIN tutorials t ON t.id = (
+                          SELECT t2.id FROM tutorials t2
+                           WHERE t2.slug IN (v.ref COLLATE utf8mb4_unicode_ci, v.slug_depot COLLATE utf8mb4_unicode_ci)
+                           ORDER BY (t2.slug = v.ref COLLATE utf8mb4_unicode_ci) DESC
+                           LIMIT 1)
+                   JOIN resource_question_links l
+                     ON l.resource_type = 'tutorial'
+                    AND l.resource_ref = CAST(t.id AS CHAR)
+                    AND l.question_code = qq.question_code
+                ) ancien);

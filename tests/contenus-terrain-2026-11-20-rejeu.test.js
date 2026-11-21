@@ -223,10 +223,12 @@ test('contenus du 20/11 : ni DDL, ni trigger, ni table gl_*, ni table figée, ni
       'aucun DDL',
     );
     assert.ok(!/\b(TRIGGER|DEFINER)\b/i.test(stmt), 'ni trigger ni DEFINER');
-    assert.ok(
-      !/\b(quiz_question_species|quiz_question_tutorials)\b/.test(stmt),
-      'tables figées depuis la reprise des liens',
-    );
+    // Tables figées depuis la reprise des liens : aucun ajout. Seule écriture admise, la
+    // suppression des jumeaux de trois liens retirés (voir le test dédié).
+    assert.ok(!/\bquiz_question_species\b/.test(stmt), 'table figée');
+    if (/\bquiz_question_tutorials\b/.test(stmt)) {
+      assert.match(stmt, /^DELETE FROM quiz_question_tutorials\s/);
+    }
     assert.ok(!/[\w.+-]+@[\w-]+\.[a-z]{2,}/i.test(stmt), 'aucune adresse e-mail');
   }
 });
@@ -324,6 +326,80 @@ test('contenus du 20/11 : sans parents, les blocs autonomes sont posés et rien 
     0,
   );
   await runMigration();
+});
+
+test('contenus du 20/11 : liens tutoriel des questions retirées supprimés avec leur jumeau historique', async () => {
+  const COUPLES = [
+    ['semences', 'QF0062'],
+    ['rempotage', 'QF9213'],
+    ['rempotage', 'QF9214'],
+  ];
+  const lien = (slug, code) =>
+    count(
+      `SELECT COUNT(*) AS n FROM resource_question_links l
+         JOIN tutorials t ON t.id = l.resource_ref AND t.slug = ?
+        WHERE l.resource_type = 'tutorial' AND l.question_code = ?`,
+      [slug, code],
+    );
+  const jumeau = (slug, code) =>
+    count(
+      `SELECT COUNT(*) AS n FROM quiz_question_tutorials x
+         JOIN tutorials t ON t.id = x.tutorial_id AND t.slug = ?
+        WHERE x.question_code = ?`,
+      [slug, code],
+    );
+  for (const [slug, code] of COUPLES) {
+    assert.equal(await lien(slug, code), 0, `lien ${code} → ${slug}`);
+    assert.equal(await jumeau(slug, code), 0, `jumeau ${code} → ${slug}`);
+  }
+  // Contrôle de retrait des tables historiques : toujours à zéro.
+  assert.equal(
+    await count(
+      `SELECT COUNT(*) AS n FROM quiz_question_tutorials q WHERE NOT EXISTS (
+         SELECT 1 FROM resource_question_links r WHERE r.resource_type = 'tutorial'
+            AND r.question_code = q.question_code
+            AND CAST(r.resource_ref AS UNSIGNED) = q.tutorial_id)`,
+    ),
+    0,
+  );
+  // Rien d'autre n'est supprimé : les deux tutoriels gardent leurs autres liens bloquants.
+  for (const slug of ['semences', 'rempotage']) {
+    const n = await count(
+      `SELECT COUNT(*) AS n FROM resource_question_links l
+         JOIN tutorials t ON t.id = l.resource_ref AND t.slug = ?
+         JOIN quiz_questions q ON q.question_code = l.question_code AND q.statut = 'actif'
+        WHERE l.resource_type = 'tutorial' AND l.is_gating = 1 AND l.status = 'approved'`,
+      [slug],
+    );
+    assert.ok(n >= 3, `${slug} : ${n} lien(s) bloquant(s) actif(s)`);
+  }
+  // Garde : tant que la question est active, son lien et son jumeau restent.
+  const tutoId = (await queryOne("SELECT id FROM tutorials WHERE slug = 'rempotage'")).id;
+  await execute("UPDATE quiz_questions SET statut = 'actif' WHERE question_code = 'QF9214'");
+  await execute(
+    `INSERT INTO resource_question_links (resource_type, resource_ref, question_code, is_gating, origin, status)
+     VALUES ('tutorial', ?, 'QF9214', 1, 'import', 'approved')`,
+    [String(tutoId)],
+  );
+  await execute(
+    "INSERT INTO quiz_question_tutorials (question_code, tutorial_id) VALUES ('QF9214', ?)",
+    [tutoId],
+  );
+  try {
+    const garde = STATEMENTS.filter((stmt) =>
+      /^DELETE FROM (quiz_question_tutorials|resource_question_links)\s/.test(stmt),
+    );
+    assert.equal(garde.length, 2);
+    for (const stmt of garde) assert.equal((await execute(stmt)).affectedRows, 0);
+    assert.equal(await lien('rempotage', 'QF9214'), 1);
+    assert.equal(await jumeau('rempotage', 'QF9214'), 1);
+  } finally {
+    // Retour à l'état posé par la migration : question retirée, lien et jumeau supprimés.
+    await execute("UPDATE quiz_questions SET statut = 'inactif' WHERE question_code = 'QF9214'");
+    await runMigration();
+  }
+  assert.equal(await lien('rempotage', 'QF9214'), 0);
+  assert.equal(await jumeau('rempotage', 'QF9214'), 0);
 });
 
 // ---------------------------------------------------------------------------------------
