@@ -888,45 +888,38 @@ UPDATE map_species ms
 --     de la table historique figée quiz_question_tutorials. Sans cela, le contrôle de
 --     retrait de cette table (« lien historique absent de la source unique ») passerait de
 --     0 à 3. Le jumeau part en premier : entre les deux instructions le contrôle reste à 0.
+--     Forme : EXISTS corrélé, tutoriel résolu par deux jointures externes (slug unique).
+--     L'ancienne forme (tables dérivées imbriquées, sous-requête corrélée dans un ON) donnait
+--     le même résultat mais MariaDB 11.4 la refusait à la seconde exécution d'une instruction
+--     préparée (« Unknown column 'v.ref' ») : les tests de rejeu échouaient en CI.
 -- ---------------------------------------------------------------------
 DELETE FROM quiz_question_tutorials
- WHERE (question_code, tutorial_id) IN (
-         SELECT ancien.question_code, ancien.tutorial_id
+ WHERE EXISTS (
+         SELECT 1
            FROM (
-                 SELECT qq.question_code, t.id AS tutorial_id
-                   FROM (
-                    SELECT 'les-semences' AS ref, 'semences' AS slug_depot, 'QF0062' AS question_code
-                    UNION ALL SELECT 'le-rempotage', 'rempotage', 'QF9213'
-                    UNION ALL SELECT 'le-rempotage', 'rempotage', 'QF9214'
-                        ) v
-                   JOIN quiz_questions qq ON qq.question_code = v.question_code COLLATE utf8mb4_unicode_ci
-                    AND qq.statut <> 'actif'
-                   JOIN tutorials t ON t.id = (
-                          SELECT t2.id FROM tutorials t2
-                           WHERE t2.slug IN (v.ref COLLATE utf8mb4_unicode_ci, v.slug_depot COLLATE utf8mb4_unicode_ci)
-                           ORDER BY (t2.slug = v.ref COLLATE utf8mb4_unicode_ci) DESC
-                           LIMIT 1)
-                ) ancien);
+            SELECT 'les-semences' AS ref, 'semences' AS slug_depot, 'QF0062' AS question_code
+            UNION ALL SELECT 'le-rempotage', 'rempotage', 'QF9213'
+            UNION ALL SELECT 'le-rempotage', 'rempotage', 'QF9214'
+                ) v
+           JOIN quiz_questions qq ON qq.question_code = v.question_code COLLATE utf8mb4_unicode_ci
+            AND qq.statut <> 'actif'
+           LEFT JOIN tutorials tp ON tp.slug = v.ref COLLATE utf8mb4_unicode_ci
+           LEFT JOIN tutorials td ON td.slug = v.slug_depot COLLATE utf8mb4_unicode_ci
+          WHERE qq.question_code = quiz_question_tutorials.question_code
+            AND COALESCE(tp.id, td.id) = quiz_question_tutorials.tutorial_id);
 
 DELETE FROM resource_question_links
- WHERE id IN (
-         SELECT ancien.id
+ WHERE resource_type = 'tutorial'
+   AND EXISTS (
+         SELECT 1
            FROM (
-                 SELECT l.id
-                   FROM (
-                    SELECT 'les-semences' AS ref, 'semences' AS slug_depot, 'QF0062' AS question_code
-                    UNION ALL SELECT 'le-rempotage', 'rempotage', 'QF9213'
-                    UNION ALL SELECT 'le-rempotage', 'rempotage', 'QF9214'
-                        ) v
-                   JOIN quiz_questions qq ON qq.question_code = v.question_code COLLATE utf8mb4_unicode_ci
-                    AND qq.statut <> 'actif'
-                   JOIN tutorials t ON t.id = (
-                          SELECT t2.id FROM tutorials t2
-                           WHERE t2.slug IN (v.ref COLLATE utf8mb4_unicode_ci, v.slug_depot COLLATE utf8mb4_unicode_ci)
-                           ORDER BY (t2.slug = v.ref COLLATE utf8mb4_unicode_ci) DESC
-                           LIMIT 1)
-                   JOIN resource_question_links l
-                     ON l.resource_type = 'tutorial'
-                    AND l.resource_ref = CAST(t.id AS CHAR)
-                    AND l.question_code = qq.question_code
-                ) ancien);
+            SELECT 'les-semences' AS ref, 'semences' AS slug_depot, 'QF0062' AS question_code
+            UNION ALL SELECT 'le-rempotage', 'rempotage', 'QF9213'
+            UNION ALL SELECT 'le-rempotage', 'rempotage', 'QF9214'
+                ) v
+           JOIN quiz_questions qq ON qq.question_code = v.question_code COLLATE utf8mb4_unicode_ci
+            AND qq.statut <> 'actif'
+           LEFT JOIN tutorials tp ON tp.slug = v.ref COLLATE utf8mb4_unicode_ci
+           LEFT JOIN tutorials td ON td.slug = v.slug_depot COLLATE utf8mb4_unicode_ci
+          WHERE qq.question_code = resource_question_links.question_code
+            AND CAST(COALESCE(tp.id, td.id) AS CHAR) = resource_question_links.resource_ref);
