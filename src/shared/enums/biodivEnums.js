@@ -237,6 +237,19 @@ export const COLLEGE_INTERACTION_TYPE_ENUM = defineSubset(
   },
 );
 
+/**
+ * Types d'interaction réservés au **cycle 4** et au-delà (décision 8 du 21/11/2026) : masqués
+ * en cycle 3 par la règle de palier `foodweb_types_cycle4_only` de la table de visibilité
+ * (`src/shared/pedagoVisibilityCore.js`). Sous-ensemble de `COLLEGE_INTERACTION_TYPE_ENUM`.
+ * Socle S0 : défini, pas encore appliqué (la règle vaut `[]` tant que C1 ne l'a pas remplie).
+ */
+export const CYCLE4_ONLY_INTERACTION_TYPE_ENUM = defineSubset(
+  'CYCLE4_ONLY_INTERACTION_TYPE_ENUM',
+  INTERACTION_TYPE_ENUM,
+  'INTERACTION_TYPE_ENUM',
+  { values: ['symbiose', 'competition'] },
+);
+
 /** Niveau de preuve d'une interaction. */
 export const EVIDENCE_LEVEL_ENUM = defineEnum('EVIDENCE_LEVEL_ENUM', {
   values: ['bibliographie', 'observe_site', 'hypothese'],

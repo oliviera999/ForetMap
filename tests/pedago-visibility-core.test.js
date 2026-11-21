@@ -167,6 +167,20 @@ test('6e et 3e : même visibilité sur toutes les briques d’affichage', () => 
   }
 });
 
+test('types réservés au cycle 4 : sous-ensemble des types du collège', () => {
+  const {
+    CYCLE4_ONLY_INTERACTION_TYPE_ENUM,
+    COLLEGE_INTERACTION_TYPE_ENUM,
+  } = require('../lib/shared/biodivEnums');
+  assert.deepEqual([...CYCLE4_ONLY_INTERACTION_TYPE_ENUM.values].sort(), [
+    'competition',
+    'symbiose',
+  ]);
+  for (const type of CYCLE4_ONLY_INTERACTION_TYPE_ENUM.values) {
+    assert.ok(COLLEGE_INTERACTION_TYPE_ENUM.values.includes(type), type);
+  }
+});
+
 test('parité ESM ↔ CJS du noyau', () => {
   assert.deepEqual(Object.keys(esmCore).sort(), Object.keys(core).sort());
   assert.deepEqual(esmCore.VISIBILITY_TABLE, core.VISIBILITY_TABLE);
