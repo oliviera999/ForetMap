@@ -232,7 +232,7 @@ sinon SQL en lecture seule (`lib/mcp/domains/`) sous la permission applicative �
 | `foretmap_groups` (`groups`, essentiel)               | list, get, create é, update é, delete é, set_members é\*, set_scopes é, class_report\*, progression_recompute é                                                                                                                                                                          |
 | `foretmap_tutorials` (`tutorials`)                    | list, get, create é, update é, delete é, link é, unlink é, reads_stats, reads_detail\*                                                                                                                                                                                                   |
 | `foretmap_learning` (`learning`)                      | gating_get, gating_set é, links_list, overrides\*, override_release é\*, links_suggest, links_accept é, links_reject é                                                                                                                                                                   |
-| `foretmap_quiz` (`quiz`)                              | list, get, categories, stats (réussite par question, catégorie, notion ; distracteurs non disponibles), create é, update é, retire é, set_notions é                                                                                                                                      |
+| `foretmap_quiz` (`quiz`)                              | list, get, categories, stats (réussite par question, catégorie, notion ; distracteurs non disponibles), create é, update é (rattachements `plant_ids`, `glossary_codes`, `tutorial_ids` : voir sous le tableau), retire é, set_notions é                                                 |
 | `foretmap_glossary` (`glossary`)                      | list, get, set_notions é                                                                                                                                                                                                                                                                 |
 | `foretmap_curriculum` (`curriculum`)                  | notions, coverage (notions orphelines et partielles), set_links é                                                                                                                                                                                                                        |
 | `foretmap_pedago_sessions` (`pedago_sessions`)        | list, get, runs, runs_detail\*, create é, update é, delete é, link_task é                                                                                                                                                                                                                |
@@ -251,6 +251,15 @@ sinon SQL en lecture seule (`lib/mcp/domains/`) sous la permission applicative �
 | `foretmap_moodle` (`moodle`)                          | check, cohorts, dry_run\*, runs, run\*, apply é\*                                                                                                                                                                                                                                        |
 | `foretmap_stats` (`stats`)                            | dashboard, students\*, student\*, usage                                                                                                                                                                                                                                                  |
 | `foretmap_ops` (`ops` ; `mcp.ops`, `ops_enabled`)     | cron_jobs, run_cron é, migrate é, restart é, dump é (full \| anonymized \| structure, fichier privé, lien 1 h), storage_report, deploy_status, retention_preview, retention_run é, clear_caches é, scripts, script_dry_run, run_script é (liste blanche `lib/mcp/domains/opsScripts.js`) |
+
+**Rattachements d'une question** (`foretmap_quiz`, `create` et `update`) : `plant_ids`,
+`glossary_codes` et `tutorial_ids` (paramètres de l'action, ou champs de `data`) lient la
+question à des fiches espèce, des termes du glossaire ou des tutoriels. Écriture par le service
+unique des liens (`resource_question_links`), dans la transaction de la question : **ajout
+seulement** (aucun lien retiré), lien approuvé, **non bloquant**, `origin = 'manual'` ; un lien
+déjà approuvé n'est pas modifié, une référence inconnue refuse toute la demande. La réponse
+porte alors `links` (`created`, `approved`, `unchanged`). Détail : `docs/API.md`, « Rattacher
+une question en l'enregistrant ».
 
 ### Outils Gnomes & Licornes (domaine `gl`, `lib/mcp/tools/domains/gl*.js`)
 

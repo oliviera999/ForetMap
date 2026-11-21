@@ -4894,16 +4894,16 @@ Routes publiques (lecture) sauf progression quiz. Voir aussi les routes GL `/api
 | GET | `/api/quiz/categories` | non | Catégories QCM. `notionId` / `notionNiveau` ne laissent que les catégories rattachées à la notion (et restreignent le compte renvoyé avec `niveau`) |
 | GET | `/api/quiz/questions` | non | Liste questions (`theme`, `categorieSlug`, `niveau`, `q`, `notionId`, `notionNiveau`). `reponse_correcte` n’est présent **que** pour un appelant détenant `plants.manage` — même règle que le catalogue GL |
 | GET | `/api/quiz/draw` | non | Tirage QCM (`?illustrated=1` : questions avec photo ; `notionId` / `notionNiveau` : tirage par notion de programme) |
-| GET | `/api/quiz/questions/:code/present` | non (**oui avec contexte**) | Question présentée. **Avec contexte de validation** (`?resourceType=&resourceRef=`) : compte **exigé** depuis l'audit ForetMap du 19/11/2026 (P1) — sans compte, `401` `{ error, code: 'LOGIN_REQUIRED' }` ; le jeton porte alors l'identifiant du compte (claim `uid`). Sans contexte (Quiz libre), toujours public |
-| POST | `/api/quiz/questions/:code/answer` | non (**oui avec contexte**) | Validation réponse. **Jeton à usage unique** : rejeu du même `presentationToken` refusé `409` « Présentation déjà utilisée » (interdit de brute-forcer les choix, y compris pour débloquer un conditionnement). **Contexte** (jeton présenté avec contexte, ou corps `{ resourceType, resourceRef }`) **sans compte** → `401` `LOGIN_REQUIRED` ; jeton présenté pour un **autre compte** → `403` `{ error, code: 'PRESENTATION_OTHER_ACCOUNT' }`. Ces refus ne consomment pas le jeton (P1, audit du 19/11/2026) |
+| GET | `/api/quiz/questions/:code/present` | non (**oui avec contexte**) | Question présentée. **Avec contexte de validation** (`?resourceType=&resourceRef=`) : compte **exigé** depuis l'audit ForetMap du 19/11/2026 (P1) — sans compte, `401` `{ error, code: 'LOGIN_REQUIRED' }` ; le jeton porte alors l'identifiant du compte (claim `uid`). Sans contexte (Quiz libre), toujours public. Choix **mélangés** à chaque appel. La charge ne porte **pas** `photoLegende`, sauf pour `plants.manage` (voir « Présentation et réponse du quiz ForetMap ») |
+| POST | `/api/quiz/questions/:code/answer` | non (**oui avec contexte**) | Validation réponse. **Jeton à usage unique** : rejeu du même `presentationToken` refusé `409` « Présentation déjà utilisée » (interdit de brute-forcer les choix, y compris pour débloquer un conditionnement). **Contexte** (jeton présenté avec contexte, ou corps `{ resourceType, resourceRef }`) **sans compte** → `401` `LOGIN_REQUIRED` ; jeton présenté pour un **autre compte** → `403` `{ error, code: 'PRESENTATION_OTHER_ACCOUNT' }`. Ces refus ne consomment pas le jeton (P1, audit du 19/11/2026). Réponse : `{ correct, feedback, correctChoiceId?, glossaryTerms?, photoLegende?, cooldown? }` (voir « Présentation et réponse du quiz ForetMap ») |
 | GET | `/api/quiz/me/progress` | élève | Progression |
 | GET | `/api/quiz/stats` | prof (`stats.read.all`) | Agrégation tentatives par élève et catégorie |
 | GET | `/api/quiz/admin/stats` | prof (`plants.manage`) | Agrégats catalogue (totaux, thèmes, catégories) |
 | GET | `/api/quiz/admin/questions` | prof (`plants.manage`) | Liste complète (`theme`, `categorieSlug`, `niveau`, `q`, `statut`, `sort`) |
 | GET | `/api/quiz/admin/questions/next-code` | prof (`plants.manage`) | Prochain code libre (`QF0001`…) |
 | GET | `/api/quiz/admin/questions/:code` | prof (`plants.manage`) | Fiche complète pour édition |
-| POST | `/api/quiz/admin/questions` | prof (`plants.manage`) | Création d’une question (question et liens glossaire par mots-clés `origin='keyword'` dans une même transaction). Emplacement (`categorie_slug`, `numero_dans_categorie`) déjà pris par une autre question → `409` (auparavant, l'autre question était écrasée ; P2, audit du 19/11/2026) |
-| PUT | `/api/quiz/admin/questions/:code` | prof (`plants.manage`) | Mise à jour d’une question existante (même transaction ; seuls ses liens `origin='keyword'` **non bloquants** sont remplacés — un lien par mots-clés rendu bloquant par un professeur est conservé, P3). Déplacement sur un emplacement pris → `409` |
+| POST | `/api/quiz/admin/questions` | prof (`plants.manage`) | Création d’une question (question et liens glossaire par mots-clés `origin='keyword'` dans une même transaction). Emplacement (`categorie_slug`, `numero_dans_categorie`) déjà pris par une autre question → `409` (auparavant, l'autre question était écrasée ; P2, audit du 19/11/2026). Champs facultatifs `plant_ids`, `glossary_codes`, `tutorial_ids` : rattachements écrits dans la même transaction, réponse enrichie de `links` (voir « Rattacher une question en l'enregistrant ») |
+| PUT | `/api/quiz/admin/questions/:code` | prof (`plants.manage`) | Mise à jour d’une question existante (même transaction ; seuls ses liens `origin='keyword'` **non bloquants** sont remplacés — un lien par mots-clés rendu bloquant par un professeur est conservé, P3). Déplacement sur un emplacement pris → `409`. Mêmes champs `plant_ids`, `glossary_codes`, `tutorial_ids` que la création : ils **ajoutent** des rattachements, sans en retirer |
 | GET | `/api/quiz/admin/import/template` | prof (`plants.manage`) | Modèle XLSX (`categories` + `questions`) |
 | GET | `/api/quiz/admin/export` | prof (`plants.manage`) | Export ré-importable (`statut`, `theme`, `categorieSlug`) |
 | POST | `/api/quiz/admin/import` | prof (`plants.manage`) | Import XLSX (`dryRun` optionnel) — transaction unique (tout ou rien, y compris reconstruction des rattachements glossaire `origin=import`). **Emplacement** (P2, audit du 19/11/2026) : une ligne dont le couple (`categorie_slug`, `numero_dans_categorie`) est déjà pris par une autre question, en base ou par une ligne précédente du fichier, est écartée avec une erreur de ligne (elle écrasait l'autre question). **Liens glossaire par mots-clés** (P4) : seuls ceux des questions **du fichier** sont recalculés (un import partiel purgeait ceux de tout le catalogue), et un lien `keyword` rendu bloquant n'est jamais purgé (P3). Colonne `statut` : `actif` ou `inactif` (casse indifférente ; autre valeur → erreur de ligne). **Cellule vide** : une question existante **garde** son statut, une nouvelle est `actif` (avant le 25/09/2026, un fichier sans statut réactivait toutes les questions désactivées). **Libellé de difficulté** (depuis le 27/09/2026) : la colonne `difficulte_label` du fichier est ignorée, le libellé est dérivé de `difficulte` par le référentiel (`quizDifficulteLabel`, `src/shared/enums/pedagoEnums.js`) : 1 → « ⭐ Facile », 2 → « ⭐⭐ Moyen », 3 → « ⭐⭐⭐ Difficile », autre valeur ou vide → `null`. Même règle pour `POST`/`PUT /api/quiz/admin/questions` (libellé saisi ignoré), la liste `GET /api/quiz/admin/questions`, l'export et le modèle. |
@@ -5282,6 +5282,69 @@ propre) ou un identifiant mal formé donnent **400**, jamais un filtre ignoré e
 correspondances entre toutes les échelles sont déclarées dans `lib/pedagoScales.js` (miroir
 `src/utils/pedagoScales.js`).
 
+### Présentation et réponse du quiz ForetMap
+
+Propre à `/api/quiz` (les QCM de Gnomes & Licornes ne sont pas concernés).
+
+**Présentation** — `GET /api/quiz/questions/:code/present` renvoie
+`{ presentationToken, questionCode, resource, question, choices: [{ id, text }], glossaryTerms,
+photoUrl, photoCredit, photoLicence, wikipediaUrl }`.
+
+- Les choix sont **mélangés à chaque appel** (Fisher-Yates, `lib/qcmChoices.js`) et numérotés
+  `0…n-1` dans l'ordre servi : deux présentations de la même question n'ont pas le même ordre,
+  et `id` ne dit rien de la lettre d'origine.
+- **`photoLegende` n'y figure pas.** La légende d'une photo est le plus souvent le nom du sujet
+  photographié, donc la réponse. L'image, son crédit et sa licence sont servis ; la légende
+  attend la réponse. Seule exception : un appelant qui détient `plants.manage` la reçoit dès la
+  présentation, pour l'aperçu « Présenter » du catalogue — même règle que `reponse_correcte`
+  dans `GET /api/quiz/questions`.
+
+**Réponse** — `POST /api/quiz/questions/:code/answer` renvoie :
+
+| Champ             | Présent quand                                                                                 |
+| ----------------- | --------------------------------------------------------------------------------------------- |
+| `correct`         | toujours                                                                                      |
+| `feedback`        | toujours (règle ci-dessous)                                                                   |
+| `correctChoiceId` | réponse juste seulement                                                                       |
+| `glossaryTerms`   | réponse juste seulement                                                                       |
+| `photoLegende`    | la question a une légende, **et** la réponse est juste ou le jeton n'a pas de contexte ressource |
+| `cooldown`        | un verrou de re-tentative vient d'être posé (parcours de validation)                          |
+
+Après une **erreur du parcours de validation** d'une fiche (jeton présenté avec
+`?resourceType=&resourceRef=`), `photoLegende` est tue : la même question sera reposée, et la
+légende donnerait la réponse — même règle que `correctChoiceId`.
+
+**Règle du champ `feedback`** (`resolveQcmAnswerFeedback`, `lib/qcmChoices.js`) :
+
+1. réponse **juste** → `feedback_correct` de la question ; s'il est vide, « Bonne réponse ! » ;
+2. réponse **fausse** → le retour du choix sélectionné (`feedback_a` … `feedback_e`, retrouvé
+   par la lettre d'origine du choix, quel que soit l'ordre servi) ; s'il est vide, « Ce n’est
+   pas la bonne réponse. ».
+
+Conséquence à connaître en rédigeant : le retour rangé dans le créneau de la **bonne lettre**
+(par exemple `feedback_b` quand `reponse_correcte = 'B'`) **n'est jamais affiché**. L'élève qui
+choisit la bonne réponse lit `feedback_correct`, et personne d'autre ne peut sélectionner ce
+choix. Un texte utile saisi là est donc perdu : il se met dans `feedback_correct`. Les deux
+textes de repli ci-dessus sont remplacés à l'écran par la voix d'OLU quand le professeur n'a
+rien écrit (`src/shared/qcm/qcmFeedback.js`).
+
+Requête de contrôle (questions actives dont le créneau de la bonne lettre est rempli et
+diffère de `feedback_correct`) :
+
+```sql
+SELECT question_code, reponse_correcte, feedback_correct,
+       CASE reponse_correcte WHEN 'A' THEN feedback_a WHEN 'B' THEN feedback_b
+            WHEN 'C' THEN feedback_c WHEN 'D' THEN feedback_d ELSE feedback_e END AS feedback_bonne_lettre
+  FROM quiz_questions
+ WHERE statut = 'actif'
+   AND NULLIF(TRIM(CASE reponse_correcte WHEN 'A' THEN feedback_a WHEN 'B' THEN feedback_b
+            WHEN 'C' THEN feedback_c WHEN 'D' THEN feedback_d ELSE feedback_e END), '') IS NOT NULL
+   AND NOT (TRIM(CASE reponse_correcte WHEN 'A' THEN feedback_a WHEN 'B' THEN feedback_b
+            WHEN 'C' THEN feedback_c WHEN 'D' THEN feedback_d ELSE feedback_e END)
+            <=> TRIM(feedback_correct))
+ ORDER BY question_code;
+```
+
 ### Le `presentationToken` (QCM ForetMap et GL)
 
 Les routes `…/present` renvoient les choix **mélangés** et un `presentationToken` (JWT signé,
@@ -5417,7 +5480,7 @@ Les liens vivent dans **une seule table**, `resource_question_links`, lue et éc
 
 | `origin`    | Qui l'écrit                                                                                 | Purgé par un traitement automatique ?        |
 | ----------- | ------------------------------------------------------------------------------------------- | -------------------------------------------- |
-| `manual`    | un professeur, dans l'écran des liens (`POST /api/learning-links`)                          | jamais                                       |
+| `manual`    | un professeur, dans l'écran des liens (`POST /api/learning-links`) ou en enregistrant une question avec `plant_ids`, `glossary_codes`, `tutorial_ids` | jamais                                       |
 | `import`    | migrations 144, 226, 227 (curation relue, souvent bloquante)                                | jamais                                       |
 | `generated` | scripts d'enrichissement                                                                    | jamais                                       |
 | `auto`      | `scripts/suggest-learning-links.js` (propositions)                                          | jamais                                       |
@@ -5433,6 +5496,38 @@ source unique (fixture v297) sont repris en `editorial`, approuvés et **non blo
 affichés et ne changent rien au verrouillage. L'édition d'une question (`POST`/`PUT
 /api/quiz/admin/questions`) s'exécute dans une transaction, liens par mots-clés compris, comme
 l'import du catalogue.
+
+#### Rattacher une question en l'enregistrant
+
+`POST` et `PUT /api/quiz/admin/questions` acceptent trois champs facultatifs, en plus des champs
+de la question :
+
+| Champ            | Contenu                                   | Ressource liée (`resource_type`) |
+| ---------------- | ----------------------------------------- | -------------------------------- |
+| `plant_ids`      | tableau d'identifiants de fiches espèce   | `plant`                          |
+| `glossary_codes` | tableau de codes de termes du glossaire   | `glossary`                       |
+| `tutorial_ids`   | tableau d'identifiants de tutoriels       | `tutorial`                       |
+
+Les liens sont écrits par le service unique (`lib/pedago/learningLinks.js`), dans la
+transaction de la question (`lib/fmQuizCrud.js`, `linkQuestionToResources`) :
+
+- **ajout seulement** : une ressource absente de la liste n'est pas détachée, une liste vide ne
+  retire rien. Détacher reste un geste de l'écran des liens (`DELETE /api/learning-links/:id`) ;
+- lien **nouveau** : `status = 'approved'`, **non bloquant** (`is_gating = 0`),
+  `origin = 'manual'`, auteur enregistré ;
+- lien **déjà approuvé** : inchangé (caractère bloquant, origine, poids et note conservés).
+  Rejouer la même demande n'écrit rien ;
+- lien seulement **proposé** ou **rejeté** : approuvé, sans changer son origine ni son caractère
+  bloquant ;
+- un champ **absent** (ou `null`) est ignoré ; un champ présent doit être un tableau de 50
+  éléments au plus (identifiants entiers positifs, codes non vides) ;
+- une référence **inconnue** ou un champ mal formé → `400`
+  (`Fiche(s) espèce introuvable(s) : 12, 13`), et **rien n'est enregistré**, pas même la
+  question.
+
+Quand au moins un de ces champs est fourni, la réponse porte
+`links: { created: [...], approved: [...], unchanged: [...] }`, chaque entrée valant
+`{ resource_type, resource_ref }`. Sans eux, la réponse est inchangée.
 
 Réglages site (table `app_settings`, scope `teacher`, modifiables via `/api/settings`) :
 `learning.gating.enabled` (def. `false`),
