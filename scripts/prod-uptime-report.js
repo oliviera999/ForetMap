@@ -92,14 +92,34 @@ function describeEntry(entry) {
     if (reason === 'env_invalid')
       return `${at}  ARRÊT    refus de démarrage : variables d'environnement invalides`;
     if (reason === 'listen_error') return `${at}  ARRÊT    refus de démarrage : port indisponible`;
-    return `${at}  ARRÊT    signal ${entry.reason} — décidé par l'hébergeur (inactivité Passenger)`;
+    if (reason === 'restart-file')
+      return `${at}  ARRÊT    redémarrage par tmp/restart.txt (cron de déploiement)`;
+    if (reason === 'passenger-stdin')
+      return `${at}  ARRÊT    Passenger a fermé l'entrée standard (arrêt sans signal : inactivité ou recyclage)`;
+    if (reason === 'exit')
+      return `${at}  ARRÊT    process.exit(${entry.exitCode ?? '?'}) sans arrêt tracé`;
+    if (reason === 'sigterm' || reason === 'sigint')
+      return `${at}  ARRÊT    signal ${entry.reason} — décidé par l'hébergeur (inactivité Passenger)`;
+    return `${at}  ARRÊT    signal reçu ${entry.reason} (tracé) — chercher l'émetteur`;
   }
   if (entry.event === 'crash') {
     return `${at}  CRASH    ${entry.kind} — ${entry.message || 'sans message'}`;
   }
   if (entry.event === 'boot') {
     const causes = {
-      hard: 'process tué sans signal (mémoire / limite LVE)',
+      hard:
+        entry.previousPidAlive === true
+          ? 'sans trace d’arrêt, mais le processus précédent vit encore (second processus)'
+          : `processus précédent disparu sans trace${
+              entry.lastAliveAt
+                ? ` — vu en vie pour la dernière fois à ${String(entry.lastAliveAt)
+                    .replace('T', ' ')
+                    .replace(
+                      /\..*$/,
+                      '',
+                    )}, après ${formatDuration(entry.previousLifetimeMs)} de vie, ${entry.previousRssMb ?? '?'} Mo`
+                : ' (heure de la mort inconnue : pas de battement)'
+            }`,
       graceful: `après arrêt maîtrisé${entry.previousStopReason ? ` (${entry.previousStopReason})` : ''}`,
       crash: 'après crash applicatif',
       none: 'premier démarrage enregistré',
@@ -110,6 +130,58 @@ function describeEntry(entry) {
     return `${at}  DÉPART   ${causes[entry.previousStop] || entry.previousStop}${gap}`;
   }
   return `${at}  ${entry.event}`;
+}
+
+/**
+ * Lecture des mesures du diagnostic des arrêts sans trace : motifs tracés, heures, durée de
+ * vie et poids avant l'arrêt. Rend des lignes prêtes à afficher (vide si rien à dire).
+ */
+function diagnosisLines(restarts) {
+  const lines = [];
+  const reasons = Object.entries(restarts.stopsByReason || {});
+  if (reasons.length > 0) {
+    lines.push(
+      `  Arrêts tracés par motif : ${reasons
+        .sort((a, b) => b[1] - a[1])
+        .map(([r, n]) => `${r} ×${n}`)
+        .join(', ')}`,
+    );
+  }
+  const hard = Number(restarts.counts?.hardKills || 0);
+  if (hard === 0) return lines;
+  const basis = restarts.hardKillsByHourBasis;
+  const byHour = (restarts.hardKillsByHour || [])
+    .map((n, h) => (n > 0 ? `${h} h ×${n}` : null))
+    .filter(Boolean)
+    .join(', ');
+  if (byHour) {
+    const what = !basis
+      ? 'heure du redémarrage'
+      : basis.restart === 0
+        ? 'heure de la mort'
+        : basis.death === 0
+          ? 'heure du redémarrage (pas de battement)'
+          : `heure de la mort pour ${basis.death}, du redémarrage pour ${basis.restart}`;
+    lines.push(`  Arrêts sans trace par heure du serveur (${what}) : ${byHour}`);
+  }
+  const life = restarts.hardKillLifetimeMs;
+  if (life?.samples > 0) {
+    lines.push(
+      `  Durée de vie avant l'arrêt : médiane ${formatDuration(life.median)}, de ${formatDuration(life.min)} à ${formatDuration(life.max)} (${life.samples} mesure(s))`,
+    );
+  }
+  const rss = restarts.hardKillRssMb;
+  if (rss?.samples > 0) {
+    lines.push(
+      `  Poids avant l'arrêt : médiane ${rss.median} Mo, de ${rss.min} à ${rss.max} Mo (${rss.samples} mesure(s))`,
+    );
+  }
+  if (restarts.hardKillsPreviousAlive > 0) {
+    lines.push(
+      `  ${restarts.hardKillsPreviousAlive} démarrage(s) alors que le processus précédent vivait encore : second processus, pas une mort.`,
+    );
+  }
+  return lines;
 }
 
 async function main() {
@@ -176,7 +248,9 @@ async function main() {
     `    · ${c.hostStops ?? 0} arrêt(s) par l'hébergeur         → inactivité Passenger (démarrage à froid au retour)`,
   );
   console.log(`    · ${c.crashes ?? 0} crash(s) applicatif(s)           → bug à corriger`);
-  console.log(`    · ${c.hardKills ?? 0} process tué(s) sans signal       → limite mémoire / LVE`);
+  console.log(
+    `    · ${c.hardKills ?? 0} processus disparu(s) sans trace  → tué sans signal ; lire poids et heures ci-dessous`,
+  );
   console.log(
     `    · ${c.startupFailures ?? 0} refus de démarrage             → configuration serveur (.env, port)`,
   );
@@ -185,6 +259,7 @@ async function main() {
       `  Indisponibilité mesurée : ${formatDuration(restarts.downtime.totalMs)} au total, ${formatDuration(restarts.downtime.averageMs)} en moyenne par redémarrage.`,
     );
   }
+  for (const line of diagnosisLines(restarts)) console.log(line);
   console.log('');
   console.log(`VERDICT : ${restarts.verdict}`);
   console.log(restarts.advice);
@@ -202,7 +277,11 @@ async function main() {
   }
 }
 
-main().catch((err) => {
-  console.error('Échec du rapport :', err?.message || err);
-  process.exit(1);
-});
+if (require.main === module) {
+  main().catch((err) => {
+    console.error('Échec du rapport :', err?.message || err);
+    process.exit(1);
+  });
+}
+
+module.exports = { describeEntry, diagnosisLines, formatDuration };
