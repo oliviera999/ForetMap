@@ -320,6 +320,23 @@
   flex-wrap: wrap;
   gap: 0.35rem;
 }
+/* Sablier et tablettes côte à côte ; le détail des tablettes, déplié, prend toute la largeur. */
+.gl-tour-screen__outils {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.35rem 0.5rem;
+  margin-top: 0.35rem;
+}
+.gl-tour-screen__outils:empty {
+  display: none;
+}
+.gl-tour-screen__outils > .gl-class-link-panel {
+  margin: 0;
+}
+.gl-tour-screen__outils > .gl-class-link-panel.is-deplie {
+  flex: 1 1 100%;
+}
 .gl-tour-screen__layout {
   display: grid;
   gap: 0.75rem;
@@ -349,6 +366,27 @@
 .gl-tour-team-card.is-active {
   outline: 2px solid var(--accent, currentColor);
   outline-offset: 1px;
+}
+/* L'avance libre attend derrière « Corriger la position… » : la carte ne garde que le jet,
+   le bouton de correction à côté ; le formulaire ouvert prend sa propre ligne. */
+.gl-tour-team-card .gl-tour-des {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.5rem;
+}
+.gl-tour-team-card .gl-tour-des > .gl-inline-actions {
+  margin-top: 0;
+}
+.gl-tour-team-card .gl-tour-des__libre {
+  flex: 1 1 100%;
+}
+/* « Qui a trouvé l'erreur d'Olu ? » : la phrase, le titre, puis un bouton par équipe. */
+.gl-tour-olu__phrase {
+  margin: 0 0 0.35rem;
+}
+.gl-tour-olu .gl-inline-actions {
+  margin-top: 0;
 }
 .gl-tour-screen .gl-gameplay-block {
   margin: 0;
@@ -535,6 +573,29 @@
 }
 .gl-class-link-panel {
   margin: var(--gl-space-2) 0;
+}
+/* Une ligne par défaut (« 4 tablettes connectées ✓ ») ; le détail se déplie au toucher, et
+   d'office tant qu'une tablette attend d'entrer. */
+.gl-class-link-panel__resume {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gl-space-2);
+  min-height: 44px;
+  padding: 0 var(--gl-space-3);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--gl-radius-control);
+  background: var(--surface-plain);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.gl-class-link-panel__resume.is-attente {
+  border-color: currentColor;
+  font-weight: var(--fw-bold);
+}
+.gl-class-link-panel__resume:focus-visible {
+  outline: 2px solid var(--gl-color-primary);
+  outline-offset: 2px;
 }
 .gl-class-link-panel__sessions {
   margin: var(--gl-space-2) 0;

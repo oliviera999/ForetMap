@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { apiGL, apiGLAvecJeton } from '../../services/apiGL.js';
+import { messagePourEquipe } from '../../constants/glPanneReseau.js';
 import { GLButton } from '../ui/GLButton.jsx';
 import { GLMascotAvatar } from '../GLMascotAvatar.jsx';
 import { buildTeamSession, normalizeClassCode } from '../../utils/glTeamSession.js';
@@ -41,7 +42,7 @@ export function GLClassLinkEntry({ initialToken = null, notice = '', onSession, 
       setBy(credential);
     } catch (err) {
       setOpened(null);
-      setError(err.message || 'Code de classe non reconnu');
+      setError(messagePourEquipe(err.message) || 'Code de classe non reconnu');
     } finally {
       setBusy(false);
     }
@@ -69,7 +70,7 @@ export function GLClassLinkEntry({ initialToken = null, notice = '', onSession, 
           });
         } else onSession?.(session);
       } catch (err) {
-        setError(err.message || 'Session d’équipe indisponible');
+        setError(messagePourEquipe(err.message) || 'Session d’équipe indisponible');
       } finally {
         setBusy(false);
       }

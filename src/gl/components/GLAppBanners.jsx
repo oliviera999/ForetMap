@@ -1,4 +1,5 @@
 import { GLButton } from './ui/GLButton.jsx';
+import { GLErreurTexte } from './ui/GLErreurTexte.jsx';
 import { FixedToast } from '../../shared/components/FixedToast.jsx';
 
 /**
@@ -50,7 +51,7 @@ export function GLAppBanners({
       {error ? (
         // `role="alert"` : la seule bannière qui compte doit être annoncée (audit août § 5.2.4).
         <div className="gl-error-banner" role="alert">
-          <span>{error}</span>
+          <GLErreurTexte message={error} />
           {typeof onDismissError === 'function' ? (
             <GLButton type="button" variant="ghost" size="sm" onClick={onDismissError}>
               Fermer

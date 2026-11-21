@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useMemo, useState, Suspense, lazy } from 'react';
+import { useCallback, useEffect, useMemo, useState, Suspense } from 'react';
 // Styles admin/MJ : extraits de gl-theme.css, livrés avec le chunk lazy de cette vue.
 import '../styles/gl-admin.css';
 import { apiGL, getGlToken } from '../services/apiGL.js';
 import { GLTourScreen } from './mj/GLTourScreen.jsx';
+import { lazyAvecReprise } from '../utils/lazyAvecReprise.jsx';
+import { GLErreurTexte } from './ui/GLErreurTexte.jsx';
 import {
   useDebouncedAutoSave,
   serializeAutoSaveValue,
@@ -19,13 +21,17 @@ import {
   gameToEditForm,
 } from '../utils/glGameEditForm.js';
 
-const GLGameMasterConsoleActiveGameBanner = lazy(
+// Sections chargées à la demande, avec reprise : pendant un déploiement, un morceau qui ne se
+// charge pas ne laisse plus la console sur « Chargement de la section… ».
+const GLGameMasterConsoleActiveGameBanner = lazyAvecReprise(
   () => import('./mj/GLGameMasterConsoleActiveGameBanner.jsx'),
 );
-const GLGameMasterConsoleParties = lazy(() => import('./mj/GLGameMasterConsoleParties.jsx'));
-const GLGameMasterConsoleTeams = lazy(() => import('./mj/GLGameMasterConsoleTeams.jsx'));
-const GLGameMasterConsoleLive = lazy(() => import('./mj/GLGameMasterConsoleLive.jsx'));
-const GLDefisConsolePanel = lazy(() =>
+const GLGameMasterConsoleParties = lazyAvecReprise(
+  () => import('./mj/GLGameMasterConsoleParties.jsx'),
+);
+const GLGameMasterConsoleTeams = lazyAvecReprise(() => import('./mj/GLGameMasterConsoleTeams.jsx'));
+const GLGameMasterConsoleLive = lazyAvecReprise(() => import('./mj/GLGameMasterConsoleLive.jsx'));
+const GLDefisConsolePanel = lazyAvecReprise(() =>
   import('./defis/GLDefisConsolePanel.jsx').then((m) => ({ default: m.GLDefisConsolePanel })),
 );
 
@@ -908,7 +914,11 @@ export function GLGameMasterConsole({
     <section className="gl-panel gl-mj-console fade-in">
       <h2>Console MJ</h2>
 
-      {actionError ? <p className="gl-error-banner gl-mj-feedback">{actionError}</p> : null}
+      {actionError ? (
+        <p className="gl-error-banner gl-mj-feedback">
+          <GLErreurTexte message={actionError} />
+        </p>
+      ) : null}
       {feedback?.type === 'success' ? (
         <p className="gl-success-banner gl-mj-feedback">{feedback.message}</p>
       ) : null}

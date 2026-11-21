@@ -30,6 +30,7 @@ import { GLAuthView } from './components/GLAuthView.jsx';
 import { AppStatusSticky } from '../shared/components/AppStatusSticky.jsx';
 import { GLTopBar, GL_TAB_ID_PREFIX, GL_TABPANEL_ID_PREFIX } from './components/GLTopBar.jsx';
 import { useGlCompactNav } from './hooks/useGlCompactNav.js';
+import { useGlModeSeance } from './utils/glModeSeance.js';
 import { useGLOverlays } from './hooks/useGLOverlays.js';
 import { GLMapView } from './components/GLMapView.jsx';
 import { GLNatureView } from './components/GLNatureView.jsx';
@@ -185,6 +186,8 @@ export function AppGL() {
   const [kioskAttract, setKioskAttract] = useState(() => demoMode.kiosk);
   const demoAutoEnterRef = useRef(false);
   const compactNav = useGlCompactNav();
+  // Console du prof : l'écran « Jouer le tour » réduit la barre du haut à une ligne.
+  const modeSeance = useGlModeSeance();
   const learningProgress = useGlLearningProgress(isGuest ? null : token);
   const [tab, setTab] = useState(() =>
     isGlDemoRequested(demoMode) && isGlGuest(getGlSession()?.auth)
@@ -1182,6 +1185,7 @@ export function AppGL() {
               kioskMode={kioskMode}
               showVersion={showStaffAdminUi}
               appVersion={appVersion}
+              seance={modeSeance}
             />
 
             {showsPlayerChrome && !isGuest && isModuleEnabled(modules, 'voyageurEnabled') ? (

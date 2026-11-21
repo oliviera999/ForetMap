@@ -13,7 +13,9 @@ import { GLTourJournal } from './GLTourJournal.jsx';
 import { GLClassLinkPanel } from './GLClassLinkPanel.jsx';
 import { GLDemandesPanel } from './GLDemandesPanel.jsx';
 import { numeroCase } from '../../../shared/glCaseNumeroCore.js';
-import { phaseConsole } from '../../constants/tenirPhases.js';
+import { phaseConsole, titreDuTour } from '../../constants/tenirPhases.js';
+import { useDeclarerModeSeance } from '../../utils/glModeSeance.js';
+import { GLErreurTexte } from '../ui/GLErreurTexte.jsx';
 
 /** Durée d'affichage d'un mot de passe provisoire avant qu'il ne s'efface seul. */
 const MOT_DE_PASSE_VISIBLE_MS = 60_000;
@@ -110,9 +112,12 @@ function TeamCard({
 }
 
 /**
- * Écran du tour (prof), projeté : bandeau de phase, cartes d'équipe dans l'ordre figé, sablier
- * (tableau), dés en attente, absences, retrait, Team Spirit, « Le voile », journal.
+ * Écran du tour (prof) : bandeau du tour (phase, sablier, lien de projection, tablettes en une
+ * ligne), puis les **demandes**, les équipes dans l'ordre figé, et le reste (dés en attente, « Le
+ * voile », Olu, absences, Team Spirit), journal à côté.
  * Toute action passe par le serveur puis recharge (`onReloadGame`).
+ *
+ * Tant qu'il est monté, la barre du haut de l'application est en « mode séance » (une ligne).
  */
 export function GLTourScreen({
   game,
@@ -145,6 +150,14 @@ export function GLTourScreen({
   const round = view?.round || null;
   // Mêmes mots que sur l'écran des élèves ; le terme du moteur reste en infobulle.
   const phaseDuTour = round ? phaseConsole(round.phase) : null;
+  // Mode séance : la barre du haut ne garde que la partie, le tour et « Menu ».
+  useDeclarerModeSeance({
+    actif: !!gameId && !!tenir?.enabled,
+    partie: game?.name || '',
+    tour: round
+      ? titreDuTour({ number: view?.roundNumber, phase: round.phase })
+      : 'Aucun tour ouvert',
+  });
   // Une équipe joue depuis son appareil, un autre poste du prof change de phase : l'état de la
   // partie se recharge (temps réel), pas cet instantané du tour. On le relit, et avec lui la file
   // « Demandes », le lien de classe et le journal (`refreshKey`).
@@ -339,62 +352,19 @@ export function GLTourScreen({
             Projection (12 h) : <code>{projectionUrl}</code>
           </p>
         ) : null}
-        {surface !== 'tableau' ? (
-          <GLClassLinkPanel
-            game={game}
-            teams={teams}
-            refreshKey={`${refreshKey}:${tenir?.appareilsEnAttente || 0}`}
-          />
-        ) : null}
         {round?.phase === 'clos' && round.durees?.libelle ? (
           <p className="gl-hint gl-tour-durees" data-testid="gl-tour-durees">
             Ce tour : {round.durees.libelle}
           </p>
         ) : null}
-        {tourApi.error ? <p className="gl-error-banner">{tourApi.error}</p> : null}
-        <GLOluBulle line={olu.line} speakerName={olu.speakerName} frozen={olu.frozen} />
-        {round?.oluErreur ? (
-          <p className="gl-tour-olu" data-testid="gl-tour-olu">
-            Olu : « {round.oluErreur.texte} »
-            {round.oluCorrigeTeamId == null && round.phase !== 'clos' ? (
-              <span className="gl-inline-actions">
-                {orderedTeams.map((t) => (
-                  <GLButton
-                    key={t.id}
-                    type="button"
-                    variant="ghost"
-                    disabled={tourApi.busy}
-                    onClick={() => act(() => tourApi.oluCorrige(t.id))}
-                  >
-                    corrigé par {t.name}
-                  </GLButton>
-                ))}
-              </span>
-            ) : round.oluErreur.correction ? (
-              <em> — {round.oluErreur.correction}</em>
-            ) : null}
+        {tourApi.error ? (
+          <p className="gl-error-banner" role="alert">
+            <GLErreurTexte message={tourApi.error} />
           </p>
         ) : null}
-      </header>
-
-      <div className="gl-tour-screen__layout">
-        <main className="gl-tour-screen__main">
-          <div id="gl-demandes">
-            <GLDemandesPanel
-              game={game}
-              teams={teams}
-              tourApi={tourApi}
-              refreshKey={refreshKey}
-              total={view?.demandesEnAttente ?? null}
-              roundNumber={view?.roundNumber || 0}
-              onChanged={async () => {
-                await tourApi.refresh();
-                await onReloadGame?.();
-                setRefreshKey((k) => k + 1);
-              }}
-              showFailure={showFailure}
-            />
-          </div>
+        {/* Sablier et tablettes sur une même ligne : le bandeau reste court, les demandes
+            et les équipes montent d'autant. */}
+        <div className="gl-tour-screen__outils">
           {surface === 'tableau' && round?.phase === 'jeu' ? (
             sablierActif ? (
               <GLTourSablier
@@ -438,21 +408,49 @@ export function GLTourScreen({
               />
             )
           ) : null}
-          {sablierSonne && round?.phase === 'jeu' && surface !== 'tableau' ? (
-            <p className="gl-tour-sablier-alerte" role="status" data-testid="gl-sablier-alerte">
-              Le sablier a sonné : c’est le moment de passer au souffle.{' '}
-              <GLButton
-                type="button"
-                size="sm"
-                onClick={() => {
-                  souffleRef.current?.scrollIntoView?.({ block: 'center' });
-                  souffleRef.current?.querySelector?.('button, select')?.focus?.();
-                }}
-              >
-                Passer au souffle
-              </GLButton>
-            </p>
+          {surface !== 'tableau' ? (
+            <GLClassLinkPanel
+              game={game}
+              teams={teams}
+              refreshKey={`${refreshKey}:${tenir?.appareilsEnAttente || 0}`}
+            />
           ) : null}
+        </div>
+        {sablierSonne && round?.phase === 'jeu' && surface !== 'tableau' ? (
+          <p className="gl-tour-sablier-alerte" role="status" data-testid="gl-sablier-alerte">
+            Le sablier a sonné : c’est le moment de passer au souffle.{' '}
+            <GLButton
+              type="button"
+              size="sm"
+              onClick={() => {
+                souffleRef.current?.scrollIntoView?.({ block: 'center' });
+                souffleRef.current?.querySelector?.('button, select')?.focus?.();
+              }}
+            >
+              Passer au souffle
+            </GLButton>
+          </p>
+        ) : null}
+      </header>
+
+      <div className="gl-tour-screen__layout">
+        <main className="gl-tour-screen__main">
+          <div id="gl-demandes">
+            <GLDemandesPanel
+              game={game}
+              teams={teams}
+              tourApi={tourApi}
+              refreshKey={refreshKey}
+              total={view?.demandesEnAttente ?? null}
+              roundNumber={view?.roundNumber || 0}
+              onChanged={async () => {
+                await tourApi.refresh();
+                await onReloadGame?.();
+                setRefreshKey((k) => k + 1);
+              }}
+              showFailure={showFailure}
+            />
+          </div>
           <div className="gl-tour-teams">
             {orderedTeams.map((team) => (
               <TeamCard
@@ -580,6 +578,39 @@ export function GLTourScreen({
               voileFerme={voileFerme}
               disabled
             />
+          ) : null}
+
+          <GLOluBulle line={olu.line} speakerName={olu.speakerName} frozen={olu.frozen} />
+          {round?.oluErreur ? (
+            <section className="gl-gameplay-block gl-tour-olu" data-testid="gl-tour-olu">
+              <p className="gl-tour-olu__phrase">Olu : « {round.oluErreur.texte} »</p>
+              {round.oluCorrigeTeamId == null && round.phase !== 'clos' ? (
+                <>
+                  <h3 id="gl-tour-olu-titre">Qui a trouvé l’erreur d’Olu ?</h3>
+                  <div
+                    className="gl-inline-actions"
+                    role="group"
+                    aria-labelledby="gl-tour-olu-titre"
+                  >
+                    {orderedTeams.map((t) => (
+                      <GLButton
+                        key={t.id}
+                        type="button"
+                        variant="secondary"
+                        disabled={tourApi.busy}
+                        onClick={() => act(() => tourApi.oluCorrige(t.id))}
+                      >
+                        {t.name}
+                      </GLButton>
+                    ))}
+                  </div>
+                </>
+              ) : round.oluErreur.correction ? (
+                <p className="gl-hint">
+                  <em>{round.oluErreur.correction}</em>
+                </p>
+              ) : null}
+            </section>
           ) : null}
 
           {round ? (

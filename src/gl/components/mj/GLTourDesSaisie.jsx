@@ -5,6 +5,9 @@ import { GLButton } from '../ui/GLButton.jsx';
  * Saisie des faces de dés physiques (`count` dés de 1 à 6) ou tirage serveur, et avance libre
  * du prof (1–12 cases, motif obligatoire). Composant feuille : `onLancer(body)` renvoie la
  * promesse de l'action.
+ *
+ * L'avance libre est une correction, pas un geste du tour : elle attend derrière « Corriger la
+ * position… » (écrans de séance, K6) au lieu d'occuper chaque carte d'équipe en permanence.
  */
 export function GLTourDesSaisie({
   count = 2,
@@ -16,6 +19,7 @@ export function GLTourDesSaisie({
   const [faces, setFaces] = useState(() => Array.from({ length: count }, () => 1));
   const [cases, setCases] = useState(1);
   const [motif, setMotif] = useState('');
+  const [libreOuvert, setLibreOuvert] = useState(false);
 
   return (
     <div className="gl-tour-des" data-testid="gl-tour-des">
@@ -55,12 +59,32 @@ export function GLTourDesSaisie({
           Lancer {count} dés
         </GLButton>
       )}
-      {allowLibre ? (
+      {allowLibre && !libreOuvert ? (
+        <GLButton
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="gl-tour-des__corriger"
+          aria-expanded="false"
+          disabled={disabled}
+          data-testid="gl-tour-corriger-position"
+          onClick={() => setLibreOuvert(true)}
+        >
+          Corriger la position…
+        </GLButton>
+      ) : null}
+      {allowLibre && libreOuvert ? (
         <form
           className="gl-inline-actions gl-tour-des__libre"
-          onSubmit={(e) => {
+          data-testid="gl-tour-des-libre"
+          onSubmit={async (e) => {
             e.preventDefault();
-            onLancer?.({ mode: 'libre', cases: Number(cases), motif });
+            // Correction faite : le formulaire se referme. Refusée, il garde la saisie.
+            const fait = await onLancer?.({ mode: 'libre', cases: Number(cases), motif });
+            if (fait) {
+              setLibreOuvert(false);
+              setMotif('');
+            }
           }}
         >
           <label>
@@ -88,6 +112,16 @@ export function GLTourDesSaisie({
             disabled={disabled || motif.trim().length < 3}
           >
             Avancer
+          </GLButton>
+          <GLButton
+            type="button"
+            variant="ghost"
+            onClick={() => {
+              setLibreOuvert(false);
+              setMotif('');
+            }}
+          >
+            Annuler
           </GLButton>
         </form>
       ) : null}

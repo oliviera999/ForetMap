@@ -412,9 +412,10 @@ main, la relecture des pages écrites et des chimères s'y saisissent aussi.
 En hybride et sur tablette, il n'y a plus d'équipe « active » : les quatre équipes jouent en
 parallèle. Au tableau, rien ne change.
 
-- **Une tablette par équipe, sans compte.** Sur l'écran « Jouer le tour », le bouton **« QR de
-  la classe »** affiche une feuille à imprimer une fois pour l'année : un QR et un code de huit
-  caractères. L'équipe scanne le QR avec l'appareil photo de la tablette (ou tape le code depuis
+- **Une tablette par équipe, sans compte.** Sur l'écran « Jouer le tour », touchez la ligne des
+  tablettes (« Aucune tablette connectée », « 4 tablettes connectées ✓ ») pour la déplier : le
+  bouton **« QR de la classe »** affiche une feuille à imprimer une fois pour l'année : un QR et
+  un code de huit caractères. L'équipe scanne le QR avec l'appareil photo de la tablette (ou tape le code depuis
   « J'ai le code de la classe »), puis touche sa mascotte. **La tablette demande alors à
   entrer : touchez « Tout accepter »** en début de séance (ou « Accepter » / « Refuser », une
   par une). Une demande sans réponse s'éteint seule au bout de deux minutes. La tablette joue
@@ -700,6 +701,49 @@ qu'elle a à faire maintenant) et **Olu**. Sur une tablette, tout tient à l'éc
   liste des boutons, grisés, au-dessus du plateau. Si vous touchez « Tout au tableau » en pleine
   séance, les tablettes repassent donc à cet ancien écran, et reviennent au nouveau quand vous
   rendez la main.
+
+### Écrans de séance : la console, en mode séance (20 novembre 2026)
+
+Tant que l'écran **« Jouer le tour »** est ouvert, la console se range pour laisser la place au
+tour. Rien ne change dans les règles ni dans ce que font les boutons.
+
+- **La barre du haut tient sur une ligne** : le nom de la partie, le tour et sa phase (« Tour
+  2 — À vous de jouer »), et un bouton **« Menu »**. Les onglets, « Mon profil » et
+  « Déconnexion » sont derrière « Menu » ; « Réduire le menu » revient à une ligne. En quittant
+  l'écran du tour (« Quitter l'écran du tour », ou un autre onglet), la barre redevient comme
+  avant.
+- **L'ordre de l'écran** : d'abord le bandeau du tour (la phase, les boutons du tour, le
+  sablier, « Lien de projection », « Quitter l'écran du tour », et les tablettes en une ligne),
+  puis **les demandes**, puis les équipes, puis le reste (dés à valider, jets en attente, le
+  voile, Olu, absences, Team Spirit).
+- **Les tablettes en une ligne.** « 4 tablettes connectées ✓ » quand chaque équipe a la sienne,
+  « 3 tablettes connectées · 3 équipes sur 4 » sinon, « Aucune tablette connectée » en début de
+  séance. Touchez la ligne pour la déplier : le « QR de la classe », et une ligne par tablette
+  avec « Déconnecter ». **Quand une tablette attend d'entrer, la ligne dit « 1 tablette
+  attend » et se déplie toute seule**, avec « Tout accepter », « Accepter » et « Refuser » ;
+  elle se replie une fois la demande traitée.
+- **Les cartes d'équipe ne montrent plus que l'essentiel** : la case, les dés, les fouilles, la
+  réserve, et le jet. L'avance libre (faire avancer une équipe de 1 à 12 cases) est derrière le
+  bouton **« Corriger la position… »** ; le motif reste obligatoire, « Annuler » referme sans
+  rien envoyer.
+- **L'erreur d'Olu** : sous la phrase d'Olu, la question **« Qui a trouvé l'erreur d'Olu ? »**
+  et un bouton au nom de chaque équipe (ils s'appelaient « corrigé par … »). Le bloc est
+  maintenant sous les équipes, avec la bulle d'Olu.
+- **Quand le réseau tombe**, la console le dit en français (« Pas de réseau pour l'instant : le
+  serveur ne répond pas… ») au lieu d'un message technique en anglais. Sur une tablette
+  d'équipe, la phrase vouvoie l'équipe (« … prévenez le prof. ») ; sur le compte d'un
+  élève, elle le tutoie. Le numéro de requête d'une erreur n'apparaît plus chez les élèves ;
+  dans la console, il est écrit en petit après le message : donnez-le si vous signalez un
+  problème.
+- **Juste après une mise à jour de l'application**, une section de la console qui ne peut plus
+  se charger ne reste plus sur « Chargement de la section… » : elle réessaie deux fois, puis
+  affiche « L'application vient d'être mise à jour » et un bouton **« Recharger »**. Si c'est
+  le réseau qui est coupé, elle le dit (« Pas de réseau pour l'instant. ») : rechargez la page
+  quand il est revenu.
+- **Visites guidées** : au dernier pas il n'y a plus qu'un bouton, « Terminer » (« Fermer »
+  faisait la même chose) ; une visite d'une seule étape n'affiche plus « Étape 1 / 1 » ni son
+  point de progression. Dans G&L, les boutons de la visite ont pris le style des autres boutons
+  du jeu. Ces deux retouches valent aussi pour les visites guidées de ForêtMap.
 
 ## Pour aller plus loin
 
