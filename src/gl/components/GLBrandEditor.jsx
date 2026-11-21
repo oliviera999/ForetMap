@@ -64,8 +64,14 @@ export function GLBrandEditor({ value, onChange, onStatus, disabled = false }) {
     }
     try {
       const mediaData = await compressImageWithPreset(file, 'glChapter');
-      const saved = await apiGL('/api/gl/admin/media-library', 'POST', { media_data: mediaData });
-      const url = String(saved?.url || '').trim();
+      // `usage: 'brand'` : le serveur rend aussi une variante WebP allégée (`optimized`),
+      // et c'est elle que l'emplacement retient ; l'original reste dans la médiathèque.
+      const saved = await apiGL('/api/gl/admin/media-library', 'POST', {
+        media_data: mediaData,
+        usage: 'brand',
+      });
+      const optimizedUrl = String(saved?.optimized?.url || '').trim();
+      const url = optimizedUrl || String(saved?.url || '').trim();
       if (!url) throw new Error('URL media manquante apres import');
       onChange?.((prev) => ({
         ...prev,
@@ -77,7 +83,11 @@ export function GLBrandEditor({ value, onChange, onStatus, disabled = false }) {
           },
         },
       }));
-      onStatus?.('Image de charte importee.');
+      onStatus?.(
+        optimizedUrl
+          ? 'Image de charte importée, en version allégée pour l’accueil.'
+          : 'Image de charte importee.',
+      );
     } catch (err) {
       onStatus?.(err.message || 'Import impossible', true);
     }
