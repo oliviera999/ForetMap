@@ -9,6 +9,32 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Exploitation — diagnostic des arrêts sans trace du serveur (chantier CPT, flux F6)
+
+En production, le journal des démarrages comptait 447 arrêts « sans trace » pour 542
+démarrages en 31 jours, sans que la mémoire l'explique. Ce lot outille le diagnostic ; il ne
+change rien d'autre au comportement du serveur.
+
+- **Signaux tracés** : en plus de `SIGTERM` et `SIGINT`, `SIGHUP`, `SIGQUIT`, `SIGXCPU`,
+  `SIGXFSZ`, `SIGALRM`, `SIGVTALRM`, `SIGPWR` (et `SIGUSR2` en production seulement)
+  déclenchent le même arrêt maîtrisé, leur nom écrit comme motif. `SIGUSR1` (inspecteur Node)
+  et `SIGUSR2` en développement (nodemon) ne sont pas touchés.
+- **Sortie sans signal tracée** : Passenger arrête une application Node en fermant son entrée
+  standard, et son chargeur appelle `process.exit(0)` sans signal. Cette sortie laisse un
+  arrêt de motif `passenger-stdin` ; un autre `process.exit()` non tracé, le motif `exit`.
+- **Battement** : dernière minute de vie connue, une seule valeur réécrite chaque minute
+  (`logs/boot-journal.heartbeat.json`, `FORETMAP_BOOT_JOURNAL_HEARTBEAT_MS`). Le démarrage
+  suivant date la mort (`lastAliveAt`), mesure la durée de vie et le poids du processus
+  disparu, et dit si ce processus vivait encore (`previousPidAlive` : second processus).
+- **Lecture** (`GET /api/admin/diagnostics`, `foretmap_diagnostics`, rapport de santé,
+  `npm run prod:uptime-report`) : `hardKillsByHour` par heure de la mort quand elle est
+  connue (`hardKillsByHourBasis`), `stopsByReason`, `signalStops`, `hardKillLifetimeMs`,
+  `hardKillRssMb`, `hardKills[]`. Nouveau verdict `signal_stops`.
+- **Conseil corrigé** : il n'affirme plus une limite de mémoire quand le poids relevé avant
+  l'arrêt est bas ou inconnu, et distingue « signal reçu » de « tué sans signal ».
+- Tests : `tests/boot-journal-heartbeat.test.js`. Doc : `docs/EXPLOITATION.md` (« Arrêts sans
+  trace »), `docs/API.md`, `docs/MCP.md`.
+
 ### Visite — entrée visiteur et fiche de lieu (chantier UI/UX, lots 1 et 3)
 
 Constats U3, U4, U6, U8, U9 et U11 de `docs/AUDIT_UI_UX_2026-11-19.md`, et point 3 du lot 2.

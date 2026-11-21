@@ -183,7 +183,8 @@ function createAdminOpsRouter({ gracefulShutdown, getDatabaseInitState = () => n
       /**
        * Historique des redémarrages (journal persistant `logs/boot-journal.ndjson`) :
        * `counts` par nature (déploiement / arrêt hébergeur / crash / process tué), `verdict`
-       * et `advice`. C'est ce champ qui répond à « pourquoi le service est-il indisponible ? »
+       * et `advice` ; `stopsByReason` (signaux reçus, `passenger-stdin`), `hardKillsByHour`
+       * (heure de la mort quand le battement la donne), durée de vie et poids avant l'arrêt. C'est ce champ qui répond à « pourquoi le service est-il indisponible ? »
        * — voir `lib/bootJournal.js` et `docs/EXPLOITATION.md`.
        */
       restarts: summarizeBootJournal({ windowHours: restartsWindowHours }),
