@@ -29,6 +29,96 @@ export const AVG_CHAR_WIDTH_RATIO = 0.55;
 /** Hauteur de ligne des noms (CSS `line-height: 1.2`), en fraction de la taille de police. */
 export const LABEL_LINE_HEIGHT_RATIO = 1.2;
 
+/**
+ * Largeur des glyphes par classe, en fraction de la taille de police — relevée au canvas sur
+ * la police des étiquettes (DM Sans, graisse 700) le 21/11/2026. Une moyenne unique
+ * (`AVG_CHAR_WIDTH_RATIO`) suffit pour décider d'un masquage, pas pour savoir si un **mot**
+ * tient sur une ligne : « Aromatiques » mesure 142 px à 22,4 px, la moyenne en annonce 136, et
+ * le mot se coupait au milieu (audit UI/UX du 19/11/2026, U5).
+ */
+const GLYPH_WIDTH_CLASSES = Object.freeze([
+  { re: /[iljIîïìíÎÏ'’.,:;!|]/u, ratio: 0.27 },
+  { re: /[frt1()[\]³²¹]/u, ratio: 0.43 },
+  { re: /[sz]/u, ratio: 0.53 },
+  { re: /[m]/u, ratio: 0.94 },
+  { re: /[w]/u, ratio: 0.82 },
+  { re: /[MW—]/u, ratio: 1.02 },
+  { re: /[A-ZÀ-ÖØ-Þ]/u, ratio: 0.72 },
+  { re: /[0-9]/u, ratio: 0.65 },
+  { re: /\s/u, ratio: 0.23 },
+  { re: /\p{Extended_Pictographic}/u, ratio: 1.2 },
+]);
+
+/** Classe par défaut (minuscules courantes, lettres accentuées, signes). */
+const GLYPH_DEFAULT_RATIO = 0.62;
+
+/** Marge de sûreté sur une largeur de mot estimée : mieux vaut un nom un peu large qu'un mot coupé. */
+export const TEXT_WIDTH_SAFETY_RATIO = 1.04;
+
+/**
+ * Largeur estimée d'un texte (px écran), glyphe par glyphe, marge de sûreté comprise. Sert à
+ * savoir si un mot tient sur une ligne ; les boîtes de collision gardent leur estimation
+ * moyenne (`estimateLabelBox`).
+ * @param {string} text
+ * @param {number} fontSizePx
+ * @returns {number}
+ */
+export function estimateTextWidthPx(text, fontSizePx) {
+  const size = Math.max(toFinite(fontSizePx, 12), 1);
+  let em = 0;
+  for (const ch of String(text ?? '')) {
+    if (/[️‍]/u.test(ch)) continue;
+    const cls = GLYPH_WIDTH_CLASSES.find((c) => c.re.test(ch));
+    em += cls ? cls.ratio : GLYPH_DEFAULT_RATIO;
+  }
+  return em * size * TEXT_WIDTH_SAFETY_RATIO;
+}
+
+/**
+ * Largeur minimale pour poser `text` sur au plus `maxLines` lignes **sans couper de mot**
+ * (retour à la ligne aux espaces seulement, comme le navigateur sans `overflow-wrap`). Le mot
+ * le plus long est un plancher : en dessous, aucune largeur ne suffit.
+ * @param {string} text
+ * @param {number} fontSizePx
+ * @param {number} [maxLines=1]
+ * @returns {number} px écran (0 pour un texte vide).
+ */
+export function unbrokenTextWidthPx(text, fontSizePx, maxLines = 1) {
+  const words = String(text ?? '')
+    .split(/\s+/u)
+    .filter(Boolean);
+  if (!words.length) return 0;
+  const widths = words.map((w) => estimateTextWidthPx(w, fontSizePx));
+  const space = estimateTextWidthPx(' ', fontSizePx);
+  const longest = Math.max(...widths);
+  const total = widths.reduce((s, w) => s + w, 0) + space * (words.length - 1);
+  const lines = Math.max(Math.round(toFinite(maxLines, 1)), 1);
+  if (lines === 1 || words.length === 1) return lines === 1 ? total : longest;
+  /** Lignes nécessaires à la largeur `limit` (remplissage glouton, celui du navigateur). */
+  const linesAt = (limit) => {
+    let count = 1;
+    let line = widths[0];
+    for (let i = 1; i < widths.length; i += 1) {
+      if (line + space + widths[i] <= limit) line += space + widths[i];
+      else {
+        count += 1;
+        line = widths[i];
+      }
+    }
+    return count;
+  };
+  let lo = longest;
+  let hi = total;
+  if (linesAt(lo) <= lines) return lo;
+  // Recherche dichotomique au demi-pixel : la plus petite largeur qui tient en `lines` lignes.
+  while (hi - lo > 0.5) {
+    const mid = (lo + hi) / 2;
+    if (linesAt(mid) <= lines) hi = mid;
+    else lo = mid;
+  }
+  return hi;
+}
+
 function toFinite(value, fallback = 0) {
   const n = Number(value);
   return Number.isFinite(n) ? n : fallback;
@@ -52,9 +142,12 @@ function toFinite(value, fallback = 0) {
  * nom de zone rendu sous son emoji, dont la hauteur (une ou deux lignes) ne doit pas déplacer
  * le haut. `extraWidthPx` ajoute un habillage horizontal (pilule du lieu sélectionné).
  *
+ * `naturalWidthPx` remplace l'estimation moyenne de la largeur sur une ligne quand le produit
+ * en a une meilleure (`estimateTextWidthPx`, noms de zone coupés aux espaces).
+ *
  * @param {{ x: number, y: number, text: string, fontSizePx: number, padding?: number,
  *   maxWidthPx?: number, maxLines?: number, anchorY?: 'center'|'top',
- *   extraWidthPx?: number }} label
+ *   extraWidthPx?: number, naturalWidthPx?: number }} label
  * @returns {{ left: number, top: number, right: number, bottom: number }}
  */
 export function estimateLabelBox({
@@ -67,11 +160,14 @@ export function estimateLabelBox({
   maxLines = 1,
   anchorY = 'center',
   extraWidthPx = 0,
+  naturalWidthPx = null,
 }) {
   const size = Math.max(toFinite(fontSizePx, 12), 1);
   const chars = String(text ?? '').length;
   const cap = Number(maxWidthPx) > 0 ? Number(maxWidthPx) : Number.POSITIVE_INFINITY;
-  const natural = Math.max(chars * size * AVG_CHAR_WIDTH_RATIO, size);
+  const estimated =
+    Number(naturalWidthPx) > 0 ? Number(naturalWidthPx) : chars * size * AVG_CHAR_WIDTH_RATIO;
+  const natural = Math.max(estimated, size);
   const width = Math.min(natural, cap) + Math.max(toFinite(extraWidthPx), 0);
   const lines = Math.min(
     Math.max(Math.round(toFinite(maxLines, 1)), 1),

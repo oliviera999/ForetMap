@@ -5,8 +5,11 @@ import {
   boxesOverlap,
   estimateGlyphBox,
   estimateLabelBox,
+  estimateTextWidthPx,
   orderLabelCandidates,
   resolveLabelCollisions,
+  TEXT_WIDTH_SAFETY_RATIO,
+  unbrokenTextWidthPx,
 } from '../../src/shared/pct-map/mapOverlayLabelCollision.js';
 
 describe('orderLabelCandidates', () => {
@@ -148,5 +151,62 @@ describe('resolveLabelCollisions', () => {
   test('entrées vides ou sans boîte : ignorées', () => {
     expect(resolveLabelCollisions(null).size).toBe(0);
     expect(resolveLabelCollisions([{ id: 'x' }, null]).size).toBe(0);
+  });
+});
+
+describe('estimateTextWidthPx / unbrokenTextWidthPx — mots jamais coupés (U5)', () => {
+  // Largeurs relevées au canvas sur DM Sans 700 à 22,4 px (21/11/2026) : l'estimation doit
+  // les couvrir, sans quoi le mot se coupe au milieu (« Aromati / ques »).
+  test.each([
+    ['Aromatiques', 142],
+    ['Bananeraie', 124],
+    ['Jardinières', 123],
+    ['Compost', 101],
+    ['Manguier', 103],
+    ['Ruches', 81],
+  ])('« %s » : estimation ≥ largeur réelle (%i px)', (word, real) => {
+    const est = estimateTextWidthPx(word, 22.4);
+    expect(est).toBeGreaterThanOrEqual(real);
+    // …sans exagérer : moins de 15 % au-dessus.
+    expect(est).toBeLessThan(real * 1.15);
+  });
+
+  test('marge de sûreté et emoji pleine largeur', () => {
+    expect(TEXT_WIDTH_SAFETY_RATIO).toBeGreaterThan(1);
+    expect(estimateTextWidthPx('', 12)).toBe(0);
+    expect(estimateTextWidthPx('🌳', 20)).toBeGreaterThan(estimateTextWidthPx('a', 20));
+  });
+
+  test('une ligne : largeur du texte entier ; plusieurs : jamais sous le mot le plus long', () => {
+    const fs = 20;
+    const total = estimateTextWidthPx('Stand des aromatiques', fs);
+    const longest = estimateTextWidthPx('aromatiques', fs);
+    expect(unbrokenTextWidthPx('Stand des aromatiques', fs, 1)).toBeCloseTo(total, 6);
+    const two = unbrokenTextWidthPx('Stand des aromatiques', fs, 2);
+    expect(two).toBeGreaterThanOrEqual(longest);
+    expect(two).toBeLessThan(total);
+    // Mot seul : sa largeur, quel que soit le nombre de lignes.
+    expect(unbrokenTextWidthPx('Phragmitaie', fs, 2)).toBeCloseTo(
+      estimateTextWidthPx('Phragmitaie', fs),
+      6,
+    );
+    expect(unbrokenTextWidthPx('   ', fs, 2)).toBe(0);
+  });
+
+  test('deux lignes équilibrées : « Potager zone 3 » ne laisse pas « 3 » seul', () => {
+    const fs = 20;
+    const w = unbrokenTextWidthPx('Potager zone 3', fs, 2);
+    // Tient en deux lignes « Potager » / « zone 3 » : pas besoin de la ligne entière.
+    expect(w).toBeLessThan(estimateTextWidthPx('Potager zone', fs));
+    expect(w).toBeGreaterThanOrEqual(estimateTextWidthPx('Potager', fs));
+  });
+
+  test('naturalWidthPx remplace l’estimation moyenne', () => {
+    const base = { x: 0, y: 0, text: 'Aromatiques', fontSizePx: 20, padding: 0 };
+    const box = estimateLabelBox({ ...base, naturalWidthPx: 150 });
+    expect(box.right - box.left).toBeCloseTo(150, 6);
+    const capped = estimateLabelBox({ ...base, naturalWidthPx: 150, maxWidthPx: 100, maxLines: 2 });
+    expect(capped.right - capped.left).toBeCloseTo(100, 6);
+    expect(capped.bottom - capped.top).toBeCloseTo(2 * 20 * 1.2, 6);
   });
 });

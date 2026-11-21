@@ -25,12 +25,15 @@ import {
   MARKER_LABEL_OFFSET_PX,
   buildZoneLabelSpecs,
   contentAspect,
+  labelBoxesFromScreen,
+  labelFrameFromView,
   labelKey,
   markerObstaclesFrom,
   resolveLabelLayout,
   resolveOverlayLabelSizesPx,
   zoneLabelAnchorPct,
-  zoneLabelMaxWidthPx,
+  zoneLabelUnbrokenWidthPx,
+  markerLabelWidthPx,
   zoneLabelSideExtraWidthPx,
 } from './pctMapLabels.js';
 import { PctPlaceFocusFx } from './PctPlaceFocusFx.jsx';
@@ -123,6 +126,10 @@ const POSITION_ICONS = Object.freeze({
  * @param {import('react').ReactNode} [props.emptySlot]
  * @param {(viewport: object) => void} [props.onViewportChange]
  * @param {boolean} [props.gesturesEnabled=true]
+ * @param {boolean} [props.hideNamesUnderMarkers=false] un nom qui tomberait sur une épingle ou
+ *   une pastille de groupe attend le zoom au lieu de s'y poser (`obstaclesHideNames`).
+ * @param {number} [props.contentInsetPx=0] marge intérieure (px) entre le cadre et le plan au
+ *   cadrage d'ouverture (`usePctMapViewport`) : les noms posés près d'un bord y trouvent place.
  * @param {object|null} [props.fitExtraStyle]
  * @param {() => void} [props.onMapImageError]
  * @param {(event: object) => void} [props.onBackgroundClick]
@@ -192,6 +199,8 @@ export function SharedMapStage({
   onBackgroundClick = null,
   /** Vue restituée au montage (retour d'un mode d'édition) au lieu de la carte entière. */
   initialView = null,
+  contentInsetPx = 0,
+  hideNamesUnderMarkers = false,
   /**
    * Centrer la carte sur le lieu sélectionné. À `false` quand le produit cadre lui-même le lieu
    * avant d'ouvrir sa fiche (`usePlaceFocusSequence`) : sinon la carte bougerait deux fois.
@@ -224,6 +233,7 @@ export function SharedMapStage({
     onResize: 'clamp',
     resetKey: String(map?.id || ''),
     initialView,
+    contentInsetPx,
     isGestureTarget: gestureIgnoreSelector,
     // Ce qui recouvre le bas de l'écran (feuille basse, barre d'étape) : la carte peut y
     // glisser, sinon un lieu du bas du plan ne peut jamais monter dans la bande visible
@@ -791,6 +801,54 @@ export function SharedMapStage({
       }),
     [clusteringEnabled, clusters, visibleMarkers, labelEmojiPx],
   );
+  /** Cadre visible dans le repère des étiquettes (vue posée : recalculé une fois par geste). */
+  const labelFrame = useMemo(
+    () => labelFrameFromView(committed, fitRect, stageSize),
+    [committed, fitRect, stageSize],
+  );
+  /**
+   * Commandes posées sur la carte (boutons, cartouche d'échelle), mesurées en px du cadre : sur
+   * téléphone, les boutons de 44 px recouvraient des noms (audit UI/UX du 19/11/2026, U5). Leur
+   * place ne dépend que du cadre et des commandes affichées, pas du zoom.
+   */
+  const [chromeScreenBoxes, setChromeScreenBoxes] = useState([]);
+  const chromeKey = `${stageSize?.w}x${stageSize?.h}|${scaleCompassEffective ? 1 : 0}|${
+    position?.available ? 1 : 0
+  }|${position?.active ? 1 : 0}|${headingUpAllowed ? 1 : 0}`;
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || typeof el.getBoundingClientRect !== 'function') return;
+    const base = el.getBoundingClientRect();
+    const next = [];
+    for (const node of el.querySelectorAll(
+      ':scope > [data-map-chrome] > *, :scope > .map-scale-compass',
+    )) {
+      const r = node.getBoundingClientRect();
+      if (!(r.width > 0) || !(r.height > 0)) continue;
+      next.push({
+        left: Math.round(r.left - base.left),
+        top: Math.round(r.top - base.top),
+        right: Math.round(r.right - base.left),
+        bottom: Math.round(r.bottom - base.top),
+      });
+    }
+    setChromeScreenBoxes((prev) =>
+      prev.length === next.length &&
+      prev.every(
+        (b, i) =>
+          b.left === next[i].left &&
+          b.top === next[i].top &&
+          b.right === next[i].right &&
+          b.bottom === next[i].bottom,
+      )
+        ? prev
+        : next,
+    );
+  }, [chromeKey, containerRef]);
+  const labelChromeBoxes = useMemo(
+    () => labelBoxesFromScreen(chromeScreenBoxes, committed, fitRect),
+    [chromeScreenBoxes, committed, fitRect],
+  );
   const labelLayout = useMemo(
     () =>
       resolveLabelLayout({
@@ -805,12 +863,18 @@ export function SharedMapStage({
         emojiSizePx: labelEmojiPx,
         nameGapPx: labelNameGapPx,
         includeZoneNames: showLabels,
+        // Noms repliés aux espaces, jamais au milieu d'un mot (U5) : même largeur qu'au rendu.
+        wrapNamesAtSpaces: true,
         // Étiquettes contre-tournées (N1) : leurs boîtes sont alignées sur l'écran, leurs
         // ancres non. Sans l'angle, deux noms qui ne se gênent pas au nord se recouvrent
         // dès que l'on pivote.
         orientationDeg: mapOrientationDeg,
         orientOriginPct: orientPivot,
         obstacles: markerObstacles,
+        obstaclesHideNames: hideNamesUnderMarkers,
+        chromeBoxes: labelChromeBoxes,
+        // Cadre visible : un nom qui en sortirait prend un autre côté ou attend le zoom (U5).
+        frame: labelFrame,
       }),
     [
       zoneLabelSpecs,
@@ -828,6 +892,9 @@ export function SharedMapStage({
       orientPivot?.xp,
       orientPivot?.yp,
       markerObstacles,
+      hideNamesUnderMarkers,
+      labelChromeBoxes,
+      labelFrame,
     ],
   );
   const visibleLabelKeys = labelLayout.visible;
@@ -914,8 +981,9 @@ export function SharedMapStage({
             name,
             nameSide,
             maxWidthPx:
-              zoneLabelMaxWidthPx(spec, fitRect.width, committed.s) +
-              zoneLabelSideExtraWidthPx(nameSide, labelEmojiPx, labelNameGapPx),
+              zoneLabelUnbrokenWidthPx(spec, fitRect.width, committed.s, {
+                fontSizePx: labelFontPx,
+              }) + zoneLabelSideExtraWidthPx(nameSide, labelEmojiPx, labelNameGapPx),
             active: selectedZoneId != null && String(selectedZoneId) === spec.id,
             highlight: spec.zone?.map_highlight === true,
             highlightTone: spec.zone?.map_highlight === true ? spec.zone?.map_highlight_tone : '',
@@ -931,6 +999,7 @@ export function SharedMapStage({
       fitRect.width,
       committed.s,
       selectedZoneId,
+      labelFontPx,
       labelEmojiPx,
       labelNameGapPx,
       highlightBadge,
@@ -947,6 +1016,12 @@ export function SharedMapStage({
     [showLabels, visibleLabelKeys],
   );
 
+  /** Largeur du nom d'un repère : celle que le moteur a réservée (`markerLabelWidthPx`). */
+  const markerLabelWidthOf = useCallback(
+    (_marker, label) => markerLabelWidthPx(label, labelFontPx),
+    [labelFontPx],
+  );
+
   const renderMarker = useCallback(
     (marker) => (
       <PctMarkerButton
@@ -958,6 +1033,7 @@ export function SharedMapStage({
         statusDots={markerStatusDotsOf(marker)}
         onMarkerClick={onMarkerClick}
         labelOf={markerLabelOf}
+        labelWidthOf={markerLabelWidthOf}
         highlightBadge={highlightBadge}
         highlightLabel={highlightLabel}
       />
@@ -966,6 +1042,7 @@ export function SharedMapStage({
       onMarkerClick,
       selectedMarkerId,
       markerLabelOf,
+      markerLabelWidthOf,
       getIsSeen,
       markerHaloOf,
       markerStatusDotsOf,
@@ -975,6 +1052,21 @@ export function SharedMapStage({
   );
 
   const tid = (suffix) => `${testIdPrefix}-${suffix}`;
+
+  /**
+   * Forme du plan, exposée au produit (`--fm-pct-content-aspect`, `--fm-pct-content-ratio`) :
+   * la Visite y taille son cadre, sans bande vide autour d'un plan large sur téléphone (audit
+   * UI/UX du 19/11/2026, U5). Rien tant que l'image n'est pas mesurée.
+   */
+  const imgW = Number(imgSize?.w) || 0;
+  const imgH = Number(imgSize?.h) || 0;
+  const contentAspectStyle =
+    imgW > 1 && imgH > 1
+      ? {
+          '--fm-pct-content-aspect': `${imgW} / ${imgH}`,
+          '--fm-pct-content-ratio': String(Math.round((imgW / imgH) * 1000) / 1000),
+        }
+      : null;
 
   // Plan expose `geo_anchors` ; carte / Visite exposent `georef` (même charge utile).
   const mapGeoref = map?.geo_anchors || map?.georef || null;
@@ -986,14 +1078,14 @@ export function SharedMapStage({
     <div
       className={`${className}${hasHighlight ? ' has-highlight' : ''}`}
       ref={containerRef}
-      style={{ touchAction }}
+      style={{ touchAction, ...contentAspectStyle }}
       onClick={handleBackgroundClick}
     >
       {/* Commandes avant le calque des lieux dans le DOM : posées en absolu avec leur propre
           `z-index`, elles restent au-dessus ; mais au clavier, elles venaient après les 44
           formes de la carte — il fallait traverser tout le plan pour atteindre « Voir tout le
           plan » (`docs/AUDIT_PLAN_NAVIGATION_UX_2026-09-16.md` N15). */}
-      <div className={controlsClassName}>
+      <div className={controlsClassName} data-map-chrome="">
         {position?.available ? (
           <MapActionButton
             tone={position.following ? 'primary' : 'display'}
@@ -1150,6 +1242,7 @@ export function SharedMapStage({
               getDiscoverHalo={markerHaloOf}
               getStatusDots={markerStatusDotsOf}
               labelOf={markerLabelOf}
+              labelWidthOf={markerLabelWidthOf}
               highlightBadge={highlightBadge}
               highlightLabel={highlightLabel}
             />

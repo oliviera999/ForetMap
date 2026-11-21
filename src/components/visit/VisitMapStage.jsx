@@ -9,6 +9,13 @@ import { DISCOVER_HALO_MS, pickDiscoverHaloKeys } from '../../utils/visitDiscove
 import { itemSeenKey } from '../../utils/visitMediaGallery.js';
 
 /**
+ * Marge intérieure du plan au cadrage d'ouverture (px) : au moins une demi-largeur d'emoji, pour
+ * que les lieux posés en lisière du plan gardent leur emoji et leur nom dans le cadre (audit
+ * UI/UX du 19/11/2026, U5 : « le haut est rogné »).
+ */
+export const VISIT_MAP_CONTENT_INSET_PX = 20;
+
+/**
  * Sépare l'emoji en tête du nom (catalogue marqueurs Visite + repli grapheme).
  * @param {string} rawName
  * @returns {{ emoji: string, name: string }}
@@ -160,6 +167,10 @@ export function VisitMapStage({
       getIsSeen={getIsSeen}
       getDiscoverHalo={getDiscoverHalo}
       clusteringEnabled={!editMode}
+      // Le plan ne touche plus les bords : les noms posés en lisière restent lisibles (U5).
+      contentInsetPx={VISIT_MAP_CONTENT_INSET_PX}
+      // Aucun nom sous une épingle ou une pastille : il reviendra au zoom (U5).
+      hideNamesUnderMarkers
       applyZoomOnlyCategories={false}
       splitNameEmoji={visitSplitNameEmoji}
       focusPlacePct={visitFocusPlacePct}
