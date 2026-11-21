@@ -28,6 +28,11 @@ import { PlantPhotosEditor } from './PlantPhotosEditor.jsx';
 import { PlantLookalikesEditor } from './PlantLookalikesEditor.jsx';
 import { addFormPhoto } from '../../utils/plantPhotos.js';
 import { IconSave } from '../../shared/icons.jsx';
+import {
+  ENTITY_KIND_DEFAULT,
+  ENTITY_KIND_ENUM,
+  isStudentHiddenEntity,
+} from '../../shared/enums/biodivEnums.js';
 
 /**
  * Formulaire d'édition d'une fiche biodiversité — extrait de `foretmap-views.jsx` (O6).
@@ -70,6 +75,8 @@ function PlantEditForm({
   onUploadPhoto = null,
 }) {
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+  // Nature de la fiche : vide tant qu'elle n'est pas précisée (fiche neuve) → valeur par défaut.
+  const entityKind = form.entity_kind || ENTITY_KIND_DEFAULT;
   // Chaque libellé est ASSOCIÉ à son champ (`htmlFor`/`id`) : au lecteur d'écran, un
   // `<label>` simplement voisin ne nomme rien, et un toucher sur le libellé ne place pas
   // le curseur (audit du 25/09/2026, § 1.4.7). `useId` : deux formulaires peuvent coexister.
@@ -634,6 +641,26 @@ function PlantEditForm({
                   </option>
                 ))}
               </select>
+            </div>
+            <div className="field">
+              <label htmlFor={fieldId('entity_kind')}>Nature de la fiche</label>
+              <select
+                id={fieldId('entity_kind')}
+                value={entityKind}
+                onChange={set('entity_kind')}
+                aria-describedby={fieldId('entity_kind-hint')}
+              >
+                {ENTITY_KIND_ENUM.values.map((kind) => (
+                  <option key={kind} value={kind}>
+                    {ENTITY_KIND_ENUM.labels[kind]}
+                  </option>
+                ))}
+              </select>
+              <small id={fieldId('entity_kind-hint')}>
+                {isStudentHiddenEntity({ entity_kind: entityKind })
+                  ? 'Absente de la liste et de la recherche des élèves ; visible dans le réseau trophique.'
+                  : 'Une ressource non vivante (litière, compost…) n’est pas proposée dans la liste des élèves.'}
+              </small>
             </div>
             <div className="field">
               <label htmlFor={fieldId('is_edible')}>Comestible</label>

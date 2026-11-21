@@ -33,6 +33,42 @@ export const TROPHIC_ROLE_ENUM = defineEnum('TROPHIC_ROLE_ENUM', {
   columns: ['plants.trophic_role'],
 });
 
+/**
+ * Nature d'une fiche du catalogue (migration `plants_entity_kind`). Tout n'y est pas une
+ * espèce : un groupe fonctionnel (plancton), un consortium (lichen, biofilm) et une ressource
+ * non vivante (litière, compost) ont aussi leur fiche, parce que le réseau trophique en a
+ * besoin.
+ */
+export const ENTITY_KIND_ENUM = defineEnum('ENTITY_KIND_ENUM', {
+  values: ['taxon', 'groupe_fonctionnel', 'consortium', 'ressource'],
+  labels: {
+    taxon: 'Espèce ou groupe d’espèces',
+    groupe_fonctionnel: 'Groupe fonctionnel',
+    consortium: 'Association d’êtres vivants',
+    ressource: 'Ressource non vivante',
+  },
+  columns: ['plants.entity_kind'],
+});
+
+/** Nature par défaut d'une fiche (valeur par défaut de la colonne). */
+export const ENTITY_KIND_DEFAULT = 'taxon';
+
+/**
+ * Natures absentes de la liste et de la recherche des **élèves** : une ressource n'est pas un
+ * être vivant. Ces fiches restent dans le réseau trophique, les liens, les clés et la gestion.
+ */
+export const STUDENT_HIDDEN_ENTITY_KINDS = Object.freeze(['ressource']);
+
+/**
+ * La fiche est-elle masquée de la liste et de la recherche des élèves ?
+ * Une fiche sans nature connue (base non migrée, objet partiel) n'est jamais masquée.
+ * @param {{ entity_kind?: string|null }|null|undefined} plant
+ * @returns {boolean}
+ */
+export function isStudentHiddenEntity(plant) {
+  return STUDENT_HIDDEN_ENTITY_KINDS.includes(String(plant?.entity_kind || ''));
+}
+
 /** Cycle de vie. */
 export const LIFE_CYCLE_ENUM = defineEnum('LIFE_CYCLE_ENUM', {
   values: ['annuelle', 'bisannuelle', 'vivace', 'variable'],

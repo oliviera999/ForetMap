@@ -185,6 +185,22 @@ d'organisation documentés.
 | Export (`foretmap_export`) et sauvegarde (`foretmap_ops dump`)                                              | Fichier privé `uploads/mcp-exports/` : lien signé valable **1 h**, fichier **supprimé après 24 h** (à chaque export et par la catégorie de rétention `mcp_exports`)                                                                                                                                    |
 | Lignes d'audit `via: 'mcp'` (`audit_log`, `mcp.privacy_bypass.read`, `mcp_api_call`, `mcp.settings.change`) | Durées du journal d'audit (`docs/reference/exploitation/durees-de-conservation.md`)                                                                                                                                                                                                                    |
 
+**Observations d'espèces et leurs photos** (`species_observations`, `species_observation_photos`,
+fichiers privés `uploads/observations/species/`) — données d'élèves mineurs, lues par le
+connecteur par `foretmap_observations` (actions nominatives sous bypass RGPD) :
+
+- finalité : l'inventaire des espèces du site, tenu par les élèves et vérifié par un enseignant ;
+- destinataires : l'auteur et les validateurs (`observations.validate`) ; aucun autre élève ;
+- minimisation : métadonnées des photos (position GPS, appareil) retirées à l'envoi ;
+- durées (constantes de `lib/retention/policy.js`, **proposées, à confirmer par
+  l'établissement**) : photo d'une observation refusée **7 jours** après la décision ;
+  observation refusée **90 jours** après la décision ; observation soumise jamais examinée
+  **365 jours** ; observation validée autant que le compte de son auteur (preuve d'inventaire),
+  effacée avec lui, fichiers compris ;
+- application : catégorie `observations` de la purge planifiée. L'action `retention_preview`
+  de `foretmap_ops` en donne les **comptages**, sans rien supprimer et sans donnée de personne ;
+  `retention_run` reste verrouillé par `RETENTION_PURGE_APPLY=1`.
+
 La suppression d'un compte supprime ses jetons, plans et confirmations en attente (clés étrangères en cascade).
 Durées réglables par variables d'environnement (`docs/MCP.md` § 2).
 

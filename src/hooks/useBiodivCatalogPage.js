@@ -20,19 +20,28 @@ export function useBiodivCatalogPage({
   activeMapId,
   defaultZonePresence = ZONE_PRESENCE_FILTER.IN_MAP,
   enableObservationChips = true,
+  /** Gestion : garder les fiches « ressource », masquées de la liste des élèves par défaut. */
+  includeResourceEntities = false,
 }) {
   const [pageSize, setPageSize] = useState(BIODIV_PAGE_SIZE);
   const [obsCounts, setObsCounts] = useState({});
 
   const presence = useMapSpeciesPresence(activeMapId, { watch: [zones, markers, plants] });
 
-  const { filteredPlants, countScopePlants, needsFullCounts, filterResetKey, filterPanelProps } =
-    usePlantCatalogFilters(plants, presence.byPlantId, {
-      defaultZonePresence,
-      activeMapId,
-      countsById: obsCounts,
-      enableObservationChips,
-    });
+  const {
+    catalogPlants,
+    filteredPlants,
+    countScopePlants,
+    needsFullCounts,
+    filterResetKey,
+    filterPanelProps,
+  } = usePlantCatalogFilters(plants, presence.byPlantId, {
+    defaultZonePresence,
+    activeMapId,
+    countsById: obsCounts,
+    enableObservationChips,
+    includeResourceEntities,
+  });
 
   useEffect(() => {
     setPageSize(BIODIV_PAGE_SIZE);
@@ -75,6 +84,8 @@ export function useBiodivCatalogPage({
   const countsReady = Object.keys(obsCounts).length > 0 || biodivObservationPlantIds.length === 0;
 
   return {
+    /** Catalogue proposé à ce public (sans les fiches « ressource » côté élève). */
+    catalogPlants,
     filteredPlants,
     displayedPlants,
     presenceByPlantId: presence.byPlantId,
