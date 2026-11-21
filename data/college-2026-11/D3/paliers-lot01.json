@@ -119,8 +119,8 @@
  {
   "code": "QF9530",
   "categorie": "cycle_azote_aquaponie",
-  "palier": 4,
-  "raison": "déjections et nitrification"
+  "palier": "lycee",
+  "raison": "nitrification par les bactéries : lycée (cohérence avec QF9237, catégorie cycle_azote_aquaponie revue)"
  },
  {
   "code": "QF9531",
@@ -140,8 +140,8 @@
  {
   "code": "QF9701",
   "categorie": "cycle_azote_aquaponie",
-  "palier": 4,
-  "raison": "bactéries nitrifiantes"
+  "palier": "lycee",
+  "raison": "bactéries nitrifiantes : lycée (cohérence avec QF9237, catégorie cycle_azote_aquaponie revue)"
  },
  {
   "code": "QF9703",
@@ -158,8 +158,8 @@
  {
   "code": "QF9706",
   "categorie": "cycle_azote_aquaponie",
-  "palier": 4,
-  "raison": "substrat filtrant et bactéries nitrifiantes"
+  "palier": "lycee",
+  "raison": "bactéries nitrifiantes : lycée (cohérence avec QF9237, catégorie cycle_azote_aquaponie revue)"
  },
  {
   "code": "QF9877",

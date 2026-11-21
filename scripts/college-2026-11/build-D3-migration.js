@@ -86,8 +86,9 @@ function resolveOperations() {
 
   const seen = new Set();
   const ops = {
-    exclusion_insert: [],
+    autre_cycle: [],
     ajout_to_exclusion: [],
+    exclusion_insert: [],
     ajout_delete: [],
     ajout_insert: [],
     lycee_ajout_delete: [],
@@ -140,6 +141,14 @@ function resolveOperations() {
         ops.lycee_ajout_insert.push({ ...base, notion: n });
         row.operations.push(`+ ajout ${n}`);
       }
+      // Ancrage : les notions de lycée héritées deviennent des ajouts explicites, pour que le
+      // résultat ne dépende pas des liaisons de catégorie (qui diffèrent entre la prod et une
+      // base semée par les migrations).
+      for (const n of lycInherited) {
+        if (ajouts.has(n) || (d.notions_lycee || []).includes(n)) continue;
+        ops.lycee_ajout_insert.push({ ...base, notion: n });
+        row.operations.push(`+ ajout ${n} (ancrage)`);
+      }
       const finalLycee = new Set([
         ...lycInherited,
         ...[...ajouts].filter((n) => LYCEE_NIVEAUX.has(levelOf(n))),
@@ -155,6 +164,7 @@ function resolveOperations() {
     const keep = CYCLE_OF_PALIER[d.palier];
     const drop = OTHER_CYCLE[d.palier];
     const final = new Set(effective);
+    ops.autre_cycle.push({ ...base, cycle: drop });
     for (const n of [...effective].sort()) {
       if (levelOf(n) !== drop) continue;
       final.delete(n);
@@ -177,6 +187,14 @@ function resolveOperations() {
       ops.ajout_insert.push({ ...base, notion: n });
       row.operations.push(`+ ajout ${n}`);
       final.add(n);
+    }
+    // Ancrage : chaque notion du palier retenu qui ne vient que de la catégorie devient un
+    // ajout explicite (sans effet en prod, mais le palier ne dépend plus des liaisons de
+    // catégorie, qui diffèrent entre la prod et une base semée par les migrations).
+    for (const n of [...final].sort()) {
+      if (levelOf(n) !== keep || ajouts.has(n) || (d.ajouts || []).includes(n)) continue;
+      ops.ajout_insert.push({ ...base, notion: n });
+      row.operations.push(`+ ajout ${n} (ancrage)`);
     }
     const levels = [...final].map(levelOf);
     if (!levels.includes(keep)) throw new Error(`${d.code} n'a plus de notion ${keep}`);
@@ -235,14 +253,35 @@ ${derivedTable(list, ['code', 'categorie', 'notion'])}
  WHERE qn.mode = 'ajout';`;
 }
 
-function ajoutToExclusionSql(list) {
+/** Exclusion de toute notion de l'autre cycle héritée de la catégorie, au moment du rejeu. */
+function exclusionAutreCycleSql(list) {
+  return `INSERT INTO quiz_question_notions (question_code, notion_id, mode)
+SELECT q.question_code, cl.notion_id, 'exclusion'
+  FROM (
+${derivedTable(list, ['code', 'categorie', 'cycle'])}
+  ) v
+  JOIN quiz_questions q ON q.question_code = v.code ${C}
+                       AND q.categorie_slug = v.categorie ${C}
+                       AND q.niveau = 'college'
+  JOIN quiz_category_notions cl ON cl.categorie_slug = q.categorie_slug
+  JOIN curriculum_notions cn ON cn.id = cl.notion_id AND cn.niveau = v.cycle ${C}
+ WHERE NOT EXISTS (
+         SELECT 1 FROM quiz_question_notions x
+          WHERE x.question_code = q.question_code
+            AND x.notion_id = cl.notion_id);`;
+}
+
+/** Ajout d'une notion de l'autre cycle que la catégorie donne aussi : passé en exclusion. */
+function ajoutAutreCycleToExclusionSql(list) {
   return `UPDATE quiz_question_notions qn
   JOIN (
-${derivedTable(list, ['code', 'categorie', 'notion'])}
-  ) v ON qn.question_code = v.code ${C} AND qn.notion_id = v.notion ${C}
+${derivedTable(list, ['code', 'categorie', 'cycle'])}
+  ) v ON qn.question_code = v.code ${C}
   JOIN quiz_questions q ON q.question_code = qn.question_code
                        AND q.categorie_slug = v.categorie ${C}
                        AND q.niveau = 'college'
+  JOIN quiz_category_notions cl ON cl.categorie_slug = q.categorie_slug AND cl.notion_id = qn.notion_id
+  JOIN curriculum_notions cn ON cn.id = qn.notion_id AND cn.niveau = v.cycle ${C}
    SET qn.mode = 'exclusion'
  WHERE qn.mode = 'ajout';`;
 }
@@ -296,8 +335,9 @@ function buildMigration(ops, enonces, categories) {
 -- Blocs :
 --   1. quiz_question_notions  ajouts de l'autre cycle supprimés (collège)
 --   2. quiz_question_notions  ajouts de l'autre cycle aussi hérités : passés en exclusion
---   3. quiz_question_notions  exclusions des notions héritées de l'autre cycle
---   4. quiz_question_notions  ajouts d'une notion précise du palier retenu
+--   3. quiz_question_notions  exclusions des notions héritées de l'autre cycle (liaisons de
+--                             catégorie lues au rejeu)
+--   4. quiz_question_notions  ajouts explicites du palier retenu (notion précise, ancrage)
 --   5. quiz_question_notions  questions passées au lycée : ajouts de collège supprimés
 --   6. quiz_questions         niveau college → lycee (garde sur l'ancienne valeur)
 --   7. quiz_question_notions  notions de lycée des questions passées au lycée
@@ -322,24 +362,33 @@ SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;
   );
   parts.push(
     block(
-      `2. Ajouts de l'autre cycle aussi hérités : passés en exclusion (${ops.ajout_to_exclusion.length} lignes)`,
-      ['Clé primaire (question, notion) : une seule ligne, dont on change le mode.'],
-      ops.ajout_to_exclusion.length ? [ajoutToExclusionSql(ops.ajout_to_exclusion)] : [],
+      `2. Ajouts de l'autre cycle aussi hérités : passés en exclusion (${ops.autre_cycle.length} questions ; ${ops.ajout_to_exclusion.length} lignes en prod au 21/11)`,
+      [
+        'Clé primaire (question, notion) : une seule ligne, dont on change le mode.',
+        'Calculé sur les liaisons de catégorie présentes au rejeu (elles diffèrent entre la prod et',
+        'une base semée par les migrations).',
+      ],
+      ops.autre_cycle.length ? [ajoutAutreCycleToExclusionSql(ops.autre_cycle)] : [],
     ),
   );
   parts.push(
     block(
-      `3. Exclusions des notions héritées de l'autre cycle (${ops.exclusion_insert.length} lignes)`,
-      ['Parents : la question (code, catégorie, niveau college) et la notion.'],
-      ops.exclusion_insert.length
-        ? [insertNotionsSql(ops.exclusion_insert, 'exclusion', 'college')]
-        : [],
+      `3. Exclusions des notions héritées de l'autre cycle (${ops.autre_cycle.length} questions ; ${ops.exclusion_insert.length} lignes en prod au 21/11)`,
+      [
+        "Toute notion de l'autre cycle donnée par la catégorie, au moment du rejeu.",
+        'Parents : la question (code, catégorie, niveau college) et la liaison de catégorie.',
+      ],
+      ops.autre_cycle.length ? [exclusionAutreCycleSql(ops.autre_cycle)] : [],
     ),
   );
   parts.push(
     block(
-      `4. Ajouts d'une notion précise du palier retenu (${ops.ajout_insert.length} lignes)`,
-      ['Quand la catégorie ne porte pas la notion qui décrit la question.'],
+      `4. Ajouts explicites des notions du palier retenu (${ops.ajout_insert.length} lignes)`,
+      [
+        'Notion précise quand la catégorie ne porte pas celle qui décrit la question, et ancrage',
+        'des notions héritées du palier retenu (sans effet en prod ; le palier ne dépend plus des',
+        'liaisons de catégorie).',
+      ],
       ops.ajout_insert.length ? [insertNotionsSql(ops.ajout_insert, 'ajout', 'college')] : [],
     ),
   );
@@ -360,7 +409,7 @@ SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;
   parts.push(
     block(
       `7. Notions de lycée des questions passées au lycée (${ops.lycee_ajout_insert.length} lignes)`,
-      ['Seulement celles que la catégorie ne donne pas déjà.'],
+      ['Ajouts explicites (ancrage des notions de lycée héritées de la catégorie).'],
       ops.lycee_ajout_insert.length
         ? [insertNotionsSql(ops.lycee_ajout_insert, 'ajout', 'lycee')]
         : [],

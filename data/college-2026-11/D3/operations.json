@@ -1,5 +1,2144 @@
 {
  "operations": {
+  "autre_cycle": [
+   {
+    "code": "QF0130",
+    "categorie": "agroecologie_permaculture",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0131",
+    "categorie": "agroecologie_permaculture",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0133",
+    "categorie": "agroecologie_permaculture",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF0330",
+    "categorie": "agroecologie_permaculture",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0331",
+    "categorie": "agroecologie_permaculture",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF0511",
+    "categorie": "agroecologie_permaculture",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0525",
+    "categorie": "agroecologie_permaculture",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF9209",
+    "categorie": "agroecologie_permaculture",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF9210",
+    "categorie": "agroecologie_permaculture",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9211",
+    "categorie": "agroecologie_permaculture",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF9212",
+    "categorie": "agroecologie_permaculture",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9518",
+    "categorie": "agroecologie_permaculture",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF9732",
+    "categorie": "agroecologie_permaculture",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9733",
+    "categorie": "agroecologie_permaculture",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0020",
+    "categorie": "cycle_azote_aquaponie",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF0021",
+    "categorie": "cycle_azote_aquaponie",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF0506",
+    "categorie": "cycle_azote_aquaponie",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF9523",
+    "categorie": "cycle_azote_aquaponie",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9525",
+    "categorie": "cycle_azote_aquaponie",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9531",
+    "categorie": "cycle_azote_aquaponie",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9615",
+    "categorie": "cycle_azote_aquaponie",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9703",
+    "categorie": "cycle_azote_aquaponie",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF9704",
+    "categorie": "cycle_azote_aquaponie",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF9877",
+    "categorie": "demarche_mesure",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF9887",
+    "categorie": "demarche_mesure",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9912",
+    "categorie": "demarche_mesure",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9918",
+    "categorie": "demarche_mesure",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9924",
+    "categorie": "demarche_mesure",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF0080",
+    "categorie": "eau_arrosage",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0280",
+    "categorie": "eau_arrosage",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0281",
+    "categorie": "eau_arrosage",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0283",
+    "categorie": "eau_arrosage",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9201",
+    "categorie": "eau_arrosage",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9202",
+    "categorie": "eau_arrosage",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9203",
+    "categorie": "eau_arrosage",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9204",
+    "categorie": "eau_arrosage",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF9225",
+    "categorie": "eau_arrosage",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF9226",
+    "categorie": "eau_arrosage",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF9227",
+    "categorie": "eau_arrosage",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF9228",
+    "categorie": "eau_arrosage",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF9723",
+    "categorie": "eau_arrosage",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9724",
+    "categorie": "eau_arrosage",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF0013",
+    "categorie": "ecologie_reseaux",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0210",
+    "categorie": "ecologie_reseaux",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0211",
+    "categorie": "ecologie_reseaux",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF0212",
+    "categorie": "ecologie_reseaux",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0510",
+    "categorie": "ecologie_reseaux",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF0524",
+    "categorie": "ecologie_reseaux",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0539",
+    "categorie": "ecologie_reseaux",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF7012",
+    "categorie": "ecologie_reseaux",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF7018",
+    "categorie": "ecologie_reseaux",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF7035",
+    "categorie": "ecologie_reseaux",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF7036",
+    "categorie": "ecologie_reseaux",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF7037",
+    "categorie": "ecologie_reseaux",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF7040",
+    "categorie": "ecologie_reseaux",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF7042",
+    "categorie": "ecologie_reseaux",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF7046",
+    "categorie": "ecologie_reseaux",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF7048",
+    "categorie": "ecologie_reseaux",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF7050",
+    "categorie": "ecologie_reseaux",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF7052",
+    "categorie": "ecologie_reseaux",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF7053",
+    "categorie": "ecologie_reseaux",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF7056",
+    "categorie": "ecologie_reseaux",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF7064",
+    "categorie": "ecologie_reseaux",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF9002",
+    "categorie": "ecologie_reseaux",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF9101",
+    "categorie": "ecologie_reseaux",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF9102",
+    "categorie": "ecologie_reseaux",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF9260",
+    "categorie": "ecologie_reseaux",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF9263",
+    "categorie": "ecologie_reseaux",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9268",
+    "categorie": "ecologie_reseaux",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9272",
+    "categorie": "ecologie_reseaux",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF9529",
+    "categorie": "ecologie_reseaux",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9726",
+    "categorie": "ecologie_reseaux",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9735",
+    "categorie": "ecologie_reseaux",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9763",
+    "categorie": "ecologie_reseaux",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9765",
+    "categorie": "ecologie_reseaux",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9768",
+    "categorie": "ecologie_reseaux",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9769",
+    "categorie": "ecologie_reseaux",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9779",
+    "categorie": "ecologie_reseaux",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9781",
+    "categorie": "ecologie_reseaux",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9799",
+    "categorie": "ecologie_reseaux",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9808",
+    "categorie": "ecologie_reseaux",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9815",
+    "categorie": "ecologie_reseaux",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9829",
+    "categorie": "ecologie_reseaux",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF9830",
+    "categorie": "ecologie_reseaux",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF9831",
+    "categorie": "ecologie_reseaux",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF9834",
+    "categorie": "ecologie_reseaux",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9835",
+    "categorie": "ecologie_reseaux",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9880",
+    "categorie": "ecologie_reseaux",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9890",
+    "categorie": "ecologie_reseaux",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0094",
+    "categorie": "energie_matiere",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF0532",
+    "categorie": "energie_matiere",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9859",
+    "categorie": "energie_matiere",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF9874",
+    "categorie": "energie_matiere",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF9884",
+    "categorie": "energie_matiere",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9894",
+    "categorie": "energie_matiere",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9902",
+    "categorie": "energie_matiere",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9909",
+    "categorie": "energie_matiere",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9915",
+    "categorie": "energie_matiere",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF9921",
+    "categorie": "energie_matiere",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9927",
+    "categorie": "energie_matiere",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF7030",
+    "categorie": "environnement_durable",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF7034",
+    "categorie": "environnement_durable",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF7057",
+    "categorie": "environnement_durable",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF9875",
+    "categorie": "evolution_biodiversite",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF9885",
+    "categorie": "evolution_biodiversite",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9895",
+    "categorie": "evolution_biodiversite",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9903",
+    "categorie": "evolution_biodiversite",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9910",
+    "categorie": "evolution_biodiversite",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9916",
+    "categorie": "evolution_biodiversite",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9922",
+    "categorie": "evolution_biodiversite",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9928",
+    "categorie": "evolution_biodiversite",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0365",
+    "categorie": "glossaire_definitions",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0366",
+    "categorie": "glossaire_definitions",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF0368",
+    "categorie": "glossaire_definitions",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0370",
+    "categorie": "glossaire_definitions",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF0372",
+    "categorie": "glossaire_definitions",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0373",
+    "categorie": "glossaire_definitions",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF0374",
+    "categorie": "glossaire_definitions",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF0376",
+    "categorie": "glossaire_definitions",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF0378",
+    "categorie": "glossaire_definitions",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0379",
+    "categorie": "glossaire_definitions",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0380",
+    "categorie": "glossaire_definitions",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0381",
+    "categorie": "glossaire_definitions",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0382",
+    "categorie": "glossaire_definitions",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF0383",
+    "categorie": "glossaire_definitions",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF0384",
+    "categorie": "glossaire_definitions",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0385",
+    "categorie": "glossaire_definitions",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0386",
+    "categorie": "glossaire_definitions",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0388",
+    "categorie": "glossaire_definitions",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0389",
+    "categorie": "glossaire_definitions",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0390",
+    "categorie": "glossaire_definitions",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0391",
+    "categorie": "glossaire_definitions",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0392",
+    "categorie": "glossaire_definitions",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0393",
+    "categorie": "glossaire_definitions",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0394",
+    "categorie": "glossaire_definitions",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0395",
+    "categorie": "glossaire_definitions",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0396",
+    "categorie": "glossaire_definitions",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0399",
+    "categorie": "glossaire_definitions",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0400",
+    "categorie": "glossaire_definitions",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF0401",
+    "categorie": "glossaire_definitions",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0402",
+    "categorie": "glossaire_definitions",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0403",
+    "categorie": "glossaire_definitions",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0404",
+    "categorie": "glossaire_definitions",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9882",
+    "categorie": "glossaire_definitions",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9892",
+    "categorie": "glossaire_definitions",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0351",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0352",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0353",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0354",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0355",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0356",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0357",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0358",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0359",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0360",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0361",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0362",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0363",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0364",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0413",
+    "categorie": "identification_especes",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF0415",
+    "categorie": "identification_especes",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF0417",
+    "categorie": "identification_especes",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF0425",
+    "categorie": "identification_especes",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF0429",
+    "categorie": "identification_especes",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF0435",
+    "categorie": "identification_especes",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF0437",
+    "categorie": "identification_especes",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF0522",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0529",
+    "categorie": "identification_especes",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF0530",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF7009",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF7011",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF7014",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF7015",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF7017",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF7019",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF7021",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF7022",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF7033",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF7039",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF7041",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF7043",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF7044",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF7045",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF7047",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF7058",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF7060",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF7061",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9420",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9422",
+    "categorie": "identification_especes",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF9423",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9425",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9427",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9428",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9430",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9433",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9435",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9437",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9439",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9440",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9515",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9521",
+    "categorie": "identification_especes",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF9532",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9535",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9543",
+    "categorie": "identification_especes",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF9549",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9862",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9863",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9864",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9865",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9866",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9867",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9868",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9869",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9870",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9871",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9872",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9879",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9889",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9899",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9907",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9913",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9919",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9925",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9931",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9932",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9933",
+    "categorie": "identification_especes",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9878",
+    "categorie": "microbes_sante",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9888",
+    "categorie": "microbes_sante",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9906",
+    "categorie": "microbes_sante",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF7010",
+    "categorie": "milieux_terrain",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF7013",
+    "categorie": "milieux_terrain",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF7016",
+    "categorie": "milieux_terrain",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF7025",
+    "categorie": "milieux_terrain",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF7028",
+    "categorie": "milieux_terrain",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF7054",
+    "categorie": "milieux_terrain",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF7055",
+    "categorie": "milieux_terrain",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF7062",
+    "categorie": "milieux_terrain",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9720",
+    "categorie": "milieux_terrain",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9721",
+    "categorie": "milieux_terrain",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9722",
+    "categorie": "milieux_terrain",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9728",
+    "categorie": "milieux_terrain",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9729",
+    "categorie": "milieux_terrain",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9730",
+    "categorie": "milieux_terrain",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9731",
+    "categorie": "milieux_terrain",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9737",
+    "categorie": "milieux_terrain",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9738",
+    "categorie": "milieux_terrain",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9739",
+    "categorie": "milieux_terrain",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9740",
+    "categorie": "milieux_terrain",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF9741",
+    "categorie": "milieux_terrain",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9742",
+    "categorie": "milieux_terrain",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9743",
+    "categorie": "milieux_terrain",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9744",
+    "categorie": "milieux_terrain",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF9745",
+    "categorie": "milieux_terrain",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF9746",
+    "categorie": "milieux_terrain",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9747",
+    "categorie": "milieux_terrain",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF9748",
+    "categorie": "milieux_terrain",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9749",
+    "categorie": "milieux_terrain",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9750",
+    "categorie": "milieux_terrain",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9785",
+    "categorie": "milieux_terrain",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0040",
+    "categorie": "plantes_biologie",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0041",
+    "categorie": "plantes_biologie",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF0240",
+    "categorie": "plantes_biologie",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0241",
+    "categorie": "plantes_biologie",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0504",
+    "categorie": "plantes_biologie",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0509",
+    "categorie": "plantes_biologie",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF0512",
+    "categorie": "plantes_biologie",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF0526",
+    "categorie": "plantes_biologie",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0540",
+    "categorie": "plantes_biologie",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF7001",
+    "categorie": "plantes_biologie",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF7002",
+    "categorie": "plantes_biologie",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF7003",
+    "categorie": "plantes_biologie",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF7004",
+    "categorie": "plantes_biologie",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF7006",
+    "categorie": "plantes_biologie",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF7007",
+    "categorie": "plantes_biologie",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF7020",
+    "categorie": "plantes_biologie",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9011",
+    "categorie": "plantes_biologie",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF9265",
+    "categorie": "plantes_biologie",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF9270",
+    "categorie": "plantes_biologie",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9501",
+    "categorie": "plantes_biologie",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9502",
+    "categorie": "plantes_biologie",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9503",
+    "categorie": "plantes_biologie",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9505",
+    "categorie": "plantes_biologie",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF9506",
+    "categorie": "plantes_biologie",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF9508",
+    "categorie": "plantes_biologie",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9546",
+    "categorie": "plantes_biologie",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF9547",
+    "categorie": "plantes_biologie",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF9551",
+    "categorie": "plantes_biologie",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9603",
+    "categorie": "plantes_biologie",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9604",
+    "categorie": "plantes_biologie",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9608",
+    "categorie": "plantes_biologie",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9609",
+    "categorie": "plantes_biologie",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF9613",
+    "categorie": "plantes_biologie",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9725",
+    "categorie": "plantes_biologie",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9786",
+    "categorie": "plantes_biologie",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9789",
+    "categorie": "plantes_biologie",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9794",
+    "categorie": "plantes_biologie",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF9821",
+    "categorie": "plantes_biologie",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9837",
+    "categorie": "plantes_biologie",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9876",
+    "categorie": "populations_equilibres",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF9886",
+    "categorie": "populations_equilibres",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9896",
+    "categorie": "populations_equilibres",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9904",
+    "categorie": "populations_equilibres",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF9911",
+    "categorie": "populations_equilibres",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF9917",
+    "categorie": "populations_equilibres",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF9923",
+    "categorie": "populations_equilibres",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF9929",
+    "categorie": "populations_equilibres",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0050",
+    "categorie": "pratiques_potager",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0051",
+    "categorie": "pratiques_potager",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0250",
+    "categorie": "pratiques_potager",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0251",
+    "categorie": "pratiques_potager",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0252",
+    "categorie": "pratiques_potager",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0254",
+    "categorie": "pratiques_potager",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0255",
+    "categorie": "pratiques_potager",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0514",
+    "categorie": "pratiques_potager",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0527",
+    "categorie": "pratiques_potager",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9205",
+    "categorie": "pratiques_potager",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF9206",
+    "categorie": "pratiques_potager",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9207",
+    "categorie": "pratiques_potager",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9208",
+    "categorie": "pratiques_potager",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9217",
+    "categorie": "pratiques_potager",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF9218",
+    "categorie": "pratiques_potager",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF9513",
+    "categorie": "pratiques_potager",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF9514",
+    "categorie": "pratiques_potager",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF7005",
+    "categorie": "ravageurs_auxiliaires",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF7029",
+    "categorie": "ravageurs_auxiliaires",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF7059",
+    "categorie": "ravageurs_auxiliaires",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0060",
+    "categorie": "semis_recolte",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0061",
+    "categorie": "semis_recolte",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0260",
+    "categorie": "semis_recolte",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0262",
+    "categorie": "semis_recolte",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0263",
+    "categorie": "semis_recolte",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0264",
+    "categorie": "semis_recolte",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0265",
+    "categorie": "semis_recolte",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0508",
+    "categorie": "semis_recolte",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF0515",
+    "categorie": "semis_recolte",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0538",
+    "categorie": "semis_recolte",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF9215",
+    "categorie": "semis_recolte",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9216",
+    "categorie": "semis_recolte",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9230",
+    "categorie": "semis_recolte",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9231",
+    "categorie": "semis_recolte",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF9232",
+    "categorie": "semis_recolte",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9519",
+    "categorie": "semis_recolte",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9542",
+    "categorie": "semis_recolte",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9606",
+    "categorie": "semis_recolte",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9881",
+    "categorie": "semis_recolte",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9891",
+    "categorie": "semis_recolte",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9900",
+    "categorie": "semis_recolte",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0030",
+    "categorie": "sol_compost",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0031",
+    "categorie": "sol_compost",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0033",
+    "categorie": "sol_compost",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0230",
+    "categorie": "sol_compost",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF0232",
+    "categorie": "sol_compost",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF7008",
+    "categorie": "sol_compost",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF7023",
+    "categorie": "sol_compost",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF7026",
+    "categorie": "sol_compost",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF7032",
+    "categorie": "sol_compost",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF7049",
+    "categorie": "sol_compost",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF7051",
+    "categorie": "sol_compost",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9105",
+    "categorie": "sol_compost",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF9221",
+    "categorie": "sol_compost",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF9223",
+    "categorie": "sol_compost",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9224",
+    "categorie": "sol_compost",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9233",
+    "categorie": "sol_compost",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9236",
+    "categorie": "sol_compost",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF9238",
+    "categorie": "sol_compost",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF9240",
+    "categorie": "sol_compost",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF9261",
+    "categorie": "sol_compost",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9264",
+    "categorie": "sol_compost",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF9271",
+    "categorie": "sol_compost",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9301",
+    "categorie": "sol_compost",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF9303",
+    "categorie": "sol_compost",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF9305",
+    "categorie": "sol_compost",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9307",
+    "categorie": "sol_compost",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF9309",
+    "categorie": "sol_compost",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9310",
+    "categorie": "sol_compost",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9401",
+    "categorie": "sol_compost",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9402",
+    "categorie": "sol_compost",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF9404",
+    "categorie": "sol_compost",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9405",
+    "categorie": "sol_compost",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9406",
+    "categorie": "sol_compost",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9412",
+    "categorie": "sol_compost",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9707",
+    "categorie": "sol_compost",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9708",
+    "categorie": "sol_compost",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9709",
+    "categorie": "sol_compost",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9710",
+    "categorie": "sol_compost",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9712",
+    "categorie": "sol_compost",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0001",
+    "categorie": "vivant_classification",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0002",
+    "categorie": "vivant_classification",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0003",
+    "categorie": "vivant_classification",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF0004",
+    "categorie": "vivant_classification",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0201",
+    "categorie": "vivant_classification",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0203",
+    "categorie": "vivant_classification",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0503",
+    "categorie": "vivant_classification",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0516",
+    "categorie": "vivant_classification",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF0533",
+    "categorie": "vivant_classification",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF7024",
+    "categorie": "vivant_classification",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF7027",
+    "categorie": "vivant_classification",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF7031",
+    "categorie": "vivant_classification",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF7038",
+    "categorie": "vivant_classification",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF7063",
+    "categorie": "vivant_classification",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9471",
+    "categorie": "vivant_classification",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9473",
+    "categorie": "vivant_classification",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9761",
+    "categorie": "vivant_classification",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9762",
+    "categorie": "vivant_classification",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9766",
+    "categorie": "vivant_classification",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9770",
+    "categorie": "vivant_classification",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF9771",
+    "categorie": "vivant_classification",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9775",
+    "categorie": "vivant_classification",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9777",
+    "categorie": "vivant_classification",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9778",
+    "categorie": "vivant_classification",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9783",
+    "categorie": "vivant_classification",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9784",
+    "categorie": "vivant_classification",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9795",
+    "categorie": "vivant_classification",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF9796",
+    "categorie": "vivant_classification",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9797",
+    "categorie": "vivant_classification",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9801",
+    "categorie": "vivant_classification",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9802",
+    "categorie": "vivant_classification",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9804",
+    "categorie": "vivant_classification",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9805",
+    "categorie": "vivant_classification",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9806",
+    "categorie": "vivant_classification",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9810",
+    "categorie": "vivant_classification",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9825",
+    "categorie": "vivant_classification",
+    "cycle": "cycle3"
+   },
+   {
+    "code": "QF9832",
+    "categorie": "vivant_classification",
+    "cycle": "cycle4"
+   },
+   {
+    "code": "QF9833",
+    "categorie": "vivant_classification",
+    "cycle": "cycle4"
+   }
+  ],
+  "ajout_to_exclusion": [
+   {
+    "code": "QF7064",
+    "categorie": "ecologie_reseaux",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF9874",
+    "categorie": "energie_matiere",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF9915",
+    "categorie": "energie_matiere",
+    "notion": "C3-MATORG"
+   }
+  ],
   "exclusion_insert": [
    {
     "code": "QF0130",
@@ -97,11 +2236,6 @@
     "notion": "C4-RESS"
    },
    {
-    "code": "QF9530",
-    "categorie": "cycle_azote_aquaponie",
-    "notion": "C3-MATORG"
-   },
-   {
     "code": "QF9531",
     "categorie": "cycle_azote_aquaponie",
     "notion": "C4-RESS"
@@ -112,22 +2246,12 @@
     "notion": "C4-RESS"
    },
    {
-    "code": "QF9701",
-    "categorie": "cycle_azote_aquaponie",
-    "notion": "C3-MATORG"
-   },
-   {
     "code": "QF9703",
     "categorie": "cycle_azote_aquaponie",
     "notion": "C3-MATORG"
    },
    {
     "code": "QF9704",
-    "categorie": "cycle_azote_aquaponie",
-    "notion": "C3-MATORG"
-   },
-   {
-    "code": "QF9706",
     "categorie": "cycle_azote_aquaponie",
     "notion": "C3-MATORG"
    },
@@ -1762,11 +3886,6 @@
     "notion": "C4-TERRE"
    },
    {
-    "code": "QF9234",
-    "categorie": "sol_compost",
-    "notion": "C3-MATORG"
-   },
-   {
     "code": "QF9236",
     "categorie": "sol_compost",
     "notion": "C3-MATORG"
@@ -2147,23 +4266,6 @@
     "notion": "C4-VIV"
    }
   ],
-  "ajout_to_exclusion": [
-   {
-    "code": "QF7064",
-    "categorie": "ecologie_reseaux",
-    "notion": "C3-ENV"
-   },
-   {
-    "code": "QF9874",
-    "categorie": "energie_matiere",
-    "notion": "C3-MATORG"
-   },
-   {
-    "code": "QF9915",
-    "categorie": "energie_matiere",
-    "notion": "C3-MATORG"
-   }
-  ],
   "ajout_delete": [
    {
     "code": "QF9877",
@@ -2463,8 +4565,108 @@
   ],
   "ajout_insert": [
    {
+    "code": "QF0130",
+    "categorie": "agroecologie_permaculture",
+    "notion": "C3-ALIM"
+   },
+   {
+    "code": "QF0131",
+    "categorie": "agroecologie_permaculture",
+    "notion": "C3-ALIM"
+   },
+   {
+    "code": "QF0133",
+    "categorie": "agroecologie_permaculture",
+    "notion": "C4-RESS"
+   },
+   {
+    "code": "QF0330",
+    "categorie": "agroecologie_permaculture",
+    "notion": "C3-ALIM"
+   },
+   {
+    "code": "QF0331",
+    "categorie": "agroecologie_permaculture",
+    "notion": "C4-RESS"
+   },
+   {
+    "code": "QF0511",
+    "categorie": "agroecologie_permaculture",
+    "notion": "C3-ALIM"
+   },
+   {
+    "code": "QF0525",
+    "categorie": "agroecologie_permaculture",
+    "notion": "C4-RESS"
+   },
+   {
+    "code": "QF9209",
+    "categorie": "agroecologie_permaculture",
+    "notion": "C4-RESS"
+   },
+   {
+    "code": "QF9210",
+    "categorie": "agroecologie_permaculture",
+    "notion": "C3-ALIM"
+   },
+   {
+    "code": "QF9211",
+    "categorie": "agroecologie_permaculture",
+    "notion": "C4-RESS"
+   },
+   {
     "code": "QF9212",
     "categorie": "agroecologie_permaculture",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF9212",
+    "categorie": "agroecologie_permaculture",
+    "notion": "C3-ALIM"
+   },
+   {
+    "code": "QF9518",
+    "categorie": "agroecologie_permaculture",
+    "notion": "C4-RESS"
+   },
+   {
+    "code": "QF9732",
+    "categorie": "agroecologie_permaculture",
+    "notion": "C3-ALIM"
+   },
+   {
+    "code": "QF9733",
+    "categorie": "agroecologie_permaculture",
+    "notion": "C3-ALIM"
+   },
+   {
+    "code": "QF0020",
+    "categorie": "cycle_azote_aquaponie",
+    "notion": "C4-RESS"
+   },
+   {
+    "code": "QF0021",
+    "categorie": "cycle_azote_aquaponie",
+    "notion": "C4-RESS"
+   },
+   {
+    "code": "QF0506",
+    "categorie": "cycle_azote_aquaponie",
+    "notion": "C4-RESS"
+   },
+   {
+    "code": "QF9523",
+    "categorie": "cycle_azote_aquaponie",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF9525",
+    "categorie": "cycle_azote_aquaponie",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF9531",
+    "categorie": "cycle_azote_aquaponie",
     "notion": "C3-MATORG"
    },
    {
@@ -2473,9 +4675,44 @@
     "notion": "C3-DEVREPRO"
    },
    {
+    "code": "QF9615",
+    "categorie": "cycle_azote_aquaponie",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF9703",
+    "categorie": "cycle_azote_aquaponie",
+    "notion": "C4-RESS"
+   },
+   {
+    "code": "QF9704",
+    "categorie": "cycle_azote_aquaponie",
+    "notion": "C4-RESS"
+   },
+   {
+    "code": "QF9877",
+    "categorie": "demarche_mesure",
+    "notion": "C4-TERRE"
+   },
+   {
+    "code": "QF9924",
+    "categorie": "demarche_mesure",
+    "notion": "C4-TERRE"
+   },
+   {
     "code": "QF0080",
     "categorie": "eau_arrosage",
     "notion": "C3-ENV"
+   },
+   {
+    "code": "QF0080",
+    "categorie": "eau_arrosage",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF0280",
+    "categorie": "eau_arrosage",
+    "notion": "C3-MATORG"
    },
    {
     "code": "QF0281",
@@ -2483,9 +4720,19 @@
     "notion": "C3-ENV"
    },
    {
+    "code": "QF0281",
+    "categorie": "eau_arrosage",
+    "notion": "C3-MATORG"
+   },
+   {
     "code": "QF0283",
     "categorie": "eau_arrosage",
     "notion": "C3-ENV"
+   },
+   {
+    "code": "QF0283",
+    "categorie": "eau_arrosage",
+    "notion": "C3-MATORG"
    },
    {
     "code": "QF9201",
@@ -2493,9 +4740,1859 @@
     "notion": "C3-ENV"
    },
    {
+    "code": "QF9201",
+    "categorie": "eau_arrosage",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF9202",
+    "categorie": "eau_arrosage",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF9203",
+    "categorie": "eau_arrosage",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF9204",
+    "categorie": "eau_arrosage",
+    "notion": "C4-RESS"
+   },
+   {
+    "code": "QF9225",
+    "categorie": "eau_arrosage",
+    "notion": "C4-RESS"
+   },
+   {
+    "code": "QF9226",
+    "categorie": "eau_arrosage",
+    "notion": "C4-RESS"
+   },
+   {
+    "code": "QF9227",
+    "categorie": "eau_arrosage",
+    "notion": "C4-RESS"
+   },
+   {
+    "code": "QF9228",
+    "categorie": "eau_arrosage",
+    "notion": "C4-RESS"
+   },
+   {
+    "code": "QF9723",
+    "categorie": "eau_arrosage",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF9724",
+    "categorie": "eau_arrosage",
+    "notion": "C4-RESS"
+   },
+   {
+    "code": "QF0013",
+    "categorie": "ecologie_reseaux",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF0210",
+    "categorie": "ecologie_reseaux",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF0211",
+    "categorie": "ecologie_reseaux",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF0212",
+    "categorie": "ecologie_reseaux",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF0510",
+    "categorie": "ecologie_reseaux",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF0524",
+    "categorie": "ecologie_reseaux",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF0539",
+    "categorie": "ecologie_reseaux",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF7035",
+    "categorie": "ecologie_reseaux",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF7046",
+    "categorie": "ecologie_reseaux",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF7050",
+    "categorie": "ecologie_reseaux",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF7052",
+    "categorie": "ecologie_reseaux",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF7064",
+    "categorie": "ecologie_reseaux",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF9002",
+    "categorie": "ecologie_reseaux",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF9101",
+    "categorie": "ecologie_reseaux",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF9102",
+    "categorie": "ecologie_reseaux",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF9260",
+    "categorie": "ecologie_reseaux",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF9263",
+    "categorie": "ecologie_reseaux",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF9268",
+    "categorie": "ecologie_reseaux",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF9272",
+    "categorie": "ecologie_reseaux",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF9529",
+    "categorie": "ecologie_reseaux",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF9726",
+    "categorie": "ecologie_reseaux",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF9735",
+    "categorie": "ecologie_reseaux",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF9763",
+    "categorie": "ecologie_reseaux",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF9765",
+    "categorie": "ecologie_reseaux",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF9768",
+    "categorie": "ecologie_reseaux",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF9769",
+    "categorie": "ecologie_reseaux",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF9779",
+    "categorie": "ecologie_reseaux",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF9781",
+    "categorie": "ecologie_reseaux",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF9799",
+    "categorie": "ecologie_reseaux",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF9808",
+    "categorie": "ecologie_reseaux",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF9815",
+    "categorie": "ecologie_reseaux",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF9829",
+    "categorie": "ecologie_reseaux",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF9830",
+    "categorie": "ecologie_reseaux",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF9831",
+    "categorie": "ecologie_reseaux",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF9834",
+    "categorie": "ecologie_reseaux",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF9835",
+    "categorie": "ecologie_reseaux",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF9880",
+    "categorie": "ecologie_reseaux",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF9890",
+    "categorie": "ecologie_reseaux",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF0094",
+    "categorie": "energie_matiere",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF0532",
+    "categorie": "energie_matiere",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF9859",
+    "categorie": "energie_matiere",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF9874",
+    "categorie": "energie_matiere",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF9915",
+    "categorie": "energie_matiere",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF7030",
+    "categorie": "environnement_durable",
+    "notion": "C4-RESS"
+   },
+   {
+    "code": "QF7030",
+    "categorie": "environnement_durable",
+    "notion": "C4-TERRE"
+   },
+   {
+    "code": "QF7034",
+    "categorie": "environnement_durable",
+    "notion": "C4-RESS"
+   },
+   {
+    "code": "QF7034",
+    "categorie": "environnement_durable",
+    "notion": "C4-TERRE"
+   },
+   {
+    "code": "QF7057",
+    "categorie": "environnement_durable",
+    "notion": "C4-RESS"
+   },
+   {
+    "code": "QF7057",
+    "categorie": "environnement_durable",
+    "notion": "C4-TERRE"
+   },
+   {
+    "code": "QF9875",
+    "categorie": "evolution_biodiversite",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF0351",
+    "categorie": "identification_especes",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF0352",
+    "categorie": "identification_especes",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF0353",
+    "categorie": "identification_especes",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF0354",
+    "categorie": "identification_especes",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF0355",
+    "categorie": "identification_especes",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF0356",
+    "categorie": "identification_especes",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF0357",
+    "categorie": "identification_especes",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF0358",
+    "categorie": "identification_especes",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF0359",
+    "categorie": "identification_especes",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF0360",
+    "categorie": "identification_especes",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF0361",
+    "categorie": "identification_especes",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF0362",
+    "categorie": "identification_especes",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF0363",
+    "categorie": "identification_especes",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF0364",
+    "categorie": "identification_especes",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF0413",
+    "categorie": "identification_especes",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF0415",
+    "categorie": "identification_especes",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF0417",
+    "categorie": "identification_especes",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF0425",
+    "categorie": "identification_especes",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF0429",
+    "categorie": "identification_especes",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF0435",
+    "categorie": "identification_especes",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF0437",
+    "categorie": "identification_especes",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF0522",
+    "categorie": "identification_especes",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF0529",
+    "categorie": "identification_especes",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF0530",
+    "categorie": "identification_especes",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF7033",
+    "categorie": "identification_especes",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF7041",
+    "categorie": "identification_especes",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF7044",
+    "categorie": "identification_especes",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF7061",
+    "categorie": "identification_especes",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF9420",
+    "categorie": "identification_especes",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF9422",
+    "categorie": "identification_especes",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF9423",
+    "categorie": "identification_especes",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF9425",
+    "categorie": "identification_especes",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF9427",
+    "categorie": "identification_especes",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF9428",
+    "categorie": "identification_especes",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF9430",
+    "categorie": "identification_especes",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF9433",
+    "categorie": "identification_especes",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF9435",
+    "categorie": "identification_especes",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF9437",
+    "categorie": "identification_especes",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF9439",
+    "categorie": "identification_especes",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF9440",
+    "categorie": "identification_especes",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF9515",
+    "categorie": "identification_especes",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF9521",
+    "categorie": "identification_especes",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF9532",
+    "categorie": "identification_especes",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF9535",
+    "categorie": "identification_especes",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF9543",
+    "categorie": "identification_especes",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF9549",
+    "categorie": "identification_especes",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF9862",
+    "categorie": "identification_especes",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF9863",
+    "categorie": "identification_especes",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF9864",
+    "categorie": "identification_especes",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF9865",
+    "categorie": "identification_especes",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF9866",
+    "categorie": "identification_especes",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF9867",
+    "categorie": "identification_especes",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF9868",
+    "categorie": "identification_especes",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF9869",
+    "categorie": "identification_especes",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF9870",
+    "categorie": "identification_especes",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF9871",
+    "categorie": "identification_especes",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF9872",
+    "categorie": "identification_especes",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF9720",
+    "categorie": "milieux_terrain",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF9721",
+    "categorie": "milieux_terrain",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF9722",
+    "categorie": "milieux_terrain",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF9728",
+    "categorie": "milieux_terrain",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF9729",
+    "categorie": "milieux_terrain",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF9730",
+    "categorie": "milieux_terrain",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF9731",
+    "categorie": "milieux_terrain",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF9737",
+    "categorie": "milieux_terrain",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF9738",
+    "categorie": "milieux_terrain",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF9739",
+    "categorie": "milieux_terrain",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF9740",
+    "categorie": "milieux_terrain",
+    "notion": "C4-TERRE"
+   },
+   {
+    "code": "QF9741",
+    "categorie": "milieux_terrain",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF9742",
+    "categorie": "milieux_terrain",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF9743",
+    "categorie": "milieux_terrain",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF9744",
+    "categorie": "milieux_terrain",
+    "notion": "C4-TERRE"
+   },
+   {
+    "code": "QF9745",
+    "categorie": "milieux_terrain",
+    "notion": "C4-TERRE"
+   },
+   {
+    "code": "QF9746",
+    "categorie": "milieux_terrain",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF9747",
+    "categorie": "milieux_terrain",
+    "notion": "C4-TERRE"
+   },
+   {
+    "code": "QF9748",
+    "categorie": "milieux_terrain",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF9749",
+    "categorie": "milieux_terrain",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF9750",
+    "categorie": "milieux_terrain",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF9785",
+    "categorie": "milieux_terrain",
+    "notion": "C3-ENV"
+   },
+   {
+    "code": "QF0040",
+    "categorie": "plantes_biologie",
+    "notion": "C3-DEVREPRO"
+   },
+   {
+    "code": "QF0040",
+    "categorie": "plantes_biologie",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF0041",
+    "categorie": "plantes_biologie",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF0240",
+    "categorie": "plantes_biologie",
+    "notion": "C3-DEVREPRO"
+   },
+   {
+    "code": "QF0240",
+    "categorie": "plantes_biologie",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF0241",
+    "categorie": "plantes_biologie",
+    "notion": "C3-DEVREPRO"
+   },
+   {
+    "code": "QF0241",
+    "categorie": "plantes_biologie",
+    "notion": "C3-MATORG"
+   },
+   {
     "code": "QF0504",
     "categorie": "plantes_biologie",
     "notion": "C3-ALIM"
+   },
+   {
+    "code": "QF0504",
+    "categorie": "plantes_biologie",
+    "notion": "C3-DEVREPRO"
+   },
+   {
+    "code": "QF0504",
+    "categorie": "plantes_biologie",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF0509",
+    "categorie": "plantes_biologie",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF0512",
+    "categorie": "plantes_biologie",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF0526",
+    "categorie": "plantes_biologie",
+    "notion": "C3-DEVREPRO"
+   },
+   {
+    "code": "QF0526",
+    "categorie": "plantes_biologie",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF0540",
+    "categorie": "plantes_biologie",
+    "notion": "C3-DEVREPRO"
+   },
+   {
+    "code": "QF0540",
+    "categorie": "plantes_biologie",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF7001",
+    "categorie": "plantes_biologie",
+    "notion": "C3-DEVREPRO"
+   },
+   {
+    "code": "QF7001",
+    "categorie": "plantes_biologie",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF7002",
+    "categorie": "plantes_biologie",
+    "notion": "C3-DEVREPRO"
+   },
+   {
+    "code": "QF7002",
+    "categorie": "plantes_biologie",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF7003",
+    "categorie": "plantes_biologie",
+    "notion": "C3-DEVREPRO"
+   },
+   {
+    "code": "QF7003",
+    "categorie": "plantes_biologie",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF7004",
+    "categorie": "plantes_biologie",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF7006",
+    "categorie": "plantes_biologie",
+    "notion": "C3-DEVREPRO"
+   },
+   {
+    "code": "QF7006",
+    "categorie": "plantes_biologie",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF7007",
+    "categorie": "plantes_biologie",
+    "notion": "C3-DEVREPRO"
+   },
+   {
+    "code": "QF7007",
+    "categorie": "plantes_biologie",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF7020",
+    "categorie": "plantes_biologie",
+    "notion": "C3-DEVREPRO"
+   },
+   {
+    "code": "QF7020",
+    "categorie": "plantes_biologie",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF9011",
+    "categorie": "plantes_biologie",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF9265",
+    "categorie": "plantes_biologie",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF9270",
+    "categorie": "plantes_biologie",
+    "notion": "C3-DEVREPRO"
+   },
+   {
+    "code": "QF9270",
+    "categorie": "plantes_biologie",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF9501",
+    "categorie": "plantes_biologie",
+    "notion": "C3-DEVREPRO"
+   },
+   {
+    "code": "QF9501",
+    "categorie": "plantes_biologie",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF9502",
+    "categorie": "plantes_biologie",
+    "notion": "C3-DEVREPRO"
+   },
+   {
+    "code": "QF9502",
+    "categorie": "plantes_biologie",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF9503",
+    "categorie": "plantes_biologie",
+    "notion": "C3-DEVREPRO"
+   },
+   {
+    "code": "QF9503",
+    "categorie": "plantes_biologie",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF9505",
+    "categorie": "plantes_biologie",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF9506",
+    "categorie": "plantes_biologie",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF9508",
+    "categorie": "plantes_biologie",
+    "notion": "C3-DEVREPRO"
+   },
+   {
+    "code": "QF9508",
+    "categorie": "plantes_biologie",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF9546",
+    "categorie": "plantes_biologie",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF9547",
+    "categorie": "plantes_biologie",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF9551",
+    "categorie": "plantes_biologie",
+    "notion": "C3-DEVREPRO"
+   },
+   {
+    "code": "QF9551",
+    "categorie": "plantes_biologie",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF9603",
+    "categorie": "plantes_biologie",
+    "notion": "C3-DEVREPRO"
+   },
+   {
+    "code": "QF9603",
+    "categorie": "plantes_biologie",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF9604",
+    "categorie": "plantes_biologie",
+    "notion": "C3-DEVREPRO"
+   },
+   {
+    "code": "QF9604",
+    "categorie": "plantes_biologie",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF9608",
+    "categorie": "plantes_biologie",
+    "notion": "C3-DEVREPRO"
+   },
+   {
+    "code": "QF9608",
+    "categorie": "plantes_biologie",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF9609",
+    "categorie": "plantes_biologie",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF9613",
+    "categorie": "plantes_biologie",
+    "notion": "C3-DEVREPRO"
+   },
+   {
+    "code": "QF9613",
+    "categorie": "plantes_biologie",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF9725",
+    "categorie": "plantes_biologie",
+    "notion": "C3-DEVREPRO"
+   },
+   {
+    "code": "QF9725",
+    "categorie": "plantes_biologie",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF9786",
+    "categorie": "plantes_biologie",
+    "notion": "C3-DEVREPRO"
+   },
+   {
+    "code": "QF9786",
+    "categorie": "plantes_biologie",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF9789",
+    "categorie": "plantes_biologie",
+    "notion": "C3-DEVREPRO"
+   },
+   {
+    "code": "QF9789",
+    "categorie": "plantes_biologie",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF9794",
+    "categorie": "plantes_biologie",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF9821",
+    "categorie": "plantes_biologie",
+    "notion": "C3-DEVREPRO"
+   },
+   {
+    "code": "QF9821",
+    "categorie": "plantes_biologie",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF9837",
+    "categorie": "plantes_biologie",
+    "notion": "C3-DEVREPRO"
+   },
+   {
+    "code": "QF9837",
+    "categorie": "plantes_biologie",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF9876",
+    "categorie": "populations_equilibres",
+    "notion": "C4-REPRO"
+   },
+   {
+    "code": "QF9876",
+    "categorie": "populations_equilibres",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF9904",
+    "categorie": "populations_equilibres",
+    "notion": "C4-REPRO"
+   },
+   {
+    "code": "QF9904",
+    "categorie": "populations_equilibres",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF9911",
+    "categorie": "populations_equilibres",
+    "notion": "C4-REPRO"
+   },
+   {
+    "code": "QF9911",
+    "categorie": "populations_equilibres",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF9917",
+    "categorie": "populations_equilibres",
+    "notion": "C4-REPRO"
+   },
+   {
+    "code": "QF9917",
+    "categorie": "populations_equilibres",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF9923",
+    "categorie": "populations_equilibres",
+    "notion": "C4-REPRO"
+   },
+   {
+    "code": "QF9923",
+    "categorie": "populations_equilibres",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF0050",
+    "categorie": "pratiques_potager",
+    "notion": "C3-ALIM"
+   },
+   {
+    "code": "QF0050",
+    "categorie": "pratiques_potager",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF0051",
+    "categorie": "pratiques_potager",
+    "notion": "C3-ALIM"
+   },
+   {
+    "code": "QF0051",
+    "categorie": "pratiques_potager",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF0250",
+    "categorie": "pratiques_potager",
+    "notion": "C3-ALIM"
+   },
+   {
+    "code": "QF0250",
+    "categorie": "pratiques_potager",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF0251",
+    "categorie": "pratiques_potager",
+    "notion": "C3-ALIM"
+   },
+   {
+    "code": "QF0251",
+    "categorie": "pratiques_potager",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF0252",
+    "categorie": "pratiques_potager",
+    "notion": "C3-ALIM"
+   },
+   {
+    "code": "QF0252",
+    "categorie": "pratiques_potager",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF0254",
+    "categorie": "pratiques_potager",
+    "notion": "C3-ALIM"
+   },
+   {
+    "code": "QF0254",
+    "categorie": "pratiques_potager",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF0255",
+    "categorie": "pratiques_potager",
+    "notion": "C3-ALIM"
+   },
+   {
+    "code": "QF0255",
+    "categorie": "pratiques_potager",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF0514",
+    "categorie": "pratiques_potager",
+    "notion": "C3-ALIM"
+   },
+   {
+    "code": "QF0514",
+    "categorie": "pratiques_potager",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF0527",
+    "categorie": "pratiques_potager",
+    "notion": "C3-ALIM"
+   },
+   {
+    "code": "QF0527",
+    "categorie": "pratiques_potager",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF9205",
+    "categorie": "pratiques_potager",
+    "notion": "C4-RESS"
+   },
+   {
+    "code": "QF9206",
+    "categorie": "pratiques_potager",
+    "notion": "C3-ALIM"
+   },
+   {
+    "code": "QF9206",
+    "categorie": "pratiques_potager",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF9207",
+    "categorie": "pratiques_potager",
+    "notion": "C3-ALIM"
+   },
+   {
+    "code": "QF9207",
+    "categorie": "pratiques_potager",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF9208",
+    "categorie": "pratiques_potager",
+    "notion": "C3-ALIM"
+   },
+   {
+    "code": "QF9208",
+    "categorie": "pratiques_potager",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF9217",
+    "categorie": "pratiques_potager",
+    "notion": "C4-RESS"
+   },
+   {
+    "code": "QF9218",
+    "categorie": "pratiques_potager",
+    "notion": "C4-RESS"
+   },
+   {
+    "code": "QF9513",
+    "categorie": "pratiques_potager",
+    "notion": "C4-RESS"
+   },
+   {
+    "code": "QF9514",
+    "categorie": "pratiques_potager",
+    "notion": "C3-ALIM"
+   },
+   {
+    "code": "QF9514",
+    "categorie": "pratiques_potager",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF0060",
+    "categorie": "semis_recolte",
+    "notion": "C3-DEV"
+   },
+   {
+    "code": "QF0060",
+    "categorie": "semis_recolte",
+    "notion": "C3-DEVREPRO"
+   },
+   {
+    "code": "QF0061",
+    "categorie": "semis_recolte",
+    "notion": "C3-DEV"
+   },
+   {
+    "code": "QF0061",
+    "categorie": "semis_recolte",
+    "notion": "C3-DEVREPRO"
+   },
+   {
+    "code": "QF0260",
+    "categorie": "semis_recolte",
+    "notion": "C3-DEV"
+   },
+   {
+    "code": "QF0260",
+    "categorie": "semis_recolte",
+    "notion": "C3-DEVREPRO"
+   },
+   {
+    "code": "QF0262",
+    "categorie": "semis_recolte",
+    "notion": "C3-DEV"
+   },
+   {
+    "code": "QF0262",
+    "categorie": "semis_recolte",
+    "notion": "C3-DEVREPRO"
+   },
+   {
+    "code": "QF0263",
+    "categorie": "semis_recolte",
+    "notion": "C3-DEV"
+   },
+   {
+    "code": "QF0263",
+    "categorie": "semis_recolte",
+    "notion": "C3-DEVREPRO"
+   },
+   {
+    "code": "QF0264",
+    "categorie": "semis_recolte",
+    "notion": "C3-DEV"
+   },
+   {
+    "code": "QF0264",
+    "categorie": "semis_recolte",
+    "notion": "C3-DEVREPRO"
+   },
+   {
+    "code": "QF0265",
+    "categorie": "semis_recolte",
+    "notion": "C3-DEV"
+   },
+   {
+    "code": "QF0265",
+    "categorie": "semis_recolte",
+    "notion": "C3-DEVREPRO"
+   },
+   {
+    "code": "QF0508",
+    "categorie": "semis_recolte",
+    "notion": "C4-REPRO"
+   },
+   {
+    "code": "QF0515",
+    "categorie": "semis_recolte",
+    "notion": "C3-DEV"
+   },
+   {
+    "code": "QF0515",
+    "categorie": "semis_recolte",
+    "notion": "C3-DEVREPRO"
+   },
+   {
+    "code": "QF0538",
+    "categorie": "semis_recolte",
+    "notion": "C4-REPRO"
+   },
+   {
+    "code": "QF9215",
+    "categorie": "semis_recolte",
+    "notion": "C3-DEV"
+   },
+   {
+    "code": "QF9215",
+    "categorie": "semis_recolte",
+    "notion": "C3-DEVREPRO"
+   },
+   {
+    "code": "QF9216",
+    "categorie": "semis_recolte",
+    "notion": "C3-DEV"
+   },
+   {
+    "code": "QF9216",
+    "categorie": "semis_recolte",
+    "notion": "C3-DEVREPRO"
+   },
+   {
+    "code": "QF9230",
+    "categorie": "semis_recolte",
+    "notion": "C3-DEV"
+   },
+   {
+    "code": "QF9230",
+    "categorie": "semis_recolte",
+    "notion": "C3-DEVREPRO"
+   },
+   {
+    "code": "QF9231",
+    "categorie": "semis_recolte",
+    "notion": "C4-REPRO"
+   },
+   {
+    "code": "QF9232",
+    "categorie": "semis_recolte",
+    "notion": "C3-DEV"
+   },
+   {
+    "code": "QF9232",
+    "categorie": "semis_recolte",
+    "notion": "C3-DEVREPRO"
+   },
+   {
+    "code": "QF9519",
+    "categorie": "semis_recolte",
+    "notion": "C3-DEV"
+   },
+   {
+    "code": "QF9519",
+    "categorie": "semis_recolte",
+    "notion": "C3-DEVREPRO"
+   },
+   {
+    "code": "QF9542",
+    "categorie": "semis_recolte",
+    "notion": "C3-DEV"
+   },
+   {
+    "code": "QF9542",
+    "categorie": "semis_recolte",
+    "notion": "C3-DEVREPRO"
+   },
+   {
+    "code": "QF9606",
+    "categorie": "semis_recolte",
+    "notion": "C3-DEV"
+   },
+   {
+    "code": "QF9606",
+    "categorie": "semis_recolte",
+    "notion": "C3-DEVREPRO"
+   },
+   {
+    "code": "QF9881",
+    "categorie": "semis_recolte",
+    "notion": "C3-DEV"
+   },
+   {
+    "code": "QF9881",
+    "categorie": "semis_recolte",
+    "notion": "C3-DEVREPRO"
+   },
+   {
+    "code": "QF9891",
+    "categorie": "semis_recolte",
+    "notion": "C3-DEV"
+   },
+   {
+    "code": "QF9891",
+    "categorie": "semis_recolte",
+    "notion": "C3-DEVREPRO"
+   },
+   {
+    "code": "QF9900",
+    "categorie": "semis_recolte",
+    "notion": "C3-DEV"
+   },
+   {
+    "code": "QF9900",
+    "categorie": "semis_recolte",
+    "notion": "C3-DEVREPRO"
+   },
+   {
+    "code": "QF0030",
+    "categorie": "sol_compost",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF0031",
+    "categorie": "sol_compost",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF0033",
+    "categorie": "sol_compost",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF0230",
+    "categorie": "sol_compost",
+    "notion": "C4-RESS"
+   },
+   {
+    "code": "QF0230",
+    "categorie": "sol_compost",
+    "notion": "C4-TERRE"
+   },
+   {
+    "code": "QF0232",
+    "categorie": "sol_compost",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF7008",
+    "categorie": "sol_compost",
+    "notion": "C4-RESS"
+   },
+   {
+    "code": "QF7008",
+    "categorie": "sol_compost",
+    "notion": "C4-TERRE"
+   },
+   {
+    "code": "QF7023",
+    "categorie": "sol_compost",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF7026",
+    "categorie": "sol_compost",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF7032",
+    "categorie": "sol_compost",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF7049",
+    "categorie": "sol_compost",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF7051",
+    "categorie": "sol_compost",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF9105",
+    "categorie": "sol_compost",
+    "notion": "C4-RESS"
+   },
+   {
+    "code": "QF9105",
+    "categorie": "sol_compost",
+    "notion": "C4-TERRE"
+   },
+   {
+    "code": "QF9221",
+    "categorie": "sol_compost",
+    "notion": "C4-RESS"
+   },
+   {
+    "code": "QF9221",
+    "categorie": "sol_compost",
+    "notion": "C4-TERRE"
+   },
+   {
+    "code": "QF9223",
+    "categorie": "sol_compost",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF9224",
+    "categorie": "sol_compost",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF9233",
+    "categorie": "sol_compost",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF9236",
+    "categorie": "sol_compost",
+    "notion": "C4-RESS"
+   },
+   {
+    "code": "QF9236",
+    "categorie": "sol_compost",
+    "notion": "C4-TERRE"
+   },
+   {
+    "code": "QF9238",
+    "categorie": "sol_compost",
+    "notion": "C4-RESS"
+   },
+   {
+    "code": "QF9238",
+    "categorie": "sol_compost",
+    "notion": "C4-TERRE"
+   },
+   {
+    "code": "QF9240",
+    "categorie": "sol_compost",
+    "notion": "C4-RESS"
+   },
+   {
+    "code": "QF9240",
+    "categorie": "sol_compost",
+    "notion": "C4-TERRE"
+   },
+   {
+    "code": "QF9261",
+    "categorie": "sol_compost",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF9264",
+    "categorie": "sol_compost",
+    "notion": "C4-RESS"
+   },
+   {
+    "code": "QF9264",
+    "categorie": "sol_compost",
+    "notion": "C4-TERRE"
+   },
+   {
+    "code": "QF9271",
+    "categorie": "sol_compost",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF9301",
+    "categorie": "sol_compost",
+    "notion": "C4-RESS"
+   },
+   {
+    "code": "QF9301",
+    "categorie": "sol_compost",
+    "notion": "C4-TERRE"
+   },
+   {
+    "code": "QF9303",
+    "categorie": "sol_compost",
+    "notion": "C4-RESS"
+   },
+   {
+    "code": "QF9303",
+    "categorie": "sol_compost",
+    "notion": "C4-TERRE"
+   },
+   {
+    "code": "QF9305",
+    "categorie": "sol_compost",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF9307",
+    "categorie": "sol_compost",
+    "notion": "C4-RESS"
+   },
+   {
+    "code": "QF9307",
+    "categorie": "sol_compost",
+    "notion": "C4-TERRE"
+   },
+   {
+    "code": "QF9309",
+    "categorie": "sol_compost",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF9310",
+    "categorie": "sol_compost",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF9401",
+    "categorie": "sol_compost",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF9402",
+    "categorie": "sol_compost",
+    "notion": "C4-RESS"
+   },
+   {
+    "code": "QF9402",
+    "categorie": "sol_compost",
+    "notion": "C4-TERRE"
+   },
+   {
+    "code": "QF9404",
+    "categorie": "sol_compost",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF9405",
+    "categorie": "sol_compost",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF9406",
+    "categorie": "sol_compost",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF9412",
+    "categorie": "sol_compost",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF9707",
+    "categorie": "sol_compost",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF9708",
+    "categorie": "sol_compost",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF9709",
+    "categorie": "sol_compost",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF9710",
+    "categorie": "sol_compost",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF9712",
+    "categorie": "sol_compost",
+    "notion": "C3-MATORG"
+   },
+   {
+    "code": "QF0001",
+    "categorie": "vivant_classification",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF0002",
+    "categorie": "vivant_classification",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF0003",
+    "categorie": "vivant_classification",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF0004",
+    "categorie": "vivant_classification",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF0201",
+    "categorie": "vivant_classification",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF0203",
+    "categorie": "vivant_classification",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF0503",
+    "categorie": "vivant_classification",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF0516",
+    "categorie": "vivant_classification",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF0533",
+    "categorie": "vivant_classification",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF7027",
+    "categorie": "vivant_classification",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF7038",
+    "categorie": "vivant_classification",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF9471",
+    "categorie": "vivant_classification",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF9473",
+    "categorie": "vivant_classification",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF9761",
+    "categorie": "vivant_classification",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF9762",
+    "categorie": "vivant_classification",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF9766",
+    "categorie": "vivant_classification",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF9770",
+    "categorie": "vivant_classification",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF9771",
+    "categorie": "vivant_classification",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF9775",
+    "categorie": "vivant_classification",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF9777",
+    "categorie": "vivant_classification",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF9778",
+    "categorie": "vivant_classification",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF9783",
+    "categorie": "vivant_classification",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF9784",
+    "categorie": "vivant_classification",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF9795",
+    "categorie": "vivant_classification",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF9796",
+    "categorie": "vivant_classification",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF9797",
+    "categorie": "vivant_classification",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF9801",
+    "categorie": "vivant_classification",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF9802",
+    "categorie": "vivant_classification",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF9804",
+    "categorie": "vivant_classification",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF9805",
+    "categorie": "vivant_classification",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF9806",
+    "categorie": "vivant_classification",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF9810",
+    "categorie": "vivant_classification",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF9825",
+    "categorie": "vivant_classification",
+    "notion": "C4-VIV"
+   },
+   {
+    "code": "QF9832",
+    "categorie": "vivant_classification",
+    "notion": "C3-VIV"
+   },
+   {
+    "code": "QF9833",
+    "categorie": "vivant_classification",
+    "notion": "C3-VIV"
    }
   ],
   "lycee_ajout_delete": [
@@ -2563,9 +6660,26 @@
     "code": "QF0410",
     "categorie": "glossaire_definitions",
     "notion": "C4-VIV"
+   },
+   {
+    "code": "QF0377",
+    "categorie": "glossaire_definitions",
+    "notion": "C4-TERRE"
    }
   ],
   "lycee_niveau": [
+   {
+    "code": "QF9530",
+    "categorie": "cycle_azote_aquaponie"
+   },
+   {
+    "code": "QF9701",
+    "categorie": "cycle_azote_aquaponie"
+   },
+   {
+    "code": "QF9706",
+    "categorie": "cycle_azote_aquaponie"
+   },
    {
     "code": "QF0367",
     "categorie": "glossaire_definitions"
@@ -2619,6 +6733,10 @@
     "categorie": "sol_compost"
    },
    {
+    "code": "QF9234",
+    "categorie": "sol_compost"
+   },
+   {
     "code": "QF9235",
     "categorie": "sol_compost"
    },
@@ -2633,9 +6751,109 @@
    {
     "code": "QF9256",
     "categorie": "sol_compost"
+   },
+   {
+    "code": "QF0377",
+    "categorie": "glossaire_definitions"
    }
   ],
-  "lycee_ajout_insert": []
+  "lycee_ajout_insert": [
+   {
+    "code": "QF9530",
+    "categorie": "cycle_azote_aquaponie",
+    "notion": "1-ECO"
+   },
+   {
+    "code": "QF9530",
+    "categorie": "cycle_azote_aquaponie",
+    "notion": "2-AGRO"
+   },
+   {
+    "code": "QF9701",
+    "categorie": "cycle_azote_aquaponie",
+    "notion": "1-ECO"
+   },
+   {
+    "code": "QF9701",
+    "categorie": "cycle_azote_aquaponie",
+    "notion": "2-AGRO"
+   },
+   {
+    "code": "QF9706",
+    "categorie": "cycle_azote_aquaponie",
+    "notion": "1-ECO"
+   },
+   {
+    "code": "QF9706",
+    "categorie": "cycle_azote_aquaponie",
+    "notion": "2-AGRO"
+   },
+   {
+    "code": "QF0419",
+    "categorie": "identification_especes",
+    "notion": "2-BIODIV"
+   },
+   {
+    "code": "QF0439",
+    "categorie": "identification_especes",
+    "notion": "2-BIODIV"
+   },
+   {
+    "code": "QF9538",
+    "categorie": "identification_especes",
+    "notion": "2-BIODIV"
+   },
+   {
+    "code": "QF9250",
+    "categorie": "plantes_biologie",
+    "notion": "2-ORGA"
+   },
+   {
+    "code": "QF9219",
+    "categorie": "pratiques_potager",
+    "notion": "2-AGRO"
+   },
+   {
+    "code": "QF9220",
+    "categorie": "pratiques_potager",
+    "notion": "2-AGRO"
+   },
+   {
+    "code": "QF9229",
+    "categorie": "semis_recolte",
+    "notion": "2-AGRO"
+   },
+   {
+    "code": "QF9222",
+    "categorie": "sol_compost",
+    "notion": "2-AGRO"
+   },
+   {
+    "code": "QF9234",
+    "categorie": "sol_compost",
+    "notion": "2-AGRO"
+   },
+   {
+    "code": "QF9235",
+    "categorie": "sol_compost",
+    "notion": "2-AGRO"
+   },
+   {
+    "code": "QF9237",
+    "categorie": "sol_compost",
+    "notion": "2-AGRO"
+   },
+   {
+    "code": "QF9239",
+    "categorie": "sol_compost",
+    "notion": "2-AGRO"
+   },
+   {
+    "code": "QF9256",
+    "categorie": "sol_compost",
+    "notion": "2-AGRO"
+   }
+  ]
  },
  "decisions": [
   {
@@ -2870,13 +7088,14 @@
   {
    "code": "QF9530",
    "categorie": "cycle_azote_aquaponie",
-   "palier": 4,
+   "palier": "lycee",
    "before": [
     "C3-MATORG",
     "C4-RESS"
    ],
    "after": [
-    "C4-RESS"
+    "1-ECO",
+    "2-AGRO"
    ]
   },
   {
@@ -2907,13 +7126,14 @@
   {
    "code": "QF9701",
    "categorie": "cycle_azote_aquaponie",
-   "palier": 4,
+   "palier": "lycee",
    "before": [
     "C3-MATORG",
     "C4-RESS"
    ],
    "after": [
-    "C4-RESS"
+    "1-ECO",
+    "2-AGRO"
    ]
   },
   {
@@ -2943,13 +7163,14 @@
   {
    "code": "QF9706",
    "categorie": "cycle_azote_aquaponie",
-   "palier": 4,
+   "palier": "lycee",
    "before": [
     "C3-MATORG",
     "C4-RESS"
    ],
    "after": [
-    "C4-RESS"
+    "1-ECO",
+    "2-AGRO"
    ]
   },
   {
@@ -7472,15 +11693,14 @@
   {
    "code": "QF9234",
    "categorie": "sol_compost",
-   "palier": 4,
+   "palier": "lycee",
    "before": [
     "C3-MATORG",
     "C4-RESS",
     "C4-TERRE"
    ],
    "after": [
-    "C4-RESS",
-    "C4-TERRE"
+    "2-AGRO"
    ]
   },
   {
@@ -8300,6 +12520,18 @@
    ],
    "after": [
     "C3-VIV"
+   ]
+  },
+  {
+   "code": "QF0377",
+   "categorie": "glossaire_definitions",
+   "palier": "lycee",
+   "before": [
+    "C4-TERRE"
+   ],
+   "after": [
+    "2-BIODIV",
+    "2-ORGA"
    ]
   }
  ]

@@ -176,8 +176,8 @@
  {
   "code": "QF9234",
   "categorie": "sol_compost",
-  "palier": 4,
-  "raison": "sol asphyxié, gaz malodorant"
+  "palier": "lycee",
+  "raison": "sulfure d’hydrogène (H2S) et asphyxie du sol : lycée"
  },
  {
   "code": "QF9235",
