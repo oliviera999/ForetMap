@@ -34,8 +34,10 @@ const MAX_LENGTH = 40;
 const ARTICLE = /^(un|une|des) \S/;
 const FORBIDDEN_VERBS = /(cueill|goût|gout|touch|frott|manipul|ramass|attrap)/i;
 
-// Mots du langage courant qui sont aussi des variantes de termes du glossaire hors `base`.
-const MOTS_COURANTS = new Set(['sable']);
+// Mots du langage courant qui sont aussi des variantes de termes du glossaire hors `base` :
+// « sable » (variante de « texture du sol ») et « libellule » (variante de « odonate ») sont
+// des mots de tous les jours ; le terme savant (texture, odonate) reste, lui, filtré.
+const MOTS_COURANTS = new Set(['sable', 'libellule', 'libellules']);
 
 /**
  * Mots interdits par grand groupe (cohérence avec le clade). Les clés sont les `groupe` des
