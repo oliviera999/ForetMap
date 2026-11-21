@@ -1,0 +1,70 @@
+/* Réseau trophique (chantier collège 2026-11, flux C3) : choix de l'espèce de départ, barre
+   de profondeur, messages et pastille du détail. Tokens du thème forêt seulement. */
+
+.pedago-foodweb__start {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-card);
+}
+
+.pedago-foodweb__start-title {
+  margin: 0;
+  color: var(--forest);
+  font-size: var(--text-base, inherit);
+}
+
+.pedago-foodweb__start-subtitle {
+  margin: var(--space-2) 0 0;
+  color: var(--leaf);
+  font-size: var(--text-sm);
+}
+
+.pedago-foodweb__start-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pedago-foodweb__start-list .pedago-chip-btn,
+.pedago-foodweb__startbar .pedago-chip-btn,
+.pedago-foodweb__startbar .btn,
+.pedago-foodweb__start-search input {
+  min-height: var(--tap-target, 44px);
+}
+
+.pedago-foodweb__start-chip--featured {
+  border-color: var(--sage);
+  font-weight: var(--fw-bold, 700);
+}
+
+.pedago-foodweb__start-search {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.pedago-foodweb__startbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-card);
+}
+
+.pedago-foodweb__startbar-label {
+  flex: 1 1 auto;
+  color: var(--forest);
+}
+
+.pedago-foodweb__empty {
+  padding: var(--space-card);
+}
+
+/* Pastille du détail de la relation : couleur du type portée par une variable CSS. */
+.pedago-foodweb__selected-dot--typed {
+  background: var(--fw-edge-color);
+}

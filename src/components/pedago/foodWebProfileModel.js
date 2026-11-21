@@ -200,3 +200,54 @@ export function focusDepthChoices(depths, seedCount) {
   if (seedCount > 1 && !base.includes(0)) base.unshift(0);
   return base.filter((depth) => depth > 0 || seedCount > 1);
 }
+
+/** Clé de l'extrémité « environnement » (`to_id` nul) dans `itemsAroundSeeds`. */
+const ENV_KEY = 'env';
+
+function endpointKey(id) {
+  return id == null ? ENV_KEY : Number(id);
+}
+
+/**
+ * Sous-réseau **borné** autour des espèces de départ, calculé sur les lignes de l'API (avant
+ * construction du graphe) pour que liste et graphe montrent la même chose :
+ *
+ * - `depth = 0` : les espèces choisies et leurs liens mutuels seulement ;
+ * - `depth = 1` : leurs voisins directs ;
+ * - `depth = 2` : la chaîne (voisins des voisins).
+ *
+ * L'« environnement » (sol, air…) peut apparaître comme voisin mais n'est jamais traversé : il
+ * relie presque toutes les espèces, et le traverser rendrait le réseau entier.
+ *
+ * @param {object[]} items lignes déjà filtrées pour le profil
+ * @param {Iterable<number>|number} seeds
+ * @param {number} depth
+ * @returns {object[]} lignes dont les deux extrémités sont dans le sous-réseau
+ */
+export function itemsAroundSeeds(items, seeds, depth = COLLEGE_DEFAULT_FOCUS_DEPTH) {
+  const roots = normalizeSeedIds(seeds);
+  if (roots.length === 0) return [];
+  const list = items || [];
+  const steps = Math.max(0, Math.floor(Number(depth) || 0));
+  const visible = new Set(roots);
+  let frontier = new Set(roots);
+  for (let i = 0; i < steps && frontier.size > 0; i += 1) {
+    const next = new Set();
+    for (const row of list) {
+      const a = endpointKey(row?.from_id);
+      const b = endpointKey(row?.to_id);
+      for (const [here, there] of [
+        [a, b],
+        [b, a],
+      ]) {
+        if (here === ENV_KEY || !frontier.has(here) || visible.has(there)) continue;
+        visible.add(there);
+        if (there !== ENV_KEY) next.add(there);
+      }
+    }
+    frontier = next;
+  }
+  return list.filter(
+    (row) => visible.has(endpointKey(row?.from_id)) && visible.has(endpointKey(row?.to_id)),
+  );
+}

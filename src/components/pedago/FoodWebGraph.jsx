@@ -271,8 +271,17 @@ export function FoodWebGraph({
   onSelectEdge,
   selectedEdgeId,
   highlightPlantId,
+  /** Espèces mises en avant sans focus automatique (départ du réseau « collège »). */
+  highlightPlantIds = null,
+  /**
+   * Isolement demandé de l'extérieur (séance qui montre plusieurs espèces) :
+   * `{ ids, depth, nonce }`, appliqué une fois par `nonce`.
+   */
+  focusRequest = null,
   onOpenPlant,
   legendCompact = false,
+  /** Libellé d'un type d'interaction pour le profil (verbe au collège). */
+  typeLabel = interactionTypeLabel,
   variant = 'foretmap',
   /** Preset contrôlé par le parent (liste + graphe partagent le même cadrage). */
   preset: presetProp = null,
@@ -828,6 +837,31 @@ export function FoodWebGraph({
     setFocusIds(new Set([id]));
   }, [highlightPlantId, nodes]);
 
+  /** Dernière demande d'isolement appliquée (une fois par `nonce`). */
+  const appliedFocusRequestRef = useRef(null);
+
+  // Séance qui montre plusieurs espèces : isoler leur sous-réseau (profondeur 0 = leurs
+  // liens mutuels). Déclaré après l'effet de mise en avant : la demande l'emporte.
+  useEffect(() => {
+    if (!focusRequest || !Array.isArray(focusRequest.ids)) return;
+    const key = focusRequest.nonce ?? focusRequest.ids.join(',');
+    if (appliedFocusRequestRef.current === key) return;
+    const present = new Set(nodes.map((node) => node.id));
+    const ids = focusRequest.ids.map(Number).filter((id) => present.has(id));
+    if (ids.length === 0) return;
+    appliedFocusRequestRef.current = key;
+    setFocusIds(new Set(ids));
+    if (Number.isFinite(Number(focusRequest.depth))) setFocusDepth(Number(focusRequest.depth));
+  }, [focusRequest, nodes]);
+
+  /** Espèces teintées « mise en avant » (lien d'arrivée ou départ du réseau collège). */
+  const highlightSet = useMemo(() => {
+    const out = new Set();
+    for (const raw of highlightPlantIds || []) out.add(Number(raw));
+    if (highlightPlantId != null) out.add(Number(highlightPlantId));
+    return out;
+  }, [highlightPlantId, highlightPlantIds]);
+
   // Le jeu de données a changé (carte, zone, filtre de type) : un focus sur un nœud
   // disparu vidait la scène sans que rien ne l'explique.
   useEffect(() => {
@@ -1044,9 +1078,9 @@ export function FoodWebGraph({
     (edge) => {
       const tail = nodeLabelById.get(edge.tailId) || 'Espèce';
       const head = nodeLabelById.get(edge.headId) || 'Espèce';
-      return `${interactionTypeLabel(edge.type)} : ${tail} ${edge.relation} ${head}`;
+      return `${typeLabel(edge.type)} : ${tail} ${edge.relation} ${head}`;
     },
-    [nodeLabelById],
+    [nodeLabelById, typeLabel],
   );
 
   const edgeTitle = useCallback(
@@ -1515,8 +1549,7 @@ export function FoodWebGraph({
             const pos = posOf(node.id);
             if (!pos) return null;
             const isEnv = isEnvNodeId(node.id);
-            const highlighted =
-              !isEnv && highlightPlantId != null && Number(highlightPlantId) === node.id;
+            const highlighted = !isEnv && highlightSet.has(node.id);
             const focused = focusIds.has(node.id);
             const dim = nodeDimmed(node.id);
             const showLabel = labelVisible(node.id);
@@ -1598,6 +1631,7 @@ export function FoodWebGraph({
         hiddenTypes={hiddenTypes}
         onToggleType={toggleEdgeType}
         compact={legendCompact}
+        typeLabel={typeLabel === interactionTypeLabel ? null : typeLabel}
       />
 
       <details className="pedago-foodweb-graph__help">

@@ -6,6 +6,7 @@ import {
   focusDepthChoices,
   foodWebProfile,
   initialFocusDepth,
+  itemsAroundSeeds,
   normalizeSeedIds,
   seedLinkStatus,
   startSpeciesCandidates,
@@ -117,5 +118,32 @@ describe('profondeurs', () => {
     expect(normalizeSeedIds(new Set([5]))).toEqual([5]);
     expect(normalizeSeedIds('7')).toEqual([7]);
     expect(normalizeSeedIds(null)).toEqual([]);
+  });
+});
+
+describe('itemsAroundSeeds', () => {
+  // Chaîne 1 → 2 → 3 → 4, et 2 vers l'environnement ; 5 relié à l'environnement seulement.
+  const items = [
+    row(1, 'predation', 1, 2),
+    row(2, 'predation', 2, 3),
+    row(3, 'predation', 3, 4),
+    row(4, 'decomposition', 2, null),
+    row(5, 'decomposition', 5, null),
+    row(6, 'competition', 1, 3),
+  ];
+  const ids = (list) => list.map((r) => r.id).sort((a, b) => a - b);
+  it('profondeur 1 : voisins directs (et leurs liens mutuels)', () => {
+    expect(ids(itemsAroundSeeds(items, [2], 1))).toEqual([1, 2, 4, 6]);
+  });
+  it('profondeur 2 : la chaîne, sans traverser l’environnement', () => {
+    expect(ids(itemsAroundSeeds(items, [1], 2))).toEqual([1, 2, 3, 4, 6]);
+    expect(itemsAroundSeeds(items, [1], 2).some((r) => r.id === 5)).toBe(false);
+  });
+  it('profondeur 0 : les espèces choisies et leurs liens mutuels', () => {
+    expect(ids(itemsAroundSeeds(items, [1, 3], 0))).toEqual([6]);
+    expect(itemsAroundSeeds(items, [4], 0)).toEqual([]);
+  });
+  it('sans graine : rien', () => {
+    expect(itemsAroundSeeds(items, [], 1)).toEqual([]);
   });
 });
