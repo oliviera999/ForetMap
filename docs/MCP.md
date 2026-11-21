@@ -252,6 +252,17 @@ sinon SQL en lecture seule (`lib/mcp/domains/`) sous la permission applicative �
 | `foretmap_stats` (`stats`)                            | dashboard, students\*, student\*, usage                                                                                                                                                                                                                                                  |
 | `foretmap_ops` (`ops` ; `mcp.ops`, `ops_enabled`)     | cron_jobs, run_cron é, migrate é, restart é, dump é (full \| anonymized \| structure, fichier privé, lien 1 h), storage_report, deploy_status, retention_preview, retention_run é, clear_caches é, scripts, script_dry_run, run_script é (liste blanche `lib/mcp/domains/opsScripts.js`) |
 
+Précisions du 21/11/2026 :
+
+- `foretmap_species` : `list` accepte le filtre `entity_kind` et rend la **nature** de chaque
+  fiche (`taxon`, `groupe_fonctionnel`, `consortium`, `ressource`) ; `create` et `update`
+  l'acceptent dans `data`. Une fiche `ressource` est absente de la liste et de la recherche des
+  élèves, pas du réseau trophique (`docs/API.md`, « Nature de la fiche »).
+- `foretmap_ops` : `retention_preview` et `retention_run` connaissent la catégorie
+  `observations` (photos des observations refusées, observations refusées, observations jamais
+  examinées ; jamais une observation validée). L'aperçu ne rend que des **comptages** et les
+  durées appliquées (`lib/retention/policy.js`).
+
 ### Outils Gnomes & Licornes (domaine `gl`, `lib/mcp/tools/domains/gl*.js`)
 
 Dix outils pour la mouture « Tenir à deux » (`docs/GL_TENIR_A_DEUX.md`), ajoutés le 08/11/2026.

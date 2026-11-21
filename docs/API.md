@@ -2979,6 +2979,25 @@ accents sont tolérés (« Détritivore » → `detritivore`) ; une valeur hors 
 Listes du code : `lib/plantTrophicRole.js` (serveur) et `src/utils/plantTrophicRole.js`
 (libellés et définitions de l’interface).
 
+**Nature de la fiche** — `entity_kind`, ENUM non nul, `taxon` par défaut : `taxon` \|
+`groupe_fonctionnel` (plancton, champignons de litière…) \| `consortium` (lichen, biofilm,
+mycorhize) \| `ressource` (matière non vivante : litière, compost, bois mort…). Colonne créée
+par la migration `plants_entity_kind` (elle existait déjà en production, hors dépôt : la
+migration y est sans effet). Référentiel : `ENTITY_KIND_ENUM` (`src/shared/enums/biodivEnums.js`,
+miroir `lib/shared/biodivEnums.js`).
+
+- **Lecture** : `GET /api/plants` rend `entity_kind` pour chaque fiche et **garde toutes les
+  fiches**, « ressource » comprises : le réseau trophique, les liens entre fiches, les clés de
+  détermination et la gestion lisent ce catalogue entier.
+- **Liste et recherche des élèves** : les fiches `ressource` n’y sont pas proposées
+  (`plantsForStudentCatalog`, `src/utils/plantFilters.js` ; liste « Espèce observée » du
+  formulaire d’observation). Le filtrage est fait par l’interface, à partir de `entity_kind` :
+  la fiche reste lisible par son lien (réseau trophique, fiche d’une espèce qui la consomme).
+- **Écriture** (`POST /api/plants`, `PUT /api/plants/:id`, permission `plants.manage`) :
+  `entity_kind` facultatif. Absent, vide ou `null` : la fiche garde sa nature (`taxon` à la
+  création). Valeur hors liste : **400** `{ "error": "Nature de fiche inconnue (attendu : …)" }`,
+  rien n’est écrit. L’import tableur ne porte pas ce champ.
+
 S’y ajoutent les quatre champs de **danger** (migration `251`). Ils répondent à une question que
 la détermination ne couvre pas : une espèce parfaitement identifiée peut rester dangereuse.
 
@@ -3718,6 +3737,33 @@ partent en cascade et leurs fichiers photo sont effacés après validation de la
 | GET     | `/api/species-observations/:id/interactions`                        | `observations.validate`                 | Relations du réseau trophique où figure l’espèce observée : `{ items: [{ id, interaction_type, evidence_level, from, to, attached }] }`                                                                                                                                                                                                                                                                   |
 | POST    | `/api/species-observations/:id/interaction-evidence`                | `observations.validate`                 | `{ interaction_id }` — rattache l’observation comme preuve (espèce de départ ou d’arrivée de la relation, sinon **400** ; observation refusée → **409**). Observation validée : la relation passe à `observe_site`. **201** `{ attached: true, evidence_level, upgraded }` (**200** `attached: false` si déjà rattachée)                                                                                    |
 | DELETE  | `/api/species-observations/:id/interaction-evidence/:interactionId` | `observations.validate`                 | Détache une preuve **non validée** ; validée → **409** `EVIDENCE_VALIDATED`                                                                                                                                                                                                                                                                                                                             |
+
+**Visibilité** (public : élèves mineurs) : le texte et les photos d’une observation ne sont
+rendus qu’à son **auteur** et aux **validateurs** (`observations.validate`, carte dans leur
+périmètre), quel que soit son statut. Tout autre compte reçoit **404** sur la fiche et sur le
+fichier photo, **403** sur la file d’examen ; sans connexion, **401**. `/uploads` ne sert jamais
+ces fichiers (**403** `PRIVATE_UPLOAD`). La diffusion temps réel (`observations:changed`) ne
+porte que l’identifiant, la carte et le statut. Vérifié par
+`tests/species-observations-visibility.test.js`.
+
+**Photos — métadonnées** : EXIF (position GPS, modèle d’appareil, date de prise de vue), XMP et
+IPTC sont retirés à l’écriture par `lib/uploads.js`, pour JPEG, PNG et WebP ; une image qui ne
+peut pas être nettoyée est refusée. Le fichier servi est le fichier nettoyé. Vérifié par
+`tests/species-observations-exif.test.js`.
+
+**Conservation** (catégorie `observations` de la purge planifiée, `lib/retention/` ; durées en
+constantes dans `lib/retention/policy.js`, **proposées et à confirmer par l’établissement**) :
+
+| Donnée                                         | Durée                                   | Constante                                  |
+| ---------------------------------------------- | --------------------------------------- | ------------------------------------------ |
+| Photo d’une observation **refusée**            | 7 jours après la décision               | `OBSERVATION_REFUSED_PHOTO_RETENTION_DAYS` |
+| Observation **refusée** (texte, note)          | 90 jours après la décision              | `OBSERVATION_REFUSED_RETENTION_DAYS`       |
+| Observation **soumise** jamais examinée        | 365 jours après sa création, avec photos | `OBSERVATION_PENDING_RETENTION_DAYS`       |
+| Observation **validée** (preuve d’inventaire) | autant que le compte de son auteur      | — (cascade à la suppression du compte)     |
+
+La purge supprime la ligne puis le fichier, par lots, et ne touche jamais une observation
+validée (le statut est revérifié dans chaque suppression). En simulation — mode par défaut, et
+seul mode de `foretmap_ops retention_preview` — elle ne rend que des comptages.
 
 **Idempotence (file hors ligne)** : `client_uuid` facultatif (8 à 64 caractères
 `[A-Za-z0-9-]`, sinon **400**), clé propre à l’observateur (index unique

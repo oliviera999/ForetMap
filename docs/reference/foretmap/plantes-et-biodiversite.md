@@ -108,10 +108,27 @@ Deux précisions :
   autres lisent « dans une zone », sans son nom.
 
 Le catalogue contient aussi quelques **fiches-ressources** qui ne sont pas des êtres
-vivants : litière de feuilles, compost, bois mort, biofilm, fruits tombés, carton de
+vivants : litière de feuilles, compost, bois mort, fruits tombés, carton de
 lombricompost, crottes. Elles servent d’exemples de nourriture pour les vers, cloportes
 et autres recycleurs, afin que le réseau trophique montre clairement ce qu’ils
 mangent.
+
+### La nature de la fiche
+
+Chaque fiche a une **nature**, choisie dans le formulaire de la fiche (champ « Nature de la
+fiche », réservé à la gestion) :
+
+- **Espèce ou groupe d’espèces** : le cas général, et la valeur d’une fiche neuve ;
+- **Groupe fonctionnel** : des êtres vivants réunis par leur rôle (phytoplancton,
+  zooplancton, champignons de litière) ;
+- **Association d’êtres vivants** : lichen, biofilm, mycorhize ;
+- **Ressource non vivante** : les fiches-ressources ci-dessus.
+
+Une fiche **« Ressource non vivante » n’apparaît ni dans la liste ni dans la recherche du
+catalogue des élèves**, et n’est pas proposée dans la liste « Espèce observée » du formulaire
+d’observation : ce n’est pas un être vivant. Elle reste visible dans le **réseau trophique**,
+dans les liens depuis les autres fiches, dans les clés d’identification et côté gestion. Les
+trois autres natures restent dans la liste des élèves.
 
 ### Le rôle trophique
 
@@ -527,9 +544,18 @@ professeur vérifie avant qu'elle compte pour le site.
    de son auteur. Dans « Mes observations », elle apparaît « En attente de réseau » jusqu'à
    son envoi.
 
-Les photos d'observation sont **privées** : seuls leur auteur et les professeurs habilités
-les voient ; les informations cachées dans la photo (lieu GPS, appareil) sont effacées à
-l'envoi. Un compte « Visiteur » ne peut pas signaler d'observation.
+Le texte et les photos d'une observation sont **privés** : seuls leur auteur et les
+professeurs habilités les voient, qu'elle soit en attente, validée ou non retenue ; les
+informations cachées dans la photo (lieu GPS, appareil) sont effacées à l'envoi. Un compte
+« Visiteur » ne peut pas signaler d'observation.
+
+**Combien de temps sont-elles gardées ?** Une observation **validée** est gardée autant que
+le compte de l'élève : c'est une preuve de l'inventaire du site. Une observation **non
+retenue** perd ses photos au bout de 7 jours, puis disparaît au bout de 90 jours. Une
+observation que personne n'a examinée au bout d'un an est supprimée. Ces durées sont des
+propositions, à confirmer par l'établissement (voir
+`docs/reference/exploitation/durees-de-conservation.md`). La notice « Vos données » de
+l'application les annonce aux élèves.
 
 ## Comment ça se passe — côté professeur
 
