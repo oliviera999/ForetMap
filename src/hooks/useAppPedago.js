@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { subscribeFresqueBoard } from '../services/fresqueRealtime.js';
-import { readGlossaryTermMessage } from '../components/pedago/GlossaryPopover.jsx';
+import { readGlossaryTermMessage } from '../utils/glossaryTermMessage.js';
 import { usePlantCatalogPreview } from './usePlantCatalogPreview';
 import { usePedagoSession } from './usePedagoSession.js';
 

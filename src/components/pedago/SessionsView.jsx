@@ -7,7 +7,10 @@ import { SessionStepEditor, newStep } from './SessionStepEditor.jsx';
 import { ModuleLearnerOffBanner } from './ModuleLearnerOffBanner.jsx';
 import { MyRewardsPanel } from '../rewards/MyRewardsPanel.jsx';
 import { NOTION_NIVEAU_FILTER_OPTIONS } from '../../utils/curriculumNotions.js';
-import { PEDAGO_SESSION_STORAGE_KEY as STORAGE_KEY } from '../../utils/pedagoSessionScope.js';
+import {
+  readStoredPedagoSession,
+  writeStoredPedagoSession,
+} from '../../utils/pedagoSessionStorage.js';
 import { PEDAGO_ETAPE_ENUM } from '../../shared/enums/pedagoEnums.js';
 import { PEDAGO_STEP_ACTION } from '../../shared/enums/pedagoStepActions.js';
 
@@ -22,26 +25,8 @@ export const CREATABLE_TEMPLATES = Object.freeze([
 /** Public visé d'une séance (`pedago_sessions.level`) : référentiel partagé des ENUM. */
 const LEVEL_LABELS = PEDAGO_ETAPE_ENUM.labels;
 
-export function readStoredPedagoSession() {
-  try {
-    const raw = sessionStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    if (!parsed?.id || !Array.isArray(parsed.steps)) return null;
-    return parsed;
-  } catch {
-    return null;
-  }
-}
-
-export function writeStoredPedagoSession(state) {
-  try {
-    if (!state) sessionStorage.removeItem(STORAGE_KEY);
-    else sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  } catch {
-    /* ignore quota / private mode */
-  }
-}
+// Réexport : ces fonctions vivent dans un module sans composant (voir son en-tête).
+export { readStoredPedagoSession, writeStoredPedagoSession };
 
 /**
  * Séance verrouillée pour cet utilisateur : prérequis défini et pas encore terminé.

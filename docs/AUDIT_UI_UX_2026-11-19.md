@@ -84,6 +84,26 @@ incompressible), `main` (203 Ko), `ImageLightboxProvider` (93 Ko), Markdown (76 
 `VisitMascotFallbackSvg` (57 Ko), `socket.io` (40 Ko, importé par `useForetmapRealtime` alors
 qu'il ne sert qu'une fois connecté).
 
+**Corrigé** (lot K « poids de l'écran de connexion », 21/11, branche
+`claude/ui-ux-poids-connexion`) : JS de l'écran de connexion **774,4 → 503,8 Ko** (17 → 11
+fichiers) ; cliquet abaissé de 775 à **509 Ko**. Le constat précédent nommait mal le coupable :
+le chunk « `ImageLightboxProvider` » de 93 Ko est un chunk partagé que le bundler nomme d'après
+l'un de ses modules — la visionneuse d'images n'y pèse que 5 Ko. Le poids venait de trois
+fonctions utilitaires exportées par des fichiers de composants et importées par les hooks du
+shell (`readGlossaryTermMessage`, `tutorialPreviewPayload`, `readStoredPedagoSession`), qui
+ramenaient avec elles le popover du glossaire, l'écran Séances, l'aperçu de tutoriel,
+Markdown et les récompenses. Elles vivent désormais dans des modules sans composant
+(`src/utils/glossaryTermMessage.js`, `tutorialPreviewPayload.js`, `pedagoSessionStorage.js`,
+réexports conservés) ; l'éditeur riche de la description d'inscription est chargé à la demande
+(`src/components/auth-views.jsx`, zone de saisie simple en attendant) ; le client Socket.IO
+n'est importé qu'avec une session (`src/hooks/useForetmapRealtime.js`). Garde-fou :
+`tests/login-entry-lazy.test.js` suit les imports statiques depuis `src/main.jsx` et nomme le
+chemin fautif. **Reste** pour l'objectif de 400 Ko : React et les icônes (247 Ko,
+incompressibles), `main` (162 Ko, dont les hooks du shell connecté — notifications, séances,
+synchronisation — qu'`App.jsx` appelle même sans session : les sortir demande de scinder
+`App.jsx` en une porte non connectée et une application connectée, lot à part avec test de
+montage), le client d'API et `zod` (37 Ko).
+
 ### U2 — 🔴 Indisponibilité vue par l'utilisateur
 
 Deux redémarrages du serveur pendant l'audit. Côté écran : bandeau « Serveur momentanément
