@@ -12,14 +12,84 @@
  * plus d'un repère devient un groupe. C'est l'algorithme le plus simple qui tienne : pur,
  * sans dépendance, linéaire, stable d'un rendu à l'autre (pas de k-means qui « saute »), et
  * testable sans rendu. Inspiration : le regroupement par grille de Leaflet.markercluster
- * (MIT, https://github.com/Leaflet/Leaflet.markercluster) — ici réécrit en une trentaine de
+ * (MIT, https://github.com/Leaflet/Leaflet.markercluster) — ici réécrit en quelques dizaines de
  * lignes, sans quadtree ni animation.
+ *
+ * **Seconde passe — séparation** (audit UI/UX du 19/11/2026, lot I). La grille seule laisse
+ * passer un défaut : deux repères voisins rangés dans deux cellules différentes ne sont jamais
+ * comparés. Un repère laissé seul pouvait donc tomber **sous** la pastille du groupe d'à côté
+ * (relevé sur la Visite de la forêt, téléphone : repère à 25 px du centre d'une pastille de
+ * 56 × 44 px — le doigt ouvrait la pastille, jamais la fiche). Après la grille, on fusionne
+ * donc de proche en proche tout ce qui se recouvre encore, en pixels écran et avec la taille
+ * **rendue** des cibles (`clusterSeparationPx`), jusqu'à ce que plus rien ne se gêne.
  *
  * Aucun état, aucun DOM : le produit décide de ce qu'il dessine et de ce que fait un tap.
  */
 
 /** Côté d'une cellule de grille, en pixels écran (≈ une cible tactile). */
 export const CLUSTER_CELL_PX_DEFAULT = 44;
+
+/**
+ * Demi-côté de la cible tactile d'un repère seul, en pixels écran (`.fm-pct-marker` : un carré
+ * de `--tap-target`, 44 px, quel que soit le pointeur — la taille ne dépend pas de
+ * `pointer: coarse`).
+ */
+export const CLUSTER_MARKER_RADIUS_PX_DEFAULT = 22;
+
+/** Demi-hauteur d'une pastille de groupe (`.fm-pct-cluster`, `min-height: --tap-target`). */
+export const CLUSTER_PILL_HALF_HEIGHT_PX = 22;
+
+/** Marge intérieure d'une pastille de groupe, bordure comprise (`padding: 0 10px` + 2 px). */
+export const CLUSTER_PILL_INSET_PX = 12;
+
+/**
+ * Demi-largeur rendue d'une pastille de groupe, en pixels écran. La pilule porte un emoji et
+ * un compteur : bordure 2 × 2 px, marges 2 × 10 px, écart 4 px, emoji ≈ 20 px, ≈ 9 px par
+ * chiffre (mesuré : 55 à 56 px pour un chiffre) ; jamais moins qu'une cible tactile.
+ * @param {number} count nombre de repères du groupe.
+ */
+export function clusterPillRadiusPx(count) {
+  const digits = String(Math.max(Math.round(toFinite(count, 2)), 2)).length;
+  return Math.max(CLUSTER_PILL_HALF_HEIGHT_PX, (47 + 9 * digits) / 2);
+}
+
+/**
+ * Écart minimal, en pixels écran, entre les centres de deux éléments rendus (repère seul ou
+ * pastille) pour qu'aucun ne prenne le toucher de l'autre. En dessous, on les fusionne.
+ *
+ * - **repère seul / pastille** : rayon de la pastille + rayon du repère — la cible du repère
+ *   ne passe plus sous la pilule (opaque, elle masquait aussi l'emoji) ;
+ * - **deux repères seuls** : la diagonale d'une demi-cible — le centre de l'un n'est jamais
+ *   dans le carré de touche de l'autre ;
+ * - **deux pastilles** : la somme de leurs rayons moins leur marge intérieure — deux pilules
+ *   peuvent se frôler par leurs bords vides, jamais se couvrir l'emoji ou le compteur ; et au
+ *   moins la demi-diagonale de la plus large, pour que le centre de l'une ne soit jamais sous
+ *   l'autre.
+ *
+ * Distance euclidienne, et non un test de boîtes : les cibles restent droites à l'écran quand
+ * la carte est orientée (`--pct-orient`), le calcul ne doit pas dépendre de l'angle.
+ *
+ * @param {number} countA taille du premier élément (1 = repère seul).
+ * @param {number} countB taille du second.
+ * @param {{ markerRadiusPx?: number, pillRadiusPx?: (count: number) => number }} [sizes]
+ */
+export function clusterSeparationPx(countA, countB, sizes = {}) {
+  const markerRadius = toFinite(sizes.markerRadiusPx, CLUSTER_MARKER_RADIUS_PX_DEFAULT);
+  const pillRadius =
+    typeof sizes.pillRadiusPx === 'function' ? sizes.pillRadiusPx : clusterPillRadiusPx;
+  const aIsPill = countA > 1;
+  const bIsPill = countB > 1;
+  if (!aIsPill && !bIsPill) return markerRadius * Math.SQRT2;
+  if (aIsPill && bIsPill) {
+    const radiusA = toFinite(pillRadius(countA));
+    const radiusB = toFinite(pillRadius(countB));
+    return Math.max(
+      Math.hypot(Math.max(radiusA, radiusB), CLUSTER_PILL_HALF_HEIGHT_PX),
+      radiusA + radiusB - CLUSTER_PILL_INSET_PX,
+    );
+  }
+  return toFinite(pillRadius(aIsPill ? countA : countB)) + markerRadius;
+}
 
 /** Au-delà de cette échelle relative à l'ajustement, plus aucun regroupement. */
 export const CLUSTER_DISABLE_ABOVE_FIT_SCALE = 4;
@@ -66,6 +136,88 @@ function pickLead(members) {
   return lead;
 }
 
+/** Centre (moyenne des membres) d'un groupe en construction, en % et en pixels écran. */
+function placeGroup(group, pxPerPctX, pxPerPctY) {
+  let sumX = 0;
+  let sumY = 0;
+  for (const { xPct, yPct } of group.members) {
+    sumX += xPct;
+    sumY += yPct;
+  }
+  group.xPx = (sumX / group.members.length) * pxPerPctX;
+  group.yPx = (sumY / group.members.length) * pxPerPctY;
+  return group;
+}
+
+/**
+ * Seconde passe : tant que deux éléments sont plus proches que `clusterSeparationPx`, on
+ * fusionne la paire **la plus en défaut** (rapport distance / écart requis le plus petit ; à
+ * égalité, la première dans l'ordre d'entrée — jamais un tirage, sinon les pastilles sautent
+ * d'un rendu à l'autre). Chaque fusion retire un élément : la boucle termine toujours. Le
+ * centre d'un groupe bouge quand il grossit, d'où la reprise complète après chaque fusion.
+ */
+function separateGroups(groups, pxPerPctX, pxPerPctY, sizes) {
+  let total = 0;
+  for (const group of groups) {
+    placeGroup(group, pxPerPctX, pxPerPctY);
+    total += group.members.length;
+  }
+  // Aucun écart requis ne dépasse celui des plus grosses pastilles possibles : deux éléments
+  // plus éloignés que cette borne ne se gênent jamais. Elle sert de pas à une grille de
+  // voisinage, pour ne comparer que des éléments proches (coût linéaire par reprise, au lieu
+  // de toutes les paires — sensible sur un plan de plusieurs centaines de repères).
+  const reach = Math.max(
+    clusterSeparationPx(1, 1, sizes),
+    clusterSeparationPx(1, total, sizes),
+    clusterSeparationPx(total, total, sizes),
+  );
+  if (!(reach > 0)) return groups;
+  for (;;) {
+    const cells = new Map();
+    for (let index = 0; index < groups.length; index += 1) {
+      const group = groups[index];
+      group.cx = Math.floor(group.xPx / reach);
+      group.cy = Math.floor(group.yPx / reach);
+      const key = `${group.cx}:${group.cy}`;
+      const cellMembers = cells.get(key);
+      if (cellMembers) cellMembers.push(index);
+      else cells.set(key, [index]);
+    }
+    let bestA = -1;
+    let bestB = -1;
+    let bestRatio = 1;
+    for (let a = 0; a < groups.length; a += 1) {
+      const groupA = groups[a];
+      for (let dx = -1; dx <= 1; dx += 1) {
+        for (let dy = -1; dy <= 1; dy += 1) {
+          for (const b of cells.get(`${groupA.cx + dx}:${groupA.cy + dy}`) || []) {
+            if (b <= a) continue;
+            const groupB = groups[b];
+            const need = clusterSeparationPx(groupA.members.length, groupB.members.length, sizes);
+            if (!(need > 0)) continue;
+            const ratio = Math.hypot(groupA.xPx - groupB.xPx, groupA.yPx - groupB.yPx) / need;
+            if (
+              ratio < bestRatio ||
+              (ratio === bestRatio && bestA >= 0 && (a < bestA || (a === bestA && b < bestB)))
+            ) {
+              bestRatio = ratio;
+              bestA = a;
+              bestB = b;
+            }
+          }
+        }
+      }
+    }
+    if (bestA < 0) return groups;
+    const merged = groups[bestA];
+    merged.members = merged.members
+      .concat(groups[bestB].members)
+      .sort((m1, m2) => m1.order - m2.order);
+    groups.splice(bestB, 1);
+    placeGroup(merged, pxPerPctX, pxPerPctY);
+  }
+}
+
 /**
  * Regroupe des repères posés en pourcentage de l'image.
  *
@@ -77,6 +229,9 @@ function pickLead(members) {
  * @param {number} [options.cellPx=44] côté d'une cellule, en px écran.
  * @param {Map<string, object>} [options.categoriesById] catalogue des catégories (priorités).
  * @param {boolean} [options.enabled=true] regroupement actif (barre d'outils ForetMap).
+ * @param {number} [options.markerRadiusPx=22] demi-côté de la cible d'un repère seul, px écran.
+ * @param {(count: number) => number} [options.pillRadiusPx] demi-largeur d'une pastille de
+ *   groupe selon son compteur, px écran (défaut : `clusterPillRadiusPx`).
  * @returns {Array<{ id: string, x_pct: number, y_pct: number, count: number, lead: object,
  *   markers: Array<object>, bounds: { minXPct: number, minYPct: number, maxXPct: number,
  *   maxYPct: number } }>} groupes (un repère seul donne un groupe de taille 1).
@@ -90,6 +245,8 @@ export function clusterMarkers(markers, options = {}) {
     categoriesById = null,
     enabled = true,
     keepApartId = '',
+    markerRadiusPx = CLUSTER_MARKER_RADIUS_PX_DEFAULT,
+    pillRadiusPx = clusterPillRadiusPx,
   } = options;
   const all = (markers || []).filter(
     (m) => m && Number.isFinite(Number(m.x_pct)) && Number.isFinite(Number(m.y_pct)),
@@ -117,21 +274,39 @@ export function clusterMarkers(markers, options = {}) {
     return all.map((marker) => singleton(marker, categoriesById));
   }
 
+  const pxPerPctX = (width * s) / 100;
+  const pxPerPctY = (height * s) / 100;
   const buckets = new Map();
+  let order = 0;
   for (const marker of list) {
     const xPct = Number(marker.x_pct);
     const yPct = Number(marker.y_pct);
-    const xPx = (xPct / 100) * width * s;
-    const yPx = (yPct / 100) * height * s;
+    const xPx = xPct * pxPerPctX;
+    const yPx = yPct * pxPerPctY;
     const key = `${Math.floor(xPx / cell)}:${Math.floor(yPx / cell)}`;
-    const entry = { marker, xPct, yPct, priority: markerPriority(marker, categoriesById) };
+    const entry = {
+      marker,
+      xPct,
+      yPct,
+      order,
+      priority: markerPriority(marker, categoriesById),
+    };
+    order += 1;
     const bucket = buckets.get(key);
     if (bucket) bucket.push(entry);
     else buckets.set(key, [entry]);
   }
 
+  // Seconde passe : ce que la grille a laissé se recouvrir d'une cellule à l'autre.
+  const groups = separateGroups(
+    Array.from(buckets.values(), (members) => ({ members })),
+    pxPerPctX,
+    pxPerPctY,
+    { markerRadiusPx, pillRadiusPx },
+  );
+
   const clusters = [];
-  for (const members of buckets.values()) {
+  for (const { members } of groups) {
     if (members.length === 1) {
       clusters.push(singleton(members[0].marker, categoriesById));
       continue;
@@ -161,11 +336,16 @@ export function clusterMarkers(markers, options = {}) {
       bounds: { minXPct, minYPct, maxXPct, maxYPct },
     });
   }
-  for (const marker of apart) clusters.push(singleton(marker, categoriesById));
   // Ordre stable : de haut en bas puis de gauche à droite (les clés de `Map` suivent l'ordre
   // d'insertion, donc l'ordre d'entrée ; on impose un ordre géométrique pour le rendu).
-  clusters.sort((a, b) => a.y_pct - b.y_pct || a.x_pct - b.x_pct);
-  return clusters;
+  const byPosition = (a, b) => a.y_pct - b.y_pct || a.x_pct - b.x_pct;
+  clusters.sort(byPosition);
+  // Les repères mis à part ne fusionnent pas : ils peuvent donc se trouver sur une pastille.
+  // Rendus **en dernier**, ils sont peints au-dessus d'elle et gardent le toucher en leur
+  // centre (fiche ouverte, lieu mis en avant du plan e-nov).
+  const apartClusters = apart.map((marker) => singleton(marker, categoriesById));
+  apartClusters.sort(byPosition);
+  return clusters.concat(apartClusters);
 }
 
 function singleton(marker, categoriesById) {

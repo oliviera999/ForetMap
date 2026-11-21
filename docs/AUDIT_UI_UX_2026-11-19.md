@@ -195,6 +195,36 @@ iPhone 13) :
   taille des noms (22 px environ sur un plan de 345 px, préférence « Aa » et pointeur tactile)
   laisse peu de noms à l'ouverture — ils apparaissent au zoom.
 
+**Suite donnée** (lot I, branche `claude/ui-ux-repere-touchable`, 21/11) — repère intouchable
+sous une pastille de regroupement, relevé par la session du lot 4 et reproduit avant correction
+(Chromium, iPhone 13, positions réelles de la carte Forêt) : un repère seul à 25 px du centre
+d'une pastille de 56 × 44 px, `elementFromPoint` renvoyant la pastille. Aucun recouvrement à
+1 440 px.
+
+- **Cause** : la grille de 44 px de `clusterMarkers` ne compare jamais deux repères rangés dans
+  deux cellules voisines ; la marge de la Visite (lot 4) a seulement déplacé les cellules. La
+  taille des cibles ne dépend pas du pointeur (44 px partout) : ce n'est pas `pointer: coarse`
+  qui fait grossir la pastille, c'est son contenu (emoji et compteur).
+- **Correction** (moteur, donc carte de travail, Visite et plan) : seconde passe de
+  **séparation** après la grille. Tant que deux éléments rendus sont plus proches que l'écart
+  requis (`clusterSeparationPx`, en pixels écran, taille rendue des cibles), la paire la plus en
+  défaut fusionne : repère seul contre pastille = rayon de la pastille + rayon du repère ; deux
+  repères seuls = le centre de l'un hors du carré de touche de l'autre ; deux pastilles = elles
+  ne se couvrent plus l'emoji ni le compteur. Les repères mis à part (fiche ouverte, lieux mis
+  en avant du plan e-nov) ne fusionnent toujours pas : ils sont rendus en dernier, donc
+  au-dessus des pastilles.
+- **Effet mesuré** (Visite, carte Forêt, 21 repères) : iPhone 13, 12 éléments dont 1 repère
+  recouvert → 5 éléments (4 pastilles, 1 repère), tous touchables ; 1 440 px, 21 repères seuls,
+  inchangé. Budget de l'écran de connexion inchangé (774,4 Ko).
+- **Tests** : `tests-ui/shared/clusterMarkersSeparation.test.js` (écart requis tenu sur la
+  forêt et sur des nuages denses, à plusieurs échelles et deux tailles de cibles) ; e2e
+  `e2e/visit-markers-touch.spec.js` (chaque repère et chaque pastille touchables en leur
+  centre, iPhone 13 et 1 440 px, fiche d'un repère isolé ouverte par un vrai clic) — rouge sur
+  le moteur d'origine, vert après.
+- **Reste, hors lot** : la mascotte guide intercepte le toucher de ce qu'elle recouvre (une
+  pastille sous elle sur la Forêt) ; sur la carte N3 en téléphone, un repère tombe sous les
+  boutons de zoom de la carte.
+
 ### U6 — 🟠 La fiche de zone cache ce qu'elle décrit
 
 - Fenêtre centrée sur la carte et zoom de mise au point très serré : on perd le repère en
