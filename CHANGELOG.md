@@ -9,6 +9,20 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Tests — deux scénarios fiabilisés (chantier UI/UX, 21 novembre 2026)
+
+- **`e2e/mobile-webkit-smoke.spec.js`** (« accueil → carte de la Visite en un clic, fiche en
+  feuille basse », apporté par les lots 1 + 3) : le scénario cliquait le premier repère de la
+  carte, qui peut être regroupé dans une pastille ou recouvert par un nom selon les métriques
+  de police du moteur. Il se terminait alors sans rien vérifier (3,5 s sur la PR #719) ou
+  cliquait à côté (échec sur la PR #713). Il clique désormais au centre d'une zone, comme
+  `visit-mode.spec.js`, et attend l'arrivée de la mascotte avant la feuille basse.
+- **`tests/mcp-tools.test.js`** (« foretmap_usage_overview… », erreur « 4217 masqué ») : les
+  pseudonymes `id#xxxxxx` / `ip#xxxxxx` des journaux sont des empreintes hexadécimales tirées
+  au hasard ; l'une d'elles contenait parfois « 4217 » et le test concluait à une fuite qui
+  n'existait pas. Les pseudonymes sont retirés avant la recherche. Aucun code applicatif
+  modifié.
+
 ### Visite — entrée visiteur et fiche de lieu (chantier UI/UX, lots 1 et 3)
 
 Constats U3, U4, U6, U8, U9 et U11 de `docs/AUDIT_UI_UX_2026-11-19.md`, et point 3 du lot 2.
