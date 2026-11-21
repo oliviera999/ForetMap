@@ -175,6 +175,19 @@ du groupe. En mode élève, on place les espèces dans les groupes puis on lance
 ajouter, déplacer ou supprimer des groupes (un déplacement qui ferait une boucle est
 refusé).
 
+**Au collège** (de la 6e à la 3e, et pour la visite sans compte), l’arbre est **réduit aux
+grands groupes faciles à reconnaître** (« groupes d’usage » : Oiseaux, Insectes, Plantes à
+fleurs…), choisis par l’administration du contenu. Les groupes intermédiaires savants
+(Eucaryotes, Bilatériens, Amniotes…) disparaissent ; une espèce rangée dans un groupe retiré
+remonte au grand groupe le plus proche ; chaque boîte affiche son **nom simple** et son
+**caractère observable en mots simples** quand ils sont renseignés. Les choix proposés à
+l’élève pour placer une espèce ne contiennent que ces grands groupes, et la correction
+attend le grand groupe. Le bouton **« Pour aller plus loin »** reconstruit la même activité
+sur la **classification complète** (et **« Revenir aux grands groupes »** la réduit de
+nouveau). Le fil de classification de la fiche espèce suit la même règle, avec le même
+bouton. Tant qu’aucun grand groupe n’est marqué, rien ne change : l’arbre complet
+s’affiche. Au lycée et à l’université, l’arbre complet s’affiche toujours.
+
 ## Clés d’identification
 
 L’onglet **Clés d’identification** propose des parcours dichotomiques. Une clé ne mène pas
@@ -510,6 +523,18 @@ la confusion est désormais signalée dans les « confusions possibles » de la 
    complète le panneau ; les filtres avancés (grand groupe, famille, habitat, rôle,
    milieu, statut biogéographique, UICN précis) restent repliés. La grille montre
    d'abord une **page de vignettes** ; le bouton **Voir plus** charge la suite.
+
+   **Au collège**, le catalogue est **rangé par grand groupe** (Oiseaux, Insectes, Plantes à
+   fleurs… ; les espèces sans groupe sont réunies dans « Autres êtres vivants », en
+   dernier). Chaque groupe est une section **repliée** qui annonce son nombre d’êtres
+   vivants ; l’élève ouvre celle qui l’intéresse (une recherche ouvre d’elle-même les
+   groupes qui ont des résultats). Dans un groupe viennent d’abord les **espèces phares** de
+   la carte, puis les espèces confirmées ou attendues sur le site, puis celles dont la
+   présence reste à vérifier (« à confirmer » ou seulement documentaire), avec la mention
+   **« à chercher »**. Un filtre unique **« Groupe »** remplace règne, grand groupe et
+   famille, qui ne s’affichent plus au collège. Tant qu’aucun grand groupe n’est marqué
+   dans la classification, le catalogue garde la présentation décrite ci-dessus.
+
 2. Il clique une vignette : la **fiche complète** s'ouvre en fenêtre — photos,
    informations, mini-cartes d'emplacement, interactions, termes de glossaire,
    questions de quiz et commentaires. C'est la même fenêtre que celle ouverte depuis la

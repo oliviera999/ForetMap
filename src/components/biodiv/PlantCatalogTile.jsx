@@ -37,6 +37,8 @@ const TILE_THUMB_WIDTH = 200;
  * @param {(id: number|string) => void} [props.onOpen] Ouverture de la fiche complète.
  * @param {boolean} [props.hasMapLink] La fiche est reliée à une zone ou un repère.
  * @param {import('react').ReactNode} [props.actions] Actions de fin de vignette (prof).
+ * @param {string} [props.presenceHint] Mention de présence (« à chercher » pour une présence
+ *   `a_confirmer` / `documentaire` dans le catalogue groupé du collège).
  */
 export function PlantCatalogTile({
   plant,
@@ -49,6 +51,7 @@ export function PlantCatalogTile({
   offerPlantCommentAfterObservation = false,
   onForceLogout = null,
   actions = null,
+  presenceHint = '',
 }) {
   const photoCandidate = useMemo(
     () => (plant ? findFirstBiodivHeroPhotoCandidate(plant) : null),
@@ -102,11 +105,16 @@ export function PlantCatalogTile({
 
       <PlantPedagoTraitBadges plant={plant} />
 
-      {hasMapLink ? (
+      {hasMapLink || presenceHint ? (
         <div className="task-meta">
-          <span className="task-chip">
-            <IconMarker size={12} /> Sur la carte
-          </span>
+          {hasMapLink ? (
+            <span className="task-chip">
+              <IconMarker size={12} /> Sur la carte
+            </span>
+          ) : null}
+          {presenceHint ? (
+            <span className="task-chip biodiv-tile__presence-hint">{presenceHint}</span>
+          ) : null}
         </div>
       ) : null}
 
