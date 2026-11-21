@@ -28,6 +28,7 @@ import { TaskTileMeta } from './TaskTileMeta.jsx';
 import { taskStepLabel } from '../../utils/taskProjectSteps.js';
 import { projectColorClass } from '../../utils/projectColors.js';
 import { assignmentMatchesStudent, isStudentAssignedToTask } from '../../utils/task-assignments';
+import './task-referents.css';
 import { ContextComments } from '../context-comments';
 import { MarkdownContent } from '../MarkdownContent.jsx';
 import { Tooltip } from '../../shared/components/Tooltip.jsx';
@@ -175,6 +176,8 @@ function TaskTileCardImpl({
     : teacherStudents;
   const referentBriefing = taskRequiresReferentBriefingBeforeStart(t);
   const referentsLinked = t.referents_linked || [];
+  // Référents élèves masqués par le serveur (`tasks.assignees_visibility`) : nombre seul.
+  const hiddenReferents = Number(t.referents_hidden_count) || 0;
   const coverSrc = t.image_url ? withAppBase(t.image_url) : null;
   const unreadLinkedTutorials = (t.tutorials_linked || []).filter(
     (tu) => tu.is_active !== false && !(tutorialReadIds && tutorialReadIds.has(Number(tu.id))),
@@ -363,7 +366,7 @@ function TaskTileCardImpl({
               })}
             </div>
           )}
-          {referentsLinked.length > 0 && (
+          {(referentsLinked.length > 0 || hiddenReferents > 0) && (
             <div
               className="task-desc"
               style={{
@@ -386,12 +389,29 @@ function TaskTileCardImpl({
                 <React.Fragment key={ref.id}>
                   {i > 0 ? ', ' : ''}
                   <span title={ref.role_slug ? String(ref.role_slug) : undefined}>{ref.label}</span>
+                  {ref.user_type === 'student' && (
+                    <span
+                      className="task-referent-auto-pill"
+                      title={
+                        ref.source === 'auto'
+                          ? 'Élève référent : a réalisé plusieurs fois cette tâche'
+                          : 'Élève référent'
+                      }
+                    >
+                      élève
+                    </span>
+                  )}
                 </React.Fragment>
               ))}
+              {hiddenReferents > 0 && (
+                <span className="task-referents-hidden">
+                  {hiddenReferentsLabel(hiddenReferents, referentsLinked.length > 0)}
+                </span>
+              )}
               .
             </div>
           )}
-          {referentsLinked.length === 0 && referentBriefing && (
+          {referentsLinked.length === 0 && hiddenReferents === 0 && referentBriefing && (
             <div
               className="task-desc"
               style={{
@@ -885,5 +905,13 @@ function TaskTileCardImpl({
 // (polling 60 s / events temps réel). Le gain est plein une fois les handlers passés en props
 // stabilisés (useCallback) côté TasksView — voir docs/AUDIT_OPTIMISATION.md (O2).
 const TaskTileCard = React.memo(TaskTileCardImpl);
+
+/** « et 2 autres élèves référents » / « 1 élève référent » (référents masqués au lecteur). */
+export function hiddenReferentsLabel(count, afterVisible) {
+  const plural = count > 1 ? 's' : '';
+  return afterVisible
+    ? ` et ${count} autre${plural} élève${plural} référent${plural}`
+    : `${count} élève${plural} référent${plural}`;
+}
 
 export { TaskTileCard };

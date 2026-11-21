@@ -67,8 +67,14 @@
       Écart : troisième évènement pour le retrait (le prompt n'en nomme que deux).
 - [x] Lot 8 — export (`taches_referent_refus`), conservation (`ACCOUNT_LIFETIME_TABLES`),
       fusion et suppression par clé étrangère ; `tests/student-referents-privacy.test.js`.
-- [ ] Lot 6 — interface
+- [x] Lot 6 — serveur : `filterReferentsForViewer` (référents élèves selon
+      `tasks.assignees_visibility`, adultes toujours visibles, `referents_hidden_count`), branché sur
+      liste et détail ; comptes `tasks.manage` exemptés (le formulaire ne reçoit jamais de liste
+      tronquée) ; interface : pastille « auto » et confirmation en ligne du retrait dans
+      `TaskFormReferentsField`, pastille « élève » et nombre masqué dans `TaskTileCard`, feuille
+      `src/components/tasks/task-referents.css` ; tests `tests/student-referents-visibility.test.js`,
+      `tests-ui` (sélecteur +5, tuile +3).
 - [ ] Lot 10 — documentation
 - [ ] Lot 9 (reste)
 
-Prochaine action : lot 6 (interface + masquage des référents élèves selon `assignees_visibility`).
+Prochaine action : lot 10 (documentation), puis reste du lot 9 (commentaire d'écart creditedTasks, code mort).

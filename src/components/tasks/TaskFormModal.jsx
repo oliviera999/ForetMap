@@ -390,6 +390,17 @@ function TaskFormModal({
       referentCandidateLabel(c).toLowerCase().includes(q),
     );
   }, [studentReferentCandidates, referentSearch]);
+  // Référents posés par le moteur des élèves référents (une copie n'en hérite pas : ses liens
+  // deviennent manuels côté serveur).
+  const autoReferentIds = useMemo(
+    () =>
+      editTask && !isDuplicate
+        ? (editTask.referents_linked || [])
+            .filter((r) => r?.source === 'auto')
+            .map((r) => String(r.id))
+        : [],
+    [editTask, isDuplicate],
+  );
   const selectedReferentCount = useMemo(
     () =>
       [
@@ -602,6 +613,7 @@ function TaskFormModal({
           filteredTeacher={filteredTeacherReferents}
           filteredStudent={filteredStudentReferents}
           selectedIds={form.referent_user_ids}
+          autoIds={autoReferentIds}
           onToggle={toggleReferentUserId}
           onClear={() => setForm((f) => ({ ...f, referent_user_ids: [] }))}
         />
