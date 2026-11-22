@@ -262,7 +262,9 @@ Précisions du 21/11/2026 :
   `usage_label`, `description_college` et `usage_group` (champs de `GET /api/plants`), `list` rend
   `usage_label` et `usage_group` ; `foretmap_get_species` rend `usage_label`,
   `description_college` et `is_featured` dans `presence.maps[]` ; `foretmap_maps` (espèces d'une
-  carte) et `foretmap_quiz` (`categories`) suivent l'API (`is_featured`, `description_college`).
+  carte) et `foretmap_quiz` (`categories`) suivent l'API (`is_featured`, `description_college`) ;
+  `foretmap_quiz` `categories` accepte `palier_max` (compteur au palier d'un élève de collège) et
+  `get` renvoie le palier d'entrée effectif de la question (`notions.entry_palier`).
 - Espèces phares (chantier collège, flux C5) : `foretmap_species` `registry_status` accepte
   `is_featured` (booléen) et l'écrit par `PATCH /api/plants/:id/map-species/:mapId` (logique
   métier, `plants.manage`, journal `update_map_species_status`) ; ligne du registre existante

@@ -59,11 +59,15 @@ function renderForSixieme(props = {}) {
 }
 
 describe('QuizView — élève de 6ᵉ (cycle 3)', () => {
-  it('propose par défaut les questions de collège', async () => {
+  it('propose par défaut les questions de collège, au palier du cycle 3', async () => {
     renderForSixieme();
+    // Chantier collège (C6) : l'affichage collège borne aussi les compteurs au palier de
+    // l'élève (`palierMax=1` pour une classe de cycle 3).
     await waitFor(() =>
       expect(
-        apiMock.mock.calls.some(([p]) => String(p) === '/api/quiz/categories?niveau=college'),
+        apiMock.mock.calls.some(
+          ([p]) => String(p) === '/api/quiz/categories?niveau=college&palierMax=1',
+        ),
       ).toBe(true),
     );
     expect(screen.getByLabelText('Niveau').value).toBe('college');

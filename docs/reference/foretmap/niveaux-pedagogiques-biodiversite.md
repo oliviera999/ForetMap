@@ -206,20 +206,28 @@ sont désormais **reliés entre eux** par une seule table de correspondance, don
 référence commune est le **niveau du programme** (du cycle 3 à la terminale, plus
 l'université pour l'élève) :
 
-| Échelle                               | Où on la trouve               | Valeurs                                                                       | Correspondance                                                                      |
-| ------------------------------------- | ----------------------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| **Niveau de l'élève**                 | classe (groupe), séance       | Cycle 3, Cycle 4, Seconde, Première, Terminale (SVT ou ens. sci.), Université | **la référence** : c'est la seule échelle de l'élève                                |
-| **Affichage biodiversité**            | déduit ; préférence du compte | Collège, Lycée, Université                                                    | Collège = cycles 3 et 4 ; Lycée = seconde → terminale ; Université = au-delà (tout) |
-| **Niveau d'une question** / d'une clé | quiz, clés d'identification   | Collège, Lycée                                                                | une question « Collège » vaut dès le cycle 3, une question « Lycée » dès la seconde |
-| **Profondeur d'un terme**             | glossaire                     | Base, Approfondissement, Avancé                                               | Base dès le cycle 3, Approfondissement dès le cycle 4, Avancé dès la seconde        |
-| **Difficulté d'une question**         | quiz                          | ⭐ Facile, ⭐⭐ Moyen, ⭐⭐⭐ Difficile                                       | indépendante : elle classe les questions **à l'intérieur** de leur niveau           |
-| **Niveau d'une notion**               | notions des programmes        | Cycle 3 → Terminale                                                           | c'est la référence elle-même                                                        |
+| Échelle                               | Où on la trouve               | Valeurs                                                                       | Correspondance                                                                                                                                  |
+| ------------------------------------- | ----------------------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Niveau de l'élève**                 | classe (groupe), séance       | Cycle 3, Cycle 4, Seconde, Première, Terminale (SVT ou ens. sci.), Université | **la référence** : c'est la seule échelle de l'élève                                                                                            |
+| **Affichage biodiversité**            | déduit ; préférence du compte | Collège, Lycée, Université                                                    | Collège = cycles 3 et 4 ; Lycée = seconde → terminale ; Université = au-delà (tout)                                                             |
+| **Niveau d'une question** / d'une clé | quiz, clés d'identification   | Collège, Lycée                                                                | une question « Collège » vaut dès le cycle 3 si une de ses notions est de cycle 3, sinon dès le cycle 4 ; une question « Lycée » dès la seconde |
+| **Profondeur d'un terme**             | glossaire                     | Base, Approfondissement, Avancé                                               | Base dès le cycle 3, Approfondissement dès le cycle 4, Avancé dès la seconde                                                                    |
+| **Difficulté d'une question**         | quiz                          | ⭐ Facile, ⭐⭐ Moyen, ⭐⭐⭐ Difficile                                       | indépendante : elle classe les questions **à l'intérieur** de leur niveau                                                                       |
+| **Niveau d'une notion**               | notions des programmes        | Cycle 3 → Terminale                                                           | c'est la référence elle-même                                                                                                                    |
 
 Ce que ça change concrètement :
 
 - **Un quiz « cycle 4 » ne tire plus de questions de lycée.** Une question n'hérite des
   notions de sa catégorie que si elles sont de son niveau ou au-dessus. Avant, un tirage
   « cycle 4 » — celui des séances collège — sortait une question de lycée sur trois.
+- **Une 6ᵉ et une 3ᵉ n'ont plus les mêmes questions** (novembre 2026). Une question
+  « Collège » est posée dès le cycle 3 si au moins une de ses notions du programme est de
+  cycle 3 ; sinon, à partir du cycle 4. Aucune nouvelle échelle à régler : il suffit que les
+  notions de la question soient justes (rattachement de sa catégorie, ajouts et exclusions).
+  Au collège, l'onglet Quiz ne tire que les questions du palier de l'élève et ne propose que
+  les catégories qui en ont ; le contrôle de compréhension d'une fiche suit la même règle et
+  ne pose **jamais** de question de lycée à un collégien — une fiche gardée seulement par des
+  questions de lycée ne lui est pas verrouillée.
 - **Le glossaire est relié aux notions.** Le filtre par notion de l'onglet Glossaire
   fonctionne (il ne renvoyait rien), et la fiche d'un terme affiche « Au programme ».
 - **On peut distinguer une 6ᵉ d'une 3ᵉ.** Le groupe porte un **niveau de la classe**.
