@@ -6,7 +6,8 @@
 // - une séance règle le palier par `notionNiveau` (`cycle3` / `cycle4`) ;
 // - une carte réglée « lycée » ne fait pas basculer un élève dont la classe est au collège ;
 // - l'aperçu du professeur « 6e » / « 3e » donne le palier cycle 3 / cycle 4 ;
-// - Visite sans compte et collégien sans classe : cycle 3 ;
+// - Visite sans compte : cycle 4 (décision 6 du 22/11/2026, flux C2) ; collégien sans classe :
+//   cycle 3 ;
 // - parité front ↔ serveur sur ces cas.
 
 const { test, before } = require('node:test');
@@ -85,7 +86,7 @@ const CASES = [
     name: 'Visite sans compte',
     input: { isGuest: true, mapLevel: 'lycee' },
     etape: 'college',
-    palier: 'cycle3',
+    palier: 'cycle4',
   },
   {
     name: 'collégien sans classe (repli établissement)',

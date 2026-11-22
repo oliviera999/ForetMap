@@ -96,6 +96,15 @@ function buildLearnerLevel({ niveau, contentEtape, etape = contentEtape, source,
 export const STAFF_DEFAULT_NIVEAU = 'cycle3';
 
 /**
+ * Niveau de la **Visite sans compte** (parents, visiteurs institutionnels) : le cycle 4
+ * (décision 6 du 22/11/2026, assouplissement du profil collège). Affichage collège simplifié
+ * inchangé ; le palier passe au cycle 4 : glossaire `base` + `approfondissement`, questions de
+ * palier 2, symbiose, compétition et mutualisme visibles. L'élève sans classe et le compte
+ * personnel sans groupe restent, eux, au cycle 3.
+ */
+export const GUEST_NIVEAU = 'cycle4';
+
+/**
  * Niveau de contenu d'un compte non élève, hors aperçu et hors séance : choix explicite du
  * profil (`complet` = vue gestion, aucune borne), sinon le plus haut niveau de ses groupes,
  * sinon le cycle 3. Aucun repli hérité (étape de groupe, carte, établissement) et aucune
@@ -139,7 +148,7 @@ export function resolveLearnerLevel(input = {}) {
   } = input || {};
 
   if (isGuest)
-    return buildLearnerLevel({ niveau: null, contentEtape: 'college', source: 'invite' });
+    return buildLearnerLevel({ niveau: GUEST_NIVEAU, contentEtape: 'college', source: 'invite' });
 
   const previewNiveau = normalizeLearnerNiveau(teacherPreview);
   const previewEtape = previewNiveau

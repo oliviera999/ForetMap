@@ -137,15 +137,17 @@ ne règle que trois choses :
 | Questions du quiz                             | celles du cycle 3 | jusqu’au cycle 4                  | inchangé |
 | Réseau : symbiose et compétition              | masquées          | montrées                          | montrées |
 
-Un collégien **sans classe connue** (Visite sans compte, élève sans niveau de classe) suit les
-règles du **cycle 3**. Une carte réglée « Lycée » ne fait jamais basculer un élève dont la
+Un collégien **sans classe connue** (élève sans niveau de classe, compte personnel sans groupe)
+suit les règles du **cycle 3**. La **Visite sans compte** (parents, visiteurs institutionnels)
+suit celles du **cycle 4** depuis le 22 novembre 2026 : même affichage collège, mais vocabulaire
+« approfondissement », questions jusqu’au cycle 4 et toutes les relations du collège. Une carte réglée « Lycée » ne fait jamais basculer un élève dont la
 classe est au collège : la classe passe avant la carte.
 
 ### Ordre quand plusieurs réglages coexistent
 
 Du plus fort au plus faible — **le plus précis l’emporte** :
 
-1. **Visite invitée** → toujours **Collège** — non contournable.
+1. **Visite invitée** → toujours **Collège**, au palier **cycle 4** — non contournable.
 2. **Aperçu professeur** « Affichage biodiversité — 6ᵉ (cycle 3) / 3ᵉ (cycle 4) / Lycée »
    (session uniquement) : pour vérifier ce que voit un élève, sans changer les réglages du site.
    Il passe devant le niveau de contenu du profil. Voir [Le menu Aperçu](#le-menu-aperçu)
@@ -306,7 +308,8 @@ Ce que ça change concrètement :
 ## Visite invitée
 
 > Décision validée : en **visite sans compte** (invité), le niveau est **toujours
-> Collège**.
+> Collège**, au palier **cycle 4** (décision du 22 novembre 2026 : la Visite s’adresse aux
+> parents et aux visiteurs institutionnels, pas à une classe de 6ᵉ).
 
 Objectifs : langage adapté aux familles et au grand public, pas d’estimations
 scientifiques avancées, pas d’outils de conception pédagogique. Les fiches et la
