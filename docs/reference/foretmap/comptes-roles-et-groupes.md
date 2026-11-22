@@ -88,6 +88,11 @@ chaque rôle a le droit de faire, comment les élèves sont organisés en groupe
   de l'encadrement). Le style « Adventurer Neutral » est une œuvre de Lisa Wischofsky,
   adaptée par DiceBear, sous licence CC BY 4.0 : l'attribution figure dans « Mon profil » et
   dans **À propos → Crédits graphiques**.
+- **Niveau de contenu** (comptes du personnel, depuis le 22 novembre 2026) : « Mon profil »
+  propose le niveau auquel le compte consulte les contenus pédagogiques (cycle 3 → université,
+  ou _Complet (vue gestion)_), et un bouton **Revenir au niveau de mes groupes**. Un élève ne
+  voit pas ce réglage. Détail :
+  [Le niveau de contenu des professeurs](niveaux-pedagogiques-biodiversite.md#le-niveau-de-contenu-des-professeurs-et-du-personnel).
 - **Changer son mot de passe** : depuis « Mon profil », élève comme enseignant, en redonnant
   le mot de passe actuel (12 caractères minimum pour un enseignant). Les autres appareils
   sont déconnectés. Un compte **Google** sans mot de passe ne s'en donne plus un directement
@@ -320,8 +325,11 @@ Le profil système **« Prof de classe »** est distinct du n3boss. En pratique 
 8. **Ses écrans** : l'onglet Stats s'intitule « Statistiques de mes élèves » et ne montre
    ni compteurs de tâches ni le bloc Quiz de tout l'établissement ; l'onglet Classe
    s'intitule « Ma classe ». Les visites guidées de ces deux onglets ont un texte dédié,
-   et le centre de notifications ne propose pas de préférences Tâches ni Échéances. Il
-   voit les fiches biodiversité en **vue complète** par défaut, comme un n3boss. Le
+   et le centre de notifications ne propose pas de préférences Tâches ni Échéances. Comme
+   tout compte du personnel, il consulte les fiches biodiversité à **son niveau de
+   contenu** (Mon profil ; à défaut le niveau de sa classe, sinon le cycle 3 — voir
+   [Le niveau de contenu des professeurs](niveaux-pedagogiques-biodiversite.md#le-niveau-de-contenu-des-professeurs-et-du-personnel)).
+   Le
    bouton « Connexion professeur » n'apparaît pas : il est déjà connecté avec son compte
    enseignant. « Mon profil » affiche le nom réel du profil (« Prof de classe »), jamais
    « n3boss ».

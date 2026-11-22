@@ -16,6 +16,13 @@
 > **Université**. Il vient de la **séance en cours** s’il y en a une, sinon du **niveau de sa
 > classe**, réglé sur le groupe. Collège, Lycée et Université ne sont plus que la façon dont
 > ce niveau s’affiche. Détail dans [Qui règle le niveau, et où](#qui-règle-le-niveau-et-où).
+>
+> **Depuis le 22 novembre 2026 : chaque professeur (et tout compte du personnel) a son
+> niveau de contenu.** Il se règle dans **Mon profil** ; sans choix, c’est le niveau des
+> groupes du compte, et à défaut le **cycle 3**. **Changement visible :** un professeur sans
+> groupe, qui voyait jusqu’ici tout en vue complète, voit désormais le contenu du cycle 3.
+> Pour retrouver l’ancienne vue : **Mon profil → Niveau de contenu → Complet (vue gestion)**.
+> Détail dans [Le niveau de contenu des professeurs](#le-niveau-de-contenu-des-professeurs-et-du-personnel).
 
 ## À quoi ça sert
 
@@ -114,7 +121,8 @@ fiche, un tutoriel ou un terme.
 | ------------------------------------- | --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
 | **Niveau de la classe**               | Professeur / admin sur un groupe (classe, unité…)         | **La référence** : toute la 6ᵉ B en cycle 3, la classe de seconde en seconde, un club en Université. |
 | **Séance**                            | Professeur qui prépare la séance (public Collège, Lycée…) | Pendant la séance, elle **impose** son niveau à ceux qui la suivent.                                 |
-| **Préférence de l’utilisateur**       | L’élève (ou le personnel) pour **son** compte             | « Je préfère la vue collège » — confort et accessibilité, pour l’**affichage** seulement.            |
+| **Niveau de contenu du compte**       | Le professeur (ou le personnel) dans **Mon profil**       | Ce que **lui** consulte : fiches, glossaire, quiz, questions de validation, réseau. Aucun droit.     |
+| **Préférence de l’utilisateur**       | L’élève pour **son** compte                               | « Je préfère la vue collège » — confort et accessibilité, pour l’**affichage** seulement.            |
 | **Carte** (repli)                     | Professeur / admin sur une carte                          | Ancien réglage, lu seulement si l’élève n’a ni séance ni classe avec un niveau.                      |
 | **Groupe — ancien affichage** (repli) | Professeur / admin sur un groupe                          | Ancien réglage « Collège / Lycée / Université », même rôle de repli ; il disparaîtra.                |
 
@@ -140,7 +148,8 @@ Du plus fort au plus faible — **le plus précis l’emporte** :
 1. **Visite invitée** → toujours **Collège** — non contournable.
 2. **Aperçu professeur** « Affichage biodiversité — 6ᵉ (cycle 3) / 3ᵉ (cycle 4) / Lycée »
    (session uniquement) : pour vérifier ce que voit un élève, sans changer les réglages du site.
-   Voir [Le menu Aperçu](#le-menu-aperçu) ci-dessous.
+   Il passe devant le niveau de contenu du profil. Voir [Le menu Aperçu](#le-menu-aperçu)
+   ci-dessous.
 3. **Séance en cours** : la séance **impose son niveau**, y compris pour les questions de
    validation. Un élève de 6ᵉ dans une séance « Lycée » voit l’affichage Lycée et reçoit les
    questions de lycée ; un élève de seconde dans une séance « Collège » est traité en
@@ -149,17 +158,23 @@ Du plus fort au plus faible — **le plus précis l’emporte** :
    de notion** de la séance fixe aussi le palier : « Cycle 3 » ou « Cycle 4 » s’applique à
    toute la classe pendant la séance ; « Tout le collège » (choix par défaut d’une séance
    Collège) laisse la classe de chaque élève décider. Dès que la séance est terminée ou
-   quittée, le niveau de la classe reprend la main.
-4. **Niveau de la classe** : celui du groupe de l’élève, ou hérité de son groupe parent
+   quittée, le niveau de la classe reprend la main. Un professeur qui **suit** une séance
+   comme participant reçoit lui aussi le niveau de la séance.
+4. **Pour un professeur ou un compte du personnel** : son **choix explicite** dans
+   **Mon profil** (dont _Complet (vue gestion)_), sinon le **plus haut niveau de ses
+   groupes** (hérité du groupe parent compris), sinon le **cycle 3**. Les étapes 5 à 7 ne le
+   concernent pas. Détail dans
+   [Le niveau de contenu des professeurs](#le-niveau-de-contenu-des-professeurs-et-du-personnel).
+5. **Niveau de la classe** (élève) : celui du groupe de l’élève, ou hérité de son groupe parent
    (réglé une fois sur l’unité « Niveau 6ᵉ », il vaut pour toutes ses classes). Un élève
    membre de plusieurs classes prend le **plus haut** niveau : on ne lui retire pas ce
    qu’une de ses classes travaille. Un club placé en **Université** relève donc ses membres
    (projet ponctuel, TIPE, journée d’étude).
-5. **Replis**, seulement si l’élève n’a ni séance ni classe avec un niveau : l’ancien
+6. **Replis**, seulement si l’élève n’a ni séance ni classe avec un niveau : l’ancien
    réglage d’affichage des groupes et celui de la carte active (le **plus simple** des
    deux l’emporte), puis le **défaut de l’établissement** (réglage admin ; **Collège** par
    défaut). Le défaut de l’établissement n’est jamais un plafond.
-6. **Préférence personnelle** : elle ne règle que l’**affichage**. Par défaut elle ne peut
+7. **Préférence personnelle de l’élève** : elle ne règle que l’**affichage**. Par défaut elle ne peut
    que le **simplifier** ; un administrateur peut cocher l’option qui l’autorise à le
    **relever**. Elle ne change **jamais** les questions posées pour valider une fiche : un
    élève de seconde qui préfère la vue Collège garde les questions de son niveau.
@@ -168,11 +183,35 @@ Pour un public **lycée** ou un **club / TIPE**, on règle le **niveau de la cla
 groupe concerné (Seconde, Terminale, Université…), plutôt que de changer le défaut de tout
 le site.
 
-Sans aperçu, un **professeur** voit toujours la vue gestion **complète** (édition,
-validation, administration), quel que soit le niveau fixé pour les élèves ; ses propres
-groupes ne le restreignent jamais. Le **prof de classe**, qui garde la navigation d'un
-visiteur connecté, voit lui aussi les fiches en vue **complète** par défaut : le niveau
-de sa classe s'applique à ses élèves, pas à lui.
+### Le niveau de contenu des professeurs et du personnel
+
+Chaque compte qui n’est pas un compte élève — professeur, administrateur, prof de classe,
+personnel, visiteur connecté — a un **niveau de contenu** : celui auquel il consulte les
+fiches, le vocabulaire du glossaire, le quiz, les questions de validation et le réseau
+trophique, **exactement comme un élève de ce niveau**.
+
+- **Où le régler** : **Mon profil → Niveau de contenu**. Choix proposés : Cycle 3 (CM1–6ᵉ),
+  Cycle 4 (5ᵉ–3ᵉ), Seconde, Première (spécialité SVT ou enseignement scientifique),
+  Terminale (idem), Université, et **Complet (vue gestion)** — la vue de toujours, sans
+  aucune borne. Puis **Enregistrer**.
+- **Sans choix** (première option, « Niveau de mes groupes ») : le niveau le plus haut des
+  groupes auxquels le compte est inscrit (niveau hérité du groupe parent compris). **Aucun
+  groupe avec un niveau : cycle 3.** Ce niveau par défaut est recalculé à chaque connexion :
+  s’il change de groupes, il suit, tant qu’aucun choix n’a été enregistré.
+- **Revenir au niveau de mes groupes** : le bouton sous la liste efface le choix enregistré.
+- **Ce qui ne change jamais** : les droits et les écrans de gestion. Formulaires d’édition
+  (fiche, question, clé, terme…), validation, administration, listes de gestion et onglet
+  **Individus** restent complets, quel que soit le niveau choisi.
+- **Le menu Aperçu** reste disponible pour simuler un autre niveau le temps de la session ;
+  il passe devant le niveau du profil, et **Quitter l’aperçu** ramène au niveau du profil.
+
+> ⚠️ **Changement visible (22 novembre 2026)** — Avant, un professeur voyait toujours tout
+> en vue complète. Désormais, sans choix enregistré, il voit le niveau de ses groupes — et
+> **le cycle 3 s’il n’a aucun groupe avec un niveau**. Pour retrouver la vue d’avant :
+> **Mon profil → Niveau de contenu → Complet (vue gestion) → Enregistrer**.
+
+Le **niveau d’un élève ne change pas** : il suit toujours sa classe ou sa séance, et il ne
+peut pas choisir de niveau de contenu. Sa préférence d’affichage garde le même sens.
 
 > ⚠️ **Point d'attention** — La séance n’impose son niveau que tant qu’elle est **ouverte**
 > dans l’application de l’élève (bandeau de séance visible) et qu’elle a été **démarrée** par
@@ -190,18 +229,21 @@ tout ce qui permet à un professeur de voir l’application « avec les yeux d�
 
 - **Interface** : _Ma vue habituelle_, _Vue élève_ (navigation en bas, écrans élève) et,
   pour un administrateur, _Vue professeur_ (interface sans les boutons d’administration) ;
-- **Affichage biodiversité** : _Complet (vue gestion)_, _Collège · 6ᵉ (cycle 3)_,
-  _Collège · 3ᵉ (cycle 4)_ ou _Lycée_. Les deux entrées du collège ont le même affichage ;
-  elles ne diffèrent que par le vocabulaire, les questions et la symbiose / compétition du
-  réseau. En vue élève, l’option automatique s’appelle _Automatique (carte et groupe)_ : le
-  niveau suit alors les mêmes règles que pour un vrai élève. La vue _Complet_ montre tout ce
-  que voit l’université.
+- **Affichage biodiversité** : _Mon niveau : …_ (le niveau de contenu du profil, par
+  exemple « Mon niveau : Cycle 3 (CM1–6e) — par défaut » ou « Mon niveau : Complet (vue
+  gestion) »), _Collège · 6ᵉ (cycle 3)_, _Collège · 3ᵉ (cycle 4)_ ou _Lycée_. Les deux
+  entrées du collège ont le même affichage ; elles ne diffèrent que par le vocabulaire, les
+  questions et la symbiose / compétition du réseau. En vue élève, l’option automatique
+  s’appelle _Automatique (carte et groupe)_ : le niveau suit alors les mêmes règles que pour
+  un vrai élève. Pour voir durablement tout le contenu, c’est dans **Mon profil** :
+  _Complet (vue gestion)_.
 
 Les deux se combinent : « Vue élève · Affichage Collège · 6ᵉ (cycle 3) » montre exactement
 ce que voit un élève de 6ᵉ. Dès qu’un aperçu est actif, le bouton se colore et **un seul bandeau**
-rappelle ce qui est simulé, avec un bouton **Quitter l’aperçu** qui remet tout à zéro.
-Les droits réels du professeur ne changent jamais ; le choix de niveau est oublié à la
-fermeture du navigateur.
+rappelle ce qui est simulé, avec un bouton **Quitter l’aperçu** qui ramène au niveau de
+contenu du profil (et non plus à la vue complète d’office). Les droits réels du professeur
+ne changent jamais ; le choix de niveau de l’aperçu est oublié à la fermeture du navigateur.
+Pendant un aperçu de niveau, les questions de validation suivent aussi le niveau simulé.
 
 ## Les échelles de niveau et leurs correspondances
 
