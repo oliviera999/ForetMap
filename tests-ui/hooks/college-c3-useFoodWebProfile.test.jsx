@@ -15,7 +15,6 @@ vi.mock('../../src/contexts/BiodivPedagoContext.jsx', () => ({
 }));
 
 import { useFoodWebProfile } from '../../src/hooks/useFoodWebProfile.js';
-import { useFoodWebStartSpecies } from '../../src/hooks/useFoodWebStartSpecies.js';
 
 /** Profil collège simulé (le socle rend encore le comportement actuel tant que C1 n'a pas fusionné). */
 function collegeContext({ cycle4 = false } = {}) {
@@ -64,42 +63,5 @@ describe('useFoodWebProfile', () => {
     expect(result.current.collegeMode).toBe(false);
     expect(result.current.typeLabel('frugivorie')).toBe('Frugivorie');
     expect(result.current.focusDepths).toEqual([0, 1, 2]);
-  });
-});
-
-describe('useFoodWebStartSpecies', () => {
-  const shown = [
-    {
-      id: 1,
-      interaction_type: 'predation',
-      from_id: 1,
-      from_name: 'Renard',
-      to_id: 2,
-      to_name: 'Lapin',
-    },
-    {
-      id: 2,
-      interaction_type: 'herbivorie',
-      from_id: 2,
-      from_name: 'Lapin',
-      to_id: 3,
-      to_name: 'Trèfle',
-    },
-  ];
-  it('met les espèces phares de la carte en tête', async () => {
-    apiMock.mockResolvedValue({ species: [{ plant_id: 3, is_featured: true }, { plant_id: 1 }] });
-    const { result } = renderHook(() =>
-      useFoodWebStartSpecies({ enabled: true, mapId: 'foret', shownItems: shown }),
-    );
-    await waitFor(() => expect(result.current.featured.map((c) => c.id)).toEqual([3]));
-    expect(apiMock).toHaveBeenCalledWith('/api/maps/foret/species');
-    expect(result.current.others.map((c) => c.id)).toEqual([2, 1]);
-  });
-  it('désactivé (lycée) : aucun appel, aucune espèce', () => {
-    const { result } = renderHook(() =>
-      useFoodWebStartSpecies({ enabled: false, mapId: 'foret', shownItems: shown }),
-    );
-    expect(apiMock).not.toHaveBeenCalled();
-    expect(result.current.candidates).toEqual([]);
   });
 });

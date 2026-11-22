@@ -31,16 +31,30 @@ vi.mock('../../../src/contexts/PedagoSessionContext.jsx', () => ({
 }));
 
 vi.mock('../../../src/components/pedago/FoodWebGraph.jsx', () => ({
-  FoodWebGraph: ({ items = [], highlightPlantIds = null, focusRequest = null }) => (
-    <ul
-      data-testid="foodweb-graph"
-      data-highlight={(highlightPlantIds || []).join(',')}
-      data-focus={focusRequest ? `${focusRequest.ids.join(',')}@${focusRequest.depth}` : ''}
-    >
-      {items.map((row) => (
-        <li key={row.id}>{`arête ${row.id}`}</li>
-      ))}
-    </ul>
+  FoodWebGraph: ({
+    items = [],
+    highlightPlantIds = null,
+    focusRequest = null,
+    nodeClickMode = 'isolate',
+    onToggleSelection = null,
+  }) => (
+    <div>
+      <ul
+        data-testid="foodweb-graph"
+        data-highlight={(highlightPlantIds || []).join(',')}
+        data-focus={focusRequest ? `${focusRequest.ids.join(',')}@${focusRequest.depth}` : ''}
+        data-click-mode={nodeClickMode}
+      >
+        {items.map((row) => (
+          <li key={row.id}>{`arête ${row.id}`}</li>
+        ))}
+      </ul>
+      {onToggleSelection ? (
+        <button type="button" onClick={() => onToggleSelection(1)}>
+          panneau : basculer Trèfle
+        </button>
+      ) : null}
+    </div>
   ),
 }));
 
@@ -86,7 +100,11 @@ const ITEMS = [
   r(2, 'predation', 3, 'Renard', 2, 'Lapin'),
   r(3, 'frugivorie', 4, 'Merle', 5, 'Mûrier'),
   r(4, 'competition', 2, 'Lapin', 4, 'Merle'),
-  r(5, 'predation', 3, 'Renard', 6, 'Poule', { to_in_scope: 0 }),
+  r(5, 'predation', 3, 'Renard', 6, 'Poule', {
+    to_in_scope: 0,
+    to_elsewhere: [{ id: 'sablettes', label: 'Sablettes' }],
+  }),
+  r(6, 'competition', 7, 'Moineau', 4, 'Merle'),
 ];
 
 function mockApi({ featured = [] } = {}) {
@@ -120,6 +138,7 @@ const graphItems = () =>
 beforeEach(() => {
   apiMock.mockReset();
   session.current = null;
+  window.sessionStorage.clear();
 });
 
 describe('réseau trophique — 6e (cycle 3)', () => {
@@ -127,68 +146,94 @@ describe('réseau trophique — 6e (cycle 3)', () => {
     pedago.current = context({ college: true });
   });
 
-  it('pas de réseau complet : choix de l’espèce de départ, espèces phares en tête', async () => {
+  it('pas de réseau complet : puces à bascule, espèces phares en tête, hors carte proposé', async () => {
     mockApi({ featured: [3] });
     renderView();
-    await screen.findByText('Choisis une espèce de départ');
+    await screen.findByText('Choisis les espèces à observer');
     expect(screen.queryByTestId('foodweb-graph')).toBeNull();
     await screen.findByText('Espèces phares de la carte');
-    const featuredList = screen.getByText('Espèces phares de la carte').nextElementSibling;
-    expect(within(featuredList).getByRole('button', { name: 'Renard' })).toBeTruthy();
-    // Espèce hors carte : proposée aussi (décision 1 du 22/11/2026, grisée mais choisissable).
-    expect(screen.getByRole('button', { name: 'Poule' })).toBeTruthy();
+    const featured = screen.getByRole('list', { name: 'Espèces phares de la carte' });
+    expect(within(featured).getByRole('button', { name: 'Renard' })).toBeTruthy();
+    // Espèce hors carte : choisissable, avec sa mention (décision 1 du 22/11/2026).
+    const poule = within(screen.getByRole('list', { name: 'Autres espèces' })).getByRole('button', {
+      name: /Poule/,
+    });
+    expect(poule.textContent).toContain('vit sur une autre carte');
   });
 
-  it('profondeur 1 puis 2, espèces hors carte gardées (grisées)', async () => {
+  it('composer en trois clics, retirer d’un clic, depuis la liste comme depuis le graphe', async () => {
+    mockApi({ featured: [3] });
+    renderView();
+    fireEvent.click(await screen.findByRole('button', { name: 'Renard' }));
+    await screen.findByTestId('foodweb-graph');
+    expect(screen.getByTestId('foodweb-graph').dataset.clickMode).toBe('panel');
+    fireEvent.change(screen.getByLabelText('Ajouter une espèce'), { target: { value: 'lap' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Lapin' }));
+    fireEvent.click(screen.getByRole('button', { name: 'panneau : basculer Trèfle' }));
+    const bar = screen.getByRole('group', { name: 'Ma sélection' });
+    expect(
+      within(bar)
+        .getAllByRole('listitem')
+        .map((li) => li.textContent),
+    ).toEqual(['Renard', 'Lapin', 'Trèfle']);
+    expect(screen.getByTestId('foodweb-graph').dataset.highlight).toBe('3,2,1');
+    fireEvent.click(screen.getByRole('button', { name: 'Retirer Lapin de la sélection' }));
+    expect(screen.getByTestId('foodweb-graph').dataset.highlight).toBe('3,1');
+    fireEvent.click(screen.getByRole('button', { name: 'panneau : basculer Trèfle' }));
+    expect(screen.getByTestId('foodweb-graph').dataset.highlight).toBe('3');
+    fireEvent.click(screen.getByRole('button', { name: 'Tout retirer' }));
+    await screen.findByText('Choisis les espèces à observer');
+  });
+
+  it('profondeur : voisins directs puis la chaîne ; hors carte gardé (grisé)', async () => {
     mockApi({ featured: [3] });
     renderView();
     fireEvent.click(await screen.findByRole('button', { name: 'Renard' }));
     await screen.findByTestId('foodweb-graph');
     expect(graphItems().sort()).toEqual(['arête 2', 'arête 5']);
-    expect(screen.getByTestId('foodweb-graph').dataset.highlight).toBe('3');
-    fireEvent.click(screen.getByRole('button', { name: 'Chaîne' }));
+    expect(
+      screen.getByRole('button', { name: 'Leurs voisins directs' }).getAttribute('aria-pressed'),
+    ).toBe('true');
+    fireEvent.click(screen.getByRole('button', { name: 'La chaîne autour' }));
     expect(graphItems().sort()).toEqual(['arête 1', 'arête 2', 'arête 5']);
-    fireEvent.click(screen.getByRole('button', { name: /Changer d.espèce/ }));
-    await screen.findByText('Choisis une espèce de départ');
   });
 
-  it('recherche ; libellés en verbe dans la liste ; compétition masquée en 6e', async () => {
+  it('liste : libellés en verbe, mention « vit ailleurs » ; compétition masquée en 6e', async () => {
     mockApi();
-    renderView();
-    const search = await screen.findByLabelText('Chercher une espèce');
-    fireEvent.change(search, { target: { value: 'murier' } });
-    fireEvent.click(await screen.findByRole('button', { name: 'Mûrier' }));
+    renderView({ highlightPlantId: 3 });
+    await screen.findByTestId('foodweb-graph');
     fireEvent.change(screen.getByLabelText('Affichage'), { target: { value: 'list' } });
-    await screen.findByText('mange des fruits (frugivorie)');
+    await screen.findByText('vit ailleurs : Sablettes');
     expect(screen.queryByText(/compétition/i)).toBeNull();
   });
 
-  it('espèce hors carte mise en avant : son lien est montré, plus de message « non montrée »', async () => {
+  it('espèce dont les relations sont réservées au cycle 4 : on le dit, la barre reste', async () => {
     mockApi();
-    // La Poule est hors carte : son lien avec le Renard reste (elle est grisée par le graphe).
-    renderView({ highlightPlantId: 6 });
-    await screen.findByTestId('foodweb-graph');
-    expect(graphItems()).toEqual(['arête 5']);
-    expect(screen.queryByText(/aucune n.est montrée ici/)).toBeNull();
+    renderView({ highlightPlantId: 7 });
+    await screen.findByText(/ses relations ne sont pas dans ce cadrage ou à ton niveau/);
+    expect(screen.queryByTestId('foodweb-graph')).toBeNull();
+    expect(screen.getByRole('group', { name: 'Ma sélection' })).toBeTruthy();
   });
 
-  it('arrivée depuis une fiche : le réseau s’ouvre sur l’espèce', async () => {
+  it('arrivée depuis une fiche : la sélection contient l’espèce', async () => {
     mockApi();
     renderView({ highlightPlantId: 2 });
     await screen.findByTestId('foodweb-graph');
     expect(graphItems().sort()).toEqual(['arête 1', 'arête 2']);
-    expect(screen.getByText(/Départ/).textContent).toContain('Lapin');
+    expect(screen.getByRole('group', { name: 'Ma sélection' }).textContent).toContain('Lapin');
   });
 
-  it('séance : plantIds montrés à profondeur 0 (liens mutuels seulement)', async () => {
+  it('séance : plantIds pré-sélectionnés, liens entre mes espèces seulement', async () => {
     mockApi();
     session.current = { foodWebRequest: { plantIds: [2, 3], mapId: 'foret', nonce: 1 } };
     renderView();
     await screen.findByTestId('foodweb-graph');
     expect(graphItems()).toEqual(['arête 2']);
-    expect(screen.getByRole('button', { name: 'Sélection' }).getAttribute('aria-pressed')).toBe(
-      'true',
-    );
+    expect(
+      screen
+        .getByRole('button', { name: 'Seulement les liens entre mes espèces' })
+        .getAttribute('aria-pressed'),
+    ).toBe('true');
   });
 });
 

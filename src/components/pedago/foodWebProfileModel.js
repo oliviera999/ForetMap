@@ -22,9 +22,6 @@ export const COLLEGE_FOCUS_DEPTHS = Object.freeze([1, 2]);
 /** Profondeur d'ouverture au collège. */
 export const COLLEGE_DEFAULT_FOCUS_DEPTH = 1;
 
-/** Nombre maximal d'espèces de départ affichées sans recherche (hors espèces phares). */
-export const START_SPECIES_LIST_MAX = 12;
-
 /**
  * Profil d'affichage du réseau, construit à partir du contexte pédagogique.
  *
@@ -101,91 +98,12 @@ export function searchKey(text) {
 }
 
 /**
- * Espèces proposées comme point de départ : chaque espèce qui a au moins un lien montré,
- * les **espèces phares** de la carte (`map_species.is_featured`) en tête, puis par nombre de
- * liens décroissant, puis par nom.
- *
- * @param {object[]} shownItems lignes déjà filtrées pour le profil
- * @param {{ featuredIds?: Iterable<number>|null }} [options]
- * @returns {{ id: number, name: string, emoji: string, featured: boolean, links: number }[]}
- */
-export function startSpeciesCandidates(shownItems, { featuredIds = null } = {}) {
-  const featured = new Set(normalizeSeedIds(featuredIds));
-  const byId = new Map();
-  const add = (rawId, name, emoji) => {
-    const id = Number(rawId);
-    if (!Number.isInteger(id) || id <= 0) return;
-    const cur = byId.get(id);
-    if (cur) {
-      cur.links += 1;
-      if (!cur.name && name) cur.name = String(name);
-      if (!cur.emoji && emoji) cur.emoji = String(emoji);
-      return;
-    }
-    byId.set(id, {
-      id,
-      name: String(name || ''),
-      emoji: String(emoji || ''),
-      featured: featured.has(id),
-      links: 1,
-    });
-  };
-  for (const row of shownItems || []) {
-    add(row?.from_id, row?.from_name, row?.from_emoji);
-    if (row?.to_id != null) add(row.to_id, row.to_name, row.to_emoji);
-  }
-  return [...byId.values()].sort(
-    (a, b) =>
-      Number(b.featured) - Number(a.featured) ||
-      b.links - a.links ||
-      a.name.localeCompare(b.name, 'fr'),
-  );
-}
-
-/**
- * Filtre les espèces de départ par recherche (nom, sans accents). Sans recherche : les
- * espèces phares, puis les `max` premières des autres.
- *
- * @param {ReturnType<typeof startSpeciesCandidates>} candidates
- * @param {string} query
- * @param {{ max?: number }} [options]
- */
-export function filterStartSpecies(candidates, query, { max = START_SPECIES_LIST_MAX } = {}) {
-  const list = candidates || [];
-  const key = searchKey(query);
-  if (!key) {
-    const featured = list.filter((c) => c.featured);
-    const others = list.filter((c) => !c.featured).slice(0, Math.max(0, max));
-    return { featured, others, total: list.length };
-  }
-  const matches = list.filter((c) => searchKey(c.name).includes(key));
-  return {
-    featured: matches.filter((c) => c.featured),
-    others: matches.filter((c) => !c.featured),
-    total: matches.length,
-  };
-}
-
-/**
  * Profondeur initiale du focus : au collège, 1 pour une espèce, 0 (les espèces choisies et
  * leurs liens mutuels) pour plusieurs — cas d'une séance qui montre une liste d'espèces.
  * Hors collège : 1 (comportement historique), 0 pour plusieurs espèces imposées.
  */
 export function initialFocusDepth(seedCount) {
   return seedCount > 1 ? 0 : COLLEGE_DEFAULT_FOCUS_DEPTH;
-}
-
-/**
- * Profondeurs proposées à l'écran pour une sélection : la profondeur 0 n'a de sens qu'à
- * partir de deux espèces (voir `FOCUS_DEPTHS`).
- *
- * @param {readonly number[]} depths profondeurs du profil
- * @param {number} seedCount
- */
-export function focusDepthChoices(depths, seedCount) {
-  const base = Array.isArray(depths) ? [...depths] : [...FOCUS_DEPTHS];
-  if (seedCount > 1 && !base.includes(0)) base.unshift(0);
-  return base.filter((depth) => depth > 0 || seedCount > 1);
 }
 
 /** Clé de l'extrémité « environnement » (`to_id` nul) dans `itemsAroundSeeds`. */

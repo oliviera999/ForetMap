@@ -50,6 +50,8 @@ import {
 } from './foodWebGraphPrefs.js';
 import { exportGraphPng, exportGraphSvg } from './foodWebGraphExport.js';
 import { useFoodWebFocus } from '../../hooks/useFoodWebFocus.js';
+import { useFoodWebNodeClick } from '../../hooks/useFoodWebNodeClick.js';
+import { FoodWebNodePanel } from './FoodWebNodePanel.jsx';
 import { FoodWebGraphExportControls, FoodWebGraphZoomSearch } from './FoodWebGraphToolbar.jsx';
 
 const BASE_W = 880;
@@ -83,6 +85,17 @@ export function FoodWebGraph({
   /** Preset contrôlé par le parent (liste + graphe partagent le même cadrage). */
   preset: presetProp = null,
   onPresetChange = null,
+  /**
+   * Clic simple sur un nœud : `'isolate'` (défaut : isoler son réseau, lycée et G&L) ou
+   * `'panel'` (collège : petit panneau « Ajouter à la sélection » / « Voir la fiche »).
+   */
+  nodeClickMode = 'isolate',
+  /** Mode `'panel'` : espèces de la sélection du parent (libellé du bouton du panneau). */
+  selectedPlantIds = null,
+  /** Mode `'panel'` : ajoute ou retire une espèce de la sélection du parent. */
+  onToggleSelection = null,
+  /** Mode `'panel'` : étiquette simple d'une espèce (`usage_label`), ou chaîne vide. */
+  usageLabelOf = null,
 }) {
   const svgRef = useRef(null);
   const dragRef = useRef(null);
@@ -351,6 +364,28 @@ export function FoodWebGraph({
     el?.focus?.();
   }, []);
 
+  // Clic de nœud (isoler ou panneau), fiche, panneau du collège : hook `useFoodWebNodeClick`.
+  const panelMode = nodeClickMode === 'panel';
+  const focusNodeElement = useCallback(
+    (id) => focusGraphElement('data-fw-node', id),
+    [focusGraphElement],
+  );
+  const {
+    panelNodeId,
+    activate: activateNode,
+    openPlant: openNodePlant,
+    closePanel,
+    onActivateKey: onActivateNodeKey,
+    setPanelNodeId,
+  } = useFoodWebNodeClick({
+    mode: nodeClickMode,
+    toggleFocus,
+    addMode,
+    onOpenPlant,
+    focusNode: focusNodeElement,
+    nodeIds: renderedNodeIds,
+  });
+
   /**
    * Au-delà du seuil de saturation, seules les étiquettes des nœuds actifs sont
    * tracées : un nom illisible parce qu'empilé sur trois autres n'apprend rien.
@@ -614,22 +649,14 @@ export function FoodWebGraph({
       const moved = drag?.kind === 'node' && drag.moved;
       dragRef.current = null;
       // Lever un doigt d'un pincement ne doit pas être compris comme un clic.
-      if (!moved && !wasPinching) toggleFocus(id, addMode || evt.ctrlKey || evt.metaKey);
+      if (!moved && !wasPinching) activateNode(id, evt);
     },
-    [flushPendingDrag, releasePointer, toggleFocus, addMode],
+    [flushPendingDrag, releasePointer, activateNode],
   );
 
-  /** Le nœud « environnement » n'a pas de fiche espèce à ouvrir. */
-  const openNodePlant = useCallback(
-    (id) => {
-      if (isEnvNodeId(id)) return;
-      onOpenPlant?.(id);
-    },
-    [onOpenPlant],
-  );
-
-  // Clavier : Entrée/Espace isole le réseau du nœud, Maj+Entrée ouvre sa fiche,
-  // ⌘/Ctrl+Entrée ajoute (ou retire) l'espèce de la sélection.
+  // Clavier : touches fléchées entre les espèces ; Entrée/Espace isole le réseau du nœud (ou
+  // ouvre son panneau en mode `'panel'`), Maj+Entrée ouvre sa fiche, ⌘/Ctrl+Entrée ajoute (ou
+  // retire) l'espèce de la sélection isolée.
   const onNodeKeyDown = useCallback(
     (evt, id) => {
       const target = rovingTarget(evt.key, renderedNodeIds, id);
@@ -639,12 +666,9 @@ export function FoodWebGraph({
         focusGraphElement('data-fw-node', target);
         return;
       }
-      if (evt.key !== 'Enter' && evt.key !== ' ' && evt.key !== 'Spacebar') return;
-      evt.preventDefault();
-      if (evt.shiftKey) openNodePlant(id);
-      else toggleFocus(id, addMode || evt.ctrlKey || evt.metaKey);
+      onActivateNodeKey(evt, id);
     },
-    [openNodePlant, toggleFocus, addMode, renderedNodeIds, focusGraphElement],
+    [onActivateNodeKey, renderedNodeIds, focusGraphElement],
   );
 
   const onEdgeKeyDown = useCallback(
@@ -728,15 +752,44 @@ export function FoodWebGraph({
       evt.preventDefault();
       const first = searchMatches[0];
       if (!first) return;
+      setSearch('');
+      // Collège : la recherche ouvre le panneau de l'espèce, comme un clic.
+      if (panelMode) {
+        setPanelNodeId(first.id);
+        return;
+      }
       // Le champ sert aussi à composer une sélection : en mode « Ajouter »,
       // « Isoler » empile au lieu de remplacer.
       toggleFocus(first.id, addMode && !focusIds.has(first.id));
-      setSearch('');
     },
-    [searchMatches, toggleFocus, addMode, focusIds],
+    [searchMatches, toggleFocus, addMode, focusIds, panelMode, setPanelNodeId],
   );
 
   // --- Intitulés (infobulle souris + nom accessible clavier/lecteur d'écran) ---
+
+  /** Mode `'panel'` : espèces de la sélection du parent. */
+  const selectedSet = useMemo(
+    () => new Set((selectedPlantIds || []).map(Number)),
+    [selectedPlantIds],
+  );
+
+  /** Nœud du panneau du collège et position d'ancrage (coordonnées du conteneur). */
+  const panelNode = useMemo(
+    () => (panelNodeId == null ? null : nodes.find((n) => n.id === panelNodeId) || null),
+    [panelNodeId, nodes],
+  );
+  const panelAnchor = useMemo(() => {
+    if (!panelNode || !svgEl?.getBoundingClientRect || !svgEl.parentElement) return null;
+    const rect = svgEl.getBoundingClientRect();
+    const wrap = svgEl.parentElement.getBoundingClientRect();
+    if (!rect.width) return null;
+    const k = rect.width / BASE_W;
+    const pos = posOf(panelNode.id);
+    return {
+      left: Math.round(rect.left - wrap.left + (pos.x * view.scale + view.tx) * k),
+      top: Math.round(rect.top - wrap.top + (pos.y * view.scale + view.ty + NODE_R) * k + 6),
+    };
+  }, [panelNode, svgEl, posOf, view]);
 
   const nodeTitle = useCallback(
     (node) => {
@@ -749,9 +802,12 @@ export function FoodWebGraph({
       const level = trophicLevels.get(node.id);
       const levelPart = Number.isFinite(level) ? ` — ${trophicLevelTitle(level)}` : '';
       const role = node.role ? ` (${trophicRoleText(node.role)})` : '';
-      return `${node.name}${role}${levelPart}${scope} — clic : focus, double-clic : fiche`;
+      const hint = panelMode
+        ? 'clic : ajouter ou voir la fiche'
+        : 'clic : focus, double-clic : fiche';
+      return `${node.name}${role}${levelPart}${scope} — ${hint}`;
     },
-    [trophicLevels],
+    [trophicLevels, panelMode],
   );
 
   const nodeAriaLabel = useCallback(
@@ -764,11 +820,15 @@ export function FoodWebGraph({
         : '';
       const level = trophicLevels.get(node.id);
       const levelPart = Number.isFinite(level) ? `, ${trophicLevelTitle(level)}` : '';
-      const selected = focusIds.has(node.id) ? ', sélectionnée' : '';
       const role = node.role ? `, ${trophicRoleText(node.role)}` : '';
+      if (panelMode) {
+        const inSelection = selectedSet.has(node.id) ? ', dans ta sélection' : '';
+        return `${node.name}${role}${levelPart}${scope}${inSelection} — Entrée : ajouter ou retirer de la sélection, voir la fiche`;
+      }
+      const selected = focusIds.has(node.id) ? ', sélectionnée' : '';
       return `${node.name}${role}${levelPart}${scope}${selected} — Entrée : isoler son réseau, Ctrl+Entrée : ajouter à la sélection, Maj+Entrée : ouvrir la fiche`;
     },
-    [trophicLevels, focusIds],
+    [trophicLevels, focusIds, panelMode, selectedSet],
   );
 
   /** Espèces de la sélection, dans l'ordre d'affichage des puces. */
@@ -905,16 +965,19 @@ export function FoodWebGraph({
           onSubmit={submitSearch}
           matches={searchMatches}
           addMode={addMode}
+          submitLabel={panelMode ? 'Ouvrir' : null}
         />
-        <button
-          type="button"
-          className={`pedago-foodweb-graph__tbtn${addMode ? ' active' : ''}`}
-          onClick={() => setAddMode((mode) => !mode)}
-          aria-pressed={addMode}
-          title="Un appui ajoute l’espèce à la sélection au lieu de la remplacer (⌘/Ctrl + clic fait de même)"
-        >
-          <IconAdd size={14} /> Ajouter à la sélection
-        </button>
+        {panelMode ? null : (
+          <button
+            type="button"
+            className={`pedago-foodweb-graph__tbtn${addMode ? ' active' : ''}`}
+            onClick={() => setAddMode((mode) => !mode)}
+            aria-pressed={addMode}
+            title="Un appui ajoute l’espèce à la sélection au lieu de la remplacer (⌘/Ctrl + clic fait de même)"
+          >
+            <IconAdd size={14} /> Ajouter à la sélection
+          </button>
+        )}
         {focusActive ? (
           <div
             className="pedago-foodweb-graph__tbgroup"
@@ -1192,6 +1255,18 @@ export function FoodWebGraph({
         </g>
       </svg>
 
+      {panelMode && panelNode ? (
+        <FoodWebNodePanel
+          node={panelNode}
+          usageLabel={usageLabelOf ? usageLabelOf(panelNode.id) : ''}
+          selected={selectedSet.has(panelNode.id)}
+          onToggleSelection={onToggleSelection}
+          onOpenPlant={onOpenPlant ? openNodePlant : null}
+          onClose={closePanel}
+          anchor={panelAnchor}
+        />
+      ) : null}
+
       {focusActive ? (
         <div className="pedago-foodweb-graph__selection" aria-label="Espèces isolées">
           <span className="pedago-foodweb-graph__selection-title">
@@ -1244,19 +1319,29 @@ export function FoodWebGraph({
       <details className="pedago-foodweb-graph__help">
         <summary>Aide : lire et manipuler le graphe</summary>
         <ul className="pedago-foodweb-graph__hint section-sub">
-          <li>
-            Touche une espèce pour isoler son réseau : la scène se recompose autour d’elle (Voisins
-            / Chaîne).
-          </li>
-          <li>
-            ⌘/Ctrl + clic, ou « Ajouter à la sélection », en isole plusieurs ; « Sélection » ne
-            garde alors qu’elles.
-          </li>
+          {panelMode ? (
+            <li>
+              Touche une espèce : un petit panneau propose de l’ajouter à ta sélection (ou de l’en
+              retirer) et d’ouvrir sa fiche. Une espèce grisée vit sur une autre carte.
+            </li>
+          ) : (
+            <>
+              <li>
+                Touche une espèce pour isoler son réseau : la scène se recompose autour d’elle
+                (Voisins / Chaîne).
+              </li>
+              <li>
+                ⌘/Ctrl + clic, ou « Ajouter à la sélection », en isole plusieurs ; « Sélection » ne
+                garde alors qu’elles.
+              </li>
+            </>
+          )}
           <li>« Voir la fiche » ouvre la fiche espèce. Touche une flèche pour le détail.</li>
           <li>Molette ou pincement : zoom · glisser : déplacer.</li>
           <li>
             Clavier : Tab entre les espèces puis les flèches, touches fléchées pour passer de l’une
-            à l’autre, Entrée pour isoler, Maj+Entrée pour la fiche.
+            à l’autre, Entrée pour {panelMode ? 'ouvrir le panneau' : 'isoler'}, Maj+Entrée pour la
+            fiche.
           </li>
         </ul>
       </details>
