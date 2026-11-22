@@ -9,6 +9,27 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — Visite : la mascotte ne sort plus de l'écran à l'ouverture d'une fiche
+
+**Changement visible :** cliquer un lieu fait désormais **zoomer sur la mascotte** pendant
+qu'elle marche ; à l'arrivée elle joue l'animation du lieu (lecture de carte, inspection) et la
+fiche s'ouvre ensuite (≈ 1,15 s après le clic au lieu de ≈ 0,6 s). En visite sans compte sur
+téléphone, la page défile pour remonter la carte au-dessus de la feuille basse.
+
+- Cause : les marges recouvertes par la fiche étaient calculées par rapport à la **fenêtre**
+  (55 % de sa hauteur) puis appliquées au **cadre de la carte**. Quand la carte commence à
+  mi-écran, la marge dépassait la hauteur du cadre : le lieu était plaqué contre son bord haut
+  et la mascotte, dessinée au-dessus de son point, sortait de l'écran.
+- `src/utils/visitPlaceFocusFraming.js` (nouveau) : marges mesurées dans le cadre de la carte,
+  défilement préalable (avec une cale en bas de page quand elle est trop courte), silhouette de
+  la mascotte à destination ajoutée au cadrage.
+- `usePlaceFocusSequence` : options `extraPoints` et `holdMs` (l'ouverture attend le zoom
+  **et** l'arrivée). `useVisitMapMascotController` : `onArrive` et
+  `VISIT_MASCOT_ARRIVAL_BEAT_MS` (600 ms) ; les animations « lit la carte » / « inspecte »
+  jouent à l'arrivée et non plus pendant la marche.
+- Tests : `tests-ui/utils/visitPlaceFocusFraming.test.js`, cas `holdMs`/`extraPoints`, contrôleur
+  mis à jour. Doc : `docs/reference/foretmap/visite-et-mascottes.md`.
+
 ### Modifié — niveau de contenu des professeurs et du personnel (« Mon profil »)
 
 **Changement visible :** un compte non élève sans groupe, qui voyait jusqu'ici la vue complète,

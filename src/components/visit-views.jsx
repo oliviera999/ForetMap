@@ -8,6 +8,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
+import { flushSync } from 'react-dom';
 import { api, AccountDeletedError, withAppBase } from '../services/api';
 import { MARKER_EMOJIS, parseEmojiListSetting } from '../constants/emojis';
 import { getRoleTerms } from '../utils/n3-terminology';
@@ -58,6 +59,10 @@ import {
   shouldShowVisitMapMascot as computeShowVisitMapMascot,
   getVisitMascotVisibilityReason,
 } from '../utils/visitMascotVisibility.js';
+import {
+  computeVisitMascotFocusPoints,
+  prepareVisitDetailFocusInsets,
+} from '../utils/visitPlaceFocusFraming.js';
 import { useMapPosition } from '../shared/pct-map/useMapPosition.js';
 import { useHeadingUpPreference } from '../shared/pct-map/useHeadingUpPreference.js';
 import { useScaleCompassPreference } from '../shared/pct-map/useScaleCompassPreference.js';
@@ -117,18 +122,6 @@ const PlantCatalogPreviewModalLazy = lazy(() =>
  * (4× par défaut) vaut pour la carte de travail ; la Visite ne dépasse pas 2×.
  */
 const VISIT_PLACE_FOCUS_MAX_ZOOM = 2;
-
-/**
- * Marges de recadrage recouvertes par la fiche ouverte (px) : le lieu est cadré dans la part
- * de carte qui reste visible — à gauche du panneau latéral (≥ 1024 px), au-dessus de la
- * feuille basse au cran « moitié » (55 dvh) en dessous.
- * @param {boolean} isDesktop
- */
-function visitDetailFocusInsets(isDesktop) {
-  if (typeof window === 'undefined') return null;
-  if (isDesktop) return { right: Math.round(Math.min(420, window.innerWidth * 0.36)) + 24 };
-  return { bottom: Math.round(window.innerHeight * 0.55) };
-}
 
 /**
  * Les identifiants cochés couvrent-ils toutes les catégories de la carte ? (puces U9)
@@ -692,23 +685,60 @@ function VisitViewImpl({
   const isDesktopLayout = useMediaQuery(MEDIA.desktop);
   const isDesktopRef = useRef(isDesktopLayout);
   isDesktopRef.current = isDesktopLayout;
+  /** Cadre de la carte (repère des marges de recadrage) et calque mascotte. */
+  const visitMapStageHostRef = useRef(null);
+  /**
+   * Cale sous la visite (px) : en visite sans compte sur mobile, la page est trop courte pour
+   * faire remonter la carte au-dessus de la feuille basse. Posée à l'ouverture d'un lieu,
+   * retirée à la fermeture de la fiche.
+   */
+  const [visitSheetSpacerPx, setVisitSheetSpacerPx] = useState(0);
+  const ensureVisitScrollRoom = useCallback((px) => {
+    flushSync(() => setVisitSheetSpacerPx((prev) => prev + Math.max(0, Math.ceil(px))));
+  }, []);
+  /** Destination de la mascotte (% plan), lue au moment du zoom : renseignée plus bas. */
+  const visitMascotDestinationRef = useRef(null);
+  /**
+   * Zoom sur la mascotte arrivée au lieu, puis fiche. Les marges recouvertes par la fiche sont
+   * mesurées **dans le cadre de la carte** (et la page défile si la feuille basse devait la
+   * cacher presque entière) ; la silhouette de la mascotte à destination entre dans le cadrage.
+   * `holdMs` : l'ouverture attend aussi l'arrivée de la mascotte et son animation.
+   */
   const openVisitSelection = useCallback(
-    (item, itemType) => {
+    (item, itemType, { holdMs = 0 } = {}) => {
+      const host = visitMapStageHostRef.current;
+      const detailInsets = prepareVisitDetailFocusInsets(host, {
+        isDesktop: isDesktopRef.current,
+        prefersReducedMotion,
+        ensureScrollRoom: ensureVisitScrollRoom,
+      });
+      const barInsets = visitMapFocusInsetsRef.current || {};
+      const insets = {
+        top: Math.max(detailInsets?.top || 0, barInsets.top || 0),
+        right: Math.max(detailInsets?.right || 0, barInsets.right || 0),
+        bottom: Math.max(detailInsets?.bottom || 0, barInsets.bottom || 0),
+        left: Math.max(detailInsets?.left || 0, barInsets.left || 0),
+      };
+      const mascotEl = host?.querySelector?.('.visit-map-mascot-inner') || null;
+      const layerEl = host?.querySelector?.('.visit-map-fit-layer') || null;
+      // Mascotte masquée : rien à garder à l'écran, le lieu seul est cadré.
+      const extraPoints = mascotEl
+        ? computeVisitMascotFocusPoints({
+            anchorPct: visitMascotDestinationRef.current?.(),
+            mascotSize: mascotEl.getBoundingClientRect?.() || null,
+            layerSize: layerEl?.getBoundingClientRect?.() || null,
+          })
+        : [];
       placeFocus.focusThenOpen(
         { ...item, kind: itemType },
         () => {
           setSelected(item);
           setSelectedType(itemType);
         },
-        {
-          insets: {
-            ...visitDetailFocusInsets(isDesktopRef.current),
-            ...(visitMapFocusInsetsRef.current || {}),
-          },
-        },
+        { insets, extraPoints, holdMs },
       );
     },
-    [placeFocus, setSelected, setSelectedType],
+    [placeFocus, setSelected, setSelectedType, prefersReducedMotion, ensureVisitScrollRoom],
   );
   useEffect(() => {
     if (!visitPlaceFocusActive) placeFocus.forget();
@@ -753,10 +783,14 @@ function VisitViewImpl({
     openSelectionInParallel: visitPlaceFocusActive,
   });
 
+  // Destination courante de la mascotte (déjà à jour quand `openVisitSelection` est appelé).
+  visitMascotDestinationRef.current = () => visitMapMascotPctRef.current;
+
   const closeVisitSelection = useCallback(() => {
     cancelScheduledDetailPanelOpen();
     setSelected(null);
     setSelectedType(null);
+    setVisitSheetSpacerPx(0);
     placeFocus.restore();
   }, [cancelScheduledDetailPanelOpen, setSelected, setSelectedType, placeFocus]);
   /**
@@ -869,24 +903,36 @@ function VisitViewImpl({
       if (!place) return;
       const kind = place.kind === 'marker' ? 'marker' : 'zone';
       if (mode === 'view') {
+        // La mascotte marche jusqu'au lieu pendant que la caméra zoome sur elle ; à l'arrivée
+        // elle lit la carte (zone) ou inspecte (repère), puis la fiche s'ouvre.
         const fromPct = { ...visitMapMascotPctRef.current };
         if (kind === 'zone') {
           const c = visitZoneCentroidPct(place);
-          if (c) moveVisitMapMascotTo(c.xp, c.yp);
-          emitMascotEvent(VISIT_MASCOT_INTERACTION_EVENT.MAP_READ_OPEN);
-          showMascotDialog('map_read');
-          if (c) scheduleVisitDetailPanelOpen(place, 'zone', c.xp, c.yp, fromPct);
-          else openVisitSelection(place, 'zone');
+          const onArrive = () => {
+            emitMascotEvent(VISIT_MASCOT_INTERACTION_EVENT.MAP_READ_OPEN);
+            showMascotDialog('map_read');
+          };
+          if (c) {
+            moveVisitMapMascotTo(c.xp, c.yp);
+            scheduleVisitDetailPanelOpen(place, 'zone', c.xp, c.yp, fromPct, { onArrive });
+          } else {
+            onArrive();
+            openVisitSelection(place, 'zone');
+          }
         } else {
           moveVisitMapMascotTo(Number(place.x_pct), Number(place.y_pct));
-          emitMascotEvent(VISIT_MASCOT_INTERACTION_EVENT.MARKER_INSPECT_OPEN);
-          showMascotDialog('inspect');
           scheduleVisitDetailPanelOpen(
             place,
             'marker',
             Number(place.x_pct),
             Number(place.y_pct),
             fromPct,
+            {
+              onArrive: () => {
+                emitMascotEvent(VISIT_MASCOT_INTERACTION_EVENT.MARKER_INSPECT_OPEN);
+                showMascotDialog('inspect');
+              },
+            },
           );
         }
       } else {
@@ -965,6 +1011,12 @@ function VisitViewImpl({
   const visitMapCardRef = useRef(null);
   const [visitSidePanelTop, setVisitSidePanelTop] = useState(null);
   const hasVisitSelection = !!selected;
+  // Fiche refermée (quel qu'en soit le geste) : la cale de défilement n'a plus lieu d'être.
+  const hadVisitSelectionRef = useRef(false);
+  useEffect(() => {
+    if (hadVisitSelectionRef.current && !hasVisitSelection) setVisitSheetSpacerPx(0);
+    hadVisitSelectionRef.current = hasVisitSelection;
+  }, [hasVisitSelection]);
   useLayoutEffect(() => {
     if (!hasVisitSelection || !isDesktopLayout || visitImmersion) {
       setVisitSidePanelTop(null);
@@ -1280,6 +1332,7 @@ function VisitViewImpl({
               layerClassName="visit-map-fullscreen-shell"
             >
               <div
+                ref={visitMapStageHostRef}
                 className={`visit-map-stage-host${visitImmersion ? ' visit-map-stage-host--fullscreen' : ''}`}
                 data-visit-mascot-visibility={showVisitMapMascot ? 'visible' : 'hidden'}
                 data-visit-mascot-reason={visitMascotVisibilityReason}
@@ -1516,6 +1569,14 @@ function VisitViewImpl({
             onOpenMascotPackStudioTab={onOpenMascotPackStudioTab}
           />
         )}
+        {/* Cale de défilement (mobile) : laisse la carte remonter au-dessus de la feuille basse. */}
+        {visitSheetSpacerPx > 0 ? (
+          <div
+            className="visit-sheet-scroll-spacer"
+            aria-hidden="true"
+            style={{ height: visitSheetSpacerPx }}
+          />
+        ) : null}
       </div>
     </>
   );
