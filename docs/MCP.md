@@ -232,7 +232,7 @@ sinon SQL en lecture seule (`lib/mcp/domains/`) sous la permission applicative �
 | `foretmap_groups` (`groups`, essentiel)               | list, get, create é, update é, delete é, set_members é\*, set_scopes é, class_report\*, progression_recompute é                                                                                                                                                                            |
 | `foretmap_tutorials` (`tutorials`)                    | list, get, create é, update é, delete é, link é, unlink é, reads_stats, reads_detail\*                                                                                                                                                                                                     |
 | `foretmap_learning` (`learning`)                      | gating_get, gating_set é, links_list, overrides\*, override_release é\*, links_suggest, links_accept é, links_reject é                                                                                                                                                                     |
-| `foretmap_quiz` (`quiz`)                              | list, get, categories, stats (réussite par question, catégorie, notion ; distracteurs non disponibles), create é, update é (rattachements `plant_ids`, `glossary_codes`, `tutorial_ids` : voir sous le tableau), retire é, set_notions é                                                   |
+| `foretmap_quiz` (`quiz`)                              | list, get, categories, stats (réussite par question, catégorie, notion ; distracteurs : voir sous le tableau), create é, update é (rattachements `plant_ids`, `glossary_codes`, `tutorial_ids` : voir sous le tableau), retire é, set_notions é                                            |
 | `foretmap_glossary` (`glossary`)                      | list, get, set_notions é                                                                                                                                                                                                                                                                   |
 | `foretmap_curriculum` (`curriculum`)                  | notions, coverage (notions orphelines et partielles), set_links é                                                                                                                                                                                                                          |
 | `foretmap_pedago_sessions` (`pedago_sessions`)        | list, get, runs, runs_detail\*, create é, update é (étapes d’une séance libre : actions de `src/shared/enums/pedagoStepActions.js`, dont `open_tutorial` { tutorialId \| tutorialSlug } et `open_foodweb` { plantIds, preset : alimentaire \| relations \| all }), delete é, link_task é   |
@@ -273,6 +273,21 @@ Précisions du 21/11/2026 :
   `observations` (photos des observations refusées, observations refusées, observations jamais
   examinées ; jamais une observation validée). L'aperçu ne rend que des **comptages** et les
   durées appliquées (`lib/retention/policy.js`).
+
+**Distracteurs** (`foretmap_quiz`, `stats`, depuis la migration `quiz_attempt_choice` du
+22/11/2026) : `distractors.available` vaut `true`. Chaque ligne de `by_question` porte, sur la
+**version courante** de la question (empreinte de l'énoncé, des choix et de la bonne réponse) :
+`version` (tentatives, `choix_connus`, réussite, tentatives des versions antérieures et sans
+version), `repartition` (effectif et pourcentage par lettre d'origine, bonne réponse marquée),
+`attracteurs` (distracteurs choisis plus souvent que la bonne réponse), `distracteurs_morts`
+(moins de 5 % à partir de 20 réponses, `distracteurs_morts_evalues`), `discrimination` (27 % les
+plus forts contre 27 % les plus faibles, à partir de 30 répondants, `negative`),
+`temps_median_ms` et `signaux`. `distractors` donne les `seuils` et l'`effet_position` global
+(taux de choix par position affichée). Mêmes fonctions que
+`GET /api/quiz/admin/questions/stats` (`lib/quizQuestionStats.js`) ; l'analyse ignore les
+filtres de période (une répartition n'a de sens que pour un même jeu de choix). Agrégats
+seulement : aucun identifiant d'élève. Les tentatives antérieures à la migration n'ont pas de
+lettre : elles comptent dans la réussite, pas dans la répartition.
 
 **Rattachements d'une question** (`foretmap_quiz`, `create` et `update`) : `plant_ids`,
 `glossary_codes` et `tutorial_ids` (paramètres de l'action, ou champs de `data`) lient la

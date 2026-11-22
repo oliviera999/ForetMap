@@ -1,6 +1,9 @@
 import { api } from '../../../services/api.js';
 import { quizApiPaths } from '../../../services/quizApi.js';
 import { QuestionEditorPanel } from '../../../shared/qcm/QuestionEditorPanel.jsx';
+import { questionFieldLabel } from '../../../shared/qcm/questionFieldLabels.js';
+import { FMQuizChoiceBar, FMQuizItemStatsSummary } from './FMQuizChoiceStats.jsx';
+import { findQuestionStat, sortSuspectFirst } from './fmQuizChoiceStatsModel.js';
 import {
   EMPTY_FORM,
   FORM_FIELDS,
@@ -50,6 +53,42 @@ function FmTextarea(props) {
   return <textarea className="form-input" rows={3} {...props} />;
 }
 
+/**
+ * Tri de la liste : « Suspectes d'abord » s'appuie sur les statistiques d'items (référence
+ * `questionStats`) ; les autres tris sont ceux du formulaire quiz.
+ */
+function sortFmQuizItems(items, sortBy, ctx) {
+  if (sortBy === 'suspect') {
+    return sortSuspectFirst(items, ctx?.refs?.questionStats, (rows) =>
+      sortQuizItems(rows, 'theme'),
+    );
+  }
+  return sortQuizItems(items, sortBy);
+}
+
+const CHOICE_LETTER_BY_FIELD = {
+  choix_a: 'A',
+  choix_b: 'B',
+  choix_c: 'C',
+  choix_d: 'D',
+  choix_e: 'E',
+};
+
+/** Champ d'un choix, suivi de la part des réponses qui l'ont retenu (version actuelle). */
+function renderChoiceField(key) {
+  return function ChoiceField({ form, setField, refs, selectedCode }) {
+    const stat = selectedCode ? findQuestionStat(refs.questionStats, selectedCode) : null;
+    return (
+      <div className="fm-choice-field">
+        <FmField label={questionFieldLabel(key)}>
+          <FmInput value={form[key]} onChange={(e) => setField(key, e.target.value)} />
+        </FmField>
+        <FMQuizChoiceBar stat={stat} letter={CHOICE_LETTER_BY_FIELD[key]} />
+      </div>
+    );
+  };
+}
+
 function themeOptionsFrom(categories) {
   return [...new Set(categories.map((c) => c.theme).filter(Boolean))].sort();
 }
@@ -76,13 +115,22 @@ const FM_QUIZ_EDITOR_CONFIG = {
       filterCategorie: f.categorie,
       filterQ: f.filterQ,
     }),
-  clientSort: sortQuizItems,
+  clientSort: sortFmQuizItems,
   references: [
     {
       key: 'categories',
       load: async (apiClient) => {
         const data = await apiClient(quizApiPaths.categories());
         return data?.categories;
+      },
+    },
+    {
+      // Statistiques d'items (version actuelle) : barres sous les choix, encart, tri
+      // « Suspectes d'abord ». Agrégats seulement, aucun nom d'élève.
+      key: 'questionStats',
+      load: async (apiClient) => {
+        const data = await apiClient(`${quizApiPaths.adminQuestions}/stats?minAttempts=1`);
+        return data?.stats;
       },
     },
   ],
@@ -136,6 +184,7 @@ const FM_QUIZ_EDITOR_CONFIG = {
       { value: 'code_desc', label: 'Code Z→A' },
       { value: 'category', label: 'Catégorie' },
       { value: 'difficulte', label: 'Difficulté' },
+      { value: 'suspect', label: 'Suspectes d’abord' },
     ],
   },
   autoSave: null,
@@ -146,6 +195,30 @@ const FM_QUIZ_EDITOR_CONFIG = {
   }),
   categorieOptions: ({ refs, filters }) => categoryOptionsFrom(refs.categories, filters.theme),
   fieldRenderers: {
+    choix_a: renderChoiceField('choix_a'),
+    choix_b: renderChoiceField('choix_b'),
+    choix_c: renderChoiceField('choix_c'),
+    choix_d: renderChoiceField('choix_d'),
+    choix_e: renderChoiceField('choix_e'),
+    reponse_correcte: ({ form, setField, refs, selectedCode }) => (
+      <div className="fm-choice-field">
+        <FmField label={questionFieldLabel('reponse_correcte')}>
+          <FmSelect
+            value={form.reponse_correcte}
+            onChange={(e) => setField('reponse_correcte', e.target.value)}
+          >
+            {['A', 'B', 'C', 'D', 'E'].map((letter) => (
+              <option key={letter} value={letter}>
+                {letter}
+              </option>
+            ))}
+          </FmSelect>
+        </FmField>
+        {selectedCode ? (
+          <FMQuizItemStatsSummary stat={findQuestionStat(refs.questionStats, selectedCode)} />
+        ) : null}
+      </div>
+    ),
     niveau: ({ form, setField }) => (
       <FmField label="Niveau">
         <FmSelect value={form.niveau} onChange={(e) => setField('niveau', e.target.value)}>

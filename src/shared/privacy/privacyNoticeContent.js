@@ -217,6 +217,9 @@ export function buildPrivacyNotice({
       'ton pseudo, ta description et ta photo de profil, si tu en choisis ;',
       'ce que tu produis : photos, observations, comptes rendus de tâches, carnet, messages du forum et commentaires ;',
       'ta progression : tâches prises et faites, quiz, découvertes, séances guidées (et l’étape où tu t’es arrêté, pour reprendre plus tard), badges, statistiques ;',
+      // Migration `quiz_attempt_choice` : lettre choisie et durée de réponse de chaque
+      // tentative. Les statistiques qui en sont tirées sont agrégées (aucun nom d'élève).
+      'à chaque réponse au quiz, le choix que tu as fait et le temps mis à répondre : ils servent à améliorer les questions, et les statistiques qui en sont tirées ne portent aucun nom d’élève ;',
       'des journaux de sécurité : date et heure de connexion, adresse IP et type de navigateur lors de certains événements (connexion, mot de passe erroné…).',
     ],
     gl: [
