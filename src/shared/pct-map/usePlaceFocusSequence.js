@@ -22,6 +22,10 @@ function placeFocusLabel(place) {
  *   ferme pendant le vol). Sans elle, l'appelant qui attend la fin du zoom reste bloqué — c'est
  *   le cas des arrivées GL, qui ne présentent alors ni le popover ni l'appel au serveur.
  *   `forget` et le changement de carte ne l'appellent pas.
+ *   Option `extraPoints` : points (% du plan) ajoutés au cadrage du lieu — la Visite y met la
+ *   silhouette de la mascotte à son arrivée, pour zoomer sur elle et pas seulement sur le lieu.
+ *   Option `holdMs` : la fiche n'ouvre pas avant ce délai (ms) après l'appel, même si le zoom
+ *   finit plus tôt — le temps que la mascotte arrive et joue son animation.
  * - `restore()` ramène la vue mémorisée en douceur, puis l'oublie. Un lieu touché pendant ce
  *   retour reprend la vue en cours de restitution, pas la vue à mi-chemin.
  * - Désactivée (`enabled: false`), la séquence ouvre tout de suite et ne touche pas à la vue.
@@ -89,19 +93,42 @@ export function usePlaceFocusSequence({
   );
 
   const focusThenOpen = useCallback(
-    (place, open, { insets = null, onSuperseded = null, onAbandoned = null } = {}) => {
+    (
+      place,
+      open,
+      {
+        insets = null,
+        onSuperseded = null,
+        onAbandoned = null,
+        extraPoints = null,
+        holdMs = 0,
+      } = {},
+    ) => {
       const o = optsRef.current;
       const superseded = pendingSupersededRef.current;
       pendingSupersededRef.current = onSuperseded;
       pendingAbandonedRef.current = onAbandoned;
       const token = ++tokenRef.current;
       superseded?.();
-      const run = () => {
+      const openNow = () => {
         if (token !== tokenRef.current) return;
         pendingSupersededRef.current = null;
         pendingAbandonedRef.current = null;
         setStatusMessage('');
         open?.();
+      };
+      // Ouverture retenue jusqu'à `holdMs` après l'appel (arrivée de la mascotte).
+      let holding = Number(holdMs) > 0;
+      let ready = false;
+      if (holding) {
+        window.setTimeout(() => {
+          holding = false;
+          if (ready) openNow();
+        }, Number(holdMs));
+      }
+      const run = () => {
+        ready = true;
+        if (!holding) openNow();
       };
       if (!o.enabled) {
         run();
@@ -118,7 +145,11 @@ export function usePlaceFocusSequence({
       }
       restoringRef.current = null;
       placeRef.current = place;
-      const flight = vp.flyToPctBounds(target.points, {
+      const extra = Array.isArray(extraPoints)
+        ? extraPoints.filter((p) => Number.isFinite(p?.xp) && Number.isFinite(p?.yp))
+        : [];
+      const points = extra.length ? [...target.points, ...extra] : target.points;
+      const flight = vp.flyToPctBounds(points, {
         insets,
         maxZoom: target.maxZoom,
         duration: o.durationMs,

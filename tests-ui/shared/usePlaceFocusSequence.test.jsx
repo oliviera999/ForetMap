@@ -189,6 +189,72 @@ describe('usePlaceFocusSequence', () => {
     expect(open).not.toHaveBeenCalled();
   });
 
+  test('extraPoints : la silhouette de la mascotte entre dans le cadrage', () => {
+    const vp = fakeViewport();
+    const { result } = setup(vp);
+    const mascot = [
+      { xp: 48, yp: 40 },
+      { xp: 52, yp: 40 },
+      { xp: Number.NaN, yp: 1 },
+    ];
+    act(() => result.current.focusThenOpen(marker, vi.fn(), { extraPoints: mascot }));
+    expect(vp.flyToPctBounds.mock.calls[0][0]).toEqual([
+      { xp: 50, yp: 50 },
+      { xp: 48, yp: 40 },
+      { xp: 52, yp: 40 },
+    ]);
+  });
+
+  test('holdMs : la fiche attend l’arrivée de la mascotte même si le zoom finit avant', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    try {
+      const vp = fakeViewport();
+      const { result } = setup(vp);
+      const open = vi.fn();
+      act(() => result.current.focusThenOpen(zone, open, { holdMs: 800 }));
+      await act(async () => vp.flights[0].resolve(true));
+      expect(open).not.toHaveBeenCalled();
+      act(() => vi.advanceTimersByTime(799));
+      expect(open).not.toHaveBeenCalled();
+      act(() => vi.advanceTimersByTime(1));
+      expect(open).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test('holdMs : un zoom plus long que la retenue ouvre à la fin du zoom', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    try {
+      const vp = fakeViewport();
+      const { result } = setup(vp);
+      const open = vi.fn();
+      act(() => result.current.focusThenOpen(zone, open, { holdMs: 100 }));
+      act(() => vi.advanceTimersByTime(200));
+      expect(open).not.toHaveBeenCalled();
+      await act(async () => vp.flights[0].resolve(true));
+      expect(open).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test('holdMs : fermer pendant la retenue annule l’ouverture', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    try {
+      const vp = fakeViewport();
+      const { result } = setup(vp);
+      const open = vi.fn();
+      act(() => result.current.focusThenOpen(zone, open, { holdMs: 500 }));
+      await act(async () => vp.flights[0].resolve(true));
+      act(() => result.current.restore());
+      act(() => vi.advanceTimersByTime(600));
+      expect(open).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   test('désactivée : ouverture immédiate, carte intouchée', () => {
     const vp = fakeViewport();
     const { result } = setup(vp, { enabled: false });
