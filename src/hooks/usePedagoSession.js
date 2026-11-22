@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { api } from '../services/api';
+import { api, AccountDeletedError } from '../services/api';
 import {
   readStoredPedagoSession,
   writeStoredPedagoSession,
@@ -238,7 +238,11 @@ export function usePedagoSession({ available, authenticated, onToast, navigation
           const list = await api('/api/tutorials');
           tutorial = (Array.isArray(list) ? list : []).find((t) => t.slug === tutorialSlug) || null;
         }
-      } catch {
+      } catch (e) {
+        // Compte supprimé : la session se ferme (événement `foretmap_teacher_expired` émis
+        // par `api`, relayé par `useSessionWindowSync` vers la déconnexion forcée). Pas de
+        // « tutoriel plus disponible » trompeur par-dessus.
+        if (e instanceof AccountDeletedError) return;
         tutorial = null;
       }
       if (tutorialRequestRef.current !== requestId) return;

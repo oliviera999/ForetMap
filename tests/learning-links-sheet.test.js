@@ -14,6 +14,9 @@
 // avant comme après la bascule. Les cas « écart » décrivent les divergences relevées par
 // l'audit : ils ont basculé explicitement avec le passage des lecteurs sur RQL (les
 // assertions d'avant la bascule sont rappelées en commentaire).
+// Les deux tables historiques sont supprimées depuis par la migration
+// `retrait_t3_quiz_question_links` : ce test, qui simule une base d'avant la bascule, les recrée
+// le temps de son exécution (helper `legacyQuizLinkTables`) et les supprime à la fin.
 // Tests BDD partagée : exécution séquentielle.
 
 require('./helpers/setup');
@@ -25,6 +28,10 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { initSchema, execute, queryAll, queryOne, splitSqlStatements } = require('../database');
 const { ensureAdminTeacherAuthToken } = require('./helpers/adminAuth');
+const {
+  recreateLegacyQuizLinkTables,
+  dropLegacyQuizLinkTables,
+} = require('./helpers/legacyQuizLinkTables');
 const { applyFmQuizImport } = require('../lib/fmQuizImport');
 
 const stamp = Date.now().toString(36).toUpperCase();
@@ -98,6 +105,7 @@ async function insertRql(resourceType, resourceRef, questionCode, fields = {}) {
 
 before(async () => {
   await initSchema();
+  await recreateLegacyQuizLinkTables(execute);
   token = await ensureAdminTeacherAuthToken();
 
   await execute(
@@ -223,6 +231,7 @@ after(async () => {
   await execute('DELETE FROM glossary_terms WHERE glossary_code LIKE ?', [`GLK${stamp}%`]).catch(
     () => {},
   );
+  await dropLegacyQuizLinkTables(execute);
 });
 
 const codesOf = (res) => res.body.questions.map((q) => q.question_code);

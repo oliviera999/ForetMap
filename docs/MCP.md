@@ -372,6 +372,18 @@ réordonnancement des projets.
 | `foretmap_health_report` / `_history`                                                                                                                                                                      | read + `admin.settings.read`              | Rapport de santé (§ 11.2)                                                                                                                                                                                 |
 | `foretmap_list_files` / `read_file` / `grep_files` / `cron_status`                                                                                                                                         | read + `mcp.write` ; `files_enabled`      | Journaux et fichiers du serveur en lecture seule (§ 11.3, § 11.4)                                                                                                                                         |
 
+Précisions du 22/11/2026 (flux T3) :
+
+- `foretmap_get_id_key` : chaque proposition rend son image avec l'auteur (`image_credit`) et la
+  licence (`image_licence`) ; une image sans auteur porte `image_credit_missing: true`, et
+  `images_without_credit` compte ces images pour toute la clé.
+- Liens question ↔ fiche : `foretmap_get_species` (`qcm_codes`) et le filtre `species_id` de
+  `foretmap_list_qcm` lisent `resource_question_links` (liens **approuvés**), seule source depuis
+  le retrait des tables figées `quiz_question_species` et `quiz_question_tutorials` (migration
+  `retrait_t3_quiz_question_links`). Le filtre `species_id` s'applique aussi quand `dataset` est
+  omis (défaut `foretmap`). Les deux tables sortent de la liste des tables de contenu de
+  `foretmap_sql_select`, et le contrôle `orphan_links` de `foretmap_audit` ne les lit plus.
+
 ### Contrôles de `foretmap_audit`
 
 Fonctions pures dans `lib/mcp/audits/checks.js` (testées sans base, réutilisables par

@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Button } from '../../shared/ui/Button.jsx';
 import { PEDAGO_STEP_ACTION } from '../../shared/enums/pedagoStepActions.js';
 import { usePedagoSessionContext } from '../../contexts/PedagoSessionContext.jsx';
+import { usePublicSettings } from '../../contexts/PublicSettingsContext.jsx';
 import { TutorialPreviewModal } from '../TutorialPreviewModal.jsx';
 
 /** Variable posée sur `<html>` : hauteur du bandeau seule. */
@@ -64,7 +65,10 @@ function useBannerHeightVar(ref) {
  *
  * Étape « tutoriel » (`open_tutorial`) : le bandeau rend lui-même l'aperçu du tutoriel, lu
  * dans le contexte de séance (`sessionTutorial`), sans passer par le shell. Une fois fermé,
- * le bouton « Tutoriel » le rouvre.
+ * le bouton « Tutoriel » le rouvre. L'aperçu suit l'interrupteur de l'onglet Tutoriels
+ * (`ui.modules.tutorials_enabled`, lu dans les réglages publics) : onglet masqué, ni aperçu
+ * ni bouton, une phrase dit à l'élève qu'il peut poursuivre. `onForceLogout` (facultatif)
+ * est relayé à l'accusé de lecture : compte supprimé → déconnexion, comme dans l'onglet.
  */
 export function PedagoSessionBanner({
   sessionTitle,
@@ -75,6 +79,7 @@ export function PedagoSessionBanner({
   onNext,
   onExit,
   onShowMessage,
+  onForceLogout,
 }) {
   const ref = useRef(null);
   const [confirmExit, setConfirmExit] = useState(false);
@@ -84,6 +89,8 @@ export function PedagoSessionBanner({
   const sessionTutorial = sessionCtx?.sessionTutorial || null;
   const [tutorialHidden, setTutorialHidden] = useState(false);
   const tutorialId = sessionTutorial?.tutorial?.id ?? null;
+  // Hors fournisseur de réglages (tests isolés, visite) : onglet Tutoriels réputé ouvert.
+  const tutorialsEnabled = usePublicSettings()?.modules?.tutorials_enabled !== false;
 
   // Nouveau tutoriel (ou nouvelle étape) : l'aperçu se rouvre.
   useEffect(() => {
@@ -98,7 +105,8 @@ export function PedagoSessionBanner({
   if (!step) return null;
   const isMessage = step.action?.type === PEDAGO_STEP_ACTION.MESSAGE;
   const isTutorial = step.action?.type === PEDAGO_STEP_ACTION.OPEN_TUTORIAL;
-  const showTutorial = isTutorial && sessionTutorial?.tutorial && !tutorialHidden;
+  const showTutorial =
+    tutorialsEnabled && isTutorial && sessionTutorial?.tutorial && !tutorialHidden;
   const isLast = stepIndex >= stepCount - 1;
   const stepNumber = stepIndex + 1;
   const progressPct = stepCount > 0 ? Math.round((stepNumber / stepCount) * 100) : 0;
@@ -114,6 +122,7 @@ export function PedagoSessionBanner({
               ? {
                   isRead: !!sessionTutorial.isRead,
                   onAcknowledged: sessionCtx.markSessionTutorialRead,
+                  onForceLogout,
                 }
               : null
           }
@@ -150,6 +159,11 @@ export function PedagoSessionBanner({
           {!isMessage && step.body ? (
             <p className="pedago-session-banner__hint">{step.body}</p>
           ) : null}
+          {isTutorial && !tutorialsEnabled ? (
+            <p className="pedago-session-banner__hint" data-testid="pedago-session-tutorial-off">
+              Les tutoriels sont désactivés pour le moment : tu peux passer à l’étape suivante.
+            </p>
+          ) : null}
         </div>
         {confirmExit ? (
           <div
@@ -185,7 +199,7 @@ export function PedagoSessionBanner({
           </div>
         ) : (
           <div className="pedago-session-banner__actions">
-            {isTutorial && sessionTutorial?.tutorial && tutorialHidden ? (
+            {tutorialsEnabled && isTutorial && sessionTutorial?.tutorial && tutorialHidden ? (
               <Button
                 type="button"
                 variant="ghost"

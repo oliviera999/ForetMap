@@ -10,7 +10,9 @@ temps) :
 
 T1 et T2 sont livrés (PR #552 et #555, migrations 300 à 308). Les deux retraits sans aucune
 dépendance sont faits par la migration **302** (vue `v_visit_coverage`, valeur `both_changed` de
-`sync_conflicts.kind`). Tous les autres attendent : ce document dit **quand** passer au T3 et
+`sync_conflicts.kind`). Le retrait des tables `quiz_question_species` et
+`quiz_question_tutorials` est **fait** par la migration `retrait_t3_quiz_question_links`
+(22/11/2026, section plus bas). Tous les autres attendent : ce document dit **quand** passer au T3 et
 **ce que la PR du T3 doit contenir**. Aucune suppression n'est faite ici.
 
 ## Règles communes à tous les T3
@@ -63,49 +65,48 @@ Pour une table entière, la nommer à la place de `plants` (plusieurs tables pos
 
 ## Étape 3 — Candidats
 
-| Candidat                                                      | T1 et T2 livrés par           | Contrôles de passage (tous à 0)                                                   | Mesure sur le fixture anonymisé                     |
-| ------------------------------------------------------------- | ----------------------------- | --------------------------------------------------------------------------------- | --------------------------------------------------- |
-| `quiz_question_species`, `quiz_question_tutorials`            | migration 300                 | liens absents de `resource_question_links`                                        | 0 et 0                                              |
-| 6 colonnes photo de `plants`, `photo_credit`, `photo_licence` | migration 303                 | fiches lues en repli ; photos sans auteur ou licence (hors domaine public et CC0) | 0 ; **119** photos sans attribution                 |
-| `plants.second_name`                                          | migration 304                 | fiches dont les autres noms ne sont pas tous dans `plant_name_aliases`            | **1** (fiche 325)                                   |
-| `plants.remark_1`, `remark_2`, `remark_3`                     | migration 305                 | fiches dont `remarks` ne reprend pas les trois anciens champs                     | 0                                                   |
-| `zones.current_plant`, `map_markers.plant_name`               | migration 306                 | zones avec un ancien nom ; repères dont l'ancien nom n'est pas rattaché           | 0 ; 0                                               |
-| `zones.stage`                                                 | lot terrain (sans migration)  | zones `special` sans le drapeau `special`                                         | 0 (47 zones à valeur autre que `empty`, à archiver) |
-| `zone_history`                                                | lot terrain (sans migration)  | — (export de la table)                                                            | 1 ligne à exporter                                  |
-| `observation_logs`, `user_journal_observation_map`            | migration 307 (routes en 410) | anciennes observations non recopiées dans le carnet                               | 0                                                   |
-| `quiz_questions.difficulte_label`                             | lot quiz (sans migration)     | libellés qui ne se déduisent pas de la difficulté                                 | 0                                                   |
+| Candidat                                                        | T1 et T2 livrés par           | Contrôles de passage (tous à 0)                                                   | Mesure sur le fixture anonymisé                     |
+| --------------------------------------------------------------- | ----------------------------- | --------------------------------------------------------------------------------- | --------------------------------------------------- |
+| ~~`quiz_question_species`, `quiz_question_tutorials`~~ **fait** | migration 300                 | liens absents de `resource_question_links`                                        | 0 et 0 (prod, 22/11/2026)                           |
+| 6 colonnes photo de `plants`, `photo_credit`, `photo_licence`   | migration 303                 | fiches lues en repli ; photos sans auteur ou licence (hors domaine public et CC0) | 0 ; **119** photos sans attribution                 |
+| `plants.second_name`                                            | migration 304                 | fiches dont les autres noms ne sont pas tous dans `plant_name_aliases`            | **1** (fiche 325)                                   |
+| `plants.remark_1`, `remark_2`, `remark_3`                       | migration 305                 | fiches dont `remarks` ne reprend pas les trois anciens champs                     | 0                                                   |
+| `zones.current_plant`, `map_markers.plant_name`                 | migration 306                 | zones avec un ancien nom ; repères dont l'ancien nom n'est pas rattaché           | 0 ; 0                                               |
+| `zones.stage`                                                   | lot terrain (sans migration)  | zones `special` sans le drapeau `special`                                         | 0 (47 zones à valeur autre que `empty`, à archiver) |
+| `zone_history`                                                  | lot terrain (sans migration)  | — (export de la table)                                                            | 1 ligne à exporter                                  |
+| `observation_logs`, `user_journal_observation_map`              | migration 307 (routes en 410) | anciennes observations non recopiées dans le carnet                               | 0                                                   |
+| `quiz_questions.difficulte_label`                               | lot quiz (sans migration)     | libellés qui ne se déduisent pas de la difficulté                                 | 0                                                   |
 
 Les mesures viennent de la base de recette anonymisée migrée jusqu'à 305-307 (le 27/09/2026), pas
 de la production : seul `db:t3-status` lancé sur le serveur fait foi.
 
-### Liens question ↔ ressource (`quiz_question_species`, `quiz_question_tutorials`)
+### Liens question ↔ ressource (`quiz_question_species`, `quiz_question_tutorials`) — **fait**
 
-- **État** : plus **écrites** par aucun code, plus lues par l'application ;
-  `resource_question_links` est la seule source. Il reste des **lectures dans le connecteur
-  MCP** (relevé du 21/11/2026, liste ci-dessous) : tant qu'elles existent, le `DROP` casse ces
-  outils. Les rattachements d'une question se saisissent par l'écran des liens ou avec la
-  question (champs `plant_ids`, `glossary_codes`, `tutorial_ids` des routes d'administration
-  du quiz), toujours dans `resource_question_links`.
-- **Prérequis du T3 — lectures à retirer d'abord** (elles doivent lire
-  `resource_question_links`, liens approuvés) :
-  - `lib/mcp/audits/index.js` : chargeur `quizQuestionSpecies`, consommé par
-    `lib/mcp/audits/checks.js` ;
-  - `lib/mcp/tools/content.js` : la fiche d'une espèce (`UNION` avec la table figée) et le
-    filtre `species_id` de la liste des questions ForetMap — ce filtre ne lit **que** la table
-    figée : une question rattachée depuis la migration 300 n'y est pas trouvée ;
-  - `lib/mcp/sqlGuard.js` : les deux tables dans la liste des tables de contenu.
-- **T3** : `DROP TABLE IF EXISTS quiz_question_species; DROP TABLE IF EXISTS quiz_question_tutorials;`
-  Fichier préparé, hors de `migrations/` et sans numéro :
-  `docs/coordination/cpt-f4-drop-t3-quiz-question-links.md` (numéro attribué le jour
-  où il est versé : un numéro réservé à l'avance serait sauté par le runner).
-- **À retirer dans la même PR** : leur mention dans `SYNC_IGNORED_TABLES_RE` (`database.js`) —
-  **ligne partagée avec les tables `gl_*`**, à modifier avec l'accord du mainteneur G&L ; le
-  candidat `quiz_question_links` de `lib/schemaRetirements.js` (ses contrôles lisent les deux
-  tables) ; les contrôles d'alignement (`tests/content/pedago-tutorial-links.test.js`,
-  `tests/content/learning-links-single-source.test.js`) et les tests qui simulent une base
-  d'avant la bascule (`tests/learning-links-sheet.test.js`,
-  `tests/learning-links-migration-300.test.js`, `tests/learning-links-suggest.test.js`).
-- **Export** : `quiz_question_species quiz_question_tutorials` (étape 2).
+- **T3 fait** par la migration `retrait_t3_quiz_question_links` (flux T3 de l'orchestration de
+  fin novembre 2026, décision d'Oliv du 22/11/2026), dans la même PR que le retrait du code.
+  Le `DROP TABLE IF EXISTS` n'est joué que si la table existe **et** si son contrôle de passage
+  vaut 0 (ceinture) ; un second passage ne fait rien.
+- **Prérequis vérifiés le 22/11/2026**, en lecture seule sur la production : schéma 387 ;
+  contrôles de passage à 0 et 0 (771 et 247 lignes, toutes présentes dans
+  `resource_question_links`) ; aucune des quatre vues, aucune clé étrangère entrante, aucun
+  trigger ne cite ces tables. Rejeu de la migration : base fraîche et copie de la sauvegarde
+  anonymisée, deux fois chacune, sans erreur.
+- **Code retiré dans la même PR** : chargeur `quizQuestionSpecies` et son contrôle
+  (`lib/mcp/audits/`), fiche d'espèce et filtre `species_id` du connecteur
+  (`lib/mcp/tools/content.js`, désormais sur `resource_question_links`, liens approuvés), les
+  deux tables de `lib/mcp/sqlGuard.js`, le candidat `quiz_question_links` de
+  `lib/schemaRetirements.js` (il ne figure plus dans `db:t3-status`), la mention dans
+  `SYNC_IGNORED_TABLES_RE` (`database.js`, seule l'alternative de la table est retirée, la partie
+  `gl_*` est intacte), les contrôles d'alignement des tests de contenu. Les tests de rejeu des
+  migrations anciennes qui les lisent (`learning_links_single_source`,
+  `contenus_terrain_2026_11_20`) recréent les deux tables le temps du rejeu
+  (`tests/helpers/legacyQuizLinkTables.js`). Garde : `tests/retrait-t3-quiz-question-links.test.js`
+  échoue si un module applicatif nomme de nouveau ces tables.
+- **Avant le déploiement** (fusion par Oliv) : sauvegarde vérifiée (`db-backup-verify`, ou
+  `bash scripts/db-backup.sh --label avant-t3`) et export des deux tables seules (étape 2 :
+  `quiz_question_species quiz_question_tutorials`).
+- **Reste hors code** : `sql/quiz_foretmap_data.sql` (jeu de contenu déclaré, chargé par aucun
+  code) contient encore des `INSERT` dans les deux tables ; à ne plus rejouer tel quel.
 - **Retour arrière** : recréer les tables (DDL de la migration 128) et recharger l'export ; à
   défaut, les reconstruire depuis `resource_question_links` (requête dans la migration 300).
 

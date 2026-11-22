@@ -376,7 +376,6 @@ test('liaisons orphelines (FK logiques cassées)', () => {
         question_code: 'G1',
       },
     ],
-    quizQuestionSpecies: [],
     glChapterMarkers: [{ id: 7, qcm_question_code: 'G404' }],
     glSpeciesInteractions: [{ id: 5, from_species_id: 1, to_species_id: 2 }],
   });

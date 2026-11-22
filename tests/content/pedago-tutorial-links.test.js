@@ -98,19 +98,6 @@ test('les couples tutoriel ↔ question interdits ont disparu', async () => {
   }
 });
 
-test('tables legacy et unifiées restent alignées pour les tutoriels', async () => {
-  const orphanLegacy = await queryAll(
-    `SELECT qqt.question_code, qqt.tutorial_id
-       FROM quiz_question_tutorials qqt
-       LEFT JOIN resource_question_links rql
-         ON rql.resource_type = 'tutorial'
-        AND rql.resource_ref = CAST(qqt.tutorial_id AS CHAR) COLLATE utf8mb4_unicode_ci
-        AND rql.question_code = qqt.question_code
-      WHERE rql.id IS NULL`,
-  );
-  assert.deepStrictEqual(orphanLegacy, []);
-});
-
 test('aucun lien tutoriel vers une question inactive', async () => {
   const rows = await queryAll(
     `SELECT rql.question_code

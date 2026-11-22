@@ -74,6 +74,7 @@ export function AppPedagoOverlays({
           onNext={() => goPedagoSessionStep(1)}
           onExit={exitPedagoSession}
           onShowMessage={tab === 'sessions' ? null : () => navigateTab('sessions')}
+          onForceLogout={forceLogout}
         />
       )}
       {completedPedagoSession && (

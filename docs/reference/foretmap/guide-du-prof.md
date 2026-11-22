@@ -127,7 +127,9 @@ L'onglet **Séances** sert à dérouler une activité étape par étape avec la 
   par-dessus la séance. Choisissez-le dans la liste des tutoriels actifs. L'élève le lit,
   confirme sa lecture s'il est connecté, le ferme, puis passe à l'étape suivante avec le
   bandeau ; le bouton « Tutoriel » du bandeau le rouvre. Un tutoriel désactivé ne peut pas
-  être choisi, et il empêche de publier la séance tant qu'il y figure.
+  être choisi, et il empêche de publier la séance tant qu'il y figure. Si vous masquez
+  l'onglet Tutoriels (Paramètres, modules), l'étape n'ouvre plus le tutoriel : le bandeau dit
+  à l'élève qu'il peut passer à l'étape suivante.
 
 ### 4. Préparer les contenus
 
