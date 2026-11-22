@@ -7,6 +7,7 @@ import {
   VISIT_MAP_MASCOT_MOVE_MS,
   VISIT_MAP_MASCOT_HAPPY_MS,
   VISIT_MASCOT_DIALOG_MS,
+  VISIT_MASCOT_ARRIVAL_BEAT_MS,
 } from '../../src/hooks/useVisitMapMascotController.js';
 
 /** Harnais reproduisant l'usage réel (visit-views.jsx). */
@@ -97,20 +98,26 @@ describe('useVisitMapMascotController', () => {
     expect(apiRef.current.visitMapMascotRenderPct).not.toEqual(before);
   });
 
-  it('scheduleVisitDetailPanelOpen : sélection différée de la durée du déplacement', () => {
+  it('scheduleVisitDetailPanelOpen : arrivée après la marche, fiche après l’animation d’arrivée', () => {
     const setSelected = vi.fn();
     const setSelectedType = vi.fn();
+    const onArrive = vi.fn();
     const { apiRef } = renderHarness({ setSelected, setSelectedType });
     const fromPct = { ...apiRef.current.visitMapMascotPctRef.current };
     const item = { id: 5 };
 
     act(() => {
       apiRef.current.moveVisitMapMascotTo(80, 60);
-      apiRef.current.scheduleVisitDetailPanelOpen(item, 'marker', 80, 60, fromPct);
+      apiRef.current.scheduleVisitDetailPanelOpen(item, 'marker', 80, 60, fromPct, { onArrive });
     });
     expect(setSelected).not.toHaveBeenCalled();
+    expect(onArrive).not.toHaveBeenCalled();
 
     act(() => vi.advanceTimersByTime(VISIT_MAP_MASCOT_MOVE_MS));
+    expect(onArrive).toHaveBeenCalledTimes(1);
+    expect(setSelected).not.toHaveBeenCalled();
+
+    act(() => vi.advanceTimersByTime(VISIT_MASCOT_ARRIVAL_BEAT_MS));
     expect(setSelected).toHaveBeenCalledWith(item);
     expect(setSelectedType).toHaveBeenCalledWith('marker');
   });
@@ -128,15 +135,19 @@ describe('useVisitMapMascotController', () => {
     reduced.unmount();
 
     const cancelled = vi.fn();
+    const arrived = vi.fn();
     const normal = renderHarness({ setSelected: cancelled });
     const fromPct = { ...normal.apiRef.current.visitMapMascotPctRef.current };
     act(() => {
       normal.apiRef.current.moveVisitMapMascotTo(80, 60);
-      normal.apiRef.current.scheduleVisitDetailPanelOpen({ id: 2 }, 'zone', 80, 60, fromPct);
+      normal.apiRef.current.scheduleVisitDetailPanelOpen({ id: 2 }, 'zone', 80, 60, fromPct, {
+        onArrive: arrived,
+      });
       normal.apiRef.current.cancelScheduledDetailPanelOpen();
     });
-    act(() => vi.advanceTimersByTime(VISIT_MAP_MASCOT_MOVE_MS + 10));
+    act(() => vi.advanceTimersByTime(VISIT_MAP_MASCOT_MOVE_MS + VISIT_MASCOT_ARRIVAL_BEAT_MS + 10));
     expect(cancelled).not.toHaveBeenCalled();
+    expect(arrived).not.toHaveBeenCalled();
   });
 
   it('scheduleVisitDetailPanelOpen : zoom sur le lieu lancé dès le clic avec openSelectionInParallel', () => {
@@ -148,9 +159,36 @@ describe('useVisitMapMascotController', () => {
       apiRef.current.moveVisitMapMascotTo(80, 60);
       apiRef.current.scheduleVisitDetailPanelOpen(item, 'marker', 80, 60, fromPct);
     });
-    // La marche continue pendant que la carte zoome sur le lieu.
-    expect(openSelection).toHaveBeenCalledWith(item, 'marker');
+    // La marche continue pendant que la carte zoome sur la mascotte ; la fiche attendra son
+    // arrivée et son animation.
+    expect(openSelection).toHaveBeenCalledWith(item, 'marker', {
+      holdMs: VISIT_MAP_MASCOT_MOVE_MS + VISIT_MASCOT_ARRIVAL_BEAT_MS,
+    });
     expect(apiRef.current.visitMapMascotWalking).toBe(true);
+  });
+
+  it('scheduleVisitDetailPanelOpen : mouvement réduit en parallèle → aucune retenue', () => {
+    const openSelection = vi.fn();
+    const onArrive = vi.fn();
+    const { apiRef } = renderHarness({
+      openSelection,
+      openSelectionInParallel: true,
+      prefersReducedMotion: true,
+    });
+    act(() => {
+      apiRef.current.scheduleVisitDetailPanelOpen(
+        { id: 9 },
+        'zone',
+        80,
+        60,
+        { xp: 10, yp: 10 },
+        {
+          onArrive,
+        },
+      );
+    });
+    expect(onArrive).toHaveBeenCalledTimes(1);
+    expect(openSelection).toHaveBeenCalledWith({ id: 9 }, 'zone', { holdMs: 0 });
   });
 
   it('scheduleVisitDetailPanelOpen : sans parallélisme, openSelection attend la fin de la marche', () => {
@@ -163,6 +201,8 @@ describe('useVisitMapMascotController', () => {
     });
     expect(openSelection).not.toHaveBeenCalled();
     act(() => vi.advanceTimersByTime(VISIT_MAP_MASCOT_MOVE_MS));
+    expect(openSelection).not.toHaveBeenCalled();
+    act(() => vi.advanceTimersByTime(VISIT_MASCOT_ARRIVAL_BEAT_MS));
     expect(openSelection).toHaveBeenCalledTimes(1);
   });
 

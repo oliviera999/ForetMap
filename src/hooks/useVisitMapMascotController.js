@@ -37,6 +37,12 @@ export {
 const VISIT_MASCOT_MOVE_DIALOG_DIST_PCT = 4;
 
 /**
+ * Temps laissé à l'animation d'arrivée (lecture de carte, inspection) avant l'ouverture de la
+ * fiche : on voit la mascotte arriver et se mettre à lire, puis la fiche s'ouvre.
+ */
+export const VISIT_MASCOT_ARRIVAL_BEAT_MS = 600;
+
+/**
  * Contrôleur de la mascotte du plan de visite.
  *
  * Extraction iso-comportement de VisitViewImpl (visit-views.jsx) : regroupe les
@@ -62,8 +68,9 @@ const VISIT_MASCOT_MOVE_DIALOG_DIST_PCT = 4;
  *   ouverture du panneau à l'arrivée de la mascotte (ex. zoom sur le lieu puis sélection) ;
  *   à défaut, la sélection est posée directement.
  * @param {boolean} [params.openSelectionInParallel] lance `openSelection` dès le clic, en même
- *   temps que la marche (zoom sur le lieu actif) : la fiche est lisible ~0,6 s après le clic au
- *   lieu de ~1,1 s.
+ *   temps que la marche (zoom sur le lieu actif) : la caméra suit la mascotte pendant qu'elle
+ *   marche ; `openSelection` reçoit alors `{ holdMs }` pour n'ouvrir la fiche qu'après son
+ *   arrivée et son animation (`VISIT_MASCOT_ARRIVAL_BEAT_MS`).
  */
 export function useVisitMapMascotController({
   mapId,
@@ -93,6 +100,8 @@ export function useVisitMapMascotController({
   const visitMapMascotMoveTimeoutRef = useRef(null);
   /** Ouverture du panneau lieu après la fin du déplacement mascotte (mode vue). */
   const visitDetailPanelAfterMoveTimeoutRef = useRef(null);
+  /** Animation d'arrivée de la mascotte sur le lieu (lecture, inspection). */
+  const visitMascotArrivalTimeoutRef = useRef(null);
   const visitMapMascotHappyTimeoutRef = useRef(null);
   const visitMascotDialogTimeoutRef = useRef(null);
   const visitMascotMoveDialogCooldownUntilRef = useRef(0);
@@ -163,6 +172,10 @@ export function useVisitMapMascotController({
       clearTimeout(visitDetailPanelAfterMoveTimeoutRef.current);
       visitDetailPanelAfterMoveTimeoutRef.current = null;
     }
+    if (visitMascotArrivalTimeoutRef.current) {
+      clearTimeout(visitMascotArrivalTimeoutRef.current);
+      visitMascotArrivalTimeoutRef.current = null;
+    }
     if (visitMapMascotHappyTimeoutRef.current) {
       clearTimeout(visitMapMascotHappyTimeoutRef.current);
       visitMapMascotHappyTimeoutRef.current = null;
@@ -222,6 +235,7 @@ export function useVisitMapMascotController({
       if (visitMapMascotMoveTimeoutRef.current) clearTimeout(visitMapMascotMoveTimeoutRef.current);
       if (visitDetailPanelAfterMoveTimeoutRef.current)
         clearTimeout(visitDetailPanelAfterMoveTimeoutRef.current);
+      if (visitMascotArrivalTimeoutRef.current) clearTimeout(visitMascotArrivalTimeoutRef.current);
       if (visitMapMascotHappyTimeoutRef.current)
         clearTimeout(visitMapMascotHappyTimeoutRef.current);
       if (visitMascotDialogTimeoutRef.current) clearTimeout(visitMascotDialogTimeoutRef.current);
@@ -351,16 +365,25 @@ export function useVisitMapMascotController({
   );
 
   /**
-   * Ouvre le panneau lieu une fois le déplacement mascotte terminé (même durée que `VISIT_MAP_MASCOT_MOVE_MS`),
-   * ou tout de suite avec `openSelectionInParallel` : le zoom sur le lieu (`openSelection`)
-   * accompagne alors la marche au lieu de l'attendre.
+   * Arrivée de la mascotte sur un lieu, puis ouverture de sa fiche :
+   * 1. la mascotte marche (`VISIT_MAP_MASCOT_MOVE_MS`) ;
+   * 2. à l'arrivée, `onArrive` joue l'animation du lieu (lecture de carte, inspection) ;
+   * 3. la fiche s'ouvre `VISIT_MASCOT_ARRIVAL_BEAT_MS` plus tard.
+   * Avec `openSelectionInParallel`, `openSelection` est appelé dès le clic (la caméra zoome
+   * pendant la marche) et reçoit `{ holdMs }` : l'ouverture attend le zoom **et** l'arrivée.
+   * En mouvement réduit, tout est immédiat.
    * @param {{ xp: number, yp: number }} moveFromPct position mascotte **avant** `moveVisitMapMascotTo` (snapshot ref).
+   * @param {{ onArrive?: () => void }} [options]
    */
   const scheduleVisitDetailPanelOpen = useCallback(
-    (item, itemType, targetXp, targetYp, moveFromPct) => {
+    (item, itemType, targetXp, targetYp, moveFromPct, { onArrive = null } = {}) => {
       if (visitDetailPanelAfterMoveTimeoutRef.current) {
         clearTimeout(visitDetailPanelAfterMoveTimeoutRef.current);
         visitDetailPanelAfterMoveTimeoutRef.current = null;
+      }
+      if (visitMascotArrivalTimeoutRef.current) {
+        clearTimeout(visitMascotArrivalTimeoutRef.current);
+        visitMascotArrivalTimeoutRef.current = null;
       }
       const prev =
         moveFromPct && Number.isFinite(moveFromPct.xp) && Number.isFinite(moveFromPct.yp)
@@ -372,8 +395,24 @@ export function useVisitMapMascotController({
         visitMapFitRef.current?.height || 0,
       );
       const dist = Math.hypot(target.xp - prev.xp, target.yp - prev.yp);
+      const walkMs = dist < 0.08 || prefersReducedMotion ? 0 : VISIT_MAP_MASCOT_MOVE_MS;
+      const openDelayMs = prefersReducedMotion ? 0 : walkMs + VISIT_MASCOT_ARRIVAL_BEAT_MS;
       const parallel = openSelectionInParallel && typeof openSelection === 'function';
-      const delay = dist < 0.08 || prefersReducedMotion || parallel ? 0 : VISIT_MAP_MASCOT_MOVE_MS;
+
+      if (typeof onArrive === 'function') {
+        if (walkMs === 0) onArrive();
+        else {
+          visitMascotArrivalTimeoutRef.current = window.setTimeout(() => {
+            visitMascotArrivalTimeoutRef.current = null;
+            onArrive();
+          }, walkMs);
+        }
+      }
+
+      if (parallel) {
+        openSelection(item, itemType, { holdMs: openDelayMs });
+        return;
+      }
 
       const applySelection = () => {
         visitDetailPanelAfterMoveTimeoutRef.current = null;
@@ -385,10 +424,13 @@ export function useVisitMapMascotController({
         setSelectedType(itemType);
       };
 
-      if (delay === 0) {
+      if (openDelayMs === 0) {
         applySelection();
       } else {
-        visitDetailPanelAfterMoveTimeoutRef.current = window.setTimeout(applySelection, delay);
+        visitDetailPanelAfterMoveTimeoutRef.current = window.setTimeout(
+          applySelection,
+          openDelayMs,
+        );
       }
     },
     [
@@ -406,6 +448,10 @@ export function useVisitMapMascotController({
     if (visitDetailPanelAfterMoveTimeoutRef.current) {
       clearTimeout(visitDetailPanelAfterMoveTimeoutRef.current);
       visitDetailPanelAfterMoveTimeoutRef.current = null;
+    }
+    if (visitMascotArrivalTimeoutRef.current) {
+      clearTimeout(visitMascotArrivalTimeoutRef.current);
+      visitMascotArrivalTimeoutRef.current = null;
     }
   }, []);
 

@@ -39,10 +39,13 @@ familles.
   (détail dans « Carte et zones », _Quand la carte devient trop chargée_). Un repère n'est
   jamais caché sous une pastille chiffrée : trop proche d'un groupe, il le rejoint, et on le
   retrouve en zoomant. **Cliquer un lieu envoie la mascotte s'y rendre et, en même temps**, la
-  carte fait un **zoom bref et fluide** sur le lieu : sa fiche s'ouvre environ une demi-seconde
-  après le clic, sans attendre la fin de la marche (sans le zoom, la fiche s'ouvre quand la
-  mascotte arrive). Le lieu ouvert est **mis en évidence** (petite pastille sous son repère,
-  autres repères estompés).
+  carte fait un **zoom bref et fluide sur la mascotte** et le lieu : la mascotte reste entière à
+  l'écran pendant toute la séquence. Arrivée, elle **joue l'animation du lieu** (elle lit la
+  carte pour une zone, inspecte pour un repère, avec sa bulle), puis la fiche s'ouvre — un peu
+  plus d'une seconde après le clic. Si la fiche devait recouvrir presque toute la carte (visite
+  sans compte sur téléphone, où la carte commence à mi-écran), la page **défile d'abord** pour
+  remonter la carte au-dessus de la feuille. Le lieu ouvert est **mis en évidence** (petite
+  pastille sous son repère, autres repères estompés).
   Pendant le zoom, l'emoji du lieu s'envole et le reste du plan s'assombrit (« projecteur ») ;
   un lecteur d'écran reçoit une courte annonce pendant ce délai. Refermer la fiche la fait
   **disparaître en fondu**, ramène doucement le plan au **zoom et au centrage d'avant**, et
