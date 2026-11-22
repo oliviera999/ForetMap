@@ -474,8 +474,11 @@ catalogue animal.
 La fiche porte donc un **second encadré**, distinct et de couleur différente, avec deux champs :
 
 - **Risques identifiés** — rage, tétanos, salmonellose, leptospirose, toxoplasmose, vecteur de
-  maladie, allergie. Plusieurs cases peuvent être cochées : le chat cumule rage et
-  toxoplasmose.
+  maladie, allergie, ornithose (psittacose), mycobactériose, aspergillose, toxocarose, teigne,
+  échinococcose, fièvre Q. Plusieurs cases peuvent être cochées : le chat cumule rage et
+  toxoplasmose. Les sept derniers risques existaient déjà sur certaines fiches sans figurer
+  dans le formulaire : ils y sont désormais proposés, et enregistrer une fiche qui les porte
+  ne les efface plus.
 - **Circonstances et conduite à tenir** — comment le risque se présente et quoi faire. Ex. :
   « Toute morsure ou griffure impose une consultation médicale immédiate. »
 
