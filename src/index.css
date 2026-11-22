@@ -2007,7 +2007,7 @@
     .modal-overlay.modal-overlay--centered {
       align-items:center;
       justify-content:center;
-      padding:max(16px, var(--safe-top)) 16px max(16px, var(--safe-bottom));
+      padding:max(16px, var(--safe-top)) 16px calc(max(16px, var(--safe-bottom)) + var(--fm-session-banner-reserve, 0px));
     }
     @media (max-width: 720px) {
       .modal-overlay.modal-overlay--centered {
@@ -2020,8 +2020,8 @@
       width:100%;
       max-width:440px;
       margin:0;
-      max-height:min(90vh, calc(100vh - var(--safe-top) - var(--safe-bottom) - 32px));
-      max-height:min(90dvh, calc(100dvh - var(--safe-top) - var(--safe-bottom) - 32px));
+      max-height:min(90vh, calc(100vh - var(--safe-top) - var(--safe-bottom) - 32px - var(--fm-session-banner-reserve, 0px)));
+      max-height:min(90dvh, calc(100dvh - var(--safe-top) - var(--safe-bottom) - 32px - var(--fm-session-banner-reserve, 0px)));
       box-shadow:0 12px 40px rgba(15, 23, 42, 0.18);
       animation:popIn .28s var(--spring) forwards;
     }
@@ -2422,8 +2422,8 @@
       flex-direction:column;
       overflow:hidden;
       padding:12px 12px 0;
-      max-height:min(88vh, calc(100vh - var(--safe-top) - var(--safe-bottom) - 32px));
-      max-height:min(88dvh, calc(100dvh - var(--safe-top) - var(--safe-bottom) - 32px));
+      max-height:min(88vh, calc(100vh - var(--safe-top) - var(--safe-bottom) - 32px - var(--fm-session-banner-reserve, 0px)));
+      max-height:min(88dvh, calc(100dvh - var(--safe-top) - var(--safe-bottom) - 32px - var(--fm-session-banner-reserve, 0px)));
     }
     .log-modal.log-modal--with-close .log-modal__head {
       flex-shrink:0;
@@ -4678,7 +4678,9 @@
       z-index:var(--fm-z-modal-nested);
       align-items:center;
       justify-content:center;
-      padding:max(10px, var(--safe-top)) max(12px, env(safe-area-inset-right, 0px)) max(10px, var(--safe-bottom)) max(12px, env(safe-area-inset-left, 0px));
+      /* Fiche espèce et tutoriel ouverts par une étape de séance : réserver l'emprise du
+         bandeau (0 hors séance), sinon le pied de la fiche reste dessous. */
+      padding:max(10px, var(--safe-top)) max(12px, env(safe-area-inset-right, 0px)) calc(max(10px, var(--safe-bottom)) + var(--fm-session-banner-reserve, 0px)) max(12px, env(safe-area-inset-left, 0px));
       box-sizing:border-box;
     }
     /* Confirmation « lu » ouverte depuis le pied de l’aperçu, donc un cran au-dessus. */
@@ -4691,8 +4693,8 @@
       flex:0 1 auto;
       min-height:0;
       /* Hauteur explicite : chaîne flex → iframe en % fonctionne ; le document HTML du tuto défile à l’intérieur. */
-      height:min(92dvh, calc(100dvh - var(--safe-top) - var(--safe-bottom) - 24px));
-      max-height:min(92dvh, calc(100dvh - var(--safe-top) - var(--safe-bottom) - 24px));
+      height:min(92dvh, calc(100dvh - var(--safe-top) - var(--safe-bottom) - 24px - var(--fm-session-banner-reserve, 0px)));
+      max-height:min(92dvh, calc(100dvh - var(--safe-top) - var(--safe-bottom) - 24px - var(--fm-session-banner-reserve, 0px)));
       display:flex;
       flex-direction:column;
       overflow:hidden;
@@ -4779,12 +4781,12 @@
     }
     @media (max-width:768px) {
       .modal-overlay.modal-overlay--tuto-preview {
-        padding:max(8px, var(--safe-top)) max(8px, env(safe-area-inset-right, 0px)) max(8px, var(--safe-bottom)) max(8px, env(safe-area-inset-left, 0px));
+        padding:max(8px, var(--safe-top)) max(8px, env(safe-area-inset-right, 0px)) calc(max(8px, var(--safe-bottom)) + var(--fm-session-banner-reserve, 0px)) max(8px, env(safe-area-inset-left, 0px));
       }
       .modal-overlay.modal-overlay--tuto-preview > .log-modal.tuto-preview-modal {
         border-radius:12px;
-        height:min(94dvh, calc(100dvh - var(--safe-top) - var(--safe-bottom) - 16px));
-        max-height:min(94dvh, calc(100dvh - var(--safe-top) - var(--safe-bottom) - 16px));
+        height:min(94dvh, calc(100dvh - var(--safe-top) - var(--safe-bottom) - 16px - var(--fm-session-banner-reserve, 0px)));
+        max-height:min(94dvh, calc(100dvh - var(--safe-top) - var(--safe-bottom) - 16px - var(--fm-session-banner-reserve, 0px)));
       }
       .tuto-preview-modal__head {
         padding:10px 44px 8px 12px;
@@ -7329,6 +7331,10 @@
   .main, .teacher-main {
     overflow-wrap:break-word;
     padding:12px;
+    /* Le raccourci `padding` ci-dessus effaçait la réserve du bandeau de séance posée plus
+       haut : sur téléphone, le bas des listes, les commandes de la carte et les derniers
+       champs restaient sous le bandeau, même défilés à fond. 0 hors séance. */
+    padding-bottom:calc(12px + var(--fm-session-banner-reserve, 0px));
   }
   .section-title {
     font-size:clamp(1.05rem, 1rem + .45vw, 1.2rem);

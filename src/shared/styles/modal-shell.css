@@ -17,9 +17,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  /* `--fm-session-banner-h` : bandeau de séance ForetMap affiché (0 sinon, et côté G&L). */
+  /*
+   * `--fm-session-banner-reserve` : emprise du bandeau de séance ForetMap (hauteur + barre
+   * basse qu'il surmonte, 0 sans séance et côté G&L). La surcouche couvre la barre basse, pas
+   * le bandeau : réserver sa seule hauteur laissait le bas des fenêtres dessous.
+   */
   padding: max(16px, var(--safe-top)) 16px
-    calc(max(16px, var(--safe-bottom)) + var(--fm-session-banner-h, 0px));
+    calc(max(16px, var(--safe-bottom)) + var(--fm-session-banner-reserve, 0px));
   background: var(--fm-modal-overlay-bg);
   backdrop-filter: blur(4px);
   overflow-y: auto;
@@ -42,8 +46,18 @@
   padding: 20px 20px calc(20px + var(--safe-bottom));
   width: min(100%, calc(100vw - 32px));
   max-width: min(920px, calc(100vw - 32px));
-  max-height: min(90vh, calc(100vh - var(--safe-top) - var(--safe-bottom) - 32px));
-  max-height: min(90dvh, calc(100dvh - var(--safe-top) - var(--safe-bottom) - 32px));
+  max-height: min(
+    90vh,
+    calc(
+      100vh - var(--safe-top) - var(--safe-bottom) - 32px - var(--fm-session-banner-reserve, 0px)
+    )
+  );
+  max-height: min(
+    90dvh,
+    calc(
+      100dvh - var(--safe-top) - var(--safe-bottom) - 32px - var(--fm-session-banner-reserve, 0px)
+    )
+  );
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;

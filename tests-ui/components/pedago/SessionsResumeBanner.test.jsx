@@ -16,7 +16,7 @@ vi.mock('../../../src/services/api.js', () => ({
   AccountDeletedError: class AccountDeletedError extends Error {},
 }));
 
-const { PedagoSessionBanner, SESSION_BANNER_HEIGHT_VAR } =
+const { PedagoSessionBanner, SESSION_BANNER_HEIGHT_VAR, SESSION_BANNER_RESERVE_VAR } =
   await import('../../../src/components/pedago/PedagoSessionBanner.jsx');
 const { SessionsView, sessionPrimaryAction } =
   await import('../../../src/components/pedago/SessionsView.jsx');
@@ -69,6 +69,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   document.documentElement.style.removeProperty(SESSION_BANNER_HEIGHT_VAR);
+  document.documentElement.style.removeProperty(SESSION_BANNER_RESERVE_VAR);
 });
 
 function renderBanner(props = {}) {
@@ -155,6 +156,16 @@ describe('PedagoSessionBanner', () => {
     );
     unmount();
     expect(document.documentElement.style.getPropertyValue(SESSION_BANNER_HEIGHT_VAR)).toBe('');
+  });
+
+  it('publie son emprise (hauteur + barre basse) dans --fm-session-banner-reserve', () => {
+    // Les surfaces plein écran (fenêtres, feuille « Plus », plein écran carte) couvrent la
+    // barre basse mais pas le bandeau, posé au-dessus d'elle : elles réservent cette emprise.
+    const { unmount } = renderBanner();
+    const reserve = document.documentElement.style.getPropertyValue(SESSION_BANNER_RESERVE_VAR);
+    expect(reserve).toMatch(/^calc\(\d+px \+ var\(--fm-session-banner-lift, 0px\)\)$/);
+    unmount();
+    expect(document.documentElement.style.getPropertyValue(SESSION_BANNER_RESERVE_VAR)).toBe('');
   });
 });
 

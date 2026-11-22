@@ -49,7 +49,9 @@
 .fm-floating-dock {
   position: fixed;
   right: var(--fm-dock-inset);
-  bottom: calc(var(--fm-safe-bottom-nav) + var(--fm-dock-inset));
+  /* `--fm-session-banner-h` : le bandeau de séance ForetMap surmonte déjà la barre basse ;
+     les commandes s'empilent au-dessus de lui (0 sans séance, et côté G&L). */
+  bottom: calc(var(--fm-safe-bottom-nav) + var(--fm-dock-inset) + var(--fm-session-banner-h, 0px));
   z-index: var(--fm-z-dock);
   display: flex;
   flex-direction: column-reverse;

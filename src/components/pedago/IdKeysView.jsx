@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { resolveExternalImageUrl } from '../../shared/privacy/externalAssets.js';
 import { api } from '../../services/api';
 import { useData } from '../../contexts/DataContext.jsx';
@@ -395,7 +395,14 @@ function EditorPanel({ keyBundle, onReload, plants, keys }) {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
+  // Resynchronise le formulaire quand une autre version de la clé arrive (rechargement après
+  // enregistrement). Pas au montage : `useState` vient de l'initialiser, et l'effet de montage,
+  // exécuté après coup quand la clé est arrivée hors `act` (chargement asynchrone), écrasait
+  // une première saisie déjà faite (case « Plusieurs chemins » décochée puis recochée).
+  const metaSourceRef = useRef(keyBundle);
   useEffect(() => {
+    if (metaSourceRef.current === keyBundle) return;
+    metaSourceRef.current = keyBundle;
     setMeta(metaFromBundle(keyBundle));
   }, [keyBundle]);
 
