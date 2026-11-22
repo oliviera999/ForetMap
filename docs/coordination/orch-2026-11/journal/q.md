@@ -163,6 +163,14 @@ Côté client (deux lignes, aucune réponse HTTP ni écran changés) : `src/serv
   fusion prouve que les colonnes suivent). `routes/quiz.js` inchangé (la requête est déjà
   transmise au service).
 
+- **Lot C fait** : `lib/quizQuestionStats.js` (fonctions pures `computeChoiceSignals`,
+  `computeDiscrimination`, `computePositionEffect`, `median`, `withItemSignals` ; lectures
+  `loadFmItemAnalysis` — 5 requêtes groupées quel que soit le nombre d'élèves — et
+  `loadFmPositionEffect` ; `decorate` / `listGlQuestionStats` inchangés),
+  `lib/pedago/quizService.js` (`getQuestionSuccessStats` enrichi). Test
+  `tests/quiz-question-stats-choices.test.js` (18 cas). Contrôle sur la copie anonymisée :
+  139 questions en 52 ms.
+
 ## À faire par l'intégration
 
 - `sql/schema_foretmap.sql` : ajouter les cinq colonnes et l'index de la migration
@@ -173,4 +181,4 @@ Côté client (deux lignes, aucune réponse HTTP ni écran changés) : `src/serv
 
 ## État
 
-- Prochaine action : lot C (statistiques d'items), code amorcé dans l'arbre.
+- Prochaine action : lot D (MCP `foretmap_quiz stats`, écran du professeur).

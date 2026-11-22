@@ -18,3 +18,14 @@
   si la question a changé entre présentation et réponse. Le client annonce le tirage et la
   séance ; réponse HTTP et écran élève inchangés. Rejeu (409) et verrou (403) n'écrivent
   toujours rien. Tests `quiz-question-fingerprint`, `quiz-answer-choice`.
+- **Lot C — statistiques d'items** : `GET /api/quiz/admin/questions/stats` ajoute, par question,
+  la **version courante** (`version` : empreinte, tentatives, `choix_connus`, réussite, tentatives
+  des versions antérieures et sans version), la **répartition des choix** (effectif, pourcentage,
+  bonne réponse marquée), les **distracteurs attracteurs** (choisis plus que la bonne réponse) et
+  **morts** (< 5 % à partir de 20 réponses), l'**indice de discrimination** (27 % les plus forts
+  contre 27 % les plus faibles, force = réussite sur les autres questions, à partir de 30
+  répondants, négatif signalé), le **temps médian** (global et bonnes réponses) et `signaux` ;
+  le drapeau `suspect` intègre attracteur et discrimination négative. Agrégat global
+  `effet_position` (taux de choix par position affichée) et `seuils`. SQL groupé, constantes
+  nommées dans `lib/quizQuestionStats.js` (partie G&L inchangée). Test
+  `quiz-question-stats-choices`.
