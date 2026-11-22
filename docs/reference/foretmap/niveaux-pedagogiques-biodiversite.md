@@ -114,20 +114,38 @@ fiche, un tutoriel ou un terme.
 | **Carte** (repli)                     | Professeur / admin sur une carte                          | Ancien réglage, lu seulement si l’élève n’a ni séance ni classe avec un niveau.                      |
 | **Groupe — ancien affichage** (repli) | Professeur / admin sur un groupe                          | Ancien réglage « Collège / Lycée / Université », même rôle de repli ; il disparaîtra.                |
 
+**Un seul affichage pour tout le collège** (décisions du 21 novembre 2026) : de la 6ᵉ à la 3ᵉ,
+et dans la Visite sans compte, la fiche, la Visite, le catalogue et le réseau sont **les
+mêmes**. Le **palier** — cycle 3 ou cycle 4, tiré du niveau de la classe (ou de la séance) —
+ne règle que trois choses :
+
+| Ce que règle le palier                        | Cycle 3 (6ᵉ)      | Cycle 4 (5ᵉ à 3ᵉ)                 | Lycée    |
+| --------------------------------------------- | ----------------- | --------------------------------- | -------- |
+| Vocabulaire lié et listé d’emblée (glossaire) | termes « base »   | « base » et « approfondissement » | tous     |
+| Questions du quiz                             | celles du cycle 3 | jusqu’au cycle 4                  | inchangé |
+| Réseau : symbiose et compétition              | masquées          | montrées                          | montrées |
+
+Un collégien **sans classe connue** (Visite sans compte, élève sans niveau de classe) suit les
+règles du **cycle 3**. Une carte réglée « Lycée » ne fait jamais basculer un élève dont la
+classe est au collège : la classe passe avant la carte.
+
 ### Ordre quand plusieurs réglages coexistent
 
 Du plus fort au plus faible — **le plus précis l’emporte** :
 
 1. **Visite invitée** → toujours **Collège** — non contournable.
-2. **Aperçu professeur** « Affichage biodiversité — Collège / Lycée / Université » (session
-   uniquement) : pour vérifier ce que voit un élève, sans changer les réglages du site.
+2. **Aperçu professeur** « Affichage biodiversité — 6ᵉ (cycle 3) / 3ᵉ (cycle 4) / Lycée »
+   (session uniquement) : pour vérifier ce que voit un élève, sans changer les réglages du site.
    Voir [Le menu Aperçu](#le-menu-aperçu) ci-dessous.
 3. **Séance en cours** : la séance **impose son niveau**, y compris pour les questions de
    validation. Un élève de 6ᵉ dans une séance « Lycée » voit l’affichage Lycée et reçoit les
    questions de lycée ; un élève de seconde dans une séance « Collège » est traité en
    collège le temps de la séance. À l’intérieur de la plage de la séance, la classe précise :
-   dans une séance « tout le collège », une 6ᵉ reste au cycle 3. Dès que la séance est
-   terminée ou quittée, le niveau de la classe reprend la main.
+   dans une séance « tout le collège », une 6ᵉ reste au cycle 3. Le réglage **Quiz · niveau
+   de notion** de la séance fixe aussi le palier : « Cycle 3 » ou « Cycle 4 » s’applique à
+   toute la classe pendant la séance ; « Tout le collège » (choix par défaut d’une séance
+   Collège) laisse la classe de chaque élève décider. Dès que la séance est terminée ou
+   quittée, le niveau de la classe reprend la main.
 4. **Niveau de la classe** : celui du groupe de l’élève, ou hérité de son groupe parent
    (réglé une fois sur l’unité « Niveau 6ᵉ », il vaut pour toutes ses classes). Un élève
    membre de plusieurs classes prend le **plus haut** niveau : on ne lui retire pas ce
@@ -168,12 +186,15 @@ tout ce qui permet à un professeur de voir l’application « avec les yeux d�
 
 - **Interface** : _Ma vue habituelle_, _Vue élève_ (navigation en bas, écrans élève) et,
   pour un administrateur, _Vue professeur_ (interface sans les boutons d’administration) ;
-- **Affichage biodiversité** : _Complet (vue gestion)_, _Collège_, _Lycée_ ou
-  _Université_. En vue élève, l’option automatique s’appelle _Automatique (carte et
-  groupe)_ : le niveau suit alors les mêmes règles que pour un vrai élève.
+- **Affichage biodiversité** : _Complet (vue gestion)_, _Collège · 6ᵉ (cycle 3)_,
+  _Collège · 3ᵉ (cycle 4)_ ou _Lycée_. Les deux entrées du collège ont le même affichage ;
+  elles ne diffèrent que par le vocabulaire, les questions et la symbiose / compétition du
+  réseau. En vue élève, l’option automatique s’appelle _Automatique (carte et groupe)_ : le
+  niveau suit alors les mêmes règles que pour un vrai élève. La vue _Complet_ montre tout ce
+  que voit l’université.
 
-Les deux se combinent : « Vue élève · Affichage Collège » montre exactement ce que voit
-un collégien. Dès qu’un aperçu est actif, le bouton se colore et **un seul bandeau**
+Les deux se combinent : « Vue élève · Affichage Collège · 6ᵉ (cycle 3) » montre exactement
+ce que voit un élève de 6ᵉ. Dès qu’un aperçu est actif, le bouton se colore et **un seul bandeau**
 rappelle ce qui est simulé, avec un bouton **Quitter l’aperçu** qui remet tout à zéro.
 Les droits réels du professeur ne changent jamais ; le choix de niveau est oublié à la
 fermeture du navigateur.
@@ -243,22 +264,30 @@ Voir aussi [Visite et mascottes](visite-et-mascottes.md).
 Légende : **O** = visible · **R** = replié / discret · **—** = masqué · **S** = seulement
 dans une séance guidée (onglet **Séances**) qui ouvre cet outil.
 
-| Élément                                       | Collège            | Lycée    | Université |
-| --------------------------------------------- | ------------------ | -------- | ---------- |
-| Fiche : nom, danger, risque sanitaire         | O                  | O        | O          |
-| Nom accepté, lien GBIF, classification latine | — ou R             | R        | O          |
-| Notes « Sur ce site »                         | O                  | O        | O          |
-| Fil long de groupes emboîtés                  | — / S              | O        | O          |
-| Activité groupes emboîtés (libre)             | — / S              | O        | O          |
-| Réseau : types scolaires                      | O                  | O        | O          |
-| Réseau : types avancés + preuve du lien       | —                  | O        | O          |
-| Clé : lecteur                                 | O                  | O        | O          |
-| Clé : éditeur                                 | — (prof seulement) | — (prof) | — (prof)   |
-| Quiz / glossaire : cycles 3–4                 | O                  | O        | O          |
-| Quiz / glossaire : lycée / ES                 | — ou en bas        | O        | O          |
-| Individu : label + mesures                    | — / S              | O        | O          |
-| Individu : biomasse / CO₂                     | —                  | R        | O          |
-| Validation des dangers, admin clés / clades   | — (prof)           | — (prof) | — (prof)   |
+| Élément                                       | Collège (6ᵉ à 3ᵉ, Visite) | Lycée    | Université |
+| --------------------------------------------- | ------------------------- | -------- | ---------- |
+| Fiche : nom, danger, risque sanitaire, sosies | O                         | O        | O          |
+| Fiche : étiquette simple sous le nom          | O                         | —        | —          |
+| Fiche : description collège (si elle existe)  | O                         | —        | —          |
+| Fiche : groupe (à la place de la Taxonomie)   | O                         | —        | —          |
+| Fiche : ligne Taxonomie, nom scientifique     | —                         | O        | O          |
+| Nom accepté, lien GBIF, classification latine | —                         | R        | O          |
+| Fiche : sections Identité et Écologie         | —                         | R        | R          |
+| Fiche : jauges pH / température, Nutrition    | —                         | O        | O          |
+| Statut UICN                                   | en mots                   | sigle    | sigle      |
+| Notes « Sur ce site »                         | O                         | O        | O          |
+| Fil des groupes et onglet Groupes             | O (arbre réduit)          | O        | O          |
+| Visite : vignettes avec nom scientifique      | — (étiquette simple)      | O        | O          |
+| Réseau : types scolaires                      | O                         | O        | O          |
+| Réseau : symbiose et compétition              | cycle 4 seulement         | O        | O          |
+| Réseau : types avancés + preuve du lien       | —                         | O        | O          |
+| Clé : lecteur                                 | O                         | O        | O          |
+| Clé : éditeur                                 | — (prof seulement)        | — (prof) | — (prof)   |
+| Quiz / glossaire : cycles 3–4                 | O                         | O        | O          |
+| Quiz / glossaire : lycée / ES                 | — ou en bas               | O        | O          |
+| Individu : label + mesures                    | — / S                     | O        | O          |
+| Individu : biomasse / CO₂                     | —                         | R        | O          |
+| Validation des dangers, admin clés / clades   | — (prof)                  | — (prof) | — (prof)   |
 
 ## Séances types (guide + lanceur app)
 

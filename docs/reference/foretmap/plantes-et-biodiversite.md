@@ -63,6 +63,25 @@ des zones et repères où l'espèce se trouve, ses interactions du réseau troph
 mange qui, qui aide qui »), les termes du glossaire et les questions de quiz qui s'y
 rapportent (celles approuvées dans l'écran « Rattacher des questions aux contenus »).
 
+**Au collège, la fiche est allégée** (de la 6ᵉ à la 3ᵉ et dans la Visite sans compte ;
+décisions du 21 novembre 2026) :
+
+- sous le nom, une **étiquette simple** (« Arbre fruitier », « Oiseau marin »…) quand la
+  fiche en a une ;
+- la **description collège**, écrite pour des collégiens, remplace la description générale
+  quand elle existe ;
+- la ligne **Taxonomie** est remplacée par le **groupe** de la fiche (« Arbres et arbustes »,
+  « Oiseaux »…) ; le nom scientifique et la classification latine ne s'affichent pas ;
+- les sections repliables **Identité** et **Écologie et usages**, les jauges de pH et de
+  température et la pastille **Nutrition** sont masquées ; la section **Ressources** (sources,
+  auteurs et licences des photos) reste ;
+- le **statut UICN** s'écrit en mots (« Liste rouge : vulnérable ») plutôt qu'en sigle ;
+- le **danger**, le **risque sanitaire**, la **détermination** et les **sosies** restent
+  identiques, en tête de fiche.
+
+Au lycée et à l'université, la fiche est inchangée. Le professeur vérifie le rendu par le
+menu **Aperçu** (voir « Niveaux pédagogiques biodiversité »).
+
 ### « Présente sur ce site » : une seule définition
 
 Une espèce est **présente sur une carte** dès qu'une de ces trois choses est vraie :

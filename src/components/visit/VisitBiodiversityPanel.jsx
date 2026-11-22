@@ -3,14 +3,16 @@ import { FallbackImage } from '../../shared/components/FallbackImage.jsx';
 import { findFirstBiodivHeroPhotoCandidate } from '../../utils/biodivPlantForm.js';
 import { normalizedPlantValue } from '../../utils/plantFormValues.js';
 import { IconBiodiv } from '../../shared/icons.jsx';
+import { useBiodivPedago } from '../../contexts/BiodivPedagoContext.jsx';
+import './visitSpeciesTileCollege.css';
 
 /**
  * Biodiversité d'un lieu de visite : vignettes d'espèces ouvrant la fiche du catalogue.
  *
  * Remplace le volet replié « Biodiversité » du panneau détail (une simple liste de noms
  * dans un `<details>`) : les espèces du lieu sont la raison d'être d'une visite de forêt
- * comestible, elles sont donc visibles d'emblée, avec photo, nom scientifique et un extrait
- * de fiche. La fiche complète s'ouvre dans la modale d'aperçu déjà utilisée partout
+ * comestible, elles sont donc visibles d'emblée, avec photo, nom scientifique (étiquette simple
+ * au collège) et un extrait de fiche. La fiche complète s'ouvre dans la modale d'aperçu déjà utilisée partout
  * ailleurs (carte, glossaire, quiz, réseau trophique).
  *
  * Comme la vignette du catalogue (`PlantCatalogTile`), ce composant **ne déclenche aucun
@@ -20,14 +22,29 @@ import { IconBiodiv } from '../../shared/icons.jsx';
  * une requête externe par vignette, réservée à la fiche ouverte.
  */
 
-/** Extrait de fiche affiché sous le nom : rôle écologique, à défaut la description. */
-function speciesTileExtract(plant) {
-  return (
-    normalizedPlantValue(plant?.ecosystem_role) || normalizedPlantValue(plant?.description) || null
-  );
+/**
+ * Extrait de fiche affiché sous le nom.
+ *
+ * - Profil collège (brique `description_college` montrée) : description collège, sinon
+ *   description, sinon rôle écologique ;
+ * - au-delà : rôle écologique, à défaut la description (comportement d'avant le chantier).
+ */
+export function speciesTileExtract(plant, { preferCollegeDescription = false } = {}) {
+  const role = normalizedPlantValue(plant?.ecosystem_role);
+  const description = normalizedPlantValue(plant?.description);
+  if (preferCollegeDescription) {
+    return normalizedPlantValue(plant?.description_college) || description || role || null;
+  }
+  return role || description || null;
 }
 
 function VisitSpeciesTile({ name, emoji, plant, onOpenPlant }) {
+  // Table de visibilité (Visite sans compte = profil collège) : nom scientifique, étiquette
+  // simple et source de l'extrait.
+  const { canShow } = useBiodivPedago();
+  const showScientific = canShow('visit_tile_scientific_name');
+  const showUsageLabel = canShow('usage_label');
+  const preferCollegeDescription = canShow('description_college');
   const photoCandidate = useMemo(
     () => (plant ? findFirstBiodivHeroPhotoCandidate(plant) : null),
     [plant],
@@ -42,8 +59,9 @@ function VisitSpeciesTile({ name, emoji, plant, onOpenPlant }) {
   const candidateSrc = photoCandidate?.kind === 'direct' ? photoCandidate.src : null;
   const photoSrc = candidateSrc && candidateSrc !== failedPhotoSrc ? candidateSrc : null;
   const displayEmoji = plant?.emoji || emoji || '🌱';
-  const scientific = normalizedPlantValue(plant?.scientific_name);
-  const extract = speciesTileExtract(plant);
+  const scientific = showScientific ? normalizedPlantValue(plant?.scientific_name) : '';
+  const usageLabel = showUsageLabel ? normalizedPlantValue(plant?.usage_label) : '';
+  const extract = speciesTileExtract(plant, { preferCollegeDescription });
   const canOpen = !!plant && typeof onOpenPlant === 'function';
 
   const inner = (
@@ -68,6 +86,7 @@ function VisitSpeciesTile({ name, emoji, plant, onOpenPlant }) {
           ) : null}
           {name}
         </span>
+        {usageLabel ? <span className="visit-biodiv-tile__usage">{usageLabel}</span> : null}
         {scientific ? <span className="visit-biodiv-tile__scientific">{scientific}</span> : null}
         {extract ? <span className="visit-biodiv-tile__desc">{extract}</span> : null}
       </span>

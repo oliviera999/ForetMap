@@ -66,13 +66,13 @@ beforeEach(() => {
 afterEach(() => vi.restoreAllMocks());
 
 describe('PlantBiodiversityCatalogPreviewCard', () => {
-  test('rend nom, repli nom scientifique, repli description et chip groupe', () => {
+  test('rend nom, repli nom scientifique, repli description, sans chip `group_2`', () => {
     render(<PlantBiodiversityCatalogPreviewCard plant={PLANT} />);
     expect(screen.getByText('Tomate')).toBeInTheDocument();
     expect(screen.getByText('Nom scientifique non renseigne')).toBeInTheDocument();
     expect(screen.getByText('Pas de description')).toBeInTheDocument();
-    // « Angiosperme » apparaît en chip d'en-tête et dans la section identité des métadonnées
-    expect(screen.getAllByText('Angiosperme').length).toBeGreaterThanOrEqual(1);
+    // La colonne `group_2` a disparu en migration 129 : plus de chip d'en-tête.
+    expect(screen.queryByText('Angiosperme')).not.toBeInTheDocument();
     expect(screen.getByTestId('catalog-remarks')).toBeInTheDocument();
   });
 
