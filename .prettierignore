@@ -25,3 +25,5 @@ reports/
 docs/prompts/GL_ECRANS_DE_SEANCE_PROMPT.md
 # Instantané de contenu du chantier collège (JSON exporté tel quel, supprimé par SI avant main).
 docs/coordination/college-2026-11/snapshot/
+# Sources du chantier « fin novembre 2026 », versées mot pour mot depuis le projet Claude.
+docs/prompts/fin-novembre-2026/
