@@ -144,8 +144,14 @@ export const QUIZ_ANSWER_LETTER_ENUM = defineEnum('QUIZ_ANSWER_LETTER_ENUM', {
  * `seance` sont annoncés par le client (`?origine=tirage`, `?pedagoSession=`), `seance`
  * n'est retenu que si le serveur confirme la séance active ; `validation` vient du jeton.
  */
+export const QUIZ_ATTEMPT_CONTEXTE = Object.freeze({
+  LIBRE: 'libre',
+  TIRAGE: 'tirage',
+  VALIDATION: 'validation',
+  SEANCE: 'seance',
+});
 export const QUIZ_ATTEMPT_CONTEXTE_ENUM = defineEnum('QUIZ_ATTEMPT_CONTEXTE_ENUM', {
-  values: ['libre', 'tirage', 'validation', 'seance'],
+  values: Object.values(QUIZ_ATTEMPT_CONTEXTE),
   labels: {
     libre: 'Quiz libre',
     tirage: 'Tirage au hasard',

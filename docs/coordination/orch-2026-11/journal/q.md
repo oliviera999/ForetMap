@@ -201,6 +201,43 @@ Côté client (deux lignes, aucune réponse HTTP ni écran changés) : `src/serv
 - `src/shared/enums/pedagoEnums.js` : surveiller un conflit avec un autre flux qui y ajouterait
   une définition (ajout en fin de bloc quiz).
 
-## État
+## Vérifications de fin de flux
 
-- Prochaine action : vérifications de fin de flux (lint, format, `npm test`, `test:ui`, suites G&L).
+- `npm run lint` : 0 erreur (318 avertissements préexistants) ; `npm run format:check` : OK ;
+  `sync:shared-cores:check` : OK.
+- `npm run test:ui` : 862 fichiers, 6 728 tests, 0 échec.
+- `npm test` : 6 953 tests, 2 échecs → (1) `task-taxonomy-literals` : littéral `'seance'`
+  (nouveau contexte de tentative) — corrigé : constante `QUIZ_ATTEMPT_CONTEXTE` dans
+  `pedagoEnums.js`, utilisée par `quizService.js`, et `'seance'` ajouté aux homonymes admis de
+  `pedagoEnums.js` dans `tests/task-taxonomy-literals.test.js` (hors périmètre strict : test de
+  garde générique, mécanisme prévu pour ce cas) ; (2) `inline-style-guard` : préexistant sur
+  `main` (`visit-views.jsx`), voir « À faire par l'intégration ».
+- Suites G&L après : 1 949 tests, 0 échec (avant : 1 952 ; les 3 manquants sont les deux
+  suites `ALLOWED_*` de `gl-admin-helpers.test.js`, dont la sortie est coupée par
+  `--test-force-exit` dans le lot ; le fichier seul : 21/21).
+
+## FLUX TERMINÉ
+
+- **Fichiers modifiés** : `lib/qcmChoices.js`, `lib/pedago/quizService.js`,
+  `lib/pedago/quizRepository.js`, `lib/quizQuestionStats.js`, `lib/quizQuestionFingerprint.js`
+  (nouveau), `lib/mcp/domains/quiz.js`, `lib/mcp/tools/domains/quiz.js`,
+  `src/shared/enums/pedagoEnums.js` (+ miroir), `src/services/quizApi.js`,
+  `src/hooks/useQuizSession.js`, `src/shared/qcm/QuestionEditorPanel.jsx`,
+  `src/components/pedago/admin/{FMQuizQuestionEditorPanel.jsx, FMQuizChoiceStats.jsx,
+fmQuizChoiceStatsModel.js, fmQuizChoiceStats.css}`, `src/shared/privacy/privacyNoticeContent.js`,
+  `docs/API.md`, `docs/MCP.md`, `docs/MCP_REGISTRE_TRAITEMENT.md`,
+  `docs/reference/foretmap/pedagogie-quiz-glossaire-reseau.md`, `changelog.d/q.md`.
+- **Migration** : `quiz_attempt_choice` (fichier de travail `388_quiz_attempt_choice.sql`).
+- **Tests ajoutés** : `quiz-migration-attempt-choice`, `quiz-question-fingerprint`,
+  `quiz-answer-choice`, `quiz-question-stats-choices`, `mcp-domain-quiz`,
+  `tests-ui/FMQuizChoiceStats` ; mis à jour : `mcp-domain-pedago`, `privacy-notice`,
+  `task-taxonomy-literals`, `tests-ui/services/quizApi`, `tests-ui/components/pedago/QuizView`.
+- **Écarts au prompt** : empreinte de version en HMAC dans le jeton (`qfp`), pas en clair
+  (validé) ; revendication `pat` (ms) en plus de `iat` ; `tirage` / `seance` annoncés par le
+  client (`?origine=tirage`, `?pedagoSession=`) ; `accountMerge.js` et `lib/retention/`
+  inchangés (prouvé par test / justifié) ; tests MCP du champ `distractors` dans un nouveau
+  `mcp-domain-quiz.test.js`.
+- **Points pour Oliv** : les statistiques de choix ne démarrent qu'avec les réponses données
+  après le déploiement (les 268 tentatives existantes n'ont pas de lettre) ; la discrimination
+  exige 30 élèves distincts par question, donc elle restera longtemps « pas encore calculable »
+  sur la plupart des questions.
