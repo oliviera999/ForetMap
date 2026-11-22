@@ -475,3 +475,37 @@ describe('TaskTileCard — React.memo (pas de re-rendu quand l’état parent no
     expect(screen.queryByTestId('task-project-ribbon')).toBeNull();
   });
 });
+
+describe('TaskTileCard — référents élèves (élèves référents automatiques)', () => {
+  const referents = [
+    { id: 't1', user_type: 'teacher', label: 'Mme Adulte', role_slug: 'prof', source: 'manual' },
+    { id: 's1', user_type: 'student', label: 'Élève Exemple', role_slug: null, source: 'auto' },
+  ];
+
+  test('un élève référent est présenté comme tel (pastille « élève »)', () => {
+    const base = makeProps();
+    render(<TaskTileCard {...base} t={{ ...base.t, referents_linked: referents }} />);
+    expect(screen.getByText('Élève Exemple')).toBeTruthy();
+    const pills = document.querySelectorAll('.task-referent-auto-pill');
+    expect(pills).toHaveLength(1);
+    expect(pills[0].textContent).toBe('élève');
+  });
+
+  test('référents élèves masqués par le serveur : nombre seul, jamais de nom', () => {
+    const base = makeProps({ isTeacher: false });
+    render(
+      <TaskTileCard
+        {...base}
+        t={{ ...base.t, referents_linked: [referents[0]], referents_hidden_count: 2 }}
+      />,
+    );
+    expect(screen.getByText(/et 2 autres élèves référents/)).toBeTruthy();
+    expect(screen.queryByText('Élève Exemple')).toBeNull();
+  });
+
+  test('seulement des référents masqués : le bloc reste affiché avec le nombre', () => {
+    const base = makeProps({ isTeacher: false });
+    render(<TaskTileCard {...base} t={{ ...base.t, referents_hidden_count: 1 }} />);
+    expect(screen.getByText(/1 élève référent/)).toBeTruthy();
+  });
+});

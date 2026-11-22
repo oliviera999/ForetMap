@@ -95,6 +95,7 @@ const {
   sanitizeTaskForViewer,
   redactTaskForAnonymous,
   redactProposerForViewer,
+  filterReferentsForViewer,
   createViewerContext,
   getAssigneesVisibilityMode,
 } = require('../lib/tasks/assignmentVisibility');
@@ -360,6 +361,8 @@ router.get(
     const assigneesMode = await getAssigneesVisibilityMode();
     for (const row of enriched) {
       await redactProposerForViewer(auth, row, { ctx: viewerCtx, mode: assigneesMode });
+      // Référents élèves : même règle que les inscrits (élèves référents automatiques, lot 6).
+      await filterReferentsForViewer(auth, row, { ctx: viewerCtx, mode: assigneesMode });
     }
     res.json(enriched);
   }),

@@ -215,9 +215,10 @@ test('dailyJobs : liste nommée et lancement à la demande tracé', async () => 
       'notifications_purge',
       'task_deadline_reminders',
       'rewards_evaluate',
+      'student_referents_sync',
     ],
   );
-  assert.equal(listDailyJobs().length, 5);
+  assert.equal(listDailyJobs().length, 6);
   const before = await queryOne(
     "SELECT COALESCE(MAX(id), 0) AS id FROM scheduled_job_runs WHERE job = 'notifications_purge'",
   );

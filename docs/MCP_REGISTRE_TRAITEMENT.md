@@ -132,6 +132,14 @@ réponses**, pas le canal.
 Aucune donnée sensible (art. 9), aucun mot de passe en clair, aucune adresse IP en clair
 n'est transmise à Claude (les journaux techniques ne portent que des pseudonymes, § 2).
 
+Élèves référents automatiques (21/11/2026, migration `task_referents_auto`) : l'action
+`foretmap_tasks student_referents` et le script `student_referents_sync` lisent, par identifiant
+de compte (jamais le nom), le nombre d'occurrences validées de chaque série récurrente et les
+refus posés par les gestionnaires (`task_series_referent_vetoes` : série, élève, auteur, date).
+Ces refus sont des données personnelles qui suivent le compte : exportés (section
+`taches_referent_refus`), réattribués à la fusion, supprimés avec le compte (clé étrangère en
+cascade, catégorie « vie du compte » de `lib/retention/policy.js`).
+
 ## 4. Minimisation — mesures par construction
 
 - **Liste blanche** de tables de contenu ; **liste noire prioritaire** de toutes les tables de

@@ -315,6 +315,11 @@ le journal d'une tâche, que les inscrits et comptes rendus des élèves de **se
 (plus ceux de l'encadrement) — depuis le 19/11/2026, le détail et le journal suivent la
 même règle que la liste. Un visiteur ne voit ni les noms des autres ni le journal.
 
+Les **élèves référents** d'une tâche suivent la même règle que les noms des inscrits : un
+élève qui ne peut pas voir un camarade inscrit ne voit pas non plus son nom parmi les
+référents, seulement la mention « et 1 autre élève référent ». Les référents adultes restent
+toujours affichés, et un élève référent est signalé par la pastille « élève ».
+
 ### Du point de vue du professeur
 
 - **Valider** : la validation est définitive et déclenche la progression des élèves
@@ -408,6 +413,50 @@ est **automatique** et célébrée par une fenêtre « Bravo ! Nouveau palier »
 l'élève ce que son nouveau profil lui permet. La progression automatique peut être
 désactivée globalement dans les réglages des profils.
 
+## Les élèves référents automatiques (tâches récurrentes)
+
+Un élève qui a déjà réalisé **plusieurs fois** une même tâche récurrente (par exemple
+« Nourrir les poissons », chaque semaine) connaît la consigne : il peut devenir **référent**
+de cette tâche, aux côtés des adultes. Être référent est une **distinction** : par défaut,
+un élève est référent de toutes les tâches récurrentes où il remplit la condition.
+
+**La règle.** Un élève **actif**, membre du **groupe de l'année** choisi dans les réglages,
+qui a au moins **2 réalisations validées** de la même série (toutes années confondues, en
+comptant comme la progression des paliers) devient référent de l'occurrence en cours de
+cette série. Le lien est marqué « **auto** ». Quand la tâche renaît, la nouvelle occurrence
+garde ses référents.
+
+**Ce que voit le professeur.** Dans le formulaire d'une tâche, un référent automatique porte
+la pastille **auto**. Le décocher demande une confirmation : « Il ne sera plus proposé
+automatiquement pour cette série. » L'application retient ce choix ; si le professeur
+rajoute plus tard ce même élève à la main, il redevient référent (lien manuel) et le refus
+est levé.
+
+**Ce que voit l'élève.** Il reçoit une notification « Tu es désormais référent·e de la
+tâche « … » » — une seule fois par série, pas à chaque fois que la tâche renaît. Sur la
+fiche, il apparaît parmi les personnes « à qui s'adresser », avec la pastille « élève ».
+
+**Quand un élève cesse d'être référent automatique.** S'il quitte le groupe de l'année, si
+son compte est désactivé, si le seuil est relevé, si le groupe de l'année change, ou si un
+professeur l'a retiré. Un délai d'inactivité peut aussi être réglé (désactivé par défaut).
+Un référent **posé à la main n'est jamais retiré** automatiquement. Les gestionnaires de
+tâches sont prévenus des octrois et des retraits (réglable).
+
+**Les réglages** (section des tâches) :
+
+| Réglage                              | Défaut     | Effet                                                                                                                 |
+| ------------------------------------ | ---------- | --------------------------------------------------------------------------------------------------------------------- |
+| Élèves référents automatiques        | désactivé  | Interrupteur général : désactivé, rien n'est posé ni retiré.                                                          |
+| Groupe de l'année                    | vide       | Le groupe dont les élèves peuvent devenir référents ; **à changer à chaque rentrée**. Vide : personne n'est éligible. |
+| Réalisations validées nécessaires    | 2          | Entre 1 et 20.                                                                                                        |
+| Plafond de séries par élève          | 0 (aucun)  | Avec un plafond, les tâches sans aucun référent sont servies en premier, puis celles sans élève référent.             |
+| Plafond d'élèves référents par tâche | 0 (aucun)  | Jusqu'à 13 (il reste toujours de la place pour les adultes).                                                          |
+| Retrait après inactivité             | 0 (jamais) | Nombre de jours sans réalisation de la série au-delà duquel un référent automatique est retiré.                       |
+| Prévenir les gestionnaires           | oui        | Notification aux gestionnaires de tâches quand un élève devient référent ou ne l'est plus.                            |
+
+Le calcul se refait tout seul : à chaque validation d'une tâche récurrente, quand elle
+renaît, quand un réglage ou le groupe de l'année change, et chaque nuit.
+
 ## Les propositions de tâches par les élèves
 
 À partir du palier **avancé**, un élève peut proposer une idée de tâche : titre,
@@ -468,8 +517,8 @@ profils) ou le rattacher à une classe qui confère le statut élève — voir
   mensuelle **renaît automatiquement** une fois validée et son échéance passée :
   l'application vérifie les **jours ouvrés scolaires** et recrée **une** copie
   « Disponible » avec la prochaine échéance « à jour » (les périodes manquées pendant
-  une coupure ne sont pas toutes recréées). Les lieux, tutoriels, référents, groupe et
-  réglages sont repris ; les **inscriptions des élèves ne le sont pas** — chaque
+  une coupure ne sont pas toutes recréées). Les lieux, tutoriels, référents (avec leur
+  marque « auto » le cas échéant), groupe et réglages sont repris ; les **inscriptions des élèves ne le sont pas** — chaque
   occurrence repart ouverte à tous. Cette automatisation peut être suspendue
   globalement dans les réglages.
 - **Tâche récurrente sans échéance** : elle renaît **dès sa validation** (si c'est un

@@ -352,6 +352,15 @@ Code de sortie : 0 si le rapport a été produit (quel que soit son statut), 1 s
 échoué. Chaque exécution est tracée dans `scheduled_job_runs` (`health_report`), lu par
 `foretmap_cron_status` avec les jobs quotidiens du serveur et les journaux ci-dessus.
 
+## Jobs quotidiens du serveur (aucune ligne de crontab)
+
+Lancés par le minuteur de l'application (`lib/dailyJobs.js`), tracés dans `scheduled_job_runs`,
+relançables à la demande par `foretmap_ops run_cron` : `recurring_tasks`, `auto_archive`,
+`notifications_purge`, `task_deadline_reminders`, `rewards_evaluate` et
+`student_referents_sync` (élèves référents automatiques des tâches récurrentes : rattrape les
+déclencheurs en ligne ; sans effet tant que `tasks.student_referent_enabled` est faux). Rien à
+ajouter dans cPanel pour ces jobs.
+
 ## Comptes élèves inactifs — script manuel (remplacé par la ligne 5)
 
 La suppression des comptes arrivés au terme de leur durée de conservation est désormais faite

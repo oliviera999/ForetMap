@@ -39,7 +39,7 @@ before(async () => {
 });
 
 test('conservation : les badges suivent le compte (ON DELETE CASCADE vers users)', async () => {
-  assert.deepEqual([...ACCOUNT_LIFETIME_TABLES], ['user_rewards']);
+  assert.deepEqual([...ACCOUNT_LIFETIME_TABLES], ['user_rewards', 'task_series_referent_vetoes']);
   const rows = await queryAll(
     `SELECT k.COLUMN_NAME AS col, r.DELETE_RULE AS rule
        FROM information_schema.KEY_COLUMN_USAGE k

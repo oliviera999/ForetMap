@@ -79,3 +79,48 @@ describe('TaskFormReferentsField', () => {
     expect(screen.getByText('Aucun résultat pour ce filtre.')).toBeTruthy();
   });
 });
+
+describe('TaskFormReferentsField — référents automatiques', () => {
+  test('pastille « auto » sur le seul référent automatique', () => {
+    renderField({ selectedIds: ['t1', 's1'], autoIds: ['s1'] });
+    const pills = document.querySelectorAll('.task-referent-auto-pill');
+    expect(pills).toHaveLength(1);
+    expect(pills[0].textContent).toBe('auto');
+    expect(pills[0].closest('label').textContent).toMatch(/Bob Martin/);
+  });
+
+  test('décocher un référent auto demande confirmation ; « Garder » annule', () => {
+    const { onToggle } = renderField({ selectedIds: ['s1'], autoIds: ['s1'] });
+    fireEvent.click(screen.getAllByRole('checkbox')[1]);
+    expect(onToggle).not.toHaveBeenCalled();
+    expect(screen.getByRole('alert').textContent).toMatch(
+      /Il ne sera plus proposé automatiquement pour cette série/,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Garder' }));
+    expect(onToggle).not.toHaveBeenCalled();
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  test('« Retirer » confirme le retrait', () => {
+    const { onToggle } = renderField({ selectedIds: ['s1'], autoIds: ['s1'] });
+    fireEvent.click(screen.getAllByRole('checkbox')[1]);
+    fireEvent.click(screen.getByRole('button', { name: 'Retirer' }));
+    expect(onToggle).toHaveBeenCalledWith('s1');
+  });
+
+  test('cocher un auto non sélectionné, ou décocher un manuel : sans confirmation', () => {
+    const { onToggle } = renderField({ selectedIds: ['t1'], autoIds: ['s1'] });
+    fireEvent.click(screen.getAllByRole('checkbox')[0]);
+    fireEvent.click(screen.getAllByRole('checkbox')[1]);
+    expect(onToggle).toHaveBeenCalledTimes(2);
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  test('« Effacer les référents » avec un auto sélectionné : confirmation avant onClear', () => {
+    const { onClear } = renderField({ selectedIds: ['s1'], autoIds: ['s1'] });
+    fireEvent.click(screen.getByRole('button', { name: 'Effacer les référents' }));
+    expect(onClear).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Retirer' }));
+    expect(onClear).toHaveBeenCalledTimes(1);
+  });
+});

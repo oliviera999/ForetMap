@@ -860,6 +860,50 @@
       "max": 99,
       "default": 0
     },
+    "tasks.student_referent_enabled": {
+      "scope": "teacher",
+      "type": "boolean",
+      "default": false
+    },
+    "tasks.student_referent_group_id": {
+      "scope": "teacher",
+      "type": "string",
+      "maxLength": 64,
+      "default": ""
+    },
+    "tasks.student_referent_inactivity_days": {
+      "scope": "teacher",
+      "type": "number",
+      "min": 0,
+      "max": 730,
+      "default": 0
+    },
+    "tasks.student_referent_max_series_per_student": {
+      "scope": "teacher",
+      "type": "number",
+      "min": 0,
+      "max": 50,
+      "default": 0
+    },
+    "tasks.student_referent_max_students_per_series": {
+      "scope": "teacher",
+      "type": "number",
+      "min": 0,
+      "max": 13,
+      "default": 0
+    },
+    "tasks.student_referent_min_validations": {
+      "scope": "teacher",
+      "type": "number",
+      "min": 1,
+      "max": 20,
+      "default": 2
+    },
+    "tasks.student_referent_notify_managers": {
+      "scope": "teacher",
+      "type": "boolean",
+      "default": true
+    },
     "ui.auth.allow_google_auto_register": {
       "scope": "public",
       "type": "boolean",
@@ -4176,6 +4220,118 @@
       "constraints": {
         "min": 0,
         "max": 99,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "tasks.student_referent_enabled",
+      "scope": "teacher",
+      "type": "boolean",
+      "value": false,
+      "default_value": false,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "tasks.student_referent_group_id",
+      "scope": "teacher",
+      "type": "string",
+      "value": "",
+      "default_value": "",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 64,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "tasks.student_referent_inactivity_days",
+      "scope": "teacher",
+      "type": "number",
+      "value": 0,
+      "default_value": 0,
+      "constraints": {
+        "min": 0,
+        "max": 730,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "tasks.student_referent_max_series_per_student",
+      "scope": "teacher",
+      "type": "number",
+      "value": 0,
+      "default_value": 0,
+      "constraints": {
+        "min": 0,
+        "max": 50,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "tasks.student_referent_max_students_per_series",
+      "scope": "teacher",
+      "type": "number",
+      "value": 0,
+      "default_value": 0,
+      "constraints": {
+        "min": 0,
+        "max": 13,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "tasks.student_referent_min_validations",
+      "scope": "teacher",
+      "type": "number",
+      "value": 2,
+      "default_value": 2,
+      "constraints": {
+        "min": 1,
+        "max": 20,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "tasks.student_referent_notify_managers",
+      "scope": "teacher",
+      "type": "boolean",
+      "value": true,
+      "default_value": true,
+      "constraints": {
+        "min": null,
+        "max": null,
         "maxLength": null,
         "values": null
       },
