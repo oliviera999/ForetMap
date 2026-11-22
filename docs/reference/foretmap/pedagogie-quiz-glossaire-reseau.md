@@ -173,10 +173,11 @@ d'observation** pour l'écriture naturaliste libre.
   2026, on pouvait y répondre sans compte, essai après essai, sans jamais être bloqué —
   puis répondre juste du premier coup une fois connecté. Le Quiz libre, lui, reste ouvert
   à tous.
-  **Un collégien n'est jamais interrogé au-delà du cycle 4** : si une fiche n'a pas de
-  question à son palier, on lui pose ses questions de collège ; si elle n'est gardée que
-  par des questions de lycée, elle ne lui est pas verrouillée (le cas est noté dans le
-  journal du serveur). Un élève de lycée garde l'ancienne règle : faute de question à son
+  **Un collégien n'est jamais interrogé au-delà du palier de sa classe** : une 6ᵉ n'est
+  jamais bloquée par une question de cycle 4. Si une fiche n'a pas de question au palier
+  de sa classe, elle ne lui est pas verrouillée (le cas est noté dans le journal du
+  serveur). Un collégien sans classe connue, lui, reçoit ses questions de collège, jamais
+  de lycée. Un élève de lycée garde l'ancienne règle : faute de question à son
   niveau, toutes restent posées.
   Les rattachements livrés ont été relus : une question n’est plus accrochée à une
   fiche qui ne l’enseigne pas (par exemple la photosynthèse n’est plus collée au

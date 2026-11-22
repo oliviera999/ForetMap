@@ -229,9 +229,10 @@ Ce que ça change concrètement :
   cycle 3 ; sinon, à partir du cycle 4. Aucune nouvelle échelle à régler : il suffit que les
   notions de la question soient justes (rattachement de sa catégorie, ajouts et exclusions).
   Au collège, l'onglet Quiz ne tire que les questions du palier de l'élève et ne propose que
-  les catégories qui en ont ; le contrôle de compréhension d'une fiche suit la même règle et
-  ne pose **jamais** de question de lycée à un collégien — une fiche gardée seulement par des
-  questions de lycée ne lui est pas verrouillée.
+  les catégories qui en ont ; le contrôle de compréhension d'une fiche suit la même règle :
+  il ne pose **jamais** de question au-delà du palier de la classe (une 6ᵉ n'est pas bloquée
+  par une question de cycle 4) ; une fiche sans question à ce palier n'est pas verrouillée.
+  Un collégien sans classe connue reçoit ses questions de collège, jamais de lycée.
 - **Le glossaire est relié aux notions.** Le filtre par notion de l'onglet Glossaire
   fonctionne (il ne renvoyait rien), et la fiche d'un terme affiche « Au programme ».
 - **On peut distinguer une 6ᵉ d'une 3ᵉ.** Le groupe porte un **niveau de la classe**.

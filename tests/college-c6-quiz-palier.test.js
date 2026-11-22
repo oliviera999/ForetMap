@@ -120,8 +120,18 @@ test('6e : seules les questions de cycle 3', () => {
   assert.equal(out.outOfLevel, 2);
 });
 
-test('6e, fiche sans question de cycle 3 : repli sur le cycle 4, jamais sur le lycée', () => {
+test('6e, fiche sans question de cycle 3 : non verrouillée (aucune question de cycle 4 ne bloque une 6e)', () => {
+  // Arbitrage d'Oliv du 22/11/2026 (critère de vérification du chantier collège) : classe
+  // connue = le palier de la classe fait barrière, sans repli sur le cycle 4.
   const out = filterGatingLinksByLevel([C4, LY], SIXIEME);
+  assert.deepEqual(out.links, []);
+  assert.equal(out.levelFallback, 'unlocked');
+  assert.equal(out.outOfLevel, 2);
+});
+
+test('collégien sans classe connue (cycle 3 par défaut) : repli sur le cycle 4, jamais sur le lycée', () => {
+  const sansClasse = { niveau: null, contentEtape: 'college', etape: 'college', maxPalier: 2 };
+  const out = filterGatingLinksByLevel([C4, LY], sansClasse);
   assert.deepEqual(codes(out), ['QC4']);
   assert.equal(out.levelFallback, 'college_levels');
   assert.equal(out.outOfLevel, 1);
@@ -309,7 +319,7 @@ test('GET /api/quiz/draw?palierMax= : jamais au-dessus du palier demandé', asyn
   }
 });
 
-test('verrouillage en base : 6e → cycle 4 en repli ; 3e → idem ; 2de → tout', async () => {
+test('verrouillage en base : 6e → non verrouillée ; 3e → cycle 4 ; 2de → tout', async () => {
   const state = (learnerLevel) =>
     getChallengeState(db, {
       product: 'fm',
@@ -320,11 +330,8 @@ test('verrouillage en base : 6e → cycle 4 en repli ; 3e → idem ; 2de → tou
     });
   const six = await state(SIXIEME);
   assert.equal(six.ok, true);
-  assert.deepEqual(
-    six.questions.map((q) => q.question_code),
-    [Q.a2],
-  );
-  assert.equal(six.level_fallback, 'college_levels');
+  assert.deepEqual(six.questions, []);
+  assert.equal(six.satisfied, true);
   const trois = await state(TROISIEME);
   assert.deepEqual(
     trois.questions.map((q) => q.question_code),

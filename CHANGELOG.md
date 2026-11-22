@@ -164,10 +164,12 @@ socle `college_socle`).
   (`quizQuestionEntryPalierSql`, `lib/curriculumNotions.js`) ; `entry_palier` dans
   `GET /api/curriculum/quiz-questions/:code/notions`.
 - **Verrouillage des fiches** : le plafond de l'élève tient compte de la règle de palier
-  `quiz_entry_palier_max` ; un collégien n'est jamais interrogé au-delà du cycle 4 (repli
-  `level_fallback: "college_levels"`), et une fiche gardée seulement par des questions de lycée
-  ne lui est pas verrouillée (repli journalisé). Les autres élèves gardent le repli
-  `all_levels`.
+  `quiz_entry_palier_max` ; un collégien dont la classe est connue n'est jamais interrogé
+  au-delà du palier de sa classe — une 6e n'est pas bloquée par une question de cycle 4 : une
+  fiche sans question à ce palier ne lui est pas verrouillée (repli journalisé, arbitrage du
+  22/11). Un collégien sans classe connue n'est jamais interrogé au-delà du cycle 4 (repli
+  `level_fallback: "college_levels"`) ; une fiche gardée seulement par des questions de lycée
+  ne lui est pas verrouillée. Les autres élèves gardent le repli `all_levels`.
 - **Quiz en affichage collège** : `palierMax` sur `GET /api/quiz/draw` et
   `/api/quiz/categories` ; l'onglet Quiz ne tire que les questions du palier de l'élève,
   masque les catégories sans question à ce palier et affiche la description collège de la

@@ -5758,9 +5758,13 @@ effectif** (chantier collège, novembre 2026) : question de collège → 1 si un
 effectives (catégorie + ajouts − exclusions) est de cycle 3, sinon 2 ; question de lycée → 3.
 Si **aucune** question de la ressource n'est à son niveau :
 
-- **collégien** (niveau de contenu collège) : jamais au-delà du cycle 4 — ses questions de
-  collège sont posées (`level_fallback: "college_levels"`) ; s'il ne reste que des questions de
-  lycée, la ressource **n'est pas verrouillée** pour lui (`required: false`, repli journalisé) ;
+- **collégien dont la classe est connue** (classe, séance ou aperçu d'enseignant) : aucune
+  question au-delà du palier de sa classe ne verrouille la ressource — une 6e n'est jamais bloquée
+  par une question de cycle 4 ; la ressource **n'est pas verrouillée** pour lui
+  (`required: false`, repli journalisé) ;
+- **collégien sans classe connue** (rangé au cycle 3) : jamais au-delà du cycle 4 — ses questions
+  de collège sont posées (`level_fallback: "college_levels"`) ; s'il ne reste que des questions
+  de lycée, la ressource n'est pas verrouillée (`required: false`, repli journalisé) ;
 - autres élèves : toutes restent posées (décision du mainteneur : garder les questions plutôt
   qu'ouvrir la ressource), `level_fallback: "all_levels"`.
 
