@@ -31,6 +31,10 @@ observations ») et celui de l'aperçu de tutoriel (« Marquer comme lu »). Apr
   `log-modal--dialog` / `--with-close`, la feuille basse, le plein écran carte.
 - Commandes flottantes et toasts / état collant se posent au-dessus du bandeau (ils
   recouvraient ses boutons). Variables à 0 côté G&L : aucun changement là-bas.
+- Au passage, **éditeur de clé d'identification** : l'effet qui recopie la clé dans le
+  formulaire ne rejoue plus au montage. Exécuté après coup (clé chargée hors `act`), il
+  écrasait une première saisie, d'où un échec intermittent de `IdKeysView.test.jsx` en CI
+  (reproduit 1 fois sur 6 sous charge, 0 sur 18 après correctif).
 - Tests : `SessionsResumeBanner.test.jsx` (emprise publiée puis retirée) ; garde e2e dans
   `pedago-session-phone.spec.js` (fiche défilée à fond au-dessus du bandeau — échoue sur
   l'ancien CSS).
