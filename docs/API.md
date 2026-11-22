@@ -5810,6 +5810,20 @@ Gnomes & Licornes savait valider un terme depuis la migration 107 ; ForetMap dep
 bloquant y est désormais accepté, et `GET /api/learning-links/resources?type=glossary` renvoie
 `markable: true`.
 
+**Barrière de vocabulaire douce (chantier collège, flux C2).** `GET /api/glossary/terms` renvoie
+toujours **tous** les termes actifs (avec `niveau`, la profondeur du terme) : aucune route ne change.
+Le filtre se fait côté client, d'après la règle de palier `glossary_depth_max` de la table de
+visibilité (`palierRuleFor`, `src/shared/pedagoVisibilityCore.js` : `null` = pas de filtre). Un terme
+est dans le palier si son palier d'entrée (`GLOSSARY_NIVEAU_ENTRY` de `pedagoScales.js` : `base` →
+cycle 3, `approfondissement` → cycle 4, `avance` → seconde) ne dépasse pas celui de la profondeur
+maximale ; un terme sans profondeur connue est gardé. Effets : l'index d'auto-lien
+(`useGlossaryLinkIndex`) ne lie que les termes du palier, la liste de l'onglet Glossaire les montre
+par défaut (bouton « Pour aller plus loin »), et `GET /api/glossary/terms/:code` reste ouvert pour
+tout terme. Côté serveur, `lib/foretmapGlossaryAutolink.js` expose `glossaryDepthMaxForLearner`,
+`createGlossaryEntriesByDepth` et `glossaryDepthCacheKey` pour l'auto-lien des tutoriels
+(`GET /api/tutorials/:id/view`, câblage de la route à l'intégration). Le cœur partagé avec G&L
+(`termAutolinkCore`) n'est pas modifié.
+
 Réglages site GL (table `gl_settings`), dérivés du même catalogue que ForetMap : `gating.enabled`
 (def. `false`), `gating.granularity` (`player|team`, def. `player` — **appliquée** ; `per_resource` est
 accepté par compatibilité et se comporte comme `player`), `gating.default_mode` et

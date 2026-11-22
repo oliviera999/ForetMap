@@ -1,0 +1,62 @@
+/* Glossaire ForêtMap — ajouts du chantier collège (flux C2, barrière de vocabulaire douce) et
+   espacements de la fiche de terme sortis des styles en ligne. Les styles historiques du
+   module restent dans la feuille commune ; les ajouts vont ici, par tokens. */
+
+/* Fiche d'un terme (onglet Glossaire) */
+.fm-glossary-detail__meta {
+  margin-bottom: var(--space-3);
+}
+
+.fm-glossary-detail__extra {
+  margin-top: var(--space-3);
+}
+
+.fm-glossary-detail__extra--tight {
+  margin-top: var(--space-2);
+}
+
+.fm-glossary-detail__section {
+  margin-top: var(--space-4);
+}
+
+/* Barrière de vocabulaire : bandeau « Pour aller plus loin » sous la liste */
+.fm-glossary-depth {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius, 14px);
+  background: var(--surface-2);
+}
+
+.fm-glossary-depth__text {
+  margin: 0;
+  color: var(--ink-dim);
+  font-size: var(--text-sm);
+}
+
+.fm-glossary-depth__toggle {
+  align-self: flex-start;
+  min-height: 44px;
+}
+
+/* Popover au collège : définition complète repliée sous la définition courte */
+.fm-glossary-popover__more {
+  margin-top: var(--space-2);
+}
+
+.fm-glossary-popover__more > summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  cursor: pointer;
+  color: var(--forest);
+  font-weight: 600;
+  font-size: var(--text-sm);
+}
+
+.fm-glossary-popover__more > summary:focus-visible {
+  outline: 2px solid var(--leaf);
+  outline-offset: 2px;
+}

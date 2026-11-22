@@ -232,6 +232,23 @@ d'observation** pour l'écriture naturaliste libre.
     restent quand le contexte en fait sans ambiguïté un nom (« des vers », « l'été », « en
     été », « le son »). Les expressions plus longues (« vers de terre ») sont toujours
     soulignées. Liste actuelle : vers, été, sens, son, fin, mare.
+- **Au collège, un vocabulaire à la mesure de la classe** (barrière « douce ») :
+  - chaque terme a une profondeur : **base**, **approfondissement** ou **avancé**. En 6e
+    et 5e (cycle 3), seuls les termes de **base** sont soulignés dans les textes et
+    affichés par défaut dans la liste de l'onglet Glossaire ; en 4e et 3e (cycle 4), les
+    termes d'**approfondissement** s'y ajoutent. Au lycée et à l'université, rien ne
+    change : tout est souligné et listé ;
+  - **rien n'est caché définitivement** : sous la liste, le bouton **« Pour aller plus
+    loin »** affiche aussi les termes plus avancés (et « Revenir aux termes essentiels »
+    les range de nouveau). Choisir soi-même une profondeur dans le filtre « Niveau » les
+    montre aussi. La fiche d'un terme avancé s'ouvre toujours ; elle porte la mention
+    « Pour aller plus loin » ;
+  - dans la **fiche rapide**, l'élève de collège lit d'abord la définition courte ; la
+    définition détaillée est repliée sous « Lire la définition complète », un geste
+    suffit pour l'ouvrir ;
+  - la classe de l'élève (cycle 3 ou cycle 4) vient de son groupe ; sans classe connue,
+    un collégien est traité comme en cycle 3. Le réglage s'applique aussi à la Visite
+    sans compte.
 
 ## Le Réseau trophique
 
