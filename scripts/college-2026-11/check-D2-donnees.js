@@ -2,6 +2,15 @@
 'use strict';
 
 /**
+ * Vrai si l'instantané de contenu du 21/11 est présent. Il ne va pas sur `main` (supprimé par
+ * SI avec le dossier de coordination) : sans lui, les contrôles croisés avec la prod sont
+ * sautés ; la génération de la migration, qui ne lit que les données, reste vérifiable.
+ */
+function snapshotAvailable(dir = SNAPSHOT_DIR) {
+  return fs.existsSync(path.join(dir, 'clades.json'));
+}
+
+/**
  * Contrôle des données du flux D2 (chantier collège, novembre 2026) : groupes d'usage de
  * l'arbre des clades et ordres d'insectes manquants.
  *
@@ -289,6 +298,7 @@ function runChecks({ data = loadData(), snapshot = loadSnapshot() } = {}) {
 module.exports = {
   loadData,
   loadSnapshot,
+  snapshotAvailable,
   checkText,
   buildNonBaseForms,
   nonBaseTermsIn,

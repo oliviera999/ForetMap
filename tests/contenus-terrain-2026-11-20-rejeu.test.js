@@ -208,6 +208,15 @@ after(async () => {
   const maps = Object.keys(ZONES_VISITE);
   await run(`DELETE FROM visit_tutorials WHERE map_id IN (${marks(maps)})`, maps);
   for (const fn of undo.reverse()) await fn().catch(() => {});
+  // Le rejeu de cette migration-ci (hors curseur) fait revenir les ajouts de l'autre cycle que
+  // le retri des paliers (`college_quiz_paliers`, postérieure) avait retirés : on rejoue ce
+  // retri pour rendre la base dans l'état des migrations — sinon `test:content`, lancé après
+  // `npm test` sur la même base (CI), voit des questions sur deux cycles.
+  const paliers = fs.readdirSync(MIGRATIONS_DIR).find((f) => /_college_quiz_paliers\.sql$/.test(f));
+  if (paliers) {
+    const sql = fs.readFileSync(path.join(MIGRATIONS_DIR, paliers), 'utf8');
+    for (const stmt of splitSqlStatements(sql)) await run(stmt);
+  }
 });
 
 // ---------------------------------------------------------------------------------------

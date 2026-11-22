@@ -40,6 +40,15 @@ const FORBIDDEN_VERBS = /(cueill|goût|gout|touch|frott|manipul|ramass|attrap)/i
 const MOTS_COURANTS = new Set(['sable', 'libellule', 'libellules']);
 
 /**
+ * Vrai si l'instantané de contenu du 21/11 est présent. Il ne va pas sur `main` (supprimé par
+ * SI avec le dossier de coordination) : sans lui, les contrôles croisés avec la prod sont
+ * sautés ; la génération de la migration, qui ne lit que les données, reste vérifiable.
+ */
+function snapshotAvailable(dir = SNAPSHOT_DIR) {
+  return fs.existsSync(path.join(dir, 'clades.json'));
+}
+
+/**
  * Mots interdits par grand groupe (cohérence avec le clade). Les clés sont les `groupe` des
  * fichiers ; les motifs portent sur des mots entiers (insensibles à la casse).
  */
@@ -247,7 +256,16 @@ function runChecks(data = loadData(), snapshot = loadSnapshot()) {
   return { errors, warnings, count };
 }
 
-module.exports = { loadData, loadSnapshot, runChecks, checkLabel, boxFor, headNoun, MAX_LENGTH };
+module.exports = {
+  loadData,
+  loadSnapshot,
+  snapshotAvailable,
+  runChecks,
+  checkLabel,
+  boxFor,
+  headNoun,
+  MAX_LENGTH,
+};
 
 if (require.main === module) {
   const res = runChecks();

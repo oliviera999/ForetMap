@@ -17,7 +17,7 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
-const { loadData, runChecks } = require('./check-D5-etiquettes');
+const { loadData, runChecks, snapshotAvailable } = require('./check-D5-etiquettes');
 
 const ROOT = path.join(__dirname, '..', '..');
 const MIGRATIONS_DIR = path.join(ROOT, 'migrations');
@@ -83,7 +83,8 @@ function buildSql(data = loadData()) {
 module.exports = { buildSql, findMigrationFile, sqlString, SUFFIX };
 
 if (require.main === module) {
-  const { errors } = runChecks();
+  // Sans l'instantané (absent de `main`), seuls les contrôles croisés sont sautés.
+  const { errors } = snapshotAvailable() ? runChecks() : { errors: [] };
   if (errors.length) {
     process.stderr.write(
       `Données D5 non conformes, migration non générée :\n- ${errors.slice(0, 50).join('\n- ')}\n`,

@@ -10,17 +10,24 @@ const fs = require('node:fs');
 const path = require('node:path');
 const {
   runChecks,
+  snapshotAvailable,
   loadData,
   checkLabel,
   headNoun,
 } = require('../../scripts/college-2026-11/check-D5-etiquettes');
 const { buildSql, findMigrationFile } = require('../../scripts/college-2026-11/build-D5-migration');
 
-test('étiquettes D5 : aucune erreur de contrôle, 644 fiches couvertes', () => {
-  const { errors, count } = runChecks();
-  assert.deepEqual(errors, []);
-  assert.equal(count, 644);
-});
+test(
+  'étiquettes D5 : aucune erreur de contrôle, 644 fiches couvertes',
+  {
+    skip: !snapshotAvailable() && 'instantané du 21/11 absent (non versionné sur main)',
+  },
+  () => {
+    const { errors, count } = runChecks();
+    assert.deepEqual(errors, []);
+    assert.equal(count, 644);
+  },
+);
 
 test('étiquettes D5 : les noms opaques ou trompeurs cités par le prompt ont une étiquette', () => {
   const labels = new Map();

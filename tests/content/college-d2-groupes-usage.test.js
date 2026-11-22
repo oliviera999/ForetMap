@@ -10,6 +10,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const {
   runChecks,
+  snapshotAvailable,
   loadData,
   checkText,
   collegeDepth,
@@ -25,12 +26,18 @@ before(async () => {
   await initSchema();
 });
 
-test('les données D2 passent le contrôle (instantané du 21/11)', () => {
-  const { errors, stats } = runChecks();
-  assert.deepEqual(errors, []);
-  assert.equal(stats.profondeur_max <= MAX_DEPTH, true);
-  assert.deepEqual(stats.hors_arbre.sort(), ['Biofilm', 'Phytoplancton', 'Zooplancton']);
-});
+test(
+  'les données D2 passent le contrôle (instantané du 21/11)',
+  {
+    skip: !snapshotAvailable() && 'instantané du 21/11 absent (non versionné sur main)',
+  },
+  () => {
+    const { errors, stats } = runChecks();
+    assert.deepEqual(errors, []);
+    assert.equal(stats.profondeur_max <= MAX_DEPTH, true);
+    assert.deepEqual(stats.hors_arbre.sort(), ['Biofilm', 'Phytoplancton', 'Zooplancton']);
+  },
+);
 
 test('la migration versionnée est la sortie du générateur', () => {
   assert.equal(fs.readFileSync(findMigrationFile(), 'utf8'), buildSql(data));
