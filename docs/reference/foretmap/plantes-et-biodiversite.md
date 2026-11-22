@@ -206,7 +206,11 @@ grands groupes faciles à reconnaître** (« groupes d’usage » : Oiseaux, Ins
 fleurs…), choisis par l’administration du contenu. Les groupes intermédiaires savants
 (Eucaryotes, Bilatériens, Amniotes…) disparaissent ; une espèce rangée dans un groupe retiré
 remonte au grand groupe le plus proche ; chaque boîte affiche son **nom simple** et son
-**caractère observable en mots simples** quand ils sont renseignés. Les choix proposés à
+**caractère observable en mots simples** quand ils sont renseignés. Depuis le 22 novembre
+2026, la boîte **« Animaux à quatre membres »** (squelette à l’intérieur du corps et quatre
+membres) fait partie de ces grands groupes : mammifères, oiseaux, lézards et serpents,
+amphibiens s’y rangent, eux-mêmes dans les Vertébrés, comme l’attend la séance « Les grands
+groupes » de 6ᵉ. Les choix proposés à
 l’élève pour placer une espèce ne contiennent que ces grands groupes, et la correction
 attend le grand groupe. Le bouton **« Pour aller plus loin »** reconstruit la même activité
 sur la **classification complète** (et **« Revenir aux grands groupes »** la réduit de
