@@ -4,6 +4,7 @@
     "clade_id": null,
     "description": "Rosette de feuilles dentées.",
     "description_college": null,
+    "domestication": null,
     "ecosystem_role": null,
     "edit_revision": 0,
     "emoji": "🌿",
@@ -156,13 +157,16 @@
     "temp_min_c": 5,
     "toxicity_level": "aucune",
     "trophic_role": "producteur",
-    "usage_label": null
+    "usage_label": null,
+    "wild_ancestor": null,
+    "wild_ancestor_plant_id": null
   },
   "post_minimal": {
     "accepted_scientific_name": null,
     "clade_id": null,
     "description": "",
     "description_college": null,
+    "domestication": null,
     "ecosystem_role": null,
     "edit_revision": 0,
     "emoji": "🌱",
@@ -253,13 +257,16 @@
     "temp_min_c": null,
     "toxicity_level": null,
     "trophic_role": null,
-    "usage_label": null
+    "usage_label": null,
+    "wild_ancestor": null,
+    "wild_ancestor_plant_id": null
   },
   "list_rich": {
     "accepted_scientific_name": null,
     "clade_id": null,
     "description": "Rosette de feuilles dentées.",
     "description_college": null,
+    "domestication": null,
     "ecosystem_role": null,
     "edit_revision": 0,
     "emoji": "🌿",
@@ -413,13 +420,16 @@
     "toxicity_level": "aucune",
     "trophic_role": "producteur",
     "usage_group": null,
-    "usage_label": null
+    "usage_label": null,
+    "wild_ancestor": null,
+    "wild_ancestor_plant_id": null
   },
   "list_minimal": {
     "accepted_scientific_name": null,
     "clade_id": null,
     "description": "",
     "description_college": null,
+    "domestication": null,
     "ecosystem_role": null,
     "edit_revision": 0,
     "emoji": "🌱",
@@ -511,13 +521,16 @@
     "toxicity_level": null,
     "trophic_role": null,
     "usage_group": null,
-    "usage_label": null
+    "usage_label": null,
+    "wild_ancestor": null,
+    "wild_ancestor_plant_id": null
   },
   "put_rich_partial": {
     "accepted_scientific_name": null,
     "clade_id": null,
     "description": "Description modifiée.",
     "description_college": null,
+    "domestication": null,
     "ecosystem_role": null,
     "edit_revision": 1,
     "emoji": "🌿",
@@ -669,13 +682,16 @@
     "temp_min_c": 5,
     "toxicity_level": "aucune",
     "trophic_role": "producteur",
-    "usage_label": null
+    "usage_label": null,
+    "wild_ancestor": null,
+    "wild_ancestor_plant_id": null
   },
   "list_rich_after_put": {
     "accepted_scientific_name": null,
     "clade_id": null,
     "description": "Description modifiée.",
     "description_college": null,
+    "domestication": null,
     "ecosystem_role": null,
     "edit_revision": 1,
     "emoji": "🌿",
@@ -829,7 +845,9 @@
     "toxicity_level": "aucune",
     "trophic_role": "producteur",
     "usage_group": null,
-    "usage_label": null
+    "usage_label": null,
+    "wild_ancestor": null,
+    "wild_ancestor_plant_id": null
   },
   "get_by_id": {
     "body": {
@@ -871,6 +889,7 @@
     "clade_id": null,
     "description": "Description modifiée.",
     "description_college": null,
+    "domestication": null,
     "ecosystem_role": null,
     "edit_revision": 2,
     "emoji": "🌿",
@@ -1021,6 +1040,8 @@
     "temp_min_c": 5,
     "toxicity_level": "aucune",
     "trophic_role": "producteur",
-    "usage_label": null
+    "usage_label": null,
+    "wild_ancestor": null,
+    "wild_ancestor_plant_id": null
   }
 }
