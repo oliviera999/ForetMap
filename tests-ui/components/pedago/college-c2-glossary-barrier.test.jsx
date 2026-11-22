@@ -151,9 +151,13 @@ describe('useGlossaryLinkIndex — index filtré par palier', () => {
     expect(apiMock.mock.calls.filter(([p]) => p === '/api/glossary/terms')).toHaveLength(1);
   });
 
-  test('sans fournisseur (état S0 : règle nulle), aucun filtre', async () => {
+  // Depuis le profil collège de la table (C1), le contexte par défaut (aucun fournisseur)
+  // est celui d'un visiteur : collège, cycle 3 — seuls les termes `base` sont liés.
+  test('sans fournisseur : profil par défaut (collège, cycle 3), termes de base seulement', async () => {
     const { result } = renderHook(() => useGlossaryLinkIndex());
-    await waitFor(() => expect(result.current).toHaveLength(4));
+    await waitFor(() =>
+      expect(result.current.map((t) => t.glossary_code)).toEqual(['FM_POL', 'FM_VER']),
+    );
   });
 });
 
