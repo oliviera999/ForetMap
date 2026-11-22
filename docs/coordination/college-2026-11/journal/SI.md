@@ -13,3 +13,22 @@
   `--check` à jour (ils retrouvent le fichier par suffixe).
 
 Prochaine action : tests de migration, « À faire par SI », suite complète.
+
+## 22/11 — « À faire par SI », référentiel, rejeu
+
+- C1 × C2 : `glossary_depth_max` lycée `avance` → `null` (sinon popover replié au lycée).
+- C2 : câblage de l'auto-lien par palier des tutoriels (`routes/tutorials.js`), requête
+  authentifiée seulement (l'iframe d'aperçu part sans jeton) ; test
+  `tests/college-si-tutorial-glossary-depth.test.js`.
+- C6 + D3 : migration `college_referentiel_notions` (6 notions, 14 liaisons de la prod), placée
+  en **379**, avant le retri ; série D décalée : D1 380, D2 381, D3 382, D4 383, D5 384, D6 385.
+  Tests du 20/11 recomptés (220 / 231).
+- C4 : repli `group_1` retiré ; C1 : commentaire `CYCLE4_ONLY` ; C3 : JSDoc `foodWebRequest`,
+  renvoi dans `niveaux-pedagogiques-biodiversite.md`.
+- `changelog.d/` → `CHANGELOG.md` ; `docs/PROFIL_COLLEGE.md`.
+- Rejeu : base fraîche (db:init + 2 passes) et base « instantané » (3 passes) : empreintes
+  identiques d'une passe à l'autre. Instantané : notions 26/66 inchangées (no-op en prod),
+  quiz_question_notions 482 → 1262, lycée 233 → 255, clades 74 → 78 (35 visibles), clés 31 → 37,
+  étiquettes 644, phares 100, descriptions 73.
+
+Prochaine action : suite complète, vérification indépendante.
