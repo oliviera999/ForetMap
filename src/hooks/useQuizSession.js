@@ -125,7 +125,9 @@ export function useQuizSession({ initialQuestionCode = null } = {}) {
       const code = draw?.question_code;
       if (!code) throw new Error('Aucune question disponible');
       setQuestionCode(code);
-      const present = await presentQuizQuestion(code);
+      // `origine` : étiquette statistique (contexte `tirage` de la tentative), sans effet sur
+      // la réponse ni sur l'écran.
+      const present = await presentQuizQuestion(code, { origine: 'tirage' });
       setPresentation(present);
     } catch (err) {
       setError(err.message || 'Tirage impossible');

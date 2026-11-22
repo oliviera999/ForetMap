@@ -152,6 +152,17 @@ Côté client (deux lignes, aucune réponse HTTP ni écran changés) : `src/serv
   fois sur la base fraîche et sur la copie anonymisée (268 tentatives, aucune erreur, colonnes
   NULL).
 
+- **Lot B fait** : `lib/quizQuestionFingerprint.js` (nouveau), `lib/qcmChoices.js` (options
+  facultatives `extraClaims` / `includeClaims`, `jti` sorti en variable — charge G&L
+  identique), `lib/pedago/quizService.js` (revendications `qfp`, `pat`, `org`, `ses` ;
+  colonnes calculées à la réponse), `lib/pedago/quizRepository.js` (`insertAttempt` à neuf
+  colonnes), `src/services/quizApi.js`, `src/hooks/useQuizSession.js`. Tests :
+  `tests/quiz-question-fingerprint.test.js`, `tests/quiz-answer-choice.test.js`, mise à jour
+  `tests-ui/services/quizApi.test.js` et `tests-ui/components/pedago/QuizView.test.jsx` (URL
+  `…/present?origine=tirage` après un tirage). `lib/accountMerge.js` inchangé (le test de
+  fusion prouve que les colonnes suivent). `routes/quiz.js` inchangé (la requête est déjà
+  transmise au service).
+
 ## À faire par l'intégration
 
 - `sql/schema_foretmap.sql` : ajouter les cinq colonnes et l'index de la migration
@@ -162,4 +173,4 @@ Côté client (deux lignes, aucune réponse HTTP ni écran changés) : `src/serv
 
 ## État
 
-- Prochaine action : lot B (enregistrement à la réponse), code déjà amorcé dans l'arbre.
+- Prochaine action : lot C (statistiques d'items), code amorcé dans l'arbre.
