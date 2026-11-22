@@ -1574,7 +1574,7 @@ function VisitViewImpl({
           <div
             className="visit-sheet-scroll-spacer"
             aria-hidden="true"
-            style={{ height: visitSheetSpacerPx }}
+            style={{ '--visit-sheet-spacer-h': `${visitSheetSpacerPx}px` }}
           />
         ) : null}
       </div>

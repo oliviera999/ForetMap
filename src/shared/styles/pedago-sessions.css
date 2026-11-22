@@ -14,6 +14,14 @@
   --fm-session-banner-lift: calc(var(--bottom-nav-height) + var(--safe-bottom, 0px));
 }
 
+/*
+ * Plein écran carte : la couche couvre la barre basse, le bandeau descend donc jusqu'au bas de
+ * l'écran. Sans cela il restait surélevé de la hauteur de la barre, au-dessus d'une bande vide.
+ */
+:root:has(#app nav.bottom-nav):has(body.fm-map-fullscreen-active) {
+  --fm-session-banner-lift: 0px;
+}
+
 .pedago-session-banner {
   position: fixed;
   left: 0;
@@ -35,6 +43,11 @@
 /* Barre basse élève présente : le bandeau se pose juste au-dessus, jamais dessous. */
 #app:has(nav.bottom-nav) .pedago-session-banner {
   padding-bottom: 0.6rem;
+}
+
+/* …sauf en plein écran carte, où il retrouve le bas de l'écran et sa zone sûre. */
+body.fm-map-fullscreen-active #app .pedago-session-banner {
+  padding-bottom: calc(0.6rem + var(--safe-bottom, 0px));
 }
 
 .pedago-session-banner__text {

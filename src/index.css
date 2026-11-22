@@ -5724,6 +5724,11 @@
       color:#5b655f;
       font-size:var(--text-sm);
     }
+    /* Cale de défilement (mobile) sous la carte de la Visite : hauteur calculée par le JSX
+       (`--visit-sheet-spacer-h`), pour que la carte remonte au-dessus de la feuille basse. */
+    .visit-sheet-scroll-spacer {
+      height:var(--visit-sheet-spacer-h, 0px);
+    }
     /* Fiche d'un lieu de la Visite (audit UI/UX du 19/11/2026, U6) : elle ne cache plus ce
        qu'elle décrit. À partir de 1024 px, panneau latéral droit NON modal, sans voile : la
        carte reste visible et cliquable à gauche. En dessous, feuille basse partagée
@@ -7335,6 +7340,20 @@
        haut : sur téléphone, le bas des listes, les commandes de la carte et les derniers
        champs restaient sous le bandeau, même défilés à fond. 0 hors séance. */
     padding-bottom:calc(12px + var(--fm-session-banner-reserve, 0px));
+  }
+  /* Vue élève avec barre basse : le même raccourci effaçait aussi la réserve de la barre ; le bas
+     des listes et de la carte passait 13 à 47 px dessous (zone sûre iPhone comprise). Réserve
+     rétablie, bandeau de séance compris (`--fm-session-banner-h`, posé au-dessus de la barre). */
+  #app:has(nav.bottom-nav) .main:not(.teacher-main) {
+    padding-bottom:calc(12px + var(--fm-safe-bottom-nav) + var(--fm-session-banner-h, 0px));
+  }
+  /* Le pied « Version » est déjà entièrement sous la barre basse (la version reste dans
+     « À propos ») : sorti du flux, il ne raccourcit plus `.main`, l'affichage ne change pas. */
+  #app:has(nav.bottom-nav) .app-footer {
+    position:fixed;
+    left:0;
+    right:0;
+    bottom:0;
   }
   .section-title {
     font-size:clamp(1.05rem, 1rem + .45vw, 1.2rem);
