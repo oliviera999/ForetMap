@@ -39,3 +39,13 @@
   temps médian, seuils non atteints dits comme tels. Liste : tri « Suspectes d'abord ». Panneau
   partagé : `clientSort` reçoit un 3ᵉ argument facultatif `{ refs }`, sans effet sur les tris
   G&L. Tests `tests-ui/FMQuizChoiceStats.test.jsx`, `tests/mcp-domain-quiz.test.js`.
+- **Lot E — données personnelles et documentation** : notice de confidentialité ForêtMap (« à
+  chaque réponse au quiz, le choix que tu as fait et le temps mis à répondre : ils servent à
+  améliorer les questions… », tutoyée, test dans `tests/privacy-notice.test.js`) ; registre du
+  connecteur (`docs/MCP_REGISTRE_TRAITEMENT.md` : nouvelles données, finalité, agrégats, durée
+  inchangée — celle du compte) ; `docs/API.md` (colonnes, contexte, champs des statistiques,
+  revendications ForêtMap du jeton qui ne révèlent pas la bonne réponse, charge G&L inchangée,
+  étiquettes `?origine=` / `?pedagoSession=` non fiables) ; doc professeur
+  `docs/reference/foretmap/pedagogie-quiz-glossaire-reseau.md` (lire la répartition, que faire
+  d'un attracteur, d'un distracteur mort, d'une discrimination négative). `lib/retention/`
+  inchangé : les tentatives suivent le compte.

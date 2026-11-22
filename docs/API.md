@@ -4975,8 +4975,8 @@ Routes publiques (lecture) sauf progression quiz. Voir aussi les routes GL `/api
 | GET | `/api/quiz/categories` | non | Catégories QCM (slug, nom, emoji, theme, description, `description_college` — description réécrite pour le collège, `null` sinon, migration `college_socle` —, order_index). `notionId` / `notionNiveau` ne laissent que les catégories rattachées à la notion (et restreignent le compte renvoyé avec `niveau`). `palierMax` (entier 1–5, chantier collège) : chaque catégorie porte `questionCount`, nombre de questions actives dont le palier d'entrée effectif ne dépasse pas `palierMax` (l'affichage collège masque les catégories à 0) ; **400** `palierMax invalide` hors de 1–5 |
 | GET | `/api/quiz/questions` | non | Liste questions (`theme`, `categorieSlug`, `niveau`, `q`, `notionId`, `notionNiveau`). `reponse_correcte` n’est présent **que** pour un appelant détenant `plants.manage` — même règle que le catalogue GL |
 | GET | `/api/quiz/draw` | non | Tirage QCM (`?illustrated=1` : questions avec photo ; `notionId` / `notionNiveau` : tirage par notion de programme ; `palierMax` (1–5) : seulement les questions dont le palier d'entrée effectif ne le dépasse pas — envoyé par l'affichage collège, 1 en cycle 3, 2 en cycle 4 ; **400** `palierMax invalide`) |
-| GET | `/api/quiz/questions/:code/present` | non (**oui avec contexte**) | Question présentée. **Avec contexte de validation** (`?resourceType=&resourceRef=`) : compte **exigé** depuis l'audit ForetMap du 19/11/2026 (P1) — sans compte, `401` `{ error, code: 'LOGIN_REQUIRED' }` ; le jeton porte alors l'identifiant du compte (claim `uid`). Sans contexte (Quiz libre), toujours public. Choix **mélangés** à chaque appel. La charge ne porte **pas** `photoLegende`, sauf pour `plants.manage` (voir « Présentation et réponse du quiz ForetMap ») |
-| POST | `/api/quiz/questions/:code/answer` | non (**oui avec contexte**) | Validation réponse. **Jeton à usage unique** : rejeu du même `presentationToken` refusé `409` « Présentation déjà utilisée » (interdit de brute-forcer les choix, y compris pour débloquer un conditionnement). **Contexte** (jeton présenté avec contexte, ou corps `{ resourceType, resourceRef }`) **sans compte** → `401` `LOGIN_REQUIRED` ; jeton présenté pour un **autre compte** → `403` `{ error, code: 'PRESENTATION_OTHER_ACCOUNT' }`. Ces refus ne consomment pas le jeton (P1, audit du 19/11/2026). Réponse : `{ correct, feedback, correctChoiceId?, glossaryTerms?, photoLegende?, cooldown? }` (voir « Présentation et réponse du quiz ForetMap ») |
+| GET | `/api/quiz/questions/:code/present` | non (**oui avec contexte**) | Question présentée. **Avec contexte de validation** (`?resourceType=&resourceRef=`) : compte **exigé** depuis l'audit ForetMap du 19/11/2026 (P1) — sans compte, `401` `{ error, code: 'LOGIN_REQUIRED' }` ; le jeton porte alors l'identifiant du compte (claim `uid`). Sans contexte (Quiz libre), toujours public. Choix **mélangés** à chaque appel. La charge ne porte **pas** `photoLegende`, sauf pour `plants.manage` (voir « Présentation et réponse du quiz ForetMap »). Étiquettes statistiques facultatives, déclarées par le client et **non fiables** : `?origine=tirage` (présentation qui suit `/draw`) et `?pedagoSession=<id ou slug>` ; une valeur inconnue est ignorée sans erreur (voir « Réponse choisie et statistiques d'items ») |
+| POST | `/api/quiz/questions/:code/answer` | non (**oui avec contexte**) | Validation réponse. **Jeton à usage unique** : rejeu du même `presentationToken` refusé `409` « Présentation déjà utilisée » (interdit de brute-forcer les choix, y compris pour débloquer un conditionnement). **Contexte** (jeton présenté avec contexte, ou corps `{ resourceType, resourceRef }`) **sans compte** → `401` `LOGIN_REQUIRED` ; jeton présenté pour un **autre compte** → `403` `{ error, code: 'PRESENTATION_OTHER_ACCOUNT' }`. Ces refus ne consomment pas le jeton (P1, audit du 19/11/2026). Réponse : `{ correct, feedback, correctChoiceId?, glossaryTerms?, photoLegende?, cooldown? }` (voir « Présentation et réponse du quiz ForetMap »). Avec un compte, la tentative enregistre aussi la lettre d'origine du choix, l'ordre présenté, la durée, le contexte et l'empreinte de version, **tous lus dans le jeton** ; aucun champ du corps n'y entre (migration `quiz_attempt_choice`) |
 | GET | `/api/quiz/me/progress` | élève | Progression |
 | GET | `/api/quiz/stats` | prof (`stats.read.all`) | Agrégation tentatives par élève et catégorie |
 | GET | `/api/quiz/admin/stats` | prof (`plants.manage`) | Agrégats catalogue (totaux, thèmes, catégories) |
@@ -5548,6 +5548,70 @@ d'appel (`/api/quiz`, `/api/gl/qcm`, `/api/gl/lore/qcm`, `/api/gl/games/:id/qcm/
   du compte (claim `uid`) — un autre compte qui y répond reçoit **403**. Les tirages libres
   (`/api/quiz/draw`, `/api/gl/qcm/draw`, `/api/gl/lore/qcm/draw`) l'excluent (cache mémoire de
   30 s, invalidé à chaque écriture de politique, de lien ou de réglage).
+- **Revendications propres au quiz ForetMap** (jeton `fm_quiz_present` seulement, migration
+  `quiz_attempt_choice`, 22/11/2026). Aucune ne révèle la bonne réponse :
+  - `qfp` : HMAC-SHA256 (`JWT_SECRET`) de l'**empreinte de version** de la question, lié au
+    `jti`. L'empreinte elle-même (SHA-256 de l'énoncé, des choix **et de la bonne réponse**) n'y
+    figure **jamais** en clair : l'élève, qui voit l'énoncé et les choix, la calculerait pour A
+    à E et lirait la bonne lettre. À la réponse, le serveur recalcule l'empreinte de la question
+    courante ; si le HMAC ne concorde pas (question modifiée pendant la validité du jeton),
+    l'empreinte de la tentative reste `NULL` ;
+  - `pat` : instant de présentation en millisecondes (durée de réponse côté serveur) ;
+  - `org: 'tirage'` et `ses` (séance) : étiquettes **déclarées par le client**
+    (`?origine=tirage`, `?pedagoSession=`), jamais décisives.
+  - La lettre d'origine du choix et l'ordre présenté viennent de `choiceLetters`, déjà porté
+    par le jeton des deux produits.
+
+  La charge du jeton **G&L est inchangée** : ces revendications ne sont ajoutées que par une
+  option facultative du module commun (`extraClaims` de `presentQuestion`), que seul
+  `/api/quiz` passe (`tests/quiz-gl-charge-inchangee.test.js`,
+  `tests/quiz-answer-choice.test.js`).
+
+### Réponse choisie et statistiques d'items (quiz ForetMap)
+
+Depuis la migration `quiz_attempt_choice` (22/11/2026), chaque tentative d'un compte
+(`user_quiz_attempts`) garde, en plus de `is_correct` :
+
+| Colonne              | Contenu                                                                                                  |
+| -------------------- | -------------------------------------------------------------------------------------------------------- |
+| `choix_lettre`       | lettre **d'origine** du choix retenu (celle de `quiz_questions`), jamais la position affichée            |
+| `ordre_presente`     | ordre affiché en lettres d'origine (`CADB`)                                                              |
+| `duree_ms`           | maintenant − `pat` du jeton (repli `iat`), borné à [0, 900 000] ms ; aucune valeur du client              |
+| `contexte`           | `validation` (jeton avec `resource`) > `seance` > `tirage` > `libre`                                     |
+| `question_empreinte` | SHA-256 tronqué (12 hex) de l'énoncé, des choix et de la bonne réponse (`lib/quizQuestionFingerprint.js`) |
+
+**Contexte** : `seance` n'est retenu que si la séance annoncée (`?pedagoSession=` à la
+présentation) est confirmée **côté serveur** pour ce compte (`loadActivePedagoSession` : séance
+publiée, module allumé, exécution démarrée et pas terminée depuis) ; sinon elle est ignorée,
+sans erreur. `tirage` suit `?origine=tirage`, que le client ajoute après `/draw`. Ces deux
+valeurs sont des étiquettes statistiques non fiables : elles ne changent ni la réponse HTTP ni
+le verrou. Une réponse refusée (`409` rejeu, `403` verrou, `401`, `403` autre compte) n'écrit
+toujours rien ; un visiteur sans compte n'écrit rien.
+
+**`GET /api/quiz/admin/questions/stats`** ajoute, par question (`stats[]`), calculé sur la
+**version courante** seulement (tentatives dont l'empreinte est celle de la question
+aujourd'hui) :
+
+- `version` : `{ empreinte, tentatives, choix_connus, success_rate, tentatives_versions_anterieures, tentatives_sans_version }`
+  — les tentatives historiques sans lettre comptent dans `attempts` / `success_rate`
+  (inchangés, toutes versions), pas dans la répartition ;
+- `repartition` : `[{ lettre, effectif, pourcentage, correcte }]` pour chaque choix proposé ;
+- `attracteurs` : lettres des distracteurs choisis **plus souvent** que la bonne réponse ;
+- `distracteurs_morts` : distracteurs choisis par **moins de 5 %** des réponses, évalués à partir
+  de **20** réponses (`distracteurs_morts_evalues`) ;
+- `discrimination` : `{ disponible, repondants, seuil_repondants, taille_groupes, reussite_groupe_fort, reussite_groupe_faible, indice, negative }`
+  — réussite (première réponse à la version courante) des **27 %** d'élèves les plus forts
+  moins celle des 27 % les plus faibles, la force étant le taux de réussite de l'élève sur ses
+  **autres** questions ; calculée à partir de **30** répondants distincts ;
+- `temps_median_ms` : `{ global, bonnes_reponses, mesures }` ;
+- `signaux` : `{ reussite_faible, attracteur, discrimination_negative }` ; `suspect` vaut vrai
+  si l'un d'eux l'est.
+
+Au niveau de la réponse : `effet_position` (`[{ nb_choix, reponses, attendu_pourcentage, positions: [{ position, effectif, pourcentage }] }]`,
+taux de choix par position affichée, toutes questions) et `seuils` (constantes du module
+`lib/quizQuestionStats.js`, pas des réglages). Calcul en SQL groupé, jamais une requête par
+élève ; agrégats seulement, aucun identifiant d'élève. Le connecteur MCP (`foretmap_quiz`,
+action `stats`) sert les mêmes champs (`docs/MCP.md`).
 
 ## Codes d’erreur
 
@@ -5644,7 +5708,7 @@ d'isolement : `tests/gating-products.test.js` ; caractérisation par produit :
 | POST | `/api/learning-links/suggest` | Rattachement automatique tutoriel ↔ question **par le contenu** (voir ci-dessous). Simulation par défaut. Les propositions sont insérées **non bloquantes** (lot 4 ; migration 214 aligne les propositions en attente). |
 | GET | `/api/learning-links/locks?includeExpired=&resourceType=` | **Élèves bloqués** par le conditionnement : qui, quelle fiche, quelle question ratée, combien d'erreurs, jusqu'à quand. |
 | DELETE | `/api/learning-links/locks` | Lève un verrou (`user_id`, `resource_type`, `resource_ref`, `question_code` optionnel). `404` si absent. |
-| GET | `/api/quiz/admin/questions/stats?onlyGating=&minAttempts=` | Taux de réussite par question, les plus ratées d'abord ; `suspect` signale celles qui méritent relecture. Le caractère bloquant est lu par `EXISTS` : une question rattachée à trois fiches ne compte plus trois fois ses tentatives (lot 6, C3). |
+| GET | `/api/quiz/admin/questions/stats?onlyGating=&minAttempts=` | Taux de réussite par question, les plus ratées d'abord ; `suspect` signale celles qui méritent relecture. Le caractère bloquant est lu par `EXISTS` : une question rattachée à trois fiches ne compte plus trois fois ses tentatives (lot 6, C3). Depuis la migration `quiz_attempt_choice` : statistiques d'items de la **version courante** (répartition des choix, attracteurs, distracteurs morts, discrimination, temps médian, `signaux`), `effet_position` et `seuils` — voir « Réponse choisie et statistiques d'items ». |
 
 #### Source unique des liens question ↔ ressource (migration 300)
 

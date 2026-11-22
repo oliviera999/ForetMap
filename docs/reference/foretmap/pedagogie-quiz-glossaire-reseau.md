@@ -131,6 +131,38 @@ d'observation** pour l'écriture naturaliste libre.
   choix A à E, bonne réponse, et une explication propre à **chaque** choix possible
   (« Explication si l'élève choisit B »), plus l'explication affichée après une bonne
   réponse.
+- **Lire les statistiques d'une question** (novembre 2026). Depuis le 22/11/2026, chaque
+  réponse d'un élève connecté garde **le choix qu'il a fait** et le temps mis à répondre —
+  avant, on savait seulement si la réponse était juste ou fausse. Dans la fiche question, sous
+  chaque choix, une barre indique la part des élèves qui l'ont retenu (« Choisi par 48 % des
+  réponses (12 sur 25) »), la bonne réponse étant signalée en toutes lettres. Un encart sous
+  « Bonne réponse » résume le reste. Ces chiffres sont des **totaux** : aucun nom d'élève n'y
+  figure.
+  - **Seule la version actuelle compte.** Si vous modifiez l'énoncé, un choix ou la bonne
+    réponse, les réponses d'avant ne disent plus rien des nouveaux choix : elles sont mises de
+    côté (« Statistiques de la version actuelle : N réponses (M sur les versions
+    précédentes) »). Corriger une explication ne change pas la version. Les réponses données
+    avant le 22/11/2026 comptent dans le taux de réussite, pas dans la répartition des choix.
+  - **« Attire plus que la bonne réponse »** : un mauvais choix a été retenu plus souvent que
+    le bon. Soit une idée fausse est très répandue (« la plante tire sa matière du sol ») — la
+    question est alors précieuse, et c'est une notion à reprendre en classe —, soit la bonne
+    réponse enregistrée est fausse ou l'énoncé prête à confusion. **À relire en priorité.**
+  - **« Personne ne le choisit »** : moins de 5 % des réponses, à partir de 20 réponses. Ce
+    choix ne trompe personne et rend la question plus facile qu'elle n'en a l'air : le
+    remplacer par une erreur que les élèves font vraiment. Sous 20 réponses, l'encart dit
+    simplement que ce repérage n'est pas encore possible.
+  - **La discrimination** compare la réussite des élèves les plus à l'aise sur les autres
+    questions (les 27 % les plus forts) à celle des moins à l'aise (les 27 % les plus faibles).
+    Plus elle est haute, mieux la question distingue ceux qui ont compris ; proche de zéro, elle
+    ne distingue personne. **Négative** — les plus à l'aise la ratent plus que les autres —,
+    c'est presque toujours une question ambiguë ou une bonne réponse fausse. Elle n'est
+    calculée qu'à partir de 30 élèves différents.
+  - **Le temps médian** de réponse (pour toutes les réponses et pour les bonnes) aide à
+    repérer une question trop longue à lire ou, à l'inverse, devinée en un coup d'œil.
+  - **Liste « Suspectes d'abord »** : le tri de la liste des questions place en tête celles
+    qui méritent une relecture — taux de réussite très bas, choix qui attire plus que la bonne
+    réponse, ou discrimination négative.
+
 - **L'aperçu « Présenter »** montre la question telle que l'élève la verra —
   **illustration comprise**, avec sa légende et son crédit — et permet de répondre pour
   vérifier le retour pédagogique.

@@ -185,6 +185,10 @@ Côté client (deux lignes, aucune réponse HTTP ni écran changés) : `src/serv
   lancé) → `mcp-domain-pedago` échouait avant mes changements ; `seedData()` lancé sur
   `foretmap_test_q`.
 
+- **Lot E fait** : `src/shared/privacy/privacyNoticeContent.js`, `tests/privacy-notice.test.js`,
+  `docs/MCP_REGISTRE_TRAITEMENT.md`, `docs/API.md`,
+  `docs/reference/foretmap/pedagogie-quiz-glossaire-reseau.md`. `lib/retention/` inchangé.
+
 ## À faire par l'intégration
 
 - `sql/schema_foretmap.sql` : ajouter les cinq colonnes et l'index de la migration
@@ -192,9 +196,11 @@ Côté client (deux lignes, aucune réponse HTTP ni écran changés) : `src/serv
 - Renuméroter `migrations/388_quiz_attempt_choice.sql` si C2 prend 388.
 - `tests/inline-style-guard.test.js` échoue déjà sur `main` (`src/components/visit-views.jsx` :
   3 styles en ligne pour 2 inventoriés, commit 66baa2d) : hors périmètre, pas de mon fait.
+- `docs/reference/exploitation/vos-donnees.md` (hors périmètre) : on peut y ajouter une ligne
+  sur le choix fait au quiz et le temps de réponse, en écho à la notice.
 - `src/shared/enums/pedagoEnums.js` : surveiller un conflit avec un autre flux qui y ajouterait
   une définition (ajout en fin de bloc quiz).
 
 ## État
 
-- Prochaine action : lot E (notice de confidentialité, registre, `docs/API.md`, `docs/reference/`), puis vérifications de fin de flux.
+- Prochaine action : vérifications de fin de flux (lint, format, `npm test`, `test:ui`, suites G&L).
