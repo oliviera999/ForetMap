@@ -9,6 +9,279 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Chantier collège — affichage simplifié, identique de la 6e à la 3e (novembre 2026)
+
+Un seul affichage « collège » simplifié de la 6e à la 3e, Visite sans compte comprise ; le palier
+(cycle 3 / cycle 4) ne règle que le vocabulaire, l’éligibilité des questions et les types
+d’interaction symbiose et compétition. Lycée et université inchangés. Migrations de contenu,
+dans l’ordre : `college_referentiel_notions`, `college_corrections_immediates`,
+`college_groupes_usage`, `college_quiz_paliers`, `college_cles_courtes`,
+`college_etiquettes_simples`, `college_especes_phares` (aucun DDL : les colonnes viennent du
+socle `college_socle`).
+
+#### Socle (S0, structure déjà livrée en v1.260.0)
+
+**Ajouté**
+
+- **Socle de l'affichage collège simplifié** (migration `college_socle`, structure seule) :
+  libellés et attributs en mots simples des groupes de classification et marque des groupes
+  gardés au collège (`clades.label_simple`, `attribute_simple`, `visible_college`), espèces
+  phares d'une carte (`map_species.is_featured`), étiquette simple et description collège d'une
+  fiche (`plants.usage_label`, `description_college`), description collège d'une catégorie de
+  quiz (`quiz_categories.description_college`).
+- Lecture de ces champs par l'API (`GET /api/plants` avec `usage_group` calculé, `/api/clades`,
+  `/api/maps/:id/species`, `site_species` de la Visite, `/api/quiz/categories`) et par le
+  connecteur (`foretmap_get_species`, `foretmap_species`). Aucun changement d'affichage.
+- Table de visibilité pédagogique partagée front / serveur (`src/shared/pedagoVisibilityCore.js`) :
+  briques d'affichage par profil (collège, lycée, université) et règles de palier (cycle 3,
+  cycle 4) ; l'ancien aiguillage de `biodivFeatureVisibility` y est repris à l'identique.
+
+#### C1 — table de visibilité, fiche espèce et Visite allégées
+
+**Modifié**
+
+- **Affichage collège simplifié, identique de la 6e à la 3e** (Visite sans compte comprise) :
+  la table de visibilité pédagogique reçoit son profil collège. Fiche espèce : étiquette simple
+  sous le nom, description collège à la place de la description quand elle existe, groupe de
+  la fiche à la place de la ligne Taxonomie, sections Identité et Écologie, jauges de pH et de
+  température et pastille Nutrition masquées, statut UICN en mots (« Liste rouge :
+  vulnérable ») ; danger, risque sanitaire, détermination et sosies inchangés, en tête.
+  Lycée et université : inchangés.
+- Visite : les vignettes d'espèce n'affichent plus le nom scientifique au collège ; elles
+  portent l'étiquette simple et une ligne tirée de la description collège (à défaut, de la
+  description, puis du rôle écologique).
+- Le fil des groupes et l'onglet « Groupes » sont désormais montrés au collège (l'arbre y est
+  réduit aux groupes d'usage).
+- Règles de palier : vocabulaire (cycle 3 : termes « base » ; cycle 4 : « base » et
+  « approfondissement »), questions de quiz (palier de la classe) et types d'interaction
+  symbiose et compétition (cycle 4 seulement). Un collégien sans classe connue suit le
+  cycle 3.
+- Menu « Aperçu » : _Collège · 6e (cycle 3)_, _Collège · 3e (cycle 4)_ et _Lycée_.
+- Séances : le niveau de notion d'une séance Collège vaut par défaut « Tout le collège » (la
+  classe de chaque élève précise son palier) au lieu de « Cycle 4 » ; le sélecteur ne propose
+  que les niveaux du public de la séance.
+
+**Supprimé**
+
+- Pastille `group_2` de l'en-tête de la fiche (colonne disparue en migration 129).
+
+#### C4 — groupes d’usage et catalogue groupé
+
+**Ajouté**
+
+- **Groupes d'usage au collège** (chantier collège, flux C4) : arbre de classification réduit
+  aux grands groupes marqués `visible_college` (calcul pur `collapseForProfile`,
+  `lib/clades.js`), avec libellés et attributs en mots simples. Paramètre facultatif
+  `profile=college` sur `GET /api/clades`, `GET /api/clades/:id/path`,
+  `POST /api/clades/activity/subtree` et `POST /api/clades/activity/check` ; réponses
+  inchangées sans lui (sauf le champ `collapsed: false` ajouté au sous-arbre).
+- **Groupes emboîtés** et **fil des groupes** de la fiche : arbre réduit au collège (brique
+  `nested_groups_full_tree`), options de placement limitées aux grands groupes, correction
+  alignée, bouton « Pour aller plus loin » vers la classification complète.
+- **Catalogue groupé** au collège (briques `catalog_grouped`, `featured_first`) : sections
+  repliables par groupe d'usage avec effectif, espèces phares d'abord, puis présences
+  confirmées ou attendues, puis présences à vérifier avec la mention « à chercher » ; filtre
+  unique « Groupe » à la place de Règne › Grand groupe › Famille ; la recherche trouve aussi le
+  groupe et l'étiquette simple. Repli sur le catalogue actuel tant qu'aucun groupe n'est marqué.
+
+**Modifié**
+
+- Filtres du catalogue : retrait des replis sur les colonnes `group_1` … `group_4`
+  (supprimées en migration 129). La pastille de nutrition des fiches végétales lit désormais le
+  règne (`taxon_kingdom`) : elle était toujours affichée faute de `group_1`.
+
+#### C2 — barrière de vocabulaire douce
+
+**Ajouté**
+
+- **Barrière de vocabulaire douce au collège** (flux C2) : le glossaire ne souligne et ne liste
+  par défaut que les termes de la classe — termes de base en cycle 3, base et approfondissement
+  en cycle 4 (règle de palier `glossary_depth_max`, palier d'entrée `GLOSSARY_NIVEAU_ENTRY`).
+  Le bouton « Pour aller plus loin » de l'onglet Glossaire affiche aussi les termes plus avancés ;
+  la fiche d'un terme reste toujours consultable. Lycée et université inchangés.
+- Fiche rapide du glossaire au collège : définition courte d'abord, définition complète repliée
+  (« Lire la définition complète »).
+- Serveur : `glossaryDepthMaxForLearner`, `createGlossaryEntriesByDepth`, `glossaryDepthCacheKey`
+  (`lib/foretmapGlossaryAutolink.js`) pour l'auto-lien des tutoriels par palier.
+
+**Modifié**
+
+- Onglet Glossaire découpé (`GlossaryFilters`, `GlossaryTermDetail`, feuille `glossary.css`) ; la
+  profondeur d'un terme s'affiche par son libellé (« Avancé » au lieu de `avance`).
+- Le cœur d'auto-lien partagé avec Gnomes & Licornes (`termAutolinkCore`) n'est pas modifié.
+
+#### C3 — réseau trophique borné
+
+**Ajouté**
+
+- **Réseau trophique borné au collège** (flux C3) : pas de réseau complet par défaut — l'élève
+  choisit une espèce de départ (espèces phares de la carte en tête, puis recherche) et voit
+  ses voisins directs, extensibles à la chaîne ; les espèces hors de la carte sont retirées ;
+  chaque type de relation se lit d'abord comme un verbe (« mange des fruits (frugivorie) »).
+  Une espèce mise en avant sans relation visible à ce niveau est annoncée, sans graphe vide.
+  Lycée, université et professeurs : réseau complet inchangé. Comportement réglé par la table
+  de visibilité (`foodweb_full_by_default`, `foodweb_offmap_species`) et les types du palier.
+- **Frugivorie et granivorie au collège** (`COLLEGE_INTERACTION_TYPE_ENUM`), libellés en verbe
+  `labelsSimple` et `interactionTypeLabelSimple`.
+- **Séances : étape « Réseau trophique » avec `plantIds`** — une liste d'espèces (12 au plus)
+  montrées avec leurs liens mutuels, en plus de `highlightPlantId` inchangé ; validation
+  partagée (`validateStepActionPayload`), éditeur d'étape, outil MCP `foretmap_pedago_sessions`.
+
+**Modifié**
+
+- Découpage de `FoodWebView.jsx` (918 → ~390 lignes) et de `FoodWebGraph.jsx` (1 624 → 1 260
+  lignes) en hooks testés (`useFoodWebData`, `useFoodWebAdmin`, `useFoodWebEdgeSelection`,
+  `useFoodWebProfile`, `useFoodWebStartSpecies`, `useFoodWebFocus`) et composants dédiés ;
+  comportement inchangé hors collège, Gnomes & Licornes compris. Trois styles en ligne retirés.
+
+#### C5 — espèces phares dans les fiches de lieu
+
+**Ajouté**
+
+- **Espèces phares dans les fiches de lieu au collège** (carte et Visite, visite invitée
+  comprise) : les espèces phares de la carte (`map_species.is_featured`) passent en tête, les
+  présences `documentaire` / `a_confirmer` en dernier avec la mention « à chercher », et la
+  liste est plafonnée (`zone_tiles_cap`, 12 au collège) avec un bouton « Voir les N autres ».
+  Repli : sans espèce phare, ordre de saisie. Lycée et université inchangés.
+- `PATCH /api/plants/:id/map-species/:mapId` accepte `is_featured` (booléen, `plants.manage`,
+  journalisé) ; le connecteur `foretmap_species action=registry_status` l'écrit par cette route.
+- `GET /api/visit/content` : chaque espèce d'une zone ou d'un repère porte `is_featured` et
+  `validation_status` (déjà publics dans `site_species`).
+
+**Modifié**
+
+- Refacto : `computeVisitLocationAside` dérive zone et repère par une seule fonction ;
+  dépendances de crochet de `LivingBeingsCatalogPanel` assainies.
+
+#### C6 — quiz par palier
+
+**Modifié — quiz par palier au collège (chantier collège, flux C6)**
+
+- **Palier d'entrée d'une question déduit de ses notions** : une question « Collège » qui porte
+  au moins une notion effective de cycle 3 (catégorie + ajouts − exclusions) entre au palier 1,
+  sinon au palier 2 (cycle 4) ; une question « Lycée » au palier 3. Même règle en JS
+  (`quizQuestionEntryPalier`, `lib/pedagoScales.js` et son miroir) et en SQL
+  (`quizQuestionEntryPalierSql`, `lib/curriculumNotions.js`) ; `entry_palier` dans
+  `GET /api/curriculum/quiz-questions/:code/notions`.
+- **Verrouillage des fiches** : le plafond de l'élève tient compte de la règle de palier
+  `quiz_entry_palier_max` ; un collégien n'est jamais interrogé au-delà du cycle 4 (repli
+  `level_fallback: "college_levels"`), et une fiche gardée seulement par des questions de lycée
+  ne lui est pas verrouillée (repli journalisé). Les autres élèves gardent le repli
+  `all_levels`.
+- **Quiz en affichage collège** : `palierMax` sur `GET /api/quiz/draw` et
+  `/api/quiz/categories` ; l'onglet Quiz ne tire que les questions du palier de l'élève,
+  masque les catégories sans question à ce palier et affiche la description collège de la
+  catégorie choisie. Lycée et université inchangés.
+- Connecteur : `foretmap_quiz` `categories` accepte `palier_max` ; `get` renvoie le palier
+  d'entrée effectif.
+- Test de contenu `tests/content/college-c6-quiz-paliers.test.js` : toute question active de
+  collège porte une notion de collège.
+
+#### D1 — corrections immédiates de contenu
+
+**Modifié**
+
+- **Corrections immédiates de contenu pour le collège** (migration `college_corrections_immediates`,
+  données seulement) :
+  - 66 fiches perdent un emoji qui suggérait un autre groupe (cloporte en coléoptère,
+    mille-pattes en chenille, oursin en étoile de mer, punaises en coccinelle…) au profit d'un
+    emoji fidèle ou neutre du milieu de vie ;
+  - glossaire : 31 niveaux revus contre les programmes et les contenus collège (cellule, cycle
+    de l'eau, régime alimentaire en `base` ; évolution, mutualisme, services écosystémiques,
+    biocénose, sélection naturelle… en `approfondissement`) ; « champignon » quitte la catégorie
+    faune ; invertébré, reptile et poisson présentés comme des groupes d'usage courant ;
+  - la carte de la daya n'impose plus le niveau lycée ;
+  - séances 6e : réseau de l'aquaponie centré sur la tomate et question de cycle 3 (QF9893),
+    espèce mise en avant dans chaque réseau de « biodiversité de deux lieux » (tomate, crabe
+    vert), étape « ténébrion meunier » (mangeur de graines) dans « régimes alimentaires ».
+
+#### D2 — groupes d’usage de l’arbre et ordres d’insectes
+
+**Ajouté**
+
+- **Groupes d'usage du collège** (migration `college_groupes_usage`) : 35 boîtes de l'arbre des
+  groupes marquées « visibles au collège », avec un libellé et un attribut observable en mots
+  simples (« Animaux à pattes articulées — Squelette dur à l'extérieur du corps… »). Arbre réduit
+  de quatre niveaux au plus ; chaque fiche visible des élèves (hors ressources et hors plancton /
+  biofilm) reçoit un groupe d'usage.
+- Quatre ordres d'insectes ajoutés à l'arbre (Orthoptères, Dermaptères, Mantes, Névroptères,
+  vérifiés sur GBIF), non visibles au collège ; criquets, grillons, courtilière, perce-oreille,
+  mante et chrysope y sont rattachés (sans écraser un rattachement modifié dans l'application).
+
+#### D3 — un palier par question de quiz
+
+**Modifié**
+
+- **Quiz : un seul palier par question de collège** (migration `college_quiz_paliers`, contenu
+  seul). Les 445 questions de collège rattachées à la fois au cycle 3 et au cycle 4 sont
+  tranchées d’après leur contenu et les programmes : 322 au cycle 3 (accessibles dès la 6e),
+  102 au cycle 4, 22 passées au lycée (termes avancés du glossaire, familles en -idés,
+  nitrification, rapport C/N, génétique des hybrides…). Exclusions et ajouts dans
+  `quiz_question_notions`, avec garde sur le code, la catégorie et le niveau de chaque question.
+- **Énoncés autonomes** : 39 questions qui renvoyaient à « la fiche » ou « au texte » nomment
+  désormais le tutoriel (« Arrosage au potager », « Le compostage », « Le sol vivant »…) ;
+  garde sur l’ancien énoncé.
+
+**Ajouté**
+
+- **Descriptions collège de sept catégories de quiz** partagées avec le lycée
+  (`quiz_categories.description_college` : cellule, cycle de l’azote et aquaponie, mesure,
+  énergie et matière, évolution et biodiversité, micro-organismes, populations), posées
+  seulement si vides.
+
+#### D4 — clés de détermination courtes
+
+**Ajouté**
+
+- **Clés de détermination courtes pour le collège** (chantier collège, flux D4, migration
+  `college_cles_courtes`) : versions courtes (6 à 8 couplets, propositions de 15 mots au plus)
+  des clés « araignées », « papillons », « traces de mammifères de l'oued Melah », « arbres et
+  palmiers » et « amphibiens et reptiles de l'oued Melah », chaque résultat renvoyant à la clé
+  complète par « Pour aller plus loin » ; nouvelle clé collège « Les oiseaux d'eau de la daya »
+  (jumelles, consigne de sécurité). Les clés complètes ne sont pas modifiées.
+
+#### D5 — étiquettes simples
+
+**Ajouté**
+
+- **Étiquettes simples des fiches** (migration `college_etiquettes_simples`, contenu) : une
+  étiquette courte en mots courants pour chacune des 644 fiches visibles des élèves (hors
+  ressources), par exemple « une araignée sauteuse », « un papillon jaune orangé » (Souci),
+  « un acarien minuscule des feuilles » (Tétranyque tisserand) — 40 caractères au plus, sans
+  terme savant hors du vocabulaire de base. Données par groupe d'usage dans
+  `data/college-2026-11/D5/`, contrôle (`check-D5-etiquettes.js`) et migration générée
+  (`build-D5-migration.js`) ; une étiquette déjà posée dans l'application n'est jamais écrasée.
+
+#### D6 — espèces phares et descriptions collège
+
+**Ajouté**
+
+- **Collège — espèces phares et descriptions collège** (chantier collège, flux D6) : migration
+  `college_especes_phares`, générée depuis `data/college-2026-11/d6/` par
+  `scripts/college-2026-11/build-d6-migration.js`. 100 présences marquées « espèce phare »
+  (`map_species.is_featured`) sur les 7 cartes (12 à 20 par carte, 2 à Beaulieu) et 73
+  descriptions courtes pour le collège (`plants.description_college`, deux phrases, 35 mots au
+  plus), une par espèce. Gardes : marque posée de 0 à 1 seulement, description posée seulement
+  si vide. Tests : `tests/content/college-d6-especes-phares.test.js`,
+  `tests/college-d6-rejeu.test.js`.
+
+#### Intégration (SI)
+
+**Ajouté**
+
+- **Référentiel des notions** (migration `college_referentiel_notions`, avant le retri du quiz) :
+  six notions de programme (`C3-MAT`, `C3-DEV`, `C4-REPRO`, `C4-MICRO`, `2-PAYS`, `T-CLIM`) et
+  quatorze liaisons catégorie → notion qui n’existaient qu’en production sont semées en base
+  fraîche (sans effet en production) ; le retri des paliers y voit les mêmes notions qu’en prod.
+- **Tutoriels** : l’auto-lien du glossaire dans `GET /api/tutorials/:id/view` suit le palier de
+  l’élève authentifié (palier dans la clé du cache) ; sans jeton, auto-lien complet.
+
+**Modifié**
+
+- Règle `glossary_depth_max` à `null` au lycée (et non `avance`) : le popover du glossaire du
+  lycée garde sa définition complète dépliée.
+- Repli `group_1` retiré de `isVegetalCatalogEntry` (colonne supprimée en migration 129).
+
 ### Modifié — écran de connexion allégé d'un tiers (UI/UX lot K, U1)
 
 Lot K du chantier UI/UX (`docs/AUDIT_UI_UX_2026-11-19.md`, U1). JavaScript chargé avant de
