@@ -309,7 +309,11 @@ test('quiz : catégories, liste, fiche, stats, modification fusionnée, notions,
   assert.equal(mine.attempts, 1);
   assert.equal(mine.success_rate_percent, 0);
   assert.ok(st.data.by_category.some((r) => r.categorie_slug === categorySlug));
-  assert.equal(st.data.distractors.available, false);
+  // Réponse choisie enregistrée depuis la migration `quiz_attempt_choice` (détail :
+  // tests/mcp-domain-quiz.test.js) ; la tentative ci-dessus, sans lettre, compte dans la
+  // réussite mais pas dans la répartition.
+  assert.equal(st.data.distractors.available, true);
+  assert.equal(mine.version.choix_connus, 0);
 
   const up = await call('foretmap_quiz', {
     action: 'update',

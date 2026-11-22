@@ -17,7 +17,8 @@ import { questionFieldLabel } from './questionFieldLabels.js';
 // - formModule                        { EMPTY_FORM, FORM_FIELDS, TEXTAREA_FIELDS,
 //                                       questionToForm, formToPayload }
 // - clientFilter(items, filters)      filtre client (état filtres → module de formulaire)
-// - clientSort(items, sortBy)         tri client
+// - clientSort(items, sortBy, ctx?)   tri client ; `ctx = { refs }` (facultatif, ignoré par
+//                                     les tris qui n'en ont pas besoin — G&L)
 // - references                        [{ key, load }] — jeux d'options chargés au montage
 // - filters                           [{ key, label, initial, param?, options(ctx) }]
 // - sort                              { initial, options: [{ value, label }] }
@@ -114,8 +115,8 @@ export function QuestionEditorPanel({ config, initialQuestionCode = null, onQues
 
   const filteredItems = useMemo(() => {
     const filtered = config.clientFilter(items, { ...filters, filterQ });
-    return config.clientSort(filtered, sortBy);
-  }, [config, items, filters, filterQ, sortBy]);
+    return config.clientSort(filtered, sortBy, { refs });
+  }, [config, items, filters, filterQ, sortBy, refs]);
 
   useEffect(() => {
     for (const def of config.references) {

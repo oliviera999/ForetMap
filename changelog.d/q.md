@@ -29,3 +29,13 @@
   `effet_position` (taux de choix par position affichée) et `seuils`. SQL groupé, constantes
   nommées dans `lib/quizQuestionStats.js` (partie G&L inchangée). Test
   `quiz-question-stats-choices`.
+- **Lot D — connecteur et écran du professeur** : `foretmap_quiz` `stats` renvoie
+  `distractors.available: true` et, par question, version, répartition, attracteurs,
+  distracteurs morts, discrimination, temps médian et signaux (mêmes fonctions que la route) ;
+  `docs/MCP.md` à jour. Écran d'édition d'une question du quiz : sous chaque choix, barre du
+  pourcentage de choix (texte explicite, barre décorative) et badges « Attire plus que la bonne
+  réponse » / « Personne ne le choisit » ; encart version (« Statistiques de la version
+  actuelle : N réponses (M sur les versions précédentes) »), discrimination avec phrase d'aide,
+  temps médian, seuils non atteints dits comme tels. Liste : tri « Suspectes d'abord ». Panneau
+  partagé : `clientSort` reçoit un 3ᵉ argument facultatif `{ refs }`, sans effet sur les tris
+  G&L. Tests `tests-ui/FMQuizChoiceStats.test.jsx`, `tests/mcp-domain-quiz.test.js`.

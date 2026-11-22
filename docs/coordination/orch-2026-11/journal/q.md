@@ -171,14 +171,30 @@ Côté client (deux lignes, aucune réponse HTTP ni écran changés) : `src/serv
   `tests/quiz-question-stats-choices.test.js` (18 cas). Contrôle sur la copie anonymisée :
   139 questions en 52 ms.
 
+- **Lot D fait** : `lib/mcp/domains/quiz.js`, `lib/mcp/tools/domains/quiz.js`, `docs/MCP.md` ;
+  écran : `src/components/pedago/admin/FMQuizQuestionEditorPanel.jsx` (référence
+  `questionStats`, rendus FM des choix et de la bonne réponse, tri « Suspectes d'abord »),
+  nouveaux `FMQuizChoiceStats.jsx`, `fmQuizChoiceStatsModel.js`, `fmQuizChoiceStats.css`
+  (feuille dédiée, jetons seulement, largeur de barre par propriété personnalisée) ;
+  `src/shared/qcm/QuestionEditorPanel.jsx` (3ᵉ argument `{ refs }` de `clientSort`, `refs` dans
+  les dépendances du mémo). Tests : `tests-ui/FMQuizChoiceStats.test.jsx` (formats, tri,
+  barres, badges, seuils, tris G&L identiques avec et sans 3ᵉ argument, montage de l'écran),
+  `tests/mcp-domain-quiz.test.js`, assertion mise à jour dans `tests/mcp-domain-pedago.test.js`
+  (`distractors.available` passe à `true`).
+- Environnement : ma base de test n'avait pas les zones de démonstration (`seedData` jamais
+  lancé) → `mcp-domain-pedago` échouait avant mes changements ; `seedData()` lancé sur
+  `foretmap_test_q`.
+
 ## À faire par l'intégration
 
 - `sql/schema_foretmap.sql` : ajouter les cinq colonnes et l'index de la migration
   `quiz_attempt_choice` à `user_quiz_attempts`.
 - Renuméroter `migrations/388_quiz_attempt_choice.sql` si C2 prend 388.
+- `tests/inline-style-guard.test.js` échoue déjà sur `main` (`src/components/visit-views.jsx` :
+  3 styles en ligne pour 2 inventoriés, commit 66baa2d) : hors périmètre, pas de mon fait.
 - `src/shared/enums/pedagoEnums.js` : surveiller un conflit avec un autre flux qui y ajouterait
   une définition (ajout en fin de bloc quiz).
 
 ## État
 
-- Prochaine action : lot D (MCP `foretmap_quiz stats`, écran du professeur).
+- Prochaine action : lot E (notice de confidentialité, registre, `docs/API.md`, `docs/reference/`), puis vérifications de fin de flux.
