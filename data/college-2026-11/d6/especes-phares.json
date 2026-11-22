@@ -1,0 +1,519 @@
+{
+  "source": "instantané de production du 21/11/2026 (docs/coordination/college-2026-11/snapshot)",
+  "cartes": {
+    "beaulieu": [
+      {
+        "name": "Rougequeue noir",
+        "scientific_name": "Phoenicurus ochruros",
+        "snapshot_id": 850
+      },
+      {
+        "name": "Huppe fasciée",
+        "scientific_name": "Upupa epops",
+        "snapshot_id": 848
+      }
+    ],
+    "foret": [
+      {
+        "name": "Basilic",
+        "scientific_name": "Ocimum basilicum",
+        "snapshot_id": 4
+      },
+      {
+        "name": "Pourpier",
+        "scientific_name": "Portulaca oleracea",
+        "snapshot_id": 861
+      },
+      {
+        "name": "Mauve à petites fleurs",
+        "scientific_name": "Malva parviflora",
+        "snapshot_id": 863
+      },
+      {
+        "name": "Laiteron maraîcher",
+        "scientific_name": "Sonchus oleraceus",
+        "snapshot_id": 860
+      },
+      {
+        "name": "Coccinelle des friches",
+        "scientific_name": "Hippodamia variegata",
+        "snapshot_id": 773
+      },
+      {
+        "name": "Machaon",
+        "scientific_name": "Papilio machaon",
+        "snapshot_id": 324
+      },
+      {
+        "name": "Belle-Dame",
+        "scientific_name": "Vanessa cardui",
+        "snapshot_id": 321
+      },
+      {
+        "name": "Xylocope violet",
+        "scientific_name": "Xylocopa violacea",
+        "snapshot_id": 325
+      },
+      {
+        "name": "Éristale gluant",
+        "scientific_name": "Eristalis tenax",
+        "snapshot_id": 784
+      },
+      {
+        "name": "Libellule écarlate",
+        "scientific_name": "Crocothemis erythraea",
+        "snapshot_id": 326
+      },
+      {
+        "name": "Bulbul des jardins",
+        "scientific_name": "Pycnonotus barbatus",
+        "snapshot_id": 302
+      },
+      {
+        "name": "Moineau domestique",
+        "scientific_name": "Passer domesticus",
+        "snapshot_id": 303
+      },
+      {
+        "name": "Chardonneret élégant",
+        "scientific_name": "Carduelis carduelis",
+        "snapshot_id": 308
+      },
+      {
+        "name": "Caragouille rosée",
+        "scientific_name": "Theba pisana",
+        "snapshot_id": 822
+      },
+      {
+        "name": "Cloporte poudré",
+        "scientific_name": "Porcellionides pruinosus",
+        "snapshot_id": 343
+      },
+      {
+        "name": "Argiope à bandes",
+        "scientific_name": "Argiope trifasciata",
+        "snapshot_id": 804
+      },
+      {
+        "name": "Ver de compost",
+        "scientific_name": "Eisenia fetida",
+        "snapshot_id": 49
+      }
+    ],
+    "lyautey": [
+      {
+        "name": "Mauve à petites fleurs",
+        "scientific_name": "Malva parviflora",
+        "snapshot_id": 863
+      },
+      {
+        "name": "Laiteron maraîcher",
+        "scientific_name": "Sonchus oleraceus",
+        "snapshot_id": 860
+      },
+      {
+        "name": "Pourpier",
+        "scientific_name": "Portulaca oleracea",
+        "snapshot_id": 861
+      },
+      {
+        "name": "Bulbul des jardins",
+        "scientific_name": "Pycnonotus barbatus",
+        "snapshot_id": 302
+      },
+      {
+        "name": "Moineau domestique",
+        "scientific_name": "Passer domesticus",
+        "snapshot_id": 303
+      },
+      {
+        "name": "Tourterelle turque",
+        "scientific_name": "Streptopelia decaocto",
+        "snapshot_id": 304
+      },
+      {
+        "name": "Martinet pâle",
+        "scientific_name": "Apus pallidus",
+        "snapshot_id": 309
+      },
+      {
+        "name": "Faucon crécerelle",
+        "scientific_name": "Falco tinnunculus",
+        "snapshot_id": 317
+      },
+      {
+        "name": "Souci",
+        "scientific_name": "Colias croceus",
+        "snapshot_id": 322
+      },
+      {
+        "name": "Machaon",
+        "scientific_name": "Papilio machaon",
+        "snapshot_id": 324
+      },
+      {
+        "name": "Xylocope violet",
+        "scientific_name": "Xylocopa violacea",
+        "snapshot_id": 325
+      },
+      {
+        "name": "Coccinelle des friches",
+        "scientific_name": "Hippodamia variegata",
+        "snapshot_id": 773
+      },
+      {
+        "name": "Libellule écarlate",
+        "scientific_name": "Crocothemis erythraea",
+        "snapshot_id": 326
+      },
+      {
+        "name": "Argiope à bandes",
+        "scientific_name": "Argiope trifasciata",
+        "snapshot_id": 804
+      },
+      {
+        "name": "Caragouille rosée",
+        "scientific_name": "Theba pisana",
+        "snapshot_id": 822
+      },
+      {
+        "name": "Xanthorie des murailles",
+        "scientific_name": "Xanthoria parietina",
+        "snapshot_id": 855
+      },
+      {
+        "name": "Pipistrelle de Kuhl",
+        "scientific_name": "Pipistrellus kuhlii",
+        "snapshot_id": 320
+      }
+    ],
+    "n3": [
+      {
+        "name": "Martinet pâle",
+        "scientific_name": "Apus pallidus",
+        "snapshot_id": 309
+      },
+      {
+        "name": "Hirondelle de fenêtre",
+        "scientific_name": "Delichon urbicum",
+        "snapshot_id": 311
+      },
+      {
+        "name": "Bergeronnette grise",
+        "scientific_name": "Motacilla alba",
+        "snapshot_id": 316
+      },
+      {
+        "name": "Coccinelle des friches",
+        "scientific_name": "Hippodamia variegata",
+        "snapshot_id": 773
+      },
+      {
+        "name": "Libellule écarlate",
+        "scientific_name": "Crocothemis erythraea",
+        "snapshot_id": 326
+      },
+      {
+        "name": "Drosophile",
+        "scientific_name": "Drosophila melanogaster",
+        "snapshot_id": 346
+      },
+      {
+        "name": "Éristale gluant",
+        "scientific_name": "Eristalis tenax",
+        "snapshot_id": 784
+      },
+      {
+        "name": "Criquet à antennes rousses",
+        "scientific_name": "Acanthacris ruficornis",
+        "snapshot_id": 777
+      },
+      {
+        "name": "Mouche soldat noire",
+        "scientific_name": "Hermetia illucens",
+        "snapshot_id": 783
+      },
+      {
+        "name": "Cloporte poudré",
+        "scientific_name": "Porcellionides pruinosus",
+        "snapshot_id": 343
+      },
+      {
+        "name": "Géophile",
+        "scientific_name": "Geophilomorpha",
+        "snapshot_id": 348
+      },
+      {
+        "name": "Pholque de Pluche",
+        "scientific_name": "Holocnemus pluchei",
+        "snapshot_id": 809
+      },
+      {
+        "name": "Caragouille rosée",
+        "scientific_name": "Theba pisana",
+        "snapshot_id": 822
+      },
+      {
+        "name": "Pourpier",
+        "scientific_name": "Portulaca oleracea",
+        "snapshot_id": 861
+      },
+      {
+        "name": "Amarante verte",
+        "scientific_name": "Amaranthus viridis",
+        "snapshot_id": 870
+      },
+      {
+        "name": "Laiteron maraîcher",
+        "scientific_name": "Sonchus oleraceus",
+        "snapshot_id": 860
+      }
+    ],
+    "sablettes": [
+      {
+        "name": "Goéland leucophée",
+        "scientific_name": "Larus michahellis",
+        "snapshot_id": 319
+      },
+      {
+        "name": "Bergeronnette grise",
+        "scientific_name": "Motacilla alba",
+        "snapshot_id": 316
+      },
+      {
+        "name": "Gravelot à collier interrompu",
+        "scientific_name": "Charadrius alexandrinus",
+        "snapshot_id": 491
+      },
+      {
+        "name": "Figue marine",
+        "scientific_name": "Carpobrotus edulis",
+        "snapshot_id": 178
+      },
+      {
+        "name": "Cakilier maritime",
+        "scientific_name": "Cakile maritima",
+        "snapshot_id": 354
+      },
+      {
+        "name": "Laitue de mer",
+        "scientific_name": "Ulva spp.",
+        "snapshot_id": 599
+      },
+      {
+        "name": "Fucus spiralé",
+        "scientific_name": "Fucus spiralis",
+        "snapshot_id": 601
+      },
+      {
+        "name": "Patelle rustique",
+        "scientific_name": "Patella rustica",
+        "snapshot_id": 616
+      },
+      {
+        "name": "Monodonte",
+        "scientific_name": "Phorcus lineatus",
+        "snapshot_id": 622
+      },
+      {
+        "name": "Pagure des rochers",
+        "scientific_name": "Clibanarius erythropus",
+        "snapshot_id": 831
+      },
+      {
+        "name": "Crabe marbré",
+        "scientific_name": "Pachygrapsus marmoratus",
+        "snapshot_id": 626
+      },
+      {
+        "name": "Anémone tomate",
+        "scientific_name": "Actinia equina",
+        "snapshot_id": 630
+      },
+      {
+        "name": "Oursin violet",
+        "scientific_name": "Paracentrotus lividus",
+        "snapshot_id": 632
+      },
+      {
+        "name": "Pimélie",
+        "scientific_name": "Pimelia sp.",
+        "snapshot_id": 771
+      },
+      {
+        "name": "Gobie paganel",
+        "scientific_name": "Gobius paganellus",
+        "snapshot_id": 637
+      },
+      {
+        "name": "Talitre (puce de mer)",
+        "scientific_name": "Talitrus saltator",
+        "snapshot_id": 638
+      }
+    ],
+    "melah": [
+      {
+        "name": "Blé tendre",
+        "scientific_name": "Triticum aestivum",
+        "snapshot_id": 209
+      },
+      {
+        "name": "Pois chiche",
+        "scientific_name": "Cicer arietinum",
+        "snapshot_id": 121
+      },
+      {
+        "name": "Massette",
+        "scientific_name": "Typha sp.",
+        "snapshot_id": 573
+      },
+      {
+        "name": "Tamaris de France",
+        "scientific_name": "Tamarix gallica",
+        "snapshot_id": 571
+      },
+      {
+        "name": "Héron garde-bœufs",
+        "scientific_name": "Bubulcus ibis",
+        "snapshot_id": 503
+      },
+      {
+        "name": "Huppe fasciée",
+        "scientific_name": "Upupa epops",
+        "snapshot_id": 848
+      },
+      {
+        "name": "Cigogne blanche",
+        "scientific_name": "Ciconia ciconia",
+        "snapshot_id": 312
+      },
+      {
+        "name": "Abeille domestique",
+        "scientific_name": "Apis mellifera intermissa",
+        "snapshot_id": 28
+      },
+      {
+        "name": "Libellule écarlate",
+        "scientific_name": "Crocothemis erythraea",
+        "snapshot_id": 326
+      },
+      {
+        "name": "Criquet égyptien",
+        "scientific_name": "Anacridium aegyptium",
+        "snapshot_id": 776
+      },
+      {
+        "name": "Bousier sacré",
+        "scientific_name": "Scarabaeus sacer",
+        "snapshot_id": 772
+      },
+      {
+        "name": "Escargot petit-gris",
+        "scientific_name": "Cornu aspersum",
+        "snapshot_id": 89
+      },
+      {
+        "name": "Grenouille verte d'Afrique du Nord",
+        "scientific_name": "Pelophylax saharicus",
+        "snapshot_id": 529
+      },
+      {
+        "name": "Gambusie",
+        "scientific_name": "Gambusia affinis",
+        "snapshot_id": 21
+      },
+      {
+        "name": "Psammodrome algire",
+        "scientific_name": "Psammodromus algirus",
+        "snapshot_id": 836
+      },
+      {
+        "name": "Hérisson d’Algérie",
+        "scientific_name": "Atelerix algirus",
+        "snapshot_id": 132
+      }
+    ],
+    "dayat": [
+      {
+        "name": "Foulque macroule",
+        "scientific_name": "Fulica atra",
+        "snapshot_id": 486
+      },
+      {
+        "name": "Gallinule poule-d'eau",
+        "scientific_name": "Gallinula chloropus",
+        "snapshot_id": 484
+      },
+      {
+        "name": "Échasse blanche",
+        "scientific_name": "Himantopus himantopus",
+        "snapshot_id": 489
+      },
+      {
+        "name": "Aigrette garzette",
+        "scientific_name": "Egretta garzetta",
+        "snapshot_id": 502
+      },
+      {
+        "name": "Canard colvert",
+        "scientific_name": "Anas platyrhynchos",
+        "snapshot_id": 477
+      },
+      {
+        "name": "Roseau commun",
+        "scientific_name": "Phragmites australis",
+        "snapshot_id": 385
+      },
+      {
+        "name": "Massette à larges feuilles",
+        "scientific_name": "Typha latifolia",
+        "snapshot_id": 394
+      },
+      {
+        "name": "Tamaris",
+        "scientific_name": "Tamarix aphylla",
+        "snapshot_id": 351
+      },
+      {
+        "name": "Libellule écarlate",
+        "scientific_name": "Crocothemis erythraea",
+        "snapshot_id": 326
+      },
+      {
+        "name": "Trithémis pourpré",
+        "scientific_name": "Trithemis annulata",
+        "snapshot_id": 793
+      },
+      {
+        "name": "Piéride de la rave",
+        "scientific_name": "Pieris rapae",
+        "snapshot_id": 656
+      },
+      {
+        "name": "Caragouille rosée",
+        "scientific_name": "Theba pisana",
+        "snapshot_id": 822
+      },
+      {
+        "name": "Grenouille verte d'Afrique du Nord",
+        "scientific_name": "Pelophylax saharicus",
+        "snapshot_id": 529
+      },
+      {
+        "name": "Émyde lépreuse",
+        "scientific_name": "Mauremys leprosa",
+        "snapshot_id": 532
+      },
+      {
+        "name": "Gambusie",
+        "scientific_name": "Gambusia affinis",
+        "snapshot_id": 21
+      },
+      {
+        "name": "Psammodrome algire",
+        "scientific_name": "Psammodromus algirus",
+        "snapshot_id": 836
+      }
+    ]
+  }
+}
