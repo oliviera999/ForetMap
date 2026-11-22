@@ -1,0 +1,1372 @@
+{
+ "_doc": "Étiquettes simples (plants.usage_label) du groupe d'usage « Plantes à fleurs ». Clé naturelle : plants.name (+ scientific_name). Valeur avant attendue : NULL. doute : cas à relire par Oliv.",
+ "groupe": "plantes-a-fleurs",
+ "libelle": "Plantes à fleurs",
+ "boites": [
+  "angiospermes"
+ ],
+ "fiches": [
+  {
+   "name": "Laitue",
+   "scientific_name": "Lactuca sp.",
+   "usage_label": "un légume-feuille du potager"
+  },
+  {
+   "name": "Carotte",
+   "scientific_name": "Daucus carota",
+   "usage_label": "un légume-racine du potager"
+  },
+  {
+   "name": "Tomate",
+   "scientific_name": "Solanum lycopersicum",
+   "usage_label": "un légume-fruit du potager"
+  },
+  {
+   "name": "Basilic",
+   "scientific_name": "Ocimum basilicum",
+   "usage_label": "une herbe aromatique du potager"
+  },
+  {
+   "name": "Menthe",
+   "scientific_name": "Mentha spicata",
+   "usage_label": "une herbe aromatique vivace"
+  },
+  {
+   "name": "Courgette",
+   "scientific_name": "Cucurbita pepo",
+   "usage_label": "un légume-fruit cousin de la courge"
+  },
+  {
+   "name": "Radis",
+   "scientific_name": "Raphanus sativus",
+   "usage_label": "un petit légume-racine"
+  },
+  {
+   "name": "Persil",
+   "scientific_name": "Petroselinum crispum",
+   "usage_label": "une herbe aromatique en bouquet"
+  },
+  {
+   "name": "Haricot",
+   "scientific_name": "Phaseolus vulgaris",
+   "usage_label": "un légume à gousses"
+  },
+  {
+   "name": "Fraisier",
+   "scientific_name": "Fragaria × ananassa",
+   "usage_label": "une plante basse à fraises"
+  },
+  {
+   "name": "Romarin",
+   "scientific_name": "Salvia rosmarinus",
+   "usage_label": "un arbuste aromatique"
+  },
+  {
+   "name": "Sauge",
+   "scientific_name": "Salvia officinalis",
+   "usage_label": "un petit arbuste aromatique gris"
+  },
+  {
+   "name": "Ciboulette",
+   "scientific_name": "Allium schoenoprasum",
+   "usage_label": "une herbe aromatique en touffe"
+  },
+  {
+   "name": "Poivron",
+   "scientific_name": "Capsicum annuum",
+   "usage_label": "un légume-fruit du potager"
+  },
+  {
+   "name": "Concombre",
+   "scientific_name": "Cucumis sativus",
+   "usage_label": "un légume-fruit rampant"
+  },
+  {
+   "name": "Épinard",
+   "scientific_name": "Spinacia oleracea",
+   "usage_label": "un légume-feuille en rosette"
+  },
+  {
+   "name": "Cactus",
+   "scientific_name": "Cactaceae",
+   "usage_label": "une plante épineuse qui stocke l'eau"
+  },
+  {
+   "name": "Nénuphar lotus",
+   "scientific_name": "Nymphaea lotus",
+   "usage_label": "une plante d'eau à feuilles flottantes"
+  },
+  {
+   "name": "Elodée",
+   "scientific_name": "Elodea sp.",
+   "usage_label": "une plante d'eau immergée"
+  },
+  {
+   "name": "Fève",
+   "scientific_name": "Vicia faba",
+   "usage_label": "un légume à grosses gousses"
+  },
+  {
+   "name": "Piment",
+   "scientific_name": "Capsicum sp.",
+   "usage_label": "un légume-fruit piquant"
+  },
+  {
+   "name": "Menthe glaciale",
+   "scientific_name": "Mentha sp.",
+   "usage_label": "une herbe aromatique étalée"
+  },
+  {
+   "name": "Coriandre",
+   "scientific_name": "Coriandrum sativum",
+   "usage_label": "une herbe aromatique à odeur forte"
+  },
+  {
+   "name": "Blette",
+   "scientific_name": "Beta vulgaris",
+   "usage_label": "un légume-feuille à grosses côtes"
+  },
+  {
+   "name": "Aubergine",
+   "scientific_name": "Solanum melongena",
+   "usage_label": "un légume-fruit violet"
+  },
+  {
+   "name": "Petit pois",
+   "scientific_name": "Pisum sativum",
+   "usage_label": "un légume grimpant à gousses"
+  },
+  {
+   "name": "Framboisier",
+   "scientific_name": "Rubus idaeus",
+   "usage_label": "un arbuste fruitier épineux"
+  },
+  {
+   "name": "Melon",
+   "scientific_name": "Cucumis melo",
+   "usage_label": "une plante rampante à gros fruits"
+  },
+  {
+   "name": "Roquette",
+   "scientific_name": "Eruca vesicaria",
+   "usage_label": "une salade à saveur poivrée"
+  },
+  {
+   "name": "Thym",
+   "scientific_name": "Thymus vulgaris",
+   "usage_label": "un petit arbuste aromatique"
+  },
+  {
+   "name": "Aneth",
+   "scientific_name": "Anethum graveolens",
+   "usage_label": "une herbe aromatique au feuillage fin"
+  },
+  {
+   "name": "Oseille",
+   "scientific_name": "Rumex acetosa",
+   "usage_label": "un légume-feuille acide"
+  },
+  {
+   "name": "Citronnelle",
+   "scientific_name": "Cymbopogon citratus",
+   "usage_label": "une herbe aromatique à odeur de citron"
+  },
+  {
+   "name": "Betterave",
+   "scientific_name": "Beta vulgaris subsp. vulgaris",
+   "usage_label": "un légume-racine rouge"
+  },
+  {
+   "name": "Navet",
+   "scientific_name": "Brassica rapa subsp. rapa",
+   "usage_label": "un légume-racine blanc"
+  },
+  {
+   "name": "Oignon",
+   "scientific_name": "Allium cepa",
+   "usage_label": "un légume à bulbe"
+  },
+  {
+   "name": "Ail",
+   "scientific_name": "Allium sativum",
+   "usage_label": "un légume à bulbe en gousses"
+  },
+  {
+   "name": "Échalote",
+   "scientific_name": "Allium cepa var. aggregatum",
+   "usage_label": "un petit légume à bulbe"
+  },
+  {
+   "name": "Patate douce",
+   "scientific_name": "Ipomoea batatas",
+   "usage_label": "une plante rampante à tubercules"
+  },
+  {
+   "name": "Pied-d'alouette d'Ajax",
+   "scientific_name": "Delphinium ajacis",
+   "usage_label": "une fleur des jardins très toxique",
+   "doute": "Mention de toxicité alignée sur `toxicity_level` (mortel → « très toxique », toxique → « toxique ») : information de prudence, sans inviter au contact."
+  },
+  {
+   "name": "Schefflera arboricole nora",
+   "scientific_name": "Heptapleurum arboricola",
+   "usage_label": "une plante d'intérieur"
+  },
+  {
+   "name": "Tillandsia aérienne",
+   "scientific_name": "Tillandsia aeranthos",
+   "usage_label": "une plante qui vit sans terre"
+  },
+  {
+   "name": "Arbre de jade",
+   "scientific_name": "Crassula ovata",
+   "usage_label": "une plante grasse d'intérieur"
+  },
+  {
+   "name": "Oponce",
+   "scientific_name": "Opuntia microdasys",
+   "usage_label": "un petit cactus à tiges plates"
+  },
+  {
+   "name": "Chou",
+   "scientific_name": "Brassica oleracea",
+   "usage_label": "un légume-feuille pommé"
+  },
+  {
+   "name": "Grenadier",
+   "scientific_name": "Punica granatum",
+   "usage_label": "un arbuste fruitier à grenades"
+  },
+  {
+   "name": "Maïs",
+   "scientific_name": "Zea mays",
+   "usage_label": "une céréale à grands épis"
+  },
+  {
+   "name": "Prunier",
+   "scientific_name": "Prunus domestica",
+   "usage_label": "un arbre fruitier à noyau"
+  },
+  {
+   "name": "Raisin",
+   "scientific_name": "Vitis vinifera",
+   "usage_label": "une vigne grimpante à raisin"
+  },
+  {
+   "name": "Ortie dioïque",
+   "scientific_name": "Urtica dioica",
+   "usage_label": "une herbe qui pique la peau"
+  },
+  {
+   "name": "Pissenlit",
+   "scientific_name": "Taraxacum officinale",
+   "usage_label": "une fleur jaune des pelouses"
+  },
+  {
+   "name": "Figuier de Barbarie",
+   "scientific_name": "Opuntia ficus-indica",
+   "usage_label": "un grand cactus à fruits"
+  },
+  {
+   "name": "Volubilis",
+   "scientific_name": "Ipomoea indica",
+   "usage_label": "une plante grimpante à fleurs bleues"
+  },
+  {
+   "name": "Figuier commun",
+   "scientific_name": "Ficus carica",
+   "usage_label": "un arbre fruitier à figues"
+  },
+  {
+   "name": "Olivier",
+   "scientific_name": "Olea europaea",
+   "usage_label": "un arbre fruitier à olives"
+  },
+  {
+   "name": "Caroubier",
+   "scientific_name": "Ceratonia siliqua",
+   "usage_label": "un arbre à gousses sucrées"
+  },
+  {
+   "name": "Arganier",
+   "scientific_name": "Argania spinosa",
+   "usage_label": "un arbre épineux du Maroc"
+  },
+  {
+   "name": "Citronnier",
+   "scientific_name": "Citrus limon",
+   "usage_label": "un arbre fruitier à citrons"
+  },
+  {
+   "name": "Palmier-dattier",
+   "scientific_name": "Phoenix dactylifera",
+   "usage_label": "un palmier à dattes"
+  },
+  {
+   "name": "Artichaut",
+   "scientific_name": "Cynara cardunculus",
+   "usage_label": "un légume à grosse fleur"
+  },
+  {
+   "name": "Pois chiche",
+   "scientific_name": "Cicer arietinum",
+   "usage_label": "un légume sec à gousses courtes"
+  },
+  {
+   "name": "Fenugrec",
+   "scientific_name": "Trigonella foenum-graecum",
+   "usage_label": "une petite plante à graines épicées"
+  },
+  {
+   "name": "Lavande",
+   "scientific_name": "Lavandula dentata",
+   "usage_label": "un petit arbuste à fleurs violettes"
+  },
+  {
+   "name": "Bougainvillier",
+   "scientific_name": "Bougainvillea glabra",
+   "usage_label": "une plante grimpante à fleurs roses"
+  },
+  {
+   "name": "Jasmin",
+   "scientific_name": "Jasminum grandiflorum",
+   "usage_label": "une plante grimpante très parfumée"
+  },
+  {
+   "name": "Capucine",
+   "scientific_name": "Tropaeolum majus",
+   "usage_label": "une fleur rampante orange"
+  },
+  {
+   "name": "Souci officinal",
+   "scientific_name": "Calendula officinalis",
+   "usage_label": "une fleur orange du potager",
+   "doute": "Homonyme du papillon « Souci » : l'étiquette lève l'ambiguïté."
+  },
+  {
+   "name": "Fenouil",
+   "scientific_name": "Foeniculum vulgare",
+   "usage_label": "un légume à saveur d'anis"
+  },
+  {
+   "name": "Verveine odorante",
+   "scientific_name": "Aloysia citrodora",
+   "usage_label": "un arbuste à odeur de citron"
+  },
+  {
+   "name": "Câprier",
+   "scientific_name": "Capparis spinosa",
+   "usage_label": "un petit arbuste épineux des murs"
+  },
+  {
+   "name": "Tillandsia usnéoïde",
+   "scientific_name": "Tillandsia usneoides",
+   "usage_label": "une plante en barbe qui vit sans terre"
+  },
+  {
+   "name": "Sureau noir",
+   "scientific_name": "Sambucus nigra",
+   "usage_label": "un arbuste des haies à baies noires"
+  },
+  {
+   "name": "Lierre",
+   "scientific_name": "Hedera helix",
+   "usage_label": "une plante grimpante toujours verte"
+  },
+  {
+   "name": "Pâquerette",
+   "scientific_name": "Bellis perennis",
+   "usage_label": "une petite fleur des pelouses"
+  },
+  {
+   "name": "Plantain lancéolé",
+   "scientific_name": "Plantago lanceolata",
+   "usage_label": "une herbe des allées en rosette"
+  },
+  {
+   "name": "Violette odorante",
+   "scientific_name": "Viola odorata",
+   "usage_label": "une petite fleur violette parfumée"
+  },
+  {
+   "name": "Palmier de Romanzoff",
+   "scientific_name": "Syagrus romanzoffiana",
+   "usage_label": "un palmier élancé d'ornement"
+  },
+  {
+   "name": "Jacaranda",
+   "scientific_name": "Jacaranda mimosifolia",
+   "usage_label": "un arbre à fleurs mauves"
+  },
+  {
+   "name": "Palmier de Chine",
+   "scientific_name": "Trachycarpus fortunei",
+   "usage_label": "un palmier à tronc fibreux"
+  },
+  {
+   "name": "Eucalyptus",
+   "scientific_name": "Eucalyptus sp.",
+   "usage_label": "un grand arbre venu d'Australie"
+  },
+  {
+   "name": "Figue marine",
+   "scientific_name": "Carpobrotus edulis",
+   "usage_label": "une plante grasse rampante des dunes"
+  },
+  {
+   "name": "Palmier des Canaries",
+   "scientific_name": "Phoenix canariensis",
+   "usage_label": "un gros palmier d'ornement"
+  },
+  {
+   "name": "Filao",
+   "scientific_name": "Casuarina equisetifolia",
+   "usage_label": "un arbre qui ressemble à un pin",
+   "doute": "Arbre à fleurs (Casuarinacées) à l'allure de conifère."
+  },
+  {
+   "name": "Ficus",
+   "scientific_name": "Ficus microcarpa",
+   "usage_label": "un grand arbre d'ornement"
+  },
+  {
+   "name": "Hibiscus",
+   "scientific_name": "Hibiscus rosa-sinensis",
+   "usage_label": "un arbuste à grandes fleurs"
+  },
+  {
+   "name": "Faux-poivrier",
+   "scientific_name": "Schinus molle",
+   "usage_label": "un arbre au feuillage retombant"
+  },
+  {
+   "name": "Poivre rose",
+   "scientific_name": "Schinus terebinthifolia",
+   "usage_label": "un arbre à baies roses"
+  },
+  {
+   "name": "Goyavier",
+   "scientific_name": "Psidium guajava",
+   "usage_label": "un petit arbre fruitier à goyaves"
+  },
+  {
+   "name": "Néflier du Japon",
+   "scientific_name": "Eriobotrya japonica",
+   "usage_label": "un arbre fruitier à nèfles"
+  },
+  {
+   "name": "Papayer",
+   "scientific_name": "Carica papaya",
+   "usage_label": "une plante géante à papayes",
+   "doute": "Pas un arbre (tige non ligneuse)."
+  },
+  {
+   "name": "Bananier",
+   "scientific_name": "Musa sp.",
+   "usage_label": "une herbe géante à bananes",
+   "doute": "Pas un arbre : « herbe géante » (pseudo-tronc de feuilles)."
+  },
+  {
+   "name": "Ostéospermum",
+   "scientific_name": "Osteospermum sp.",
+   "usage_label": "une fleur en marguerite"
+  },
+  {
+   "name": "Géranium des jardins",
+   "scientific_name": "Pelargonium × hortorum",
+   "usage_label": "une fleur de jardin et de balcon"
+  },
+  {
+   "name": "Courge",
+   "scientific_name": "Cucurbita maxima",
+   "usage_label": "une grande plante rampante à courges"
+  },
+  {
+   "name": "Abricotier",
+   "scientific_name": "Prunus armeniaca",
+   "usage_label": "un arbre fruitier à abricots"
+  },
+  {
+   "name": "Mûrier",
+   "scientific_name": "Morus alba",
+   "usage_label": "un arbre aux feuilles pour vers à soie"
+  },
+  {
+   "name": "Cognassier",
+   "scientific_name": "Cydonia oblonga",
+   "usage_label": "un petit arbre fruitier à coings"
+  },
+  {
+   "name": "Actinidier",
+   "scientific_name": "Actinidia deliciosa",
+   "usage_label": "une liane fruitière à kiwis"
+  },
+  {
+   "name": "Plumbago",
+   "scientific_name": "Plumbago auriculata",
+   "usage_label": "un arbuste à fleurs bleu pâle"
+  },
+  {
+   "name": "Manguier",
+   "scientific_name": "Mangifera indica",
+   "usage_label": "un grand arbre fruitier à mangues"
+  },
+  {
+   "name": "Gommier",
+   "scientific_name": "Senegalia senegal",
+   "usage_label": "un acacia épineux des zones sèches"
+  },
+  {
+   "name": "Canne de Provence",
+   "scientific_name": "Arundo donax",
+   "usage_label": "un grand roseau"
+  },
+  {
+   "name": "Bourrache officinale",
+   "scientific_name": "Borago officinalis",
+   "usage_label": "une plante aux fleurs bleues en étoile"
+  },
+  {
+   "name": "Œillet d’Inde",
+   "scientific_name": "Tagetes patula",
+   "usage_label": "une fleur orange du potager"
+  },
+  {
+   "name": "Tournesol",
+   "scientific_name": "Helianthus annuus",
+   "usage_label": "une grande fleur jaune"
+  },
+  {
+   "name": "Laurier-sauce",
+   "scientific_name": "Laurus nobilis",
+   "usage_label": "un arbuste aromatique"
+  },
+  {
+   "name": "Estragon",
+   "scientific_name": "Artemisia dracunculus",
+   "usage_label": "une herbe aromatique vivace"
+  },
+  {
+   "name": "Marjolaine",
+   "scientific_name": "Origanum majorana",
+   "usage_label": "un petit arbuste aromatique gris"
+  },
+  {
+   "name": "Cerfeuil",
+   "scientific_name": "Anthriscus cerefolium",
+   "usage_label": "une herbe aromatique fine"
+  },
+  {
+   "name": "Blé tendre",
+   "scientific_name": "Triticum aestivum",
+   "usage_label": "une céréale à épis"
+  },
+  {
+   "name": "Orge",
+   "scientific_name": "Hordeum vulgare",
+   "usage_label": "une céréale à longues barbes"
+  },
+  {
+   "name": "Avoine",
+   "scientific_name": "Avena sativa",
+   "usage_label": "une céréale à grains pendants"
+  },
+  {
+   "name": "Riz",
+   "scientific_name": "Oryza sativa",
+   "usage_label": "une céréale des rizières"
+  },
+  {
+   "name": "Sorgho",
+   "scientific_name": "Sorghum bicolor",
+   "usage_label": "une grande céréale tropicale"
+  },
+  {
+   "name": "Mâche",
+   "scientific_name": "Valerianella locusta",
+   "usage_label": "une petite salade en rosette"
+  },
+  {
+   "name": "Cosmos",
+   "scientific_name": "Cosmos bipinnatus",
+   "usage_label": "une fleur légère des jardins"
+  },
+  {
+   "name": "Coquelicot",
+   "scientific_name": "Papaver rhoeas",
+   "usage_label": "une fleur rouge des champs"
+  },
+  {
+   "name": "Euphorbe",
+   "scientific_name": "Euphorbia sp.",
+   "usage_label": "une plante à lait blanc"
+  },
+  {
+   "name": "Moutarde sauvage",
+   "scientific_name": "Sinapis sp.",
+   "usage_label": "une plante sauvage à fleurs jaunes"
+  },
+  {
+   "name": "Acacia bleuté",
+   "scientific_name": "Acacia saligna",
+   "usage_label": "un arbuste venu d'Australie"
+  },
+  {
+   "name": "Tamaris",
+   "scientific_name": "Tamarix aphylla",
+   "usage_label": "un arbre aux rameaux gris"
+  },
+  {
+   "name": "Sumac blanc (tizrha)",
+   "scientific_name": "Searsia albida",
+   "usage_label": "un arbuste aux rameaux blanchâtres"
+  },
+  {
+   "name": "Malcolmie du littoral",
+   "scientific_name": "Malcolmia littorea",
+   "usage_label": "une petite plante grise des sables"
+  },
+  {
+   "name": "Cakilier maritime",
+   "scientific_name": "Cakile maritima",
+   "usage_label": "une plante charnue du haut de plage"
+  },
+  {
+   "name": "Souchet capité",
+   "scientific_name": "Cyperus capitatus",
+   "usage_label": "une herbe raide des dunes"
+  },
+  {
+   "name": "Euphorbe maritime",
+   "scientific_name": "Euphorbia paralias",
+   "usage_label": "une plante à lait des dunes"
+  },
+  {
+   "name": "Lis de mer",
+   "scientific_name": "Pancratium maritimum",
+   "usage_label": "une plante à bulbe des dunes"
+  },
+  {
+   "name": "Lotier des sables",
+   "scientific_name": "Lotus arenarius",
+   "usage_label": "une petite plante argentée des sables"
+  },
+  {
+   "name": "Renouée maritime",
+   "scientific_name": "Polygonum maritimum",
+   "usage_label": "une plante couchée du haut de plage"
+  },
+  {
+   "name": "Oyat",
+   "scientific_name": "Ammophila arenaria",
+   "usage_label": "une grande herbe qui fixe les dunes"
+  },
+  {
+   "name": "Ache nodiflore (céleri inondable)",
+   "scientific_name": "Helosciadium nodiflorum",
+   "usage_label": "une plante des bords d'eau"
+  },
+  {
+   "name": "Maceron",
+   "scientific_name": "Smyrnium olusatrum",
+   "usage_label": "une grande plante aux fleurs jaunâtres"
+  },
+  {
+   "name": "Inule perce-pierre",
+   "scientific_name": "Limbarda crithmoides",
+   "usage_label": "une plante charnue des sols salés"
+  },
+  {
+   "name": "Inule visqueuse",
+   "scientific_name": "Dittrichia viscosa",
+   "usage_label": "une plante collante des friches"
+  },
+  {
+   "name": "Callitriche",
+   "scientific_name": "Callitriche brutia",
+   "usage_label": "une petite plante d'eau"
+  },
+  {
+   "name": "Mouron des oiseaux (stellaire)",
+   "scientific_name": "Stellaria media",
+   "usage_label": "une petite herbe étalée des jardins"
+  },
+  {
+   "name": "Spergulaire marine",
+   "scientific_name": "Spergularia marina",
+   "usage_label": "une petite plante des sols salés"
+  },
+  {
+   "name": "Soude",
+   "scientific_name": "Suaeda vera",
+   "usage_label": "un petit arbuste charnu des sols salés"
+  },
+  {
+   "name": "Liseron fausse-guimauve",
+   "scientific_name": "Convolvulus althaeoides",
+   "usage_label": "un liseron aux feuilles argentées"
+  },
+  {
+   "name": "Liseron des champs",
+   "scientific_name": "Convolvulus arvensis",
+   "usage_label": "une herbe grimpante des champs"
+  },
+  {
+   "name": "Cresson de fontaine",
+   "scientific_name": "Nasturtium officinale",
+   "usage_label": "une plante des eaux fraîches"
+  },
+  {
+   "name": "Souchet lisse",
+   "scientific_name": "Cyperus laevigatus",
+   "usage_label": "une herbe basse des sols salés"
+  },
+  {
+   "name": "Souchet long",
+   "scientific_name": "Cyperus longus",
+   "usage_label": "une grande herbe des bords d'eau"
+  },
+  {
+   "name": "Scirpe maritime",
+   "scientific_name": "Bolboschoenus maritimus",
+   "usage_label": "une herbe des marais saumâtres"
+  },
+  {
+   "name": "Pariétaire de Mauritanie",
+   "scientific_name": "Parietaria mauritanica",
+   "usage_label": "une petite herbe des murs"
+  },
+  {
+   "name": "Mercuriale ambiguë",
+   "scientific_name": "Mercurialis ambigua",
+   "usage_label": "une petite herbe des cultures"
+  },
+  {
+   "name": "Millepertuis tomenteux",
+   "scientific_name": "Hypericum tomentosum",
+   "usage_label": "une petite plante grise à fleurs jaunes"
+  },
+  {
+   "name": "Iris de Barbarie",
+   "scientific_name": "Moraea sisyrinchium",
+   "usage_label": "un petit iris sauvage bleu-violet"
+  },
+  {
+   "name": "Jonc maritime",
+   "scientific_name": "Juncus maritimus",
+   "usage_label": "un jonc des prés salés"
+  },
+  {
+   "name": "Jonc piquant",
+   "scientific_name": "Juncus acutus",
+   "usage_label": "un grand jonc aux tiges piquantes"
+  },
+  {
+   "name": "Dorycnie dressée",
+   "scientific_name": "Dorycnium rectum",
+   "usage_label": "une plante vivace à fleurs blanches"
+  },
+  {
+   "name": "Mélilot de l'Inde",
+   "scientific_name": "Melilotus indicus",
+   "usage_label": "une petite plante aux fleurs jaunes"
+  },
+  {
+   "name": "Salicaire jonc",
+   "scientific_name": "Lythrum junceum",
+   "usage_label": "une plante aux fleurs roses des rives"
+  },
+  {
+   "name": "Plantain corne-de-cerf",
+   "scientific_name": "Plantago coronopus",
+   "usage_label": "une petite herbe en rosette plaquée"
+  },
+  {
+   "name": "Roseau commun",
+   "scientific_name": "Phragmites australis",
+   "usage_label": "un grand roseau des marais"
+  },
+  {
+   "name": "Orge des rats",
+   "scientific_name": "Hordeum murinum",
+   "usage_label": "une herbe sauvage à épis barbus"
+  },
+  {
+   "name": "Chiendent des sables",
+   "scientific_name": "Thinopyrum junceum",
+   "usage_label": "une herbe qui fixe les dunes"
+  },
+  {
+   "name": "Polypogon de Montpellier",
+   "scientific_name": "Polypogon monspeliensis",
+   "usage_label": "une herbe à épis soyeux"
+  },
+  {
+   "name": "Renouée amphibie",
+   "scientific_name": "Persicaria amphibia",
+   "usage_label": "une plante de l'eau et des rives"
+  },
+  {
+   "name": "Mouron d'eau",
+   "scientific_name": "Samolus valerandi",
+   "usage_label": "une petite plante des sols humides"
+  },
+  {
+   "name": "Renoncule aquatique",
+   "scientific_name": "Ranunculus aquatilis",
+   "usage_label": "une fleur blanche des eaux calmes"
+  },
+  {
+   "name": "Jusquiame blanche",
+   "scientific_name": "Hyoscyamus albus",
+   "usage_label": "une plante collante très toxique",
+   "doute": "Mention de toxicité alignée sur `toxicity_level` (mortel → « très toxique », toxique → « toxique ») : information de prudence, sans inviter au contact."
+  },
+  {
+   "name": "Linaire améthyste",
+   "scientific_name": "Linaria amethystea",
+   "usage_label": "une petite fleur violette sauvage"
+  },
+  {
+   "name": "Massette à larges feuilles",
+   "scientific_name": "Typha latifolia",
+   "usage_label": "une grande plante des bords d'eau"
+  },
+  {
+   "name": "Ortie membraneuse",
+   "scientific_name": "Urtica membranacea",
+   "usage_label": "une ortie annuelle"
+  },
+  {
+   "name": "Phyla nodiflore",
+   "scientific_name": "Phyla nodiflora",
+   "usage_label": "une plante rampante en tapis"
+  },
+  {
+   "name": "Ail velu",
+   "scientific_name": "Allium subhirsutum",
+   "usage_label": "un petit ail sauvage"
+  },
+  {
+   "name": "Arroche halime",
+   "scientific_name": "Atriplex halimus",
+   "usage_label": "un arbuste argenté des sols salés"
+  },
+  {
+   "name": "Torilis des champs",
+   "scientific_name": "Torilis arvensis",
+   "usage_label": "une herbe à petites fleurs blanches"
+  },
+  {
+   "name": "Grande férule",
+   "scientific_name": "Ferula communis",
+   "usage_label": "une herbe géante à fleurs jaunes"
+  },
+  {
+   "name": "Centaurée pullata",
+   "scientific_name": "Centaurea pullata",
+   "usage_label": "une fleur sauvage violette"
+  },
+  {
+   "name": "Centaurée chausse-trappe",
+   "scientific_name": "Centaurea calcitrapa",
+   "usage_label": "une plante épineuse des friches"
+  },
+  {
+   "name": "Chicorée sauvage",
+   "scientific_name": "Cichorium intybus",
+   "usage_label": "une plante aux fleurs bleues"
+  },
+  {
+   "name": "Reichardie de Tanger",
+   "scientific_name": "Reichardia tingitana",
+   "usage_label": "une plante des dunes à fleurs jaunes"
+  },
+  {
+   "name": "Chrysanthème des jardins",
+   "scientific_name": "Glebionis coronaria",
+   "usage_label": "une grande marguerite jaune"
+  },
+  {
+   "name": "Trépane barbue",
+   "scientific_name": "Tolpis barbata",
+   "usage_label": "une fleur jaune à cœur pourpre"
+  },
+  {
+   "name": "Grand mélinet",
+   "scientific_name": "Cerinthe major",
+   "usage_label": "une plante bleutée à fleurs en tube"
+  },
+  {
+   "name": "Vipérine de Boissier",
+   "scientific_name": "Echium boissieri",
+   "usage_label": "une grande plante à épi de fleurs"
+  },
+  {
+   "name": "Héliotrope d'Europe",
+   "scientific_name": "Heliotropium europaeum",
+   "usage_label": "une petite plante grise des friches"
+  },
+  {
+   "name": "Paronyque argentée",
+   "scientific_name": "Paronychia argentea",
+   "usage_label": "une petite plante argentée en coussin"
+  },
+  {
+   "name": "Molène sinuée",
+   "scientific_name": "Verbascum sinuatum",
+   "usage_label": "une grande plante grise à fleurs jaunes"
+  },
+  {
+   "name": "Euphorbe en faux",
+   "scientific_name": "Euphorbia falcata",
+   "usage_label": "une petite euphorbe des cultures"
+  },
+  {
+   "name": "Frankénie lisse",
+   "scientific_name": "Frankenia laevis",
+   "usage_label": "un petit arbuste étalé des sols salés"
+  },
+  {
+   "name": "Romulée",
+   "scientific_name": "Romulea bulbocodium",
+   "usage_label": "une petite fleur cousine du crocus"
+  },
+  {
+   "name": "Marrube commun",
+   "scientific_name": "Marrubium vulgare",
+   "usage_label": "une plante grise cousine de la menthe"
+  },
+  {
+   "name": "Ballote hirsute",
+   "scientific_name": "Ballota hirsuta",
+   "usage_label": "une plante poilue cousine de la menthe"
+  },
+  {
+   "name": "Rétam",
+   "scientific_name": "Retama monosperma",
+   "usage_label": "un grand genêt blanc des dunes"
+  },
+  {
+   "name": "Palmier nain (doum)",
+   "scientific_name": "Chamaerops humilis",
+   "usage_label": "un petit palmier sauvage"
+  },
+  {
+   "name": "Glaucière jaune",
+   "scientific_name": "Glaucium flavum",
+   "usage_label": "une plante aux fleurs jaunes des plages"
+  },
+  {
+   "name": "Chiendent pied-de-poule",
+   "scientific_name": "Cynodon dactylon",
+   "usage_label": "une herbe rampante des pelouses"
+  },
+  {
+   "name": "Queue-de-lièvre",
+   "scientific_name": "Lagurus ovatus",
+   "usage_label": "une petite herbe aux épis doux"
+  },
+  {
+   "name": "Clématite cirrheuse",
+   "scientific_name": "Clematis cirrhosa",
+   "usage_label": "une liane à fleurs d'hiver"
+  },
+  {
+   "name": "Shérardie des champs",
+   "scientific_name": "Sherardia arvensis",
+   "usage_label": "une petite herbe des champs"
+  },
+  {
+   "name": "Garance voyageuse",
+   "scientific_name": "Rubia peregrina",
+   "usage_label": "une liane aux tiges accrochantes"
+  },
+  {
+   "name": "Morelle velue",
+   "scientific_name": "Solanum villosum",
+   "usage_label": "une herbe à petites baies"
+  },
+  {
+   "name": "Salsepareille",
+   "scientific_name": "Smilax aspera",
+   "usage_label": "une liane épineuse"
+  },
+  {
+   "name": "Morelle de Sodome",
+   "scientific_name": "Solanum linnaeanum",
+   "usage_label": "un buisson épineux toxique",
+   "doute": "Mention de toxicité alignée sur `toxicity_level` (mortel → « très toxique », toxique → « toxique ») : information de prudence, sans inviter au contact."
+  },
+  {
+   "name": "Withania arbustive",
+   "scientific_name": "Withania frutescens",
+   "usage_label": "un arbuste des lieux secs"
+  },
+  {
+   "name": "Lyciet d'Europe",
+   "scientific_name": "Lycium europaeum",
+   "usage_label": "un arbuste épineux des haies"
+  },
+  {
+   "name": "Verveine couchée",
+   "scientific_name": "Verbena supina",
+   "usage_label": "une petite verveine étalée"
+  },
+  {
+   "name": "Scolyme d'Espagne (guernina)",
+   "scientific_name": "Scolymus hispanicus",
+   "usage_label": "un chardon à fleurs jaunes"
+  },
+  {
+   "name": "Scolyme maculé",
+   "scientific_name": "Scolymus maculatus",
+   "usage_label": "un chardon à fleurs jaune d'or"
+  },
+  {
+   "name": "Chardon à capitules denses",
+   "scientific_name": "Carduus pycnocephalus",
+   "usage_label": "un chardon des friches"
+  },
+  {
+   "name": "Chardon-Marie",
+   "scientific_name": "Silybum marianum",
+   "usage_label": "un grand chardon aux feuilles marbrées"
+  },
+  {
+   "name": "Verbésine",
+   "scientific_name": "Verbesina encelioides",
+   "usage_label": "une fleur jaune venue d'Amérique"
+  },
+  {
+   "name": "Ricin",
+   "scientific_name": "Ricinus communis",
+   "usage_label": "un grand arbuste très toxique",
+   "doute": "Mention de toxicité alignée sur `toxicity_level` (mortel → « très toxique », toxique → « toxique ») : information de prudence, sans inviter au contact."
+  },
+  {
+   "name": "Mauve sylvestre",
+   "scientific_name": "Malva sylvestris",
+   "usage_label": "une grande plante aux fleurs roses"
+  },
+  {
+   "name": "Myoporum",
+   "scientific_name": "Myoporum laetum",
+   "usage_label": "un arbuste d'ornement des côtes"
+  },
+  {
+   "name": "Paspale à fourreaux",
+   "scientific_name": "Paspalum vaginatum",
+   "usage_label": "une herbe rampante des sols salés"
+  },
+  {
+   "name": "Harmel",
+   "scientific_name": "Peganum harmala",
+   "usage_label": "une plante buissonnante très toxique",
+   "doute": "Mention de toxicité alignée sur `toxicity_level` (mortel → « très toxique », toxique → « toxique ») : information de prudence, sans inviter au contact."
+  },
+  {
+   "name": "Tabac glauque",
+   "scientific_name": "Nicotiana glauca",
+   "usage_label": "un arbuste très toxique venu d'Amérique",
+   "doute": "Mention de toxicité alignée sur `toxicity_level` (mortel → « très toxique », toxique → « toxique ») : information de prudence, sans inviter au contact."
+  },
+  {
+   "name": "Nivéole d'automne",
+   "scientific_name": "Acis autumnalis",
+   "usage_label": "une petite plante à bulbe d'automne"
+  },
+  {
+   "name": "Narcisse de Broussonet",
+   "scientific_name": "Narcissus broussonetii",
+   "usage_label": "un narcisse blanc d'automne"
+  },
+  {
+   "name": "Narcisse tardif",
+   "scientific_name": "Narcissus serotinus",
+   "usage_label": "un petit narcisse d'automne"
+  },
+  {
+   "name": "Sumac à trois feuilles",
+   "scientific_name": "Searsia tripartita",
+   "usage_label": "un arbuste épineux à feuilles en trois"
+  },
+  {
+   "name": "Fragon à feuilles",
+   "scientific_name": "Ruscus hypophyllum",
+   "usage_label": "un petit arbuste des sous-bois"
+  },
+  {
+   "name": "Asphodèle à petits fruits",
+   "scientific_name": "Asphodelus ramosus",
+   "usage_label": "une grande plante aux fleurs blanches"
+  },
+  {
+   "name": "Phagnalon à collerette",
+   "scientific_name": "Phagnalon calycinum",
+   "usage_label": "un petit arbuste blanchâtre"
+  },
+  {
+   "name": "Souci des champs",
+   "scientific_name": "Calendula arvensis",
+   "usage_label": "un souci sauvage à fleurs orangées"
+  },
+  {
+   "name": "Échinops rude",
+   "scientific_name": "Echinops strigosus",
+   "usage_label": "une plante épineuse à fleurs en boule"
+  },
+  {
+   "name": "Glaïeul commun",
+   "scientific_name": "Gladiolus communis",
+   "usage_label": "un glaïeul sauvage à fleurs roses"
+  },
+  {
+   "name": "Silène enflé",
+   "scientific_name": "Silene vulgaris",
+   "usage_label": "une fleur blanche à base gonflée"
+  },
+  {
+   "name": "Liseron de Sicile",
+   "scientific_name": "Convolvulus siculus",
+   "usage_label": "un petit liseron à fleurs bleues"
+  },
+  {
+   "name": "Nombril de Vénus",
+   "scientific_name": "Umbilicus horizontalis",
+   "usage_label": "une plante grasse des vieux murs"
+  },
+  {
+   "name": "Alysse maritime",
+   "scientific_name": "Lobularia maritima",
+   "usage_label": "une petite plante aux fleurs blanches"
+  },
+  {
+   "name": "Scabieuse pourpre",
+   "scientific_name": "Sixalix atropurpurea",
+   "usage_label": "une fleur pourpre sauvage"
+  },
+  {
+   "name": "Bec-de-cigogne",
+   "scientific_name": "Erodium ciconium",
+   "usage_label": "une petite plante à fruits en bec"
+  },
+  {
+   "name": "Prasium",
+   "scientific_name": "Prasium majus",
+   "usage_label": "un petit arbuste grimpant"
+  },
+  {
+   "name": "Lavande à feuilles découpées",
+   "scientific_name": "Lavandula multifida",
+   "usage_label": "une petite lavande sauvage"
+  },
+  {
+   "name": "Dipcadi tardif",
+   "scientific_name": "Dipcadi serotinum",
+   "usage_label": "une plante à bulbe aux fleurs brunes"
+  },
+  {
+   "name": "Cytise mou",
+   "scientific_name": "Chamaecytisus mollis",
+   "usage_label": "un arbuste à fleurs jaunes"
+  },
+  {
+   "name": "Trèfle fraise",
+   "scientific_name": "Trifolium fragiferum",
+   "usage_label": "un trèfle rampant des sols humides"
+  },
+  {
+   "name": "Lotier pourpre",
+   "scientific_name": "Lotus tetragonolobus",
+   "usage_label": "une petite plante aux fleurs pourpres"
+  },
+  {
+   "name": "Limodore à feuilles avortées",
+   "scientific_name": "Limodorum abortivum",
+   "usage_label": "une orchidée sans feuilles vertes"
+  },
+  {
+   "name": "Dentelaire d'Europe",
+   "scientific_name": "Plumbago europaea",
+   "usage_label": "une plante grêle à petites fleurs"
+  },
+  {
+   "name": "Mouron rouge / bleu",
+   "scientific_name": "Lysimachia arvensis",
+   "usage_label": "une petite fleur rampante des cultures"
+  },
+  {
+   "name": "Renoncule bulleuse",
+   "scientific_name": "Ranunculus bullatus",
+   "usage_label": "une fleur jaune d'automne"
+  },
+  {
+   "name": "Scrofulaire à feuilles de sureau",
+   "scientific_name": "Scrophularia sambucifolia",
+   "usage_label": "une grande plante des lieux humides"
+  },
+  {
+   "name": "Withania somnifère",
+   "scientific_name": "Withania somnifera",
+   "usage_label": "un petit arbuste toxique",
+   "doute": "Mention de toxicité alignée sur `toxicity_level` (mortel → « très toxique », toxique → « toxique ») : information de prudence, sans inviter au contact."
+  },
+  {
+   "name": "Fédia",
+   "scientific_name": "Fedia pallescens",
+   "usage_label": "une petite plante cousine de la mâche"
+  },
+  {
+   "name": "Fagonia de Crète",
+   "scientific_name": "Fagonia cretica",
+   "usage_label": "une petite plante épineuse étalée"
+  },
+  {
+   "name": "Aizoon des Canaries",
+   "scientific_name": "Aizoon canariense",
+   "usage_label": "une petite plante grasse en rosette"
+  },
+  {
+   "name": "Asperge blanche",
+   "scientific_name": "Asparagus albus",
+   "usage_label": "une asperge sauvage épineuse"
+  },
+  {
+   "name": "Arisarum",
+   "scientific_name": "Arisarum vulgare",
+   "usage_label": "une petite plante à fleur en capuchon"
+  },
+  {
+   "name": "Asperge épineuse",
+   "scientific_name": "Asparagus horridus",
+   "usage_label": "une asperge sauvage très épineuse"
+  },
+  {
+   "name": "Tamaris de France",
+   "scientific_name": "Tamarix gallica",
+   "usage_label": "un arbuste aux rameaux fins"
+  },
+  {
+   "name": "Laurier-rose",
+   "scientific_name": "Nerium oleander",
+   "usage_label": "un arbuste à fleurs, très toxique",
+   "doute": "Mention de toxicité alignée sur `toxicity_level` (mortel → « très toxique », toxique → « toxique ») : information de prudence, sans inviter au contact."
+  },
+  {
+   "name": "Massette",
+   "scientific_name": "Typha sp.",
+   "usage_label": "une grande plante des bords d'eau à épi"
+  },
+  {
+   "name": "Chêne-liège",
+   "scientific_name": "Quercus suber",
+   "usage_label": "un chêne à écorce épaisse"
+  },
+  {
+   "name": "Cistes",
+   "scientific_name": "Cistus sp.",
+   "usage_label": "des arbustes bas à fleurs froissées"
+  },
+  {
+   "name": "Oléastre (olivier sauvage)",
+   "scientific_name": "Olea europaea var. sylvestris",
+   "usage_label": "un olivier sauvage"
+  },
+  {
+   "name": "Jujubier sauvage (sder)",
+   "scientific_name": "Ziziphus lotus",
+   "usage_label": "un arbuste bas très épineux"
+  },
+  {
+   "name": "Lentisque",
+   "scientific_name": "Pistacia lentiscus",
+   "usage_label": "un arbuste à odeur de résine"
+  },
+  {
+   "name": "Lentille",
+   "scientific_name": "Lens culinaris",
+   "usage_label": "un légume sec à petites gousses"
+  },
+  {
+   "name": "Mouron bleu",
+   "scientific_name": "Lysimachia foemina",
+   "usage_label": "une petite fleur bleue des cultures"
+  },
+  {
+   "name": "Vaccaire",
+   "scientific_name": "Gypsophila vaccaria",
+   "usage_label": "une fleur rose des champs de céréales"
+  },
+  {
+   "name": "Chicorée frisée",
+   "scientific_name": "Cichorium endivia",
+   "usage_label": "une chicorée à fleurs bleues"
+  },
+  {
+   "name": "Chenillette",
+   "scientific_name": "Scorpiurus muricatus",
+   "usage_label": "une petite plante à gousses enroulées"
+  },
+  {
+   "name": "Oxalis pied-de-chèvre",
+   "scientific_name": "Oxalis pes-caprae",
+   "usage_label": "une petite fleur jaune venue d'Afrique"
+  },
+  {
+   "name": "Laiteron maraîcher",
+   "scientific_name": "Sonchus oleraceus",
+   "usage_label": "une herbe cousine du pissenlit"
+  },
+  {
+   "name": "Pourpier",
+   "scientific_name": "Portulaca oleracea",
+   "usage_label": "une petite plante grasse rampante"
+  },
+  {
+   "name": "Chénopode des murs",
+   "scientific_name": "Chenopodiastrum murale",
+   "usage_label": "une herbe des murs et des friches"
+  },
+  {
+   "name": "Mauve à petites fleurs",
+   "scientific_name": "Malva parviflora",
+   "usage_label": "une petite mauve étalée"
+  },
+  {
+   "name": "Ortie brûlante",
+   "scientific_name": "Urtica urens",
+   "usage_label": "une petite ortie qui pique la peau"
+  },
+  {
+   "name": "Ficoïde glaciale",
+   "scientific_name": "Mesembryanthemum crystallinum",
+   "usage_label": "une plante grasse aux tiges perlées"
+  },
+  {
+   "name": "Morelle à feuilles de chalef",
+   "scientific_name": "Solanum elaeagnifolium",
+   "usage_label": "une plante argentée envahissante"
+  },
+  {
+   "name": "Lantanier",
+   "scientific_name": "Lantana camara",
+   "usage_label": "un arbuste d'ornement à fleurs colorées"
+  },
+  {
+   "name": "Vergerette de Buenos Aires",
+   "scientific_name": "Erigeron bonariensis",
+   "usage_label": "une herbe grise venue d'Amérique"
+  },
+  {
+   "name": "Arctothèque souci",
+   "scientific_name": "Arctotheca calendula",
+   "usage_label": "une fleur jaune en rosette basse"
+  },
+  {
+   "name": "Amarante verte",
+   "scientific_name": "Amaranthus viridis",
+   "usage_label": "une herbe des cultures"
+  }
+ ]
+}

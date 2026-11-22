@@ -1,0 +1,555 @@
+{
+ "_doc": "Étiquettes simples (plants.usage_label) du groupe d'usage « Insectes ». Clé naturelle : plants.name (+ scientific_name). Valeur avant attendue : NULL. doute : cas à relire par Oliv.",
+ "groupe": "insectes",
+ "libelle": "Insectes",
+ "boites": [
+  "insectes"
+ ],
+ "fiches": [
+  {
+   "name": "Fourmi noire des jardins",
+   "scientific_name": "Lasius niger",
+   "usage_label": "une petite fourmi noire"
+  },
+  {
+   "name": "Fourmi Lasius",
+   "scientific_name": "Lasius sp.",
+   "usage_label": "une fourmi qui élève des pucerons"
+  },
+  {
+   "name": "Fourmi moissonneuse",
+   "scientific_name": "Messor sp.",
+   "usage_label": "une fourmi qui récolte des graines"
+  },
+  {
+   "name": "Tapinome noir",
+   "scientific_name": "Tapinoma nigerrimum",
+   "usage_label": "une fourmi noire très active"
+  },
+  {
+   "name": "Abeille domestique",
+   "scientific_name": "Apis mellifera intermissa",
+   "usage_label": "une abeille qui vit en ruche"
+  },
+  {
+   "name": "Xylocope violet",
+   "scientific_name": "Xylocopa violacea",
+   "usage_label": "une très grosse abeille noire"
+  },
+  {
+   "name": "Abeille charpentière",
+   "scientific_name": "Xylocopa pubescens",
+   "usage_label": "une grande abeille solitaire noire"
+  },
+  {
+   "name": "Guêpe poliste",
+   "scientific_name": "Polistes dominula",
+   "usage_label": "une guêpe à nid de papier"
+  },
+  {
+   "name": "Guêpe maçonne",
+   "scientific_name": "Sceliphron madraspatanum",
+   "usage_label": "une guêpe à taille très fine"
+  },
+  {
+   "name": "Scolie des jardins",
+   "scientific_name": "Scolia hortorum",
+   "usage_label": "une grande guêpe noire tachée de jaune"
+  },
+  {
+   "name": "Philanthe apivore",
+   "scientific_name": "Philanthus triangulum",
+   "usage_label": "une guêpe chasseuse d'abeilles"
+  },
+  {
+   "name": "Évanie",
+   "scientific_name": "Evania appendigaster",
+   "usage_label": "une petite guêpe parasite des blattes"
+  },
+  {
+   "name": "Latibulus",
+   "scientific_name": "Latibulus argiolus",
+   "usage_label": "une petite guêpe parasite des nids",
+   "doute": "Nom opaque ; parasitoïde des nids de polistes : « parasite » au sens courant."
+  },
+  {
+   "name": "Blastophage",
+   "scientific_name": "Blastophaga psenes",
+   "usage_label": "une minuscule guêpe du figuier",
+   "doute": "Hyménoptère (Agaonidés), pollinisateur du figuier : « guêpe » au sens courant."
+  },
+  {
+   "name": "Piéride du chou",
+   "scientific_name": "Pieris brassicae",
+   "usage_label": "un papillon blanc du potager"
+  },
+  {
+   "name": "Piéride de la rave",
+   "scientific_name": "Pieris rapae",
+   "usage_label": "un papillon blanc des jardins"
+  },
+  {
+   "name": "Piéride du sisymbre",
+   "scientific_name": "Euchloe belemia",
+   "usage_label": "un papillon blanc de printemps"
+  },
+  {
+   "name": "Marbré de vert",
+   "scientific_name": "Pontia daplidice",
+   "usage_label": "un papillon blanc marbré dessous"
+  },
+  {
+   "name": "Souci",
+   "scientific_name": "Colias croceus",
+   "usage_label": "un papillon jaune orangé",
+   "doute": "Nom trompeur (« souci » : une fleur). Priorité du prompt."
+  },
+  {
+   "name": "Mégère",
+   "scientific_name": "Lasiommata megera",
+   "usage_label": "un papillon de jour brun-orangé",
+   "doute": "Nom trompeur. Priorité du prompt."
+  },
+  {
+   "name": "Tircis",
+   "scientific_name": "Pararge aegeria",
+   "usage_label": "un papillon de jour brun tacheté",
+   "doute": "Nom opaque. Priorité du prompt."
+  },
+  {
+   "name": "Myrtil",
+   "scientific_name": "Maniola jurtina",
+   "usage_label": "un papillon brun des herbes hautes"
+  },
+  {
+   "name": "Belle-Dame",
+   "scientific_name": "Vanessa cardui",
+   "usage_label": "un papillon migrateur orangé"
+  },
+  {
+   "name": "Vulcain",
+   "scientific_name": "Vanessa atalanta",
+   "usage_label": "un papillon noir à bande rouge"
+  },
+  {
+   "name": "Monarque",
+   "scientific_name": "Danaus plexippus",
+   "usage_label": "un très grand papillon orange"
+  },
+  {
+   "name": "Petit monarque",
+   "scientific_name": "Danaus chrysippus",
+   "usage_label": "un grand papillon orange d'Afrique"
+  },
+  {
+   "name": "Machaon",
+   "scientific_name": "Papilio machaon",
+   "usage_label": "un grand papillon jaune à queues"
+  },
+  {
+   "name": "Flambé ibérique",
+   "scientific_name": "Iphiclides feisthamelii",
+   "usage_label": "un grand papillon zébré à queues"
+  },
+  {
+   "name": "Azuré porte-queue",
+   "scientific_name": "Lampides boeticus",
+   "usage_label": "un petit papillon bleu à queue"
+  },
+  {
+   "name": "Azuré de Lang",
+   "scientific_name": "Leptotes pirithous",
+   "usage_label": "un tout petit papillon bleu"
+  },
+  {
+   "name": "Azuré de la bugrane",
+   "scientific_name": "Polyommatus celina",
+   "usage_label": "un petit papillon bleu lilas"
+  },
+  {
+   "name": "Azuré de la surelle",
+   "scientific_name": "Zizeeria knysna",
+   "usage_label": "un très petit papillon bleu"
+  },
+  {
+   "name": "Cuivré commun",
+   "scientific_name": "Lycaena phlaeas",
+   "usage_label": "un petit papillon orange cuivré"
+  },
+  {
+   "name": "Brun des pélargoniums",
+   "scientific_name": "Cacyreus marshalli",
+   "usage_label": "un petit papillon brun des géraniums"
+  },
+  {
+   "name": "Hespérie almoravide",
+   "scientific_name": "Carcharodus tripolina",
+   "usage_label": "un petit papillon brun trapu"
+  },
+  {
+   "name": "Moro-sphinx",
+   "scientific_name": "Macroglossum stellatarum",
+   "usage_label": "un papillon qui vole sur place"
+  },
+  {
+   "name": "Sphinx livournien",
+   "scientific_name": "Hyles livornica",
+   "usage_label": "un papillon de nuit robuste"
+  },
+  {
+   "name": "Sphinx du liseron",
+   "scientific_name": "Agrius convolvuli",
+   "usage_label": "un grand papillon de nuit gris"
+  },
+  {
+   "name": "Sphinx phénix",
+   "scientific_name": "Hippotion celerio",
+   "usage_label": "un papillon de nuit aux ailes étroites"
+  },
+  {
+   "name": "Phalène sacrée",
+   "scientific_name": "Rhodometra sacraria",
+   "usage_label": "un petit papillon jaune paille"
+  },
+  {
+   "name": "Gamma",
+   "scientific_name": "Autographa gamma",
+   "usage_label": "un papillon de nuit gris-brun",
+   "doute": "Nom opaque (lettre grecque). Priorité du prompt."
+  },
+  {
+   "name": "Écaille du myosotis",
+   "scientific_name": "Utetheisa pulchella",
+   "usage_label": "un petit papillon de nuit tacheté"
+  },
+  {
+   "name": "Mineuse de la tomate",
+   "scientific_name": "Tuta absoluta",
+   "usage_label": "un petit papillon nocturne nuisible"
+  },
+  {
+   "name": "Processionnaire du pin",
+   "scientific_name": "Thaumetopoea pityocampa",
+   "usage_label": "un papillon de nuit des pins",
+   "doute": "Chenilles urticantes : l'information de prudence est sur la fiche (hors étiquette)."
+  },
+  {
+   "name": "Coccinelle à sept points",
+   "scientific_name": "Coccinella septempunctata",
+   "usage_label": "une coccinelle rouge à sept points"
+  },
+  {
+   "name": "Coccinelle d'Algérie",
+   "scientific_name": "Coccinella algerica",
+   "usage_label": "une coccinelle rouge à points noirs"
+  },
+  {
+   "name": "Coccinelle des friches",
+   "scientific_name": "Hippodamia variegata",
+   "usage_label": "une petite coccinelle orangée"
+  },
+  {
+   "name": "Cétoine funeste",
+   "scientific_name": "Oxythyrea funesta",
+   "usage_label": "un scarabée noir à points blancs"
+  },
+  {
+   "name": "Cétoine des fleurs",
+   "scientific_name": "Aethiessa floralis",
+   "usage_label": "un scarabée noir des fleurs"
+  },
+  {
+   "name": "Hoplie africaine",
+   "scientific_name": "Hoplia africana",
+   "usage_label": "un petit hanneton brillant"
+  },
+  {
+   "name": "Bousier sacré",
+   "scientific_name": "Scarabaeus sacer",
+   "usage_label": "un scarabée qui roule des boules"
+  },
+  {
+   "name": "Carabe",
+   "scientific_name": "Carabus sp.",
+   "usage_label": "un grand scarabée coureur chasseur",
+   "doute": "« scarabée » au sens courant (coléoptère) ; Carabidés."
+  },
+  {
+   "name": "Staphylin odorant",
+   "scientific_name": "Ocypus olens",
+   "usage_label": "un grand scarabée noir chasseur",
+   "doute": "« scarabée » au sens courant (coléoptère) ; Staphylinidés."
+  },
+  {
+   "name": "Charançon rouge du palmier",
+   "scientific_name": "Rhynchophorus ferrugineus",
+   "usage_label": "un gros charançon des palmiers"
+  },
+  {
+   "name": "Crache-sang",
+   "scientific_name": "Timarcha sp.",
+   "usage_label": "un gros scarabée noir et lent"
+  },
+  {
+   "name": "Ténébrion meunier",
+   "scientific_name": "Tenebrio molitor",
+   "usage_label": "un scarabée noir des farines"
+  },
+  {
+   "name": "Blaps",
+   "scientific_name": "Blaps sp.",
+   "usage_label": "des scarabées noirs qui ne volent pas"
+  },
+  {
+   "name": "Pimélie",
+   "scientific_name": "Pimelia sp.",
+   "usage_label": "des scarabées noirs très bombés"
+  },
+  {
+   "name": "Punaise verte ponctuée",
+   "scientific_name": "Nezara viridula",
+   "usage_label": "une punaise verte des jardins"
+  },
+  {
+   "name": "Pentatome méridional",
+   "scientific_name": "Carpocoris mediterraneus",
+   "usage_label": "une punaise brune en bouclier"
+  },
+  {
+   "name": "Punaise rouge et noire",
+   "scientific_name": "Spilostethus pandurus",
+   "usage_label": "une punaise rouge et noire"
+  },
+  {
+   "name": "Réduve à pattes rouges",
+   "scientific_name": "Rhynocoris erythropus",
+   "usage_label": "une punaise chasseuse"
+  },
+  {
+   "name": "Gerris",
+   "scientific_name": "Gerris sp.",
+   "usage_label": "une punaise qui patine sur l'eau"
+  },
+  {
+   "name": "Notonecte",
+   "scientific_name": "Notonecta sp.",
+   "usage_label": "une punaise qui nage sur le dos"
+  },
+  {
+   "name": "Cigale",
+   "scientific_name": "Cicada barbara",
+   "usage_label": "une grande cigale chanteuse"
+  },
+  {
+   "name": "Pucerons",
+   "scientific_name": "Aphididae",
+   "usage_label": "des petits insectes suceurs des plantes"
+  },
+  {
+   "name": "Cochenilles farineuses",
+   "scientific_name": "Pseudococcidae",
+   "usage_label": "des insectes suceurs couverts de cire"
+  },
+  {
+   "name": "Cochenille du figuier de Barbarie",
+   "scientific_name": "Dactylopius opuntiae",
+   "usage_label": "un insecte suceur du figuier de Barbarie"
+  },
+  {
+   "name": "Aleurode du tabac",
+   "scientific_name": "Bemisia tabaci",
+   "usage_label": "une minuscule mouche blanche"
+  },
+  {
+   "name": "Psylle du gommier rouge",
+   "scientific_name": "Glycaspis brimblecombei",
+   "usage_label": "un petit insecte suceur des eucalyptus"
+  },
+  {
+   "name": "Moustique commun",
+   "scientific_name": "Culex pipiens",
+   "usage_label": "un moustique des eaux calmes"
+  },
+  {
+   "name": "Mouche domestique",
+   "scientific_name": "Musca domestica",
+   "usage_label": "une mouche des maisons"
+  },
+  {
+   "name": "Mouche méditerranéenne des fruits",
+   "scientific_name": "Ceratitis capitata",
+   "usage_label": "une petite mouche des fruits"
+  },
+  {
+   "name": "Drosophile",
+   "scientific_name": "Drosophila melanogaster",
+   "usage_label": "une toute petite mouche des fruits"
+  },
+  {
+   "name": "Sciaride",
+   "scientific_name": "Bradysia sp.",
+   "usage_label": "un petit moucheron noir des pots"
+  },
+  {
+   "name": "Chironome",
+   "scientific_name": "Chironomus sp.",
+   "usage_label": "un moucheron qui ne pique pas"
+  },
+  {
+   "name": "Mouche des drains",
+   "scientific_name": "Clogmia albipunctata",
+   "usage_label": "une minuscule mouche poilue"
+  },
+  {
+   "name": "Mouche soldat noire",
+   "scientific_name": "Hermetia illucens",
+   "usage_label": "une grande mouche noire"
+  },
+  {
+   "name": "Syrphe ceinturé",
+   "scientific_name": "Episyrphus balteatus",
+   "usage_label": "une mouche qui imite une guêpe"
+  },
+  {
+   "name": "Éristale gluant",
+   "scientific_name": "Eristalis tenax",
+   "usage_label": "une grosse mouche qui imite l'abeille"
+  },
+  {
+   "name": "Libellules (anisoptères)",
+   "scientific_name": "Anisoptera",
+   "usage_label": "des grandes libellules"
+  },
+  {
+   "name": "Libellule écarlate",
+   "scientific_name": "Crocothemis erythraea",
+   "usage_label": "une libellule rouge sang"
+  },
+  {
+   "name": "Anax empereur",
+   "scientific_name": "Anax imperator",
+   "usage_label": "une grande libellule bleu et vert"
+  },
+  {
+   "name": "Anax porte-selle",
+   "scientific_name": "Anax ephippiger",
+   "usage_label": "une grande libellule migratrice"
+  },
+  {
+   "name": "Anax napolitain",
+   "scientific_name": "Anax parthenope",
+   "usage_label": "une grande libellule brun-vert"
+  },
+  {
+   "name": "Sympétrum de Fonscolombe",
+   "scientific_name": "Sympetrum fonscolombii",
+   "usage_label": "une libellule rouge vif"
+  },
+  {
+   "name": "Orthétrum effilé",
+   "scientific_name": "Orthetrum trinacria",
+   "usage_label": "une grande libellule bleue élancée"
+  },
+  {
+   "name": "Orthétrum à stigmas jaunes",
+   "scientific_name": "Orthetrum chrysostigma",
+   "usage_label": "une libellule bleue à taches jaunes"
+  },
+  {
+   "name": "Trithémis à ailes ambrées",
+   "scientific_name": "Trithemis kirbyi",
+   "usage_label": "une libellule aux ailes ambrées"
+  },
+  {
+   "name": "Trithémis pourpré",
+   "scientific_name": "Trithemis annulata",
+   "usage_label": "une libellule pourpre"
+  },
+  {
+   "name": "Agrion délicat",
+   "scientific_name": "Ceriagrion tenellum",
+   "usage_label": "une petite libellule rouge",
+   "doute": "Demoiselle (zygoptère) : « petite libellule » au sens courant (« demoiselle » est une variante du terme « odonate », palier approfondissement)."
+  },
+  {
+   "name": "Ischnure de Graells",
+   "scientific_name": "Ischnura graellsii",
+   "usage_label": "une petite libellule bleu et noir",
+   "doute": "Demoiselle (zygoptère) : « petite libellule » au sens courant (« demoiselle » est une variante du terme « odonate », palier approfondissement)."
+  },
+  {
+   "name": "Éphémère des mares",
+   "scientific_name": "Cloeon dipterum",
+   "usage_label": "un éphémère des eaux calmes"
+  },
+  {
+   "name": "Criquet marocain",
+   "scientific_name": "Dociostaurus maroccanus",
+   "usage_label": "un criquet des steppes",
+   "doute": "Déplacée par D2 de `insectes` vers `orthopteres` : groupe d'usage inchangé (Insectes)."
+  },
+  {
+   "name": "Criquet égyptien",
+   "scientific_name": "Anacridium aegyptium",
+   "usage_label": "un très grand criquet gris",
+   "doute": "Déplacée par D2 de `insectes` vers `orthopteres` : groupe d'usage inchangé (Insectes)."
+  },
+  {
+   "name": "Criquet à antennes rousses",
+   "scientific_name": "Acanthacris ruficornis",
+   "usage_label": "un très grand criquet brun",
+   "doute": "Déplacée par D2 de `insectes` vers `orthopteres` : groupe d'usage inchangé (Insectes)."
+  },
+  {
+   "name": "Grillon provençal",
+   "scientific_name": "Gryllus bimaculatus",
+   "usage_label": "un grand grillon noir",
+   "doute": "Déplacée par D2 de `insectes` vers `orthopteres` : groupe d'usage inchangé (Insectes)."
+  },
+  {
+   "name": "Courtilière",
+   "scientific_name": "Gryllotalpa sp.",
+   "usage_label": "un grillon qui creuse sous terre",
+   "doute": "Déplacée par D2 de `insectes` vers `orthopteres` : groupe d'usage inchangé (Insectes)."
+  },
+  {
+   "name": "Perce-oreille",
+   "scientific_name": "Forficula auricularia",
+   "usage_label": "un insecte à pinces",
+   "doute": "Déplacée par D2 de `insectes` vers `dermapteres` : groupe d'usage inchangé (Insectes)."
+  },
+  {
+   "name": "Mante religieuse africaine",
+   "scientific_name": "Sphodromantis viridis",
+   "usage_label": "une mante chasseuse verte ou brune",
+   "doute": "Déplacée par D2 de `insectes` vers `mantes` : groupe d'usage inchangé (Insectes)."
+  },
+  {
+   "name": "Chrysope verte",
+   "scientific_name": "Chrysoperla carnea",
+   "usage_label": "un insecte vert aux ailes en dentelle",
+   "doute": "Déplacée par D2 de `insectes` vers `nevropteres` : groupe d'usage inchangé (Insectes)."
+  },
+  {
+   "name": "Phasme morose",
+   "scientific_name": "Carausius morosus",
+   "usage_label": "un insecte qui imite une brindille"
+  },
+  {
+   "name": "Blatte germanique",
+   "scientific_name": "Blattella germanica",
+   "usage_label": "une petite blatte des maisons"
+  },
+  {
+   "name": "Blatte américaine",
+   "scientific_name": "Periplaneta americana",
+   "usage_label": "une grande blatte brun-roux"
+  },
+  {
+   "name": "Poisson d'argent gris",
+   "scientific_name": "Ctenolepisma longicaudatum",
+   "usage_label": "un petit insecte argenté sans ailes",
+   "doute": "Nom trompeur (« poisson »)."
+  }
+ ]
+}

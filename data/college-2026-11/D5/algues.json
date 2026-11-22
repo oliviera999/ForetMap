@@ -1,0 +1,105 @@
+{
+ "_doc": "Étiquettes simples (plants.usage_label) du groupe d'usage « Algues (et leurs cousins) ». Clé naturelle : plants.name (+ scientific_name). Valeur avant attendue : NULL. doute : cas à relire par Oliv.",
+ "groupe": "algues",
+ "libelle": "Algues (et leurs cousins)",
+ "boites": [
+  "rhodophytes",
+  "stramenopiles",
+  "algues_vertes"
+ ],
+ "fiches": [
+  {
+   "name": "Chara",
+   "scientific_name": "Chara sp.",
+   "usage_label": "une algue d'eau douce"
+  },
+  {
+   "name": "Coccomyxa",
+   "scientific_name": "Coccomyxa sp.",
+   "usage_label": "une algue minuscule des lichens"
+  },
+  {
+   "name": "Entéromorphe",
+   "scientific_name": "Ulva intestinalis",
+   "usage_label": "une algue verte en tubes"
+  },
+  {
+   "name": "Laitue de mer",
+   "scientific_name": "Ulva spp.",
+   "usage_label": "une algue verte en lames fines",
+   "doute": "Nom trompeur (« laitue ») : l'étiquette rappelle qu'il s'agit d'une algue."
+  },
+  {
+   "name": "Codium adhérent",
+   "scientific_name": "Codium adhaerens",
+   "usage_label": "une algue verte en coussin"
+  },
+  {
+   "name": "Porphyre",
+   "scientific_name": "Porphyra umbilicalis",
+   "usage_label": "une algue rouge en lames fines"
+  },
+  {
+   "name": "Coralline",
+   "scientific_name": "Ellisolandia elongata",
+   "usage_label": "une algue rouge durcie de calcaire",
+   "doute": "Nom trompeur (évoque le corail, un animal)."
+  },
+  {
+   "name": "Pterocladiella",
+   "scientific_name": "Pterocladiella capillacea",
+   "usage_label": "une algue rouge plate et ramifiée"
+  },
+  {
+   "name": "Gélidium",
+   "scientific_name": "Gelidium corneum",
+   "usage_label": "une algue rouge qui donne une gelée"
+  },
+  {
+   "name": "Gracilaire",
+   "scientific_name": "Gracilaria gracilis",
+   "usage_label": "une algue rouge en fins rameaux"
+  },
+  {
+   "name": "Gracilaire cervicorne",
+   "scientific_name": "Gracilaria cervicornis",
+   "usage_label": "une algue rouge en bois de cerf"
+  },
+  {
+   "name": "Gigartine",
+   "scientific_name": "Gigartina pistillata",
+   "usage_label": "une algue rouge à petites bosses"
+  },
+  {
+   "name": "Fucus spiralé",
+   "scientific_name": "Fucus spiralis",
+   "usage_label": "une algue brune des rochers"
+  },
+  {
+   "name": "Cystoseire tamariscifoliée",
+   "scientific_name": "Ericaria selaginoides",
+   "usage_label": "une grande algue brune ramifiée"
+  },
+  {
+   "name": "Bifurcaire",
+   "scientific_name": "Bifurcaria bifurcata",
+   "usage_label": "une algue brune en rameaux fourchus"
+  },
+  {
+   "name": "Scytosiphon",
+   "scientific_name": "Scytosiphon lomentaria",
+   "usage_label": "une algue brune en chapelet"
+  },
+  {
+   "name": "Sargasse japonaise",
+   "scientific_name": "Sargassum muticum",
+   "usage_label": "une grande algue brune venue d'Asie"
+  },
+  {
+   "name": "Mildiou de la tomate",
+   "scientific_name": "Phytophthora infestans",
+   "usage_label": "un microbe qui tache les tomates",
+   "doute": "Rangé par le clade dans « Algues brunes et leurs cousins » (oomycète) : ni algue ni champignon ; « microbe » (terme base, variante de micro-organisme)."
+  }
+ ]
+}

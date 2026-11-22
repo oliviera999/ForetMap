@@ -1,0 +1,144 @@
+{
+ "_doc": "Étiquettes simples (plants.usage_label) du groupe d'usage « Araignées, scorpions, acariens ». Clé naturelle : plants.name (+ scientific_name). Valeur avant attendue : NULL. doute : cas à relire par Oliv.",
+ "groupe": "arachnides",
+ "libelle": "Araignées, scorpions, acariens",
+ "boites": [
+  "arachnides"
+ ],
+ "fiches": [
+  {
+   "name": "Argiope",
+   "scientific_name": "Argiope bruennichi",
+   "usage_label": "une grande araignée à toile en zigzag"
+  },
+  {
+   "name": "Argiope à bandes",
+   "scientific_name": "Argiope trifasciata",
+   "usage_label": "une grande araignée à toile ronde"
+  },
+  {
+   "name": "Argiope lobée",
+   "scientific_name": "Argiope lobata",
+   "usage_label": "une grande araignée blanc argenté"
+  },
+  {
+   "name": "Épeire des joncs",
+   "scientific_name": "Larinioides suspicax",
+   "usage_label": "une araignée à toile ronde"
+  },
+  {
+   "name": "Épeire de l'Opuntia",
+   "scientific_name": "Cyrtophora citricola",
+   "usage_label": "une araignée des figuiers de Barbarie"
+  },
+  {
+   "name": "Saltique des murs",
+   "scientific_name": "Menemerus semilimbatus",
+   "usage_label": "une araignée sauteuse des murs"
+  },
+  {
+   "name": "Plexippe de Paykull",
+   "scientific_name": "Plexippus paykulli",
+   "usage_label": "une grande araignée sauteuse",
+   "doute": "Nom opaque (priorité du prompt)."
+  },
+  {
+   "name": "Saltique d'Adanson",
+   "scientific_name": "Hasarius adansoni",
+   "usage_label": "une araignée sauteuse des maisons"
+  },
+  {
+   "name": "Lycoses",
+   "scientific_name": "Lycosidae",
+   "usage_label": "des araignées chasseuses du sol"
+  },
+  {
+   "name": "Thomise",
+   "scientific_name": "Xysticus cristatus",
+   "usage_label": "une araignée-crabe sans toile"
+  },
+  {
+   "name": "Thomise enflée",
+   "scientific_name": "Thomisus onustus",
+   "usage_label": "une araignée-crabe des fleurs"
+  },
+  {
+   "name": "Pholque phalangide",
+   "scientific_name": "Pholcus phalangioides",
+   "usage_label": "une araignée des plafonds"
+  },
+  {
+   "name": "Pholque de Pluche",
+   "scientific_name": "Holocnemus pluchei",
+   "usage_label": "une araignée à longues pattes"
+  },
+  {
+   "name": "Stéatode noble",
+   "scientific_name": "Steatoda nobilis",
+   "usage_label": "une araignée trapue des maisons"
+  },
+  {
+   "name": "Veuve brune",
+   "scientific_name": "Latrodectus geometricus",
+   "usage_label": "une araignée venimeuse au sablier",
+   "doute": "« venimeuse » : information de prudence (morsure à prendre au sérieux), sans inviter au contact."
+  },
+  {
+   "name": "Ségestrie florentine",
+   "scientific_name": "Segestria florentina",
+   "usage_label": "une grande araignée noire des murs"
+  },
+  {
+   "name": "Dysdère armée",
+   "scientific_name": "Dysdera crocata",
+   "usage_label": "une araignée qui chasse les cloportes"
+  },
+  {
+   "name": "Faucheux",
+   "scientific_name": "Opiliones",
+   "usage_label": "un arachnide aux très longues pattes",
+   "doute": "Souvent confondu avec une araignée : « arachnide » (terme base, variante d'araignée)."
+  },
+  {
+   "name": "Pseudoscorpion",
+   "scientific_name": "Chelifer cancroides",
+   "usage_label": "un minuscule arachnide à pinces"
+  },
+  {
+   "name": "Scorpions (Buthidés)",
+   "scientific_name": "Buthidae",
+   "usage_label": "des scorpions venimeux"
+  },
+  {
+   "name": "Solifuges",
+   "scientific_name": "Solifugae",
+   "usage_label": "des arachnides rapides des lieux secs"
+  },
+  {
+   "name": "Oribates",
+   "scientific_name": "Oribatida",
+   "usage_label": "des acariens durs du sol"
+  },
+  {
+   "name": "Acarien prédateur du compost",
+   "scientific_name": "Macrocheles sp.",
+   "usage_label": "un acarien chasseur du compost"
+  },
+  {
+   "name": "Trombidions",
+   "scientific_name": "Trombidiidae",
+   "usage_label": "des acariens rouges du sol"
+  },
+  {
+   "name": "Tétranyque tisserand",
+   "scientific_name": "Tetranychus urticae",
+   "usage_label": "un acarien minuscule des feuilles",
+   "doute": "Nom opaque (priorité du prompt)."
+  },
+  {
+   "name": "Tique brune du chien",
+   "scientific_name": "Rhipicephalus sanguineus",
+   "usage_label": "un acarien parasite du chien"
+  }
+ ]
+}
