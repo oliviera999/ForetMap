@@ -503,7 +503,10 @@ function App() {
             sessionNotionNiveau: pedagoSession.imposedNotionNiveau,
             canTeacherPreview:
               effectiveIsTeacher || (canSwitchToStudentView && roleViewMode === 'student'),
-            fullViewByDefault: effectiveIsTeacher || isClassTeacher,
+            // Compte non élève (prof, admin, personnel…) hors « vue élève » simulée : niveau
+            // de contenu du profil, sinon ses groupes, sinon cycle 3 (demande du 22/11/2026).
+            staff: isTeacherAccount && roleViewMode !== 'student',
+            contentLevel: sessionUser?.pedago_content_level ?? null,
           }}
           dialogsRef={appDialogsRef}
           sessionContextValue={sessionContextValue}

@@ -59,7 +59,8 @@ export function AppProviders({
           sessionLevel={biodiv.sessionLevel}
           sessionNotionNiveau={biodiv.sessionNotionNiveau}
           canTeacherPreview={biodiv.canTeacherPreview}
-          fullViewByDefault={biodiv.fullViewByDefault}
+          staff={biodiv.staff}
+          contentLevel={biodiv.contentLevel}
         >
           <AppDialogsProvider>
             <AppDialogsBridge dialogsRef={dialogsRef} />

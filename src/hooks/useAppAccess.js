@@ -234,6 +234,7 @@ export function useAppAccess({
       default_avatar_url: sessionUser?.default_avatar_url || null,
       visit_mascot_catalog_id: sessionUser?.visit_mascot_catalog_id || null,
       biodiv_pedago_level: sessionUser?.biodiv_pedago_level || null,
+      pedago_content_level: sessionUser?.pedago_content_level || null,
       description: sessionUser?.description || '',
       passwordMustReset: passwordChangeRequired,
       auth: {
@@ -253,6 +254,7 @@ export function useAppAccess({
     profileTargetUserId,
     sessionUser?.avatar_path,
     sessionUser?.biodiv_pedago_level,
+    sessionUser?.pedago_content_level,
     sessionUser?.default_avatar_url,
     sessionUser?.description,
     sessionUser?.displayName,

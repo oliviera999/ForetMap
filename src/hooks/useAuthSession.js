@@ -317,6 +317,7 @@ export function useAuthSession({
           description: pick('description', prev),
           visit_mascot_catalog_id: pick('visit_mascot_catalog_id', prev),
           biodiv_pedago_level: pick('biodiv_pedago_level', prev),
+          pedago_content_level: pick('pedago_content_level', prev),
         }));
       }
       if (d.autoProfilePromotion && auth.userType === 'student') {

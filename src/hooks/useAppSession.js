@@ -244,6 +244,10 @@ export function useAppSession({
             updatedUser?.biodiv_pedago_level !== undefined
               ? updatedUser.biodiv_pedago_level
               : (prev?.biodiv_pedago_level ?? null),
+          pedago_content_level:
+            updatedUser?.pedago_content_level !== undefined
+              ? updatedUser.pedago_content_level
+              : (prev?.pedago_content_level ?? null),
         };
         saveStoredSession({ user: next, ...(nextToken ? { token: nextToken } : {}) });
         return next;
@@ -286,6 +290,7 @@ export function useAppSession({
           default_avatar_url: session?.default_avatar_url || null,
           visit_mascot_catalog_id: session?.visit_mascot_catalog_id || null,
           biodiv_pedago_level: session?.biodiv_pedago_level || null,
+          pedago_content_level: session?.pedago_content_level || null,
         });
       } else {
         updateStudentSession(session);

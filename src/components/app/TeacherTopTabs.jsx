@@ -118,7 +118,7 @@ export function TeacherTopTabs({
   const [sheetPoleId, setSheetPoleId] = useState(null);
   const isCompact = useCompactNav({ widthQuery: MEDIA.phone, layoutMode });
 
-  const { canShow } = useBiodivPedago();
+  const { canShow, managementView } = useBiodivPedago();
 
   const pendingCount = teacherPendingValidationCount > 0 ? teacherPendingValidationCount : 0;
   const tasksText = tutorialsModuleEnabled ? 'Tâches et tuto' : 'Tâches';
@@ -234,13 +234,15 @@ export function TeacherTopTabs({
       pole: 'tracking',
       Icon: IconIndividuals,
       label: 'Individus',
-      // Deux conditions cumulées : le niveau pédagogique (masqué au collège) ET l'interrupteur.
+      // Interrupteur ET droits ; le niveau pédagogique (masqué au collège) ne compte qu'en
+      // aperçu : hors aperçu, c'est un écran de gestion, que le niveau de contenu du profil ne
+      // retire jamais (demande du 22/11/2026).
       visible:
         individualsEnabled &&
         (hasPermission('individuals.manage') ||
           hasPermission('individuals.measure') ||
           canPlants) &&
-        canShow('individuals_tab'),
+        (managementView || canShow('individuals_tab')),
     },
     { id: 'stats', pole: 'tracking', Icon: IconStats, label: 'Stats', visible: canStats },
     {

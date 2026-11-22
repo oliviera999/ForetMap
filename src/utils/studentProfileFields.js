@@ -87,6 +87,7 @@ const PROFILE_PATCH_FIELDS = [
   'description',
   'visit_mascot_catalog_id',
   'biodiv_pedago_level',
+  'pedago_content_level',
 ];
 
 function normalizeProfileField(value) {

@@ -13,8 +13,9 @@ import { describeAppPreview, PREVIEW_LEVEL_OPTIONS } from '../../utils/appPrevie
  * n3boss) et le niveau d’affichage biodiversité (6e, 3e ou lycée, `PREVIEW_LEVEL_OPTIONS`).
  *
  * La vue de rôle reste pilotée par `App` (`roleViewMode`, callback) ; le niveau vient du
- * contexte biodiversité. Rien n'est rendu quand aucune des deux options n'est ouverte au
- * compte courant.
+ * contexte biodiversité. L'aperçu est une simulation de session qui passe devant le niveau de
+ * contenu du profil ; « Quitter l'aperçu » ramène à ce niveau (plus à la vue complète
+ * d'office). Rien n'est rendu quand aucune des deux options n'est ouverte au compte courant.
  */
 export function AppPreviewMenu({
   roleViewMode = 'native',
@@ -24,7 +25,7 @@ export function AppPreviewMenu({
   roleTerms,
   helpText,
 }) {
-  const { canTeacherPreview, teacherPreview, setTeacherPreview, fullViewByDefault } =
+  const { canTeacherPreview, teacherPreview, setTeacherPreview, baseLevelLabel } =
     useBiodivPedago();
   const [open, setOpen] = useState(false);
   const [portalNode, setPortalNode] = useState(null);
@@ -85,8 +86,9 @@ export function AppPreviewMenu({
     },
   ].filter((option) => option.visible);
 
-  const autoLevelLabel = fullViewByDefault
-    ? 'Complet (vue gestion)'
+  // Sans aperçu : le niveau du profil (compte non élève), sinon les règles élève.
+  const autoLevelLabel = baseLevelLabel
+    ? `Mon niveau : ${baseLevelLabel}`
     : 'Automatique (carte et groupe)';
 
   const panel = open ? (

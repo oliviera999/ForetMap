@@ -9,13 +9,14 @@ import { BiodivPedagoProvider, useBiodivPedago } from '../../src/contexts/Biodiv
  */
 
 function Probe() {
-  const { level, curriculumNiveaux, learner } = useBiodivPedago();
+  const { level, curriculumNiveaux, learner, managementView } = useBiodivPedago();
   return (
     <dl>
       <dd data-testid="level">{level}</dd>
       <dd data-testid="niveaux">{curriculumNiveaux ? curriculumNiveaux.join(',') : 'tous'}</dd>
       <dd data-testid="source">{learner?.sources?.niveau || ''}</dd>
       <dd data-testid="palier">{learner?.maxPalier == null ? 'aucun' : learner.maxPalier}</dd>
+      <dd data-testid="gestion">{managementView ? 'oui' : 'non'}</dd>
     </dl>
   );
 }
@@ -88,15 +89,62 @@ describe('BiodivPedagoProvider — échelle unique', () => {
     expect(text('palier')).toBe('3');
   });
 
-  test('professeur en vue complète : université, ses propres classes ignorées', () => {
+  test('compte non élève sans choix ni groupe : cycle 3 (plus de vue complète d’office)', () => {
     render(
-      <BiodivPedagoProvider classCurriculumNiveaux={['cycle3']} canTeacherPreview>
+      <BiodivPedagoProvider canTeacherPreview staff>
+        <Probe />
+      </BiodivPedagoProvider>,
+    );
+    expect(text('level')).toBe('college');
+    expect(text('niveaux')).toBe('cycle3');
+    expect(text('source')).toBe('defaut');
+    expect(text('palier')).toBe('1');
+    expect(text('gestion')).toBe('oui');
+  });
+
+  test('compte non élève : le plus haut niveau de ses groupes, puis son choix explicite', () => {
+    const { rerender } = render(
+      <BiodivPedagoProvider canTeacherPreview staff classCurriculumNiveaux={['cycle3', 'seconde']}>
+        <Probe />
+      </BiodivPedagoProvider>,
+    );
+    expect(text('level')).toBe('lycee');
+    expect(text('source')).toBe('classe');
+    rerender(
+      <BiodivPedagoProvider
+        canTeacherPreview
+        staff
+        contentLevel="complet"
+        classCurriculumNiveaux={['cycle3']}
+      >
         <Probe />
       </BiodivPedagoProvider>,
     );
     expect(text('level')).toBe('universite');
     expect(text('niveaux')).toBe('tous');
     expect(text('source')).toBe('vue_complete');
+  });
+
+  test('aperçu de session : passe devant le profil et suspend la vue gestion', () => {
+    sessionStorage.setItem('foretmap.biodivPedagoPreview', 'cycle3');
+    render(
+      <BiodivPedagoProvider canTeacherPreview staff contentLevel="complet">
+        <Probe />
+      </BiodivPedagoProvider>,
+    );
+    expect(text('source')).toBe('apercu');
+    expect(text('palier')).toBe('1');
+    expect(text('gestion')).toBe('non');
+  });
+
+  test('élève : le réglage de contenu ne s’applique pas', () => {
+    render(
+      <BiodivPedagoProvider contentLevel="complet" classCurriculumNiveaux={['cycle3']}>
+        <Probe />
+      </BiodivPedagoProvider>,
+    );
+    expect(text('source')).toBe('classe');
+    expect(text('gestion')).toBe('non');
   });
 
   test('visite invitée : Collège, même avec une séance', () => {

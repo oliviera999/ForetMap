@@ -57,8 +57,10 @@ export function IndividualsView({
   moduleOffForLearners = false,
 }) {
   const { plants = [] } = useData() || {};
-  const { visibility } = useBiodivPedago();
-  const biomassVisibility = visibility('biomass_estimates');
+  const { visibility, managementView } = useBiodivPedago();
+  // Gestionnaire hors aperçu : estimations toujours ouvertes (écran de gestion, que le niveau
+  // de contenu du profil ne restreint pas).
+  const biomassVisibility = canManage && managementView ? 'open' : visibility('biomass_estimates');
   const { confirm } = useAppDialogs();
   const [mapId, setMapId] = useState(initialMapId || '');
   const [items, setItems] = useState([]);
