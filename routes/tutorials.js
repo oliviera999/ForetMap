@@ -1,7 +1,12 @@
 const express = require('express');
 const fs = require('fs');
 const { queryAll, queryOne, execute, withTransaction } = require('../database');
-const { authenticate, requirePermission, requireAuth } = require('../middleware/requireTeacher');
+const {
+  authenticate,
+  requirePermission,
+  requireAuth,
+  hasPermission,
+} = require('../middleware/requireTeacher');
 const asyncHandler = require('../lib/asyncHandler');
 const { assertGatingSatisfiedForAcknowledge } = require('../lib/learningGatingAcknowledge');
 const { loadLearnerLevelForRequest } = require('../lib/pedago/learnerLevel');
@@ -51,6 +56,7 @@ const { sanitizeTutorialViewHtml } = require('../lib/tutorialViewSanitize');
 const { localizeTutorialExternalAssets } = require('../lib/tutorialViewExternalAssets');
 const { getSettingValue } = require('../lib/settings');
 const { queueNatureRewards } = require('../lib/rewards/hooks');
+const { isModuleEnabled } = require('../lib/shared/moduleGate');
 
 /** Incrémenter quand le pipeline d’enrichissement `/view` change (ex. CSS reveal). */
 const TUTORIAL_VIEW_PIPELINE_VERSION = 'reveal-css-1';
@@ -572,6 +578,32 @@ router.get(
   }),
 );
 
+/**
+ * Lecture inverse du lien clé ↔ tutoriel (`id_key_tutorials`, migration
+ * `id_keys_credits_chemins_tutoriels`) : les clés de détermination qui proposent ce tutoriel
+ * « avant de commencer », dans l'ordre des titres. Même visibilité que `GET /api/id-keys` :
+ * clés publiées seulement ; brouillons compris pour `id_keys.manage`. Module des clés éteint
+ * (`ui.modules.id_keys_enabled`) : liste vide, sauf pour le gestionnaire (`lib/pedagoModuleGate.js`).
+ */
+async function fetchLinkedIdKeys(req, tutorialId) {
+  const manager = hasPermission(req.auth, 'id_keys.manage');
+  if (!manager && !(await isModuleEnabled('foret', 'id_keys'))) return [];
+  const rows = await queryAll(
+    `SELECT k.id, k.slug, k.title, k.is_published
+       FROM id_key_tutorials kt
+       JOIN id_keys k ON k.id = kt.key_id
+      WHERE kt.tutorial_id = ?${manager ? '' : ' AND k.is_published = 1'}
+      ORDER BY k.title ASC, k.id ASC`,
+    [tutorialId],
+  );
+  return rows.map((r) => ({
+    id: Number(r.id),
+    slug: r.slug,
+    title: r.title,
+    is_published: Boolean(r.is_published),
+  }));
+}
+
 router.get(
   '/:id',
   asyncHandler(async (req, res) => {
@@ -598,6 +630,7 @@ router.get(
     const mMap = await fetchMarkersForTutorials([tid]);
     const out = toPublicTutorialRow(row, zMap.get(tid) || [], mMap.get(tid) || []);
     if (includeContent) out.html_content = row.html_content || null;
+    out.linked_id_keys = await fetchLinkedIdKeys(req, tid);
     res.json(out);
   }),
 );
