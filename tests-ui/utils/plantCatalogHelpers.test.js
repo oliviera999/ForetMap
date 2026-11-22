@@ -5,13 +5,14 @@ import {
 } from '../../src/utils/plantCatalogHelpers.js';
 
 describe('isVegetalCatalogEntry', () => {
-  test('groupe 1 contenant « végétal » (insensible à la casse/espaces)', () => {
-    expect(isVegetalCatalogEntry({ group_1: 'Végétal (Chlorobiontes)' })).toBe(true);
-    expect(isVegetalCatalogEntry({ group_1: '  VÉGÉTAL  ' })).toBe(true);
+  test('règne (taxon_kingdom) contenant « végétal » (insensible à la casse/espaces)', () => {
+    expect(isVegetalCatalogEntry({ taxon_kingdom: 'Végétal (Chlorobiontes)' })).toBe(true);
+    expect(isVegetalCatalogEntry({ taxon_kingdom: '  VÉGÉTAL  ' })).toBe(true);
+    expect(isVegetalCatalogEntry({ taxonomy: { kingdom: 'Végétal (Chlorobiontes)' } })).toBe(true);
   });
-  test('autre groupe ou absent → false', () => {
-    expect(isVegetalCatalogEntry({ group_1: 'Fungi' })).toBe(false);
-    expect(isVegetalCatalogEntry({ group_1: '-' })).toBe(false);
+  test('autre règne ou absent → false', () => {
+    expect(isVegetalCatalogEntry({ taxon_kingdom: 'Champignon (Fungi)' })).toBe(false);
+    expect(isVegetalCatalogEntry({ taxon_kingdom: '-' })).toBe(false);
     expect(isVegetalCatalogEntry({})).toBe(false);
   });
 });

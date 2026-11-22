@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../../services/api';
 import { useData } from '../../contexts/DataContext.jsx';
+import { useBiodivPedago } from '../../contexts/BiodivPedagoContext.jsx';
 import { IconAdd, IconBiodiv, IconDelete, IconEdit } from '../../shared/icons.jsx';
 import { useAppDialogs } from '../../shared/components/AppDialogsProvider.jsx';
+import './nestedGroupsCollege.css';
 
 function NestedBox({ node, depth = 0, showPlants = true }) {
   if (!node) return null;
@@ -200,8 +202,16 @@ function AdminTreePanel({ items, onReload, canManage }) {
   );
 }
 
+/** Valeur du paramètre `profile` qui demande au serveur l'arbre réduit aux groupes d'usage. */
+const COLLEGE_TREE_PROFILE = 'college';
+
 /**
  * Activité pédagogique « Groupes emboîtés » + administration de l'arbre (si `canManage`).
+ *
+ * Au collège (brique `nested_groups_full_tree` masquée dans la table de visibilité), l'arbre
+ * est réduit aux groupes d'usage (`profile=college`, chantier collège, flux C4) : boîtes
+ * visibles seulement, libellés simples ; « Pour aller plus loin » rouvre l'arbre complet.
+ * L'administration lit toujours l'arbre complet.
  */
 export function NestedGroupsView({
   maps = [],
@@ -211,6 +221,10 @@ export function NestedGroupsView({
   activityRequest = null,
 }) {
   const { plants = [] } = useData() || {};
+  const { canShow } = useBiodivPedago();
+  const reducedByDefault = !canShow('nested_groups_full_tree');
+  const [fullTree, setFullTree] = useState(false);
+  const [activityCollapsed, setActivityCollapsed] = useState(false);
   const [items, setItems] = useState([]);
   const [mode, setMode] = useState('teacher'); // teacher | student
   const [selectedIds, setSelectedIds] = useState([]);
@@ -246,13 +260,19 @@ export function NestedGroupsView({
   };
 
   const buildSubtree = useCallback(
-    async (payload, { forceStudent = false } = {}) => {
+    async (payload, { forceStudent = false, full = fullTree } = {}) => {
       setLoading(true);
       setError('');
       setCheckResult(null);
+      const reduced = reducedByDefault && !full;
       try {
-        const data = await api('/api/clades/activity/subtree', 'POST', payload);
+        const data = await api(
+          '/api/clades/activity/subtree',
+          'POST',
+          reduced ? { ...payload, profile: COLLEGE_TREE_PROFILE } : payload,
+        );
         setTree(data.tree || null);
+        setActivityCollapsed(Boolean(data.collapsed));
         setActivityPlants(data.plants || []);
         setCladeOptions(data.cladeOptions || []);
         setPlacements({});
@@ -264,7 +284,7 @@ export function NestedGroupsView({
         setLoading(false);
       }
     },
-    [canManage],
+    [canManage, reducedByDefault, fullTree],
   );
 
   // Séance pédagogique : l'activité est lancée d'emblée avec les espèces choisies par le prof
@@ -286,6 +306,14 @@ export function NestedGroupsView({
   const startFromSelection = () => buildSubtree({ plantIds: selectedIds });
   const startFromMap = () => buildSubtree({ mapId, count: Number(count) || 6 });
 
+  /** « Pour aller plus loin » : bascule arbre réduit ↔ complet, mêmes espèces. */
+  const toggleFullTree = () => {
+    const next = !fullTree;
+    setFullTree(next);
+    const ids = activityPlants.map((p) => p.id);
+    if (tree && ids.length >= 2) buildSubtree({ plantIds: ids }, { full: next });
+  };
+
   const runCheck = async () => {
     setLoading(true);
     setError('');
@@ -295,6 +323,7 @@ export function NestedGroupsView({
           plantId: p.id,
           cladeId: placements[p.id] || null,
         })),
+        ...(activityCollapsed ? { profile: COLLEGE_TREE_PROFILE } : {}),
       });
       setCheckResult(data);
     } catch (err) {
@@ -337,6 +366,25 @@ export function NestedGroupsView({
       ) : null}
 
       {error ? <p className="form-error">{error}</p> : null}
+
+      {reducedByDefault && tree ? (
+        <div className="nested-groups-view__depth">
+          <button
+            type="button"
+            className="btn btn-secondary"
+            aria-pressed={fullTree}
+            disabled={loading}
+            onClick={toggleFullTree}
+          >
+            {fullTree ? 'Revenir aux grands groupes' : 'Pour aller plus loin'}
+          </button>
+          <span className="muted">
+            {fullTree
+              ? 'Classification complète, avec tous les groupes intermédiaires.'
+              : 'Grands groupes faciles à reconnaître. La classification complète est plus détaillée.'}
+          </span>
+        </div>
+      ) : null}
 
       {mode === 'teacher' || !tree ? (
         <section className="nested-groups-setup">

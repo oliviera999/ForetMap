@@ -1,0 +1,584 @@
+{
+  "source": "Instantané de production du 21/11/2026 (docs/coordination/college-2026-11/snapshot/clades.json et plants.json), recopié pour survivre à la suppression du dossier de coordination. Aucune marque visible_college : les tests les posent.",
+  "clades": [
+    {
+      "id": "actinopterygiens",
+      "parent_id": "vertebres",
+      "name": "Poissons à nageoires rayonnées",
+      "shared_attribute": "Nageoires soutenues par des rayons osseux",
+      "sort_order": 22
+    },
+    {
+      "id": "algues_vertes",
+      "parent_id": "chlorobiontes",
+      "name": "Algues vertes",
+      "shared_attribute": "Pas de tissus conducteurs ni d’embryon protégé",
+      "sort_order": 4
+    },
+    {
+      "id": "amaryllidacees",
+      "parent_id": "monocotyledones",
+      "name": "Amaryllidacées (ail, oignon, narcisses)",
+      "shared_attribute": "Plante à bulbe ; fleurs (parfois une seule) au sommet d'une tige sans feuilles, d'abord enveloppées dans une membrane (spathe)",
+      "sort_order": 108
+    },
+    {
+      "id": "amniotes",
+      "parent_id": "tetrapodes",
+      "name": "Amniotes",
+      "shared_attribute": "Œuf à amnios (protégeant l’embryon hors de l’eau)",
+      "sort_order": 25
+    },
+    {
+      "id": "amphibiens",
+      "parent_id": "tetrapodes",
+      "name": "Amphibiens",
+      "shared_attribute": "Peau nue, sans écailles, riche en glandes ; larve aquatique (têtard)",
+      "sort_order": 24
+    },
+    {
+      "id": "angiospermes",
+      "parent_id": "spermaphytes",
+      "name": "Plantes à fleurs (angiospermes)",
+      "shared_attribute": "Fleurs ; graines enfermées dans un fruit",
+      "sort_order": 10
+    },
+    {
+      "id": "annelides",
+      "parent_id": "bilateriens",
+      "name": "Annélides",
+      "shared_attribute": "Corps formé d’anneaux",
+      "sort_order": 35
+    },
+    {
+      "id": "apiacees",
+      "parent_id": "angiospermes",
+      "name": "Apiacées (ombellifères)",
+      "shared_attribute": "Fleurs en ombelle : les rayons partent tous d'un même point, comme un parapluie",
+      "sort_order": 104
+    },
+    {
+      "id": "arachnides",
+      "parent_id": "arthropodes",
+      "name": "Arachnides",
+      "shared_attribute": "Huit pattes ; une paire de crochets ou de pinces devant la bouche (chélicères)",
+      "sort_order": 40
+    },
+    {
+      "id": "araignees",
+      "parent_id": "arachnides",
+      "name": "Araignées",
+      "shared_attribute": "Glandes à soie au bout de l'abdomen (filières) ; crochets à venin ; corps en deux parties reliées par une taille fine",
+      "sort_order": 114
+    },
+    {
+      "id": "arecacees",
+      "parent_id": "monocotyledones",
+      "name": "Palmiers (Arécacées)",
+      "shared_attribute": "Tige non ramifiée (stipe), parfois très courte (palmier nain), couronnée de grandes feuilles plissées, les palmes, en éventail ou en plume",
+      "sort_order": 107
+    },
+    {
+      "id": "arthropodes",
+      "parent_id": "bilateriens",
+      "name": "Arthropodes",
+      "shared_attribute": "Squelette externe et pattes articulées",
+      "sort_order": 37
+    },
+    {
+      "id": "asteracees",
+      "parent_id": "angiospermes",
+      "name": "Astéracées",
+      "shared_attribute": "Minuscules fleurs serrées en capitule, qui ressemble à une seule fleur",
+      "sort_order": 100
+    },
+    {
+      "id": "bacteries",
+      "parent_id": "vivant",
+      "name": "Bactéries",
+      "shared_attribute": "Cellule sans noyau",
+      "sort_order": 1
+    },
+    {
+      "id": "bilateriens",
+      "parent_id": "metazoaires",
+      "name": "Bilatériens",
+      "shared_attribute": "Symétrie bilatérale : un côté droit et un côté gauche",
+      "sort_order": 19
+    },
+    {
+      "id": "bivalves",
+      "parent_id": "mollusques",
+      "name": "Bivalves",
+      "shared_attribute": "Coquille à deux valves",
+      "sort_order": 33
+    },
+    {
+      "id": "brassicacees",
+      "parent_id": "angiospermes",
+      "name": "Brassicacées (crucifères)",
+      "shared_attribute": "Fleur à quatre pétales disposés en croix ; fruit allongé (silique)",
+      "sort_order": 105
+    },
+    {
+      "id": "bryophytes",
+      "parent_id": "embryophytes",
+      "name": "Mousses (bryophytes)",
+      "shared_attribute": "Pas de vaisseaux conducteurs ; le pied feuillé porte la capsule à spores",
+      "sort_order": 0
+    },
+    {
+      "id": "carnivores",
+      "parent_id": "mammiferes",
+      "name": "Carnivores",
+      "shared_attribute": "Grandes canines ; dents carnassières tranchantes comme des ciseaux",
+      "sort_order": 119
+    },
+    {
+      "id": "cephalopodes",
+      "parent_id": "mollusques",
+      "name": "Céphalopodes",
+      "shared_attribute": "Bras munis de ventouses autour de la bouche",
+      "sort_order": 34
+    },
+    {
+      "id": "champignons",
+      "parent_id": "opisthocontes",
+      "name": "Champignons",
+      "shared_attribute": "Paroi de chitine ; absorbent leur nourriture",
+      "sort_order": 16
+    },
+    {
+      "id": "chiropteres",
+      "parent_id": "mammiferes",
+      "name": "Chauves-souris (chiroptères)",
+      "shared_attribute": "Main transformée en aile : une membrane de peau tendue entre de très longs doigts",
+      "sort_order": 118
+    },
+    {
+      "id": "chlorobiontes",
+      "parent_id": "eucaryotes",
+      "name": "Chlorobiontes (lignée verte)",
+      "shared_attribute": "Chloroplastes à chlorophylles a et b, réserves d’amidon",
+      "sort_order": 3
+    },
+    {
+      "id": "cilies",
+      "parent_id": "eucaryotes",
+      "name": "Ciliés",
+      "shared_attribute": "Cellule unique couverte de cils",
+      "sort_order": 14
+    },
+    {
+      "id": "cirripedes",
+      "parent_id": "crustaces",
+      "name": "Cirripèdes (balanes, pouce-pieds)",
+      "shared_attribute": "Fixés à vie, la tête en bas, dans des plaques calcaires ; ils filtrent l'eau avec leurs pattes plumeuses (cirres)",
+      "sort_order": 117
+    },
+    {
+      "id": "cnidaires",
+      "parent_id": "metazoaires",
+      "name": "Cnidaires",
+      "shared_attribute": "Cellules urticantes",
+      "sort_order": 18
+    },
+    {
+      "id": "coleopteres",
+      "parent_id": "insectes",
+      "name": "Coléoptères",
+      "shared_attribute": "Ailes de devant durcies en élytres, qui recouvrent les ailes de derrière",
+      "sort_order": 50
+    },
+    {
+      "id": "collemboles",
+      "parent_id": "hexapodes",
+      "name": "Collemboles",
+      "shared_attribute": "Pièces buccales cachées dans la tête ; organe de saut replié sous l'abdomen",
+      "sort_order": 39
+    },
+    {
+      "id": "convolvulacees",
+      "parent_id": "angiospermes",
+      "name": "Convolvulacées (liserons)",
+      "shared_attribute": "Fleur en entonnoir aux pétales soudés ; tige souvent volubile (qui s'enroule)",
+      "sort_order": 111
+    },
+    {
+      "id": "crustaces",
+      "parent_id": "arthropodes",
+      "name": "Crustacés",
+      "shared_attribute": "Deux paires d’antennes (perdues chez les balanes adultes)",
+      "sort_order": 41
+    },
+    {
+      "id": "cucurbitacees",
+      "parent_id": "angiospermes",
+      "name": "Cucurbitacées (courges, melons)",
+      "shared_attribute": "Tiges rampantes ou grimpantes munies de vrilles ; fleurs mâles et fleurs femelles séparées",
+      "sort_order": 110
+    },
+    {
+      "id": "cyperacees",
+      "parent_id": "monocotyledones",
+      "name": "Cypéracées (souchets, scirpes)",
+      "shared_attribute": "Tige pleine, souvent à section triangulaire ; feuilles disposées sur trois rangs",
+      "sort_order": 109
+    },
+    {
+      "id": "decapodes",
+      "parent_id": "crustaces",
+      "name": "Décapodes (crabes, crevettes)",
+      "shared_attribute": "Cinq paires de pattes marcheuses, la première souvent armée de pinces ; carapace qui couvre la tête et le thorax",
+      "sort_order": 116
+    },
+    {
+      "id": "dipteres",
+      "parent_id": "insectes",
+      "name": "Diptères",
+      "shared_attribute": "Une seule paire d'ailes ; la seconde est réduite en petits balanciers",
+      "sort_order": 53
+    },
+    {
+      "id": "echinodermes",
+      "parent_id": "bilateriens",
+      "name": "Échinodermes",
+      "shared_attribute": "Squelette de plaques calcaires, symétrie d’ordre 5 chez l’adulte",
+      "sort_order": 20
+    },
+    {
+      "id": "embryophytes",
+      "parent_id": "chlorobiontes",
+      "name": "Plantes terrestres (embryophytes)",
+      "shared_attribute": "Embryon protégé par la plante mère, cuticule",
+      "sort_order": 5
+    },
+    {
+      "id": "eucaryotes",
+      "parent_id": "vivant",
+      "name": "Eucaryotes",
+      "shared_attribute": "Cellules à noyau",
+      "sort_order": 2
+    },
+    {
+      "id": "fabacees",
+      "parent_id": "angiospermes",
+      "name": "Fabacées (légumineuses)",
+      "shared_attribute": "Fruit en gousse ; racines souvent porteuses de nodosités",
+      "sort_order": 101
+    },
+    {
+      "id": "fougeres",
+      "parent_id": "tracheophytes",
+      "name": "Fougères",
+      "shared_attribute": "Spores ; feuilles enroulées en crosse à la pousse",
+      "sort_order": 7
+    },
+    {
+      "id": "gasteropodes",
+      "parent_id": "mollusques",
+      "name": "Gastéropodes",
+      "shared_attribute": "Pied ventral, coquille d’une seule pièce (parfois absente)",
+      "sort_order": 32
+    },
+    {
+      "id": "glires",
+      "parent_id": "mammiferes",
+      "name": "Rongeurs et lagomorphes (Glires)",
+      "shared_attribute": "Grandes incisives qui poussent toute la vie, séparées des autres dents par un espace vide",
+      "sort_order": 120
+    },
+    {
+      "id": "gymnospermes",
+      "parent_id": "spermaphytes",
+      "name": "Gymnospermes",
+      "shared_attribute": "Graines nues, non enfermées dans un fruit",
+      "sort_order": 9
+    },
+    {
+      "id": "hemipteres",
+      "parent_id": "insectes",
+      "name": "Hémiptères",
+      "shared_attribute": "Pièces buccales en rostre qui pique et aspire",
+      "sort_order": 54
+    },
+    {
+      "id": "hexapodes",
+      "parent_id": "arthropodes",
+      "name": "Hexapodes",
+      "shared_attribute": "Six pattes et une paire d'antennes",
+      "sort_order": 38
+    },
+    {
+      "id": "hymenopteres",
+      "parent_id": "insectes",
+      "name": "Hyménoptères",
+      "shared_attribute": "Deux paires d'ailes transparentes accrochées l'une à l'autre ; taille souvent très fine",
+      "sort_order": 52
+    },
+    {
+      "id": "insectes",
+      "parent_id": "hexapodes",
+      "name": "Insectes",
+      "shared_attribute": "Pièces buccales visibles hors de la tête ; ailes chez la plupart des adultes",
+      "sort_order": 38
+    },
+    {
+      "id": "isopodes",
+      "parent_id": "crustaces",
+      "name": "Isopodes (cloportes)",
+      "shared_attribute": "Corps aplati de haut en bas ; sept paires de pattes toutes semblables",
+      "sort_order": 115
+    },
+    {
+      "id": "lamiacees",
+      "parent_id": "angiospermes",
+      "name": "Lamiacées",
+      "shared_attribute": "Tige carrée, feuilles opposées, fleurs à deux lèvres",
+      "sort_order": 102
+    },
+    {
+      "id": "lepidopteres",
+      "parent_id": "insectes",
+      "name": "Lépidoptères",
+      "shared_attribute": "Ailes couvertes de minuscules écailles ; trompe enroulée",
+      "sort_order": 51
+    },
+    {
+      "id": "mammiferes",
+      "parent_id": "amniotes",
+      "name": "Mammifères",
+      "shared_attribute": "Poils, mamelles",
+      "sort_order": 26
+    },
+    {
+      "id": "metazoaires",
+      "parent_id": "opisthocontes",
+      "name": "Animaux (métazoaires)",
+      "shared_attribute": "Pluricellulaires ; cellules sans paroi, reliées entre elles par du collagène",
+      "sort_order": 17
+    },
+    {
+      "id": "mollusques",
+      "parent_id": "bilateriens",
+      "name": "Mollusques",
+      "shared_attribute": "Corps mou, manteau (souvent une coquille)",
+      "sort_order": 31
+    },
+    {
+      "id": "monocotyledones",
+      "parent_id": "angiospermes",
+      "name": "Monocotylédones",
+      "shared_attribute": "Une seule feuille dans la graine (cotylédon), nervures parallèles",
+      "sort_order": 11
+    },
+    {
+      "id": "moracees",
+      "parent_id": "angiospermes",
+      "name": "Moracées (figuiers, mûrier)",
+      "shared_attribute": "Latex blanc ; petites fleurs serrées qui donnent des fruits groupés (figue, mûre)",
+      "sort_order": 113
+    },
+    {
+      "id": "myriapodes",
+      "parent_id": "arthropodes",
+      "name": "Myriapodes",
+      "shared_attribute": "Nombreuses paires de pattes",
+      "sort_order": 42
+    },
+    {
+      "id": "nematodes",
+      "parent_id": "bilateriens",
+      "name": "Nématodes",
+      "shared_attribute": "Ver cylindrique couvert d'une cuticule qui mue",
+      "sort_order": 36
+    },
+    {
+      "id": "odonates",
+      "parent_id": "insectes",
+      "name": "Odonates",
+      "shared_attribute": "Quatre grandes ailes transparentes, très gros yeux, abdomen long et fin",
+      "sort_order": 55
+    },
+    {
+      "id": "oiseaux",
+      "parent_id": "sauropsides",
+      "name": "Oiseaux",
+      "shared_attribute": "Plumes ; bec corné",
+      "sort_order": 30
+    },
+    {
+      "id": "oleacees",
+      "parent_id": "angiospermes",
+      "name": "Oléacées (olivier, jasmin)",
+      "shared_attribute": "Feuilles opposées ; fleurs à deux étamines seulement",
+      "sort_order": 112
+    },
+    {
+      "id": "opisthocontes",
+      "parent_id": "eucaryotes",
+      "name": "Opisthocontes",
+      "shared_attribute": "Cellules à un flagelle postérieur (spermatozoïde, spores)",
+      "sort_order": 15
+    },
+    {
+      "id": "plathelminthes",
+      "parent_id": "bilateriens",
+      "name": "Plathelminthes (vers plats)",
+      "shared_attribute": "Corps aplati, sans anneaux ni anus : une seule ouverture digestive",
+      "sort_order": 0
+    },
+    {
+      "id": "poacees",
+      "parent_id": "monocotyledones",
+      "name": "Poacées (graminées)",
+      "shared_attribute": "Tige creuse coupée de nœuds (chaume) ; fleurs sans pétales, en épillets",
+      "sort_order": 100
+    },
+    {
+      "id": "rhodophytes",
+      "parent_id": "eucaryotes",
+      "name": "Algues rouges",
+      "shared_attribute": "Pigments rouges (phycoérythrine)",
+      "sort_order": 12
+    },
+    {
+      "id": "rosacees",
+      "parent_id": "angiospermes",
+      "name": "Rosacées",
+      "shared_attribute": "Fleur à cinq pétales libres et nombreuses étamines",
+      "sort_order": 106
+    },
+    {
+      "id": "sauropsides",
+      "parent_id": "amniotes",
+      "name": "Sauropsides",
+      "shared_attribute": "Peau couverte d’écailles de kératine (ou de plumes)",
+      "sort_order": 27
+    },
+    {
+      "id": "solanacees",
+      "parent_id": "angiospermes",
+      "name": "Solanacées",
+      "shared_attribute": "Fleur à cinq pétales soudés en étoile ou en cloche, étamines serrées au centre",
+      "sort_order": 103
+    },
+    {
+      "id": "spermaphytes",
+      "parent_id": "tracheophytes",
+      "name": "Plantes à graines",
+      "shared_attribute": "Graines",
+      "sort_order": 8
+    },
+    {
+      "id": "squamates",
+      "parent_id": "sauropsides",
+      "name": "Lézards et serpents",
+      "shared_attribute": "Mue de la peau en lambeaux ou d’un seul tenant",
+      "sort_order": 29
+    },
+    {
+      "id": "stramenopiles",
+      "parent_id": "eucaryotes",
+      "name": "Algues brunes et apparentés",
+      "shared_attribute": "Pigment brun (fucoxanthine)",
+      "sort_order": 13
+    },
+    {
+      "id": "tetrapodes",
+      "parent_id": "vertebres",
+      "name": "Tétrapodes",
+      "shared_attribute": "Quatre membres",
+      "sort_order": 23
+    },
+    {
+      "id": "tortues",
+      "parent_id": "sauropsides",
+      "name": "Tortues",
+      "shared_attribute": "Carapace",
+      "sort_order": 28
+    },
+    {
+      "id": "tracheophytes",
+      "parent_id": "embryophytes",
+      "name": "Plantes vasculaires",
+      "shared_attribute": "Vaisseaux conducteurs de sève",
+      "sort_order": 6
+    },
+    {
+      "id": "vertebres",
+      "parent_id": "bilateriens",
+      "name": "Vertébrés",
+      "shared_attribute": "Squelette interne avec colonne vertébrale",
+      "sort_order": 21
+    },
+    {
+      "id": "vivant",
+      "parent_id": null,
+      "name": "Êtres vivants",
+      "shared_attribute": "Constitués de cellules",
+      "sort_order": 0
+    }
+  ],
+  "plantCountsByClade": {
+    "asteracees": 30,
+    "apiacees": 10,
+    "solanacees": 12,
+    "lamiacees": 12,
+    "cucurbitacees": 4,
+    "brassicacees": 9,
+    "fabacees": 17,
+    "rosacees": 6,
+    "amaryllidacees": 9,
+    "angiospermes": 106,
+    "actinopterygiens": 12,
+    "gasteropodes": 18,
+    "hymenopteres": 14,
+    "bacteries": 7,
+    "monocotyledones": 19,
+    "algues_vertes": 5,
+    "fougeres": 2,
+    "carnivores": 7,
+    "insectes": 13,
+    "annelides": 5,
+    "araignees": 17,
+    "poacees": 16,
+    "lepidopteres": 30,
+    "isopodes": 4,
+    "hemipteres": 12,
+    "convolvulacees": 5,
+    "coleopteres": 14,
+    "dipteres": 10,
+    "champignons": 8,
+    "collemboles": 1,
+    "moracees": 3,
+    "oleacees": 3,
+    "arecacees": 5,
+    "mammiferes": 10,
+    "squamates": 10,
+    "oiseaux": 86,
+    "chiropteres": 2,
+    "amphibiens": 6,
+    "crustaces": 3,
+    "odonates": 12,
+    "gymnospermes": 4,
+    "myriapodes": 5,
+    "nematodes": 1,
+    "cilies": 1,
+    "arachnides": 9,
+    "cyperacees": 4,
+    "tortues": 2,
+    "glires": 7,
+    "rhodophytes": 7,
+    "stramenopiles": 6,
+    "cirripedes": 3,
+    "bivalves": 3,
+    "decapodes": 5,
+    "cnidaires": 4,
+    "echinodermes": 2,
+    "cephalopodes": 2,
+    "plathelminthes": 1,
+    "bryophytes": 1
+  },
+  "plantsWithoutClade": 9
+}

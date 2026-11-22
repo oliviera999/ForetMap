@@ -5087,6 +5087,41 @@ sont refusés à l'écriture.
 **lus** par `GET /api/clades`, `GET /api/clades/:id/path`, et rendus par `POST`/`PUT` ; ils ne
 s'écrivent pas encore par l'API.
 
+**Arbre réduit du collège** (`profile=college`, chantier collège, flux C4) : paramètre
+facultatif, en requête (`?profile=college`) ou dans le corps (`profile: 'college'`), accepté
+par les quatre routes publiques. Le client l'envoie quand la brique `nested_groups_full_tree`
+de la table de visibilité (`src/shared/pedagoVisibilityCore.js`) est masquée ; sans lui, les
+réponses sont inchangées. Calcul pur `collapseForProfile` (`lib/clades.js`) : seules les
+boîtes `visible_college = 1` restent, chacune rattachée à la boîte visible la plus proche en
+remontant (ou racine) ; `name` = `label_simple || name`, `shared_attribute` =
+`attribute_simple || shared_attribute`, valeurs savantes dans `full_name` /
+`full_shared_attribute`. **Repli** : aucune boîte marquée → arbre complet.
+
+- `GET /api/clades?profile=college` → `{ items, collapsed }` (boîtes visibles seulement).
+- `GET /api/clades/:id/path?profile=college` → `{ path, collapsed: true }` : fil réduit depuis
+  la boîte visible la plus proche du groupe (`path: []` si aucune ne le contient).
+- `POST /api/clades/activity/subtree` + `profile` → `{ tree, collapsed, plants, cladeOptions }` :
+  chaque espèce remonte à sa boîte visible (`plants[].clade_id`), les options de placement ne
+  sont que des boîtes visibles. Repli sur l'arbre complet (`collapsed: false`) si une espèce
+  n'a aucune boîte visible ou si les boîtes n'ont pas d'ancêtre commun. Sans `profile`,
+  `collapsed: false` est désormais renvoyé (champ ajouté).
+- `POST /api/clades/activity/check` + `profile` : la boîte attendue est la boîte visible la
+  plus proche du groupe de la fiche.
+
+**Groupe d'usage dans le catalogue** : `usage_group` de `GET /api/plants` (`{ id, label }` ou
+`null`, socle collège) sert au catalogue groupé du collège (brique `catalog_grouped`, filtre
+« Groupe ») ; l'ordre dans un groupe lit `is_featured` et `validation_status` de
+`GET /api/maps/:id/species` (phares, puis présences confirmées / attendues / situées, puis
+`a_confirmer` / `documentaire` avec la mention « à chercher »).
+
+**Dette documentée — taxonomie en double** : `plants.taxon_kingdom`, `taxon_group` et
+`taxon_family` (filtres Règne › Grand groupe › Famille, masqués au collège) doublonnent l'arbre
+`clades`. Dérivation future, **non faite** : les calculer depuis la chaîne d'ancêtres de
+`plants.clade_id` (règne = boîte de rang « règne », etc.), ce qui suppose d'ajouter un rang aux
+boîtes (`clades.rank`) et de reprendre les 9 fiches sans groupe ; les colonnes deviendraient
+alors des valeurs dérivées (lecture seule) puis disparaîtraient. Les anciens replis des filtres
+`group_1` … `group_4` (`src/utils/plantFilters.js`, colonnes supprimées en migration `129`) sont retirés.
+
 ### Clés d'identification dichotomiques (`/api/id-keys`)
 
 Migrations `275`, `366` et `id_keys_credits_chemins_tutoriels`. Lecture des clés **publiées** sans auth ; brouillons et écriture
