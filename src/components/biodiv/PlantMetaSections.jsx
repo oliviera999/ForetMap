@@ -158,12 +158,31 @@ const CREDIT_STYLE = {
 };
 
 /**
- * Sections repliables de la fiche. Une section qui porte une brique (`pedagoFeature`) n'est
- * rendue que si la table de visibilité la montre (collège : Identité et Écologie masquées,
- * Ressources gardée pour les crédits et licences des photos).
+ * Repli d'une section selon la valeur de sa brique dans la table de visibilité :
+ * `'hide'` → section non rendue (`null`) ; `'open'` → dépliée d'emblée ; `'show'` et
+ * `'collapsed'` → repliée (`<details>` fermé, comportement historique des sections).
+ * Sans brique, la section est rendue repliée.
+ *
+ * @param {string|undefined} feature
+ * @param {(feature: string) => string} visibility
+ * @returns {null|{ open: boolean, visibility: string }}
+ */
+export function metaSectionDisplay(feature, visibility) {
+  if (!feature) return { open: false, visibility: 'show' };
+  const value = typeof visibility === 'function' ? visibility(feature) : 'show';
+  if (value === 'hide') return null;
+  return { open: value === 'open', visibility: value || 'show' };
+}
+
+/**
+ * Sections repliables de la fiche. Une section qui porte une brique (`pedagoFeature`) suit la
+ * table de visibilité (`metaSectionDisplay`) : au collège, Identité et Écologie et usages sont
+ * rendues **repliées** quand la brique `meta_sections` vaut `collapsed` (décision 4 du
+ * 22/11/2026 : plus jamais masquées) ; Ressources reste toujours là pour les crédits et
+ * licences des photos. Le nom scientifique d'usage figure dans la section Identité.
  */
 export function PlantMetaSections({ plant, canConfirmPhotos = false, onConfirmPhoto = null }) {
-  const { canShow } = useBiodivPedago();
+  const { visibility } = useBiodivPedago();
   const [bigPhoto, setBigPhoto] = useState(null);
   const [commonsPreviewByUrl, setCommonsPreviewByUrl] = useState({});
   const photosByUrl = useMemo(() => {
@@ -283,7 +302,8 @@ export function PlantMetaSections({ plant, canConfirmPhotos = false, onConfirmPh
         <Lightbox src={bigPhoto.src} caption={bigPhoto.caption} onClose={() => setBigPhoto(null)} />
       )}
       {PLANT_META_SECTIONS.map((section) => {
-        if (section.pedagoFeature && !canShow(section.pedagoFeature)) return null;
+        const display = metaSectionDisplay(section.pedagoFeature, visibility);
+        if (!display) return null;
         const values = section.items
           .map((item) => {
             const raw = normalizedPlantValue(plant[item.key]);
@@ -294,7 +314,12 @@ export function PlantMetaSections({ plant, canConfirmPhotos = false, onConfirmPh
           .filter((item) => !!item.value);
         if (values.length === 0) return null;
         return (
-          <details key={section.title} className="plant-more">
+          <details
+            key={section.title}
+            className="plant-more"
+            open={display.open || undefined}
+            data-pedago-visibility={display.visibility}
+          >
             <summary>{section.title}</summary>
             <div className="plant-meta-grid">
               {values.map((item) => (

@@ -64,17 +64,24 @@ mange qui, qui aide qui »), les termes du glossaire et les questions de quiz qu
 rapportent (celles approuvées dans l'écran « Rattacher des questions aux contenus »).
 
 **Au collège, la fiche est allégée** (de la 6ᵉ à la 3ᵉ et dans la Visite sans compte ;
-décisions du 21 novembre 2026) :
+décisions du 21 novembre 2026, assouplies le 22 novembre : on **replie**, on ne retire plus) :
 
 - sous le nom, une **étiquette simple** (« Arbre fruitier », « Oiseau marin »…) quand la
   fiche en a une ;
-- la **description collège**, écrite pour des collégiens, remplace la description générale
-  quand elle existe ;
+- la **description collège**, écrite pour des collégiens, s'affiche en premier quand elle
+  existe ; la description générale reste lisible juste en dessous, dans un bloc replié
+  **« Description complète »** ;
 - la ligne **Taxonomie** est remplacée par le **groupe** de la fiche (« Arbres et arbustes »,
-  « Oiseaux »…) ; le nom scientifique et la classification latine ne s'affichent pas ;
-- les sections repliables **Identité** et **Écologie et usages**, les jauges de pH et de
-  température et la pastille **Nutrition** sont masquées ; la section **Ressources** (sources,
-  auteurs et licences des photos) reste ;
+  « Oiseaux »…) ; le nom scientifique ne s'affiche pas sous le nom de l'espèce ;
+- les sections **Identité** (autres noms, **nom scientifique**, cycle de vie, taille,
+  reproduction, origine…) et **Écologie et usages** (habitat, milieu, rôle dans le réseau…)
+  sont présentes, **repliées** : l'élève les ouvre d'un clic. Les jauges de pH et de
+  température et la pastille **Nutrition** de l'en-tête restent masquées : leurs valeurs sont
+  dans la section repliée. La section **Ressources** (sources, auteurs et licences des photos)
+  reste ;
+- la liste des **interactions** de la fiche emploie les mots du réseau trophique (« pond sur »,
+  « mange des animaux »…, le mot savant entre parenthèses) ; au lycée, le nom de la relation
+  (« Plante hôte », « Prédation »…). Plus aucun code technique n'y apparaît ;
 - le **statut UICN** s'écrit en mots (« Liste rouge : vulnérable ») plutôt qu'en sigle ;
 - le **danger**, le **risque sanitaire**, la **détermination** et les **sosies** restent
   identiques, en tête de fiche.

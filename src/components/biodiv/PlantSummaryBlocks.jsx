@@ -6,6 +6,7 @@ import { useGlossaryLinkIndex } from '../../hooks/useGlossaryLinkIndex.js';
 import { PlantRangeGauge } from '../pedago/PlantRangeGauge.jsx';
 import { normalizedPlantValue } from '../../utils/plantFormValues.js';
 import { useBiodivPedago } from '../../contexts/BiodivPedagoContext.jsx';
+import { useFoodWebProfile } from '../../hooks/useFoodWebProfile.js';
 import { isVegetalCatalogEntry } from '../../utils/plantCatalogHelpers.js';
 import {
   IconBan,
@@ -234,6 +235,9 @@ export function PlantPedagoFetchedSections({
   onNavigateToFoodWeb,
   onOpenQuizQuestion,
 }) {
+  // Libellé d'un type d'interaction pour le profil de l'apprenant (verbe au collège, mot
+  // savant ailleurs), comme dans le réseau trophique : jamais le code brut (`plante_hote`…).
+  const { typeLabel } = useFoodWebProfile();
   const [interactions, setInteractions] = useState(null);
   const [glossaryTerms, setGlossaryTerms] = useState(null);
   const [quizQuestions, setQuizQuestions] = useState(null);
@@ -339,7 +343,9 @@ export function PlantPedagoFetchedSections({
           <ul className="plant-pedago-interactions">
             {(interactions.asSource || []).map((row) => (
               <li key={`src-${row.id}`}>
-                <span className="task-chip">{row.interaction_type}</span>
+                <span className="task-chip" data-interaction-type={row.interaction_type}>
+                  {typeLabel(row.interaction_type)}
+                </span>
                 {row.to_id ? (
                   <button
                     type="button"
@@ -364,7 +370,9 @@ export function PlantPedagoFetchedSections({
                   {row.from_emoji ? `${row.from_emoji} ` : ''}
                   {row.from_name}
                 </button>
-                <span className="task-chip">{row.interaction_type}</span>
+                <span className="task-chip" data-interaction-type={row.interaction_type}>
+                  {typeLabel(row.interaction_type)}
+                </span>
               </li>
             ))}
           </ul>
