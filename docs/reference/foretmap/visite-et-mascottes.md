@@ -114,6 +114,13 @@ familles.
   lieu** (et non plus par son seul nom). Une espèce citée sur le lieu mais absente du catalogue
   est annoncée sans être ouvrable : c'est le signe qu'il manque sa fiche côté Biodiversité.
   La fiche ouverte par un visiteur sans compte ne montre **aucune donnée réservée**.
+- **Au collège (et en visite invitée), la fiche d'un lieu met d'abord en avant ses espèces
+  phares** : les espèces choisies comme « phares » de la carte passent en tête, puis viennent
+  les autres. Les espèces dont la présence n'est connue que par la documentation ou reste
+  **à confirmer** sont rangées en dernier, et une ligne « À chercher » les nomme sous les
+  vignettes. Au-delà de **douze vignettes**, un bouton « Voir les N autres » déplie le reste.
+  Sans espèce phare sur la carte, l'ordre de saisie du lieu est conservé. Au lycée et à
+  l'université, rien ne change : toutes les espèces, dans l'ordre de saisie.
 - **Les espèces du site suivent la même règle que le reste de l'application** : une espèce
   est présente sur le site si elle est au registre du site, dans une zone ou sur un repère
   (voir [Plantes et biodiversité](plantes-et-biodiversite.md), « Présente sur ce site »).

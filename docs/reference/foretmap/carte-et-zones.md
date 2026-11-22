@@ -116,6 +116,11 @@ qu'on veut). Sa fiche rassemble :
   dans une zone est **présente sur le site** pour toute l'application (catalogue, fiche,
   Groupes emboîtés, réseau trophique, visite) — voir « Présente sur ce site » dans
   [Plantes et biodiversité](plantes-et-biodiversite.md) ;
+  au **collège**, la fiche du lieu range ces espèces autrement : les **espèces phares** de la
+  carte d'abord, celles dont la présence est documentaire ou **à confirmer** en dernier (avec
+  la mention « à chercher »), et au plus **douze** affichées avant un bouton « Voir les N
+  autres ». Une espèce devient phare depuis le registre de la carte (gestion de la
+  biodiversité) ; sans espèce phare, l'ordre choisi est conservé ;
 - une ou plusieurs **catégories** (Verger, Compostage, Zone pédagogique…), créées par
   l'administrateur et utilisables comme filtre sur la carte — voir « Catégories de
   lieux » plus bas ;

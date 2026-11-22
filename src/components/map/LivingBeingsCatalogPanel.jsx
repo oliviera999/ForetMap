@@ -66,10 +66,23 @@ export function CatalogRemarksSection({ plant }) {
   );
 }
 
+/**
+ * Mention « à chercher » d'une pastille d'espèce (collège : présence `documentaire` ou
+ * `a_confirmer` sur la carte). `toSearchNames` absent : rien.
+ */
+function ToSearchMention({ name, toSearchNames }) {
+  if (!(toSearchNames instanceof Set) || !toSearchNames.has(name)) return null;
+  return <span className="zone-species-to-search">à chercher</span>;
+}
+
+function toSearchSuffix(name, toSearchNames) {
+  return toSearchNames instanceof Set && toSearchNames.has(name) ? ', à chercher' : '';
+}
+
 /** Liste d'êtres vivants cliquable + extrait catalogue (description, rôle, utilité, remarques). */
-export function LivingBeingsCatalogPanel({ plants, names, showHeading = true }) {
-  const list = names || [];
-  const listKey = useMemo(() => list.join('\u0001'), [list]);
+export function LivingBeingsCatalogPanel({ plants, names, showHeading = true, toSearchNames }) {
+  const list = useMemo(() => names || [], [names]);
+  const listKey = list.join('\u0001');
   const [selectedName, setSelectedName] = useState(() => list[0] || null);
 
   useEffect(() => {
@@ -78,6 +91,9 @@ export function LivingBeingsCatalogPanel({ plants, names, showHeading = true }) 
       return;
     }
     setSelectedName((prev) => (prev && list.includes(prev) ? prev : list[0]));
+    // `listKey` porte le contenu de `list` : l'appelant passe souvent un tableau neuf à chaque
+    // rendu (même contenu), qui ne doit pas réinitialiser la sélection.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [listKey]);
 
   if (!list.length) return null;
@@ -147,6 +163,7 @@ export function LivingBeingsCatalogPanel({ plants, names, showHeading = true }) 
               }}
             >
               {livingBeingEmoji(plants, name)} {name}
+              <ToSearchMention name={name} toSearchNames={toSearchNames} />
             </button>
           );
         })}
@@ -233,6 +250,7 @@ export function BiodiversitySpeciesOpenLinks({
   showHeading = true,
   sectionTitle = null,
   onOpenPlant,
+  toSearchNames,
 }) {
   const raw = names || [];
   const list = [];
@@ -299,7 +317,9 @@ export function BiodiversitySpeciesOpenLinks({
                   : undefined
               }
               aria-label={
-                plant ? `Ouvrir la fiche biodiversité : ${name}` : `Aucune fiche pour : ${name}`
+                plant
+                  ? `Ouvrir la fiche biodiversité : ${name}${toSearchSuffix(name, toSearchNames)}`
+                  : `Aucune fiche pour : ${name}`
               }
               onClick={() => plant && canOpen && onOpenPlant(plant.id)}
               style={{
@@ -312,6 +332,7 @@ export function BiodiversitySpeciesOpenLinks({
               }}
             >
               {livingBeingEmoji(plants, name)} {name}
+              <ToSearchMention name={name} toSearchNames={toSearchNames} />
             </button>
           );
         })}

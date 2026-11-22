@@ -205,11 +205,39 @@ router.get(
  * (`zones.current_plant`, `map_markers.plant_name`) n'est plus lu (piste C de l'audit du
  * 25/09/2026, § 3.5, temps T1 ; reprise des noms : migration 306).
  *
+ * Chaque espèce porte aussi `is_featured` (espèce phare de la carte) et `validation_status`
+ * (certitude au registre, `null` hors registre), lus dans les espèces du site : la fiche du
+ * lieu les range au collège (phares d'abord, « à chercher » en dernier) sans autre requête,
+ * Visite invitée comprise. Rien de nouveau n'est publié : `site_species` les porte déjà.
+ *
  * @param {object} row ligne de `visit_zones` / `visit_markers` déjà sérialisée
  * @param {Array<{id: number, name: string, emoji: string}>|undefined} speciesRows jonction
+ * @param {Map<number, { is_featured: boolean, validation_status: string|null }>} [registryByPlantId]
  */
-function withVisitLocationSpecies(row, speciesRows) {
-  return attachSpeciesToEntity(row, speciesRows || []);
+function withVisitLocationSpecies(row, speciesRows, registryByPlantId = new Map()) {
+  const next = attachSpeciesToEntity(row, speciesRows || []);
+  next.species = next.species.map((sp) => {
+    const registry = registryByPlantId.get(Number(sp.id));
+    return {
+      ...sp,
+      is_featured: Boolean(registry && registry.is_featured),
+      validation_status: registry ? registry.validation_status : null,
+    };
+  });
+  return next;
+}
+
+/** Index fiche → registre de la carte, tiré des espèces du site (`listSpeciesForMap`). */
+function registryByPlantIdFromSiteSpecies(siteSpecies) {
+  const index = new Map();
+  for (const entry of siteSpecies || []) {
+    if (!entry || !entry.registry) continue;
+    index.set(Number(entry.plant_id), {
+      is_featured: Boolean(entry.registry.is_featured),
+      validation_status: entry.registry.validation_status ?? null,
+    });
+  }
+  return index;
 }
 
 /**
@@ -568,6 +596,7 @@ router.get(
     const infrastructureZoneIds = new Set(
       (infrastructureZoneRows || []).map((row) => String(row.zone_id)),
     );
+    const registryByPlantId = registryByPlantIdFromSiteSpecies(siteSpecies);
 
     const mediaByTarget = media.reduce((acc, row) => {
       const key = `${row.target_type}:${row.target_id}`;
@@ -594,7 +623,11 @@ router.get(
           zoneNotesMap.get(String(z.id)) || [],
         );
         return {
-          ...withVisitLocationSpecies(withCats, zoneSpeciesMap.get(String(z.id))),
+          ...withVisitLocationSpecies(
+            withCats,
+            zoneSpeciesMap.get(String(z.id)),
+            registryByPlantId,
+          ),
           // Source de vérité infra déjà lue plus haut ; on la conserve si la jonction
           // catégories est encore vide sur une zone miroir.
           is_infrastructure: withCats.is_infrastructure || infrastructureZoneIds.has(String(z.id)),
@@ -617,7 +650,11 @@ router.get(
           markerNotesMap.get(String(m.id)) || [],
         );
         return {
-          ...withVisitLocationSpecies(withCats, markerSpeciesMap.get(String(m.id))),
+          ...withVisitLocationSpecies(
+            withCats,
+            markerSpeciesMap.get(String(m.id)),
+            registryByPlantId,
+          ),
           map_lead_photo: serializeMapLeadPhoto(
             'marker',
             m.id,

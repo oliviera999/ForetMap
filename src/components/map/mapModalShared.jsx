@@ -6,6 +6,24 @@ import {
   LivingBeingsCatalogPanel,
 } from './LivingBeingsCatalogPanel.jsx';
 import { IconGlossary } from '../../shared/icons.jsx';
+import { useZoneSpeciesDisplay } from './useLocationModalData.js';
+import { zoneSpeciesMoreLabel } from '../../utils/livingBeings';
+import './zoneSpeciesCollege.css';
+
+/**
+ * Bouton « Voir les N autres » d'une fiche de lieu plafonnée (collège, `zone_tiles_cap`) —
+ * partagé par la carte et la Visite. Rien quand rien n'est caché.
+ */
+export function ZoneSpeciesMoreButton({ hiddenCount, onExpand }) {
+  if (!hiddenCount || typeof onExpand !== 'function') return null;
+  return (
+    <div className="zone-species-more">
+      <button type="button" className="btn btn-ghost btn-sm" onClick={onExpand}>
+        {zoneSpeciesMoreLabel(hiddenCount)}
+      </button>
+    </div>
+  );
+}
 
 /** Liste cartes tutoriel (aperçu), alignée sur l’onglet « Tutoriels » des modales zone/repère. */
 export function LocationTutorialPreviewList({
@@ -128,6 +146,11 @@ export function LocationVisitAside({
 }) {
   const shortDesc =
     shortDescription === undefined ? entity.visit_short_description : shortDescription;
+  // Collège : phares d'abord, « à chercher » en dernier, plafond (repli : ordre reçu).
+  const speciesDisplay = useZoneSpeciesDisplay(visitAsideSpecies ? livingNames : [], {
+    mapId: entity.map_id || null,
+  });
+  const shownNames = speciesDisplay.names;
   return (
     <div style={{ marginBottom: 12 }}>
       {entity.visit_subtitle && (
@@ -168,17 +191,23 @@ export function LocationVisitAside({
                 {onOpenPlantCatalogPreview ? (
                   <BiodiversitySpeciesOpenLinks
                     plants={plants}
-                    names={livingNames}
+                    names={shownNames}
                     showHeading={false}
                     onOpenPlant={onOpenPlantCatalogPreview}
+                    toSearchNames={speciesDisplay.toSearch}
                   />
                 ) : (
                   <LivingBeingsCatalogPanel
                     plants={plants}
-                    names={livingNames}
+                    names={shownNames}
                     showHeading={false}
+                    toSearchNames={speciesDisplay.toSearch}
                   />
                 )}
+                <ZoneSpeciesMoreButton
+                  hiddenCount={speciesDisplay.hiddenCount}
+                  onExpand={speciesDisplay.expand}
+                />
               </div>
             )}
             {livingBeingsOnlyOnTasks.length > 0 && (
