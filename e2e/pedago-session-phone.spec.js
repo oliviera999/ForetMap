@@ -63,6 +63,29 @@ async function expectBannerOnScreen(page) {
   return banner;
 }
 
+/**
+ * Défile la fenêtre ouverte (surcouche et panneau) jusqu'en bas, puis vérifie que le bas du
+ * panneau s'arrête au-dessus du bandeau : rien de la fiche ne reste dessous. (Tester la seule
+ * dernière commande ne suffit pas : sur téléphone, le bandeau surmonte la barre basse et la
+ * dernière commande pouvait tomber dans la bande visible sous lui, au-dessus d'autres masquées.)
+ */
+function dialogClearsBanner(page) {
+  return page.evaluate(async () => {
+    const dialog = document.querySelector(
+      '.modal-overlay [role="dialog"], .fm-modal-overlay [role="dialog"]',
+    );
+    const banner = document.querySelector('[data-testid="pedago-session-banner"]');
+    if (!dialog || !banner) return { ok: false, reason: 'absent' };
+    for (let el = dialog; el && el !== document.body; el = el.parentElement) {
+      el.scrollTop = el.scrollHeight;
+    }
+    await new Promise((r) => setTimeout(r, 300));
+    const dialogBottom = Math.round(dialog.getBoundingClientRect().bottom);
+    const bannerTop = Math.round(banner.getBoundingClientRect().top);
+    return { ok: dialogBottom <= bannerTop + 1, dialogBottom, bannerTop };
+  });
+}
+
 test('téléphone : séance guidée de bout en bout, reprise après rechargement et nouvel onglet', async ({
   page,
   context,
@@ -139,6 +162,9 @@ test('téléphone : séance guidée de bout en bout, reprise après rechargement
       return !!hit && el.contains(hit);
     });
     expect(nextOnTop).toBe(true);
+    // Fiche défilée à fond : elle s'arrête au-dessus du bandeau (la surcouche réserve
+    // l'emprise du bandeau, barre basse comprise, pas sa seule hauteur).
+    expect(await dialogClearsBanner(page)).toMatchObject({ ok: true });
 
     // Rechargement à mi-parcours : même onglet, même étape.
     await page.reload();

@@ -9,6 +9,32 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — le bandeau de séance ne masque plus rien sur téléphone
+
+Relevé sur 375 × 667 et 360 × 640 (sonde Playwright : commandes et textes dont le centre
+tombe sous le bandeau, après défilement de chaque conteneur au maximum). Avant correctif,
+restaient **inatteignables** pendant une séance : le bas des listes (dernières tâches, tri et
+filtres de Biodiversité, derniers badges de Séances), les boutons zoom / dézoom de la carte et
+de la Visite, la moitié de la feuille « Plus » (Carnet, Forum, À propos…), le pied de la fiche
+espèce ouverte par l'étape (« Espèce découverte », « Signaler une observation », « Mes
+observations ») et celui de l'aperçu de tutoriel (« Marquer comme lu »). Après : plus rien.
+
+- **Cause 1** : sous 1024 px, le raccourci `padding:12px` de `.main` effaçait la réserve du
+  bandeau posée plus haut (`index.css`). Réserve rétablie (0 hors séance : rien ne bouge
+  sans séance).
+- **Cause 2** : les surcouches plein écran couvrent la barre basse, mais pas le bandeau, posé
+  **au-dessus** d'elle ; elles ne réservaient que sa hauteur. Le bandeau publie désormais aussi
+  son **emprise** `--fm-session-banner-reserve` (hauteur + `--fm-session-banner-lift`, le
+  décalage de la barre basse, source unique dans `pedago-sessions.css`), réservée par
+  `.modal-overlay` (marge et hauteur maximale des panneaux), l'aperçu fiche / tutoriel
+  (`--tuto-preview`, qui avait sa propre marge et une hauteur fixe), `--centered`,
+  `log-modal--dialog` / `--with-close`, la feuille basse, le plein écran carte.
+- Commandes flottantes et toasts / état collant se posent au-dessus du bandeau (ils
+  recouvraient ses boutons). Variables à 0 côté G&L : aucun changement là-bas.
+- Tests : `SessionsResumeBanner.test.jsx` (emprise publiée puis retirée) ; garde e2e dans
+  `pedago-session-phone.spec.js` (fiche défilée à fond au-dessus du bandeau — échoue sur
+  l'ancien CSS).
+
 ### Modifié — niveau de contenu des professeurs et du personnel (« Mon profil »)
 
 **Changement visible :** un compte non élève sans groupe, qui voyait jusqu'ici la vue complète,

@@ -5,11 +5,20 @@
  * publiée dans `--fm-session-banner-h` (PedagoSessionBanner.jsx) : `.main` et les fenêtres
  * réservent cet espace en bas.
  */
+/*
+ * Décalage du bandeau depuis le bas : la hauteur de la barre basse élève là où elle existe,
+ * zéro ailleurs (prof). Lu aussi par `--fm-session-banner-reserve` (PedagoSessionBanner.jsx),
+ * l'emprise que réservent les surfaces plein écran.
+ */
+:root:has(#app nav.bottom-nav) {
+  --fm-session-banner-lift: calc(var(--bottom-nav-height) + var(--safe-bottom, 0px));
+}
+
 .pedago-session-banner {
   position: fixed;
   left: 0;
   right: 0;
-  bottom: 0;
+  bottom: var(--fm-session-banner-lift, 0px);
   z-index: var(--fm-z-session-banner);
   display: flex;
   flex-wrap: wrap;
@@ -25,7 +34,6 @@
 
 /* Barre basse élève présente : le bandeau se pose juste au-dessus, jamais dessous. */
 #app:has(nav.bottom-nav) .pedago-session-banner {
-  bottom: calc(var(--bottom-nav-height) + var(--safe-bottom, 0px));
   padding-bottom: 0.6rem;
 }
 

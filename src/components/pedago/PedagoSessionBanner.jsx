@@ -5,13 +5,24 @@ import { PEDAGO_STEP_ACTION } from '../../shared/enums/pedagoStepActions.js';
 import { usePedagoSessionContext } from '../../contexts/PedagoSessionContext.jsx';
 import { TutorialPreviewModal } from '../TutorialPreviewModal.jsx';
 
-/** Variable posée sur `<html>` : hauteur du bandeau, réservée par la page et les fenêtres. */
+/** Variable posée sur `<html>` : hauteur du bandeau seule. */
 export const SESSION_BANNER_HEIGHT_VAR = '--fm-session-banner-h';
 
 /**
- * Publie la hauteur réelle du bandeau dans `--fm-session-banner-h` tant qu'il est affiché :
- * le contenu de la page (`.main`) et les fenêtres (`.modal-overlay`) réservent cet espace en
- * bas, si bien que rien d'utile ne passe sous le bandeau.
+ * Variable posée sur `<html>` : **emprise** du bandeau depuis le bas de l'écran, soit sa
+ * hauteur plus le décalage qui le pose au-dessus de la barre basse élève
+ * (`--fm-session-banner-lift`, `pedago-sessions.css`). C'est elle que réservent les surfaces
+ * qui couvrent toute la fenêtre (`.modal-overlay`, feuille basse, plein écran carte) et le
+ * contenu de la page sur téléphone : elles passent par-dessus la barre basse, pas le bandeau.
+ */
+export const SESSION_BANNER_RESERVE_VAR = '--fm-session-banner-reserve';
+
+/**
+ * Publie la hauteur réelle du bandeau dans `--fm-session-banner-h` et son emprise dans
+ * `--fm-session-banner-reserve` tant qu'il est affiché : le contenu de la page (`.main`), les
+ * fenêtres (`.modal-overlay`), la feuille « Plus », le plein écran carte, les commandes
+ * flottantes et les toasts réservent cet espace en bas, si bien que rien d'utile ne passe
+ * sous le bandeau.
  */
 function useBannerHeightVar(ref) {
   useEffect(() => {
@@ -19,7 +30,13 @@ function useBannerHeightVar(ref) {
     const root = typeof document !== 'undefined' ? document.documentElement : null;
     if (!el || !root) return undefined;
     const publish = () => {
-      root.style.setProperty(SESSION_BANNER_HEIGHT_VAR, `${Math.ceil(el.offsetHeight || 0)}px`);
+      const h = Math.ceil(el.offsetHeight || 0);
+      root.style.setProperty(SESSION_BANNER_HEIGHT_VAR, `${h}px`);
+      // Le décalage se résout en CSS : il suit l'apparition / disparition de la barre basse.
+      root.style.setProperty(
+        SESSION_BANNER_RESERVE_VAR,
+        `calc(${h}px + var(--fm-session-banner-lift, 0px))`,
+      );
     };
     publish();
     let observer = null;
@@ -30,6 +47,7 @@ function useBannerHeightVar(ref) {
     return () => {
       observer?.disconnect();
       root.style.removeProperty(SESSION_BANNER_HEIGHT_VAR);
+      root.style.removeProperty(SESSION_BANNER_RESERVE_VAR);
     };
   }, [ref]);
 }

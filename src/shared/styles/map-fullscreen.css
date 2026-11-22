@@ -51,6 +51,9 @@
   max-width: none;
   background: var(--forest);
   box-sizing: border-box;
+  /* Bandeau de séance ForetMap (palier au-dessus du plein écran) : la carte et ses commandes
+     s'arrêtent à son bord (0 sans séance, et côté G&L). */
+  padding-bottom: var(--fm-session-banner-reserve, 0px);
   display: flex;
   flex-direction: column;
   min-height: 0;

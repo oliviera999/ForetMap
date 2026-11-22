@@ -21,7 +21,11 @@
     var(--shadow-strong, 0 -12px 36px rgba(20, 54, 37, 0.18))
   );
   --fm-bottom-sheet-safe-bottom: var(--safe-bottom, env(safe-area-inset-bottom, 0px));
-  --fm-bottom-sheet-full: calc(100dvh - var(--safe-top, env(safe-area-inset-top, 0px)) - 24px);
+  /* `--fm-session-banner-reserve` : emprise du bandeau de séance ForetMap (0 sinon, et G&L). */
+  --fm-bottom-sheet-full: calc(
+    100dvh - var(--safe-top, env(safe-area-inset-top, 0px)) - 24px -
+      var(--fm-session-banner-reserve, 0px)
+  );
   --fm-bottom-sheet-duration: var(--motion-base, 0.24s);
 }
 
@@ -32,6 +36,8 @@
   display: flex;
   align-items: flex-end;
   justify-content: center;
+  /* La feuille se pose au-dessus du bandeau de séance, jamais dessous (menu « Plus »). */
+  padding-bottom: var(--fm-session-banner-reserve, 0px);
   background: var(--fm-bottom-sheet-overlay-bg);
   animation: fmBottomSheetFade var(--fm-bottom-sheet-duration) ease-out both;
 }
@@ -192,7 +198,8 @@
 /* Écran large (`wideAsDialog`) : panneau centré, hauteur au contenu, sans poignée. */
 .fm-bottom-sheet-overlay:has(.fm-bottom-sheet--dialog) {
   align-items: center;
-  padding: max(16px, var(--safe-top, 0px)) 16px max(16px, var(--fm-bottom-sheet-safe-bottom));
+  padding: max(16px, var(--safe-top, 0px)) 16px
+    calc(max(16px, var(--fm-bottom-sheet-safe-bottom)) + var(--fm-session-banner-reserve, 0px));
 }
 
 .fm-bottom-sheet.fm-bottom-sheet--dialog {
