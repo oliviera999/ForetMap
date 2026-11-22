@@ -144,20 +144,23 @@ test('paramètre d’aperçu : niveau ou étape reconnus seulement', () => {
 
 test('libellés d’interface du niveau d’un compte non élève (miroir ESM)', async () => {
   const ui = await import('../src/utils/learnerLevel.js');
+  const labels = await import('../src/utils/staffContentLevel.js');
   assert.equal(
-    ui.staffContentLevelLabel(ui.resolveLearnerLevel({ staff: true })),
+    labels.staffContentLevelLabel(ui.resolveLearnerLevel({ staff: true })),
     'Cycle 3 (CM1–6e) — par défaut',
   );
   assert.equal(
-    ui.staffContentLevelLabel(ui.resolveLearnerLevel({ staff: true, classNiveaux: ['cycle4'] })),
+    labels.staffContentLevelLabel(
+      ui.resolveLearnerLevel({ staff: true, classNiveaux: ['cycle4'] }),
+    ),
     'Cycle 4 (5e–3e) — mes groupes',
   );
   assert.equal(
-    ui.staffContentLevelLabel(ui.resolveLearnerLevel({ staff: true, contentLevel: 'complet' })),
+    labels.staffContentLevelLabel(ui.resolveLearnerLevel({ staff: true, contentLevel: 'complet' })),
     'Complet (vue gestion)',
   );
   assert.deepEqual(
-    ui.STAFF_CONTENT_LEVEL_OPTIONS.map((o) => o.value),
+    labels.STAFF_CONTENT_LEVEL_OPTIONS.map((o) => o.value),
     [...STAFF_CONTENT_LEVEL_ENUM.values],
   );
 });

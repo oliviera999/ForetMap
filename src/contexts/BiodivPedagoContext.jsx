@@ -7,7 +7,7 @@ import {
   PEDAGO_LEVELS,
   PEDAGO_LEVEL_LABELS,
 } from '../utils/biodivPedagoLevel.js';
-import { resolveLearnerLevel, staffContentLevelLabel } from '../utils/learnerLevel.js';
+import { resolveLearnerLevel } from '../utils/learnerLevel.js';
 import {
   normalizePreviewLevel,
   PREVIEW_STORAGE_KEY,
@@ -117,14 +117,12 @@ export function BiodivPedagoProvider({
     ],
   );
   // Défaut d'un compte non élève sans choix explicite : ses groupes, sinon le cycle 3. Affiché
-  // par « Mon profil » (« Niveau de mes groupes — … »).
-  const staffDefaultLevelLabel = useMemo(
+  // par « Mon profil » (« Niveau de mes groupes — … »). Les libellés se calculent dans les
+  // écrans chargés à la demande (`staffContentLevelLabel`), pas ici : ce contexte fait partie
+  // du bundle de l'écran de connexion (visite invitée), sous budget.
+  const staffDefaultLearner = useMemo(
     () =>
-      staff
-        ? staffContentLevelLabel(
-            resolveLearnerLevel({ staff: true, classNiveaux: classCurriculumNiveaux }),
-          )
-        : '',
+      staff ? resolveLearnerLevel({ staff: true, classNiveaux: classCurriculumNiveaux }) : null,
     [staff, classCurriculumNiveaux],
   );
   const learner = useMemo(
@@ -150,10 +148,10 @@ export function BiodivPedagoProvider({
       // estimations…) restent complets quel que soit son niveau de contenu, qui ne règle que
       // le contenu pédagogique consulté. Un aperçu, simulation assumée, les masque.
       managementView: staff && !isGuestVisit && !activePreview,
-      // Libellé du niveau hors aperçu (« Cycle 4 (5e–3e) », « Complet (vue gestion) »…) :
-      // l'entrée « sans aperçu » du menu Aperçu.
-      baseLevelLabel: staff ? staffContentLevelLabel(baseLearner) : '',
-      staffDefaultLevelLabel,
+      // Niveau hors aperçu d'un compte non élève (l'entrée « sans aperçu » du menu Aperçu) et
+      // son défaut sans choix (Mon profil) ; `null` pour un élève.
+      staffBaseLearner: staff ? baseLearner : null,
+      staffDefaultLearner,
       // Table de visibilité (`src/shared/pedagoVisibilityCore.js`) : le profil se lit sur
       // l'apprenant complet (étape d'affichage) ; les règles de palier sur sa classe.
       canShow: (feature) => canShowBiodivFeature(feature, learner),
@@ -176,7 +174,7 @@ export function BiodivPedagoProvider({
       isGuestVisit,
       activePreview,
       baseLearner,
-      staffDefaultLevelLabel,
+      staffDefaultLearner,
       curriculumNiveaux,
     ],
   );
@@ -192,8 +190,8 @@ const FALLBACK = Object.freeze({
   canTeacherPreview: false,
   staff: false,
   managementView: false,
-  baseLevelLabel: '',
-  staffDefaultLevelLabel: '',
+  staffBaseLearner: null,
+  staffDefaultLearner: null,
   canShow: () => true,
   visibility: () => 'show',
   palierRule: (rule) => palierRuleFor(rule, null),

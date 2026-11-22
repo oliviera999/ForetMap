@@ -1,6 +1,7 @@
 import { PEDAGO_LEVEL_LABELS, normalizePedagoLevel } from './biodivPedagoLevel.js';
 import { normalizeLearnerNiveau } from './pedagoScales.js';
 import { getRoleTerms } from './n3-terminology.js';
+import { PREVIEW_STORAGE_KEY, storedPreviewRaw } from './previewStorage.js';
 
 /**
  * Niveaux proposés par le menu « Aperçu » (chantier collège, novembre 2026) : une classe de
@@ -15,20 +16,16 @@ export const PREVIEW_LEVEL_OPTIONS = Object.freeze([
 ]);
 
 /**
- * Clé `sessionStorage` du niveau d'aperçu (simulation **pour la session seulement**). Lue par
- * `BiodivPedagoContext` et par les appels du verrouillage (`pedagoSessionScope.js`), qui
- * l'annoncent au serveur (`?pedagoPreview=`, cru pour un compte non élève seulement).
+ * Clé `sessionStorage` du niveau d'aperçu (source : `previewStorage.js`, module sans
+ * dépendance). Lue par `BiodivPedagoContext` et par les appels du verrouillage
+ * (`pedagoSessionScope.js`), qui l'annoncent au serveur (`?pedagoPreview=`, cru pour un compte
+ * non élève seulement).
  */
-export const PREVIEW_STORAGE_KEY = 'foretmap.biodivPedagoPreview';
+export { PREVIEW_STORAGE_KEY };
 
-/** Niveau d'aperçu mémorisé dans cet onglet, ou `null`. */
+/** Niveau d'aperçu mémorisé dans cet onglet, normalisé, ou `null`. */
 export function storedPreviewLevel() {
-  try {
-    if (typeof sessionStorage === 'undefined') return null;
-    return normalizePreviewLevel(sessionStorage.getItem(PREVIEW_STORAGE_KEY));
-  } catch {
-    return null;
-  }
+  return normalizePreviewLevel(storedPreviewRaw());
 }
 
 const PREVIEW_LEVEL_LABELS = Object.freeze(

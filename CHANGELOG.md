@@ -38,6 +38,9 @@ profil → Niveau de contenu → Complet (vue gestion) → Enregistrer** (demand
 - **Écrans de gestion préservés** : l'onglet Individus et ses estimations restent complets hors
   aperçu, quel que soit le niveau de contenu (`managementView`).
 - **Connecteur MCP** : `foretmap_rbac` gagne l'action `content_levels` (lecture).
+- **Bundle de l'écran de connexion** : la modale « Connexion professeur » (`PinModal`) est
+  chargée à la demande, et les libellés du niveau de contenu ne partent qu'avec le menu Aperçu
+  et « Mon profil ». JS de connexion 508,8 → 504,6 Ko ; plafond abaissé de 509 à 507 Ko.
 - Doc de référence (`niveaux-pedagogiques-biodiversite.md`, guide du prof, comptes), `API.md`,
   `MCP.md`.
 ### Modifié — prise de contrôle sans double authentification

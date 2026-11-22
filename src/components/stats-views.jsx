@@ -40,7 +40,7 @@ import { HelpPanel } from './HelpPanel';
 import { resolveHelpPanelSection } from '../utils/helpResolve';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 import { useBiodivPedago } from '../contexts/BiodivPedagoContext.jsx';
-import { STAFF_CONTENT_LEVEL_OPTIONS } from '../utils/learnerLevel.js';
+import { STAFF_CONTENT_LEVEL_OPTIONS, staffContentLevelLabel } from '../utils/staffContentLevel.js';
 import { StatCard, StatsSummaryGrid } from '../shared/components/StatsSummaryGrid.jsx';
 import { TimedToast } from '../shared/components/TimedToast.jsx';
 import { TeacherObservationsPanel } from './stats/TeacherObservationsPanel.jsx';
@@ -404,7 +404,8 @@ function StudentProfileEditor({ student, onUpdated, onClose }) {
   const [contentLevelResetting, setContentLevelResetting] = useState(false);
   const initialFieldsRef = useRef(profileFieldsOf(student));
   const isTeacherProfile = isTeacherLikeAccount(student);
-  const { staffDefaultLevelLabel } = useBiodivPedago();
+  const { staffDefaultLearner } = useBiodivPedago();
+  const staffDefaultLevelLabel = staffContentLevelLabel(staffDefaultLearner);
   // Registre des mascottes proposées : le profil propose exactement les mêmes que le plan.
   const { extras: visitMascotPackExtras, offeredIds: visitMascotOfferedIds } =
     useVisitMascotRegistry();

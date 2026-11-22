@@ -6,6 +6,7 @@ import { Tooltip } from '../../shared/components/Tooltip.jsx';
 import { IconClose, IconEye } from '../../shared/icons.jsx';
 import { useOverlayHistoryBack } from '../../shared/platform/useOverlayHistoryBack';
 import { describeAppPreview, PREVIEW_LEVEL_OPTIONS } from '../../utils/appPreview.js';
+import { staffContentLevelLabel } from '../../utils/staffContentLevel.js';
 
 /**
  * Menu « Aperçu » de l'en-tête : réunit en un seul endroit les deux façons, pour un
@@ -25,8 +26,9 @@ export function AppPreviewMenu({
   roleTerms,
   helpText,
 }) {
-  const { canTeacherPreview, teacherPreview, setTeacherPreview, baseLevelLabel } =
+  const { canTeacherPreview, teacherPreview, setTeacherPreview, staffBaseLearner } =
     useBiodivPedago();
+  const baseLevelLabel = staffContentLevelLabel(staffBaseLearner);
   const [open, setOpen] = useState(false);
   const [portalNode, setPortalNode] = useState(null);
   const triggerWrapRef = useRef(null);

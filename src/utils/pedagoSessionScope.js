@@ -15,7 +15,7 @@
  * même chemin : `?pedagoPreview=<niveau>`, que le serveur ignore pour un élève.
  */
 
-import { storedPreviewLevel } from './appPreview.js';
+import { storedPreviewRaw } from './previewStorage.js';
 
 export const PEDAGO_SESSION_STORAGE_KEY = 'foretmap.pedagoSession.v1';
 
@@ -41,7 +41,7 @@ export function withPedagoSessionParam(path, sessionId = activePedagoSessionId()
 }
 
 /** Ajoute `pedagoPreview=<niveau>` à un chemin d'API (sans rien toucher sans aperçu). */
-export function withPedagoPreviewParam(path, previewLevel = storedPreviewLevel()) {
+export function withPedagoPreviewParam(path, previewLevel = storedPreviewRaw()) {
   const p = String(path || '');
   if (!previewLevel || /[?&]pedagoPreview=/.test(p)) return p;
   const sep = p.includes('?') ? '&' : '?';

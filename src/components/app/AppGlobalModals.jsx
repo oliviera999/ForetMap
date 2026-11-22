@@ -2,10 +2,9 @@ import { OfflineCenterDialog } from '../offline/OfflineCenterDialog.jsx';
 import { TimedToast as Toast } from '../../shared/components/TimedToast.jsx';
 import { oauthFeedbackDurationMs } from '../../utils/appShellHelpers';
 import { AutoProfilePromotionModal } from '../AutoProfilePromotionModal.jsx';
-import { PinModal } from '../auth-views';
 import { RewardsCelebrationHost } from '../rewards/RewardsCelebrationHost.jsx';
 import { AppUserDialog } from './AppUserDialog.jsx';
-import { StudentProfileEditorLazy, StudentStatsLazy } from './appLazyViews.js';
+import { PinModalLazy, StudentProfileEditorLazy, StudentStatsLazy } from './appLazyViews.js';
 
 /**
  * Modales et surcouches globales du shell authentifié — déplacées telles quelles
@@ -78,7 +77,7 @@ export function AppGlobalModals({
         />
       )}
       {showPin && (
-        <PinModal
+        <PinModalLazy
           onSuccess={onPinSuccess}
           onClose={() => setShowPin(false)}
           uiSettings={publicSettings}
