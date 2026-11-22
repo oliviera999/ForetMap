@@ -272,6 +272,31 @@ d'observation** pour l'écriture naturaliste libre.
   de pollinisation ; en Lycée et Université, tout est visible — voir
   [Niveaux pédagogiques biodiversité](niveaux-pedagogiques-biodiversite.md).
 
+- **Au collège, le réseau part d’une espèce** (de la 6e à la 3e). Un réseau
+  de deux cents espèces d’un coup ne se lit pas à 11 ans : l’élève **choisit d’abord une
+  espèce de départ** — les **espèces phares** de la carte en tête de liste, puis une
+  recherche par nom — et voit ses voisins directs : ce qu’elle mange, qui la mange, qui
+  l’aide. Le bouton **Chaîne** élargit d’un cran (les voisins des voisins), **Voisins** y
+  revient, **Changer d’espèce** ramène au choix. Les espèces qui ne sont pas sur la carte
+  choisie n’apparaissent pas. Lycée, université et professeurs gardent le réseau complet,
+  inchangé.
+- **Des verbes plutôt que des mots savants, au collège.** Chaque type de relation s’y lit
+  d’abord comme un verbe, le mot savant en second : « mange des plantes (herbivorie) »,
+  « mange des animaux (prédation) », « mange des fruits (frugivorie) », « mange des graines
+  (granivorie) », « mange des débris (détritivorie) », « décompose », « pollinise »,
+  « pond sur (plante hôte) », « parasite ». La **frugivorie** et la **granivorie** sont
+  montrées à tout le collège ; la **symbiose** et la **compétition** au cycle 4 (5e à 3e)
+  seulement.
+- **Une espèce sans relation visible est annoncée.** Arrivé depuis une fiche (« Voir le
+  réseau ») ou une séance, si l’espèce n’a aucune relation montrée à ce niveau ou sur cette
+  carte, un message le dit — jamais un graphe vide — et l’élève peut choisir une autre
+  espèce.
+- **Une séance peut montrer plusieurs espèces ensemble.** Dans l’éditeur de séance, une étape
+  « Réseau trophique » accepte, en plus de l’espèce mise en avant, une liste d’**espèces
+  montrées ensemble** (douze au plus) : l’élève ne voit que ces espèces et les liens qui les
+  relient entre elles — idéal pour faire construire une chaîne précise. Il peut ensuite
+  élargir aux voisins.
+
 - **Dix-neuf types d’interaction.** Onze ont été ajoutés pour cesser de ranger sous un
   mot des relations différentes. Quelques cas concrets :
   - Un merle qui picore une figue tombée était noté « décomposition ». Il fait de la

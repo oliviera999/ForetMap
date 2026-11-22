@@ -86,13 +86,15 @@ function LegendItem({ type, label, symmetric, hidden, onToggle }) {
 }
 
 /**
- * @param {{ presentTypes?: string[]|null, compact?: boolean, hiddenTypes?: Set<string>, onToggleType?: (type: string) => void }} props
+ * @param {{ presentTypes?: string[]|null, compact?: boolean, hiddenTypes?: Set<string>, onToggleType?: (type: string) => void, typeLabel?: ((type: string) => string)|null }} props
  */
 export function FoodWebEdgeLegend({
   presentTypes = null,
   compact = false,
   hiddenTypes = null,
   onToggleType = null,
+  /** Libellé du profil (verbe au collège) ; à défaut, celui de l'entrée de légende. */
+  typeLabel = null,
 }) {
   const entries = useMemo(() => {
     if (!presentTypes || presentTypes.length === 0) return LEGEND_ENTRIES;
@@ -125,7 +127,7 @@ export function FoodWebEdgeLegend({
               <li key={type}>
                 <LegendItem
                   type={type}
-                  label={label || interactionTypeLabel(type)}
+                  label={typeLabel ? typeLabel(type) : label || interactionTypeLabel(type)}
                   symmetric={symmetric}
                   hidden={hiddenTypes?.has(type)}
                   onToggle={onToggleType}
@@ -144,7 +146,7 @@ export function FoodWebEdgeLegend({
               <li key={type}>
                 <LegendItem
                   type={type}
-                  label={label || interactionTypeLabel(type)}
+                  label={typeLabel ? typeLabel(type) : label || interactionTypeLabel(type)}
                   symmetric={symmetric}
                   hidden={hiddenTypes?.has(type)}
                   onToggle={onToggleType}

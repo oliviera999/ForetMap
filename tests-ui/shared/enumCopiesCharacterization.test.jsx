@@ -179,6 +179,8 @@ describe('niveaux pédagogiques (miroirs ESM)', () => {
     expect([...biodivLevel.COLLEGE_FOODWEB_TYPES]).toEqual([
       'pollinisation',
       'herbivorie',
+      'frugivorie',
+      'granivorie',
       'predation',
       'plante_hote',
       'decomposition',
