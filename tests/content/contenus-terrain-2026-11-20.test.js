@@ -178,7 +178,11 @@ test('contenus du 20/11 : cinq tutoriels actifs, illustrés et crédités, sans 
 test('contenus du 20/11 : liens des questions vers des ressources présentes, source unique', async () => {
   const liens = await queryAll(
     `SELECT l.resource_type, l.resource_ref, l.question_code, l.is_gating, l.origin, l.status, l.note
-       FROM resource_question_links l WHERE l.${RANGE}`,
+       FROM resource_question_links l
+      WHERE l.${RANGE}
+        -- Une suggestion automatique (outil de suggestion, lancé par d'autres tests sur la même
+        -- base avant \`test:content\`) n'est pas du contenu semé : seule la migration compte.
+        AND NOT (l.origin = 'auto' AND l.status = 'suggested')`,
   );
   assert.ok(liens.length >= 24, `${liens.length} liens`);
   for (const l of liens) {
