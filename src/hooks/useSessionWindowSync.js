@@ -15,7 +15,7 @@ import {
 } from './useAuthSession';
 
 /** Raisons de révocation liées à la double authentification (`middleware/requireTeacher.js`). */
-const MFA_REVOCATION_REASONS = new Set(['mfa_required', 'actor_mfa_required']);
+const MFA_REVOCATION_REASONS = new Set(['mfa_required']);
 
 /**
  * Synchronisation des états de session React depuis les évènements `window`
