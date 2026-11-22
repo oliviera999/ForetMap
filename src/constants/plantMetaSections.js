@@ -4,6 +4,7 @@
  */
 
 import { TROPHIC_ROLE_LABELS } from '../utils/plantTrophicRole.js';
+import { HEALTH_RISK_ENUM } from '../shared/enums/biodivEnums.js';
 
 /**
  * `pedagoFeature` : brique de la table de visibilité (`src/shared/pedagoVisibilityCore.js`) qui
@@ -167,20 +168,16 @@ export const HAZARD_EXPOSURE_OPTIONS = [
 ];
 
 /**
- * Risques sanitaires — parité avec le SET SQL `plants.health_risk` et `lib/plantHealthRisk.js`.
+ * Risques sanitaires — lus dans le référentiel partagé (`HEALTH_RISK_ENUM`, aligné sur le SET
+ * SQL `plants.health_risk`), comme `lib/plantHealthRisk.js` côté serveur.
  *
  * Séparés de la toxicité : la rage ou le tétanos ne rendent pas l'espèce toxique, elles la
  * rendent porteuse. Les deux blocs cohabitent sur la fiche sans se confondre.
  */
-export const HEALTH_RISK_OPTIONS = [
-  { value: 'rage', label: 'Rage' },
-  { value: 'tetanos', label: 'Tétanos' },
-  { value: 'salmonellose', label: 'Salmonellose' },
-  { value: 'leptospirose', label: 'Leptospirose' },
-  { value: 'toxoplasmose', label: 'Toxoplasmose' },
-  { value: 'vecteur', label: 'Vecteur de maladie' },
-  { value: 'allergie', label: 'Allergie' },
-];
+export const HEALTH_RISK_OPTIONS = HEALTH_RISK_ENUM.values.map((value) => ({
+  value,
+  label: HEALTH_RISK_ENUM.labels[value],
+}));
 
 export const TOXICITY_LEVEL_LABELS = Object.fromEntries(
   TOXICITY_LEVEL_OPTIONS.map((entry) => [entry.value, entry.label]),

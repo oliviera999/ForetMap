@@ -166,6 +166,15 @@ export const HEALTH_RISK_ENUM = defineEnum('HEALTH_RISK_ENUM', {
     'toxoplasmose',
     'vecteur',
     'allergie',
+    // Valeurs ajoutées en prod sans migration, reprises par la migration
+    // `reprise_derive_schema` : en fin de SET et dans l'ordre de la prod (encodage par bit).
+    'ornithose',
+    'mycobacteriose',
+    'aspergillose',
+    'toxocarose',
+    'teigne',
+    'echinococcose',
+    'fievre_q',
   ],
   labels: {
     rage: 'Rage',
@@ -175,8 +184,31 @@ export const HEALTH_RISK_ENUM = defineEnum('HEALTH_RISK_ENUM', {
     toxoplasmose: 'Toxoplasmose',
     vecteur: 'Vecteur de maladie',
     allergie: 'Allergie',
+    ornithose: 'Ornithose (psittacose)',
+    mycobacteriose: 'Mycobactériose',
+    aspergillose: 'Aspergillose',
+    toxocarose: 'Toxocarose',
+    teigne: 'Teigne',
+    echinococcose: 'Échinococcose',
+    fievre_q: 'Fièvre Q',
   },
   columns: ['plants.health_risk'],
+});
+
+/**
+ * Degré de domestication (`plants.domestication`, distinct de `origin_status`) : colonne créée
+ * en prod sans migration, reprise par la migration `reprise_derive_schema`. `feral` = forme
+ * domestique retournée à la vie libre ; NULL = non renseigné.
+ */
+export const DOMESTICATION_ENUM = defineEnum('DOMESTICATION_ENUM', {
+  values: ['sauvage', 'semi_domestique', 'domestique', 'feral'],
+  labels: {
+    sauvage: 'Sauvage',
+    semi_domestique: 'Semi-domestique',
+    domestique: 'Domestique',
+    feral: 'Retourné à l’état sauvage (féral)',
+  },
+  columns: ['plants.domestication'],
 });
 
 /** Type d'interaction biotique (réseau trophique). */
