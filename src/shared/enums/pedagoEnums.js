@@ -261,3 +261,13 @@ export const ID_KEY_TOOL_ENUM = defineEnum('ID_KEY_TOOL_ENUM', {
   labels: { loupe: 'Loupe', boite_loupe: 'Boîte-loupe', jumelles: 'Jumelles' },
   columns: ['id_keys.tool_required'],
 });
+
+/**
+ * État d'un parcours de clé de détermination (`id_key_runs.status`) : table créée en prod sans
+ * migration, reprise par la migration `reprise_derive_schema` (aucun code ne l'écrit encore).
+ */
+export const ID_KEY_RUN_STATUS_ENUM = defineEnum('ID_KEY_RUN_STATUS_ENUM', {
+  values: ['en_cours', 'abouti', 'abandonne'],
+  labels: { en_cours: 'En cours', abouti: 'Abouti', abandonne: 'Abandonné' },
+  columns: ['id_key_runs.status'],
+});

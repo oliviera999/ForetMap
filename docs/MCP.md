@@ -892,7 +892,7 @@ Collecte : `lib/mcp/health/collect.js` (chaque section bornée et indépendante 
 | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `process`  | version, Node, `NODE_ENV`, uptime, mémoire (RSS, tas)                                                                                                                   |
 | `database` | ping et latence                                                                                                                                                         |
-| `schema`   | version du schéma, dernière migration, migrations en attente                                                                                                            |
+| `schema`   | version du schéma, dernière migration, migrations en attente ; `drift` : contrôle d'écart prod/dépôt (ci-dessous)                                                       |
 | `tables`   | 12 plus grosses tables (taille, lignes approximatives — métadonnées `information_schema`, aucune ligne lue), total                                                      |
 | `http`     | 5xx et 429 sur 24 h et 7 j (tranches horaires en mémoire, `lib/logMetrics.js`) ; `coveredHours` = fenêtre réellement couverte depuis le dernier redémarrage             |
 | `restarts` | journal de cycle de vie sur 24 h (crash, échecs de démarrage, arrêts sur signal reçu, processus disparus sans trace avec heure de la mort et poids, verdict)            |
@@ -913,6 +913,7 @@ sinon vert (les constats `info` ne comptent pas). Seuils renvoyés dans `thresho
 | `app_unreachable` | —                                                                   | application injoignable (script cron)                     |
 | `database`        | latence ≥ 500 ms (`MCP_HEALTH_DB_LATENCY_WARN_MS`)                  | ping en échec, ou ≥ 2 000 ms (`…_CRIT_MS`)                |
 | `migrations`      | —                                                                   | migration(s) en attente                                   |
+| `schema_drift`    | `info` (`orange` si `MCP_HEALTH_SCHEMA_DRIFT_LEVEL=orange`)         | —                                                         |
 | `http_5xx_24h`    | ≥ 5 (`MCP_HEALTH_5XX_WARN`)                                         | ≥ 50 (`MCP_HEALTH_5XX_CRIT`), ou ≥ 5 % sur ≥ 100 requêtes |
 | `http_429_24h`    | ≥ 500 (`MCP_HEALTH_429_WARN`)                                       | —                                                         |
 | `restarts`        | crash, échec de démarrage ou processus tué sur 24 h                 | —                                                         |
@@ -921,6 +922,31 @@ sinon vert (les constats `info` ne comptent pas). Seuils renvoyés dans `thresho
 | `tls`             | expiration < 21 j (`MCP_HEALTH_TLS_WARN_DAYS`), contrôle impossible | < 7 j (`…_CRIT_DAYS`), certificat refusé                  |
 | `cron`            | tâche en échec, en retard ou bloquée par un seuil                   | —                                                         |
 | `audit`           | — (`info` : nombre de constats du corpus)                           | —                                                         |
+
+**Contrôle d'écart prod/dépôt** (flux F7, novembre 2026). Le connecteur garde ses écritures
+de structure en prod (`mcp.sql_ddl_enabled`, décision du 22/11) : rien n'est interdit ni bloqué,
+l'écart est **signalé**. `lib/schemaFingerprint.js` compare la structure réelle
+(`information_schema` : tables, colonnes avec type / nullabilité / défaut, valeurs d'ENUM et de
+SET, index, clés étrangères, noms des vues) à l'empreinte versionnée d'une base fraîche,
+`sql/schema_fingerprint.json`. Tables `gl_*` **exclues**, comme dans `foretmap_describe_schema` ;
+tables étrangères à l'application exclues aussi (liste `KNOWN_FOREIGN_TABLES`, aujourd'hui
+`doksvtal_zz_olution_fb_journal`). Normalisation : largeur des entiers, forme des défauts ;
+collations et commentaires ignorés. Résultat :
+
+- `foretmap_db_status` → `schema_drift` : `ok`, `total`, `counts` (tables, colonnes, valeurs
+  d'ENUM/SET, index, clés, vues), `messages` (une phrase par catégorie, terminée par « à
+  reprendre en migration »), `details` (écarts un par un, « en plus » = dans la base, absent du
+  dépôt ; « en moins » = attendu, absent de la base ; omis au-delà de 100), `stale` (base en
+  retard sur les migrations : écarts attendus). Le script stdio Cursor, qui passe par
+  `/api/admin/diagnostics`, répond `available: false` ;
+- rapport de santé → `schema.drift` et règle `schema_drift` (`info` par défaut : pas d'e-mail
+  d'alerte quotidien pour un écart connu en attente de décision) ;
+- `foretmap_sql_execute` → un DDL **exécuté** (ni simulé, ni en attente de confirmation) reçoit
+  `schema_drift_note`, une mention d'information ; aucune règle d'écriture n'est changée.
+
+Reprendre un écart : migration idempotente par PR (`ADD COLUMN IF NOT EXISTS` avec le type exact
+de la prod…), puis régénérer l'empreinte (`docs/EXPLOITATION.md`, « Contrôle d'écart du
+schéma »).
 
 **À la demande** : `foretmap_health_report` (admin), ou `GET /api/health/report` avec
 l'en-tête `X-Health-Token` (`docs/API.md`, « Rapport de santé »).
@@ -1156,7 +1182,7 @@ Hors réglages : `MCP_ENABLED` (interrupteur général, **désactivé** par déf
 | `mcp.sql_select_enabled`          | `true`            | `MCP_SQL_ENABLED`                          | `foretmap_sql_select`, `foretmap_describe_schema`, `foretmap_export`.                                                                                                  |
 | `mcp.sql_select_pool`             | `auto`            | `MCP_SQL_SELECT_POOL`                      | `auto` : compte `DB_MCP_USER` s'il existe, sinon pool principal en transaction READ ONLY ; `dedicated_only` : compte dédié exigé.                                      |
 | `mcp.sql_write_enabled`           | `true`            | `MCP_SQL_WRITE_ENABLED`                    | `foretmap_sql_execute` (DML).                                                                                                                                          |
-| `mcp.sql_ddl_enabled`             | `true`            | `MCP_SQL_DDL_ENABLED`                      | DDL / DCL dans `foretmap_sql_execute`.                                                                                                                                 |
+| `mcp.sql_ddl_enabled`             | `true`            | `MCP_SQL_DDL_ENABLED`                      | DDL / DCL dans `foretmap_sql_execute` ; un DDL exécuté porte `schema_drift_note` (§ 11.2).                                                                             |
 | `mcp.sql_max_affected_rows`       | `10000`           | `MCP_SQL_MAX_AFFECTED_ROWS`                | Plafond de lignes touchées par instruction (1 à 1 000 000).                                                                                                            |
 | `mcp.confirm_mode`                | `off`             | `MCP_CONFIRM_MODE`, `MCP_CONFIRM_REQUIRED` | Confirmation par code e-mail : `off`, `sensitive` (opérations sensibles du SQL d'écriture), `all_writes` (toute écriture). `MCP_CONFIRM_REQUIRED=true` ↔ `sensitive`.  |
 | `mcp.privacy_bypass`              | `true`            | `MCP_PRIVACY_BYPASS`                       | Données nominatives d'élèves (lecture et écriture) pour les porteurs de `mcp.privacy_bypass`.                                                                          |
