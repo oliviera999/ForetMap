@@ -13,6 +13,7 @@ export const EMPTY_VISIT_LOCATION_ASIDE = Object.freeze({
   showTutos: false,
   primaryLivingNames: [],
   primaryLivingSpecies: [],
+  primaryLivingPresence: [],
   livingBeingsOnlyOnTasks: [],
   tutorialListForPreview: [],
   locationKind: 'zone',
@@ -55,14 +56,33 @@ function speciesForDisplayedNames(source, names) {
 }
 
 /**
+ * Présence des espèces du lieu (`is_featured`, `validation_status`) : toujours celle du
+ * **contenu de visite** (`GET /api/visit/content`, chantier collège C5), même quand les noms
+ * viennent de la zone de la carte — les zones de `/api/zones` ne la portent pas.
+ */
+function visitLocationPresence(visitLocation) {
+  return Array.isArray(visitLocation?.species) ? visitLocation.species : [];
+}
+
+/** Clés propres à chaque nature de lieu (seules différences entre zone et repère). */
+const LOCATION_KIND_CONFIG = Object.freeze({
+  zone: Object.freeze({ tutorialIdsKey: 'zoneIds', infraGate: true }),
+  marker: Object.freeze({ tutorialIdsKey: 'markerIds', infraGate: false }),
+});
+
+/**
  * Biodiversité et tutoriels liés au lieu sélectionné en visite (aligné sur les
  * panneaux zone/repère de la carte). Extrait de `VisitView` (O6), comportement inchangé.
+ *
+ * Une seule dérivation pour la zone et le repère (refacto C5 du chantier collège : les deux
+ * branches étaient recopiées) ; seule la zone d'infrastructure masque la biodiversité.
  *
  * @param {object|null} selected zone ou repère **visite** sélectionné·e
  * @param {'zone'|'marker'|null} selectedType
  * @param {{ mapId: string, mapZones: Array, mapMarkers: Array, tasks: Array,
  *   catalogTutorials: Array, isTeacher: boolean }} ctx données carte/missions/catalogue
  * @returns {{ showBiodiversity: boolean, showTutos: boolean, primaryLivingNames: string[],
+ *   primaryLivingSpecies: Array, primaryLivingPresence: Array,
  *   livingBeingsOnlyOnTasks: string[], tutorialListForPreview: Array, locationKind: 'zone'|'marker' }}
  */
 export function computeVisitLocationAside(
@@ -78,83 +98,45 @@ export function computeVisitLocationAside(
   } = {},
 ) {
   if (!selected || !selectedType) return EMPTY_VISIT_LOCATION_ASIDE;
+  const kind = selectedType === 'zone' ? 'zone' : 'marker';
+  const config = LOCATION_KIND_CONFIG[kind];
   const catalog = catalogTutorials || [];
   const taskList = tasks || [];
-  if (selectedType === 'zone') {
-    const mapZone = (mapZones || []).find(
-      (z) => String(z.id) === String(selected.id) && String(z.map_id || '') === String(mapId),
-    );
-    const zoneSource = biodiversitySourceForLocation(mapZone, selected);
-    const zoneIsInfrastructure = isInfrastructureLocation(zoneSource);
-    const primaryLivingNames = zoneSource
-      ? orderedLivingBeingsForForm(zoneSource.living_beings_list || zoneSource.living_beings)
-      : [];
-    const livingFromTasks = livingBeingNamesFromTasksAtLocation('zone', selected.id, taskList);
-    const livingBeingsOnlyOnTasks = livingFromTasks.filter((n) => !primaryLivingNames.includes(n));
-    const showBiodiversity =
-      !zoneIsInfrastructure &&
-      (primaryLivingNames.length > 0 || livingBeingsOnlyOnTasks.length > 0);
-    const linkedTutorialsDirect = catalog.filter((tu) =>
-      tutorialLocationIds(tu).zoneIds.some((id) => String(id) === String(selected.id)),
-    );
-    const tutorialsFromTasksHere = tutorialsFromTasksAtLocation(
-      'zone',
-      selected.id,
-      taskList,
-      catalog,
-    );
-    const linkedTutorialsAll = dedupeTutorialsById([
-      ...linkedTutorialsDirect,
-      ...tutorialsFromTasksHere,
-    ]);
-    const linkedTutorialsVisible = isTeacher
-      ? linkedTutorialsAll
-      : linkedTutorialsAll.filter((tu) => tu.is_active !== false);
-    const tutorialListForPreview = isTeacher ? linkedTutorialsAll : linkedTutorialsVisible;
-    return {
-      showBiodiversity,
-      showTutos: tutorialListForPreview.length > 0,
-      primaryLivingNames,
-      primaryLivingSpecies: speciesForDisplayedNames(zoneSource, primaryLivingNames),
-      livingBeingsOnlyOnTasks,
-      tutorialListForPreview,
-      locationKind: 'zone',
-    };
-  }
-  const mapMarker = (mapMarkers || []).find(
-    (m) => String(m.id) === String(selected.id) && String(m.map_id || '') === String(mapId),
+  const mapList = (kind === 'zone' ? mapZones : mapMarkers) || [];
+
+  const mapLocation = mapList.find(
+    (l) => String(l.id) === String(selected.id) && String(l.map_id || '') === String(mapId),
   );
-  const markerSource = biodiversitySourceForLocation(mapMarker, selected);
-  const primaryLivingNames = markerSource
-    ? orderedLivingBeingsForForm(markerSource.living_beings_list || markerSource.living_beings)
+  const source = biodiversitySourceForLocation(mapLocation, selected);
+  const primaryLivingNames = source
+    ? orderedLivingBeingsForForm(source.living_beings_list || source.living_beings)
     : [];
-  const livingFromTasks = livingBeingNamesFromTasksAtLocation('marker', selected.id, taskList);
+  const livingFromTasks = livingBeingNamesFromTasksAtLocation(kind, selected.id, taskList);
   const livingBeingsOnlyOnTasks = livingFromTasks.filter((n) => !primaryLivingNames.includes(n));
-  const showBiodiversity = primaryLivingNames.length > 0 || livingBeingsOnlyOnTasks.length > 0;
+  const hidesBiodiversity = config.infraGate && isInfrastructureLocation(source);
+  const showBiodiversity =
+    !hidesBiodiversity && (primaryLivingNames.length > 0 || livingBeingsOnlyOnTasks.length > 0);
+
   const linkedTutorialsDirect = catalog.filter((tu) =>
-    tutorialLocationIds(tu).markerIds.some((id) => String(id) === String(selected.id)),
+    tutorialLocationIds(tu)[config.tutorialIdsKey].some((id) => String(id) === String(selected.id)),
   );
-  const tutorialsFromTasksHere = tutorialsFromTasksAtLocation(
-    'marker',
-    selected.id,
-    taskList,
-    catalog,
-  );
+  const tutorialsFromTasksHere = tutorialsFromTasksAtLocation(kind, selected.id, taskList, catalog);
   const linkedTutorialsAll = dedupeTutorialsById([
     ...linkedTutorialsDirect,
     ...tutorialsFromTasksHere,
   ]);
-  const linkedTutorialsVisible = isTeacher
+  const tutorialListForPreview = isTeacher
     ? linkedTutorialsAll
     : linkedTutorialsAll.filter((tu) => tu.is_active !== false);
-  const tutorialListForPreview = isTeacher ? linkedTutorialsAll : linkedTutorialsVisible;
+
   return {
     showBiodiversity,
     showTutos: tutorialListForPreview.length > 0,
     primaryLivingNames,
-    primaryLivingSpecies: speciesForDisplayedNames(markerSource, primaryLivingNames),
+    primaryLivingSpecies: speciesForDisplayedNames(source, primaryLivingNames),
+    primaryLivingPresence: visitLocationPresence(selected),
     livingBeingsOnlyOnTasks,
     tutorialListForPreview,
-    locationKind: 'marker',
+    locationKind: kind,
   };
 }

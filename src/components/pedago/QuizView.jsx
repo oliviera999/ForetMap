@@ -26,7 +26,11 @@ import {
   notionsForNiveauFilter,
   resolveNotionNiveaux,
 } from '../../utils/curriculumNotions.js';
-import { etapeForCurriculumNiveau, parseNotionNiveauFilter } from '../../utils/pedagoScales.js';
+import {
+  collegeQuizPalierMax,
+  etapeForCurriculumNiveau,
+  parseNotionNiveauFilter,
+} from '../../utils/pedagoScales.js';
 import { useBiodivPedago } from '../../contexts/BiodivPedagoContext.jsx';
 
 // Menus lus dans le référentiel partagé (audit du 25/09/2026, § 3.2.5). La difficulté va de
@@ -73,6 +77,52 @@ function notionNiveauParam(filter, curriculumNiveaux) {
   return niveaux ? niveaux.join(',') : '';
 }
 
+/**
+ * Catégories proposées : en affichage collège (`palierMax` connu), celles qui ont au moins
+ * une question au palier de l'élève — une catégorie à 0 ne tirerait rien.
+ */
+export function visibleQuizCategories(categories, palierMax) {
+  const list = Array.isArray(categories) ? categories : [];
+  if (palierMax == null) return list;
+  return list.filter((c) => c.questionCount == null || Number(c.questionCount) > 0);
+}
+
+/** Description collège d'une catégorie (affichage collège seulement), ou `null`. */
+export function collegeCategoryDescription(category, palierMax) {
+  if (palierMax == null || !category) return null;
+  const text =
+    typeof category.description_college === 'string' ? category.description_college.trim() : '';
+  return text || null;
+}
+
+/** Menu de filtre du quiz : libellé englobant (cible de `getByLabelText`), options `{ value, label }`. */
+function QuizFilterSelect({
+  label,
+  className = 'pedago-filter-field',
+  value,
+  onChange,
+  options,
+  disabled,
+}) {
+  return (
+    <label className={className}>
+      <span>{label}</span>
+      <select
+        className="form-select"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        disabled={disabled}
+      >
+        {options.map((opt) => (
+          <option key={opt.value || 'all'} value={opt.value}>
+            {opt.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
 /** Filtre de notion d'une requête : la notion choisie, sinon le niveau du programme. */
 function notionQueryParams(notionId, notionNiveau, curriculumNiveaux) {
   if (notionId) return { notionId };
@@ -86,7 +136,19 @@ export function QuizView({
   initialNotionId = null,
   initialNotionNiveau = null,
 }) {
-  const { curriculumNiveaux } = useBiodivPedago();
+  const { curriculumNiveaux, learner, palierRule } = useBiodivPedago();
+  // Affichage collège : tirage et compteurs bornés au palier de l'élève (chantier collège,
+  // flux C6) ; `null` hors collège (lycée, université, professeur en vue complète).
+  const ruleCap = palierRule('quiz_entry_palier_max');
+  const palierMax = useMemo(
+    () =>
+      collegeQuizPalierMax({
+        etape: learner?.etape,
+        maxPalier: learner?.maxPalier,
+        ruleCap: typeof ruleCap === 'number' ? ruleCap : null,
+      }),
+    [learner?.etape, learner?.maxPalier, ruleCap],
+  );
   const [theme, setTheme] = useState('');
   const [niveau, setNiveau] = useState(() =>
     initialQuestionNiveau(initialNotionNiveau, curriculumNiveaux),
@@ -118,16 +180,19 @@ export function QuizView({
         theme,
         niveau,
         ...notionQueryParams(notionId, notionNiveau, curriculumNiveaux),
+        palierMax,
       });
       if (seq !== loadCategoriesSeqRef.current) return;
-      setCategories(Array.isArray(data?.categories) ? data.categories : []);
+      setCategories(
+        visibleQuizCategories(Array.isArray(data?.categories) ? data.categories : [], palierMax),
+      );
     } catch (_) {
       if (seq !== loadCategoriesSeqRef.current) return;
       setCategories([]);
     } finally {
       if (seq === loadCategoriesSeqRef.current) setLoadingCategories(false);
     }
-  }, [theme, niveau, notionId, notionNiveau, curriculumNiveaux]);
+  }, [theme, niveau, notionId, notionNiveau, curriculumNiveaux, palierMax]);
 
   useEffect(() => {
     loadCategories();
@@ -208,6 +273,14 @@ export function QuizView({
     ],
     [categories],
   );
+  const categoryDescription = useMemo(
+    () =>
+      collegeCategoryDescription(
+        categories.find((c) => c.slug === categorieSlug),
+        palierMax,
+      ),
+    [categories, categorieSlug, palierMax],
+  );
 
   // Auto-liens : index partagé, complété par les termes déjà liés à la question
   // (comme `QcmPreviewModal` côté GL) — ces termes-là ne sont pas forcément
@@ -232,6 +305,7 @@ export function QuizView({
       difficulte,
       illustrated: illustratedOnly ? '1' : '',
       ...notionQueryParams(notionId, notionNiveau, curriculumNiveaux),
+      palierMax,
     });
   }
 
@@ -383,87 +457,39 @@ export function QuizView({
       </header>
 
       <div className="pedago-filters card">
-        <label className="pedago-filter-field">
-          <span>Thème</span>
-          <select className="form-select" value={theme} onChange={(e) => setTheme(e.target.value)}>
-            {THEME_OPTIONS.map((opt) => (
-              <option key={opt.value || 'all'} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="pedago-filter-field">
-          <span>Niveau</span>
-          <select
-            className="form-select"
-            value={niveau}
-            onChange={(e) => setNiveau(e.target.value)}
-          >
-            {NIVEAU_OPTIONS.map((opt) => (
-              <option key={opt.value || 'all'} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="pedago-filter-field">
-          <span>Difficulté</span>
-          <select
-            className="form-select"
-            value={difficulte}
-            onChange={(e) => setDifficulte(e.target.value)}
-          >
-            {DIFFICULTE_OPTIONS.map((opt) => (
-              <option key={opt.value || 'all'} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="pedago-filter-field">
-          <span>Niveau du programme</span>
-          <select
-            className="form-select"
-            value={notionNiveau}
-            onChange={(e) => setNotionNiveau(e.target.value)}
-          >
-            {curriculumNiveauOptions.map((opt) => (
-              <option key={opt.value || 'all'} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="pedago-filter-field pedago-filter-field--wide">
-          <span>Notion du programme</span>
-          <select
-            className="form-select"
-            value={notionId}
-            onChange={(e) => setNotionId(e.target.value)}
-          >
-            {notionOptions.map((opt) => (
-              <option key={opt.value || 'all'} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="pedago-filter-field">
-          <span>Catégorie</span>
-          <select
-            className="form-select"
-            value={categorieSlug}
-            onChange={(e) => setCategorieSlug(e.target.value)}
-            disabled={loadingCategories}
-          >
-            {categorieOptions.map((opt) => (
-              <option key={opt.value || 'all'} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </label>
+        <QuizFilterSelect label="Thème" value={theme} onChange={setTheme} options={THEME_OPTIONS} />
+        <QuizFilterSelect
+          label="Niveau"
+          value={niveau}
+          onChange={setNiveau}
+          options={NIVEAU_OPTIONS}
+        />
+        <QuizFilterSelect
+          label="Difficulté"
+          value={difficulte}
+          onChange={setDifficulte}
+          options={DIFFICULTE_OPTIONS}
+        />
+        <QuizFilterSelect
+          label="Niveau du programme"
+          value={notionNiveau}
+          onChange={setNotionNiveau}
+          options={curriculumNiveauOptions}
+        />
+        <QuizFilterSelect
+          label="Notion du programme"
+          className="pedago-filter-field pedago-filter-field--wide"
+          value={notionId}
+          onChange={setNotionId}
+          options={notionOptions}
+        />
+        <QuizFilterSelect
+          label="Catégorie"
+          value={categorieSlug}
+          onChange={setCategorieSlug}
+          options={categorieOptions}
+          disabled={loadingCategories}
+        />
         <label className="pedago-filter-field pedago-filter-field--checkbox">
           <span>Illustrées</span>
           <input
@@ -476,6 +502,10 @@ export function QuizView({
           {drawing ? 'Tirage…' : 'Tirer une question'}
         </button>
       </div>
+
+      {categoryDescription ? (
+        <p className="section-sub pedago-quiz__category-description">{categoryDescription}</p>
+      ) : null}
 
       {error ? <p className="pedago-error">{error}</p> : null}
 

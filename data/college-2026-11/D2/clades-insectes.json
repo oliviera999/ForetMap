@@ -1,0 +1,9 @@
+{
+  "_doc": "Ordres d'insectes manquants (créés sous `insectes`, non visibles au collège : visible_college = 0). Noms vérifiés sur GBIF (species/match, rang ORDER, statut ACCEPTED, 21/11/2026).",
+  "clades": [
+    { "id": "orthopteres", "parent_id": "insectes", "name": "Orthoptères", "latin": "Orthoptera", "gbif_key": 1458, "shared_attribute": "Pattes de derrière souvent agrandies pour le saut ; ailes de devant étroites et coriaces", "description": "Criquets, grillons, sauterelles et courtilière. Chez beaucoup d'espèces, les mâles chantent pour attirer les femelles.", "sort_order": 56 },
+    { "id": "dermapteres", "parent_id": "insectes", "name": "Dermaptères", "latin": "Dermaptera", "gbif_key": 1224, "shared_attribute": "Pinces au bout de l'abdomen ; ailes de devant très courtes", "description": "Perce-oreilles. Malgré leur nom, ils n'entrent pas dans les oreilles : leurs pinces servent surtout à se défendre.", "sort_order": 57 },
+    { "id": "mantes", "parent_id": "insectes", "name": "Mantes", "latin": "Mantodea", "gbif_key": 788, "shared_attribute": "Pattes de devant repliées, armées d'épines, qui saisissent les proies ; tête triangulaire très mobile", "description": "Mantes religieuses et leurs cousines : des insectes prédateurs qui chassent à l'affût.", "sort_order": 58 },
+    { "id": "nevropteres", "parent_id": "insectes", "name": "Névroptères", "latin": "Neuroptera", "gbif_key": 1501, "shared_attribute": "Quatre ailes transparentes parcourues d'un fin réseau de nervures, repliées en toit au repos", "description": "Chrysopes et fourmilions. Leurs larves sont des prédatrices, grandes mangeuses de pucerons.", "sort_order": 59 }
+  ]
+}

@@ -3,16 +3,21 @@ import {
   ZONE_PRESENCE_FILTER,
   distinctPlantFieldValues,
   filterPlantsByTaxonomy,
+  usageGroupFilterOptions,
 } from '../../utils/plantFilters';
 import { ORIGIN_STATUS_VALUES, ORIGIN_STATUS_LABELS } from '../../utils/plantOriginStatus.js';
 import { IUCN_STATUS_VALUES, IUCN_STATUS_LABELS } from '../../utils/plantIucnStatus.js';
 import { trophicRoleLabel } from '../../utils/plantTrophicRole.js';
 import { BIODIV_MAP_FILTER_ALL, BIODIV_SORT } from '../../utils/biodivCatalogLoad.js';
+import './plantCatalogCollege.css';
 
 /**
  * Panneau de filtres / tri / chips du catalogue biodiversité.
  * Surface : carte, présence, recherche, règne, chips, tri.
  * Avancés : taxonomie fine, habitat, rôles, statuts.
+ *
+ * Catalogue groupé du collège (`groupedMode`, chantier collège flux C4) : un filtre unique
+ * « Groupe » (groupe d'usage) remplace Règne › Grand groupe › Famille.
  */
 export function PlantCatalogFilterPanel({
   plants,
@@ -29,6 +34,10 @@ export function PlantCatalogFilterPanel({
   setGroup2,
   group3,
   setGroup3,
+  /** Catalogue groupé (collège) : filtre « Groupe » à la place de la taxonomie. */
+  groupedMode = false,
+  usageGroup = '',
+  setUsageGroup = null,
   habitat,
   setHabitat,
   agro,
@@ -75,6 +84,11 @@ export function PlantCatalogFilterPanel({
   );
 
   const group1Options = useMemo(() => distinctPlantFieldValues(plants, 'taxon_kingdom'), [plants]);
+  const usageGroupOptions = useMemo(
+    () => (groupedMode ? usageGroupFilterOptions(plants) : []),
+    [groupedMode, plants],
+  );
+  const showUsageGroupFilter = groupedMode && typeof setUsageGroup === 'function';
   const group2Options = useMemo(
     () => distinctPlantFieldValues(subsetAfterG1, 'taxon_group'),
     [subsetAfterG1],
@@ -134,6 +148,7 @@ export function PlantCatalogFilterPanel({
   }, [habitatType, habitatTypeOptions, setHabitatType]);
 
   const resetAllFilters = () => {
+    if (setUsageGroup) setUsageGroup('');
     setGroup1('');
     setGroup2('');
     setGroup3('');
@@ -152,6 +167,7 @@ export function PlantCatalogFilterPanel({
   };
 
   const regneSelectId = useId();
+  const usageGroupSelectId = useId();
   const mapSelectId = useId();
   const presenceSelectId = useId();
   const searchId = useId();
@@ -220,26 +236,46 @@ export function PlantCatalogFilterPanel({
           />
         </div>
 
-        <div className="field biodiv-filters__field" style={{ marginBottom: 0 }}>
-          <label htmlFor={regneSelectId}>Règne</label>
-          <select
-            id={regneSelectId}
-            value={group1}
-            onChange={(e) => {
-              setGroup1(e.target.value);
-              setGroup2('');
-              setGroup3('');
-            }}
-            style={{ background: 'white' }}
-          >
-            <option value="">Tous les groupes</option>
-            {group1Options.map((g) => (
-              <option key={g} value={g}>
-                {g}
-              </option>
-            ))}
-          </select>
-        </div>
+        {showUsageGroupFilter ? (
+          <div className="field biodiv-filters__field biodiv-filters__usage-group">
+            <label htmlFor={usageGroupSelectId}>Groupe</label>
+            <select
+              id={usageGroupSelectId}
+              value={usageGroup}
+              onChange={(e) => setUsageGroup(e.target.value)}
+            >
+              <option value="">Tous les groupes</option>
+              {usageGroupOptions.map((g) => (
+                <option key={g.id} value={g.id}>
+                  {g.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        ) : null}
+
+        {showUsageGroupFilter ? null : (
+          <div className="field biodiv-filters__field" style={{ marginBottom: 0 }}>
+            <label htmlFor={regneSelectId}>Règne</label>
+            <select
+              id={regneSelectId}
+              value={group1}
+              onChange={(e) => {
+                setGroup1(e.target.value);
+                setGroup2('');
+                setGroup3('');
+              }}
+              style={{ background: 'white' }}
+            >
+              <option value="">Tous les groupes</option>
+              {group1Options.map((g) => (
+                <option key={g} value={g}>
+                  {g}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       <div className="biodiv-filters__chips" role="group" aria-label="Filtres rapides">
@@ -311,39 +347,43 @@ export function PlantCatalogFilterPanel({
         <summary>Filtres avancés</summary>
         <div style={{ display: 'grid', gap: 8, marginTop: 10 }}>
           <div className="plant-form-grid">
-            <div className="field" style={{ marginBottom: 0 }}>
-              <label>Grand groupe</label>
-              <select
-                value={group2}
-                onChange={(e) => {
-                  setGroup2(e.target.value);
-                  setGroup3('');
-                }}
-                style={{ background: 'white' }}
-              >
-                <option value="">Tous</option>
-                {group2Options.map((g) => (
-                  <option key={g} value={g}>
-                    {g}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="field" style={{ marginBottom: 0 }}>
-              <label>Famille</label>
-              <select
-                value={group3}
-                onChange={(e) => setGroup3(e.target.value)}
-                style={{ background: 'white' }}
-              >
-                <option value="">Tous</option>
-                {group3Options.map((g) => (
-                  <option key={g} value={g}>
-                    {g}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {showUsageGroupFilter ? null : (
+              <>
+                <div className="field" style={{ marginBottom: 0 }}>
+                  <label>Grand groupe</label>
+                  <select
+                    value={group2}
+                    onChange={(e) => {
+                      setGroup2(e.target.value);
+                      setGroup3('');
+                    }}
+                    style={{ background: 'white' }}
+                  >
+                    <option value="">Tous</option>
+                    {group2Options.map((g) => (
+                      <option key={g} value={g}>
+                        {g}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="field" style={{ marginBottom: 0 }}>
+                  <label>Famille</label>
+                  <select
+                    value={group3}
+                    onChange={(e) => setGroup3(e.target.value)}
+                    style={{ background: 'white' }}
+                  >
+                    <option value="">Tous</option>
+                    {group3Options.map((g) => (
+                      <option key={g} value={g}>
+                        {g}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </>
+            )}
             <div className="field" style={{ marginBottom: 0 }}>
               <label>Habitat</label>
               <select

@@ -15,7 +15,9 @@ const { test, before } = require('node:test');
 const assert = require('node:assert/strict');
 const { initSchema, queryAll, queryOne } = require('../../database');
 
-const RANGE = "question_code BETWEEN 'QF9873' AND 'QF9933'";
+// Codes à six caractères seulement : un test qui laisse un code aléatoire du type `QF98xxxx`
+// dans la base partagée (ordre CI : `test` puis `test:content`) tombe sinon dans l'intervalle.
+const RANGE = "question_code BETWEEN 'QF9873' AND 'QF9933' AND CHAR_LENGTH(question_code) = 6";
 const RETRAITS = [
   'QF0010',
   'QF0011',
@@ -102,7 +104,12 @@ test('contenus du 20/11 : notions de cycle 3 ajoutées, notions de lycée hérit
        JOIN curriculum_notions cn ON cn.id = n.notion_id
       WHERE n.${RANGE}`,
   );
-  assert.equal(notions.length, 168);
+  // 168 lignes posées le 20/11 ; la migration `college_quiz_paliers` (chantier collège, retri
+  // des paliers) retouche ensuite ces questions : 220 lignes sur une base semée par les
+  // migrations (200 avant que `college_referentiel_notions` ne sème, avant le retri, les
+  // liaisons catégorie → notions de la production : le retri y pose alors les mêmes
+  // exclusions qu'en production).
+  assert.equal(notions.length, 220);
   // Chaque question a sa ligne de notions : au moins un ajout ou une exclusion.
   for (const q of questions) {
     assert.ok(
@@ -112,10 +119,21 @@ test('contenus du 20/11 : notions de cycle 3 ajoutées, notions de lycée hérit
   }
   const ajouts = notions.filter((n) => n.mode === 'ajout');
   assert.ok(ajouts.filter((n) => n.niveau === 'cycle3').length >= 30, 'ajouts de cycle 3');
-  // Une notion exclue n'est jamais une notion de cycle 3 ou 4 : ce sont les notions de
-  // lycée héritées de la catégorie qui sont retirées.
+  // Le 20/11, seules des notions de lycée héritées étaient exclues. Depuis le retri des
+  // paliers (migration `college_quiz_paliers`), une notion de cycle 3 ou 4 peut l'être aussi,
+  // mais seulement si la question garde un ajout explicite de l'autre cycle : le palier est
+  // tranché, jamais vidé.
   for (const n of notions.filter((x) => x.mode === 'exclusion')) {
-    assert.ok(!['cycle3', 'cycle4'].includes(n.niveau), `${n.question_code} exclut ${n.notion_id}`);
+    if (!['cycle3', 'cycle4'].includes(n.niveau)) continue;
+    assert.ok(
+      ajouts.some(
+        (a) =>
+          a.question_code === n.question_code &&
+          ['cycle3', 'cycle4'].includes(a.niveau) &&
+          a.niveau !== n.niveau,
+      ),
+      `${n.question_code} exclut ${n.notion_id} sans garder l'autre cycle`,
+    );
   }
 });
 
@@ -162,7 +180,11 @@ test('contenus du 20/11 : cinq tutoriels actifs, illustrés et crédités, sans 
 test('contenus du 20/11 : liens des questions vers des ressources présentes, source unique', async () => {
   const liens = await queryAll(
     `SELECT l.resource_type, l.resource_ref, l.question_code, l.is_gating, l.origin, l.status, l.note
-       FROM resource_question_links l WHERE l.${RANGE}`,
+       FROM resource_question_links l
+      WHERE l.${RANGE}
+        -- Une suggestion automatique (outil de suggestion, lancé par d'autres tests sur la même
+        -- base avant \`test:content\`) n'est pas du contenu semé : seule la migration compte.
+        AND NOT (l.origin = 'auto' AND l.status = 'suggested')`,
   );
   assert.ok(liens.length >= 24, `${liens.length} liens`);
   for (const l of liens) {

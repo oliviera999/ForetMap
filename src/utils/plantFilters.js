@@ -12,6 +12,17 @@ function nv(value) {
   return s;
 }
 
+/**
+ * Valeur taxonomique d'une fiche (règne, grand groupe, famille, genre) : objet `taxonomy` s'il
+ * est fourni, sinon colonnes `taxon_*`. Les anciens replis `group_1` … `group_4` (colonnes
+ * supprimées en migration 129, plus jamais servies par l'API) sont retirés (flux C4).
+ *
+ * Dette documentée (chantier collège, flux C4, point 4) : `taxon_kingdom`, `taxon_group` et
+ * `taxon_family` doublonnent l'arbre des groupes (`clades`). Leur dérivation future depuis
+ * l'arbre (source unique : ancêtres de `plants.clade_id`) est décrite dans `docs/API.md`,
+ * § « Classification — groupes emboîtés » ; elle n'est pas faite ici. Au collège, ces champs ne
+ * sont plus affichés dans le catalogue (filtre unique « Groupe »).
+ */
 export function plantTaxonomyValue(plant, level) {
   const tax = plant?.taxonomy;
   if (tax && typeof tax === 'object') {
@@ -20,11 +31,69 @@ export function plantTaxonomyValue(plant, level) {
     if (level === 'family') return nv(tax.family);
     if (level === 'genus') return nv(tax.genus);
   }
-  if (level === 'kingdom') return nv(plant?.taxon_kingdom) || nv(plant?.group_1);
-  if (level === 'group') return nv(plant?.taxon_group) || nv(plant?.group_2);
-  if (level === 'family') return nv(plant?.taxon_family) || nv(plant?.group_3);
-  if (level === 'genus') return nv(plant?.taxon_genus) || nv(plant?.group_4);
+  if (level === 'kingdom') return nv(plant?.taxon_kingdom);
+  if (level === 'group') return nv(plant?.taxon_group);
+  if (level === 'family') return nv(plant?.taxon_family);
+  if (level === 'genus') return nv(plant?.taxon_genus);
   return '';
+}
+
+/**
+ * Groupe d'usage des fiches sans groupe (pas de `clade_id`, ou aucune boîte visible au collège
+ * dans leur chaîne) : section « Autres êtres vivants », placée en dernier.
+ */
+export const CATALOG_OTHER_GROUP_ID = '__autres';
+export const CATALOG_OTHER_GROUP_LABEL = 'Autres êtres vivants';
+
+/**
+ * Identifiant du groupe d'usage d'une fiche (`usage_group` de `GET /api/plants`, socle collège :
+ * boîte `visible_college` la plus proche), ou `null`.
+ */
+export function usageGroupIdOf(plant) {
+  const id = plant?.usage_group?.id;
+  return id != null && id !== '' ? String(id) : null;
+}
+
+/** Libellé du groupe d'usage d'une fiche (libellé simple de la boîte), ou chaîne vide. */
+export function usageGroupLabelOf(plant) {
+  return nv(plant?.usage_group?.label);
+}
+
+/** Vrai si au moins une fiche porte un groupe d'usage (sinon : repli, aucun groupement). */
+export function catalogHasUsageGroups(plants) {
+  return (Array.isArray(plants) ? plants : []).some((p) => usageGroupIdOf(p) != null);
+}
+
+/**
+ * Options du filtre « Groupe » (collège) : groupes d'usage présents, avec effectif, triés par
+ * libellé ; « Autres êtres vivants » en dernier s'il y a des fiches sans groupe.
+ * @returns {Array<{ id: string, label: string, count: number }>}
+ */
+export function usageGroupFilterOptions(plants) {
+  const byId = new Map();
+  let others = 0;
+  for (const p of Array.isArray(plants) ? plants : []) {
+    const id = usageGroupIdOf(p);
+    if (!id) {
+      others += 1;
+      continue;
+    }
+    const prev = byId.get(id);
+    if (prev) prev.count += 1;
+    else byId.set(id, { id, label: usageGroupLabelOf(p) || id, count: 1 });
+  }
+  const list = [...byId.values()].sort((a, b) =>
+    a.label.localeCompare(b.label, 'fr', { sensitivity: 'base' }),
+  );
+  if (others > 0) {
+    list.push({ id: CATALOG_OTHER_GROUP_ID, label: CATALOG_OTHER_GROUP_LABEL, count: others });
+  }
+  return list;
+}
+
+function plantMatchesUsageGroup(plant, usageGroup) {
+  if (!usageGroup) return true;
+  return (usageGroupIdOf(plant) || CATALOG_OTHER_GROUP_ID) === usageGroup;
 }
 
 /**
@@ -149,6 +218,7 @@ export function distinctPlantFieldValues(plants, fieldKey) {
 }
 
 export function plantMatchesStructuredFilters(plant, f) {
+  if (!plantMatchesUsageGroup(plant, f.usageGroup)) return false;
   if (f.group1 && plantTaxonomyValue(plant, 'kingdom') !== f.group1) return false;
   if (f.group2 && plantTaxonomyValue(plant, 'group') !== f.group2) return false;
   if (f.group3 && plantTaxonomyValue(plant, 'family') !== f.group3) return false;
@@ -191,6 +261,9 @@ export function plantTextMatchesQuery(plant, queryTrimmedLower) {
     plantTaxonomyValue(plant, 'group'),
     plantTaxonomyValue(plant, 'family'),
     plantTaxonomyValue(plant, 'genus'),
+    // Groupe d'usage et étiquette simple (chantier collège) : « oiseau », « arbre fruitier »…
+    usageGroupLabelOf(plant),
+    plant.usage_label,
     plant.trophic_role,
     // Le libellé accentué (« détritivore », « décomposeur ») : la valeur stockée n'a pas
     // d'accent, et c'est le mot que l'élève tape.

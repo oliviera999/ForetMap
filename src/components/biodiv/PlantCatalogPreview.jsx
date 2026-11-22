@@ -33,6 +33,7 @@ import { PlantHazardSection, PlantHealthRiskSection } from './PlantHazardSection
 import { PlantLocationPreviewMaps } from './BiodivLocationMaps.jsx';
 import { useBiodivPedago } from '../../contexts/BiodivPedagoContext.jsx';
 import { SpeciesObservationSlot } from '../observations/SpeciesObservationSlot.jsx';
+import './collegeSpeciesCard.css';
 import {
   IconBiodiv,
   IconClose,
@@ -80,6 +81,8 @@ export function PlantBiodiversityCatalogPreviewCard({
   const canConfirmPhotos = !!hasPermission?.('plants.manage');
   const latinVisibility = visibility('accepted_name_gbif_latin');
   const showClade = canShow('clade_breadcrumb');
+  const showUsageLabel = canShow('usage_label');
+  const preferCollegeDescription = canShow('description_college');
   const [photoBusy, setPhotoBusy] = useState(false);
   const [localPlant, setLocalPlant] = useState(plant);
   useEffect(() => {
@@ -129,6 +132,14 @@ export function PlantBiodiversityCatalogPreviewCard({
       ? `https://www.gbif.org/species/${Number(gbifKey)}`
       : null;
   const previewMapId = activeMapId || displayPlant.preview_map_id || null;
+  // Profil collège : étiquette simple sous le nom, description collège à la place de la
+  // description quand elle existe (table de visibilité, briques `usage_label` et
+  // `description_college`).
+  const usageLabel = showUsageLabel ? normalizedPlantValue(displayPlant.usage_label) : '';
+  const collegeDescription = preferCollegeDescription
+    ? normalizedPlantValue(displayPlant.description_college)
+    : '';
+  const description = collegeDescription || displayPlant.description;
   return (
     <article className="biodiv-card fade-in" {...dataAttr}>
       <div className="biodiv-card-head">
@@ -136,6 +147,11 @@ export function PlantBiodiversityCatalogPreviewCard({
           <span className="biodiv-emoji">{displayPlant.emoji}</span>
           <div className="biodiv-card-title-content">
             <h3>{displayPlant.name}</h3>
+            {usageLabel ? (
+              <p className="plant-usage-label" data-testid="plant-usage-label">
+                {usageLabel}
+              </p>
+            ) : null}
             {latinVisibility !== 'hide' ? (
               <>
                 <p className="plant-scientific">{usageName || 'Nom scientifique non renseigne'}</p>
@@ -166,14 +182,15 @@ export function PlantBiodiversityCatalogPreviewCard({
             ) : null}
           </div>
         </div>
-        {normalizedPlantValue(displayPlant.group_2) && (
-          <span className="task-chip">{displayPlant.group_2}</span>
-        )}
       </div>
 
       <div className="biodiv-card-body">
-        {displayPlant.description ? (
-          <MarkdownContent className="plant-row-desc">{displayPlant.description}</MarkdownContent>
+        {description ? (
+          <MarkdownContent
+            className={`plant-row-desc${collegeDescription ? ' plant-row-desc--college' : ''}`}
+          >
+            {description}
+          </MarkdownContent>
         ) : (
           <p className="plant-row-desc">
             <em style={{ color: '#bbb' }}>Pas de description</em>

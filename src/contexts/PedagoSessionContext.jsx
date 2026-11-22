@@ -24,7 +24,9 @@ export function PedagoSessionProvider({ value, children }) {
  * `imposedLevel`, `imposedNotionNiveau`) et actions (`startSession`, `launchSession`,
  * `exitSession`, `goStep`, `setCompletedSession`) ; tutoriel d'une étape `open_tutorial`
  * (`sessionTutorial`, `closeSessionTutorial`, `markSessionTutorialRead`), lu par le bandeau
- * de séance ; `null` hors du fournisseur.
+ * de séance ; demande de réseau d'une étape `open_foodweb` (`foodWebRequest` : espèce mise en
+ * avant, `plantIds` éventuels, lue par `FoodWebView`, chantier collège flux C3) ; `null` hors
+ * du fournisseur.
  */
 export function usePedagoSessionContext() {
   return useContext(PedagoSessionContext);

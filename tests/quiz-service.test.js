@@ -37,6 +37,7 @@ test('parseDrawQuery — filtres normalisés, difficulté entière ≥ 1', () =>
         difficulte: 2,
         illustratedOnly: true,
         notionFilter: null,
+        palierFilter: null,
       },
     },
   );
@@ -46,6 +47,7 @@ test('parseDrawQuery — filtres normalisés, difficulté entière ≥ 1', () =>
     difficulte: null,
     illustratedOnly: false,
     notionFilter: null,
+    palierFilter: null,
   });
   assert.equal(quizService.parseDrawQuery({ illustrated: ' 1 ' }).filters.illustratedOnly, true);
   assert.equal(quizService.parseDrawQuery({ difficulte: '' }).filters.difficulte, null);
@@ -79,6 +81,8 @@ test('parseCategoriesQuery et parseCatalogQuery', () => {
       niveau: 'college',
       categoryNotionFilter: null,
       questionNotionFilter: null,
+      palierMax: null,
+      palierFilter: null,
     },
   });
   const withNotion = quizService.parseCategoriesQuery({ notionId: 'c4-viv' });

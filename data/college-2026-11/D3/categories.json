@@ -1,0 +1,30 @@
+[
+ {
+  "slug": "cellule_metabolisme",
+  "description_college": "Tous les êtres vivants sont faits de cellules : les observer au microscope, comprendre comment elles grandissent, respirent et, chez les plantes, captent la lumière."
+ },
+ {
+  "slug": "cycle_azote_aquaponie",
+  "description_college": "Poissons, bactéries et plantes partagent la même eau : les déchets des poissons, transformés par des bactéries, nourrissent les plantes qui nettoient l’eau."
+ },
+ {
+  "slug": "demarche_mesure",
+  "description_college": "Observer, compter, mesurer et faire des calculs simples pour répondre à une question sur le vivant."
+ },
+ {
+  "slug": "energie_matiere",
+  "description_college": "D’où viennent la matière et l’énergie des êtres vivants : de la lumière du Soleil aux plantes, puis aux animaux, et le retour de la matière au sol."
+ },
+ {
+  "slug": "evolution_biodiversite",
+  "description_college": "La diversité des êtres vivants : les classer, les nommer, comprendre ce qu’est une espèce et pourquoi des espèces venues d’ailleurs peuvent poser problème."
+ },
+ {
+  "slug": "microbes_sante",
+  "description_college": "Bactéries, levures et moisissures : invisibles à l’œil nu, utiles pour la plupart (pain, yaourt, compost), parfois dangereuses. Se laver les mains, se faire vacciner."
+ },
+ {
+  "slug": "populations_equilibres",
+  "description_college": "Combien d’êtres vivants d’une même espèce vivent dans un milieu, pourquoi leur nombre change, et comment ils dépendent les uns des autres."
+ }
+]

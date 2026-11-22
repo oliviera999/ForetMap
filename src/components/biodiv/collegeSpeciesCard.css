@@ -1,0 +1,14 @@
+/* Fiche espèce allégée au collège (chantier collège, flux C1) — tokens du thème forêt. */
+
+/* Étiquette simple (`plants.usage_label`) sous le nom de l'espèce. */
+.plant-usage-label {
+  margin: 2px 0 0;
+  font-size: var(--text-sm);
+  font-weight: var(--fw-semibold);
+  color: var(--forest);
+}
+
+/* Groupe d'usage qui remplace la ligne « Taxonomie » au collège. */
+.plant-usage-group-line .plant-meta-value {
+  font-weight: var(--fw-semibold);
+}

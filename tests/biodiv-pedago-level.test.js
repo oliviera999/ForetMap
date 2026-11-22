@@ -136,8 +136,9 @@ test('resolveBiodivPedagoLevel — préférence ne peut que baisser sauf can_rai
   );
 });
 
-test('biodivFeatureVisibility — collège masque clades / individus / foodweb avancé', () => {
-  assert.equal(biodivFeatureVisibility('clade_breadcrumb', 'college'), 'hide');
+test('biodivFeatureVisibility — collège masque individus / foodweb avancé, montre les groupes', () => {
+  // Chantier collège (C1) : fil et onglet des groupes montrés, l'arbre y est réduit (C4).
+  assert.equal(biodivFeatureVisibility('clade_breadcrumb', 'college'), 'show');
   assert.equal(biodivFeatureVisibility('individuals_tab', 'college'), 'hide');
   assert.equal(biodivFeatureVisibility('foodweb_advanced', 'college'), 'hide');
   assert.equal(biodivFeatureVisibility('accepted_name_gbif_latin', 'college'), 'hide');
@@ -145,23 +146,46 @@ test('biodivFeatureVisibility — collège masque clades / individus / foodweb a
   assert.equal(biodivFeatureVisibility('accepted_name_gbif_latin', 'universite'), 'open');
   assert.equal(biodivFeatureVisibility('biomass_estimates', 'lycee'), 'collapsed');
   assert.ok(canShowBiodivFeature('nested_groups_tab', 'lycee'));
-  assert.ok(!canShowBiodivFeature('nested_groups_tab', 'college'));
+  assert.ok(canShowBiodivFeature('nested_groups_tab', 'college'));
+  assert.ok(!canShowBiodivFeature('nested_groups_full_tree', 'college'));
 });
 
 test('foodWebTypesForPedagoLevel filtre au collège', () => {
   const all = [...COLLEGE_FOODWEB_TYPES, 'mutualisme', 'allelopathie'];
+  // Étape seule = collège sans classe : types scolaires moins ceux du cycle 4.
   assert.deepEqual(
     foodWebTypesForPedagoLevel('college', all).sort(),
-    [...COLLEGE_FOODWEB_TYPES].sort(),
+    [...COLLEGE_FOODWEB_TYPES].filter((t) => !['symbiose', 'competition'].includes(t)).sort(),
   );
   assert.deepEqual(foodWebTypesForPedagoLevel('lycee', all), all);
+});
+
+test('foodWebTypesForPedagoLevel : symbiose et compétition réservées au cycle 4', () => {
+  const all = [...COLLEGE_FOODWEB_TYPES, 'mutualisme'];
+  const cycle4Only = ['symbiose', 'competition'];
+  const sixieme = { etape: 'college', niveau: 'cycle3', maxPalier: 1 };
+  const troisieme = { etape: 'college', niveau: 'cycle4', maxPalier: 2 };
+  const invite = { etape: 'college', niveau: null, maxPalier: 2 };
+  const without = [...COLLEGE_FOODWEB_TYPES].filter((t) => !cycle4Only.includes(t)).sort();
+  assert.deepEqual(foodWebTypesForPedagoLevel(sixieme, all).sort(), without);
+  assert.deepEqual(foodWebTypesForPedagoLevel(invite, all).sort(), without);
+  // Étape seule (`'college'`, sans classe connue) : règle du cycle 3.
+  assert.deepEqual(foodWebTypesForPedagoLevel('college', all).sort(), without);
+  assert.deepEqual(
+    foodWebTypesForPedagoLevel(troisieme, all).sort(),
+    [...COLLEGE_FOODWEB_TYPES].sort(),
+  );
+  assert.deepEqual(
+    foodWebTypesForPedagoLevel({ etape: 'lycee', niveau: 'seconde', maxPalier: 3 }, all),
+    all,
+  );
 });
 
 test('collège : la détritivorie est un type scolaire, miroir ESM compris (migration 295)', async () => {
   // Sans elle, un élève de collège voyait la pastille « Détritivore » d'un ver de terre
   // mais aucune flèche vers ce qu'il mange.
   assert.ok(COLLEGE_FOODWEB_TYPES.includes('detritivorie'));
-  assert.deepEqual(foodWebTypesForPedagoLevel('college', ['detritivorie', 'frugivorie']), [
+  assert.deepEqual(foodWebTypesForPedagoLevel('college', ['detritivorie', 'mutualisme']), [
     'detritivorie',
   ]);
   const path = require('node:path');

@@ -29,7 +29,9 @@ const {
   toPublicTutorialRow,
 } = require('../lib/tutorialRouteHelpers');
 const {
-  buildGlossaryLinkEntries,
+  createGlossaryEntriesByDepth,
+  glossaryDepthMaxForLearner,
+  glossaryDepthCacheKey,
   autolinkHtmlTextNodes,
   injectGlossaryAutolinkScript,
 } = require('../lib/foretmapGlossaryAutolink');
@@ -67,18 +69,32 @@ const GLOSSARY_AUTOLINK_TTL_MS = 5 * 60 * 1000;
 async function loadGlossaryAutolinkEntries() {
   const now = Date.now();
   if (glossaryAutolinkCache && now - glossaryAutolinkCacheAt < GLOSSARY_AUTOLINK_TTL_MS) {
-    return { entries: glossaryAutolinkCache, version: glossaryAutolinkVersion };
+    return { entriesFor: glossaryAutolinkCache, version: glossaryAutolinkVersion };
   }
+  // `niveau` : profondeur du terme, pour l'index par palier (chantier collège, flux C2).
   const rows = await queryAll(
-    `SELECT glossary_code, terme, variantes FROM glossary_terms WHERE statut = 'actif'`,
+    `SELECT glossary_code, terme, variantes, niveau FROM glossary_terms WHERE statut = 'actif'`,
   );
   const version = buildGlossaryIndexVersion(rows);
   if (!glossaryAutolinkCache || version !== glossaryAutolinkVersion) {
-    glossaryAutolinkCache = buildGlossaryLinkEntries(rows);
+    glossaryAutolinkCache = createGlossaryEntriesByDepth(rows);
     glossaryAutolinkVersion = version;
   }
   glossaryAutolinkCacheAt = now;
-  return { entries: glossaryAutolinkCache, version: glossaryAutolinkVersion };
+  return { entriesFor: glossaryAutolinkCache, version: glossaryAutolinkVersion };
+}
+
+/**
+ * Profondeur maximale de glossaire liée dans le HTML d'un tutoriel (règle
+ * `glossary_depth_max`). Seule une requête **authentifiée** est filtrée : l'aperçu en
+ * iframe (`preview_url`) part sans jeton, et le rabattre sur le profil collège ferait perdre
+ * au lycée ses auto-liens actuels. Sans compte : pas de filtre (comportement antérieur).
+ * @param {import('express').Request} req
+ * @returns {Promise<string|null>}
+ */
+async function tutorialGlossaryDepthMax(req) {
+  if (!req?.auth?.userId) return null;
+  return glossaryDepthMaxForLearner(await loadLearnerLevelForRequest(req));
 }
 
 /**
@@ -104,12 +120,14 @@ function enrichTutorialHtmlWithGlossary(html, entries) {
  * Les téléchargements (`/download/html`, `/download/pdf`) servent volontairement le HTML
  * **non enrichi** : ils ne passent pas par ici.
  */
-async function renderTutorialViewHtml(tutorial, html) {
-  const { entries, version } = await loadGlossaryAutolinkEntries();
+async function renderTutorialViewHtml(tutorial, html, depthMax = null) {
+  const { entriesFor, version } = await loadGlossaryAutolinkEntries();
+  const entries = entriesFor(depthMax);
   const key = buildTutorialViewCacheKey({
     tutorialId: tutorial.id,
     updatedAt: tutorial.updated_at,
-    glossaryIndexVersion: `${TUTORIAL_VIEW_PIPELINE_VERSION}:${version}`,
+    // Le palier entre dans la clé : une sortie lycée ne doit jamais servir un collégien.
+    glossaryIndexVersion: `${TUTORIAL_VIEW_PIPELINE_VERSION}:${version}:${glossaryDepthCacheKey(depthMax)}`,
     htmlFingerprint: fingerprintText(html),
   });
   return sharedTutorialViewCache.getOrCompute(key, () =>
@@ -1156,7 +1174,7 @@ router.get(
     const externalAssetsMode = await getSettingValue('privacy.external_assets_mode', 'local');
     res.send(
       localizeTutorialExternalAssets(
-        await renderTutorialViewHtml(tutorial, html),
+        await renderTutorialViewHtml(tutorial, html, await tutorialGlossaryDepthMax(req)),
         externalAssetsMode === 'external' ? 'external' : 'local',
       ),
     );

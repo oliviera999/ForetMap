@@ -25,6 +25,8 @@ import { PlantEditForm } from './biodiv/PlantEditForm.jsx';
 import { PlantCatalogTile } from './biodiv/PlantCatalogTile.jsx';
 import { PlantImportPanel } from './biodiv/PlantImportPanel.jsx';
 import { PlantCatalogFilterPanel } from './biodiv/PlantCatalogFilterPanel.jsx';
+import { PlantCatalogGroupedSections } from './biodiv/PlantCatalogGroupedSections.jsx';
+import { useBiodivPedago } from '../contexts/BiodivPedagoContext.jsx';
 import { PlantHazardReviewPanel } from './biodiv/PlantHazardReviewPanel.jsx';
 import { SpeciesObservationReviewPanel } from './observations/SpeciesObservationReviewPanel.jsx';
 import { PlantCatalogPreviewModal } from './biodiv/PlantCatalogPreview.jsx';
@@ -446,6 +448,8 @@ function PlantViewer({
   const { isHelpEnabled, hasSeenSection, markSectionSeen, trackPanelOpen, trackPanelDismiss } =
     useHelp({ publicSettings, isTeacher: false });
   const helpPlants = resolveHelpPanelSection('plants', publicSettings);
+  // Catalogue groupé du collège (chantier collège, flux C4) : briques de la table de visibilité.
+  const { canShow } = useBiodivPedago();
 
   const {
     catalogPlants,
@@ -460,6 +464,10 @@ function PlantViewer({
     hasMore,
     nextBatch,
     showMore,
+    groups,
+    groupingActive,
+    isGroupOpen,
+    toggleGroup,
   } = useBiodivCatalogPage({
     plants,
     zones,
@@ -467,11 +475,33 @@ function PlantViewer({
     activeMapId,
     defaultZonePresence: ZONE_PRESENCE_FILTER.IN_MAP,
     enableObservationChips: true,
+    catalogGrouped: canShow('catalog_grouped'),
+    featuredFirst: canShow('featured_first'),
   });
 
   const plantMapLinkedIds = useMemo(
     () => plantIdsMarkedOnMap(displayedPlants, presenceByPlantId, zones, markers),
     [displayedPlants, presenceByPlantId, zones, markers],
+  );
+
+  /** Vignette d'une fiche (liste paginée ou section du catalogue groupé). */
+  const renderTile = (p, { presenceHint = '' } = {}) => (
+    <PlantCatalogTile
+      key={p.id}
+      plant={p}
+      onOpen={onOpenPlant}
+      hasMapLink={plantMapLinkedIds.has(p.id)}
+      presenceHint={presenceHint}
+      myObservationCount={plantObservationCounts[String(p.id)]?.my_observation_count ?? 0}
+      siteObservationCount={plantObservationCounts[String(p.id)]?.site_observation_count ?? 0}
+      gatingSummary={plantGatingSummaries.get(String(p.id)) || null}
+      onObservationAcknowledged={(id, next) => {
+        applyObservationAcknowledged(id, next);
+        refreshPlantGating();
+      }}
+      offerPlantCommentAfterObservation={contextCommentsEnabled && canParticipateContextComments}
+      onForceLogout={onForceLogout}
+    />
   );
 
   return (
@@ -496,11 +526,21 @@ function PlantViewer({
         )}
       </div>
       <p className="section-sub">
-        {displayedPlants.length} / {filtered.length} affichés
-        {filtered.length !== catalogPlants.length
-          ? ` (${catalogPlants.length} au catalogue)`
-          : ''}{' '}
-        — affine avec les filtres
+        {groupingActive ? (
+          <>
+            {filtered.length} {filtered.length > 1 ? 'êtres vivants' : 'être vivant'} en{' '}
+            {groups.length} {groups.length > 1 ? 'groupes' : 'groupe'} — ouvre un groupe pour le
+            parcourir
+          </>
+        ) : (
+          <>
+            {displayedPlants.length} / {filtered.length} affichés
+            {filtered.length !== catalogPlants.length
+              ? ` (${catalogPlants.length} au catalogue)`
+              : ''}{' '}
+            — affine avec les filtres
+          </>
+        )}
       </p>
 
       <PlantCatalogFilterPanel
@@ -511,6 +551,7 @@ function PlantViewer({
         showZonePresence
         searchPlaceholder="Chercher un être vivant…"
         {...filterPanelProps}
+        groupedMode={groupingActive}
       />
 
       {filtered.length === 0 ? (
@@ -520,30 +561,17 @@ function PlantViewer({
           </div>
           <p>Aucun être vivant ne colle à ta recherche — essaie un autre mot.</p>
         </div>
+      ) : groupingActive ? (
+        <PlantCatalogGroupedSections
+          groups={groups}
+          isGroupOpen={isGroupOpen}
+          onToggleGroup={toggleGroup}
+          renderTile={renderTile}
+        />
       ) : (
         <>
           <div className="biodiv-grid biodiv-grid--tiles">
-            {displayedPlants.map((p) => (
-              <PlantCatalogTile
-                key={p.id}
-                plant={p}
-                onOpen={onOpenPlant}
-                hasMapLink={plantMapLinkedIds.has(p.id)}
-                myObservationCount={plantObservationCounts[String(p.id)]?.my_observation_count ?? 0}
-                siteObservationCount={
-                  plantObservationCounts[String(p.id)]?.site_observation_count ?? 0
-                }
-                gatingSummary={plantGatingSummaries.get(String(p.id)) || null}
-                onObservationAcknowledged={(id, next) => {
-                  applyObservationAcknowledged(id, next);
-                  refreshPlantGating();
-                }}
-                offerPlantCommentAfterObservation={
-                  contextCommentsEnabled && canParticipateContextComments
-                }
-                onForceLogout={onForceLogout}
-              />
-            ))}
+            {displayedPlants.map((p) => renderTile(p))}
           </div>
           {hasMore ? (
             <div className="biodiv-show-more">

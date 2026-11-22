@@ -38,6 +38,8 @@ export function usePlantCatalogFilters(
   const [group1, setGroup1] = useState('');
   const [group2, setGroup2] = useState('');
   const [group3, setGroup3] = useState('');
+  /** Filtre « Groupe » du catalogue collège (groupe d'usage), à la place de la taxonomie. */
+  const [usageGroup, setUsageGroup] = useState('');
   const [habitat, setHabitat] = useState('');
   const [trophicRole, setTrophicRole] = useState('');
   const [habitatType, setHabitatType] = useState('');
@@ -54,13 +56,24 @@ export function usePlantCatalogFilters(
       group1,
       group2,
       group3,
+      usageGroup,
       habitat,
       trophicRole,
       habitatType,
       originStatus,
       iucnStatus,
     }),
-    [group1, group2, group3, habitat, trophicRole, habitatType, originStatus, iucnStatus],
+    [
+      group1,
+      group2,
+      group3,
+      usageGroup,
+      habitat,
+      trophicRole,
+      habitatType,
+      originStatus,
+      iucnStatus,
+    ],
   );
 
   const queryTrimmedLower = search.trim().toLowerCase();
@@ -128,6 +141,7 @@ export function usePlantCatalogFilters(
     group1,
     group2,
     group3,
+    usageGroup,
     habitat,
     trophicRole,
     habitatType,
@@ -157,6 +171,8 @@ export function usePlantCatalogFilters(
       setGroup2,
       group3,
       setGroup3,
+      usageGroup,
+      setUsageGroup,
       habitat,
       setHabitat,
       trophicRole,

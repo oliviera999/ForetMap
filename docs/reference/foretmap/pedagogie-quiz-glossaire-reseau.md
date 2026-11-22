@@ -90,6 +90,14 @@ d'observation** pour l'écriture naturaliste libre.
   immédiatement si sa réponse est juste et progresse à son rythme. **Chaque question
   présentée n'autorise qu'un essai** : un second choix sur la même présentation est
   refusé, il faut en relancer une (les propositions sont alors remélangées).
+- **Au collège, le quiz suit le palier de l'élève** (novembre 2026). Le même affichage vaut
+  de la 6ᵉ à la 3ᵉ, mais une classe de cycle 3 ne tire que les questions de cycle 3, une
+  classe de cycle 4 celles des cycles 3 et 4 ; les questions de lycée n'y sont jamais
+  tirées. Le palier d'une question se déduit de ses notions du programme : une question
+  « Collège » qui porte au moins une notion de cycle 3 est posée dès la 6ᵉ, sinon à partir
+  de la 5ᵉ. Le menu « Catégorie » ne propose que les catégories qui ont des questions à ce
+  palier, et la catégorie choisie affiche sa **description collège** quand elle est
+  rédigée. Lycée et université : inchangés.
 - **Le professeur** administre le catalogue de questions : création, édition,
   activation. Les questions peuvent être reliées aux termes du glossaire, ce qui aide
   l'élève à réviser le vocabulaire au passage. Un import du catalogue par fichier
@@ -165,6 +173,12 @@ d'observation** pour l'écriture naturaliste libre.
   2026, on pouvait y répondre sans compte, essai après essai, sans jamais être bloqué —
   puis répondre juste du premier coup une fois connecté. Le Quiz libre, lui, reste ouvert
   à tous.
+  **Un collégien n'est jamais interrogé au-delà du palier de sa classe** : une 6ᵉ n'est
+  jamais bloquée par une question de cycle 4. Si une fiche n'a pas de question au palier
+  de sa classe, elle ne lui est pas verrouillée (le cas est noté dans le journal du
+  serveur). Un collégien sans classe connue, lui, reçoit ses questions de collège, jamais
+  de lycée. Un élève de lycée garde l'ancienne règle : faute de question à son
+  niveau, toutes restent posées.
   Les rattachements livrés ont été relus : une question n’est plus accrochée à une
   fiche qui ne l’enseigne pas (par exemple la photosynthèse n’est plus collée au
   tutoriel « Sol vivant »). L'écran « Rattacher des questions aux contenus », sous
@@ -232,6 +246,23 @@ d'observation** pour l'écriture naturaliste libre.
     restent quand le contexte en fait sans ambiguïté un nom (« des vers », « l'été », « en
     été », « le son »). Les expressions plus longues (« vers de terre ») sont toujours
     soulignées. Liste actuelle : vers, été, sens, son, fin, mare.
+- **Au collège, un vocabulaire à la mesure de la classe** (barrière « douce ») :
+  - chaque terme a une profondeur : **base**, **approfondissement** ou **avancé**. En 6e
+    et 5e (cycle 3), seuls les termes de **base** sont soulignés dans les textes et
+    affichés par défaut dans la liste de l'onglet Glossaire ; en 4e et 3e (cycle 4), les
+    termes d'**approfondissement** s'y ajoutent. Au lycée et à l'université, rien ne
+    change : tout est souligné et listé ;
+  - **rien n'est caché définitivement** : sous la liste, le bouton **« Pour aller plus
+    loin »** affiche aussi les termes plus avancés (et « Revenir aux termes essentiels »
+    les range de nouveau). Choisir soi-même une profondeur dans le filtre « Niveau » les
+    montre aussi. La fiche d'un terme avancé s'ouvre toujours ; elle porte la mention
+    « Pour aller plus loin » ;
+  - dans la **fiche rapide**, l'élève de collège lit d'abord la définition courte ; la
+    définition détaillée est repliée sous « Lire la définition complète », un geste
+    suffit pour l'ouvrir ;
+  - la classe de l'élève (cycle 3 ou cycle 4) vient de son groupe ; sans classe connue,
+    un collégien est traité comme en cycle 3. Le réglage s'applique aussi à la Visite
+    sans compte.
 
 ## Le Réseau trophique
 
@@ -254,6 +285,31 @@ d'observation** pour l'écriture naturaliste libre.
   d’interaction scolaires sont proposés, sans le niveau de preuve des liens ni l’efficacité
   de pollinisation ; en Lycée et Université, tout est visible — voir
   [Niveaux pédagogiques biodiversité](niveaux-pedagogiques-biodiversite.md).
+
+- **Au collège, le réseau part d’une espèce** (de la 6e à la 3e). Un réseau
+  de deux cents espèces d’un coup ne se lit pas à 11 ans : l’élève **choisit d’abord une
+  espèce de départ** — les **espèces phares** de la carte en tête de liste, puis une
+  recherche par nom — et voit ses voisins directs : ce qu’elle mange, qui la mange, qui
+  l’aide. Le bouton **Chaîne** élargit d’un cran (les voisins des voisins), **Voisins** y
+  revient, **Changer d’espèce** ramène au choix. Les espèces qui ne sont pas sur la carte
+  choisie n’apparaissent pas. Lycée, université et professeurs gardent le réseau complet,
+  inchangé.
+- **Des verbes plutôt que des mots savants, au collège.** Chaque type de relation s’y lit
+  d’abord comme un verbe, le mot savant en second : « mange des plantes (herbivorie) »,
+  « mange des animaux (prédation) », « mange des fruits (frugivorie) », « mange des graines
+  (granivorie) », « mange des débris (détritivorie) », « décompose », « pollinise »,
+  « pond sur (plante hôte) », « parasite ». La **frugivorie** et la **granivorie** sont
+  montrées à tout le collège ; la **symbiose** et la **compétition** au cycle 4 (5e à 3e)
+  seulement.
+- **Une espèce sans relation visible est annoncée.** Arrivé depuis une fiche (« Voir le
+  réseau ») ou une séance, si l’espèce n’a aucune relation montrée à ce niveau ou sur cette
+  carte, un message le dit — jamais un graphe vide — et l’élève peut choisir une autre
+  espèce.
+- **Une séance peut montrer plusieurs espèces ensemble.** Dans l’éditeur de séance, une étape
+  « Réseau trophique » accepte, en plus de l’espèce mise en avant, une liste d’**espèces
+  montrées ensemble** (douze au plus) : l’élève ne voit que ces espèces et les liens qui les
+  relient entre elles — idéal pour faire construire une chaîne précise. Il peut ensuite
+  élargir aux voisins.
 
 - **Dix-neuf types d’interaction.** Onze ont été ajoutés pour cesser de ranger sous un
   mot des relations différentes. Quelques cas concrets :

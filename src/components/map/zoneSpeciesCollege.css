@@ -1,0 +1,31 @@
+/* Fiche de lieu au collège (chantier collège, flux C5) : plafond des espèces, « à chercher ». */
+
+.zone-species-more {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 8px;
+}
+
+.zone-species-more .btn {
+  min-height: 44px;
+}
+
+/* Mention « à chercher » posée sur une pastille d'espèce de la carte. */
+.zone-species-to-search {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--tint-warning);
+  color: var(--ink-warning);
+  font-size: var(--text-xs);
+  font-weight: var(--fw-medium);
+}
+
+/* Note de la Visite : espèces du lieu dont la présence reste à confirmer. */
+.zone-species-to-search-note {
+  margin: 8px 0 0;
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+  line-height: var(--lh-normal);
+}

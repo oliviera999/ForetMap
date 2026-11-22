@@ -235,7 +235,7 @@ sinon SQL en lecture seule (`lib/mcp/domains/`) sous la permission applicative �
 | `foretmap_quiz` (`quiz`)                              | list, get, categories, stats (réussite par question, catégorie, notion ; distracteurs non disponibles), create é, update é (rattachements `plant_ids`, `glossary_codes`, `tutorial_ids` : voir sous le tableau), retire é, set_notions é                                                   |
 | `foretmap_glossary` (`glossary`)                      | list, get, set_notions é                                                                                                                                                                                                                                                                   |
 | `foretmap_curriculum` (`curriculum`)                  | notions, coverage (notions orphelines et partielles), set_links é                                                                                                                                                                                                                          |
-| `foretmap_pedago_sessions` (`pedago_sessions`)        | list, get, runs, runs_detail\*, create é, update é (étapes d’une séance libre : actions de `src/shared/enums/pedagoStepActions.js`, dont `open_tutorial` { tutorialId \| tutorialSlug }), delete é, link_task é                                                                            |
+| `foretmap_pedago_sessions` (`pedago_sessions`)        | list, get, runs, runs_detail\*, create é, update é (étapes d’une séance libre : actions de `src/shared/enums/pedagoStepActions.js`, dont `open_tutorial` { tutorialId \| tutorialSlug } et `open_foodweb` { plantIds }), delete é, link_task é                                             |
 | `foretmap_species` (`species`, essentiel)             | list, get, create é, update é, delete é, aliases é, lookalikes é, photos é, hazard_review é, gbif_match, autofill_preview, registry_status é                                                                                                                                               |
 | `foretmap_food_web` (`food_web`)                      | list, types, create é, update é, delete é                                                                                                                                                                                                                                                  |
 | `foretmap_observations` (`observations`)              | queue\*, get\*, validate é, reject é, evidence, evidence_write é, stats, individuals, individual_write é                                                                                                                                                                                   |
@@ -262,7 +262,13 @@ Précisions du 21/11/2026 :
   `usage_label`, `description_college` et `usage_group` (champs de `GET /api/plants`), `list` rend
   `usage_label` et `usage_group` ; `foretmap_get_species` rend `usage_label`,
   `description_college` et `is_featured` dans `presence.maps[]` ; `foretmap_maps` (espèces d'une
-  carte) et `foretmap_quiz` (`categories`) suivent l'API (`is_featured`, `description_college`).
+  carte) et `foretmap_quiz` (`categories`) suivent l'API (`is_featured`, `description_college`) ;
+  `foretmap_quiz` `categories` accepte `palier_max` (compteur au palier d'un élève de collège) et
+  `get` renvoie le palier d'entrée effectif de la question (`notions.entry_palier`).
+- Espèces phares (chantier collège, flux C5) : `foretmap_species` `registry_status` accepte
+  `is_featured` (booléen) et l'écrit par `PATCH /api/plants/:id/map-species/:mapId` (logique
+  métier, `plants.manage`, journal `update_map_species_status`) ; ligne du registre existante
+  seulement. `foretmap_maps`, qui partage ces paramètres, l'accepte de même.
 - `foretmap_ops` : `retention_preview` et `retention_run` connaissent la catégorie
   `observations` (photos des observations refusées, observations refusées, observations jamais
   examinées ; jamais une observation validée). L'aperçu ne rend que des **comptages** et les

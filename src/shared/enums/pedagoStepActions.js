@@ -58,7 +58,7 @@ export const PEDAGO_STEP_ACTION_ENUM = defineEnum('PEDAGO_STEP_ACTION_ENUM', {
 export const PEDAGO_STEP_ACTION_PAYLOAD_FIELDS = Object.freeze({
   [PEDAGO_STEP_ACTION.OPEN_ID_KEY]: Object.freeze(['keyIdOrSlug']),
   [PEDAGO_STEP_ACTION.OPEN_PLANT]: Object.freeze(['plantId']),
-  [PEDAGO_STEP_ACTION.OPEN_FOODWEB]: Object.freeze(['mapId', 'highlightPlantId']),
+  [PEDAGO_STEP_ACTION.OPEN_FOODWEB]: Object.freeze(['mapId', 'highlightPlantId', 'plantIds']),
   [PEDAGO_STEP_ACTION.OPEN_QUIZ]: Object.freeze(['questionCode', 'notionId', 'notionNiveau']),
   [PEDAGO_STEP_ACTION.OPEN_GLOSSARY]: Object.freeze(['termCode']),
   [PEDAGO_STEP_ACTION.OPEN_INDIVIDUAL]: Object.freeze(['individualId', 'mapId']),
@@ -71,4 +71,51 @@ export const PEDAGO_STEP_ACTION_PAYLOAD_FIELDS = Object.freeze({
 /** Vrai si `type` est une action d'étape connue. */
 export function isPedagoStepAction(type) {
   return PEDAGO_STEP_ACTION_ENUM.values.includes(type);
+}
+
+/**
+ * Nombre maximal d'espèces montrées par une étape « réseau trophique » (`plantIds`, chantier
+ * collège, flux C3). Au-delà, le sous-réseau ne se lit plus d'un coup d'œil.
+ */
+export const FOODWEB_STEP_MAX_PLANT_IDS = 12;
+
+/**
+ * Validation du `payload` propre à une action d'étape, partagée par le serveur
+ * (`lib/pedagoSessions.js`), l'éditeur et l'outil MCP. Seuls les champs qui ont une règle sont
+ * contrôlés ; les autres passent tels quels (comportement historique).
+ *
+ * Réseau trophique : `plantIds` (facultatif) est une liste d'identifiants d'espèces (entiers
+ * > 0, sans doublon, au plus `FOODWEB_STEP_MAX_PLANT_IDS`). L'élève voit ces espèces et leurs
+ * liens mutuels (profondeur 0), en plus de `highlightPlantId`, qui garde sa forme. Une liste
+ * vide est retirée : la forme d'une étape sans `plantIds` ne change pas.
+ *
+ * @param {string} type
+ * @param {object} payload
+ * @returns {{ ok: true, payload: object } | { ok: false, error: string }}
+ */
+export function validateStepActionPayload(type, payload) {
+  const out =
+    payload && typeof payload === 'object' && !Array.isArray(payload) ? { ...payload } : {};
+  if (type !== PEDAGO_STEP_ACTION.OPEN_FOODWEB || out.plantIds == null)
+    return { ok: true, payload: out };
+  if (!Array.isArray(out.plantIds)) {
+    return { ok: false, error: 'plantIds doit être une liste d’identifiants d’espèces' };
+  }
+  const ids = [];
+  for (const raw of out.plantIds) {
+    const id = Number(raw);
+    if (raw === '' || raw == null || !Number.isInteger(id) || id <= 0) {
+      return { ok: false, error: `plantIds : identifiant d’espèce invalide (${String(raw)})` };
+    }
+    if (!ids.includes(id)) ids.push(id);
+  }
+  if (ids.length > FOODWEB_STEP_MAX_PLANT_IDS) {
+    return {
+      ok: false,
+      error: `plantIds : au plus ${FOODWEB_STEP_MAX_PLANT_IDS} espèces par étape`,
+    };
+  }
+  if (ids.length === 0) delete out.plantIds;
+  else out.plantIds = ids;
+  return { ok: true, payload: out };
 }

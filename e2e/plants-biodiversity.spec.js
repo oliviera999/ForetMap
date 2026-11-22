@@ -41,7 +41,17 @@ test('catalogue biodiversité : vignettes muettes, fiche complète au clic', asy
   });
 
   await openStudentTab(page, 'Biodiversité');
+  // Profil collège (chantier collège, C4) : catalogue groupé, sections repliées — on ouvre la
+  // première section avant de chercher les vignettes. Lycée : grille directe, rien à ouvrir.
   const firstTile = page.getByRole('button', { name: /^Ouvrir la fiche de / }).first();
+  const firstGroup = page.locator('.biodiv-group__toggle').first();
+  await Promise.race([
+    firstTile.waitFor({ state: 'visible', timeout: 20_000 }),
+    firstGroup.waitFor({ state: 'visible', timeout: 20_000 }),
+  ]);
+  if (!(await firstTile.isVisible()) && (await firstGroup.isVisible())) {
+    await firstGroup.click();
+  }
   await firstTile.waitFor({ state: 'visible', timeout: 20_000 });
 
   const tileCount = await page.getByRole('button', { name: /^Ouvrir la fiche de / }).count();

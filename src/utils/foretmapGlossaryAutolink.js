@@ -10,12 +10,58 @@
  */
 import { renderMarkdownToSafeHtml, sanitizeRichHtml } from '../shared/platform/markdown.js';
 import { createTermAutolink } from '../shared/glossary/termAutolinkCore.js';
+import { glossaryNiveauEntryPalier } from './pedagoScales.js';
 
 const autolink = createTermAutolink({
   codeField: 'glossary_code',
   cssClass: 'fm-glossary-inline-link',
   dataAttr: 'data-glossary-code',
 });
+
+/**
+ * Barrière de vocabulaire **douce** (chantier collège, flux C2) : un terme est « dans le
+ * palier » si son palier d'entrée (`GLOSSARY_NIVEAU_ENTRY` : `base` → cycle 3,
+ * `approfondissement` → cycle 4, `avance` → seconde) ne dépasse pas celui de la profondeur
+ * maximale `depthMax` (règle `glossary_depth_max` de la table de visibilité).
+ *
+ * Prudence : `depthMax` nul ou inconnu = pas de filtre ; terme sans profondeur connue = gardé.
+ * Le filtre ne touche que l'auto-lien et la liste par défaut, jamais la fiche d'un terme.
+ * Miroir serveur : `lib/foretmapGlossaryAutolink.js` (parité vérifiée par les tests).
+ *
+ * @param {string|null|undefined} termNiveau profondeur du terme (`glossary_terms.niveau`)
+ * @param {string|null|undefined} depthMax profondeur maximale du palier, ou `null`
+ * @returns {boolean}
+ */
+export function isGlossaryNiveauWithinDepth(termNiveau, depthMax) {
+  const maxPalier = glossaryNiveauEntryPalier(depthMax);
+  if (maxPalier == null) return true;
+  const termPalier = glossaryNiveauEntryPalier(termNiveau);
+  if (termPalier == null) return true;
+  return termPalier <= maxPalier;
+}
+
+/**
+ * Vrai si `depthMax` pose une barrière (profondeur connue) ; `null` ou inconnue : aucune.
+ * Sert aussi de signal du mode « collège simplifié » des fiches de glossaire.
+ * @param {string|null|undefined} depthMax
+ */
+export function hasGlossaryDepthBarrier(depthMax) {
+  return glossaryNiveauEntryPalier(depthMax) != null;
+}
+
+/**
+ * Items de glossaire dont la profondeur est dans le palier (copie ; même tableau si aucun
+ * filtre ne s'applique, pour garder les mémoïsations stables).
+ * @template {{ niveau?: string|null }} T
+ * @param {T[]} items
+ * @param {string|null|undefined} depthMax
+ * @returns {T[]}
+ */
+export function filterGlossaryItemsByDepth(items, depthMax) {
+  const list = Array.isArray(items) ? items : [];
+  if (glossaryNiveauEntryPalier(depthMax) == null) return list;
+  return list.filter((item) => isGlossaryNiveauWithinDepth(item?.niveau, depthMax));
+}
 
 /**
  * Fusionne l'index glossaire (auto-lien) avec des termes déjà liés à un contenu

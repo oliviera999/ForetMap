@@ -17,7 +17,9 @@ export function buildPedagoSessionNote(session) {
   const plantIds = [];
   for (const s of stepList) {
     const p = s?.action?.payload || {};
-    for (const raw of [p.plantId, p.highlightPlantId]) {
+    // `plantIds` : espèces montrées par une étape « réseau trophique » (flux C3).
+    const listed = Array.isArray(p.plantIds) ? p.plantIds : [];
+    for (const raw of [p.plantId, p.highlightPlantId, ...listed]) {
       const id = Number(raw);
       if (Number.isInteger(id) && id > 0 && !plantIds.includes(id)) plantIds.push(id);
     }

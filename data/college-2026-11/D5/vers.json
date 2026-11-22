@@ -1,0 +1,47 @@
+{
+ "_doc": "Étiquettes simples (plants.usage_label) du groupe d'usage « Vers ». Clé naturelle : plants.name (+ scientific_name). Valeur avant attendue : NULL. doute : cas à relire par Oliv.",
+ "groupe": "vers",
+ "libelle": "Vers",
+ "boites": [
+  "annelides",
+  "nematodes",
+  "plathelminthes"
+ ],
+ "fiches": [
+  {
+   "name": "Ver de compost",
+   "scientific_name": "Eisenia fetida",
+   "usage_label": "un ver rouge du compost"
+  },
+  {
+   "name": "Ver de terre du sol",
+   "scientific_name": "Aporrectodea sp.",
+   "usage_label": "un ver de terre"
+  },
+  {
+   "name": "Enchytréide",
+   "scientific_name": "Enchytraeus sp.",
+   "usage_label": "un petit ver translucide du sol"
+  },
+  {
+   "name": "Tubifex",
+   "scientific_name": "Tubifex tubifex",
+   "usage_label": "un petit ver rouge de la vase"
+  },
+  {
+   "name": "Hermelle",
+   "scientific_name": "Sabellaria alveolata",
+   "usage_label": "un ver marin bâtisseur de récifs"
+  },
+  {
+   "name": "Nématodes bactérivores",
+   "scientific_name": "Nematoda",
+   "usage_label": "des vers minuscules du sol"
+  },
+  {
+   "name": "Planaire d'eau douce",
+   "scientific_name": "Dugesia sp.",
+   "usage_label": "un ver plat d'eau douce"
+  }
+ ]
+}

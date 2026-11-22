@@ -20,6 +20,9 @@ const {
   wouldCreateCycle,
   buildNestedActivityTree,
   gradePlantPlacement,
+  isCollegeTreeProfile,
+  collapseForProfile,
+  collapsedCladeIdFor,
 } = require('../lib/clades');
 
 const router = express.Router();
@@ -61,6 +64,17 @@ async function loadAllClades() {
   );
 }
 
+/**
+ * Profil d'arbre demandé (`?profile=college` ou `profile` dans le corps) : arbre réduit aux
+ * groupes d'usage (flux C4 du chantier collège). Absent ou autre valeur → arbre complet
+ * (comportement historique). Le client décide d'après la brique `nested_groups_full_tree`.
+ */
+function readTreeProfile(req) {
+  const raw = req?.query?.profile ?? req?.body?.profile;
+  if (raw == null || Array.isArray(raw) || typeof raw === 'object') return null;
+  return isCollegeTreeProfile(raw) ? 'college' : null;
+}
+
 function collectTreeNodeIds(node, acc = new Set()) {
   if (!node?.id) return acc;
   acc.add(String(node.id));
@@ -71,16 +85,53 @@ function collectTreeNodeIds(node, acc = new Set()) {
 /** GET /api/clades — arbre plat ordonné (lecture publique). */
 router.get(
   '/',
-  asyncHandler(async (_req, res) => {
+  asyncHandler(async (req, res) => {
     const items = await loadAllClades();
-    return res.json({ items });
+    const profile = readTreeProfile(req);
+    if (!profile) return res.json({ items });
+    const reduced = collapseForProfile(items, profile);
+    return res.json({ items: reduced.items, collapsed: reduced.collapsed });
   }),
 );
 
 /**
+ * Sous-arbre de l'activité. Au collège (`profile = 'college'`), l'arbre est réduit aux boîtes
+ * visibles et chaque fiche remonte à sa boîte visible la plus proche ; repli sur l'arbre
+ * complet si aucune boîte n'est marquée, si une fiche n'a aucune boîte visible ou si les
+ * boîtes visibles n'ont pas d'ancêtre commun.
+ * @returns {{ tree: object, treeItems: object[], placedPlants: object[], collapsed: boolean }|null}
+ */
+function buildActivityTree(items, plants, profile) {
+  const full = () => {
+    const tree = buildNestedActivityTree(
+      indexClades(items),
+      plants,
+      plants.map((p) => p.clade_id),
+    );
+    return tree ? { tree, treeItems: items, placedPlants: plants, collapsed: false } : null;
+  };
+  if (!profile) return full();
+  const reduced = collapseForProfile(items, profile);
+  if (!reduced.collapsed) return full();
+  const placedPlants = plants.map((p) => ({
+    ...p,
+    clade_id: collapsedCladeIdFor(reduced, p.clade_id),
+  }));
+  if (placedPlants.some((p) => !p.clade_id)) return full();
+  const tree = buildNestedActivityTree(
+    indexClades(reduced.items),
+    placedPlants,
+    placedPlants.map((p) => p.clade_id),
+  );
+  if (!tree) return full();
+  return { tree, treeItems: reduced.items, placedPlants, collapsed: true };
+}
+
+/**
  * POST /api/clades/activity/subtree — plus petit arbre contenant les espèces choisies.
  * Corps : `{ plantIds: number[] }` OU `{ mapId: string, count: number }` (tirage aléatoire
- * parmi les espèces présentes sur la carte et classées dans l'arbre).
+ * parmi les espèces présentes sur la carte et classées dans l'arbre) ; `profile: 'college'`
+ * facultatif (arbre réduit aux groupes d'usage).
  * Lecture publique (activité élève). Déclaré avant `/:id` pour éviter tout conflit.
  */
 router.post(
@@ -142,26 +193,25 @@ router.post(
     }
 
     const items = await loadAllClades();
-    const byId = indexClades(items);
-    const tree = buildNestedActivityTree(
-      byId,
-      plants,
-      plants.map((p) => p.clade_id),
-    );
-    if (!tree) {
+    const built = buildActivityTree(items, plants, readTreeProfile(req));
+    if (!built) {
       return res.status(400).json({ error: 'Impossible de construire le sous-arbre' });
     }
+    const { tree, treeItems, placedPlants, collapsed } = built;
 
     const allowedIds = collectTreeNodeIds(tree);
     return res.json({
       tree,
-      plants: plants.map((p) => ({
+      collapsed,
+      plants: placedPlants.map((p) => ({
         id: Number(p.id),
         name: p.name,
         emoji: p.emoji || null,
         clade_id: String(p.clade_id),
       })),
-      cladeOptions: items
+      // Options de placement : les boîtes du sous-arbre seulement (au collège, les boîtes
+      // visibles, libellés simples).
+      cladeOptions: treeItems
         .filter((c) => allowedIds.has(String(c.id)))
         .map((c) => ({
           id: c.id,
@@ -174,7 +224,9 @@ router.post(
 
 /**
  * POST /api/clades/activity/check — correction automatique des placements élèves.
- * Corps : `{ placements: [{ plantId, cladeId }] }`
+ * Corps : `{ placements: [{ plantId, cladeId }], profile?: 'college' }`. Au collège, la boîte
+ * attendue est la boîte visible la plus proche du groupe de la fiche (celle que proposait
+ * l'activité réduite).
  */
 router.post(
   '/activity/check',
@@ -199,12 +251,20 @@ router.post(
       plantIds,
     );
     const byPlant = new Map(plants.map((p) => [Number(p.id), p]));
+    const profile = readTreeProfile(req);
+    const reduced = profile ? collapseForProfile(await loadAllClades(), profile) : null;
+    const expectedFor = (plant) => {
+      if (!plant?.clade_id) return null;
+      if (!reduced?.collapsed) return plant.clade_id;
+      // Fiche sans boîte visible : l'activité est retombée sur l'arbre complet.
+      return collapsedCladeIdFor(reduced, plant.clade_id) || plant.clade_id;
+    };
     const results = placements.map((p) => {
       const plantId = Number(p.plantId ?? p.plant_id);
       const placed = p.cladeId ?? p.clade_id ?? null;
       const plant = byPlant.get(plantId);
       return {
-        ...gradePlantPlacement(plantId, plant?.clade_id, placed),
+        ...gradePlantPlacement(plantId, expectedFor(plant), placed),
         name: plant?.name || null,
       };
     });
@@ -218,7 +278,11 @@ router.post(
   }),
 );
 
-/** GET /api/clades/:id/path — fil « Êtres vivants › … » pour une fiche. */
+/**
+ * GET /api/clades/:id/path — fil « Êtres vivants › … » pour une fiche. `?profile=college` :
+ * fil de l'arbre réduit (boîtes visibles, libellés simples) depuis la boîte visible la plus
+ * proche ; `path: []` si aucune boîte visible ne contient le groupe.
+ */
 router.get(
   '/:id/path',
   asyncHandler(async (req, res) => {
@@ -227,6 +291,25 @@ router.get(
     const items = await loadAllClades();
     const byId = indexClades(items);
     if (!byId.has(id)) return res.status(404).json({ error: 'Groupe introuvable' });
+    const profile = readTreeProfile(req);
+    if (profile) {
+      const reduced = collapseForProfile(items, profile);
+      if (reduced.collapsed) {
+        const target = collapsedCladeIdFor(reduced, id);
+        const reducedById = indexClades(reduced.items);
+        const path = target
+          ? ancestorChain(reducedById, target).map((n) => ({
+              id: n.id,
+              name: n.name,
+              shared_attribute: n.shared_attribute,
+              full_name: n.full_name,
+              full_shared_attribute: n.full_shared_attribute,
+              visible_college: 1,
+            }))
+          : [];
+        return res.json({ path, collapsed: true });
+      }
+    }
     const path = ancestorChain(byId, id).map((n) => ({
       id: n.id,
       name: n.name,

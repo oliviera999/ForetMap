@@ -50,6 +50,10 @@ Public typique : cycles 3 et 4, découverte et sortie de terrain.
   (hypothèse / observé) ni d’efficacité du pollinisateur. La **détritivorie** — le ver de
   terre qui mange la litière — y figure depuis le 25 septembre 2026 : ces animaux portent
   la pastille « Détritivore » à tous les niveaux, et leur réseau montre ce qu’ils mangent.
+  Frugivorie et granivorie sont montrées à tout le collège ; symbiose et compétition au
+  cycle 4 seulement. Au collège, le réseau part d’une espèce choisie (voisins, puis chaîne)
+  et n’affiche que les espèces de la carte : voir « Le Réseau trophique » dans
+  `pedagogie-quiz-glossaire-reseau.md`.
 - Clés d’identification : **lecture** guidée (mode Questions, une fourche à la fois) ;
   le mode **Schéma** (arbre de la clé) reste disponible pour visualiser la structure.
 - Quiz et glossaire : notions de **cycle 3 et cycle 4** mises en avant — et seulement du
@@ -114,20 +118,38 @@ fiche, un tutoriel ou un terme.
 | **Carte** (repli)                     | Professeur / admin sur une carte                          | Ancien réglage, lu seulement si l’élève n’a ni séance ni classe avec un niveau.                      |
 | **Groupe — ancien affichage** (repli) | Professeur / admin sur un groupe                          | Ancien réglage « Collège / Lycée / Université », même rôle de repli ; il disparaîtra.                |
 
+**Un seul affichage pour tout le collège** (décisions du 21 novembre 2026) : de la 6ᵉ à la 3ᵉ,
+et dans la Visite sans compte, la fiche, la Visite, le catalogue et le réseau sont **les
+mêmes**. Le **palier** — cycle 3 ou cycle 4, tiré du niveau de la classe (ou de la séance) —
+ne règle que trois choses :
+
+| Ce que règle le palier                        | Cycle 3 (6ᵉ)      | Cycle 4 (5ᵉ à 3ᵉ)                 | Lycée    |
+| --------------------------------------------- | ----------------- | --------------------------------- | -------- |
+| Vocabulaire lié et listé d’emblée (glossaire) | termes « base »   | « base » et « approfondissement » | tous     |
+| Questions du quiz                             | celles du cycle 3 | jusqu’au cycle 4                  | inchangé |
+| Réseau : symbiose et compétition              | masquées          | montrées                          | montrées |
+
+Un collégien **sans classe connue** (Visite sans compte, élève sans niveau de classe) suit les
+règles du **cycle 3**. Une carte réglée « Lycée » ne fait jamais basculer un élève dont la
+classe est au collège : la classe passe avant la carte.
+
 ### Ordre quand plusieurs réglages coexistent
 
 Du plus fort au plus faible — **le plus précis l’emporte** :
 
 1. **Visite invitée** → toujours **Collège** — non contournable.
-2. **Aperçu professeur** « Affichage biodiversité — Collège / Lycée / Université » (session
-   uniquement) : pour vérifier ce que voit un élève, sans changer les réglages du site.
+2. **Aperçu professeur** « Affichage biodiversité — 6ᵉ (cycle 3) / 3ᵉ (cycle 4) / Lycée »
+   (session uniquement) : pour vérifier ce que voit un élève, sans changer les réglages du site.
    Voir [Le menu Aperçu](#le-menu-aperçu) ci-dessous.
 3. **Séance en cours** : la séance **impose son niveau**, y compris pour les questions de
    validation. Un élève de 6ᵉ dans une séance « Lycée » voit l’affichage Lycée et reçoit les
    questions de lycée ; un élève de seconde dans une séance « Collège » est traité en
    collège le temps de la séance. À l’intérieur de la plage de la séance, la classe précise :
-   dans une séance « tout le collège », une 6ᵉ reste au cycle 3. Dès que la séance est
-   terminée ou quittée, le niveau de la classe reprend la main.
+   dans une séance « tout le collège », une 6ᵉ reste au cycle 3. Le réglage **Quiz · niveau
+   de notion** de la séance fixe aussi le palier : « Cycle 3 » ou « Cycle 4 » s’applique à
+   toute la classe pendant la séance ; « Tout le collège » (choix par défaut d’une séance
+   Collège) laisse la classe de chaque élève décider. Dès que la séance est terminée ou
+   quittée, le niveau de la classe reprend la main.
 4. **Niveau de la classe** : celui du groupe de l’élève, ou hérité de son groupe parent
    (réglé une fois sur l’unité « Niveau 6ᵉ », il vaut pour toutes ses classes). Un élève
    membre de plusieurs classes prend le **plus haut** niveau : on ne lui retire pas ce
@@ -168,12 +190,15 @@ tout ce qui permet à un professeur de voir l’application « avec les yeux d�
 
 - **Interface** : _Ma vue habituelle_, _Vue élève_ (navigation en bas, écrans élève) et,
   pour un administrateur, _Vue professeur_ (interface sans les boutons d’administration) ;
-- **Affichage biodiversité** : _Complet (vue gestion)_, _Collège_, _Lycée_ ou
-  _Université_. En vue élève, l’option automatique s’appelle _Automatique (carte et
-  groupe)_ : le niveau suit alors les mêmes règles que pour un vrai élève.
+- **Affichage biodiversité** : _Complet (vue gestion)_, _Collège · 6ᵉ (cycle 3)_,
+  _Collège · 3ᵉ (cycle 4)_ ou _Lycée_. Les deux entrées du collège ont le même affichage ;
+  elles ne diffèrent que par le vocabulaire, les questions et la symbiose / compétition du
+  réseau. En vue élève, l’option automatique s’appelle _Automatique (carte et groupe)_ : le
+  niveau suit alors les mêmes règles que pour un vrai élève. La vue _Complet_ montre tout ce
+  que voit l’université.
 
-Les deux se combinent : « Vue élève · Affichage Collège » montre exactement ce que voit
-un collégien. Dès qu’un aperçu est actif, le bouton se colore et **un seul bandeau**
+Les deux se combinent : « Vue élève · Affichage Collège · 6ᵉ (cycle 3) » montre exactement
+ce que voit un élève de 6ᵉ. Dès qu’un aperçu est actif, le bouton se colore et **un seul bandeau**
 rappelle ce qui est simulé, avec un bouton **Quitter l’aperçu** qui remet tout à zéro.
 Les droits réels du professeur ne changent jamais ; le choix de niveau est oublié à la
 fermeture du navigateur.
@@ -185,20 +210,29 @@ sont désormais **reliés entre eux** par une seule table de correspondance, don
 référence commune est le **niveau du programme** (du cycle 3 à la terminale, plus
 l'université pour l'élève) :
 
-| Échelle                               | Où on la trouve               | Valeurs                                                                       | Correspondance                                                                      |
-| ------------------------------------- | ----------------------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| **Niveau de l'élève**                 | classe (groupe), séance       | Cycle 3, Cycle 4, Seconde, Première, Terminale (SVT ou ens. sci.), Université | **la référence** : c'est la seule échelle de l'élève                                |
-| **Affichage biodiversité**            | déduit ; préférence du compte | Collège, Lycée, Université                                                    | Collège = cycles 3 et 4 ; Lycée = seconde → terminale ; Université = au-delà (tout) |
-| **Niveau d'une question** / d'une clé | quiz, clés d'identification   | Collège, Lycée                                                                | une question « Collège » vaut dès le cycle 3, une question « Lycée » dès la seconde |
-| **Profondeur d'un terme**             | glossaire                     | Base, Approfondissement, Avancé                                               | Base dès le cycle 3, Approfondissement dès le cycle 4, Avancé dès la seconde        |
-| **Difficulté d'une question**         | quiz                          | ⭐ Facile, ⭐⭐ Moyen, ⭐⭐⭐ Difficile                                       | indépendante : elle classe les questions **à l'intérieur** de leur niveau           |
-| **Niveau d'une notion**               | notions des programmes        | Cycle 3 → Terminale                                                           | c'est la référence elle-même                                                        |
+| Échelle                               | Où on la trouve               | Valeurs                                                                       | Correspondance                                                                                                                                  |
+| ------------------------------------- | ----------------------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Niveau de l'élève**                 | classe (groupe), séance       | Cycle 3, Cycle 4, Seconde, Première, Terminale (SVT ou ens. sci.), Université | **la référence** : c'est la seule échelle de l'élève                                                                                            |
+| **Affichage biodiversité**            | déduit ; préférence du compte | Collège, Lycée, Université                                                    | Collège = cycles 3 et 4 ; Lycée = seconde → terminale ; Université = au-delà (tout)                                                             |
+| **Niveau d'une question** / d'une clé | quiz, clés d'identification   | Collège, Lycée                                                                | une question « Collège » vaut dès le cycle 3 si une de ses notions est de cycle 3, sinon dès le cycle 4 ; une question « Lycée » dès la seconde |
+| **Profondeur d'un terme**             | glossaire                     | Base, Approfondissement, Avancé                                               | Base dès le cycle 3, Approfondissement dès le cycle 4, Avancé dès la seconde                                                                    |
+| **Difficulté d'une question**         | quiz                          | ⭐ Facile, ⭐⭐ Moyen, ⭐⭐⭐ Difficile                                       | indépendante : elle classe les questions **à l'intérieur** de leur niveau                                                                       |
+| **Niveau d'une notion**               | notions des programmes        | Cycle 3 → Terminale                                                           | c'est la référence elle-même                                                                                                                    |
 
 Ce que ça change concrètement :
 
 - **Un quiz « cycle 4 » ne tire plus de questions de lycée.** Une question n'hérite des
   notions de sa catégorie que si elles sont de son niveau ou au-dessus. Avant, un tirage
   « cycle 4 » — celui des séances collège — sortait une question de lycée sur trois.
+- **Une 6ᵉ et une 3ᵉ n'ont plus les mêmes questions** (novembre 2026). Une question
+  « Collège » est posée dès le cycle 3 si au moins une de ses notions du programme est de
+  cycle 3 ; sinon, à partir du cycle 4. Aucune nouvelle échelle à régler : il suffit que les
+  notions de la question soient justes (rattachement de sa catégorie, ajouts et exclusions).
+  Au collège, l'onglet Quiz ne tire que les questions du palier de l'élève et ne propose que
+  les catégories qui en ont ; le contrôle de compréhension d'une fiche suit la même règle :
+  il ne pose **jamais** de question au-delà du palier de la classe (une 6ᵉ n'est pas bloquée
+  par une question de cycle 4) ; une fiche sans question à ce palier n'est pas verrouillée.
+  Un collégien sans classe connue reçoit ses questions de collège, jamais de lycée.
 - **Le glossaire est relié aux notions.** Le filtre par notion de l'onglet Glossaire
   fonctionne (il ne renvoyait rien), et la fiche d'un terme affiche « Au programme ».
 - **On peut distinguer une 6ᵉ d'une 3ᵉ.** Le groupe porte un **niveau de la classe**.
@@ -243,22 +277,30 @@ Voir aussi [Visite et mascottes](visite-et-mascottes.md).
 Légende : **O** = visible · **R** = replié / discret · **—** = masqué · **S** = seulement
 dans une séance guidée (onglet **Séances**) qui ouvre cet outil.
 
-| Élément                                       | Collège            | Lycée    | Université |
-| --------------------------------------------- | ------------------ | -------- | ---------- |
-| Fiche : nom, danger, risque sanitaire         | O                  | O        | O          |
-| Nom accepté, lien GBIF, classification latine | — ou R             | R        | O          |
-| Notes « Sur ce site »                         | O                  | O        | O          |
-| Fil long de groupes emboîtés                  | — / S              | O        | O          |
-| Activité groupes emboîtés (libre)             | — / S              | O        | O          |
-| Réseau : types scolaires                      | O                  | O        | O          |
-| Réseau : types avancés + preuve du lien       | —                  | O        | O          |
-| Clé : lecteur                                 | O                  | O        | O          |
-| Clé : éditeur                                 | — (prof seulement) | — (prof) | — (prof)   |
-| Quiz / glossaire : cycles 3–4                 | O                  | O        | O          |
-| Quiz / glossaire : lycée / ES                 | — ou en bas        | O        | O          |
-| Individu : label + mesures                    | — / S              | O        | O          |
-| Individu : biomasse / CO₂                     | —                  | R        | O          |
-| Validation des dangers, admin clés / clades   | — (prof)           | — (prof) | — (prof)   |
+| Élément                                       | Collège (6ᵉ à 3ᵉ, Visite) | Lycée    | Université |
+| --------------------------------------------- | ------------------------- | -------- | ---------- |
+| Fiche : nom, danger, risque sanitaire, sosies | O                         | O        | O          |
+| Fiche : étiquette simple sous le nom          | O                         | —        | —          |
+| Fiche : description collège (si elle existe)  | O                         | —        | —          |
+| Fiche : groupe (à la place de la Taxonomie)   | O                         | —        | —          |
+| Fiche : ligne Taxonomie, nom scientifique     | —                         | O        | O          |
+| Nom accepté, lien GBIF, classification latine | —                         | R        | O          |
+| Fiche : sections Identité et Écologie         | —                         | R        | R          |
+| Fiche : jauges pH / température, Nutrition    | —                         | O        | O          |
+| Statut UICN                                   | en mots                   | sigle    | sigle      |
+| Notes « Sur ce site »                         | O                         | O        | O          |
+| Fil des groupes et onglet Groupes             | O (arbre réduit)          | O        | O          |
+| Visite : vignettes avec nom scientifique      | — (étiquette simple)      | O        | O          |
+| Réseau : types scolaires                      | O                         | O        | O          |
+| Réseau : symbiose et compétition              | cycle 4 seulement         | O        | O          |
+| Réseau : types avancés + preuve du lien       | —                         | O        | O          |
+| Clé : lecteur                                 | O                         | O        | O          |
+| Clé : éditeur                                 | — (prof seulement)        | — (prof) | — (prof)   |
+| Quiz / glossaire : cycles 3–4                 | O                         | O        | O          |
+| Quiz / glossaire : lycée / ES                 | — ou en bas               | O        | O          |
+| Individu : label + mesures                    | — / S                     | O        | O          |
+| Individu : biomasse / CO₂                     | —                         | R        | O          |
+| Validation des dangers, admin clés / clades   | — (prof)                  | — (prof) | — (prof)   |
 
 ## Séances types (guide + lanceur app)
 

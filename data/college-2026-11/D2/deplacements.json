@@ -1,0 +1,13 @@
+{
+  "_doc": "Fiches rattachées aux nouveaux ordres d'insectes. Clé naturelle : plants.scientific_name ; garde sur l'ancien clade_id (`insectes`). Une fiche déjà déplacée ou modifiée dans l'application n'est pas touchée.",
+  "fiches": [
+    { "scientific_name": "Dociostaurus maroccanus", "name": "Criquet marocain", "taxon_order": "Orthoptera", "avant": "insectes", "apres": "orthopteres" },
+    { "scientific_name": "Gryllus bimaculatus", "name": "Grillon provençal", "taxon_order": "Orthoptera", "avant": "insectes", "apres": "orthopteres" },
+    { "scientific_name": "Gryllotalpa sp.", "name": "Courtilière", "taxon_order": "Orthoptera", "avant": "insectes", "apres": "orthopteres" },
+    { "scientific_name": "Anacridium aegyptium", "name": "Criquet égyptien", "taxon_order": "Orthoptera", "avant": "insectes", "apres": "orthopteres" },
+    { "scientific_name": "Acanthacris ruficornis", "name": "Criquet à antennes rousses", "taxon_order": "Orthoptera", "avant": "insectes", "apres": "orthopteres" },
+    { "scientific_name": "Forficula auricularia", "name": "Perce-oreille", "taxon_order": "Dermaptera", "avant": "insectes", "apres": "dermapteres" },
+    { "scientific_name": "Sphodromantis viridis", "name": "Mante religieuse africaine", "taxon_order": "Mantodea", "avant": "insectes", "apres": "mantes" },
+    { "scientific_name": "Chrysoperla carnea", "name": "Chrysope verte", "taxon_order": "Neuroptera", "avant": "insectes", "apres": "nevropteres" }
+  ]
+}

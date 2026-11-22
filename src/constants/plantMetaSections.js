@@ -5,9 +5,16 @@
 
 import { TROPHIC_ROLE_LABELS } from '../utils/plantTrophicRole.js';
 
+/**
+ * `pedagoFeature` : brique de la table de visibilité (`src/shared/pedagoVisibilityCore.js`) qui
+ * commande l'affichage de la section sur la fiche (lecture seule). Sans brique, la section est
+ * toujours affichée (« Ressources » : sources, crédits et licences des photos). Le formulaire
+ * d'édition ignore cette clé.
+ */
 export const PLANT_META_SECTIONS = [
   {
     title: 'Identité',
+    pedagoFeature: 'meta_sections',
     items: [
       // Autres noms courants (table des noms, migration 304) ; le serveur dérive ce champ
       // de la table, avec repli sur l'ancienne colonne.
@@ -61,6 +68,7 @@ export const PLANT_META_SECTIONS = [
   },
   {
     title: 'Écologie et usages',
+    pedagoFeature: 'meta_sections',
     items: [
       { key: 'habitat', label: 'Habitat (texte)' },
       { key: 'habitat_type', label: 'Milieu (terrestre/aquatique)', select: 'habitat_type' },

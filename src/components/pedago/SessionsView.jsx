@@ -6,7 +6,11 @@ import { SessionRunsPanel, SessionSharePanel } from './SessionTeacherPanels.jsx'
 import { SessionStepEditor, newStep } from './SessionStepEditor.jsx';
 import { ModuleLearnerOffBanner } from './ModuleLearnerOffBanner.jsx';
 import { MyRewardsPanel } from '../rewards/MyRewardsPanel.jsx';
-import { NOTION_NIVEAU_FILTER_OPTIONS } from '../../utils/curriculumNotions.js';
+import {
+  NOTION_NIVEAU_FILTER_OPTIONS,
+  notionNiveauOptionsFor,
+} from '../../utils/curriculumNotions.js';
+import { curriculumNiveauxForEtape } from '../../utils/pedagoScales.js';
 import {
   readStoredPedagoSession,
   writeStoredPedagoSession,
@@ -549,7 +553,15 @@ function stripResolvedStep(step) {
   };
 }
 
-function SessionConfigForm({ session, sessions = [], maps, plants, idKeys, onCancel, onSaved }) {
+export function SessionConfigForm({
+  session,
+  sessions = [],
+  maps,
+  plants,
+  idKeys,
+  onCancel,
+  onSaved,
+}) {
   const tpl = session.templateKey;
   const isA = tpl === 'college_reconaitre';
   const isB = tpl === 'college_qui_mange';
@@ -576,9 +588,20 @@ function SessionConfigForm({ session, sessions = [], maps, plants, idKeys, onCan
   const [steps, setSteps] = useState(() =>
     isCustom && session.steps?.length ? session.steps.map(stripResolvedStep) : [newStep(0)],
   );
+  // Niveau de notion : règle de palier de la séance (`cycle3` / `cycle4` au collège). Par
+  // défaut « tout le public » (`college` / `lycee`) : la classe de chaque élève précise alors
+  // son palier. L'ancien défaut `cycle4` faisait passer une classe de 6e au cycle 4.
   const [notionNiveau, setNotionNiveau] = useState(
-    session.config?.notionNiveau || (session.level === 'lycee' ? 'lycee' : 'cycle4'),
+    session.config?.notionNiveau || (session.level === 'lycee' ? 'lycee' : 'college'),
   );
+  const notionNiveauOptions = useMemo(() => {
+    const range = curriculumNiveauxForEtape(session.level);
+    return notionNiveauOptionsFor(
+      range.length > 0 ? range : null,
+      notionNiveau,
+      NOTION_NIVEAU_FILTER_OPTIONS,
+    );
+  }, [session.level, notionNiveau]);
   const [notionId, setNotionId] = useState(session.config?.notionId || '');
   const [questionCode, setQuestionCode] = useState(session.config?.questionCode || '');
   const [isPublished, setIsPublished] = useState(!!session.isPublished);
@@ -754,7 +777,7 @@ function SessionConfigForm({ session, sessions = [], maps, plants, idKeys, onCan
             <span>Quiz · niveau de notion</span>
             <select value={notionNiveau} onChange={(e) => setNotionNiveau(e.target.value)}>
               <option value="">— libre —</option>
-              {NOTION_NIVEAU_FILTER_OPTIONS.map((opt) => (
+              {notionNiveauOptions.map((opt) => (
                 <option key={opt.value} value={opt.value}>
                   {opt.label}
                 </option>

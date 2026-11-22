@@ -5,6 +5,7 @@ import { GlossaryMarkdown } from '../GlossaryMarkdown.jsx';
 import { useGlossaryLinkIndex } from '../../hooks/useGlossaryLinkIndex.js';
 import { PlantRangeGauge } from '../pedago/PlantRangeGauge.jsx';
 import { normalizedPlantValue } from '../../utils/plantFormValues.js';
+import { useBiodivPedago } from '../../contexts/BiodivPedagoContext.jsx';
 import { isVegetalCatalogEntry } from '../../utils/plantCatalogHelpers.js';
 import {
   IconBan,
@@ -31,11 +32,38 @@ const HABITAT_LABELS = {
 
 /**
  * Blocs d'affichage de synthèse d'une fiche plante — extraits de `foretmap-views.jsx` (O6).
- * Présentation pure (aucun état, aucun effet) à partir de l'objet `plant`.
+ * Présentation à partir de l'objet `plant` ; ce qui s'affiche selon le profil de l'apprenant
+ * se lit dans la table de visibilité (`useBiodivPedago`), jamais par un test de niveau en dur.
  */
 
-/** Taxonomie enrichie (`plant.taxonomy`). */
+/**
+ * Statut UICN écrit en toutes lettres, sans le sigle (`'VU'` → « vulnérable ») : profil
+ * collège (`iucn_code` = `'mots'`). Dérivé des libellés de `plantIucnStatus.js`.
+ */
+export function iucnStatusWords(value) {
+  const label = iucnStatusLabel(value);
+  if (!label) return '';
+  const words = label.split(' — ').slice(1).join(' — ').trim();
+  return words ? words.charAt(0).toLowerCase() + words.slice(1) : '';
+}
+
+/**
+ * Taxonomie enrichie (`plant.taxonomy`). Quand la table masque `taxonomy_line` (collège), la
+ * ligne est remplacée par le **groupe d'usage** (`plant.usage_group`, calculé par
+ * `GET /api/plants`) ; rien si la fiche n'en a pas.
+ */
 export function PlantTaxonomyLine({ plant }) {
+  const { canShow } = useBiodivPedago();
+  if (!canShow('taxonomy_line')) {
+    const groupLabel = normalizedPlantValue(plant?.usage_group?.label);
+    if (!groupLabel) return null;
+    return (
+      <div className="plant-meta-item plant-usage-group-line" data-testid="plant-usage-group">
+        <div className="plant-meta-label">Groupe</div>
+        <p className="plant-meta-value">{groupLabel}</p>
+      </div>
+    );
+  }
   const tax = plant?.taxonomy;
   if (!tax || typeof tax !== 'object') return null;
   const vernacular = [tax.kingdom, tax.group, tax.family, tax.genus].filter(Boolean);
@@ -88,8 +116,13 @@ export function PlantSiteNotesBlock({ plant, activeMapId = null, maps = [] }) {
   );
 }
 
-/** Badges rôle trophique, comestibilité, habitat, statut biogéographique, UICN. */
+/**
+ * Badges rôle trophique, comestibilité, habitat, statut biogéographique, UICN. Le statut UICN
+ * suit la brique `iucn_code` : sigle (`UICN VU`) ou mots (« Liste rouge : vulnérable »).
+ */
 export function PlantPedagoTraitBadges({ plant }) {
+  const { visibility } = useBiodivPedago();
+  const iucnInWords = visibility('iucn_code') === 'mots';
   const chips = [];
   const trophicLabel = trophicRoleLabel(plant?.trophic_role);
   if (trophicLabel) {
@@ -123,13 +156,17 @@ export function PlantPedagoTraitBadges({ plant }) {
     });
   }
   const iucn = normalizeIucnStatus(plant?.iucn_status);
-  const iucnBadge = iucnStatusBadgeLabel(iucn);
+  const iucnBadge = iucnInWords
+    ? iucnStatusWords(iucn) && `Liste rouge : ${iucnStatusWords(iucn)}`
+    : iucnStatusBadgeLabel(iucn);
   if (iucn && iucnBadge) {
     chips.push({
       key: `iucn-${iucn}`,
       label: iucnBadge,
       className: `plant-iucn-status plant-iucn-status--${iucn.toLowerCase()}`,
-      title: iucnStatusLabel(iucn),
+      title: iucnInWords
+        ? 'Statut sur la liste rouge des espèces menacées (UICN)'
+        : iucnStatusLabel(iucn),
     });
   }
   if (chips.length === 0) return null;
@@ -154,10 +191,12 @@ export function PlantPedagoTraitBadges({ plant }) {
   );
 }
 
-/** Jauges pH et température (`plant.phRange`, `plant.tempRange`). */
+/** Jauges pH et température (`plant.phRange`, `plant.tempRange`) ; brique `range_gauges`. */
 export function PlantRangeGauges({ plant }) {
+  const { canShow } = useBiodivPedago();
   const ph = plant?.phRange;
   const temp = plant?.tempRange;
+  if (!canShow('range_gauges')) return null;
   if (!ph && !temp) return null;
   return (
     <div className="plant-range-gauges">
@@ -353,13 +392,19 @@ function formatPlantNumericRange(min, max, unit = '') {
     : '';
 }
 
-/** Pastilles de synthèse (nutrition/nutriments, température, pH) — max 3 ; `null` si aucune. */
+/**
+ * Pastilles de synthèse (nutrition/nutriments, température, pH) — max 3 ; `null` si aucune.
+ * Briques `nutrition_badge` (nutrition / nutriments) et `range_gauges` (température, pH).
+ */
 export function PlantSummaryBadges({ plant }) {
+  const { canShow } = useBiodivPedago();
+  const showNutrition = canShow('nutrition_badge');
+  const showRanges = canShow('range_gauges');
   const chips = [];
-  const nutrition = normalizedPlantValue(plant.nutrition);
-  const preferredNutrients = normalizedPlantValue(plant.preferred_nutrients);
-  const temp = formatPlantNumericRange(plant.temp_min_c, plant.temp_max_c);
-  const ph = formatPlantNumericRange(plant.ph_min, plant.ph_max);
+  const nutrition = showNutrition ? normalizedPlantValue(plant.nutrition) : '';
+  const preferredNutrients = showNutrition ? normalizedPlantValue(plant.preferred_nutrients) : '';
+  const temp = showRanges ? formatPlantNumericRange(plant.temp_min_c, plant.temp_max_c) : '';
+  const ph = showRanges ? formatPlantNumericRange(plant.ph_min, plant.ph_max) : '';
   if (isVegetalCatalogEntry(plant)) {
     if (preferredNutrients)
       chips.push({ icon: <IconUtensils size={12} />, text: preferredNutrients });
