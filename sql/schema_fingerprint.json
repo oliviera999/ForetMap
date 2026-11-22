@@ -1,7 +1,7 @@
 {
   "format": 1,
   "description": "Empreinte du schéma attendu (base fraîche du dépôt), hors tables gl_* et tables étrangères connues. Régénérer : node scripts/schema-fingerprint.js --write (sur une base fraîche à jour).",
-  "migration": "390_reprise_derive_schema.sql",
+  "migration": "391_retrait_t3_quiz_question_links.sql",
   "tables": {
     "app_settings": {
       "columns": {
@@ -5297,86 +5297,6 @@
           "referencedColumns": ["question_code"],
           "onDelete": "CASCADE",
           "onUpdate": "CASCADE"
-        }
-      }
-    },
-    "quiz_question_species": {
-      "columns": {
-        "question_code": {
-          "type": "varchar(16)",
-          "nullable": false,
-          "default": null
-        },
-        "plant_id": {
-          "type": "int unsigned",
-          "nullable": false,
-          "default": null
-        }
-      },
-      "indexes": {
-        "PRIMARY": {
-          "unique": true,
-          "columns": ["question_code", "plant_id"]
-        },
-        "idx_qqs_plant": {
-          "unique": false,
-          "columns": ["plant_id"]
-        }
-      },
-      "foreignKeys": {
-        "fk_qqs_p": {
-          "columns": ["plant_id"],
-          "references": "plants",
-          "referencedColumns": ["id"],
-          "onDelete": "CASCADE",
-          "onUpdate": "RESTRICT"
-        },
-        "fk_qqs_q": {
-          "columns": ["question_code"],
-          "references": "quiz_questions",
-          "referencedColumns": ["question_code"],
-          "onDelete": "CASCADE",
-          "onUpdate": "CASCADE"
-        }
-      }
-    },
-    "quiz_question_tutorials": {
-      "columns": {
-        "question_code": {
-          "type": "varchar(16)",
-          "nullable": false,
-          "default": null
-        },
-        "tutorial_id": {
-          "type": "int unsigned",
-          "nullable": false,
-          "default": null
-        }
-      },
-      "indexes": {
-        "PRIMARY": {
-          "unique": true,
-          "columns": ["question_code", "tutorial_id"]
-        },
-        "idx_qqt_tuto": {
-          "unique": false,
-          "columns": ["tutorial_id"]
-        }
-      },
-      "foreignKeys": {
-        "fk_qqt_q": {
-          "columns": ["question_code"],
-          "references": "quiz_questions",
-          "referencedColumns": ["question_code"],
-          "onDelete": "CASCADE",
-          "onUpdate": "CASCADE"
-        },
-        "fk_qqt_t": {
-          "columns": ["tutorial_id"],
-          "references": "tutorials",
-          "referencedColumns": ["id"],
-          "onDelete": "CASCADE",
-          "onUpdate": "RESTRICT"
         }
       }
     },
