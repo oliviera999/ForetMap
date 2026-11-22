@@ -6,6 +6,7 @@ import { Tooltip } from '../../shared/components/Tooltip.jsx';
 import { IconClose, IconEye } from '../../shared/icons.jsx';
 import { useOverlayHistoryBack } from '../../shared/platform/useOverlayHistoryBack';
 import { describeAppPreview, PREVIEW_LEVEL_OPTIONS } from '../../utils/appPreview.js';
+import { staffContentLevelLabel } from '../../utils/staffContentLevel.js';
 
 /**
  * Menu « Aperçu » de l'en-tête : réunit en un seul endroit les deux façons, pour un
@@ -13,8 +14,9 @@ import { describeAppPreview, PREVIEW_LEVEL_OPTIONS } from '../../utils/appPrevie
  * n3boss) et le niveau d’affichage biodiversité (6e, 3e ou lycée, `PREVIEW_LEVEL_OPTIONS`).
  *
  * La vue de rôle reste pilotée par `App` (`roleViewMode`, callback) ; le niveau vient du
- * contexte biodiversité. Rien n'est rendu quand aucune des deux options n'est ouverte au
- * compte courant.
+ * contexte biodiversité. L'aperçu est une simulation de session qui passe devant le niveau de
+ * contenu du profil ; « Quitter l'aperçu » ramène à ce niveau (plus à la vue complète
+ * d'office). Rien n'est rendu quand aucune des deux options n'est ouverte au compte courant.
  */
 export function AppPreviewMenu({
   roleViewMode = 'native',
@@ -24,8 +26,9 @@ export function AppPreviewMenu({
   roleTerms,
   helpText,
 }) {
-  const { canTeacherPreview, teacherPreview, setTeacherPreview, fullViewByDefault } =
+  const { canTeacherPreview, teacherPreview, setTeacherPreview, staffBaseLearner } =
     useBiodivPedago();
+  const baseLevelLabel = staffContentLevelLabel(staffBaseLearner);
   const [open, setOpen] = useState(false);
   const [portalNode, setPortalNode] = useState(null);
   const triggerWrapRef = useRef(null);
@@ -85,8 +88,9 @@ export function AppPreviewMenu({
     },
   ].filter((option) => option.visible);
 
-  const autoLevelLabel = fullViewByDefault
-    ? 'Complet (vue gestion)'
+  // Sans aperçu : le niveau du profil (compte non élève), sinon les règles élève.
+  const autoLevelLabel = baseLevelLabel
+    ? `Mon niveau : ${baseLevelLabel}`
     : 'Automatique (carte et groupe)';
 
   const panel = open ? (

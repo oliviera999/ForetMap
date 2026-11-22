@@ -45,6 +45,11 @@ export const StudentStatsLazy = lazyScreen(() =>
 export const StudentProfileEditorLazy = lazyScreen(() =>
   import('../stats-views').then((m) => ({ default: m.StudentProfileEditor })),
 );
+// « Connexion professeur » (ouverte à la demande depuis l'en-tête) : hors du bundle de l'écran
+// de connexion (budget, `scripts/check-bundle-budget.js`) — ~4,6 Ko de JS en moins.
+export const PinModalLazy = lazyScreen(() =>
+  import('../auth/PinModal.jsx').then((m) => ({ default: m.PinModal })),
+);
 // Modale a la demande : lazy pour que foretmap-views (PlantManager/Viewer/Notebook ~52 Ko) quitte le chunk main.
 export const PlantCatalogPreviewModalLazy = lazyScreen(() =>
   import('../foretmap-views').then((m) => ({ default: m.PlantCatalogPreviewModal })),

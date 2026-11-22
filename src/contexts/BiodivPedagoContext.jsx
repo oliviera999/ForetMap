@@ -8,10 +8,12 @@ import {
   PEDAGO_LEVEL_LABELS,
 } from '../utils/biodivPedagoLevel.js';
 import { resolveLearnerLevel } from '../utils/learnerLevel.js';
-import { normalizePreviewLevel } from '../utils/appPreview.js';
+import {
+  normalizePreviewLevel,
+  PREVIEW_STORAGE_KEY,
+  storedPreviewLevel,
+} from '../utils/appPreview.js';
 import { palierRuleFor } from '../shared/pedagoVisibilityCore.js';
-
-const PREVIEW_STORAGE_KEY = 'foretmap.biodivPedagoPreview';
 
 const BiodivPedagoContext = createContext(null);
 const EMPTY_LIST = Object.freeze([]);
@@ -34,8 +36,12 @@ const EMPTY_LIST = Object.freeze([]);
  * @param {boolean} [props.canTeacherPreview] — autorise l'aperçu de niveau (menu « Aperçu »
  *   de l'en-tête) : une classe de 6e (`cycle3`), de 3e (`cycle4`) ou le lycée ; une étape
  *   mémorisée avant le chantier collège (`college`…) reste acceptée
- * @param {boolean} [props.fullViewByDefault] — sans aperçu choisi, vue gestion complète
- *   (chrome prof). Faux en « vue élève » : le niveau suit alors les règles élève.
+ * @param {boolean} [props.staff] — compte personnel non élève (prof, admin, personnel…) hors
+ *   « vue élève » simulée : sans aperçu ni séance, il suit son **niveau de contenu** (choix du
+ *   profil, sinon ses groupes, sinon cycle 3 — demande du 22/11/2026). Faux en « vue élève » :
+ *   le niveau suit alors les règles élève.
+ * @param {string|null} [props.contentLevel] — `users.pedago_content_level` (choix explicite du
+ *   profil d'un compte non élève ; `complet` = vue gestion)
  * @param {import('react').ReactNode} props.children
  */
 export function BiodivPedagoProvider({
@@ -47,18 +53,12 @@ export function BiodivPedagoProvider({
   sessionLevel = null,
   sessionNotionNiveau = null,
   canTeacherPreview = false,
-  fullViewByDefault = canTeacherPreview,
+  staff = false,
+  contentLevel = null,
   children,
 }) {
   const publicSettings = usePublicSettings();
-  const [teacherPreview, setTeacherPreviewState] = useState(() => {
-    if (typeof sessionStorage === 'undefined') return null;
-    try {
-      return normalizePreviewLevel(sessionStorage.getItem(PREVIEW_STORAGE_KEY));
-    } catch {
-      return null;
-    }
-  });
+  const [teacherPreview, setTeacherPreviewState] = useState(storedPreviewLevel);
 
   const setTeacherPreview = useCallback((next) => {
     const normalized = normalizePreviewLevel(next);
@@ -78,16 +78,19 @@ export function BiodivPedagoProvider({
   const siteDefault = publicSettings?.biodiv?.pedago_level_default ?? 'college';
   const prefCanRaise = Boolean(publicSettings?.biodiv?.pedago_pref_can_raise);
 
-  // La classe ne compte que pour un élève : un professeur (vue complète ou aperçu d'un
-  // niveau) doit voir ce que voit *un* élève de ce niveau, pas de ses propres groupes.
-  const classNiveaux = canTeacherPreview ? EMPTY_LIST : classCurriculumNiveaux;
+  // Groupes : un compte non élève en tire son niveau par défaut. En « vue élève » simulée, la
+  // vue doit montrer ce que voit *un* élève, pas les groupes du compte qui simule.
+  const classNiveaux = !staff && canTeacherPreview ? EMPTY_LIST : classCurriculumNiveaux;
+  const activePreview = canTeacherPreview ? teacherPreview : null;
 
-  const learner = useMemo(
+  // Niveau hors aperçu : celui que « Quitter l'aperçu » rétablit (le profil, pour un compte
+  // non élève). Le niveau effectif ne diffère que par l'aperçu, qui passe devant.
+  const baseLearner = useMemo(
     () =>
       resolveLearnerLevel({
         isGuest: isGuestVisit,
-        teacherPreview: canTeacherPreview ? teacherPreview : null,
-        teacherFullView: canTeacherPreview && fullViewByDefault && !teacherPreview,
+        staff,
+        contentLevel,
         session:
           sessionLevel || sessionNotionNiveau
             ? { level: sessionLevel, notionNiveau: sessionNotionNiveau }
@@ -101,9 +104,8 @@ export function BiodivPedagoProvider({
       }),
     [
       isGuestVisit,
-      canTeacherPreview,
-      teacherPreview,
-      fullViewByDefault,
+      staff,
+      contentLevel,
       sessionLevel,
       sessionNotionNiveau,
       classNiveaux,
@@ -113,6 +115,22 @@ export function BiodivPedagoProvider({
       userPreference,
       prefCanRaise,
     ],
+  );
+  // Défaut d'un compte non élève sans choix explicite : ses groupes, sinon le cycle 3. Affiché
+  // par « Mon profil » (« Niveau de mes groupes — … »). Les libellés se calculent dans les
+  // écrans chargés à la demande (`staffContentLevelLabel`), pas ici : ce contexte fait partie
+  // du bundle de l'écran de connexion (visite invitée), sous budget.
+  const staffDefaultLearner = useMemo(
+    () =>
+      staff ? resolveLearnerLevel({ staff: true, classNiveaux: classCurriculumNiveaux }) : null,
+    [staff, classCurriculumNiveaux],
+  );
+  const learner = useMemo(
+    () =>
+      activePreview && !isGuestVisit
+        ? resolveLearnerLevel({ teacherPreview: activePreview })
+        : baseLearner,
+    [activePreview, isGuestVisit, baseLearner],
   );
 
   const level = learner.etape;
@@ -125,7 +143,15 @@ export function BiodivPedagoProvider({
       teacherPreview: canTeacherPreview ? teacherPreview : null,
       setTeacherPreview: canTeacherPreview ? setTeacherPreview : () => {},
       canTeacherPreview,
-      fullViewByDefault: canTeacherPreview && fullViewByDefault,
+      staff,
+      // Compte non élève sans aperçu actif : les écrans de **gestion** (onglet Individus,
+      // estimations…) restent complets quel que soit son niveau de contenu, qui ne règle que
+      // le contenu pédagogique consulté. Un aperçu, simulation assumée, les masque.
+      managementView: staff && !isGuestVisit && !activePreview,
+      // Niveau hors aperçu d'un compte non élève (l'entrée « sans aperçu » du menu Aperçu) et
+      // son défaut sans choix (Mon profil) ; `null` pour un élève.
+      staffBaseLearner: staff ? baseLearner : null,
+      staffDefaultLearner,
       // Table de visibilité (`src/shared/pedagoVisibilityCore.js`) : le profil se lit sur
       // l'apprenant complet (étape d'affichage) ; les règles de palier sur sa classe.
       canShow: (feature) => canShowBiodivFeature(feature, learner),
@@ -144,7 +170,11 @@ export function BiodivPedagoProvider({
       teacherPreview,
       setTeacherPreview,
       canTeacherPreview,
-      fullViewByDefault,
+      staff,
+      isGuestVisit,
+      activePreview,
+      baseLearner,
+      staffDefaultLearner,
       curriculumNiveaux,
     ],
   );
@@ -158,7 +188,10 @@ const FALLBACK = Object.freeze({
   teacherPreview: null,
   setTeacherPreview: () => {},
   canTeacherPreview: false,
-  fullViewByDefault: false,
+  staff: false,
+  managementView: false,
+  staffBaseLearner: null,
+  staffDefaultLearner: null,
   canShow: () => true,
   visibility: () => 'show',
   palierRule: (rule) => palierRuleFor(rule, null),

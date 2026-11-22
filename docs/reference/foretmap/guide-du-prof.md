@@ -35,7 +35,16 @@ l'établissement, et certains contenus n'apparaissent qu'à partir d'un niveau d
 **Voir l'application comme un élève.** Le menu **Aperçu** propose « Ma vue habituelle » et
 « Vue n3beur ». La vue n3beur montre exactement ce qu'un élève voit : pratique pour vérifier une
 tâche ou une fiche avant de la présenter. Le même menu permet de changer l'**affichage
-biodiversité** (niveau de détail des fiches) pour l'adapter à la classe.
+biodiversité** (niveau de détail des fiches) pour l'adapter à la classe, le temps de la
+session.
+
+**Votre niveau de contenu.** Fiches, glossaire, quiz, questions de validation et réseau
+trophique s'affichent pour vous **au niveau de vos groupes** (le plus haut), ou au **cycle 3**
+si vous n'avez aucun groupe avec un niveau. Pour en changer durablement : **Mon profil →
+Niveau de contenu** (du cycle 3 à l'université). Pour tout voir comme avant le 22 novembre
+2026 : **Complet (vue gestion)**. Vos droits et vos écrans de gestion (édition, validation,
+administration, Individus) ne changent jamais. Détail :
+[Le niveau de contenu des professeurs](niveaux-pedagogiques-biodiversite.md#le-niveau-de-contenu-des-professeurs-et-du-personnel).
 
 **Le bouton « ? ».** Sur chaque écran, il ouvre l'aide contextuelle et, quand elles existent,
 les visites guidées. C'est le premier réflexe quand un écran n'est pas familier.

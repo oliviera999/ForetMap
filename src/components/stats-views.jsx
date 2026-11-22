@@ -31,6 +31,7 @@ function profileFieldsOf(user) {
     description: user?.description ?? null,
     visit_mascot_catalog_id: user?.visit_mascot_catalog_id ?? null,
     biodiv_pedago_level: user?.biodiv_pedago_level ?? null,
+    pedago_content_level: user?.pedago_content_level ?? null,
   };
 }
 import { useHelp } from '../hooks/useHelp';
@@ -38,6 +39,8 @@ import { useVisitMascotRegistry } from '../hooks/useVisitMascotCatalogExtras.js'
 import { HelpPanel } from './HelpPanel';
 import { resolveHelpPanelSection } from '../utils/helpResolve';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
+import { useBiodivPedago } from '../contexts/BiodivPedagoContext.jsx';
+import { STAFF_CONTENT_LEVEL_OPTIONS, staffContentLevelLabel } from '../utils/staffContentLevel.js';
 import { StatCard, StatsSummaryGrid } from '../shared/components/StatsSummaryGrid.jsx';
 import { TimedToast } from '../shared/components/TimedToast.jsx';
 import { TeacherObservationsPanel } from './stats/TeacherObservationsPanel.jsx';
@@ -396,8 +399,13 @@ function StudentProfileEditor({ student, onUpdated, onClose }) {
     student?.visit_mascot_catalog_id || '',
   );
   const [biodivPedagoLevel, setBiodivPedagoLevel] = useState(student?.biodiv_pedago_level || '');
+  // Niveau de contenu d'un compte non élève (demande du 22/11/2026) : '' = niveau des groupes.
+  const [pedagoContentLevel, setPedagoContentLevel] = useState(student?.pedago_content_level || '');
+  const [contentLevelResetting, setContentLevelResetting] = useState(false);
   const initialFieldsRef = useRef(profileFieldsOf(student));
   const isTeacherProfile = isTeacherLikeAccount(student);
+  const { staffDefaultLearner } = useBiodivPedago();
+  const staffDefaultLevelLabel = staffContentLevelLabel(staffDefaultLearner);
   // Registre des mascottes proposées : le profil propose exactement les mêmes que le plan.
   const { extras: visitMascotPackExtras, offeredIds: visitMascotOfferedIds } =
     useVisitMascotRegistry();
@@ -470,6 +478,8 @@ function StudentProfileEditor({ student, onUpdated, onClose }) {
       description,
       visit_mascot_catalog_id: visitMascotCatalogId,
       biodiv_pedago_level: biodivPedagoLevel,
+      // Seul un compte non élève règle ce niveau (le serveur refuse un élève, 403).
+      ...(isTeacherProfile ? { pedago_content_level: pedagoContentLevel } : {}),
     });
     if (avatarData) payload.avatarData = avatarData;
     if (removeAvatar) payload.removeAvatar = true;
@@ -494,6 +504,7 @@ function StudentProfileEditor({ student, onUpdated, onClose }) {
       setDescription(updated?.description || '');
       setVisitMascotCatalogId(updated?.visit_mascot_catalog_id || '');
       setBiodivPedagoLevel(updated?.biodiv_pedago_level || '');
+      setPedagoContentLevel(updated?.pedago_content_level || '');
       setAvatarData(null);
       setRemoveAvatar(false);
       setEmailCurrentPassword('');
@@ -503,6 +514,32 @@ function StudentProfileEditor({ student, onUpdated, onClose }) {
       setErr(e.message || 'Impossible de mettre à jour le profil');
     }
     setLoading(false);
+  };
+
+  /**
+   * « Revenir au niveau de mes groupes » : efface tout de suite le choix enregistré (NULL en
+   * base) ; le niveau redevient calculé (groupes, sinon cycle 3) et suit les changements de
+   * groupe. Les autres champs du formulaire ne sont pas envoyés.
+   */
+  const resetContentLevel = async () => {
+    setErr('');
+    setOkMsg('');
+    setContentLevelResetting(true);
+    try {
+      const updated = await api(profileUpdateEndpoint(student), 'PATCH', {
+        pedago_content_level: null,
+      });
+      onUpdated(updated);
+      initialFieldsRef.current = {
+        ...initialFieldsRef.current,
+        pedago_content_level: updated?.pedago_content_level ?? null,
+      };
+      setPedagoContentLevel(updated?.pedago_content_level || '');
+      setOkMsg('Niveau de contenu : retour au niveau de tes groupes');
+    } catch (e) {
+      setErr(e.message || 'Impossible de revenir au niveau de tes groupes');
+    }
+    setContentLevelResetting(false);
   };
 
   /**
@@ -703,19 +740,59 @@ function StudentProfileEditor({ student, onUpdated, onClose }) {
           ))}
         </select>
       </div>
-      <div className="field" data-testid="profile-biodiv-pedago-level">
-        <label>Niveau d’affichage biodiversité</label>
-        <select value={biodivPedagoLevel} onChange={(e) => setBiodivPedagoLevel(e.target.value)}>
-          <option value="">— Hériter (carte / groupe / établissement) —</option>
-          <option value="college">Collège (plus simple)</option>
-          <option value="lycee">Lycée</option>
-          <option value="universite">Université</option>
-        </select>
-        <small style={{ display: 'block', opacity: 0.75, marginTop: 4 }}>
-          Par défaut, cette préférence ne peut que simplifier l’affichage. Un administrateur peut
-          autoriser à relever le niveau dans les paramètres du site.
-        </small>
-      </div>
+      {isTeacherProfile ? (
+        <div className="field" data-testid="profile-pedago-content-level">
+          <label htmlFor="profile-pedago-content-level-select">Niveau de contenu</label>
+          <select
+            id="profile-pedago-content-level-select"
+            value={pedagoContentLevel}
+            onChange={(e) => setPedagoContentLevel(e.target.value)}
+          >
+            <option value="">
+              {staffDefaultLevelLabel
+                ? `Niveau de mes groupes (${staffDefaultLevelLabel})`
+                : 'Niveau de mes groupes'}
+            </option>
+            {STAFF_CONTENT_LEVEL_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <small className="profile-content-level__hint">
+            Règle les fiches, le vocabulaire du glossaire, les quiz, les questions de validation et
+            le réseau trophique que tu consultes, comme pour un élève de ce niveau. Tes droits et
+            les écrans de gestion ne changent pas. Sans choix : le niveau le plus haut de tes
+            groupes, sinon le cycle 3. « Complet (vue gestion) » montre tout. Le menu Aperçu simule
+            un autre niveau le temps de la session.
+          </small>
+          {initialFieldsRef.current.pedago_content_level ? (
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm profile-content-level__reset"
+              onClick={resetContentLevel}
+              disabled={contentLevelResetting || loading}
+              data-testid="profile-pedago-content-level-reset"
+            >
+              {contentLevelResetting ? 'Retour…' : 'Revenir au niveau de mes groupes'}
+            </button>
+          ) : null}
+        </div>
+      ) : (
+        <div className="field" data-testid="profile-biodiv-pedago-level">
+          <label>Niveau d’affichage biodiversité</label>
+          <select value={biodivPedagoLevel} onChange={(e) => setBiodivPedagoLevel(e.target.value)}>
+            <option value="">— Hériter (carte / groupe / établissement) —</option>
+            <option value="college">Collège (plus simple)</option>
+            <option value="lycee">Lycée</option>
+            <option value="universite">Université</option>
+          </select>
+          <small style={{ display: 'block', opacity: 0.75, marginTop: 4 }}>
+            Par défaut, cette préférence ne peut que simplifier l’affichage. Un administrateur peut
+            autoriser à relever le niveau dans les paramètres du site.
+          </small>
+        </div>
+      )}
       <div className="field">
         <label>Description</label>
         <MarkdownTextarea

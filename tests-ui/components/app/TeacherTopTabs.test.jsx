@@ -192,14 +192,31 @@ describe('TeacherTopTabs — navigation en 3 pôles (audit D-4)', () => {
     expect(onTabChange).toHaveBeenCalledWith('individuals');
   });
 
-  test('Individus : niveau pédagogique ET interrupteur (masqué au collège même allumé)', () => {
-    const collegeLevel = { canShow: (feature) => feature !== 'individuals_tab' };
+  test('Individus : aperçu collège ET interrupteur (masqué en aperçu collège même allumé)', () => {
+    const collegeLevel = {
+      canShow: (feature) => feature !== 'individuals_tab',
+      managementView: false,
+    };
     render(
       <BiodivPedagoContext.Provider value={collegeLevel}>
         <TeacherTopTabs {...baseProps} tab="stats" individualsEnabled />
       </BiodivPedagoContext.Provider>,
     );
     expect(screen.queryByRole('button', { name: 'Individus' })).toBeNull();
+  });
+
+  test('Individus : écran de gestion, jamais retiré par le niveau de contenu du profil', () => {
+    // Prof dont le profil est au cycle 3 (profil collège), sans aperçu : l'onglet reste.
+    const profilCycle3 = {
+      canShow: (feature) => feature !== 'individuals_tab',
+      managementView: true,
+    };
+    render(
+      <BiodivPedagoContext.Provider value={profilCycle3}>
+        <TeacherTopTabs {...baseProps} tab="individuals" individualsEnabled />
+      </BiodivPedagoContext.Provider>,
+    );
+    expect(screen.getByRole('button', { name: 'Individus' })).toBeInTheDocument();
   });
 
   test('expose l’onglet Carnet dans le pôle Suivi quand le module est actif', () => {

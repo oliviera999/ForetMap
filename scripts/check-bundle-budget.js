@@ -48,7 +48,10 @@ const BUNDLE_BUDGETS = Object.freeze({
     // est chargé à la demande (UI/UX, U1), le code ajouté par CPT quitte l'écran de connexion.
     // 775 → 509 le 21/11/2026 (lot K) : client Socket.IO, Markdown (`marked`, `dompurify`),
     // éditeur riche (`turndown`), écran Séances et popover du glossaire chargés à la demande.
-    jsKb: 509,
+    // 509 → 507 le 22/11/2026 (niveau de contenu des professeurs) : la modale « Connexion
+    // professeur » (`PinModal`, ~4,6 Ko) part à la demande ; le résolveur du niveau de contenu
+    // en reprend ~1,4 Ko. Mesure : 508,8 Ko sur `main`, 504,6 Ko après.
+    jsKb: 507,
     cssKb: 372,
   }),
 });

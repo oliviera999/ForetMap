@@ -62,6 +62,33 @@ export const LEARNER_NIVEAU_ENUM = defineEnum('LEARNER_NIVEAU_ENUM', {
   columns: ['groups.curriculum_niveau'],
 });
 
+/**
+ * **Niveau de contenu d'un compte non élève** (demande du 22/11/2026, migration 387) : un
+ * niveau de l'échelle de l'apprenant, ou `complet` (vue gestion complète, aucune borne). NULL
+ * en base = aucun choix : le niveau des groupes du compte, sinon le cycle 3
+ * (`lib/pedago/learnerLevel.js`).
+ */
+export const STAFF_CONTENT_LEVEL_ENUM = defineEnum('STAFF_CONTENT_LEVEL_ENUM', {
+  values: [...LEARNER_NIVEAU_ENUM.values, 'complet'],
+  labels: { ...LEARNER_NIVEAU_ENUM.labels, complet: 'Complet (vue gestion)' },
+  columns: ['users.pedago_content_level'],
+});
+
+/** Valeur « vue gestion complète » du niveau de contenu d'un compte non élève. */
+export const STAFF_CONTENT_LEVEL_FULL = 'complet';
+
+/**
+ * Niveau de contenu canonique d'un compte non élève (`cycle3` … `universite`, `complet`) ou
+ * `null` si la valeur est vide ou inconnue. Source unique serveur / navigateur.
+ * @param {unknown} value
+ * @returns {string|null}
+ */
+export function normalizeStaffContentLevel(value) {
+  if (value == null) return null;
+  const key = String(value).trim().toLowerCase();
+  return isEnumValue(STAFF_CONTENT_LEVEL_ENUM, key) ? key : null;
+}
+
 /** Niveaux scolaires des notions du programme : aucune notion n'est propre à l'université. */
 export const CURRICULUM_NIVEAU_ENUM = defineSubset(
   'CURRICULUM_NIVEAU_ENUM',

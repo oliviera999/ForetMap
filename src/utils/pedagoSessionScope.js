@@ -10,7 +10,12 @@
  *
  * Même clé de stockage que la séance affichée (`SessionsView.jsx`) : une seule vérité par
  * onglet (`sessionStorage`).
+ *
+ * L'**aperçu de niveau** du menu Aperçu (simulation de session d'un compte non élève) suit le
+ * même chemin : `?pedagoPreview=<niveau>`, que le serveur ignore pour un élève.
  */
+
+import { storedPreviewRaw } from './previewStorage.js';
 
 export const PEDAGO_SESSION_STORAGE_KEY = 'foretmap.pedagoSession.v1';
 
@@ -35,10 +40,20 @@ export function withPedagoSessionParam(path, sessionId = activePedagoSessionId()
   return `${p}${sep}pedagoSession=${encodeURIComponent(sessionId)}`;
 }
 
+/** Ajoute `pedagoPreview=<niveau>` à un chemin d'API (sans rien toucher sans aperçu). */
+export function withPedagoPreviewParam(path, previewLevel = storedPreviewRaw()) {
+  const p = String(path || '');
+  if (!previewLevel || /[?&]pedagoPreview=/.test(p)) return p;
+  const sep = p.includes('?') ? '&' : '?';
+  return `${p}${sep}pedagoPreview=${encodeURIComponent(previewLevel)}`;
+}
+
 /**
- * Enveloppe un client HTTP (`api`) pour qu'il annonce la séance en cours. Réservé aux appels
- * du verrouillage : résumé, épreuve et validation d'une fiche, d'un tutoriel ou d'un terme.
+ * Enveloppe un client HTTP (`api`) pour qu'il annonce la séance en cours et l'aperçu de
+ * niveau. Réservé aux appels du verrouillage : résumé, épreuve et validation d'une fiche, d'un
+ * tutoriel ou d'un terme.
  */
 export function withPedagoSessionScope(request) {
-  return (path, method, body) => request(withPedagoSessionParam(path), method, body);
+  return (path, method, body) =>
+    request(withPedagoPreviewParam(withPedagoSessionParam(path)), method, body);
 }

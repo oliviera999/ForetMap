@@ -2632,6 +2632,9 @@
     .auth-submit { margin-top:4px; }
     .auth-secondary-btn { margin-top:8px; }
     .auth-field-hint { margin:4px 0 0; font-size:var(--text-sm); color:var(--ink-soft); }
+    /* « Mon profil » : niveau de contenu d'un compte non élève (aide + retour au défaut). */
+    .profile-content-level__hint { display:block; margin:4px 0 0; color:var(--ink-soft); }
+    .profile-content-level__reset { margin-top:6px; }
     .auth-forgot { margin-top:10px; border-top:1px solid var(--line); padding-top:10px; }
     .auth-forgot__btn { margin-top:6px; }
     .auth-forgot__reset { margin-top:8px; }

@@ -21,7 +21,11 @@ function LevelProbe() {
   return <output data-testid="level-probe">{level}</output>;
 }
 
-function renderMenu(props = {}, provider = { canTeacherPreview: true }) {
+// Compte non élève qui a choisi « Complet (vue gestion) » dans son profil : l'ancienne vue
+// complète d'office n'existe plus (demande du 22/11/2026).
+const STAFF_COMPLET = { canTeacherPreview: true, staff: true, contentLevel: 'complet' };
+
+function renderMenu(props = {}, provider = STAFF_COMPLET) {
   return render(
     <BiodivPedagoProvider {...provider}>
       <AppPreviewMenu {...baseProps} {...props} />
@@ -87,7 +91,7 @@ describe('AppPreviewMenu — menu Aperçu de l’en-tête', () => {
       .getAllByRole('radio')
       .map((radio) => radio.closest('label').textContent);
     expect(labels).toEqual([
-      'Complet (vue gestion)',
+      'Mon niveau : Complet (vue gestion)',
       'Collège · 6e (cycle 3)',
       'Collège · 3e (cycle 4)',
       'Lycée',
@@ -96,14 +100,33 @@ describe('AppPreviewMenu — menu Aperçu de l’en-tête', () => {
     expect(screen.getByTestId('level-probe')).toHaveTextContent('college');
   });
 
-  test('vue gestion : l’option automatique s’appelle « Complet »', () => {
+  test('choix « Complet » du profil : l’option sans aperçu le rappelle', () => {
     renderMenu();
     const panel = openPanel();
-    expect(within(panel).getByLabelText('Complet (vue gestion)')).toBeChecked();
+    expect(within(panel).getByLabelText('Mon niveau : Complet (vue gestion)')).toBeChecked();
+  });
+
+  test('sans choix ni groupe : l’option sans aperçu annonce le cycle 3 par défaut', () => {
+    renderMenu({}, { canTeacherPreview: true, staff: true });
+    expect(screen.getByTestId('level-probe')).toHaveTextContent('college');
+    const panel = openPanel();
+    expect(
+      within(panel).getByLabelText('Mon niveau : Cycle 3 (CM1–6e) — par défaut'),
+    ).toBeChecked();
+  });
+
+  test('« Quitter l’aperçu » ramène au niveau du profil, plus à la vue complète d’office', () => {
+    sessionStorage.setItem('foretmap.biodivPedagoPreview', 'lycee');
+    renderMenu({}, { canTeacherPreview: true, staff: true, contentLevel: 'cycle4' });
+    expect(screen.getByTestId('level-probe')).toHaveTextContent('lycee');
+    const panel = openPanel();
+    fireEvent.click(within(panel).getByRole('button', { name: 'Quitter l’aperçu' }));
+    expect(screen.getByTestId('level-probe')).toHaveTextContent('college');
+    expect(within(panel).getByLabelText('Mon niveau : Cycle 4 (5e–3e) — mon choix')).toBeChecked();
   });
 
   test('vue n3beur simulée : l’option automatique suit la carte et le groupe', () => {
-    renderMenu({ roleViewMode: 'student' }, { canTeacherPreview: true, fullViewByDefault: false });
+    renderMenu({ roleViewMode: 'student' }, { canTeacherPreview: true, staff: false });
     expect(screen.getByTestId('level-probe')).toHaveTextContent('college');
     const panel = openPanel();
     expect(within(panel).getByLabelText('Automatique (carte et groupe)')).toBeChecked();

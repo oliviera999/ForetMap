@@ -24,6 +24,10 @@ import {
   etapeForLearnerNiveau,
   highestLearnerNiveau,
 } from './pedagoScales.js';
+import {
+  normalizeStaffContentLevel,
+  STAFF_CONTENT_LEVEL_FULL,
+} from '../shared/enums/pedagoEnums.js';
 
 /** Palier maximal d'une étape quand le niveau n'est pas connu. */
 export const ETAPE_MAX_PALIER = Object.freeze({ college: 2, lycee: 5, universite: null });
@@ -32,12 +36,14 @@ export const ETAPE_MAX_PALIER = Object.freeze({ college: 2, lycee: 5, universite
 export const LEARNER_LEVEL_SOURCES = Object.freeze([
   'invite',
   'apercu',
-  'vue_complete',
   'seance',
+  'profil',
+  'vue_complete',
   'classe',
   'groupe',
   'carte',
   'site',
+  'defaut',
 ]);
 
 /** Étape + niveaux du programme → palier maximal. */
@@ -86,12 +92,43 @@ function buildLearnerLevel({ niveau, contentEtape, etape = contentEtape, source,
   };
 }
 
+/** Niveau par défaut d'un compte non élève sans choix ni groupe avec un niveau. */
+export const STAFF_DEFAULT_NIVEAU = 'cycle3';
+
+/**
+ * Niveau de contenu d'un compte non élève, hors aperçu et hors séance : choix explicite du
+ * profil (`complet` = vue gestion, aucune borne), sinon le plus haut niveau de ses groupes,
+ * sinon le cycle 3. Aucun repli hérité (étape de groupe, carte, établissement) et aucune
+ * préférence d'affichage : le niveau choisi est appliqué tel quel.
+ */
+function resolveStaffLevel(contentLevel, classNiveau) {
+  const choice = normalizeStaffContentLevel(contentLevel);
+  if (choice === STAFF_CONTENT_LEVEL_FULL) {
+    return buildLearnerLevel({
+      niveau: 'universite',
+      contentEtape: 'universite',
+      source: 'vue_complete',
+    });
+  }
+  let niveau = STAFF_DEFAULT_NIVEAU;
+  let source = 'defaut';
+  if (choice) {
+    niveau = choice;
+    source = 'profil';
+  } else if (classNiveau) {
+    niveau = classNiveau;
+    source = 'classe';
+  }
+  return buildLearnerLevel({ niveau, contentEtape: etapeForLearnerNiveau(niveau), source });
+}
+
 /** Résout le niveau d'un apprenant à partir de ses entrées (voir le module serveur). */
 export function resolveLearnerLevel(input = {}) {
   const {
     isGuest = false,
     teacherPreview = null,
-    teacherFullView = false,
+    staff = false,
+    contentLevel = null,
     session = null,
     classNiveaux = [],
     groupLevels = [],
@@ -115,16 +152,10 @@ export function resolveLearnerLevel(input = {}) {
       source: 'apercu',
     });
   }
-  if (teacherFullView) {
-    return buildLearnerLevel({
-      niveau: 'universite',
-      contentEtape: 'universite',
-      source: 'vue_complete',
-    });
-  }
 
   const classNiveau = highestLearnerNiveau(classNiveaux);
   const sessionNiveaux = sessionLearnerNiveaux(session);
+  if (staff && sessionNiveaux.length === 0) return resolveStaffLevel(contentLevel, classNiveau);
   let niveau = null;
   let legacyEtape = null;
   let source;
@@ -150,7 +181,10 @@ export function resolveLearnerLevel(input = {}) {
   }
 
   const contentEtape = niveau ? etapeForLearnerNiveau(niveau) : legacyEtape;
-  const etape = applyDisplayPreference(contentEtape, userPreference, prefCanRaise);
+  // La préférence d'affichage est celle d'un élève : un compte non élève règle son niveau.
+  const etape = staff
+    ? contentEtape
+    : applyDisplayPreference(contentEtape, userPreference, prefCanRaise);
   return buildLearnerLevel({
     niveau,
     contentEtape,

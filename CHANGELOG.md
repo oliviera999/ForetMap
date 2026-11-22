@@ -9,6 +9,40 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — niveau de contenu des professeurs et du personnel (« Mon profil »)
+
+**Changement visible :** un compte non élève sans groupe, qui voyait jusqu'ici la vue complète,
+voit désormais le contenu du **cycle 3** par défaut. Pour retrouver l'ancienne vue : **Mon
+profil → Niveau de contenu → Complet (vue gestion) → Enregistrer** (demande du 22/11/2026).
+
+- **Migration `387_users_pedago_content_level`** : colonne `users.pedago_content_level`
+  (VARCHAR, NULL = aucun choix). Domaine `STAFF_CONTENT_LEVEL_ENUM` (niveaux de l'apprenant +
+  `complet`) dans le référentiel des énumérations. Structure seule : le défaut est calculé,
+  jamais écrit.
+- **Résolveur unique** (`lib/pedago/learnerLevel.js`, miroir `src/utils/learnerLevel.js`) :
+  visite invitée > aperçu (session) > séance en cours > **choix du profil** > **plus haut niveau
+  des groupes du compte** (héritage compris) > **cycle 3**. La vue complète d'office du
+  professeur (`teacherFullView`) disparaît au profit du choix « Complet ». Côté serveur, les
+  comptes non élèves ne sont plus « sans filtre » : verrouillage, glossaire et tutoriels suivent
+  leur niveau de contenu (`complet` = comportement antérieur).
+- **Aperçu** : simulation de session qui passe devant le profil ; « Quitter l'aperçu » ramène
+  au niveau du profil. Les appels du verrouillage annoncent l'aperçu (`?pedagoPreview=`), cru
+  pour un compte non élève seulement.
+- **API** : `PATCH /api/auth/me/profile` accepte `pedago_content_level` (400 si inconnu, 403
+  pour un élève, `null` = retour au niveau des groupes) ; `PATCH /api/students/:id/profile`
+  le refuse (403) ; `GET /api/auth/me` l'expose dans `profile`, et `learnerLevel` n'est plus
+  `null` pour un compte non élève.
+- **Mon profil** : sélecteur « Niveau de contenu » (défaut annoncé, bouton « Revenir au niveau
+  de mes groupes ») à la place de l'ancienne préférence d'affichage, sans effet pour ces comptes.
+  Élèves inchangés.
+- **Écrans de gestion préservés** : l'onglet Individus et ses estimations restent complets hors
+  aperçu, quel que soit le niveau de contenu (`managementView`).
+- **Connecteur MCP** : `foretmap_rbac` gagne l'action `content_levels` (lecture).
+- **Bundle de l'écran de connexion** : la modale « Connexion professeur » (`PinModal`) est
+  chargée à la demande, et les libellés du niveau de contenu ne partent qu'avec le menu Aperçu
+  et « Mon profil ». JS de connexion 508,8 → 504,6 Ko ; plafond abaissé de 509 à 507 Ko.
+- Doc de référence (`niveaux-pedagogiques-biodiversite.md`, guide du prof, comptes), `API.md`,
+  `MCP.md`.
 ### Modifié — prise de contrôle sans double authentification
 
 - `POST /api/auth/admin/impersonate` ne refuse plus une session administrateur non validée

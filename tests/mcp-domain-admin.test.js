@@ -159,6 +159,30 @@ test('rbac : profils, permissions, accorder / retirer, attribuer un profil (effe
   assert.equal(primary.slug, 'eleve_avance');
 });
 
+test('rbac : niveau de contenu des comptes non élèves (choix, niveau résolu, origine)', async () => {
+  const prof = await fx.createAccount('prof');
+  const none = await call('foretmap_rbac', { action: 'content_levels', user_id: prof.id });
+  assert.equal(none.isError, false, none.text);
+  assert.equal(none.data.items.length, 1);
+  assert.equal(none.data.items[0].choix, null);
+  assert.equal(none.data.items[0].niveau, 'cycle3');
+  assert.equal(none.data.items[0].source, 'defaut');
+
+  await execute("UPDATE users SET pedago_content_level = 'complet' WHERE id = ?", [prof.id]);
+  const full = await call('foretmap_rbac', { action: 'content_levels', user_id: prof.id });
+  assert.equal(full.data.items[0].choix, 'complet');
+  assert.equal(full.data.items[0].source, 'vue_complete');
+  assert.equal(full.data.items[0].max_palier, null);
+
+  // Un élève n'est pas un compte non élève : introuvable pour cette action.
+  const eleve = await call('foretmap_rbac', { action: 'content_levels', user_id: studentId });
+  assert.equal(eleve.isError, true);
+  const list = await call('foretmap_rbac', { action: 'content_levels', limit: 500 });
+  assert.equal(list.isError, false, list.text);
+  assert.ok(list.data.items.some((r) => r.user_id === prof.id));
+  assert.ok(list.data.items.every((r) => r.user_id !== studentId));
+});
+
 test('audit_log : requête filtrée par via et préfixe ; journal de sécurité', async () => {
   const q = await call('foretmap_audit_log', {
     action: 'query',

@@ -3,7 +3,6 @@ import { api, saveStoredSession, withAppBase } from '../services/api';
 import { getRoleTerms } from '../utils/n3-terminology';
 import { getContentText } from '../utils/content';
 import { getAppCredits } from '../utils/appCredits.js';
-import { PinModal } from './auth/PinModal.jsx';
 import { TotpChallenge, TotpSetupSuggestion } from './auth/TotpChallenge.jsx';
 import { startGoogleAuth } from './auth/startGoogleAuth.js';
 import { IconWarning } from '../shared/icons.jsx';
@@ -681,4 +680,4 @@ function AuthScreen({
   );
 }
 
-export { PinModal, AuthScreen };
+export { AuthScreen };
