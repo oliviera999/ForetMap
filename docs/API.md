@@ -2208,10 +2208,12 @@ requête, une session **sans** `mfa` d'un compte soumis est refusée
 `401 { code: 'SESSION_REVOKED', reason: 'mfa_required' }` quand le réglage vaut `required`, ou
 quand le compte est enrôlé (réglage ≠ `off`).
 
-**Prise de contrôle** — `POST /api/auth/admin/impersonate` exige une session administrateur
-validée par le second facteur (`403 { code: 'MFA_REQUIRED' }` sinon, réglage ≠ `off`) ; le
-jeton porte `actorMfa`, vérifié à chaque requête (`reason: 'actor_mfa_required'`), et
-`…/impersonate/stop` rend une session administrateur toujours validée.
+**Prise de contrôle** — `POST /api/auth/admin/impersonate` **n'exige pas** de second facteur :
+toute session administrateur valide (au sens de la politique ci-dessus) peut prendre la main,
+dans les limites de rang. Le compte contrôlé n'est pas soumis au contrôle `mfa_required`. Le
+jeton porte `actorMfa` quand la session de l'administrateur était validée à l'ouverture ;
+`…/impersonate/stop` rend alors une session administrateur toujours validée (sinon, une
+session sans `mfa`).
 
 **Journal de sécurité** (`security_events`) : `auth.totp.challenge`, `auth.totp.enroll_start`,
 `auth.totp.enroll`, `auth.totp.verify` (succès / échec avec `reason`), `auth.totp.backup_code_used`,

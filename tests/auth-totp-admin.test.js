@@ -159,31 +159,45 @@ test('réinitialisation refusée : session admin non validée, son propre compte
   assert.equal((await store.getTotpStatus(prof.id)).enabled, true);
 });
 
-test('prise de contrôle : réservée à une session administrateur validée par le second facteur', async () => {
+test('prise de contrôle : ne demande pas la double authentification', async () => {
   await setSetting(ENFORCEMENT_KEY, 'enroll', {});
   const admin = await createAccount({ roleSlug: 'admin' });
   const target = await createAccount({ roleSlug: 'prof' });
+  // Administrateur non enrôlé (réglage `enroll`) : session sans second facteur validé.
   const plain = await sessionToken(admin.id);
-  const refused = await request(app)
+  const started = await request(app)
     .post('/api/auth/admin/impersonate')
     .set('Authorization', `Bearer ${plain}`)
     .send({ userType: 'teacher', userId: target.id })
-    .expect(403);
-  assert.equal(refused.body.code, 'MFA_REQUIRED');
+    .expect(200);
+  assert.equal(started.body.auth.impersonating, true);
+  // La session contrôlée vit même quand la double authentification est obligatoire, et le
+  // compte contrôlé (n3boss non enrôlé) n'a pas à valider de second facteur.
+  await setSetting(ENFORCEMENT_KEY, 'required', {});
+  await request(app)
+    .get('/api/auth/me')
+    .set('Authorization', `Bearer ${started.body.authToken}`)
+    .expect(200);
+  await setSetting(ENFORCEMENT_KEY, 'enroll', {});
+  const stopped = await request(app)
+    .post('/api/auth/admin/impersonate/stop')
+    .set('Authorization', `Bearer ${started.body.authToken}`)
+    .send({})
+    .expect(200);
+  assert.equal(!!stopped.body.auth.mfa, false);
+});
 
+test('prise de contrôle depuis une session validée : la sortie rend une session validée', async () => {
+  await setSetting(ENFORCEMENT_KEY, 'enroll', {});
+  const admin = await createAccount({ roleSlug: 'admin' });
+  const target = await createAccount({ roleSlug: 'prof' });
   const validated = await sessionToken(admin.id, { mfa: true });
   const started = await request(app)
     .post('/api/auth/admin/impersonate')
     .set('Authorization', `Bearer ${validated}`)
     .send({ userType: 'teacher', userId: target.id })
     .expect(200);
-  // La session contrôlée vit même quand la double authentification est obligatoire : c'est
-  // l'administrateur, et non le compte contrôlé, qui a validé son second facteur.
   await setSetting(ENFORCEMENT_KEY, 'required', {});
-  await request(app)
-    .get('/api/auth/me')
-    .set('Authorization', `Bearer ${started.body.authToken}`)
-    .expect(200);
   const stopped = await request(app)
     .post('/api/auth/admin/impersonate/stop')
     .set('Authorization', `Bearer ${started.body.authToken}`)
@@ -196,12 +210,12 @@ test('prise de contrôle : réservée à une session administrateur validée par
     .expect(200);
 });
 
-test('prise de contrôle ouverte sans second facteur validé : révoquée quand le réglage l’exige', async () => {
+test('prise de contrôle sans `actorMfa` : non révoquée même quand le réglage l’exige', async () => {
   await setSetting(ENFORCEMENT_KEY, 'required', {});
   const admin = await createAccount({ roleSlug: 'admin' });
   const target = await createAccount({ roleSlug: 'prof' });
   const row = await queryOne('SELECT token_epoch FROM users WHERE id = ?', [admin.id]);
-  const forged = await signAuthToken({
+  const token = await signAuthToken({
     userType: 'teacher',
     userId: target.id,
     impersonating: true,
@@ -209,11 +223,7 @@ test('prise de contrôle ouverte sans second facteur validé : révoquée quand 
     actorUserId: admin.id,
     actorTokenEpoch: Number(row.token_epoch || 0),
   });
-  const res = await request(app)
-    .get('/api/auth/me')
-    .set('Authorization', `Bearer ${forged}`)
-    .expect(401);
-  assert.equal(res.body.code, 'SESSION_REVOKED');
+  await request(app).get('/api/auth/me').set('Authorization', `Bearer ${token}`).expect(200);
 });
 
 test('script serveur : réinitialise le second facteur du dernier administrateur, journalisé « cli »', async () => {
