@@ -5852,7 +5852,9 @@ maximale ; un terme sans profondeur connue est gardé. Effets : l'index d'auto-l
 par défaut (bouton « Pour aller plus loin »), et `GET /api/glossary/terms/:code` reste ouvert pour
 tout terme. Côté serveur, `lib/foretmapGlossaryAutolink.js` expose `glossaryDepthMaxForLearner`,
 `createGlossaryEntriesByDepth` et `glossaryDepthCacheKey` pour l'auto-lien des tutoriels
-(`GET /api/tutorials/:id/view`, câblage de la route à l'intégration). Le cœur partagé avec G&L
+(`GET /api/tutorials/:id/view`) : pour une requête **authentifiée**, seuls les termes du palier de
+l'élève sont liés, et le palier entre dans la clé du cache de sortie ; une requête sans jeton
+(aperçu en iframe) garde l'auto-lien complet. Le cœur partagé avec G&L
 (`termAutolinkCore`) n'est pas modifié.
 
 Réglages site GL (table `gl_settings`), dérivés du même catalogue que ForetMap : `gating.enabled`
