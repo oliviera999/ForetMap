@@ -103,9 +103,11 @@ test('contenus du 20/11 : notions de cycle 3 ajoutées, notions de lycée hérit
       WHERE n.${RANGE}`,
   );
   // 168 lignes posées le 20/11 ; la migration `college_quiz_paliers` (chantier collège, retri
-  // des paliers) retouche ensuite ces questions : 200 lignes sur une base semée par les
-  // migrations.
-  assert.equal(notions.length, 200);
+  // des paliers) retouche ensuite ces questions : 220 lignes sur une base semée par les
+  // migrations (200 avant que `college_referentiel_notions` ne sème, avant le retri, les
+  // liaisons catégorie → notions de la production : le retri y pose alors les mêmes
+  // exclusions qu'en production).
+  assert.equal(notions.length, 220);
   // Chaque question a sa ligne de notions : au moins un ajout ou une exclusion.
   for (const q of questions) {
     assert.ok(
