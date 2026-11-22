@@ -25,6 +25,7 @@ import {
   computeTrophicLayout,
   computeTrophicLevelLayout,
   computeTrophicLevels,
+  elsewhereText,
   focusSubset,
   isEnvNodeId,
   itemsForPreset,
@@ -742,7 +743,9 @@ export function FoodWebGraph({
       if (isEnvNodeId(node.id)) {
         return `${node.name} (sol, air, lumière) — clic : isoler ses liens`;
       }
-      const scope = node.outOfScope ? ' — hors du périmètre filtré' : '';
+      const scope = node.outOfScope
+        ? ` — ${elsewhereText(node.elsewhere) ?? 'hors du périmètre filtré'}`
+        : '';
       const level = trophicLevels.get(node.id);
       const levelPart = Number.isFinite(level) ? ` — ${trophicLevelTitle(level)}` : '';
       const role = node.role ? ` (${trophicRoleText(node.role)})` : '';
@@ -756,7 +759,9 @@ export function FoodWebGraph({
       if (isEnvNodeId(node.id)) {
         return `${node.name} — Entrée : isoler ses liens`;
       }
-      const scope = node.outOfScope ? ', hors du périmètre filtré' : '';
+      const scope = node.outOfScope
+        ? `, ${elsewhereText(node.elsewhere) ?? 'hors du périmètre filtré'}`
+        : '';
       const level = trophicLevels.get(node.id);
       const levelPart = Number.isFinite(level) ? `, ${trophicLevelTitle(level)}` : '';
       const selected = focusIds.has(node.id) ? ', sélectionnée' : '';

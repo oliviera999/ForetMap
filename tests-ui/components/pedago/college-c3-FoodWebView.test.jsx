@@ -135,20 +135,19 @@ describe('réseau trophique — 6e (cycle 3)', () => {
     await screen.findByText('Espèces phares de la carte');
     const featuredList = screen.getByText('Espèces phares de la carte').nextElementSibling;
     expect(within(featuredList).getByRole('button', { name: 'Renard' })).toBeTruthy();
-    // Espèce hors carte jamais proposée.
-    expect(screen.queryByRole('button', { name: 'Poule' })).toBeNull();
+    // Espèce hors carte : proposée aussi (décision 1 du 22/11/2026, grisée mais choisissable).
+    expect(screen.getByRole('button', { name: 'Poule' })).toBeTruthy();
   });
 
-  it('profondeur 1 puis 2, espèces hors carte masquées', async () => {
+  it('profondeur 1 puis 2, espèces hors carte gardées (grisées)', async () => {
     mockApi({ featured: [3] });
     renderView();
     fireEvent.click(await screen.findByRole('button', { name: 'Renard' }));
     await screen.findByTestId('foodweb-graph');
-    expect(graphItems()).toEqual(['arête 2']);
+    expect(graphItems().sort()).toEqual(['arête 2', 'arête 5']);
     expect(screen.getByTestId('foodweb-graph').dataset.highlight).toBe('3');
     fireEvent.click(screen.getByRole('button', { name: 'Chaîne' }));
-    expect(graphItems().sort()).toEqual(['arête 1', 'arête 2']);
-    expect(graphItems()).not.toContain('arête 5');
+    expect(graphItems().sort()).toEqual(['arête 1', 'arête 2', 'arête 5']);
     fireEvent.click(screen.getByRole('button', { name: /Changer d.espèce/ }));
     await screen.findByText('Choisis une espèce de départ');
   });
@@ -164,13 +163,13 @@ describe('réseau trophique — 6e (cycle 3)', () => {
     expect(screen.queryByText(/compétition/i)).toBeNull();
   });
 
-  it('espèce mise en avant sans lien montré : message clair, pas de graphe vide', async () => {
+  it('espèce hors carte mise en avant : son lien est montré, plus de message « non montrée »', async () => {
     mockApi();
-    // La Poule n'a qu'un lien, vers une espèce… sur la carte, mais elle-même est hors carte.
+    // La Poule est hors carte : son lien avec le Renard reste (elle est grisée par le graphe).
     renderView({ highlightPlantId: 6 });
-    await screen.findByText(/des relations existent, mais aucune n.est montrée ici/);
-    expect(screen.queryByTestId('foodweb-graph')).toBeNull();
-    expect(screen.getByText('Choisis une espèce de départ')).toBeTruthy();
+    await screen.findByTestId('foodweb-graph');
+    expect(graphItems()).toEqual(['arête 5']);
+    expect(screen.queryByText(/aucune n.est montrée ici/)).toBeNull();
   });
 
   it('arrivée depuis une fiche : le réseau s’ouvre sur l’espèce', async () => {

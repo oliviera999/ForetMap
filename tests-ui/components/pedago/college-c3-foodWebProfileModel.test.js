@@ -25,15 +25,15 @@ const row = (id, type, from, to, extra = {}) => ({
 
 describe('foodWebProfile', () => {
   it('lycée / prof : réseau complet, profondeurs historiques', () => {
-    const p = foodWebProfile({ fullByDefault: true, offMapSpecies: true });
+    const p = foodWebProfile({ fullByDefault: true });
     expect(p.collegeMode).toBe(false);
-    expect(p.hideOffMap).toBe(false);
+    expect(p).not.toHaveProperty('hideOffMap');
     expect(p.focusDepths).toBe(FOCUS_DEPTHS);
   });
-  it('collège : espèce de départ, profondeurs 1 et 2, hors carte masqué', () => {
-    const p = foodWebProfile({ fullByDefault: false, offMapSpecies: false, allowedTypes: ['a'] });
+  it('collège : profondeurs 1 et 2, hors carte jamais masqué', () => {
+    const p = foodWebProfile({ fullByDefault: false, allowedTypes: ['a'] });
     expect(p.collegeMode).toBe(true);
-    expect(p.hideOffMap).toBe(true);
+    expect(p).not.toHaveProperty('hideOffMap');
     expect([...p.focusDepths]).toEqual([1, 2]);
     expect(p.allowedTypes).toEqual(['a']);
   });
@@ -49,15 +49,14 @@ describe('filterItemsForProfile', () => {
   it('sans profil : tout passe', () => {
     expect(filterItemsForProfile(items, {})).toHaveLength(4);
   });
-  it('types hors palier et espèces hors carte retirés', () => {
+  it('types hors palier retirés, liens hors carte gardés (décision 1 du 22/11/2026)', () => {
     const out = filterItemsForProfile(items, {
       allowedTypes: ['predation', 'herbivorie', 'decomposition'],
-      hideOffMap: true,
     });
-    expect(out.map((r) => r.id)).toEqual([1, 4]);
+    expect(out.map((r) => r.id)).toEqual([1, 3, 4]);
   });
-  it('hors carte gardé quand le profil le montre', () => {
-    expect(filterItemsForProfile(items, { hideOffMap: false }).map((r) => r.id)).toContain(3);
+  it('une ancienne option `hideOffMap` est sans effet', () => {
+    expect(filterItemsForProfile(items, { hideOffMap: true }).map((r) => r.id)).toContain(3);
   });
 });
 

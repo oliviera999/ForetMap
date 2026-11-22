@@ -59,7 +59,7 @@ function SeedNotice({ statuses }) {
           {hidden.length > 0 ? (
             <>
               {names(hidden)} : des relations existent, mais aucune n&apos;est montrée ici (à ton
-              niveau, sur cette carte ou dans ce cadrage).{' '}
+              niveau ou dans ce cadrage).{' '}
             </>
           ) : null}
           {absent.length > 0 ? (

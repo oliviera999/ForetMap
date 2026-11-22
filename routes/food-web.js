@@ -12,6 +12,7 @@ const {
   makeFoodWebStore,
 } = require('../lib/shared/foodWebCore');
 const { mapPresenceSubquery, zonePresenceSubquery } = require('../lib/biodiv/presenceService');
+const { FOODWEB_ALWAYS_IN_SCOPE_ENTITY_KINDS } = require('../lib/shared/biodivEnums');
 const { logAudit } = require('../lib/auditLog');
 
 const router = express.Router();
@@ -78,6 +79,14 @@ const FOOD_WEB_SELECT = `fw.id, fw.interaction_type, fw.from_id, fw.from_name, f
                 fw.evidence_level, fw.pollination_efficacy, fw.source_ref`;
 
 /**
+ * Fiches toujours dans le périmètre (ressources, consortiums, groupes fonctionnels :
+ * `FOODWEB_ALWAYS_IN_SCOPE_ENTITY_KINDS`) — jamais rattachées à une carte, comme l'extrémité
+ * « environnement ». Sous-requête paramétrée, calculée dans la requête : la vue `v_food_web`
+ * n'est pas modifiée.
+ */
+const ALWAYS_IN_SCOPE_SQL = `(SELECT p.id FROM plants p WHERE p.entity_kind IN (${FOODWEB_ALWAYS_IN_SCOPE_ENTITY_KINDS.map(() => '?').join(', ')}))`;
+
+/**
  * Filtre de périmètre (zone ou carte) pour une relation.
  *
  * Une relation est retenue dès qu'**une** de ses extrémités est dans le
@@ -87,11 +96,18 @@ const FOOD_WEB_SELECT = `fw.id, fw.interaction_type, fw.from_id, fw.from_name, f
  * l'inverse de ce qu'un réseau trophique montre. Les colonnes
  * `from_in_scope` / `to_in_scope` disent à l'interface quelle extrémité est
  * hors périmètre, pour qu'elle la marque au lieu de la masquer.
+ *
+ * **Une seule notion de périmètre** (chantier collège du 22/11/2026, lot 1) : une extrémité
+ * est dans le périmètre si l'espèce y est présente (service de présence), si c'est
+ * l'environnement (`to_id` nul) ou si la fiche est une ressource, un consortium ou un groupe
+ * fonctionnel. La rétention, elle, exige toujours une espèce présente : une ressource seule ne
+ * fait pas entrer dans le réseau d'une carte les liens d'autres lieux.
  */
 function scopedFoodWebQuery(inventorySubquery) {
   return `SELECT ${FOOD_WEB_SELECT},
-                 (fw.from_id IN ${inventorySubquery}) AS from_in_scope,
-                 (fw.to_id IS NULL OR fw.to_id IN ${inventorySubquery}) AS to_in_scope
+                 (fw.from_id IN ${inventorySubquery} OR fw.from_id IN ${ALWAYS_IN_SCOPE_SQL}) AS from_in_scope,
+                 (fw.to_id IS NULL OR fw.to_id IN ${inventorySubquery}
+                   OR fw.to_id IN ${ALWAYS_IN_SCOPE_SQL}) AS to_in_scope
             FROM v_food_web fw
            WHERE fw.from_id IN ${inventorySubquery}
               OR fw.to_id IN ${inventorySubquery}
@@ -99,11 +115,91 @@ function scopedFoodWebQuery(inventorySubquery) {
 }
 
 /**
- * Requête de périmètre complète : la sous-requête de présence apparaît quatre fois, ses
- * paramètres sont donc répétés quatre fois, dans l'ordre d'apparition.
+ * Paramètres de la requête de périmètre, dans l'ordre d'apparition des sous-requêtes :
+ * présence puis natures (deux fois, colonnes de périmètre), puis présence (deux fois, filtre).
  */
 function scopedFoodWebParams(presence) {
-  return [...presence.params, ...presence.params, ...presence.params, ...presence.params];
+  const kinds = [...FOODWEB_ALWAYS_IN_SCOPE_ENTITY_KINDS];
+  return [
+    ...presence.params,
+    ...kinds,
+    ...presence.params,
+    ...kinds,
+    ...presence.params,
+    ...presence.params,
+  ];
+}
+
+/** `from_in_scope` / `to_in_scope` : 1/0 de MySQL ; l'absence de colonne vaut « dans le périmètre ». */
+function readInScope(value) {
+  return value == null ? true : Boolean(Number(value));
+}
+
+/**
+ * Cartes où vivent les espèces données (même définition que le service de présence : registre,
+ * zones, repères), en **une** requête — pas de N+1 sur un gros réseau (dayat, ~790 liens).
+ * Seules les cartes actives sont citées. Chaque canal joint `maps` : l'union porte sur des
+ * colonnes de la même table (aucune collation mêlée).
+ *
+ * @param {number[]} plantIds
+ * @returns {Promise<Map<number, { id: string, label: string }[]>>}
+ */
+async function loadSpeciesMaps(plantIds) {
+  const ids = [...new Set(plantIds.map(Number).filter((id) => Number.isInteger(id) && id > 0))];
+  const out = new Map();
+  if (ids.length === 0) return out;
+  const ph = ids.map(() => '?').join(', ');
+  const rows = await queryAll(
+    `SELECT pr.plant_id, pr.map_id, pr.map_label, pr.sort_order FROM (
+        SELECT ms.plant_id, mp.id AS map_id, mp.label AS map_label, mp.sort_order
+          FROM map_species ms JOIN maps mp ON mp.id = ms.map_id
+         WHERE ms.plant_id IN (${ph}) AND mp.is_active = 1
+        UNION
+        SELECT zs.plant_id, mp.id, mp.label, mp.sort_order
+          FROM zone_species zs JOIN zones z ON z.id = zs.zone_id JOIN maps mp ON mp.id = z.map_id
+         WHERE zs.plant_id IN (${ph}) AND mp.is_active = 1
+        UNION
+        SELECT mk.plant_id, mp.id, mp.label, mp.sort_order
+          FROM marker_species mk JOIN map_markers m ON m.id = mk.marker_id
+          JOIN maps mp ON mp.id = m.map_id
+         WHERE mk.plant_id IN (${ph}) AND mp.is_active = 1
+      ) pr
+      ORDER BY pr.plant_id ASC, pr.sort_order ASC, pr.map_label ASC`,
+    [...ids, ...ids, ...ids],
+  );
+  for (const row of rows) {
+    const key = Number(row.plant_id);
+    if (!out.has(key)) out.set(key, []);
+    const list = out.get(key);
+    if (!list.some((m) => m.id === String(row.map_id))) {
+      list.push({
+        id: String(row.map_id),
+        label: row.map_label == null ? '' : String(row.map_label),
+      });
+    }
+  }
+  return out;
+}
+
+/**
+ * Ajoute `from_elsewhere` / `to_elsewhere` à chaque ligne d'un réseau cadré : pour une
+ * extrémité hors périmètre, les cartes (id, libellé) où l'espèce est présente — liste vide si
+ * elle n'est rattachée à aucune carte ; pour une extrémité dans le périmètre, liste vide.
+ * L'interface en tire la mention « vit ailleurs : … » du nœud grisé.
+ */
+async function attachElsewhere(items) {
+  const outside = [];
+  for (const row of items) {
+    if (!readInScope(row.from_in_scope)) outside.push(row.from_id);
+    if (row.to_id != null && !readInScope(row.to_in_scope)) outside.push(row.to_id);
+  }
+  const byPlant = await loadSpeciesMaps(outside);
+  const mapsOf = (id, inScope) => (inScope ? [] : byPlant.get(Number(id)) || []);
+  return items.map((row) => ({
+    ...row,
+    from_elsewhere: mapsOf(row.from_id, readInScope(row.from_in_scope)),
+    to_elsewhere: row.to_id == null ? [] : mapsOf(row.to_id, readInScope(row.to_in_scope)),
+  }));
 }
 
 /** GET /api/food-web?mapId=&zoneId= */
@@ -120,8 +216,8 @@ router.get(
       // Espèces de la zone : même définition que le service de présence (jonction de zone),
       // identique à la vue historique `v_zone_inventory`.
       const inv = zonePresenceSubquery(zoneId);
-      const items = await queryAll(scopedFoodWebQuery(inv.sql), scopedFoodWebParams(inv));
-      return res.json({ zoneId, items });
+      const rows = await queryAll(scopedFoodWebQuery(inv.sql), scopedFoodWebParams(inv));
+      return res.json({ zoneId, items: await attachElsewhere(rows) });
     }
 
     if (mapId) {
@@ -131,8 +227,8 @@ router.get(
       // Espèces présentes sur la carte : définition commune (registre, zones, repères —
       // `lib/biodiv/presenceService.js`), la même que le catalogue et les groupes emboîtés.
       const inv = mapPresenceSubquery(mapId);
-      const items = await queryAll(scopedFoodWebQuery(inv.sql), scopedFoodWebParams(inv));
-      return res.json({ mapId, items });
+      const rows = await queryAll(scopedFoodWebQuery(inv.sql), scopedFoodWebParams(inv));
+      return res.json({ mapId, items: await attachElsewhere(rows) });
     }
 
     const items = await queryAll(
@@ -143,6 +239,30 @@ router.get(
         ORDER BY interaction_type ASC, from_name ASC, to_name ASC`,
     );
     return res.json({ items });
+  }),
+);
+
+const plantIdParamsSchema = z.unknown().superRefine((p, ctx) => {
+  const id = Number(p == null ? NaN : p.id);
+  if (!Number.isInteger(id) || id <= 0) {
+    ctx.addIssue({ code: 'custom', message: 'Identifiant invalide', path: [] });
+  }
+});
+
+/**
+ * GET /api/food-web/species/:id/maps — cartes actives où l'espèce est présente (registre,
+ * zones, repères). Sert à « Voir le réseau trophique » depuis une fiche : ouvrir une carte où
+ * l'espèce vit (chantier collège du 22/11/2026, lot 3).
+ */
+router.get(
+  '/species/:id/maps',
+  validate({ params: plantIdParamsSchema }),
+  asyncHandler(async (req, res) => {
+    const plantId = Number(req.params.id);
+    const plant = await queryOne('SELECT id FROM plants WHERE id = ? LIMIT 1', [plantId]);
+    if (!plant) return res.status(404).json({ error: 'Espèce introuvable' });
+    const byPlant = await loadSpeciesMaps([plantId]);
+    return res.json({ plantId, maps: byPlant.get(plantId) || [] });
   }),
 );
 

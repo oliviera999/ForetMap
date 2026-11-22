@@ -68,3 +68,30 @@
 .pedago-foodweb__selected-dot--typed {
   background: var(--fw-edge-color);
 }
+
+/* Espèces hors de la carte (décision 1 du 22/11/2026) : montrées, grisées, avec la mention
+   « vit ailleurs : … ». Le graphe garde son trait pointillé, la teinte passe au gris. */
+.pedago-foodweb-graph__node--outside {
+  fill: var(--surface-sunken);
+  stroke: var(--ink-dim);
+}
+
+.pedago-foodweb__node-wrap {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.pedago-foodweb__node--outside {
+  border-style: dashed;
+  color: var(--ink-dim);
+  background: var(--surface-sunken);
+  min-height: var(--tap-target, 44px);
+}
+
+.pedago-foodweb__elsewhere {
+  color: var(--ink-dim);
+  font-size: var(--text-xs, 0.75rem);
+  font-style: italic;
+}

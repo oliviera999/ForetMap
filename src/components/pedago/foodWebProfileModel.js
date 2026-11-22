@@ -4,12 +4,13 @@
  *
  * Au collège, le réseau ne s'ouvre pas en entier : l'élève choisit une **espèce de départ**
  * (les espèces phares de la carte en tête de liste, puis une recherche), et le graphe montre
- * ses voisins directs (profondeur 1), extensible à la chaîne (profondeur 2). Les espèces
- * hors de la carte et les types d'interaction hors palier sont retirés **avant** la
- * construction du graphe. Lycée, université et vue prof : réseau complet, inchangé.
+ * ses voisins directs (profondeur 1), extensible à la chaîne (profondeur 2). Les types
+ * d'interaction hors palier sont retirés **avant** la construction du graphe ; les espèces
+ * hors de la carte restent, grisées (décision 1 du 22/11/2026 : marquer, ne plus masquer).
+ * Lycée, université et vue prof : réseau complet, inchangé.
  *
  * Les décisions viennent de la table de visibilité (`src/shared/pedagoVisibilityCore.js`) par
- * le contexte : `foodweb_full_by_default`, `foodweb_offmap_species` et `foodWebTypes(...)`.
+ * le contexte : `foodweb_full_by_default` et `foodWebTypes(...)`.
  * Ce module ne lit jamais le niveau lui-même : il reçoit un **profil** déjà résolu.
  */
 
@@ -27,45 +28,31 @@ export const START_SPECIES_LIST_MAX = 12;
 /**
  * Profil d'affichage du réseau, construit à partir du contexte pédagogique.
  *
- * @param {{ fullByDefault?: boolean, offMapSpecies?: boolean, allowedTypes?: string[]|null }} input
- * @returns {{ collegeMode: boolean, hideOffMap: boolean, allowedTypes: string[]|null,
- *   focusDepths: readonly number[] }}
+ * @param {{ fullByDefault?: boolean, allowedTypes?: string[]|null }} input
+ * @returns {{ collegeMode: boolean, allowedTypes: string[]|null, focusDepths: readonly number[] }}
  */
-export function foodWebProfile({
-  fullByDefault = true,
-  offMapSpecies = true,
-  allowedTypes = null,
-} = {}) {
+export function foodWebProfile({ fullByDefault = true, allowedTypes = null } = {}) {
   const collegeMode = !fullByDefault;
   return {
     collegeMode,
-    hideOffMap: !offMapSpecies,
     allowedTypes: Array.isArray(allowedTypes) ? allowedTypes : null,
     focusDepths: collegeMode ? COLLEGE_FOCUS_DEPTHS : FOCUS_DEPTHS,
   };
 }
 
-/** `from_in_scope` / `to_in_scope` : 1/0 de MySQL ; l'absence de colonne vaut « dans le périmètre ». */
-function inScope(value) {
-  return value == null ? true : Boolean(Number(value));
-}
-
 /**
- * Interactions montrées pour un profil : types autorisés, et, si `hideOffMap`, seulement les
- * liens dont les deux extrémités sont sur la carte (ou la zone) choisie. Une extrémité
- * « environnement » (`to_id` nul) est toujours dans le périmètre.
+ * Interactions montrées pour un profil : types autorisés seulement. Les liens qui franchissent
+ * la limite de la carte restent : l'extrémité hors périmètre est grisée par le graphe
+ * (`outOfScope`) et la liste, avec la mention « vit ailleurs : … » (`*_elsewhere`).
  *
  * @param {object[]} items lignes de `GET /api/food-web`
- * @param {{ allowedTypes?: string[]|null, hideOffMap?: boolean }} profile
+ * @param {{ allowedTypes?: string[]|null }} profile
  * @returns {object[]}
  */
-export function filterItemsForProfile(items, { allowedTypes = null, hideOffMap = false } = {}) {
+export function filterItemsForProfile(items, { allowedTypes = null } = {}) {
   const allowed = Array.isArray(allowedTypes) ? new Set(allowedTypes) : null;
-  return (items || []).filter((row) => {
-    if (allowed && !allowed.has(String(row?.interaction_type || ''))) return false;
-    if (hideOffMap && (!inScope(row?.from_in_scope) || !inScope(row?.to_in_scope))) return false;
-    return true;
-  });
+  if (!allowed) return [...(items || [])];
+  return (items || []).filter((row) => allowed.has(String(row?.interaction_type || '')));
 }
 
 /** Identifiants d'espèces (entiers > 0) d'une graine : nombre, chaîne, tableau ou `Set`. */

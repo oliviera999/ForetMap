@@ -60,6 +60,18 @@ export const ENTITY_KIND_DEFAULT = 'taxon';
 export const STUDENT_HIDDEN_ENTITY_KINDS = Object.freeze(['ressource']);
 
 /**
+ * Natures **toujours dans le périmètre** d'une carte ou d'une zone du réseau trophique (chantier
+ * collège du 22/11/2026, lot 1) : une ressource (compost, litière, bois mort), un consortium
+ * (biofilm) ou un groupe fonctionnel (plancton) n'est jamais rattaché à une carte, comme
+ * l'extrémité « environnement » d'un lien (`to_id` nul). Une relation qui y mène n'est donc
+ * jamais marquée « hors carte » de ce côté. Lu par `routes/food-web.js` (colonnes
+ * `from_in_scope` / `to_in_scope`) : c'est la seule définition du périmètre côté données.
+ */
+export const FOODWEB_ALWAYS_IN_SCOPE_ENTITY_KINDS = Object.freeze(
+  ENTITY_KIND_ENUM.values.filter((kind) => kind !== ENTITY_KIND_DEFAULT),
+);
+
+/**
  * La fiche est-elle masquée de la liste et de la recherche des élèves ?
  * Une fiche sans nature connue (base non migrée, objet partiel) n'est jamais masquée.
  * @param {{ entity_kind?: string|null }|null|undefined} plant

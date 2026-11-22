@@ -47,7 +47,8 @@ const COLLEGE_EXPECTED = Object.freeze({
   visit_tile_scientific_name: 'hide',
   usage_label: 'show',
   description_college: 'show',
-  foodweb_offmap_species: 'hide',
+  // Décision 1 du 22/11/2026 : espèces hors carte montrées (grisées) au collège.
+  foodweb_offmap_species: 'show',
   foodweb_full_by_default: 'hide',
   nested_groups_full_tree: 'hide',
   catalog_grouped: 'show',

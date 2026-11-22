@@ -46,7 +46,7 @@ describe('useFoodWebProfile', () => {
     pedago.current = collegeContext();
     const { result } = renderHook(() => useFoodWebProfile());
     expect(result.current.collegeMode).toBe(true);
-    expect(result.current.hideOffMap).toBe(true);
+    expect(result.current).not.toHaveProperty('hideOffMap');
     expect(result.current.allowedTypes).not.toContain('symbiose');
     expect(result.current.typeLabel('frugivorie')).toBe('mange des fruits (frugivorie)');
   });
@@ -62,7 +62,6 @@ describe('useFoodWebProfile', () => {
     pedago.current = lyceeContext;
     const { result } = renderHook(() => useFoodWebProfile());
     expect(result.current.collegeMode).toBe(false);
-    expect(result.current.hideOffMap).toBe(false);
     expect(result.current.typeLabel('frugivorie')).toBe('Frugivorie');
     expect(result.current.focusDepths).toEqual([0, 1, 2]);
   });

@@ -2,6 +2,7 @@ import { edgeStyleForType } from '../../shared/foodWebEdgeStyle.js';
 import { GlossaryInlineText } from '../GlossaryMarkdown.jsx';
 import { IconDelete } from '../../shared/icons.jsx';
 import { describeRow } from './foodWebRows.js';
+import { elsewhereText } from './foodWebGraphModel.js';
 
 function FoodWebNodeButton({ node, highlightIds, onOpenPlant }) {
   if (node.id == null) {
@@ -12,15 +13,29 @@ function FoodWebNodeButton({ node, highlightIds, onOpenPlant }) {
     );
   }
   const highlighted = highlightIds.includes(Number(node.id));
+  // Hors de la carte : grisé, avec la mention « vit ailleurs : … » (lue aussi par le lecteur
+  // d'écran) — décision 1 du 22/11/2026, l'espèce n'est plus retirée.
+  const elsewhere = node.outOfScope
+    ? (elsewhereText(node.elsewhere) ?? 'hors de cette carte')
+    : null;
   return (
-    <button
-      type="button"
-      className={`pedago-foodweb__node${highlighted ? ' pedago-foodweb__node--highlight' : ''}`}
-      onClick={() => onOpenPlant?.(node.id)}
-    >
-      {node.emoji ? `${node.emoji} ` : ''}
-      {node.name}
-    </button>
+    <span className="pedago-foodweb__node-wrap">
+      <button
+        type="button"
+        className={`pedago-foodweb__node${highlighted ? ' pedago-foodweb__node--highlight' : ''}${elsewhere ? ' pedago-foodweb__node--outside' : ''}`}
+        onClick={() => onOpenPlant?.(node.id)}
+        title={elsewhere ? `${node.name} — ${elsewhere}` : undefined}
+      >
+        {node.emoji ? `${node.emoji} ` : ''}
+        {node.name}
+        {elsewhere ? <span className="fm-visually-hidden">, {elsewhere}</span> : null}
+      </button>
+      {elsewhere ? (
+        <span className="pedago-foodweb__elsewhere" aria-hidden="true">
+          {elsewhere}
+        </span>
+      ) : null}
+    </span>
   );
 }
 
