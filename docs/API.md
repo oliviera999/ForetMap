@@ -5736,8 +5736,8 @@ d'isolement : `tests/gating-products.test.js` ; caractérisation par produit :
 
 Les liens vivent dans **une seule table**, `resource_question_links`, lue et écrite par le service
 `lib/pedago/learningLinks.js` (audit du 25/09/2026, § 3.2.3). Les tables historiques
-`quiz_question_species` et `quiz_question_tutorials` sont **figées** : plus aucune lecture ni
-écriture applicative (temps 1 et 2 du retrait) ; leur suppression est une migration future.
+`quiz_question_species` et `quiz_question_tutorials`, figées par la migration 300 (temps 1 et 2 du
+retrait), sont **supprimées** par la migration `retrait_t3_quiz_question_links` (temps 3).
 
 | `origin`    | Qui l'écrit                                                                                 | Purgé par un traitement automatique ?        |
 | ----------- | ------------------------------------------------------------------------------------------- | -------------------------------------------- |
@@ -6048,7 +6048,8 @@ soit son statut, n'est jamais re-proposé).
 vers `resource_question_links` **une seule fois**, et les rattachements éditoriaux créés depuis
 remontaient ici en candidats (`origin='import'`, confiance `1`). Depuis la **migration 300**, cette
 reprise est faite une fois pour toutes (liens `origin='editorial'`, approuvés, non bloquants) et
-`quiz_question_tutorials` n'est plus lue : le paramètre est accepté mais sans effet, et
+`quiz_question_tutorials` est supprimée (migration `retrait_t3_quiz_question_links`) : le
+paramètre est accepté mais sans effet, et
 `stats.editorial_candidates` vaut toujours `0` (champ conservé pour l'écran professeur).
 
 Écran professeur : `src/components/pedago/admin/FMLearningLinksPanel.jsx`, dans l'onglet Quiz côté prof.

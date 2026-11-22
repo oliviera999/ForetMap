@@ -1133,7 +1133,6 @@ router.get(
     ]);
     if (!tutorial) return res.status(404).json({ error: 'Tutoriel introuvable' });
     // Source unique `resource_question_links` (migration 300) : liens approuvés du tutoriel.
-    // `quiz_question_tutorials` n'est plus lue (temps 1 du retrait, audit du 25/09/2026, § 3.5).
     const questions = await learningLinks.listQuestionsForResource(
       { queryAll },
       { resourceType: 'tutorial', resourceRef: tutorialId, audience: 'sheet' },

@@ -215,11 +215,8 @@ test('contenus du 20/11 : liens des questions vers des ressources présentes, so
   );
   assert.ok(versTutoriel.length >= 3);
   for (const l of versTutoriel) assert.equal(Number(l.is_gating), 0, l.question_code);
-  // Tables historiques figées : rien n'y est écrit pour ces questions.
-  for (const table of ['quiz_question_species', 'quiz_question_tutorials']) {
-    const row = await queryOne(`SELECT COUNT(*) AS n FROM ${table} WHERE ${RANGE}`);
-    assert.equal(Number(row.n), 0, table);
-  }
+  // Les tables historiques figées n'existent plus (migration `retrait_t3_quiz_question_links`) :
+  // `resource_question_links` est la seule source de ces liens.
 });
 
 test('contenus du 20/11 : la séance d’inventaire de n³ n’est jamais publiée par la reprise', async () => {

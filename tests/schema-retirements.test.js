@@ -21,7 +21,7 @@ test('un candidat par retrait prévu, chacun avec au moins un contrôle', () => 
   assert.deepEqual(
     T3_CANDIDATES.map((c) => c.id),
     [
-      'quiz_question_links',
+      // `quiz_question_links` : T3 fait (migration `retrait_t3_quiz_question_links`).
       'plant_photo_columns',
       'plant_second_name',
       'plant_remarks',
@@ -91,6 +91,8 @@ test('table ou colonne absente : contrôle sauté, compté comme retiré', async
   }
   assert.match(formatT3Report(report), /absente \(retirée\)/);
 
-  const broken = { queryOne: async () => Promise.reject(new Error('connexion perdue')) };
+  // Le premier candidat compte par `run` (queryAll) depuis le retrait de `quiz_question_links`.
+  const lost = async () => Promise.reject(new Error('connexion perdue'));
+  const broken = { queryOne: lost, queryAll: lost };
   await assert.rejects(evaluateT3Readiness(broken), /connexion perdue/);
 });

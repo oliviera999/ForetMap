@@ -10,6 +10,10 @@
 // d'un second passage.
 //
 // Le fichier est retrouvé par son suffixe : son numéro est attribué à l'intégration.
+//
+// La migration supprime aussi des lignes de la table figée `quiz_question_tutorials`, supprimée
+// depuis par la migration `retrait_t3_quiz_question_links`. Elle tourne toujours sur une base
+// fraîche avant ce retrait : le test recrée la table le temps du rejeu et la supprime à la fin.
 // Tests BDD partagée : exécution séquentielle ; tout ce qui est semé est retiré à la fin.
 
 require('./helpers/setup');
@@ -18,6 +22,10 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { initSchema, execute, queryOne, queryAll, splitSqlStatements } = require('../database');
+const {
+  recreateLegacyQuizLinkTables,
+  dropLegacyQuizLinkTables,
+} = require('./helpers/legacyQuizLinkTables');
 
 const MIGRATIONS_DIR = path.join(__dirname, '..', 'migrations');
 const MIGRATION_FILE = fs
@@ -174,6 +182,7 @@ async function leadsOf(number) {
 
 before(async () => {
   await initSchema();
+  await recreateLegacyQuizLinkTables(execute);
   configReconnaitre = (
     await queryOne(
       "SELECT config_json FROM pedago_sessions WHERE slug = 'college-reconaitre-sans-toucher'",
@@ -226,6 +235,7 @@ after(async () => {
     const sql = fs.readFileSync(path.join(MIGRATIONS_DIR, file), 'utf8');
     for (const stmt of splitSqlStatements(sql)) await run(stmt);
   }
+  await dropLegacyQuizLinkTables(execute).catch(() => {});
 });
 
 // ---------------------------------------------------------------------------------------
