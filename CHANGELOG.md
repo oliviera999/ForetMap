@@ -203,6 +203,24 @@ Décisions d'Oliv du 22/11/2026 (1, 2, 3, 8) ; audit des restrictions du cycle 3
 
 - La fixture anonymisée pseudonymise aussi les noms et pseudos restés dans des tables du jeu
   (`joueur<id>`, règle appliquée par le flux d'export et contrôlée en CI).
+### Corrigé — barre basse sur téléphone, plein écran carte en séance, suite de tests
+
+- **Contenu sous la barre basse (hors séance)** : sous 1024 px, le raccourci `padding:12px`
+  de `.main` effaçait aussi la réserve de la barre basse élève ; le bas des listes et de la
+  carte passait 13 px dessous (375 × 667), davantage avec la zone sûre d'un iPhone. Réserve
+  rétablie (`--fm-safe-bottom-nav`, bandeau compris en séance). Le pied « Version », déjà
+  entièrement caché par la barre, sort du flux (`position:fixed`) : l'affichage ne change pas,
+  la version reste dans « À propos ».
+- **Plein écran carte en séance** : le bandeau restait surélevé de la hauteur de la barre
+  basse (que la couche plein écran recouvre), au-dessus d'une bande vide. Il descend désormais
+  au bas de l'écran (`--fm-session-banner-lift: 0` sous `body.fm-map-fullscreen-active`).
+- **Suite backend** : un e2e interrompu (phase de fin sautée) laissait
+  `ui.auth.allow_register` à `false` dans la base partagée, et `npm test` tombait en ~56
+  échecs 403/401. `tests/helpers/setup.js` rouvre l'inscription à chaque initialisation
+  (reproduit : `auth.test.js` 7 échecs avant, 0 après). Test :
+  `test-setup-registration-default.test.js`.
+- Contrat CSS `session-banner-layout-contract.test.js` (réserves téléphone, emprise des
+  surcouches, plein écran).
 
 ### Corrigé — le bandeau de séance ne masque plus rien sur téléphone
 

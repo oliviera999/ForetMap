@@ -109,6 +109,21 @@ function markSchemaInitializedThisRun() {
   }
 }
 
+/**
+ * `e2e/global-setup.js` ferme l'inscription (`ui.auth.allow_register = false`, valeur de
+ * production) et `global-teardown.js` la rouvre — mais la phase de fin ne tourne pas quand
+ * Playwright est interrompu (timeout, Ctrl+C, `kill`). L'inscription restait alors fermée dans
+ * la base partagée et `npm test` tombait en ~56 échecs 403/401 sans rapport avec le code
+ * (constaté le 22/11/2026). La suite backend repart donc toujours de la valeur par défaut du
+ * schéma (`true`) ; un test qui la ferme le fait lui-même et la rouvre.
+ */
+async function reopenRegistrationIfLeftClosed() {
+  const { getSettingValue, setSetting } = require('../../lib/settings');
+  if ((await getSettingValue('ui.auth.allow_register', true)) === false) {
+    await setSetting('ui.auth.allow_register', true);
+  }
+}
+
 if (typeof rbac.resetRbacBootstrapForTests === 'function') {
   const originalInitSchema = database.initSchema.bind(database);
   const originalInitDatabase = database.initDatabase.bind(database);
@@ -132,6 +147,7 @@ if (typeof rbac.resetRbacBootstrapForTests === 'function') {
     if (typeof rbac.repairSystemN3beurParticipationDefaults === 'function') {
       await rbac.repairSystemN3beurParticipationDefaults();
     }
+    await reopenRegistrationIfLeftClosed();
     return result;
   };
 
