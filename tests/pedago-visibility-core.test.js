@@ -68,7 +68,7 @@ const PALIER_EXPECTED = Object.freeze({
   glossary_depth_max: {
     cycle3: 'base',
     cycle4: 'approfondissement',
-    lycee: 'avance',
+    lycee: null,
     universite: null,
   },
   quiz_entry_palier_max: { cycle3: 1, cycle4: 2, lycee: null, universite: null },

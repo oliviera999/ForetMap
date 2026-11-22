@@ -32,7 +32,7 @@ import { PEDAGO_ETAPE_ENUM, GLOSSARY_NIVEAU_ENUM } from './enums/pedagoEnums.js'
 import { CYCLE4_ONLY_INTERACTION_TYPE_ENUM } from './enums/biodivEnums.js';
 
 const [ETAPE_COLLEGE, ETAPE_LYCEE, ETAPE_UNIVERSITE] = PEDAGO_ETAPE_ENUM.values;
-const [GLOSSARY_BASE, GLOSSARY_APPROFONDISSEMENT, GLOSSARY_AVANCE] = GLOSSARY_NIVEAU_ENUM.values;
+const [GLOSSARY_BASE, GLOSSARY_APPROFONDISSEMENT] = GLOSSARY_NIVEAU_ENUM.values;
 
 /** Profil d'affichage par défaut (établissement sans réglage, apprenant inconnu). */
 export const DEFAULT_VISIBILITY_PROFILE = ETAPE_COLLEGE;
@@ -131,7 +131,9 @@ function byPalier(cycle3, cycle4, lycee, universite) {
  * Règles de palier :
  * - `glossary_depth_max` : profondeur maximale de glossaire liée et listée par défaut
  *   (`GLOSSARY_NIVEAU_ENUM`) — cycle 3 : `base` ; cycle 4 : `approfondissement` ; lycée :
- *   `avance` (tout) ; université : `null` (pas de filtre) ;
+ *   `null` ; université : `null` (pas de filtre). Une valeur non nulle signale aussi
+ *   l'affichage « collège » du popover (définition courte d'abord, flux C2) : le lycée
+ *   doit donc rester à `null`, pas à `avance`, pour garder son popover actuel ;
  * - `quiz_entry_palier_max` : palier d'entrée maximal d'une question (`CURRICULUM_PALIERS`) —
  *   le palier de la classe au collège (1 ou 2), `null` au-delà (pas de plafond supplémentaire) ;
  * - `foodweb_types_cycle4_only` : types d'interaction **masqués** pour ce profil parce qu'ils
@@ -141,7 +143,7 @@ function byPalier(cycle3, cycle4, lycee, universite) {
 const NO_TYPE = Object.freeze([]);
 
 export const PALIER_RULES_TABLE = Object.freeze({
-  glossary_depth_max: byPalier(GLOSSARY_BASE, GLOSSARY_APPROFONDISSEMENT, GLOSSARY_AVANCE, null),
+  glossary_depth_max: byPalier(GLOSSARY_BASE, GLOSSARY_APPROFONDISSEMENT, null, null),
   quiz_entry_palier_max: byPalier(CYCLE3_PALIER, CYCLE4_PALIER, null, null),
   foodweb_types_cycle4_only: byPalier(
     Object.freeze([...CYCLE4_ONLY_INTERACTION_TYPE_ENUM.values]),
