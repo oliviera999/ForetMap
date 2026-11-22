@@ -1,0 +1,39 @@
+{
+  "description": "Glossaire, contenu (D1, point 3). Gardes : glossary_code + terme + ancienne valeur exacte du champ.",
+  "categorie": [
+    {
+      "glossary_code": "FM0103",
+      "terme": "champignon",
+      "champ": "categorie",
+      "avant": "faune",
+      "apres": "taxonomie",
+      "motif": "Un champignon n’est pas un animal. Aucune catégorie « champignons » ou « êtres vivants » n’existe ; `taxonomie` (groupes du vivant, où se trouve déjà « règne ») est la plus juste et porte exactement les mêmes notions de programme que `faune` (2-BIODIV, C3-VIV, C4-VIV) : aucune notion à recopier, aucune perte de rattachement."
+    }
+  ],
+  "definitions": [
+    {
+      "glossary_code": "FM0108",
+      "terme": "invertébré",
+      "champ": "definition_complete",
+      "avant": "Les invertébrés n'ont pas de squelette interne. Ils représentent la grande majorité des animaux : insectes, vers, araignées, escargots.",
+      "apres": "Les invertébrés n'ont pas de squelette interne. Ils représentent la grande majorité des animaux : insectes, vers, araignées, escargots. « Invertébré » est un mot d'usage courant, pas un groupe de la classification : il réunit des animaux très différents, qui ont seulement en commun de ne pas avoir de colonne vertébrale.",
+      "motif": "phrase ajoutée : groupe d’usage courant, pas groupe de classification"
+    },
+    {
+      "glossary_code": "FM0404",
+      "terme": "reptile",
+      "champ": "definition_complete",
+      "avant": "Lézards, geckos, serpents et tortues sont appelés reptiles. Leur température varie avec celle du milieu : on les voit souvent au soleil. Au lycée, on apprend que ce n'est pas un groupe emboîté complet, car les oiseaux descendent aussi de leur ancêtre.",
+      "apres": "Lézards, geckos, serpents et tortues sont appelés reptiles. Leur température varie avec celle du milieu : on les voit souvent au soleil. « Reptile » est un mot d'usage courant, commode pour parler de ces animaux, mais ce n'est pas un groupe de la classification. Au lycée, on apprend pourquoi : les oiseaux descendent aussi de leur ancêtre, sans être appelés reptiles.",
+      "motif": "phrase ajoutée (groupe d’usage courant) ; la phrase « Au lycée… » est raccourcie pour ne pas répéter l’idée"
+    },
+    {
+      "glossary_code": "FM0406",
+      "terme": "poisson",
+      "champ": "definition_complete",
+      "avant": "Les poissons de l'estran et de l'océan ont un corps souvent couvert d'écailles et des nageoires. Au lycée, on précise que « poissons » n'est pas un groupe emboîté complet : on parle d'actinoptérygiens pour les poissons à nageoires soutenues par des rayons osseux.",
+      "apres": "Les poissons de l'estran et de l'océan ont un corps souvent couvert d'écailles et des nageoires. « Poisson » est un mot d'usage courant, commode pour parler de ces animaux, mais ce n'est pas un groupe de la classification. Au lycée, on parle d'actinoptérygiens pour les poissons à nageoires soutenues par des rayons osseux.",
+      "motif": "phrase ajoutée (groupe d’usage courant) ; la phrase « Au lycée… » est raccourcie pour ne pas répéter l’idée"
+    }
+  ]
+}

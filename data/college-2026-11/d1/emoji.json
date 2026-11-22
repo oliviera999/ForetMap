@@ -1,0 +1,1046 @@
+{
+  "description": "Emoji trompeurs (D1, point 1). Règle : l’emoji d’une fiche ne suggère jamais un autre groupe que le sien ; à défaut d’emoji fidèle, emoji neutre du milieu de vie. Source : instantané de production du 21/11/2026 (644 fiches visibles revues). Chaque correction est gardée par le nom de la fiche ET l’ancien emoji (comparaison binaire).",
+  "regles": [
+    {
+      "emoji": "🪲",
+      "represente": "coléoptère",
+      "admis": {
+        "taxon_order": [
+          "Coleoptera"
+        ]
+      }
+    },
+    {
+      "emoji": "🐞",
+      "represente": "coccinelle",
+      "admis": {
+        "taxon_family": [
+          "Coccinellidés"
+        ]
+      }
+    },
+    {
+      "emoji": "🐛",
+      "represente": "chenille (larve de papillon)",
+      "admis": {
+        "taxon_order": [
+          "Lepidoptera"
+        ]
+      }
+    },
+    {
+      "emoji": "🦋",
+      "represente": "papillon",
+      "admis": {
+        "taxon_order": [
+          "Lepidoptera"
+        ]
+      }
+    },
+    {
+      "emoji": "🦗",
+      "represente": "grillon, criquet",
+      "admis": {
+        "taxon_order": [
+          "Orthoptera"
+        ]
+      }
+    },
+    {
+      "emoji": "🪰",
+      "represente": "mouche",
+      "admis": {
+        "taxon_order": [
+          "Diptera"
+        ]
+      }
+    },
+    {
+      "emoji": "🦟",
+      "represente": "moustique",
+      "admis": {
+        "taxon_order": [
+          "Diptera"
+        ]
+      }
+    },
+    {
+      "emoji": "🐝",
+      "represente": "abeille, guêpe",
+      "admis": {
+        "taxon_order": [
+          "Hymenoptera"
+        ]
+      }
+    },
+    {
+      "emoji": "🐜",
+      "represente": "fourmi",
+      "admis": {
+        "taxon_order": [
+          "Hymenoptera"
+        ]
+      }
+    },
+    {
+      "emoji": "🪳",
+      "represente": "blatte",
+      "admis": {
+        "taxon_order": [
+          "Blattodea"
+        ]
+      }
+    },
+    {
+      "emoji": "🪱",
+      "represente": "ver (annélide)",
+      "admis": {
+        "taxon_class": [
+          "Clitellata",
+          "Polychaeta"
+        ]
+      }
+    },
+    {
+      "emoji": "🕷️",
+      "represente": "araignée",
+      "admis": {
+        "taxon_order": [
+          "Araneae"
+        ]
+      }
+    },
+    {
+      "emoji": "🦂",
+      "represente": "scorpion",
+      "admis": {
+        "taxon_order": [
+          "Scorpiones"
+        ]
+      }
+    },
+    {
+      "emoji": "🦀",
+      "represente": "crabe",
+      "admis": {
+        "taxon_order": [
+          "Decapoda"
+        ]
+      }
+    },
+    {
+      "emoji": "🦐",
+      "represente": "crevette",
+      "admis": {
+        "taxon_order": [
+          "Decapoda"
+        ]
+      }
+    },
+    {
+      "emoji": "🐚",
+      "represente": "coquillage (mollusque)",
+      "admis": {
+        "taxon_class": [
+          "Gastropoda",
+          "Bivalvia"
+        ]
+      }
+    },
+    {
+      "emoji": "🐌",
+      "represente": "escargot, limace",
+      "admis": {
+        "taxon_class": [
+          "Gastropoda"
+        ]
+      }
+    },
+    {
+      "emoji": "🐙",
+      "represente": "pieuvre",
+      "admis": {
+        "taxon_class": [
+          "Cephalopoda"
+        ]
+      }
+    },
+    {
+      "emoji": "🦑",
+      "represente": "calmar, seiche",
+      "admis": {
+        "taxon_class": [
+          "Cephalopoda"
+        ]
+      }
+    },
+    {
+      "emoji": "🪸",
+      "represente": "corail, anémone",
+      "admis": {
+        "taxon_class": [
+          "Anthozoa"
+        ]
+      }
+    },
+    {
+      "emoji": "⭐",
+      "represente": "étoile de mer",
+      "admis": {
+        "taxon_class": [
+          "Asteroidea"
+        ]
+      }
+    },
+    {
+      "emoji": "🐟",
+      "represente": "poisson",
+      "admis": {
+        "taxon_class": [
+          "Actinopterygii",
+          "Elasmobranchii"
+        ]
+      }
+    },
+    {
+      "emoji": "🐠",
+      "represente": "poisson",
+      "admis": {
+        "taxon_class": [
+          "Actinopterygii"
+        ]
+      }
+    },
+    {
+      "emoji": "🐸",
+      "represente": "grenouille, crapaud",
+      "admis": {
+        "taxon_order": [
+          "Anura"
+        ]
+      }
+    },
+    {
+      "emoji": "🦎",
+      "represente": "lézard",
+      "admis": {
+        "taxon_class": [
+          "Squamata"
+        ]
+      }
+    },
+    {
+      "emoji": "🐍",
+      "represente": "serpent",
+      "admis": {
+        "taxon_class": [
+          "Squamata"
+        ]
+      }
+    },
+    {
+      "emoji": "🐢",
+      "represente": "tortue",
+      "admis": {
+        "taxon_class": [
+          "Testudines"
+        ]
+      }
+    },
+    {
+      "emoji": "🕊️",
+      "represente": "colombe, pigeon",
+      "admis": {
+        "taxon_order": [
+          "Columbiformes"
+        ]
+      }
+    },
+    {
+      "emoji": "🦆",
+      "represente": "canard",
+      "admis": {
+        "taxon_order": [
+          "Anseriformes"
+        ]
+      }
+    },
+    {
+      "emoji": "🦢",
+      "represente": "cygne",
+      "admis": {
+        "taxon_order": [
+          "Anseriformes"
+        ]
+      }
+    },
+    {
+      "emoji": "🐤",
+      "represente": "poussin",
+      "admis": {
+        "taxon_order": [
+          "Galliformes"
+        ]
+      }
+    },
+    {
+      "emoji": "🦅",
+      "represente": "rapace",
+      "admis": {
+        "taxon_order": [
+          "Accipitriformes",
+          "Falconiformes"
+        ]
+      }
+    },
+    {
+      "emoji": "🦔",
+      "represente": "hérisson",
+      "admis": {
+        "taxon_order": [
+          "Erinaceomorpha"
+        ]
+      }
+    },
+    {
+      "emoji": "🐀",
+      "represente": "rat",
+      "admis": {
+        "taxon_order": [
+          "Rodentia"
+        ]
+      }
+    },
+    {
+      "emoji": "🐁",
+      "represente": "souris",
+      "admis": {
+        "taxon_order": [
+          "Rodentia"
+        ]
+      }
+    },
+    {
+      "emoji": "🐹",
+      "represente": "petit rongeur",
+      "admis": {
+        "taxon_order": [
+          "Rodentia"
+        ]
+      }
+    },
+    {
+      "emoji": "🐇",
+      "represente": "lapin, lièvre",
+      "admis": {
+        "taxon_order": [
+          "Lagomorpha"
+        ]
+      }
+    },
+    {
+      "emoji": "🦇",
+      "represente": "chauve-souris",
+      "admis": {
+        "taxon_order": [
+          "Chiroptera"
+        ]
+      }
+    },
+    {
+      "emoji": "🐦",
+      "represente": "oiseau",
+      "admis": {
+        "taxon_class": [
+          "Aves"
+        ]
+      }
+    },
+    {
+      "emoji": "🍄",
+      "represente": "champignon",
+      "admis": {
+        "taxon_kingdom": [
+          "Champignon (Fungi)"
+        ],
+        "taxon_class": [
+          "Glomeromycetes",
+          "Leotiomycetes"
+        ],
+        "name": [
+          "Champignons de litière"
+        ]
+      }
+    },
+    {
+      "emoji": "🌵",
+      "represente": "cactus",
+      "admis": {
+        "taxon_family": [
+          "Cactacées"
+        ]
+      }
+    },
+    {
+      "emoji": "🌲",
+      "represente": "conifère (graines nues)",
+      "admis": {
+        "taxon_class": [
+          "Pinopsida",
+          "Gnetopsida"
+        ]
+      }
+    },
+    {
+      "emoji": "🌴",
+      "represente": "palmier",
+      "admis": {
+        "taxon_order": [
+          "Arecales"
+        ]
+      }
+    },
+    {
+      "emoji": "🌾",
+      "represente": "céréale, herbe graminoïde",
+      "admis": {
+        "taxon_order": [
+          "Poales"
+        ]
+      }
+    },
+    {
+      "emoji": "☘️",
+      "represente": "trèfle",
+      "admis": {
+        "taxon_order": [
+          "Fabales"
+        ]
+      }
+    },
+    {
+      "emoji": "🍅",
+      "represente": "tomate",
+      "admis": {
+        "taxon_family": [
+          "Solanacées"
+        ]
+      }
+    },
+    {
+      "emoji": "🕸️",
+      "represente": "toile d’araignée",
+      "admis": {
+        "taxon_class": [
+          "Arachnida"
+        ]
+      }
+    }
+  ],
+  "corrections": [
+    {
+      "name": "Cloporte",
+      "scientific_name": "Armadillidium vulgare",
+      "groupe": "Malacostraca / Isopoda / Armadillidiidés",
+      "avant": "🪲",
+      "apres": "🍂",
+      "motif": "crustacé terrestre (isopode) montré comme un coléoptère",
+      "origine": "audit"
+    },
+    {
+      "name": "Cloporte poudré",
+      "scientific_name": "Porcellionides pruinosus",
+      "groupe": "Malacostraca / Isopoda / Porcellionidés",
+      "avant": "🪲",
+      "apres": "🍂",
+      "motif": "crustacé terrestre (isopode) montré comme un coléoptère",
+      "origine": "audit"
+    },
+    {
+      "name": "Collembole",
+      "scientific_name": "Collembola",
+      "groupe": "Collembola",
+      "avant": "🪲",
+      "apres": "🍂",
+      "motif": "collembole (ni insecte ni coléoptère) montré comme un coléoptère",
+      "origine": "audit"
+    },
+    {
+      "name": "Notonecte",
+      "scientific_name": "Notonecta sp.",
+      "groupe": "Insecta / Hemiptera / Notonectidés",
+      "avant": "🪲",
+      "apres": "💧",
+      "motif": "punaise aquatique (hémiptère) montrée comme un coléoptère",
+      "origine": "audit"
+    },
+    {
+      "name": "Punaise verte ponctuée",
+      "scientific_name": "Nezara viridula",
+      "groupe": "Insecta / Hemiptera / Pentatomidés",
+      "avant": "🪲",
+      "apres": "🌿",
+      "motif": "punaise (hémiptère) montrée comme un coléoptère",
+      "origine": "audit"
+    },
+    {
+      "name": "Chrysope verte",
+      "scientific_name": "Chrysoperla carnea",
+      "groupe": "Insecta / Neuroptera / Chrysopidés",
+      "avant": "🪲",
+      "apres": "🌿",
+      "motif": "névroptère montré comme un coléoptère",
+      "origine": "audit"
+    },
+    {
+      "name": "Mante religieuse africaine",
+      "scientific_name": "Sphodromantis viridis",
+      "groupe": "Insecta / Mantodea / Mantidés",
+      "avant": "🪲",
+      "apres": "🌿",
+      "motif": "mante (Mantodea) montrée comme un coléoptère",
+      "origine": "audit"
+    },
+    {
+      "name": "Géophile",
+      "scientific_name": "Geophilomorpha",
+      "groupe": "Chilopoda / Geophilomorpha",
+      "avant": "🐛",
+      "apres": "🍂",
+      "motif": "mille-pattes (chilopode) montré comme une chenille",
+      "origine": "audit"
+    },
+    {
+      "name": "Lithobie",
+      "scientific_name": "Lithobius sp.",
+      "groupe": "Chilopoda / Lithobiomorpha / Lithobiidés",
+      "avant": "🐛",
+      "apres": "🍂",
+      "motif": "mille-pattes (chilopode) montré comme une chenille",
+      "origine": "audit"
+    },
+    {
+      "name": "Scolopendre ceinturée",
+      "scientific_name": "Scolopendra cingulata",
+      "groupe": "Chilopoda / Scolopendromorpha / Scolopendridés",
+      "avant": "🐛",
+      "apres": "🍂",
+      "motif": "mille-pattes (chilopode) montré comme une chenille",
+      "origine": "audit"
+    },
+    {
+      "name": "Scutigère véloce",
+      "scientific_name": "Scutigera coleoptrata",
+      "groupe": "Chilopoda / Scutigeromorpha / Scutigéridés",
+      "avant": "🐛",
+      "apres": "🍂",
+      "motif": "mille-pattes (chilopode) montré comme une chenille",
+      "origine": "audit"
+    },
+    {
+      "name": "Pucerons",
+      "scientific_name": "Aphididae",
+      "groupe": "Insecta / Hemiptera / Aphididés",
+      "avant": "🐛",
+      "apres": "🌿",
+      "motif": "hémiptères montrés comme une chenille (larve de papillon)",
+      "origine": "audit"
+    },
+    {
+      "name": "Cochenilles farineuses",
+      "scientific_name": "Pseudococcidae",
+      "groupe": "Insecta / Hemiptera / Pseudococcidés",
+      "avant": "🐛",
+      "apres": "🌿",
+      "motif": "hémiptères montrés comme une chenille (larve de papillon)",
+      "origine": "audit"
+    },
+    {
+      "name": "Cochenille du figuier de Barbarie",
+      "scientific_name": "Dactylopius opuntiae",
+      "groupe": "Insecta / Hemiptera / Dactylopiidés",
+      "avant": "🐛",
+      "apres": "🌿",
+      "motif": "hémiptère montré comme une chenille (larve de papillon)",
+      "origine": "audit"
+    },
+    {
+      "name": "Cochenille de la figue de Barbarie",
+      "scientific_name": "Dactylopius opuntiae",
+      "groupe": "Insecta / Hemiptera / Dactylopiidés",
+      "avant": "🐛",
+      "apres": "🌿",
+      "motif": "hémiptère montré comme une chenille (larve de papillon) ; ancien nom de la même fiche, encore porté par la base de démonstration (absent de la production)",
+      "origine": "revue",
+      "absente_de_la_production": true
+    },
+    {
+      "name": "Iule",
+      "scientific_name": "Julida",
+      "groupe": "Diplopoda / Julida / Julidés",
+      "avant": "🪱",
+      "apres": "🍂",
+      "motif": "mille-pattes (diplopode) montré comme un ver",
+      "origine": "audit"
+    },
+    {
+      "name": "Perce-oreille",
+      "scientific_name": "Forficula auricularia",
+      "groupe": "Insecta / Dermaptera / Forficulidés",
+      "avant": "🦗",
+      "apres": "🍂",
+      "motif": "dermaptère montré comme un orthoptère (grillon)",
+      "origine": "audit"
+    },
+    {
+      "name": "Réduve à pattes rouges",
+      "scientific_name": "Rhynocoris erythropus",
+      "groupe": "Insecta / Hemiptera / Réduviidés",
+      "avant": "🐞",
+      "apres": "🌿",
+      "motif": "punaise (hémiptère) montrée comme une coccinelle",
+      "origine": "revue"
+    },
+    {
+      "name": "Pentatome méridional",
+      "scientific_name": "Carpocoris mediterraneus",
+      "groupe": "Insecta / Hemiptera / Pentatomidés",
+      "avant": "🐞",
+      "apres": "🌿",
+      "motif": "punaise (hémiptère) montrée comme une coccinelle",
+      "origine": "revue"
+    },
+    {
+      "name": "Punaise rouge et noire",
+      "scientific_name": "Spilostethus pandurus",
+      "groupe": "Insecta / Hemiptera / Lygaeidés",
+      "avant": "🐞",
+      "apres": "🌿",
+      "motif": "punaise (hémiptère) montrée comme une coccinelle",
+      "origine": "revue"
+    },
+    {
+      "name": "Aleurode du tabac",
+      "scientific_name": "Bemisia tabaci",
+      "groupe": "Insecta / Hemiptera / Aleyrodidés",
+      "avant": "🪰",
+      "apres": "🌿",
+      "motif": "hémiptère (« mouche blanche ») montré comme une mouche (diptère)",
+      "origine": "revue"
+    },
+    {
+      "name": "Acarien prédateur du compost",
+      "scientific_name": "Macrocheles sp.",
+      "groupe": "Arachnida / Mesostigmata / Macrochélidés",
+      "avant": "🕷️",
+      "apres": "🍂",
+      "motif": "acarien montré comme une araignée",
+      "origine": "revue"
+    },
+    {
+      "name": "Faucheux",
+      "scientific_name": "Opiliones",
+      "groupe": "Arachnida / Opiliones",
+      "avant": "🕷️",
+      "apres": "🍂",
+      "motif": "opilion (ni araignée ni acarien) montré comme une araignée",
+      "origine": "revue"
+    },
+    {
+      "name": "Solifuges",
+      "scientific_name": "Solifugae",
+      "groupe": "Arachnida / Solifugae",
+      "avant": "🕷️",
+      "apres": "🍂",
+      "motif": "solifuge (ni araignée ni scorpion) montré comme une araignée",
+      "origine": "revue"
+    },
+    {
+      "name": "Tique brune du chien",
+      "scientific_name": "Rhipicephalus sanguineus",
+      "groupe": "Arachnida / Ixodida / Ixodidés",
+      "avant": "🕷️",
+      "apres": "🏠",
+      "motif": "acarien (tique) montré comme une araignée ; vit surtout dans les chenils et les maisons",
+      "origine": "revue"
+    },
+    {
+      "name": "Pseudoscorpion",
+      "scientific_name": "Chelifer cancroides",
+      "groupe": "Arachnida / Pseudoscorpiones / Chéliféridés",
+      "avant": "🦂",
+      "apres": "🍂",
+      "motif": "pseudoscorpion (sans queue ni venin de scorpion) montré comme un scorpion",
+      "origine": "revue"
+    },
+    {
+      "name": "Ligie",
+      "scientific_name": "Ligia sp.",
+      "groupe": "Malacostraca / Isopoda / Ligiidés",
+      "avant": "🦀",
+      "apres": "🌊",
+      "motif": "crustacé isopode montré comme un crabe (décapode)",
+      "origine": "revue"
+    },
+    {
+      "name": "Dynamène",
+      "scientific_name": "Dynamene bidentata",
+      "groupe": "Malacostraca / Isopoda / Sphaeromatidés",
+      "avant": "🦀",
+      "apres": "🌊",
+      "motif": "crustacé isopode montré comme un crabe (décapode)",
+      "origine": "revue"
+    },
+    {
+      "name": "Talitre (puce de mer)",
+      "scientific_name": "Talitrus saltator",
+      "groupe": "Malacostraca / Amphipoda / Talitridés",
+      "avant": "🦀",
+      "apres": "🌊",
+      "motif": "crustacé amphipode montré comme un crabe (décapode)",
+      "origine": "revue"
+    },
+    {
+      "name": "Chthamale (balane)",
+      "scientific_name": "Chthamalus sp.",
+      "groupe": "Maxillopoda / Sessilia / Chthamalidés",
+      "avant": "🦀",
+      "apres": "🌊",
+      "motif": "balane (crustacé fixé) montrée comme un crabe",
+      "origine": "revue"
+    },
+    {
+      "name": "Pouce-pied",
+      "scientific_name": "Pollicipes pollicipes",
+      "groupe": "Maxillopoda / Pedunculata / Pollicipedidés",
+      "avant": "🦀",
+      "apres": "🌊",
+      "motif": "pouce-pied (crustacé fixé) montré comme un crabe",
+      "origine": "revue"
+    },
+    {
+      "name": "Grande balane",
+      "scientific_name": "Perforatus perforatus",
+      "groupe": "Maxillopoda / Sessilia / Balanidés",
+      "avant": "🐚",
+      "apres": "🌊",
+      "motif": "balane (crustacé fixé) montrée comme un coquillage (mollusque)",
+      "origine": "revue"
+    },
+    {
+      "name": "Crevette des cuvettes",
+      "scientific_name": "Palaemon elegans",
+      "groupe": "Malacostraca / Decapoda / Palaemonidés",
+      "avant": "🦀",
+      "apres": "🦐",
+      "motif": "crevette (décapode) montrée comme un crabe : l’emoji fidèle existe",
+      "origine": "revue"
+    },
+    {
+      "name": "Cyclopes",
+      "scientific_name": "Cyclopidae",
+      "groupe": "Copepoda / Cyclopoida / Cyclopidés",
+      "avant": "🦐",
+      "apres": "💧",
+      "motif": "copépode (minuscule crustacé du plancton) montré comme une crevette",
+      "origine": "revue"
+    },
+    {
+      "name": "Zooplancton",
+      "scientific_name": null,
+      "groupe": null,
+      "avant": "🦐",
+      "apres": "💧",
+      "motif": "plancton animal (copépodes, larves…) montré comme une crevette",
+      "origine": "revue"
+    },
+    {
+      "name": "Oursin violet",
+      "scientific_name": "Paracentrotus lividus",
+      "groupe": "Echinoidea / Camarodonta / Parechinidés",
+      "avant": "⭐",
+      "apres": "🌊",
+      "motif": "oursin montré comme une étoile (étoile de mer)",
+      "origine": "revue"
+    },
+    {
+      "name": "Oursin noir",
+      "scientific_name": "Arbacia lixula",
+      "groupe": "Echinoidea / Arbacioida / Arbaciidés",
+      "avant": "⭐",
+      "apres": "🌊",
+      "motif": "oursin montré comme une étoile (étoile de mer)",
+      "origine": "revue"
+    },
+    {
+      "name": "Hydre d'eau douce",
+      "scientific_name": "Hydra sp.",
+      "groupe": "Hydrozoa / Anthoathecata / Hydridés",
+      "avant": "🪸",
+      "apres": "💧",
+      "motif": "hydre (hydrozoaire d’eau douce) montrée comme un corail",
+      "origine": "revue"
+    },
+    {
+      "name": "Pleurodèle de Waltl",
+      "scientific_name": "Pleurodeles waltl",
+      "groupe": "Amphibia / Caudata / Salamandridés",
+      "avant": "🐸",
+      "apres": "💧",
+      "motif": "amphibien urodèle (triton) montré comme une grenouille",
+      "origine": "revue"
+    },
+    {
+      "name": "Mangouste ichneumon",
+      "scientific_name": "Herpestes ichneumon",
+      "groupe": "Mammalia / Carnivora / Herpestidés",
+      "avant": "🦔",
+      "apres": "🐾",
+      "motif": "carnivore (herpestidé) montré comme un hérisson",
+      "origine": "revue"
+    },
+    {
+      "name": "Genette commune",
+      "scientific_name": "Genetta genetta",
+      "groupe": "Mammalia / Carnivora / Viverridés",
+      "avant": "🦔",
+      "apres": "🐾",
+      "motif": "carnivore (viverridé) montré comme un hérisson",
+      "origine": "revue"
+    },
+    {
+      "name": "Porc-épic à crête",
+      "scientific_name": "Hystrix cristata",
+      "groupe": "Mammalia / Rodentia / Hystricidés",
+      "avant": "🦔",
+      "apres": "🐾",
+      "motif": "rongeur montré comme un hérisson : piquants semblables, groupes différents",
+      "origine": "revue"
+    },
+    {
+      "name": "Hirondelle rustique",
+      "scientific_name": "Hirundo rustica",
+      "groupe": "Aves / Passeriformes / Hirundinidés",
+      "avant": "🕊️",
+      "apres": "🐦",
+      "motif": "passereau montré comme une colombe",
+      "origine": "revue"
+    },
+    {
+      "name": "Cigogne blanche",
+      "scientific_name": "Ciconia ciconia",
+      "groupe": "Aves / Ciconiiformes / Ciconiidés",
+      "avant": "🦢",
+      "apres": "🐦",
+      "motif": "échassier (Ciconiiformes) montré comme un cygne (anatidé)",
+      "origine": "revue"
+    },
+    {
+      "name": "Serin cini",
+      "scientific_name": "Serinus serinus",
+      "groupe": "Aves / Passeriformes / Fringillidés",
+      "avant": "🐤",
+      "apres": "🐦",
+      "motif": "passereau montré comme un poussin (gallinacé)",
+      "origine": "revue"
+    },
+    {
+      "name": "Actinomycète du compost",
+      "scientific_name": "Streptomyces sp.",
+      "groupe": "Actinomycetia / Streptomycetales / Streptomycétacées",
+      "avant": "🕸️",
+      "apres": "🦠",
+      "motif": "bactérie filamenteuse montrée comme une toile d’araignée : l’emoji fidèle existe",
+      "origine": "revue"
+    },
+    {
+      "name": "Mildiou de la tomate",
+      "scientific_name": "Phytophthora infestans",
+      "groupe": "Peronosporea / Peronosporales / Peronosporacées",
+      "avant": "🍅",
+      "apres": "🦠",
+      "motif": "micro-organisme parasite (oomycète) montré comme une tomate",
+      "origine": "revue"
+    },
+    {
+      "name": "Euphorbe",
+      "scientific_name": "Euphorbia sp.",
+      "groupe": "Magnoliopsida / Malpighiales / Euphorbiacées",
+      "avant": "🌵",
+      "apres": "🌿",
+      "motif": "euphorbe montrée comme un cactus : confusion classique, familles différentes",
+      "origine": "revue"
+    },
+    {
+      "name": "Filao",
+      "scientific_name": "Casuarina equisetifolia",
+      "groupe": "Magnoliopsida / Fagales / Casuarinacées",
+      "avant": "🌲",
+      "apres": "🌳",
+      "motif": "plante à fleurs (Casuarinacées) montrée comme un conifère",
+      "origine": "revue"
+    },
+    {
+      "name": "Fougère de Java",
+      "scientific_name": "Microsorum pteropus",
+      "groupe": "Polypodiopsida / Polypodiales / Polypodiacées",
+      "avant": "☘️",
+      "apres": "🌿",
+      "motif": "fougère montrée comme un trèfle (plante à fleurs)",
+      "origine": "revue"
+    },
+    {
+      "name": "Chara",
+      "scientific_name": "Chara sp.",
+      "groupe": "Charophyceae / Charales / Characées",
+      "avant": "🌿",
+      "apres": "🟩",
+      "motif": "algue verte montrée comme une plante terrestre ; emoji des autres algues vertes du corpus",
+      "origine": "revue"
+    },
+    {
+      "name": "Lis de mer",
+      "scientific_name": "Pancratium maritimum",
+      "groupe": "Liliopsida / Asparagales / Amaryllidacées",
+      "avant": "🌾",
+      "apres": "🌿",
+      "motif": "plante à fleurs non graminoïde (hors Poales) montrée comme une céréale",
+      "origine": "revue"
+    },
+    {
+      "name": "Iris de Barbarie",
+      "scientific_name": "Moraea sisyrinchium",
+      "groupe": "Liliopsida / Asparagales / Iridacées",
+      "avant": "🌾",
+      "apres": "🌿",
+      "motif": "plante à fleurs non graminoïde (hors Poales) montrée comme une céréale",
+      "origine": "revue"
+    },
+    {
+      "name": "Ail velu",
+      "scientific_name": "Allium subhirsutum",
+      "groupe": "Liliopsida / Asparagales / Amaryllidacées",
+      "avant": "🌾",
+      "apres": "🌿",
+      "motif": "plante à fleurs non graminoïde (hors Poales) montrée comme une céréale",
+      "origine": "revue"
+    },
+    {
+      "name": "Romulée",
+      "scientific_name": "Romulea bulbocodium",
+      "groupe": "Liliopsida / Asparagales / Iridacées",
+      "avant": "🌾",
+      "apres": "🌿",
+      "motif": "plante à fleurs non graminoïde (hors Poales) montrée comme une céréale",
+      "origine": "revue"
+    },
+    {
+      "name": "Salsepareille",
+      "scientific_name": "Smilax aspera",
+      "groupe": "Liliopsida / Liliales / Smilacacées",
+      "avant": "🌾",
+      "apres": "🌿",
+      "motif": "plante à fleurs non graminoïde (hors Poales) montrée comme une céréale",
+      "origine": "revue"
+    },
+    {
+      "name": "Nivéole d'automne",
+      "scientific_name": "Acis autumnalis",
+      "groupe": "Liliopsida / Asparagales / Amaryllidacées",
+      "avant": "🌾",
+      "apres": "🌿",
+      "motif": "plante à fleurs non graminoïde (hors Poales) montrée comme une céréale",
+      "origine": "revue"
+    },
+    {
+      "name": "Narcisse de Broussonet",
+      "scientific_name": "Narcissus broussonetii",
+      "groupe": "Liliopsida / Asparagales / Amaryllidacées",
+      "avant": "🌾",
+      "apres": "🌿",
+      "motif": "plante à fleurs non graminoïde (hors Poales) montrée comme une céréale",
+      "origine": "revue"
+    },
+    {
+      "name": "Narcisse tardif",
+      "scientific_name": "Narcissus serotinus",
+      "groupe": "Liliopsida / Asparagales / Amaryllidacées",
+      "avant": "🌾",
+      "apres": "🌿",
+      "motif": "plante à fleurs non graminoïde (hors Poales) montrée comme une céréale",
+      "origine": "revue"
+    },
+    {
+      "name": "Fragon à feuilles",
+      "scientific_name": "Ruscus hypophyllum",
+      "groupe": "Liliopsida / Asparagales / Asparagacées",
+      "avant": "🌾",
+      "apres": "🌿",
+      "motif": "plante à fleurs non graminoïde (hors Poales) montrée comme une céréale",
+      "origine": "revue"
+    },
+    {
+      "name": "Asphodèle à petits fruits",
+      "scientific_name": "Asphodelus ramosus",
+      "groupe": "Liliopsida / Asparagales / Asphodélacées",
+      "avant": "🌾",
+      "apres": "🌿",
+      "motif": "plante à fleurs non graminoïde (hors Poales) montrée comme une céréale",
+      "origine": "revue"
+    },
+    {
+      "name": "Glaïeul commun",
+      "scientific_name": "Gladiolus communis",
+      "groupe": "Liliopsida / Asparagales / Iridacées",
+      "avant": "🌾",
+      "apres": "🌿",
+      "motif": "plante à fleurs non graminoïde (hors Poales) montrée comme une céréale",
+      "origine": "revue"
+    },
+    {
+      "name": "Dipcadi tardif",
+      "scientific_name": "Dipcadi serotinum",
+      "groupe": "Liliopsida / Asparagales / Asparagacées",
+      "avant": "🌾",
+      "apres": "🌿",
+      "motif": "plante à fleurs non graminoïde (hors Poales) montrée comme une céréale",
+      "origine": "revue"
+    },
+    {
+      "name": "Limodore à feuilles avortées",
+      "scientific_name": "Limodorum abortivum",
+      "groupe": "Liliopsida / Asparagales / Orchidacées",
+      "avant": "🌾",
+      "apres": "🌿",
+      "motif": "plante à fleurs non graminoïde (hors Poales) montrée comme une céréale",
+      "origine": "revue"
+    },
+    {
+      "name": "Asperge blanche",
+      "scientific_name": "Asparagus albus",
+      "groupe": "Liliopsida / Asparagales / Asparagacées",
+      "avant": "🌾",
+      "apres": "🌿",
+      "motif": "plante à fleurs non graminoïde (hors Poales) montrée comme une céréale",
+      "origine": "revue"
+    },
+    {
+      "name": "Asperge épineuse",
+      "scientific_name": "Asparagus horridus",
+      "groupe": "Liliopsida / Asparagales / Asparagacées",
+      "avant": "🌾",
+      "apres": "🌿",
+      "motif": "plante à fleurs non graminoïde (hors Poales) montrée comme une céréale",
+      "origine": "revue"
+    },
+    {
+      "name": "Arisarum",
+      "scientific_name": "Arisarum vulgare",
+      "groupe": "Liliopsida / Alismatales / Aracées",
+      "avant": "🌾",
+      "apres": "🌿",
+      "motif": "plante à fleurs non graminoïde (hors Poales) montrée comme une céréale",
+      "origine": "revue"
+    }
+  ]
+}
