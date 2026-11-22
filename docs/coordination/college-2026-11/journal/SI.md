@@ -32,3 +32,15 @@ Prochaine action : tests de migration, « À faire par SI », suite complète.
   étiquettes 644, phares 100, descriptions 73.
 
 Prochaine action : suite complète, vérification indépendante.
+
+## 22/11 — vérification et clôture
+
+- Suite : lint 0 erreur, format, `npm test` 6 907/0, `test:ui` vert après correction C1 × C2,
+  `test:content` vert après correction de pollution, build, e2e collège + G&L (78 + 3 relancés
+  verts après adaptation C1 × C3 / C4 × D2), smoke mobile-webkit vert.
+- Vérification indépendante : échec catalogue corrigé et re-vérifié OK ; verrouillage 6e laissé
+  selon C6 (point d'arbitrage pour Oliv).
+- `main` relu : toujours 378, R1 non fusionnée → série 379…385 définitive.
+- Suppression du dossier de coordination et du chargeur ; PR vers `main`.
+
+FLUX TERMINÉ
