@@ -139,6 +139,11 @@ test('colonne `origin` absente : le studio nomme la migration au lieu d’un 500
     await execute(
       "ALTER TABLE visit_mascot_packs ADD COLUMN origin VARCHAR(16) NOT NULL DEFAULT 'custom'",
     );
+    // Supprimer la colonne a aussi supprimé son index (migration 198) : le recréer, sinon le
+    // contrôle d'empreinte du schéma signale un « index en moins » aux suites suivantes.
+    await execute(
+      'CREATE INDEX IF NOT EXISTS idx_visit_mascot_packs_origin ON visit_mascot_packs (origin)',
+    );
     const { packs } = buildBuiltinMascotPacks(await listStaticVisitMascotEntries());
     for (const { catalogId } of packs) {
       await execute("UPDATE visit_mascot_packs SET origin = 'builtin' WHERE catalog_id = ?", [
