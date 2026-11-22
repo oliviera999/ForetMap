@@ -607,6 +607,10 @@ CREATE TABLE IF NOT EXISTS users (
   discovery_tour_seen_json LONGTEXT NULL COMMENT 'JSON des visites guidees deja presentees (welcome, map, ...)',
   biodiv_pedago_level ENUM('college','lycee','universite') DEFAULT NULL
     COMMENT 'Preference personnelle affichage biodiversite (NULL = heriter)',
+  -- Niveau de contenu d'un compte non élève (migration 387) : niveau de l'apprenant ou
+  -- `complet` ; NULL = niveau des groupes, sinon cycle 3 (lib/pedago/learnerLevel.js).
+  pedago_content_level VARCHAR(32) NULL DEFAULT NULL
+    COMMENT 'Niveau de contenu choisi par un compte non eleve (NULL = niveau des groupes, sinon cycle 3)',
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   UNIQUE KEY uq_users_type_legacy (user_type, legacy_user_id),

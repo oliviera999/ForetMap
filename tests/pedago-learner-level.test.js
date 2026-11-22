@@ -187,7 +187,7 @@ test('préférence de l’élève : affichage seulement, jamais les questions', 
   assert.equal(releve.maxPalier, 1);
 });
 
-test('invité, aperçu et vue complète du professeur', () => {
+test('invité, aperçu et vue complète (choix « Complet » d’un compte non élève)', () => {
   const invite = resolveLearnerLevel({
     isGuest: true,
     classNiveaux: ['seconde'],
@@ -203,10 +203,21 @@ test('invité, aperçu et vue complète du professeur', () => {
   assert.equal(apercu.sources.niveau, 'apercu');
   // Aperçu d'un niveau précis (cycle 3) : l'échelle unique le permet.
   assert.equal(resolveLearnerLevel({ teacherPreview: 'cycle3' }).maxPalier, 1);
-  const complet = resolveLearnerLevel({ teacherFullView: true, session: SEANCE_COLLEGE });
+  // La vue complète n'est plus un état d'office du professeur (demande du 22/11/2026) : c'est
+  // le choix « Complet » du profil d'un compte non élève.
+  const complet = resolveLearnerLevel({ staff: true, contentLevel: 'complet' });
   assert.equal(complet.etape, 'universite');
   assert.equal(complet.maxPalier, null);
-  for (const out of [invite, apercu, complet]) {
+  assert.equal(complet.sources.niveau, 'vue_complete');
+  // Changement de sens assumé : une séance suivie comme participant passe devant le profil.
+  const completEnSeance = resolveLearnerLevel({
+    staff: true,
+    contentLevel: 'complet',
+    session: SEANCE_COLLEGE,
+  });
+  assert.equal(completEnSeance.etape, 'college');
+  assert.equal(completEnSeance.sources.niveau, 'seance');
+  for (const out of [invite, apercu, complet, completEnSeance]) {
     assert.ok(LEARNER_LEVEL_SOURCES.includes(out.sources.niveau));
   }
 });
@@ -229,7 +240,13 @@ test('le miroir ESM résout exactement comme le serveur', async () => {
     { isGuest: true },
     { teacherPreview: 'lycee' },
     { teacherPreview: 'cycle4' },
-    { teacherFullView: true },
+    { staff: true },
+    { staff: true, contentLevel: 'complet' },
+    { staff: true, contentLevel: 'seconde', classNiveaux: ['cycle4'] },
+    { staff: true, classNiveaux: ['cycle3', 'cycle4'], userPreference: 'college' },
+    { staff: true, contentLevel: 'inconnu', mapLevel: 'lycee', siteDefault: 'lycee' },
+    { staff: true, contentLevel: 'cycle4', session: SEANCE_LYCEE },
+    { staff: true, contentLevel: 'cycle4', teacherPreview: 'lycee' },
     { classNiveaux: ['cycle3'], session: SEANCE_LYCEE },
     { classNiveaux: ['cycle3'], session: SEANCE_COLLEGE },
     { classNiveaux: ['seconde'], session: SEANCE_CYCLE4 },

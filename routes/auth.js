@@ -86,6 +86,8 @@ function listProductHostPrefixes() {
 }
 const {
   readProfileFieldFlags,
+  resolvePedagoContentLevelUpdate,
+  PEDAGO_CONTENT_LEVEL_STUDENT_ERROR,
   resolveVisitMascotUpdate,
   applyAvatarUpdate,
   findProfileUniquenessConflict,
@@ -300,10 +302,19 @@ router.get('/me', requireAuth, async (req, res) => {
   if (req.auth?.userType === 'teacher' && req.auth?.userId) {
     const row = await queryOne(
       `SELECT id, pseudo, first_name, last_name, email, description, avatar_path,
-              visit_mascot_catalog_id, biodiv_pedago_level
+              visit_mascot_catalog_id, biodiv_pedago_level, pedago_content_level
          FROM users WHERE id = ? LIMIT 1`,
       [req.auth.userId],
-    );
+    ).catch((e) => {
+      // Base pas encore migrée (colonne 387 absente) : profil sans niveau de contenu.
+      if (!(e && (e.errno === 1054 || e.code === 'ER_BAD_FIELD_ERROR'))) throw e;
+      return queryOne(
+        `SELECT id, pseudo, first_name, last_name, email, description, avatar_path,
+                visit_mascot_catalog_id, biodiv_pedago_level
+           FROM users WHERE id = ? LIMIT 1`,
+        [req.auth.userId],
+      );
+    });
     if (row) {
       body.profile = {
         pseudo: row.pseudo ?? null,
@@ -314,6 +325,8 @@ router.get('/me', requireAuth, async (req, res) => {
         default_avatar_url: defaultAvatarUrlFor(row),
         visit_mascot_catalog_id: row.visit_mascot_catalog_id ?? null,
         biodiv_pedago_level: row.biodiv_pedago_level ?? null,
+        // Choix explicite du niveau de contenu (NULL = niveau des groupes, sinon cycle 3).
+        pedago_content_level: row.pedago_content_level ?? null,
       };
     }
   }
@@ -334,7 +347,8 @@ router.get('/me', requireAuth, async (req, res) => {
       body.biodivGroupPedagoLevels = profile.levels;
       body.biodivGroupCurriculumNiveaux = profile.curriculumNiveaux;
       // Niveau de l'apprenant résolu par le serveur (échelle unique, hors carte et hors
-      // séance, que le navigateur applique ensuite) ; `null` pour un compte non élève.
+      // séance, que le navigateur applique ensuite) ; pour un compte non élève, son niveau de
+      // contenu (choix du profil, sinon ses groupes, sinon cycle 3).
       const { loadLearnerLevel } = require('../lib/pedago/learnerLevel');
       body.learnerLevel = await loadLearnerLevel(req.auth.userId, { profile });
     } catch (_) {
@@ -386,7 +400,8 @@ router.patch(
     // redemandé, comme pour en changer (AC3, audit 2026-09-30).
     const account = await queryOne(
       `SELECT id, user_type, email, pseudo, description, password_hash, display_name,
-              first_name, last_name, visit_mascot_catalog_id, biodiv_pedago_level, avatar_path
+              first_name, last_name, visit_mascot_catalog_id, biodiv_pedago_level, avatar_path,
+              pedago_content_level
          FROM users WHERE id = ? LIMIT 1`,
       [auth.userId],
     );
@@ -401,11 +416,22 @@ router.patch(
       hasDescription,
       hasVisitMascotCatalogId,
       hasBiodivPedagoLevel,
+      hasPedagoContentLevel,
       hasAvatarData,
       removeAvatar,
     } = flags;
     if (!flags.hasAny) {
       return res.status(400).json({ error: 'Aucun champ de profil à mettre à jour' });
+    }
+    // Niveau de contenu (migration 387) : réservé aux comptes non élèves.
+    let pedagoContentLevel = account.pedago_content_level ?? null;
+    if (hasPedagoContentLevel) {
+      if (String(account.user_type || '').toLowerCase() === 'student') {
+        return res.status(403).json({ error: PEDAGO_CONTENT_LEVEL_STUDENT_ERROR });
+      }
+      const contentRes = resolvePedagoContentLevelUpdate(body.pedago_content_level);
+      if (!contentRes.ok) return res.status(400).json({ error: contentRes.error });
+      pedagoContentLevel = contentRes.value;
     }
 
     const pseudo = hasPseudo ? normalizeOptionalString(body.pseudo) : account.pseudo;
@@ -465,7 +491,8 @@ router.patch(
       await execute(
         `UPDATE users
             SET pseudo = ?, email = ?, description = ?, visit_mascot_catalog_id = ?,
-                biodiv_pedago_level = ?, avatar_path = ?, updated_at = NOW()
+                biodiv_pedago_level = ?, pedago_content_level = ?, avatar_path = ?,
+                updated_at = NOW()
           WHERE id = ?`,
         [
           pseudo,
@@ -473,6 +500,7 @@ router.patch(
           description,
           visitMascotCatalogId,
           biodivPedagoLevel,
+          pedagoContentLevel,
           avatarPath,
           account.id,
         ],
@@ -496,8 +524,8 @@ router.patch(
     // Toutes les colonnes SAUF password_hash : l'objet est renvoyé tel quel au front (profil complet).
     const updated = await queryOne(
       `SELECT id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name,
-              description, avatar_path, visit_mascot_catalog_id, biodiv_pedago_level, auth_provider,
-              is_active, last_seen, created_at, updated_at
+              description, avatar_path, visit_mascot_catalog_id, biodiv_pedago_level,
+              pedago_content_level, auth_provider, is_active, last_seen, created_at, updated_at
          FROM users WHERE id = ? LIMIT 1`,
       [account.id],
     );
@@ -518,6 +546,7 @@ router.patch(
           description: !!hasDescription,
           visit_mascot_catalog_id: !!hasVisitMascotCatalogId,
           biodiv_pedago_level: !!hasBiodivPedagoLevel,
+          pedago_content_level: !!hasPedagoContentLevel,
           avatar: !!(hasAvatarData || removeAvatar),
         },
       },

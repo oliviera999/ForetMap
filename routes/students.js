@@ -42,6 +42,7 @@ const {
 const { z, validate } = require('../lib/validate');
 const {
   readProfileFieldFlags,
+  PEDAGO_CONTENT_LEVEL_STUDENT_ERROR,
   resolveVisitMascotUpdate,
   applyAvatarUpdate,
   findProfileUniquenessConflict,
@@ -352,6 +353,10 @@ router.patch(
     } = flags;
     if (!flags.hasAny) {
       return res.status(400).json({ error: 'Aucun champ de profil à mettre à jour' });
+    }
+    // Le niveau d'un élève suit sa classe ou sa séance : pas de niveau de contenu à choisir.
+    if (flags.hasPedagoContentLevel) {
+      return res.status(403).json({ error: PEDAGO_CONTENT_LEVEL_STUDENT_ERROR });
     }
 
     const pseudo = hasPseudo ? normalizeOptionalString(body.pseudo) : student.pseudo;

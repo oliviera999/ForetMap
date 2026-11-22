@@ -24,6 +24,11 @@ import {
   etapeForLearnerNiveau,
   highestLearnerNiveau,
 } from './pedagoScales.js';
+import {
+  normalizeStaffContentLevel,
+  STAFF_CONTENT_LEVEL_FULL,
+  STAFF_CONTENT_LEVEL_ENUM,
+} from '../shared/enums/pedagoEnums.js';
 
 /** Palier maximal d'une étape quand le niveau n'est pas connu. */
 export const ETAPE_MAX_PALIER = Object.freeze({ college: 2, lycee: 5, universite: null });
@@ -32,12 +37,14 @@ export const ETAPE_MAX_PALIER = Object.freeze({ college: 2, lycee: 5, universite
 export const LEARNER_LEVEL_SOURCES = Object.freeze([
   'invite',
   'apercu',
-  'vue_complete',
   'seance',
+  'profil',
+  'vue_complete',
   'classe',
   'groupe',
   'carte',
   'site',
+  'defaut',
 ]);
 
 /** Étape + niveaux du programme → palier maximal. */
@@ -86,12 +93,43 @@ function buildLearnerLevel({ niveau, contentEtape, etape = contentEtape, source,
   };
 }
 
+/** Niveau par défaut d'un compte non élève sans choix ni groupe avec un niveau. */
+export const STAFF_DEFAULT_NIVEAU = 'cycle3';
+
+/**
+ * Niveau de contenu d'un compte non élève, hors aperçu et hors séance : choix explicite du
+ * profil (`complet` = vue gestion, aucune borne), sinon le plus haut niveau de ses groupes,
+ * sinon le cycle 3. Aucun repli hérité (étape de groupe, carte, établissement) et aucune
+ * préférence d'affichage : le niveau choisi est appliqué tel quel.
+ */
+function resolveStaffLevel(contentLevel, classNiveau) {
+  const choice = normalizeStaffContentLevel(contentLevel);
+  if (choice === STAFF_CONTENT_LEVEL_FULL) {
+    return buildLearnerLevel({
+      niveau: 'universite',
+      contentEtape: 'universite',
+      source: 'vue_complete',
+    });
+  }
+  let niveau = STAFF_DEFAULT_NIVEAU;
+  let source = 'defaut';
+  if (choice) {
+    niveau = choice;
+    source = 'profil';
+  } else if (classNiveau) {
+    niveau = classNiveau;
+    source = 'classe';
+  }
+  return buildLearnerLevel({ niveau, contentEtape: etapeForLearnerNiveau(niveau), source });
+}
+
 /** Résout le niveau d'un apprenant à partir de ses entrées (voir le module serveur). */
 export function resolveLearnerLevel(input = {}) {
   const {
     isGuest = false,
     teacherPreview = null,
-    teacherFullView = false,
+    staff = false,
+    contentLevel = null,
     session = null,
     classNiveaux = [],
     groupLevels = [],
@@ -115,16 +153,10 @@ export function resolveLearnerLevel(input = {}) {
       source: 'apercu',
     });
   }
-  if (teacherFullView) {
-    return buildLearnerLevel({
-      niveau: 'universite',
-      contentEtape: 'universite',
-      source: 'vue_complete',
-    });
-  }
 
   const classNiveau = highestLearnerNiveau(classNiveaux);
   const sessionNiveaux = sessionLearnerNiveaux(session);
+  if (staff && sessionNiveaux.length === 0) return resolveStaffLevel(contentLevel, classNiveau);
   let niveau = null;
   let legacyEtape = null;
   let source;
@@ -150,7 +182,10 @@ export function resolveLearnerLevel(input = {}) {
   }
 
   const contentEtape = niveau ? etapeForLearnerNiveau(niveau) : legacyEtape;
-  const etape = applyDisplayPreference(contentEtape, userPreference, prefCanRaise);
+  // La préférence d'affichage est celle d'un élève : un compte non élève règle son niveau.
+  const etape = staff
+    ? contentEtape
+    : applyDisplayPreference(contentEtape, userPreference, prefCanRaise);
   return buildLearnerLevel({
     niveau,
     contentEtape,
@@ -158,4 +193,36 @@ export function resolveLearnerLevel(input = {}) {
     source,
     affichage: etape !== contentEtape ? 'preference' : source,
   });
+}
+
+/**
+ * Choix proposés par « Mon profil » à un compte non élève (référentiel
+ * `STAFF_CONTENT_LEVEL_ENUM`) : les niveaux du programme, l'université, puis « Complet ».
+ */
+export const STAFF_CONTENT_LEVEL_OPTIONS = Object.freeze(
+  STAFF_CONTENT_LEVEL_ENUM.values.map((value) =>
+    Object.freeze({ value, label: STAFF_CONTENT_LEVEL_ENUM.labels[value] }),
+  ),
+);
+
+/** Mention de l'origine d'un niveau de compte non élève, pour les libellés d'interface. */
+const STAFF_SOURCE_HINTS = Object.freeze({
+  seance: 'séance en cours',
+  profil: 'mon choix',
+  classe: 'mes groupes',
+  defaut: 'par défaut',
+});
+
+/**
+ * Libellé d'un niveau résolu de compte non élève : « Cycle 4 (5e–3e) — mes groupes »,
+ * « Complet (vue gestion) »… (`''` sans niveau).
+ * @param {{ niveau?: string|null, sources?: { niveau?: string } }|null} learner
+ */
+export function staffContentLevelLabel(learner) {
+  if (!learner) return '';
+  const source = learner.sources?.niveau;
+  if (source === 'vue_complete') return STAFF_CONTENT_LEVEL_ENUM.labels[STAFF_CONTENT_LEVEL_FULL];
+  const label = STAFF_CONTENT_LEVEL_ENUM.labels[learner.niveau] || '';
+  const hint = STAFF_SOURCE_HINTS[source];
+  return label && hint ? `${label} — ${hint}` : label;
 }
