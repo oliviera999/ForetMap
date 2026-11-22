@@ -1,6 +1,8 @@
 import { Button } from '../../shared/ui/Button.jsx';
+import { IconClose } from '../../shared/icons.jsx';
 import { NOTION_NIVEAU_FILTER_OPTIONS } from '../../utils/curriculumNotions.js';
 import {
+  FOODWEB_STEP_MAX_PLANT_IDS,
   PEDAGO_STEP_ACTION as A,
   PEDAGO_STEP_ACTION_ENUM,
 } from '../../shared/enums/pedagoStepActions.js';
@@ -29,6 +31,58 @@ export function moveStep(steps, index, delta) {
   const [item] = next.splice(index, 1);
   next.splice(target, 0, item);
   return next;
+}
+
+/**
+ * Espèces montrées par une étape « réseau trophique » (`plantIds`, chantier collège, flux
+ * C3) : l'élève voit ces espèces et leurs liens mutuels. Liste de puces retirables et un menu
+ * pour en ajouter une, jusqu'à `FOODWEB_STEP_MAX_PLANT_IDS`.
+ */
+function FoodWebStepPlantsField({ plantIds, plantOptions, onChange }) {
+  const selected = (Array.isArray(plantIds) ? plantIds : []).map(Number);
+  const labelOf = (id) => plantOptions.find((p) => Number(p.id) === id)?.label || `Espèce ${id}`;
+  const full = selected.length >= FOODWEB_STEP_MAX_PLANT_IDS;
+  return (
+    <fieldset className="form-field">
+      <legend>Espèces montrées ensemble (optionnel, {FOODWEB_STEP_MAX_PLANT_IDS} au plus)</legend>
+      {selected.length > 0 ? (
+        <ul className="pedago-chip-row" aria-label="Espèces montrées">
+          {selected.map((id) => (
+            <li key={id}>
+              <button
+                type="button"
+                className="pedago-chip-btn"
+                aria-label={`Retirer ${labelOf(id)}`}
+                onClick={() => onChange(selected.filter((x) => x !== id))}
+              >
+                {labelOf(id)} <IconClose size={12} aria-hidden="true" />
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      <select
+        aria-label="Ajouter une espèce montrée"
+        value=""
+        disabled={full}
+        onChange={(e) => {
+          const id = Number(e.target.value);
+          if (Number.isInteger(id) && id > 0 && !selected.includes(id)) {
+            onChange([...selected, id]);
+          }
+        }}
+      >
+        <option value="">{full ? '— liste complète —' : '— ajouter une espèce —'}</option>
+        {plantOptions
+          .filter((p) => !selected.includes(Number(p.id)))
+          .map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.label}
+            </option>
+          ))}
+      </select>
+    </fieldset>
+  );
 }
 
 function PayloadFields({
@@ -62,7 +116,7 @@ function PayloadFields({
   }
   if (type === A.OPEN_PLANT || type === A.OPEN_FOODWEB) {
     const key = type === A.OPEN_PLANT ? 'plantId' : 'highlightPlantId';
-    return (
+    const highlightField = (
       <label className="form-field">
         <span>{type === A.OPEN_PLANT ? 'Espèce' : 'Espèce mise en avant (optionnel)'}</span>
         <select
@@ -77,6 +131,17 @@ function PayloadFields({
           ))}
         </select>
       </label>
+    );
+    if (type === A.OPEN_PLANT) return highlightField;
+    return (
+      <>
+        {highlightField}
+        <FoodWebStepPlantsField
+          plantIds={payload.plantIds}
+          plantOptions={plantOptions}
+          onChange={(ids) => onPayload({ plantIds: ids })}
+        />
+      </>
     );
   }
   if (type === A.OPEN_QUIZ) {

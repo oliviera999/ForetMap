@@ -37,7 +37,7 @@ const { setSetting } = require('../lib/settings');
 const { snapshotSetting, restoreSetting } = require('./helpers/settingsSnapshot');
 const glSettings = require('../lib/glSettings');
 const gatingCore = require('../lib/shared/gatingSettingsCore');
-const { quizNiveauEntryPalier } = require('../lib/pedagoScales');
+const { COLLEGE_MAX_PALIER } = require('../lib/pedagoScales');
 const {
   getChallengeState,
   assertGatingSatisfiedForAcknowledge,
@@ -137,7 +137,10 @@ function expectGolden(name, actual) {
   assert.deepStrictEqual(normalized, golden[name], name);
 }
 
-const collegeLevel = { maxPalier: quizNiveauEntryPalier('college') };
+// Collégien sans classe connue : plafond du cycle 4. Depuis le chantier collège (novembre
+// 2026), une question de collège sans notion de cycle 3 entre au cycle 4 : le palier
+// historique `quizNiveauEntryPalier('college')` (cycle 3) l'écarterait.
+const collegeLevel = { maxPalier: COLLEGE_MAX_PALIER };
 
 async function insertPolicy(table, resourceType, resourceRef, fields) {
   const cols = [

@@ -75,6 +75,17 @@ test('parcours élève : réseau trophique — dispositions, isolement, clavier,
   await expect(page.getByRole('button', { name: /^Réseau alimentaire$/ })).toBeVisible();
 
   const graph = page.locator('svg.pedago-foodweb-graph');
+  // Profil collège (chantier collège, flux C3) : pas de réseau complet par défaut — on part
+  // du Lapin et on élargit à la chaîne, qui couvre ici les quatre espèces.
+  const picker = page.getByRole('heading', { name: 'Choisis une espèce de départ' });
+  await expect(graph.or(picker)).toBeVisible({ timeout: 20_000 });
+  if (await picker.isVisible()) {
+    await page.getByRole('button', { name: /Lapin/ }).click();
+    await page
+      .getByRole('group', { name: 'Espèce de départ' })
+      .getByRole('button', { name: 'Chaîne' })
+      .click();
+  }
   await expect(graph).toBeVisible();
   await expect(page.locator('.pedago-foodweb-graph__node-group')).toHaveCount(4);
 
@@ -99,7 +110,11 @@ test('parcours élève : réseau trophique — dispositions, isolement, clavier,
   const fiche = page.getByRole('button', { name: /Fiche/ });
   await fiche.click();
   await expect(fiche).toHaveAttribute('aria-pressed', 'true');
-  const chaine = page.getByRole('button', { name: /^Chaîne$/ });
+  // Au collège, « Chaîne » existe aussi pour l'espèce de départ (profondeur, flux C3) : on vise
+  // l'étendue du réseau isolé.
+  const chaine = page
+    .getByRole('group', { name: 'Étendue du réseau isolé' })
+    .getByRole('button', { name: /^Chaîne$/ });
   await chaine.click();
   await expect(chaine).toHaveAttribute('aria-pressed', 'true');
   await page.getByRole('button', { name: /Tout afficher/ }).click();

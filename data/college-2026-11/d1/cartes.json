@@ -1,0 +1,11 @@
+{
+  "description": "Carte Daya (D1, point 4) : le niveau imposé « lycée » écartait les collégiens d’un site de sortie. NULL = carte sans niveau imposé (le niveau vient de l’apprenant).",
+  "changements": [
+    {
+      "map_id": "dayat",
+      "champ": "pedago_level",
+      "avant": "lycee",
+      "apres": null
+    }
+  ]
+}

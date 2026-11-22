@@ -10,7 +10,10 @@ import {
   consumeSessionLinkFromLocation,
   clearPendingSessionLink,
 } from '../utils/pedagoSessionLink.js';
-import { PEDAGO_STEP_ACTION as A } from '../shared/enums/pedagoStepActions.js';
+import {
+  PEDAGO_STEP_ACTION as A,
+  validateStepActionPayload,
+} from '../shared/enums/pedagoStepActions.js';
 import { tutorialPreviewPayload } from '../utils/tutorialPreviewPayload.js';
 
 /**
@@ -23,7 +26,9 @@ import { tutorialPreviewPayload } from '../utils/tutorialPreviewPayload.js';
  *   `individualsAvailable`, `setPedagoIdKeysInitialKey`, `setPedagoQuizQuestionCode`,
  *   `setPedagoQuizNotionId`, `setPedagoQuizNotionNiveau`, `setPedagoGlossaryCode`,
  *   `setPedagoEntry`, `setPedagoMapRouteRequest` ; et, fournies par `usePedagoSession`
- *   lui-même (pas par le shell), `openSessionTutorial` / `closeSessionTutorial`
+ *   lui-même (pas par le shell), `openSessionTutorial` / `closeSessionTutorial` et
+ *   `setFoodWebRequest` (espèces d'une étape « réseau trophique », lues par la vue du réseau
+ *   dans le contexte de séance — aucune prop nouvelle à faire descendre du shell)
  */
 export function runPedagoSessionStepAction(step, nav) {
   if (!step?.action) return;
@@ -31,6 +36,8 @@ export function runPedagoSessionStepAction(step, nav) {
   nav.setPlantCatalogPreview(null);
   // Le tutoriel d'une étape précédente ne reste pas ouvert par-dessus la suivante.
   nav.closeSessionTutorial?.();
+  // Les espèces imposées par une étape « réseau trophique » ne survivent pas à l'étape.
+  if (type !== A.OPEN_FOODWEB) nav.setFoodWebRequest?.(null);
   if (type === A.MESSAGE) {
     nav.navigateTab('sessions');
     return;
@@ -65,6 +72,19 @@ export function runPedagoSessionStepAction(step, nav) {
     return;
   }
   if (type === A.OPEN_FOODWEB) {
+    // `plantIds` (chantier collège, flux C3) : les espèces montrées, avec leurs liens
+    // mutuels ; `highlightPlantId` garde sa forme et son rôle.
+    const checked = validateStepActionPayload(type, payload);
+    const plantIds = checked.ok ? checked.payload.plantIds || [] : [];
+    nav.setFoodWebRequest?.(
+      plantIds.length
+        ? {
+            plantIds,
+            mapId: payload.mapId ? String(payload.mapId).trim() : null,
+            nonce: Date.now(),
+          }
+        : null,
+    );
     nav.openPedagoFoodWeb(payload.highlightPlantId ?? null, payload.mapId ?? null);
     return;
   }
@@ -176,6 +196,8 @@ export function usePedagoSession({ available, authenticated, onToast, navigation
   // Tutoriel d'une étape `open_tutorial` : état porté ici, aperçu rendu par
   // `PedagoSessionBanner` (aucune cible nouvelle demandée au shell).
   const [sessionTutorial, setSessionTutorial] = useState(null);
+  // Espèces d'une étape « réseau trophique » (`plantIds`), lues par `FoodWebView`.
+  const [foodWebRequest, setFoodWebRequest] = useState(null);
   const tutorialRequestRef = useRef(0);
 
   const closeSessionTutorial = useCallback(() => {
@@ -243,6 +265,7 @@ export function usePedagoSession({ available, authenticated, onToast, navigation
       runPedagoSessionStepAction(step, {
         openSessionTutorial,
         closeSessionTutorial,
+        setFoodWebRequest,
         navigateTab,
         setPlantCatalogPreview,
         openPlantCatalogPreviewById,
@@ -392,12 +415,14 @@ export function usePedagoSession({ available, authenticated, onToast, navigation
    */
   const exitSession = useCallback(() => {
     closeSessionTutorial();
+    setFoodWebRequest(null);
     persistSession(null);
   }, [persistSession, closeSessionTutorial]);
 
   const completeSession = useCallback(
     (prev) => {
       closeSessionTutorial();
+      setFoodWebRequest(null);
       persistSession(null);
       setCompletedSession(prev);
       if (!authenticated || !prev.id) return;
@@ -502,6 +527,7 @@ export function usePedagoSession({ available, authenticated, onToast, navigation
       sessionTutorial,
       closeSessionTutorial,
       markSessionTutorialRead,
+      foodWebRequest,
       startSession,
       launchSession,
       exitSession,
@@ -519,6 +545,7 @@ export function usePedagoSession({ available, authenticated, onToast, navigation
       sessionTutorial,
       closeSessionTutorial,
       markSessionTutorialRead,
+      foodWebRequest,
       startSession,
       launchSession,
       exitSession,

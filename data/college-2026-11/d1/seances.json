@@ -1,0 +1,168 @@
+{
+  "description": "Séances (D1, point 5). Gardes : slug + identifiant d’étape + ancienne forme exacte de chaque champ modifié ; espèces désignées par leur nom (identifiant résolu à l’exécution). `college-qui-mange-qui` : rien à changer (cycle 4 voulu).",
+  "etapes": [
+    {
+      "slug": "6e-aquaponie-n3",
+      "operation": "modifier",
+      "index": 3,
+      "step_id": "q4",
+      "avant": {
+        "title": "Jusqu'au potager",
+        "body": "Isole Nitrobacter dans le réseau : vers quelles plantes vont les nitrates ? Pour elles, c'est un engrais.",
+        "action_type": "open_foodweb",
+        "payload": {
+          "highlightPlantId": {
+            "plante": {
+              "name": "Nitrobacter",
+              "scientific_name": "Nitrobacter sp.",
+              "id_instantane": 29
+            }
+          },
+          "mapId": "n3"
+        }
+      },
+      "apres": {
+        "body": "Le réseau s'ouvre sur la tomate du potager. D'où viennent les nitrates qui la nourrissent ? Pour elle, c'est un engrais. Repère aussi les animaux qui s'en nourrissent.",
+        "payload": {
+          "highlightPlantId": {
+            "plante": {
+              "name": "Tomate",
+              "scientific_name": "Solanum lycopersicum",
+              "id_instantane": 3
+            }
+          }
+        }
+      },
+      "motif": "Réseau centré sur la tomate (plante du potager, 7 liens sur n³ dont celui de Nitrobacter) au lieu d’une bactérie. Tomate plutôt que tilapia : l’étape s’intitule « Jusqu’au potager » et le tilapia est déjà l’objet de l’étape q2."
+    },
+    {
+      "slug": "6e-aquaponie-n3",
+      "operation": "modifier",
+      "index": 4,
+      "step_id": "q5",
+      "avant": {
+        "title": "Mini-quiz",
+        "body": "Une question sur l'aquaponie.",
+        "action_type": "open_quiz",
+        "payload": {
+          "questionCode": "QF0020"
+        }
+      },
+      "apres": {
+        "body": "Une question sur deux êtres vivants de l'aquaponie.",
+        "payload": {
+          "questionCode": "QF9893"
+        }
+      },
+      "question_requise": "QF9893",
+      "motif": "QF0020 (ammonium, chimie) remplacée par QF9893, question collège existante, rattachée au seul cycle 3 (C3-VIV ; 2-ORGA exclu) : « Le tilapia et la bactérie Nitrosomonas vivent dans l’aquaponie. Qu’est-ce qui les distingue ? » (une ou plusieurs cellules). Elle reprend les deux êtres vivants des étapes q2 et q3. QF0020 reste active (D3)."
+    },
+    {
+      "slug": "6e-biodiversite-deux-lieux",
+      "operation": "modifier",
+      "index": 1,
+      "step_id": "b2",
+      "avant": {
+        "title": "Les espèces de n³",
+        "body": "Parcours le réseau de n³ : quels grands groupes y trouves-tu (plantes du potager, insectes, araignées, vers, oiseaux, poissons…) ?",
+        "action_type": "open_foodweb",
+        "payload": {
+          "highlightPlantId": null,
+          "mapId": "n3"
+        }
+      },
+      "apres": {
+        "body": "Le réseau de n³ s'ouvre sur la tomate du potager et les êtres vivants qui lui sont liés. Affiche ensuite tout le réseau : quels grands groupes y trouves-tu (plantes du potager, insectes, araignées, vers, oiseaux, poissons…) ?",
+        "payload": {
+          "highlightPlantId": {
+            "plante": {
+              "name": "Tomate",
+              "scientific_name": "Solanum lycopersicum",
+              "id_instantane": 3
+            }
+          }
+        }
+      },
+      "motif": "Une espèce mise en avant pour n³ : la tomate (consigne). Le réseau s’ouvre isolé sur elle ; le texte invite à afficher ensuite tout le réseau."
+    },
+    {
+      "slug": "6e-biodiversite-deux-lieux",
+      "operation": "modifier",
+      "index": 2,
+      "step_id": "b3",
+      "avant": {
+        "title": "Les espèces des Sablettes",
+        "body": "Parcours le réseau des Sablettes : quels groupes y trouves-tu (algues, coquillages, crabes, oursins, poissons de mer, oiseaux marins…) ?",
+        "action_type": "open_foodweb",
+        "payload": {
+          "highlightPlantId": null,
+          "mapId": "sablettes"
+        }
+      },
+      "apres": {
+        "body": "Le réseau des Sablettes s'ouvre sur le crabe vert, ce qu'il mange et ceux qui le mangent. Affiche ensuite tout le réseau : quels groupes y trouves-tu (algues, coquillages, crabes, oursins, poissons de mer, oiseaux marins…) ?",
+        "payload": {
+          "highlightPlantId": {
+            "plante": {
+              "name": "Crabe vert",
+              "scientific_name": "Carcinus maenas",
+              "id_instantane": 649
+            }
+          }
+        }
+      },
+      "motif": "Crabe vert plutôt que patelle rustique (« ou mieux selon l’instantané ») : 7 liens sur la carte des Sablettes, tous de prédation, vers des groupes variés (coquillages, pieuvre, seiche, oiseaux) que la consigne de l’étape cite ; la patelle n’a que 3 liens (laitue de mer, porphyre, huîtrier pie)."
+    },
+    {
+      "slug": "6e-regimes-alimentaires",
+      "operation": "modifier",
+      "index": 0,
+      "step_id": "a1",
+      "avant": {
+        "title": "Trois animaux, trois régimes",
+        "body": "Un animal peut manger des végétaux, d'autres animaux, ou les deux. Le réseau de ForêtMap montre ce que mange chaque espèce. Pour chaque animal, clique sur « isoler » et note ce qu'il mange.",
+        "action_type": "message",
+        "payload": {}
+      },
+      "apres": {
+        "title": "Quatre animaux, quatre régimes",
+        "body": "Un animal peut manger des végétaux (feuilles, fruits ou graines), d'autres animaux, ou les deux. Le réseau montre ce que mange chaque espèce. Pour chaque animal, clique sur « isoler » et note ce qu'il mange."
+      },
+      "motif": "Introduction mise au compte de l’étape ajoutée (quatre animaux) ; fruits et graines nommés."
+    },
+    {
+      "slug": "6e-regimes-alimentaires",
+      "operation": "inserer",
+      "index": 4,
+      "step_id": "a6",
+      "avant": {
+        "nb_etapes": 5,
+        "ids": [
+          "a1",
+          "a2",
+          "a3",
+          "a4",
+          "a5"
+        ]
+      },
+      "apres": {
+        "id": "a6",
+        "title": "Le ténébrion meunier",
+        "body": "Cet insecte est élevé dans le terrarium Insectopolis de n³ ; sa larve est le « ver de farine ». Que mange-t-il ? Quel est son régime alimentaire ?",
+        "action_type": "open_foodweb",
+        "payload": {
+          "highlightPlantId": {
+            "plante": {
+              "name": "Ténébrion meunier",
+              "scientific_name": "Tenebrio molitor",
+              "id_instantane": 769
+            }
+          },
+          "mapId": null
+        },
+        "completeWhen": "manual"
+      },
+      "motif": "Aucun des trois animaux de la séance ne mange de fruits ni de graines. Seul mangeur de graines présent sur la carte n³ (registre : introduit, commun, « Élevé dans Insectopolis ») : le ténébrion meunier (granivorie sur le blé tendre, détritivorie). Étape insérée avant le mini-quiz."
+    }
+  ]
+}

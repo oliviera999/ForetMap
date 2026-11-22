@@ -1,0 +1,71 @@
+{
+ "_doc": "Étiquettes simples (plants.usage_label) du groupe d'usage « Poissons ». Clé naturelle : plants.name (+ scientific_name). Valeur avant attendue : NULL. doute : cas à relire par Oliv.",
+ "groupe": "poissons",
+ "libelle": "Poissons",
+ "boites": [
+  "actinopterygiens"
+ ],
+ "fiches": [
+  {
+   "name": "Poisson rouge commun",
+   "scientific_name": "Carassius auratus",
+   "usage_label": "un poisson d'ornement des bassins"
+  },
+  {
+   "name": "Carpe Koï",
+   "scientific_name": "Cyprinus carpio",
+   "usage_label": "une carpe d'ornement colorée"
+  },
+  {
+   "name": "Mangeur d'algues chinois",
+   "scientific_name": "Gyrinocheilus aymonieri",
+   "usage_label": "un poisson d'aquarium à bouche ventouse"
+  },
+  {
+   "name": "Pléco albinos",
+   "scientific_name": "Hypostomus plecostomus",
+   "usage_label": "un poisson cuirassé à ventouse"
+  },
+  {
+   "name": "Gambusie",
+   "scientific_name": "Gambusia affinis",
+   "usage_label": "un petit poisson mangeur de larves"
+  },
+  {
+   "name": "Tilapia du Nil",
+   "scientific_name": "Oreochromis niloticus",
+   "usage_label": "un poisson d'élevage d'eau douce"
+  },
+  {
+   "name": "Anguille d'Europe",
+   "scientific_name": "Anguilla anguilla",
+   "usage_label": "un poisson au corps de serpent"
+  },
+  {
+   "name": "Blennie paon",
+   "scientific_name": "Coryphoblennius galerita",
+   "usage_label": "un petit poisson des flaques"
+  },
+  {
+   "name": "Gobie paganel",
+   "scientific_name": "Gobius paganellus",
+   "usage_label": "un petit poisson posé sur le fond"
+  },
+  {
+   "name": "Mulet lippu",
+   "scientific_name": "Chelon labrosus",
+   "usage_label": "un poisson de mer aux grosses lèvres",
+   "doute": "Homonyme du mulet (mammifère hybride) : l'étiquette lève l'ambiguïté."
+  },
+  {
+   "name": "Sar commun",
+   "scientific_name": "Diplodus sargus",
+   "usage_label": "un poisson de mer à bandes sombres"
+  },
+  {
+   "name": "Sardine",
+   "scientific_name": "Sardina pilchardus",
+   "usage_label": "un petit poisson de mer en bancs"
+  }
+ ]
+}

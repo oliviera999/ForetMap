@@ -1,0 +1,41 @@
+{
+ "_doc": "Étiquettes simples (plants.usage_label) du groupe d'usage « Méduses, anémones et oursins ». Clé naturelle : plants.name (+ scientific_name). Valeur avant attendue : NULL. doute : cas à relire par Oliv.",
+ "groupe": "meduses-oursins",
+ "libelle": "Méduses, anémones et oursins",
+ "boites": [
+  "cnidaires",
+  "echinodermes"
+ ],
+ "fiches": [
+  {
+   "name": "Anémone tomate",
+   "scientific_name": "Actinia equina",
+   "usage_label": "une anémone de mer rouge"
+  },
+  {
+   "name": "Anémone verte",
+   "scientific_name": "Anemonia viridis",
+   "usage_label": "une anémone de mer verte"
+  },
+  {
+   "name": "Anémone de Biscaye",
+   "scientific_name": "Anthopleura biscayensis",
+   "usage_label": "une petite anémone de mer rayée"
+  },
+  {
+   "name": "Hydre d'eau douce",
+   "scientific_name": "Hydra sp.",
+   "usage_label": "un minuscule cousin des méduses"
+  },
+  {
+   "name": "Oursin violet",
+   "scientific_name": "Paracentrotus lividus",
+   "usage_label": "un oursin qui creuse la roche"
+  },
+  {
+   "name": "Oursin noir",
+   "scientific_name": "Arbacia lixula",
+   "usage_label": "un oursin aux longs piquants noirs"
+  }
+ ]
+}

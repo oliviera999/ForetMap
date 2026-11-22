@@ -224,9 +224,10 @@ router.put(
 
 /**
  * Statut d'une espèce au registre d'une carte (ligne `map_species` **existante**, 404 sinon).
- * Corps : `{ presence_status?, validation_status?, allow_downgrade? }`.
+ * Corps : `{ presence_status?, validation_status?, is_featured?, allow_downgrade? }`.
  *
- * Droits vérifiés ici, champ par champ : `presence_status` exige `plants.manage` ;
+ * Droits vérifiés ici, champ par champ : `presence_status` et `is_featured` (espèce phare de
+ * la carte, mise en tête des fiches de zone au collège) exigent `plants.manage` ;
  * `validation_status` exige `plants.manage` ou `observations.validate` (le validateur des
  * observations confirme aussi une présence). Quitter `confirme_site` exige en plus
  * `allow_downgrade: true` et `plants.manage` (409 sinon). Journalisé (`update_map_species_status`).
@@ -240,11 +241,14 @@ router.patch(
     const canValidate = canManagePlants || hasPermission(req.auth, 'observations.validate');
     const touchesPresence = Object.prototype.hasOwnProperty.call(body, 'presence_status');
     const touchesValidation = Object.prototype.hasOwnProperty.call(body, 'validation_status');
-    if (!canValidate || (touchesPresence && !canManagePlants)) {
+    const touchesFeatured = Object.prototype.hasOwnProperty.call(body, 'is_featured');
+    if (!canValidate || ((touchesPresence || touchesFeatured) && !canManagePlants)) {
       return res.status(403).json({ error: 'Permission insuffisante' });
     }
-    if (!touchesPresence && !touchesValidation) {
-      return res.status(400).json({ error: 'Champ presence_status ou validation_status requis' });
+    if (!touchesPresence && !touchesValidation && !touchesFeatured) {
+      return res
+        .status(400)
+        .json({ error: 'Champ presence_status, validation_status ou is_featured requis' });
     }
     send(
       res,

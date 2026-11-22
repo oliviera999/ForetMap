@@ -1,0 +1,87 @@
+{
+ "_doc": "Étiquettes simples (plants.usage_label) du groupe d'usage « Crustacés ». Clé naturelle : plants.name (+ scientific_name). Valeur avant attendue : NULL. doute : cas à relire par Oliv.",
+ "groupe": "crustaces",
+ "libelle": "Crustacés",
+ "boites": [
+  "crustaces"
+ ],
+ "fiches": [
+  {
+   "name": "Cloporte",
+   "scientific_name": "Armadillidium vulgare",
+   "usage_label": "un petit crustacé terrestre",
+   "doute": "Souvent pris pour un insecte : l'étiquette rétablit le groupe."
+  },
+  {
+   "name": "Cloporte poudré",
+   "scientific_name": "Porcellionides pruinosus",
+   "usage_label": "un crustacé terrestre au corps poudré"
+  },
+  {
+   "name": "Ligie",
+   "scientific_name": "Ligia sp.",
+   "usage_label": "un crustacé coureur des rochers"
+  },
+  {
+   "name": "Dynamène",
+   "scientific_name": "Dynamene bidentata",
+   "usage_label": "un petit crustacé des algues"
+  },
+  {
+   "name": "Talitre (puce de mer)",
+   "scientific_name": "Talitrus saltator",
+   "usage_label": "un petit crustacé sauteur des plages",
+   "doute": "Nom trompeur (« puce » : un insecte)."
+  },
+  {
+   "name": "Daphnie",
+   "scientific_name": "Daphnia magna",
+   "usage_label": "un minuscule crustacé des mares"
+  },
+  {
+   "name": "Cyclopes",
+   "scientific_name": "Cyclopidae",
+   "usage_label": "des crustacés minuscules du plancton"
+  },
+  {
+   "name": "Chthamale (balane)",
+   "scientific_name": "Chthamalus sp.",
+   "usage_label": "un petit crustacé fixé aux rochers"
+  },
+  {
+   "name": "Grande balane",
+   "scientific_name": "Perforatus perforatus",
+   "usage_label": "un crustacé fixé en forme de volcan"
+  },
+  {
+   "name": "Pouce-pied",
+   "scientific_name": "Pollicipes pollicipes",
+   "usage_label": "un crustacé fixé sur un pied charnu"
+  },
+  {
+   "name": "Crabe marbré",
+   "scientific_name": "Pachygrapsus marmoratus",
+   "usage_label": "un crabe coureur des rochers"
+  },
+  {
+   "name": "Crabe vert",
+   "scientific_name": "Carcinus maenas",
+   "usage_label": "un crabe chasseur des côtes"
+  },
+  {
+   "name": "Crabe verruqueux",
+   "scientific_name": "Eriphia verrucosa",
+   "usage_label": "un gros crabe trapu des rochers"
+  },
+  {
+   "name": "Crevette des cuvettes",
+   "scientific_name": "Palaemon elegans",
+   "usage_label": "une petite crevette des flaques"
+  },
+  {
+   "name": "Pagure des rochers",
+   "scientific_name": "Clibanarius erythropus",
+   "usage_label": "un bernard-l'ermite des rochers"
+  }
+ ]
+}

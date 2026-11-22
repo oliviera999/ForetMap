@@ -1,18 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../../services/api';
-import { GlossaryMarkdown } from '../GlossaryMarkdown.jsx';
 import { useGlossaryLinkIndex } from '../../hooks/useGlossaryLinkIndex.js';
 import { useGatingSummary } from '../../hooks/useGatingSummary';
 import { LearningGatingStateIcon } from '../../shared/components/LearningGatingStateIcon.jsx';
-import {
-  GlossaryTermLearnedAcknowledgeButton,
-  fetchLearnedGlossaryCodes,
-} from './GlossaryTermLearnedAcknowledge.jsx';
+import { fetchLearnedGlossaryCodes } from './GlossaryTermLearnedAcknowledge.jsx';
+import { GlossaryTermDetail } from './GlossaryTermDetail.jsx';
+import { GlossaryFilters } from './GlossaryFilters.jsx';
 import { IconGlossary } from '../../shared/icons.jsx';
 import { useCurriculumNotions } from '../../hooks/useCurriculumNotions.js';
 import {
   buildNotionOptions,
-  curriculumNiveauLabel,
   notionNiveauOptionsFor,
   notionsForNiveauFilter,
   resolveNotionNiveaux,
@@ -20,6 +17,12 @@ import {
 import { useBiodivPedago } from '../../contexts/BiodivPedagoContext.jsx';
 import { enumOptions } from '../../shared/enums/enumCore.js';
 import { GLOSSARY_NIVEAU_ENUM } from '../../shared/enums/pedagoEnums.js';
+import {
+  filterGlossaryItemsByDepth,
+  hasGlossaryDepthBarrier,
+  isGlossaryNiveauWithinDepth,
+} from '../../utils/foretmapGlossaryAutolink.js';
+import './glossary.css';
 
 /** Profondeur d'un terme : référentiel partagé des ENUM (`glossary_terms.niveau`). */
 const NIVEAU_OPTIONS = [{ value: '', label: 'Tous niveaux' }, ...enumOptions(GLOSSARY_NIVEAU_ENUM)];
@@ -40,7 +43,13 @@ export function GlossaryView({
   const [notionNiveau, setNotionNiveau] = useState('');
   const [notionId, setNotionId] = useState('');
   // Niveaux du programme visibles pour ce public (étape d'affichage, resserrée à la classe).
-  const { curriculumNiveaux } = useBiodivPedago();
+  const { curriculumNiveaux, palierRule } = useBiodivPedago();
+  // Barrière de vocabulaire douce (chantier collège, flux C2) : la liste montre par défaut
+  // les termes du palier (`glossary_depth_max`) ; « Pour aller plus loin » retire le filtre.
+  // Rien n'est caché définitivement : la fiche d'un terme reste toujours ouverte.
+  const depthMax = palierRule('glossary_depth_max');
+  const depthBarrier = hasGlossaryDepthBarrier(depthMax);
+  const [goFurther, setGoFurther] = useState(false);
   const [categories, setCategories] = useState([]);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -52,7 +61,18 @@ export function GlossaryView({
   // était purement consultatif, rien ne distinguait un terme travaillé d'un terme
   // jamais ouvert.
   const [learnedCodes, setLearnedCodes] = useState(() => new Set());
-  const listedCodes = useMemo(() => items.map((i) => i?.glossary_code).filter(Boolean), [items]);
+  // Choisir explicitement une profondeur vaut demande : la barrière ne s'applique qu'à la
+  // vue par défaut (« Tous niveaux »).
+  const depthFilterOn = depthBarrier && !goFurther && !niveau;
+  const visibleItems = useMemo(
+    () => (depthFilterOn ? filterGlossaryItemsByDepth(items, depthMax) : items),
+    [depthFilterOn, items, depthMax],
+  );
+  const hiddenCount = items.length - visibleItems.length;
+  const listedCodes = useMemo(
+    () => visibleItems.map((i) => i?.glossary_code).filter(Boolean),
+    [visibleItems],
+  );
   const { summaries: gatingSummaries, refresh: refreshGating } = useGatingSummary(
     'glossary',
     listedCodes,
@@ -191,6 +211,14 @@ export function GlossaryView({
     [onSelectedCodeChange],
   );
 
+  const acknowledgeTerm = useCallback(
+    (code) => {
+      setLearnedCodes((prev) => new Set(prev).add(String(code)));
+      refreshGating();
+    },
+    [refreshGating],
+  );
+
   return (
     <div className="pedago-view pedago-glossary">
       <header className="pedago-view__head">
@@ -200,86 +228,46 @@ export function GlossaryView({
         <p className="section-sub">Termes scientifiques du vivant et du jardinage.</p>
       </header>
 
-      <div className="pedago-filters card">
-        <label className="pedago-filter-field">
-          <span>Recherche</span>
-          <input
-            type="search"
-            className="form-input"
-            placeholder="Mot-clé…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </label>
-        <label className="pedago-filter-field">
-          <span>Niveau</span>
-          <select
-            className="form-select"
-            value={niveau}
-            onChange={(e) => setNiveau(e.target.value)}
-          >
-            {NIVEAU_OPTIONS.map((opt) => (
-              <option key={opt.value || 'all'} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="pedago-filter-field">
-          <span>Catégorie</span>
-          <select
-            className="form-select"
-            value={categorie}
-            onChange={(e) => setCategorie(e.target.value)}
-          >
-            {categorieOptions.map((opt) => (
-              <option key={opt.value || 'all'} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="pedago-filter-field">
-          <span>Niveau du programme</span>
-          <select
-            className="form-select"
-            value={notionNiveau}
-            onChange={(e) => setNotionNiveau(e.target.value)}
-          >
-            {curriculumNiveauOptions.map((opt) => (
-              <option key={opt.value || 'all'} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="pedago-filter-field pedago-filter-field--wide">
-          <span>Notion du programme</span>
-          <select
-            className="form-select"
-            value={notionId}
-            onChange={(e) => setNotionId(e.target.value)}
-          >
-            {notionOptions.map((opt) => (
-              <option key={opt.value || 'all'} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
+      <GlossaryFilters
+        search={{ value: search, onChange: setSearch }}
+        niveau={{ value: niveau, onChange: setNiveau, options: NIVEAU_OPTIONS }}
+        categorie={{ value: categorie, onChange: setCategorie, options: categorieOptions }}
+        notionNiveau={{
+          value: notionNiveau,
+          onChange: setNotionNiveau,
+          options: curriculumNiveauOptions,
+        }}
+        notion={{ value: notionId, onChange: setNotionId, options: notionOptions }}
+      />
 
       {error ? <p className="pedago-error">{error}</p> : null}
 
       <div className="pedago-glossary__layout">
         <aside className="pedago-glossary__list card">
-          <h3 className="pedago-panel-title">Termes ({items.length})</h3>
+          <h3 className="pedago-panel-title">Termes ({visibleItems.length})</h3>
+          {depthBarrier && !niveau && (hiddenCount > 0 || goFurther) ? (
+            <div className="fm-glossary-depth">
+              <p className="fm-glossary-depth__text" aria-live="polite">
+                {goFurther
+                  ? 'Tous les termes sont affichés, y compris les plus avancés.'
+                  : `${hiddenCount} terme${hiddenCount > 1 ? 's' : ''} plus avancé${hiddenCount > 1 ? 's' : ''} ${hiddenCount > 1 ? 'sont rangés' : 'est rangé'} à part.`}
+              </p>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm fm-glossary-depth__toggle"
+                aria-pressed={goFurther}
+                onClick={() => setGoFurther((value) => !value)}
+              >
+                {goFurther ? 'Revenir aux termes essentiels' : 'Pour aller plus loin'}
+              </button>
+            </div>
+          ) : null}
           {loading ? <p className="section-sub">Chargement…</p> : null}
-          {!loading && items.length === 0 ? (
+          {!loading && visibleItems.length === 0 ? (
             <p className="section-sub">Aucun terme trouvé.</p>
           ) : (
             <ul className="pedago-term-list">
-              {items.map((item) => (
+              {visibleItems.map((item) => (
                 <li key={item.glossary_code}>
                   <button
                     type="button"
@@ -310,160 +298,19 @@ export function GlossaryView({
           ) : detailLoading ? (
             <p className="section-sub">Chargement de la fiche…</p>
           ) : detail ? (
-            <>
-              <h3 className="pedago-panel-title">{detail.terme}</h3>
-              <div className="task-meta" style={{ marginBottom: 10 }}>
-                {detail.categorie ? <span className="task-chip">{detail.categorie}</span> : null}
-                {detail.niveau ? <span className="task-chip">{detail.niveau}</span> : null}
-                <GlossaryTermLearnedAcknowledgeButton
-                  glossaryCode={detail.glossary_code || activeCode}
-                  termLabel={detail.terme}
-                  isLearned={learnedCodes.has(String(detail.glossary_code || activeCode))}
-                  gatingSummary={
-                    gatingSummaries.get(String(detail.glossary_code || activeCode)) || null
-                  }
-                  onAcknowledged={(code) => {
-                    setLearnedCodes((prev) => new Set(prev).add(String(code)));
-                    refreshGating();
-                  }}
-                  onForceLogout={onForceLogout}
-                />
-              </div>
-              {detail.definition_courte ? (
-                <p className="plant-row-desc">{detail.definition_courte}</p>
-              ) : null}
-              {detail.definition_complete ? (
-                <GlossaryMarkdown
-                  className="plant-row-desc"
-                  glossaryItems={autolinkItems}
-                  onOpenGlossaryTerm={selectTerm}
-                >
-                  {detail.definition_complete}
-                </GlossaryMarkdown>
-              ) : null}
-              {detail.exemple ? (
-                <div className="plant-meta-item" style={{ marginTop: 12 }}>
-                  <div className="plant-meta-label">Exemple</div>
-                  <GlossaryMarkdown
-                    className="plant-meta-value"
-                    glossaryItems={autolinkItems}
-                    onOpenGlossaryTerm={selectTerm}
-                  >
-                    {detail.exemple}
-                  </GlossaryMarkdown>
-                </div>
-              ) : null}
-              {detail.etymologie ? (
-                <div className="plant-meta-item" style={{ marginTop: 8 }}>
-                  <div className="plant-meta-label">Étymologie</div>
-                  <GlossaryMarkdown
-                    className="plant-meta-value"
-                    glossaryItems={autolinkItems}
-                    onOpenGlossaryTerm={selectTerm}
-                  >
-                    {detail.etymologie}
-                  </GlossaryMarkdown>
-                </div>
-              ) : null}
-
-              {detail.notions?.length > 0 ? (
-                <div className="pedago-remediation" style={{ marginTop: 16 }}>
-                  <strong>Au programme</strong>
-                  <ul className="pedago-link-list">
-                    {detail.notions.map((n) => (
-                      <li key={n.id}>
-                        <strong>{curriculumNiveauLabel(n.niveau)}</strong> — {n.notion}
-                        {n.theme ? <span className="section-sub"> ({n.theme})</span> : null}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ) : null}
-
-              {detail.incomingRelations?.length > 0 ? (
-                <div className="pedago-remediation" style={{ marginTop: 16 }}>
-                  <strong>Voir aussi</strong>
-                  <div className="pedago-chip-row">
-                    {detail.incomingRelations.map((term) => (
-                      <button
-                        key={`in-${term.glossary_code}`}
-                        type="button"
-                        className="pedago-chip-btn"
-                        onClick={() => selectTerm(term.glossary_code)}
-                      >
-                        {term.terme}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-
-              {detail.relatedTerms?.length > 0 ? (
-                <div className="pedago-remediation" style={{ marginTop: 16 }}>
-                  <strong>Termes liés</strong>
-                  <div className="pedago-chip-row">
-                    {detail.relatedTerms.map((term) => (
-                      <button
-                        key={term.glossary_code}
-                        type="button"
-                        className="pedago-chip-btn"
-                        onClick={() => selectTerm(term.glossary_code)}
-                      >
-                        {term.terme}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-
-              {detail.linkedPlants?.length > 0 ? (
-                <div className="pedago-remediation" style={{ marginTop: 16 }}>
-                  <strong>Espèces liées</strong>
-                  <div className="pedago-chip-row">
-                    {detail.linkedPlants.map((plant) => (
-                      <button
-                        key={plant.id}
-                        type="button"
-                        className="pedago-chip-btn"
-                        onClick={() => onOpenPlant?.(plant.id)}
-                      >
-                        {plant.emoji ? `${plant.emoji} ` : ''}
-                        {plant.name}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-
-              {detail.linkedTutorials?.length > 0 ? (
-                <div className="pedago-remediation" style={{ marginTop: 16 }}>
-                  <strong>Tutoriels liés</strong>
-                  <ul className="pedago-link-list">
-                    {detail.linkedTutorials.map((tu) => (
-                      <li key={tu.id}>{tu.title}</li>
-                    ))}
-                  </ul>
-                </div>
-              ) : null}
-
-              {detail.linkedQuizQuestions?.length > 0 ? (
-                <div className="pedago-remediation" style={{ marginTop: 16 }}>
-                  <strong>Questions quiz</strong>
-                  <div className="pedago-chip-row">
-                    {detail.linkedQuizQuestions.map((q) => (
-                      <button
-                        key={q.question_code}
-                        type="button"
-                        className="pedago-chip-btn"
-                        onClick={() => onOpenQuizQuestion?.(q.question_code)}
-                      >
-                        {q.question_code}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-            </>
+            <GlossaryTermDetail
+              detail={detail}
+              activeCode={activeCode}
+              autolinkItems={autolinkItems}
+              onSelectTerm={selectTerm}
+              learnedCodes={learnedCodes}
+              gatingSummaries={gatingSummaries}
+              onAcknowledged={acknowledgeTerm}
+              onForceLogout={onForceLogout}
+              onOpenPlant={onOpenPlant}
+              onOpenQuizQuestion={onOpenQuizQuestion}
+              beyondPalier={depthBarrier && !isGlossaryNiveauWithinDepth(detail.niveau, depthMax)}
+            />
           ) : (
             <p className="section-sub">Fiche indisponible.</p>
           )}

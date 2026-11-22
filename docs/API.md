@@ -1863,8 +1863,9 @@ Réponse :
 - `species` est trié par nom (ordre français), puis identifiant. `sources` suit toujours l'ordre
   `registre`, `zone`, `repere`. `validation_status` vient du registre (`null` hors registre).
 - `is_featured` (migration `college_socle`) : espèce **phare** de la carte (`map_species.is_featured`),
-  `false` hors registre. Même champ dans `site_species` de `GET /api/visit/content`. Lecture
-  seule pour l'instant.
+  `false` hors registre. Même champ dans `site_species` de `GET /api/visit/content`. Écrit par
+  `PATCH /api/plants/:id/map-species/:mapId` (`is_featured`, `plants.manage`). Au collège, les
+  fiches de zone et de repère (carte et Visite) mettent ces espèces en tête.
 - `summary` : un compte par canal (une espèce peut compter dans plusieurs) et `registre_seul`
   (au registre, placée ni dans une zone ni sur un repère).
 - **Gardes** — les mêmes que `GET /api/zones` : surface décidée par le serveur (laissez-passer des
@@ -2495,7 +2496,7 @@ Mascottes de visite (public) :
 - **Invariant** : la mascotte par défaut est toujours proposée — si elle manque à une liste restreinte, elle y est ajoutée à l’enregistrement.
 - Édition : panneau **« Mascottes de visite »** des réglages admin (vignettes animées, cases « proposée », choix du défaut). Ces deux clés sont retirées de la grille de réglages en texte libre.
 - **`PATCH /api/students/:id/profile`** et **`PATCH /api/auth/me/profile`** acceptent `visit_mascot_catalog_id` : refus **400** si la forme est invalide ou si une liste autorisée non vide ne contient pas l’id.
-- **`biodiv_pedago_level`** (mêmes routes profil) : préférence d’affichage biodiversité (`college` \| `lycee` \| `universite` \| `null`). Réglages publics `ui.biodiv.pedago_level_default` (défaut **`college`**) et `ui.biodiv.pedago_pref_can_raise` (défaut **`false`**). Cartes / groupes : champ `pedago_level` (`null` = hériter), **repli** depuis la migration 301. Résolution (résolveur unique `lib/pedago/learnerLevel.js`, miroir `src/utils/learnerLevel.js`) : visite invitée = collège ; aperçu prof ; vue gestion complète = université ; **séance en cours** (elle impose son niveau) ; **classe** (`groups.curriculum_niveau`, échelle unique `cycle3` … `es_terminale`, `universite`, plus haut niveau des classes) ; à défaut, le plus simple des `pedago_level` **explicites** (groupes + carte active), puis le défaut établissement (repli, jamais plafond). L’affichage (Collège / Lycée / Université) se déduit du niveau. La préférence ne règle que l’affichage et ne peut que le simplifier, sauf `pedago_pref_can_raise` ; elle ne change pas les questions du verrouillage. `GET /api/auth/me` et login exposent `biodivGroupPedagoLevels` (niveaux des groupes dont l’utilisateur est membre) et `biodivGroupCurriculumNiveaux` (niveaux de ses classes, `universite` compris) ; **`GET /api/auth/me`** expose aussi **`learnerLevel`** — le niveau résolu par le serveur hors carte et hors séance, `null` pour un compte non élève : `{ niveau, contentEtape, etape, curriculumNiveaux, maxPalier, sources: { niveau, affichage } }` (`sources.niveau` ∈ `classe` \| `groupe` \| `carte` \| `site` ; `affichage` vaut `preference` quand la préférence a simplifié l’affichage).
+- **`biodiv_pedago_level`** (mêmes routes profil) : préférence d’affichage biodiversité (`college` \| `lycee` \| `universite` \| `null`). Réglages publics `ui.biodiv.pedago_level_default` (défaut **`college`**) et `ui.biodiv.pedago_pref_can_raise` (défaut **`false`**). Cartes / groupes : champ `pedago_level` (`null` = hériter), **repli** depuis la migration 301. Résolution (résolveur unique `lib/pedago/learnerLevel.js`, miroir `src/utils/learnerLevel.js`) : visite invitée = collège ; aperçu prof ; vue gestion complète = université ; **séance en cours** (elle impose son niveau) ; **classe** (`groups.curriculum_niveau`, échelle unique `cycle3` … `es_terminale`, `universite`, plus haut niveau des classes) ; à défaut, le plus simple des `pedago_level` **explicites** (groupes + carte active), puis le défaut établissement (repli, jamais plafond). L’affichage (Collège / Lycée / Université) se déduit du niveau. La préférence ne règle que l’affichage et ne peut que le simplifier, sauf `pedago_pref_can_raise` ; elle ne change pas les questions du verrouillage. `GET /api/auth/me` et login exposent `biodivGroupPedagoLevels` (niveaux des groupes dont l’utilisateur est membre) et `biodivGroupCurriculumNiveaux` (niveaux de ses classes, `universite` compris) ; **`GET /api/auth/me`** expose aussi **`learnerLevel`** — le niveau résolu par le serveur hors carte et hors séance, `null` pour un compte non élève : `{ niveau, contentEtape, etape, curriculumNiveaux, maxPalier, sources: { niveau, affichage } }` (`sources.niveau` ∈ `classe` \| `groupe` \| `carte` \| `site` ; `affichage` vaut `preference` quand la préférence a simplifié l’affichage). **Table de visibilité** (chantier collège, `src/shared/pedagoVisibilityCore.js`, miroir `lib/shared/`) : l’affichage (`etape`) choisit le profil `college` (6e à 3e, visite invitée — fiche allégée : `usage_label`, `description_college`, `usage_group` de `GET /api/plants` à la place de la taxonomie, UICN en mots), `lycee` ou `universite` (inchangés) ; le **palier** (`cycle3` / `cycle4` d’après `learnerLevel.niveau`, collégien sans classe = `cycle3`) règle seulement `glossary_depth_max`, `quiz_entry_palier_max` et `foodweb_types_cycle4_only` (symbiose, compétition masquées en cycle 3). Le paramètre `notionNiveau` d’une séance (`cycle3`, `cycle4`, `college`…) fixe ce palier le temps de la séance. Synthèse du profil collège et des paliers : [`PROFIL_COLLEGE.md`](PROFIL_COLLEGE.md).
 
 Aides contextuelles (public) :
 
@@ -2848,7 +2849,7 @@ Contraintes importantes :
   contenu : un lieu masqué, réservé ou absent de la visite n'est pas nommé. Les lieux de la visite
   gardent leurs propres `species` pour l'affichage sur le plan ; `site_species` est la réponse à
   « quelles espèces ce site abrite-t-il ? ».
-- **Biodiversité du lieu** : chaque zone et chaque repère de `GET /api/visit/content` expose **`species`** (`[{ id, name, emoji }]`, table de jonction `zone_species` / `marker_species`, tri par nom), **`species_ids`** et **`living_beings_list`** (noms de la jonction seule : l’ancien repli sur `zones.current_plant` / `map_markers.plant_name` est retiré — piste C, temps T1). Les zones portent en plus **`is_infrastructure`** (au moins une catégorie affectée porte le drapeau) : le client masque la biodiversité des lieux d'infrastructure, comme sur la carte. Les colonnes legacy mono-espèce ne sont **pas** republiées. C'est cette charge utile qui permet au **visiteur invité** (sans jeton) de consulter la biodiversité d'un lieu, les routes `/api/zones` et `/api/map/markers` étant authentifiées ; la fiche espèce elle-même est servie par la route publique **`GET /api/plants`**.
+- **Biodiversité du lieu** : chaque zone et chaque repère de `GET /api/visit/content` expose **`species`** (`[{ id, name, emoji, is_featured, validation_status }]`, table de jonction `zone_species` / `marker_species`, tri par nom ; `is_featured` et `validation_status` viennent du registre de la carte — `false` / `null` hors registre, mêmes valeurs que `site_species` — et servent à ranger la fiche du lieu au collège : phares d'abord, `documentaire` / `a_confirmer` en dernier, « à chercher »), **`species_ids`** et **`living_beings_list`** (noms de la jonction seule : l’ancien repli sur `zones.current_plant` / `map_markers.plant_name` est retiré — piste C, temps T1). Les zones portent en plus **`is_infrastructure`** (au moins une catégorie affectée porte le drapeau) : le client masque la biodiversité des lieux d'infrastructure, comme sur la carte. Les colonnes legacy mono-espèce ne sont **pas** republiées. C'est cette charge utile qui permet au **visiteur invité** (sans jeton) de consulter la biodiversité d'un lieu, les routes `/api/zones` et `/api/map/markers` étant authentifiées ; la fiche espèce elle-même est servie par la route publique **`GET /api/plants`**.
 - **Blocs éditoriaux (nouveau)** : `GET /api/visit/content` expose **`visit_editorial_blocks`** (tableau ordonné) pour chaque zone/repère. Si `visit_body_json` est présent en base, le serveur l’utilise en priorité ; sinon il génère un fallback compatible depuis `visit_short_description`, `visit_details_*` et `visit_media`.
 - **Écriture blocs** : `POST/PUT /api/visit/zones(:id)` et `POST/PUT /api/visit/markers(:id)` acceptent **`visit_editorial_blocks`** (alias **`body_json`**) ; le serveur normalise et persiste dans `visit_zones.body_json` / `visit_markers.body_json`.
 - **Schéma de bloc** : `paragraph` (`markdown`), `heading` (`text`, `level` 2..4), `image` (`media_ids` 1..2, `layout`, `size`, `align`, `caption` optionnel). Les `media_ids` doivent pointer vers des entrées de `visit_media` de la cible.
@@ -2922,7 +2923,7 @@ import en transaction) et le SQL dans `lib/biodiv/speciesRepository.js`. Il n'ex
 | GET     | `/api/plants/me/discovered-ids`                                            | JWT obligatoire | `{ "plant_ids": number[] }` — identifiants des fiches catalogue pour lesquelles l’utilisateur a au moins une **observation** enregistrée (engagement explicite)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | GET     | `/api/plants/me/observation-counts`                                        | JWT obligatoire | Query **`plant_ids`** : liste d’IDs séparés par des virgules (ou espaces), entiers positifs, **max 200 par requête** (troncature silencieuse au-delà). Le client catalogue découpe en **lots de 200** et fusionne. Réponse `{ "counts": { "<id>": { "my_observation_count": number, "site_observation_count": number }, ... } }` — totaux pour l’utilisateur connecté et pour **tous** les utilisateurs sur chaque fiche demandée ; fiches sans ligne renvoient `0` / `0`. Le volet **site** (identique pour tous les appelants) est servi par un **cache mémoire de 15 s** ; le volet personnel est toujours relu                                  |
 | PUT     | `/api/plants/:id/map-species/:mapId`                                       | oui             | Met à jour `site_notes` (observations propres à la carte) pour le couple plante×carte ; crée la ligne `map_species` si absente. Corps : `{ "site_notes": "…" }` (`null`/vide efface).                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| PATCH   | `/api/plants/:id/map-species/:mapId` | oui | Statut d'une espèce au registre d'une carte (ligne `map_species` **existante**, 404 sinon — jamais de création). Corps : `{ "presence_status"?: resident\|nicheur_migrateur\|hivernant\|passage\|erratique\|introduit\|veille\|null, "validation_status"?: confirme_site\|attendu\|a_confirmer\|documentaire, "allow_downgrade"?: true }`. Droits : `presence_status` → `plants.manage` ; `validation_status` → `plants.manage` ou `observations.validate` (403 sinon). Passage à `confirme_site` : `first_record_at` / `first_record_by` posés s'ils sont vides. Quitter `confirme_site` : 409 `REGISTRY_DOWNGRADE` sauf `allow_downgrade: true` + `plants.manage`. Journal `update_map_species_status` (avant/après). Réponse : `{ map_id, plant_id, presence_status, validation_status, first_record_at, site_notes }`. |
+| PATCH   | `/api/plants/:id/map-species/:mapId` | oui | Statut d'une espèce au registre d'une carte (ligne `map_species` **existante**, 404 sinon — jamais de création). Corps : `{ "presence_status"?: resident\|nicheur_migrateur\|hivernant\|passage\|erratique\|introduit\|veille\|null, "validation_status"?: confirme_site\|attendu\|a_confirmer\|documentaire, "is_featured"?: true\|false, "allow_downgrade"?: true }` (`is_featured` : espèce phare de la carte, booléen ou 0/1, 400 sinon). Droits : `presence_status` et `is_featured` → `plants.manage` ; `validation_status` → `plants.manage` ou `observations.validate` (403 sinon). Passage à `confirme_site` : `first_record_at` / `first_record_by` posés s'ils sont vides. Quitter `confirme_site` : 409 `REGISTRY_DOWNGRADE` sauf `allow_downgrade: true` + `plants.manage`. Journal `update_map_species_status` (avant/après, `is_featured` compris). Réponse : `{ map_id, plant_id, presence_status, validation_status, is_featured, first_record_at, site_notes }`. |
 | POST    | `/api/plants`                                                              | oui             | Créer une entrée biodiversité (champs, `photos`, `secondary_names`, `lookalikes`, `remarks` : voir « Photos, noms, sosies et remarques » plus bas). `201` : la fiche complète                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | PUT     | `/api/plants/:id`                                                          | oui             | Modifier une entrée biodiversité (les champs absents gardent leur valeur ; mêmes structures que la création). `200` : la fiche complète, plus `secondary_name_conflicts` si un autre nom a été écarté                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | DELETE  | `/api/plants/:id`                                                          | oui             | Supprimer une entrée biodiversité                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
@@ -4957,9 +4958,9 @@ Routes publiques (lecture) sauf progression quiz. Voir aussi les routes GL `/api
 | GET | `/api/glossary/categories` | non | Catégories glossaire |
 | GET | `/api/glossary/terms` | non | Liste/recherche. La liste **sans filtre** (le cas courant : index des auto-liens, chargé une fois par session) est servie par un **cache mémoire de 30 s** ; toute requête filtrée (`q`, `niveau`, `categorie`, `notionId`, `notionNiveau`) repart en base |
 | GET | `/api/glossary/terms/:code` | non | Fiche terme. `notions` liste les notions de programme rattachées |
-| GET | `/api/quiz/categories` | non | Catégories QCM (slug, nom, emoji, theme, description, `description_college` — description réécrite pour le collège, `null` sinon, migration `college_socle` —, order_index). `notionId` / `notionNiveau` ne laissent que les catégories rattachées à la notion (et restreignent le compte renvoyé avec `niveau`) |
+| GET | `/api/quiz/categories` | non | Catégories QCM (slug, nom, emoji, theme, description, `description_college` — description réécrite pour le collège, `null` sinon, migration `college_socle` —, order_index). `notionId` / `notionNiveau` ne laissent que les catégories rattachées à la notion (et restreignent le compte renvoyé avec `niveau`). `palierMax` (entier 1–5, chantier collège) : chaque catégorie porte `questionCount`, nombre de questions actives dont le palier d'entrée effectif ne dépasse pas `palierMax` (l'affichage collège masque les catégories à 0) ; **400** `palierMax invalide` hors de 1–5 |
 | GET | `/api/quiz/questions` | non | Liste questions (`theme`, `categorieSlug`, `niveau`, `q`, `notionId`, `notionNiveau`). `reponse_correcte` n’est présent **que** pour un appelant détenant `plants.manage` — même règle que le catalogue GL |
-| GET | `/api/quiz/draw` | non | Tirage QCM (`?illustrated=1` : questions avec photo ; `notionId` / `notionNiveau` : tirage par notion de programme) |
+| GET | `/api/quiz/draw` | non | Tirage QCM (`?illustrated=1` : questions avec photo ; `notionId` / `notionNiveau` : tirage par notion de programme ; `palierMax` (1–5) : seulement les questions dont le palier d'entrée effectif ne le dépasse pas — envoyé par l'affichage collège, 1 en cycle 3, 2 en cycle 4 ; **400** `palierMax invalide`) |
 | GET | `/api/quiz/questions/:code/present` | non (**oui avec contexte**) | Question présentée. **Avec contexte de validation** (`?resourceType=&resourceRef=`) : compte **exigé** depuis l'audit ForetMap du 19/11/2026 (P1) — sans compte, `401` `{ error, code: 'LOGIN_REQUIRED' }` ; le jeton porte alors l'identifiant du compte (claim `uid`). Sans contexte (Quiz libre), toujours public. Choix **mélangés** à chaque appel. La charge ne porte **pas** `photoLegende`, sauf pour `plants.manage` (voir « Présentation et réponse du quiz ForetMap ») |
 | POST | `/api/quiz/questions/:code/answer` | non (**oui avec contexte**) | Validation réponse. **Jeton à usage unique** : rejeu du même `presentationToken` refusé `409` « Présentation déjà utilisée » (interdit de brute-forcer les choix, y compris pour débloquer un conditionnement). **Contexte** (jeton présenté avec contexte, ou corps `{ resourceType, resourceRef }`) **sans compte** → `401` `LOGIN_REQUIRED` ; jeton présenté pour un **autre compte** → `403` `{ error, code: 'PRESENTATION_OTHER_ACCOUNT' }`. Ces refus ne consomment pas le jeton (P1, audit du 19/11/2026). Réponse : `{ correct, feedback, correctChoiceId?, glossaryTerms?, photoLegende?, cooldown? }` (voir « Présentation et réponse du quiz ForetMap ») |
 | GET | `/api/quiz/me/progress` | élève | Progression |
@@ -4997,6 +4998,18 @@ vie commune obligatoire, que `symbiose` absorbait à tort), le commensalisme (l'
 l'autre est indifférent), la mycophagie (brouter un mycélium vivant n'est pas fragmenter de la
 matière morte), l'allélopathie et la facilitation (deux relations de voisinage que
 `competition` recouvrait par défaut).
+
+**Types montrés au collège** (`COLLEGE_INTERACTION_TYPE_ENUM`, `src/shared/enums/biodivEnums.js`) :
+`pollinisation`, `herbivorie`, `frugivorie`, `granivorie`, `predation`, `plante_hote`,
+`decomposition`, `detritivorie`, `parasitisme`, et, au **cycle 4 seulement**
+(`CYCLE4_ONLY_INTERACTION_TYPE_ENUM`, règle de palier `foodweb_types_cycle4_only`), `symbiose`
+et `competition` — frugivorie et granivorie depuis le chantier collège (décision 8 du
+21/11/2026). Chaque type du collège porte un libellé en verbe (`labelsSimple` : « mange des
+fruits », « pond sur »…), affiché avant le mot savant (`interactionTypeLabelSimple`). Le
+filtrage se fait côté interface (`GET /api/food-web` rend toujours tout) : au collège, pas de
+réseau complet par défaut — l'élève part d'une espèce (espèces phares de la carte, `is_featured`
+de `GET /api/maps/:id/species`, puis recherche), à profondeur 1 extensible à 2 ; les liens vers
+une espèce hors de la carte ou de la zone (`from_in_scope` / `to_in_scope` à 0) sont retirés.
 
 > **Les 14 premiers types seulement sont partagés avec GL.** `gl_species_interactions` garde son
 > ENUM d'origine : `GET /api/gl/food-web/interaction-types` en expose 14, et les routes d'écriture
@@ -5086,6 +5099,41 @@ sont refusés à l'écriture.
 `visible_college` (0/1 : boîte gardée dans l'arbre réduit du collège, « groupe d'usage ») sont
 **lus** par `GET /api/clades`, `GET /api/clades/:id/path`, et rendus par `POST`/`PUT` ; ils ne
 s'écrivent pas encore par l'API.
+
+**Arbre réduit du collège** (`profile=college`, chantier collège, flux C4) : paramètre
+facultatif, en requête (`?profile=college`) ou dans le corps (`profile: 'college'`), accepté
+par les quatre routes publiques. Le client l'envoie quand la brique `nested_groups_full_tree`
+de la table de visibilité (`src/shared/pedagoVisibilityCore.js`) est masquée ; sans lui, les
+réponses sont inchangées. Calcul pur `collapseForProfile` (`lib/clades.js`) : seules les
+boîtes `visible_college = 1` restent, chacune rattachée à la boîte visible la plus proche en
+remontant (ou racine) ; `name` = `label_simple || name`, `shared_attribute` =
+`attribute_simple || shared_attribute`, valeurs savantes dans `full_name` /
+`full_shared_attribute`. **Repli** : aucune boîte marquée → arbre complet.
+
+- `GET /api/clades?profile=college` → `{ items, collapsed }` (boîtes visibles seulement).
+- `GET /api/clades/:id/path?profile=college` → `{ path, collapsed: true }` : fil réduit depuis
+  la boîte visible la plus proche du groupe (`path: []` si aucune ne le contient).
+- `POST /api/clades/activity/subtree` + `profile` → `{ tree, collapsed, plants, cladeOptions }` :
+  chaque espèce remonte à sa boîte visible (`plants[].clade_id`), les options de placement ne
+  sont que des boîtes visibles. Repli sur l'arbre complet (`collapsed: false`) si une espèce
+  n'a aucune boîte visible ou si les boîtes n'ont pas d'ancêtre commun. Sans `profile`,
+  `collapsed: false` est désormais renvoyé (champ ajouté).
+- `POST /api/clades/activity/check` + `profile` : la boîte attendue est la boîte visible la
+  plus proche du groupe de la fiche.
+
+**Groupe d'usage dans le catalogue** : `usage_group` de `GET /api/plants` (`{ id, label }` ou
+`null`, socle collège) sert au catalogue groupé du collège (brique `catalog_grouped`, filtre
+« Groupe ») ; l'ordre dans un groupe lit `is_featured` et `validation_status` de
+`GET /api/maps/:id/species` (phares, puis présences confirmées / attendues / situées, puis
+`a_confirmer` / `documentaire` avec la mention « à chercher »).
+
+**Dette documentée — taxonomie en double** : `plants.taxon_kingdom`, `taxon_group` et
+`taxon_family` (filtres Règne › Grand groupe › Famille, masqués au collège) doublonnent l'arbre
+`clades`. Dérivation future, **non faite** : les calculer depuis la chaîne d'ancêtres de
+`plants.clade_id` (règne = boîte de rang « règne », etc.), ce qui suppose d'ajouter un rang aux
+boîtes (`clades.rank`) et de reprendre les 9 fiches sans groupe ; les colonnes deviendraient
+alors des valeurs dérivées (lecture seule) puis disparaîtraient. Les anciens replis des filtres
+`group_1` … `group_4` (`src/utils/plantFilters.js`, colonnes supprimées en migration `129`) sont retirés.
 
 ### Clés d'identification dichotomiques (`/api/id-keys`)
 
@@ -5187,8 +5235,8 @@ appelant `plants.manage` (préparation, suivi, démonstration).
 | GET | `/api/pedago-sessions/:idOrSlug/share` | `plants.manage` | `{ link, qrDataUrl, isPublished }` — lien direct `/?seance=<slug>` et QR code PNG (data URL) ; `?base_url=` pour forcer l’hôte |
 | DELETE  | `/api/pedago-sessions/:idOrSlug` | `plants.manage` | Supprime une séance : passages en cascade, tâches liées détachées (`pedago_session_id` à NULL), badges obtenus conservés. `{ ok, deleted, slug, runs_deleted, tasks_detached }` ; journal `delete_pedago_session`. |
 
-Actions d’étape (`action.type`) : `message`, `open_id_key`, `open_plant`, `open_foodweb`,
-`open_quiz`, `open_glossary`, `open_individual` (`individualId`), `open_nested_groups`
+Actions d’étape (`action.type`) : `message`, `open_id_key`, `open_plant`, `open_foodweb`
+(`mapId`, `highlightPlantId`, `plantIds` facultatif), `open_quiz`, `open_glossary`, `open_individual` (`individualId`), `open_nested_groups`
 (`plantIds`, 2 à 6), `open_map_route` (`routeSlug`, `mapId`), `open_fresque` (`deckId`
 facultatif), `open_tutorial` (`tutorialId`). Source unique de cette liste :
 `src/shared/enums/pedagoStepActions.js` (miroir `lib/shared/pedagoStepActions.js`), lue par la
@@ -5196,6 +5244,15 @@ validation, le client et l’outil MCP `foretmap_pedago_sessions`. MVP : `comple
 uniquement. Séance `custom` : chaque étape porte ses cibles (la config ne sert que de défaut) ;
 à la publication, les plantes, arbres suivis, parcours, clés et tutoriels référencés doivent
 exister, sinon 400 `Publication impossible : …`.
+
+Étape `open_foodweb` (chantier collège, flux C3) : `payload.plantIds`, facultatif, liste
+d’identifiants d’espèces (entiers > 0, sans doublon, **12 au plus**) montrées **ensemble avec
+leurs liens mutuels** (profondeur 0) ; `highlightPlantId` garde sa forme et son rôle (espèce mise
+en avant). Contrôle à chaque écriture de `steps` (`validateStepActionPayload`, partagé avec le
+client et l’outil MCP) : **400** `étape N : plantIds …` pour une liste qui n’en est pas une, un
+identifiant invalide ou plus de 12 espèces. Une liste vide est retirée (forme de l’étape
+inchangée) ; `plantIds` n’est jamais déduit de la config de séance. Les espèces citées comptent
+parmi les cibles vérifiées à la publication.
 
 Étape `open_tutorial` : `payload.tutorialId` (identifiant de `GET /api/tutorials`) ; le tutoriel
 s’ouvre par-dessus la séance, avec son accusé de lecture pour un compte connecté. Contrôle **à
@@ -5350,7 +5407,7 @@ de quiz et la base biodiversité.
 | GET | `/api/curriculum/notions/:id` | non | Notion, `etape`, effectifs, catégories de quiz (`quizCategories`) et de glossaire (`glossaryCategories`) rattachées. **400** si l'identifiant est mal formé, **404** s'il est inconnu |
 | GET | `/api/curriculum/quiz-categories/:slug/notions` | non | Notions d'une catégorie (celles dont ses questions héritent) |
 | PUT | `/api/curriculum/quiz-categories/:slug/notions` | prof (`plants.manage`) | Remplace l'ensemble : `{ notion_ids: [...] }` |
-| GET | `/api/curriculum/quiz-questions/:code/notions` | non | `{ niveau, inherited, out_of_level, added, excluded, effective }` — dit *pourquoi* chaque notion s'applique (`out_of_level` : notions de la catégorie écartées par le palier de la question) |
+| GET | `/api/curriculum/quiz-questions/:code/notions` | non | `{ niveau, inherited, out_of_level, added, excluded, effective, entry_palier }` — dit *pourquoi* chaque notion s'applique (`out_of_level` : notions de la catégorie écartées par le palier de la question). `entry_palier` : palier d'entrée effectif (question de collège : 1 si une notion effective est de cycle 3, sinon 2 ; lycée : 3) |
 | PUT | `/api/curriculum/quiz-questions/:code/notions` | prof (`plants.manage`) | Exceptions d'une question : `{ ajouts: [...], exclusions: [...] }`. **400** si une notion figure des deux côtés |
 | GET | `/api/curriculum/glossary-categories/:categorie/notions` | non | Notions d'une catégorie de glossaire (celles dont ses termes héritent, migration `290`). **404** si aucun terme ne porte cette catégorie |
 | PUT | `/api/curriculum/glossary-categories/:categorie/notions` | prof (`plants.manage`) | Remplace l'ensemble : `{ notion_ids: [...] }` |
@@ -5695,10 +5752,23 @@ l'échelle unique (niveaux du programme + `universite`) : séance en cours, sino
 (`groups.curriculum_niveau`, hérité, le plus haut), sinon replis (`groups.pedago_level`,
 carte, défaut établissement). Palier maximal = celui du niveau (cycle 3 → 1 … terminale → 5 ;
 université : aucun plafond ; niveau inconnu : 2 au collège, 5 au lycée). La préférence
-d'affichage de l'élève n'y entre pas. Si **aucune** question de la ressource n'est à son niveau,
-toutes restent posées (décision du mainteneur : garder les questions plutôt qu'ouvrir la
-ressource) et la réponse porte `level_fallback: "all_levels"` (sinon `"none"`). Comptes non
-élèves : aucun filtre, pas de `level_fallback`.
+d'affichage de l'élève n'y entre pas ; la règle de palier `quiz_entry_palier_max` de la table de
+visibilité peut abaisser ce plafond. Le palier d'une question est son **palier d'entrée
+effectif** (chantier collège, novembre 2026) : question de collège → 1 si une de ses notions
+effectives (catégorie + ajouts − exclusions) est de cycle 3, sinon 2 ; question de lycée → 3.
+Si **aucune** question de la ressource n'est à son niveau :
+
+- **collégien dont la classe est connue** (classe, séance ou aperçu d'enseignant) : aucune
+  question au-delà du palier de sa classe ne verrouille la ressource — une 6e n'est jamais bloquée
+  par une question de cycle 4 ; la ressource **n'est pas verrouillée** pour lui
+  (`required: false`, repli journalisé) ;
+- **collégien sans classe connue** (rangé au cycle 3) : jamais au-delà du cycle 4 — ses questions
+  de collège sont posées (`level_fallback: "college_levels"`) ; s'il ne reste que des questions
+  de lycée, la ressource n'est pas verrouillée (`required: false`, repli journalisé) ;
+- autres élèves : toutes restent posées (décision du mainteneur : garder les questions plutôt
+  qu'ouvrir la ressource), `level_fallback: "all_levels"`.
+
+Sinon `level_fallback: "none"`. Comptes non élèves : aucun filtre, pas de `level_fallback`.
 
 **Séance en cours : `?pedagoSession=<id ou slug>`** (paramètre de requête facultatif, accepté
 aussi dans le corps des accusés). La séance impose son niveau, verrouillage compris : un élève de
@@ -5774,6 +5844,22 @@ Gnomes & Licornes savait valider un terme depuis la migration 107 ; ForetMap dep
 `glossary` rejoint donc `tutorial` et `plant` parmi les types **validables** côté ForetMap : un lien
 bloquant y est désormais accepté, et `GET /api/learning-links/resources?type=glossary` renvoie
 `markable: true`.
+
+**Barrière de vocabulaire douce (chantier collège, flux C2).** `GET /api/glossary/terms` renvoie
+toujours **tous** les termes actifs (avec `niveau`, la profondeur du terme) : aucune route ne change.
+Le filtre se fait côté client, d'après la règle de palier `glossary_depth_max` de la table de
+visibilité (`palierRuleFor`, `src/shared/pedagoVisibilityCore.js` : `null` = pas de filtre). Un terme
+est dans le palier si son palier d'entrée (`GLOSSARY_NIVEAU_ENTRY` de `pedagoScales.js` : `base` →
+cycle 3, `approfondissement` → cycle 4, `avance` → seconde) ne dépasse pas celui de la profondeur
+maximale ; un terme sans profondeur connue est gardé. Effets : l'index d'auto-lien
+(`useGlossaryLinkIndex`) ne lie que les termes du palier, la liste de l'onglet Glossaire les montre
+par défaut (bouton « Pour aller plus loin »), et `GET /api/glossary/terms/:code` reste ouvert pour
+tout terme. Côté serveur, `lib/foretmapGlossaryAutolink.js` expose `glossaryDepthMaxForLearner`,
+`createGlossaryEntriesByDepth` et `glossaryDepthCacheKey` pour l'auto-lien des tutoriels
+(`GET /api/tutorials/:id/view`) : pour une requête **authentifiée**, seuls les termes du palier de
+l'élève sont liés, et le palier entre dans la clé du cache de sortie ; une requête sans jeton
+(aperçu en iframe) garde l'auto-lien complet. Le cœur partagé avec G&L
+(`termAutolinkCore`) n'est pas modifié.
 
 Réglages site GL (table `gl_settings`), dérivés du même catalogue que ForetMap : `gating.enabled`
 (def. `false`), `gating.granularity` (`player|team`, def. `player` — **appliquée** ; `per_resource` est

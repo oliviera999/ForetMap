@@ -5,13 +5,12 @@ import { useBiodivPedago } from '../../contexts/BiodivPedagoContext.jsx';
 import { Tooltip } from '../../shared/components/Tooltip.jsx';
 import { IconClose, IconEye } from '../../shared/icons.jsx';
 import { useOverlayHistoryBack } from '../../shared/platform/useOverlayHistoryBack';
-import { describeAppPreview } from '../../utils/appPreview.js';
-import { PEDAGO_LEVEL_LABELS, PEDAGO_LEVELS } from '../../utils/biodivPedagoLevel.js';
+import { describeAppPreview, PREVIEW_LEVEL_OPTIONS } from '../../utils/appPreview.js';
 
 /**
  * Menu « Aperçu » de l'en-tête : réunit en un seul endroit les deux façons, pour un
  * n3boss, de voir l'application autrement — la vue de rôle simulée (interface n3beur /
- * n3boss) et le niveau d'affichage biodiversité (Collège / Lycée / Université).
+ * n3boss) et le niveau d’affichage biodiversité (6e, 3e ou lycée, `PREVIEW_LEVEL_OPTIONS`).
  *
  * La vue de rôle reste pilotée par `App` (`roleViewMode`, callback) ; le niveau vient du
  * contexte biodiversité. Rien n'est rendu quand aucune des deux options n'est ouverte au
@@ -142,16 +141,16 @@ export function AppPreviewMenu({
             />
             <span>{autoLevelLabel}</span>
           </label>
-          {PEDAGO_LEVELS.map((level) => (
-            <label key={level} className="preview-menu__option">
+          {PREVIEW_LEVEL_OPTIONS.map((option) => (
+            <label key={option.value} className="preview-menu__option">
               <input
                 type="radio"
                 name="app-preview-level"
-                value={level}
-                checked={teacherPreview === level}
-                onChange={() => setTeacherPreview(level)}
+                value={option.value}
+                checked={teacherPreview === option.value}
+                onChange={() => setTeacherPreview(option.value)}
               />
-              <span>{PEDAGO_LEVEL_LABELS[level]}</span>
+              <span>{option.label}</span>
             </label>
           ))}
           <p className="preview-menu__hint">

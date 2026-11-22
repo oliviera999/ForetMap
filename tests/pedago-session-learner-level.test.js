@@ -52,6 +52,13 @@ before(async () => {
       [code, catSlug, n, niveau],
     );
   }
+  // Une notion de cycle 3 : la question de collège entre au palier 1, donc au palier de la
+  // classe de 6e (sans elle, palier 2 : la fiche serait déverrouillée pour une 6e, arbitrage
+  // du chantier collège).
+  await execute(
+    "INSERT IGNORE INTO quiz_question_notions (question_code, notion_id, mode) VALUES (?, 'C3-ALIM', 'ajout')",
+    [qCollege],
+  );
   plantId = (await execute("INSERT INTO plants (name, emoji) VALUES (?, '🌿')", [`PSL ${stamp}`]))
     .insertId;
   for (const code of [qCollege, qLycee]) {
@@ -101,6 +108,9 @@ after(async () => {
     qCollege,
     qLycee,
   ]).catch(() => {});
+  await execute('DELETE FROM quiz_question_notions WHERE question_code = ?', [qCollege]).catch(
+    () => {},
+  );
   await execute('DELETE FROM plants WHERE id = ?', [plantId]).catch(() => {});
   await execute('DELETE FROM quiz_questions WHERE question_code IN (?, ?)', [
     qCollege,

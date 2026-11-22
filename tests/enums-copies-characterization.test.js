@@ -54,6 +54,8 @@ test('biodivPedagoLevel : étapes, libellés, rangs et types du collège', () =>
     [
       'pollinisation',
       'herbivorie',
+      'frugivorie',
+      'granivorie',
       'predation',
       'plante_hote',
       'decomposition',

@@ -1,0 +1,43 @@
+{
+ "_doc": "Étiquettes simples (plants.usage_label) du groupe d'usage « Mille-pattes et collemboles ». Clé naturelle : plants.name (+ scientific_name). Valeur avant attendue : NULL. doute : cas à relire par Oliv.",
+ "groupe": "mille-pattes",
+ "libelle": "Mille-pattes et collemboles",
+ "boites": [
+  "myriapodes",
+  "collemboles"
+ ],
+ "fiches": [
+  {
+   "name": "Iule",
+   "scientific_name": "Julida",
+   "usage_label": "un mille-pattes au corps rond"
+  },
+  {
+   "name": "Géophile",
+   "scientific_name": "Geophilomorpha",
+   "usage_label": "un mille-pattes chasseur du sol"
+  },
+  {
+   "name": "Scolopendre ceinturée",
+   "scientific_name": "Scolopendra cingulata",
+   "usage_label": "un grand mille-pattes venimeux",
+   "doute": "« venimeux » : signale le risque de morsure (forcipules) sans inviter au contact."
+  },
+  {
+   "name": "Scutigère véloce",
+   "scientific_name": "Scutigera coleoptrata",
+   "usage_label": "un mille-pattes aux très longues pattes"
+  },
+  {
+   "name": "Lithobie",
+   "scientific_name": "Lithobius sp.",
+   "usage_label": "un petit mille-pattes brun et rapide"
+  },
+  {
+   "name": "Collembole",
+   "scientific_name": "Collembola",
+   "usage_label": "un tout petit sauteur du sol",
+   "doute": "Ni insecte ni mille-pattes : aucun nom de groupe courant ; « sauteur » décrit l'organe de saut."
+  }
+ ]
+}

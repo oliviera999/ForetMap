@@ -19,6 +19,9 @@ import {
   GlossaryTermLearnedAcknowledgeButton,
   fetchLearnedGlossaryCodes,
 } from './GlossaryTermLearnedAcknowledge.jsx';
+import { useBiodivPedago } from '../../contexts/BiodivPedagoContext.jsx';
+import { hasGlossaryDepthBarrier } from '../../utils/foretmapGlossaryAutolink.js';
+import './glossary.css';
 
 /**
  * Fiche rapide d'un terme du glossaire, affichée **par-dessus** l'écran courant.
@@ -98,6 +101,10 @@ export function GlossaryPopover({
   const [isClosing, setIsClosing] = useState(false);
   const closeTimerRef = useRef(null);
   const prefersReducedMotion = usePrefersReducedMotion();
+  // Collège (barrière de vocabulaire posée, flux C2) : définition courte d'abord, définition
+  // complète repliée. Lycée et université : fiche entière, comme avant.
+  const { palierRule } = useBiodivPedago();
+  const foldFullDefinition = hasGlossaryDepthBarrier(palierRule('glossary_depth_max'));
 
   const requestClose = useCallback(() => {
     if (isClosing) return;
@@ -323,7 +330,18 @@ export function GlossaryPopover({
                   {detail.definition_courte}
                 </GlossaryMarkdown>
               ) : null}
-              {detail.definition_complete ? (
+              {detail.definition_complete && foldFullDefinition && detail.definition_courte ? (
+                <details key={`more-${activeCode}`} className="fm-glossary-popover__more">
+                  <summary>Lire la définition complète</summary>
+                  <GlossaryMarkdown
+                    className="fm-glossary-popover__text"
+                    glossaryItems={autolinkItems}
+                    onOpenGlossaryTerm={openRelatedTerm}
+                  >
+                    {detail.definition_complete}
+                  </GlossaryMarkdown>
+                </details>
+              ) : detail.definition_complete ? (
                 <GlossaryMarkdown
                   className="fm-glossary-popover__text"
                   glossaryItems={autolinkItems}

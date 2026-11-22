@@ -6,8 +6,16 @@
  * seuls varient le type de lieu (`zoneIds` / `markerIds`, champ plante) et les
  * portes `isNew` (repère en création) / catégorie d'infrastructure.
  */
-import { useMemo } from 'react';
-import { orderedLivingBeingsForForm } from '../../utils/livingBeings';
+import { useMemo, useState } from 'react';
+import {
+  capZoneSpecies,
+  orderedLivingBeingsForForm,
+  orderZoneSpeciesForCollege,
+  zoneSpeciesPresenceIndex,
+  zoneTilesCapValue,
+} from '../../utils/livingBeings';
+import { useBiodivPedago } from '../../contexts/BiodivPedagoContext.jsx';
+import { useMapSpeciesPresence } from '../../hooks/useMapSpeciesPresence.js';
 import {
   dedupeTutorialsById,
   isTaskDetachedFromLocation,
@@ -123,5 +131,57 @@ export function useLocationModalData(
     showVisitAsideBlock,
     showTasksTab,
     showTutorialsTab,
+  };
+}
+
+/**
+ * Espèces d'une fiche de lieu telles qu'affichées (carte et Visite) — chantier collège, flux C5.
+ *
+ * Derrière les clés de la table de visibilité : `featured_first` (espèces phares d'abord,
+ * présences `documentaire` / `a_confirmer` après les autres, signalées « à chercher ») et
+ * `zone_tiles_cap` (plafond, « Voir les N autres »). Hors collège, la liste reçue est rendue
+ * telle quelle.
+ *
+ * Présence : `presence` fournie par l'écran (espèces d'un lieu du contenu de visite, qui
+ * portent `is_featured` et `validation_status`), sinon `GET /api/maps/:mapId/species`, demandé
+ * seulement quand l'ordre collège s'applique (requête partagée avec le catalogue). Tant que la
+ * présence est inconnue : ordre reçu (repli).
+ *
+ * @param {string[]} names espèces du lieu, ordre de saisie
+ * @param {{ mapId?: string|null, presence?: Array<object>|null }} [opts]
+ * @returns {{ names: string[], hiddenCount: number, expanded: boolean, expand: () => void,
+ *   collapse: () => void, featured: Set<string>, toSearch: Set<string>, capped: boolean }}
+ */
+export function useZoneSpeciesDisplay(names, { mapId = null, presence = null } = {}) {
+  const { canShow, visibility } = useBiodivPedago();
+  const featuredFirst = canShow('featured_first');
+  const cap = zoneTilesCapValue(visibility('zone_tiles_cap'));
+  const provided = Array.isArray(presence);
+  const list = Array.isArray(names) ? names : [];
+  const remote = useMapSpeciesPresence(mapId, {
+    enabled: featuredFirst && list.length > 0,
+    species: provided ? presence : null,
+  });
+  const index = useMemo(() => zoneSpeciesPresenceIndex(remote.species), [remote.species]);
+  const listKey = list.join('\u0001');
+  const order = useMemo(
+    () => orderZoneSpeciesForCollege(list, index, { featuredFirst }),
+    // `listKey` porte le contenu de `list` (nouvelle identité à chaque rendu chez l'appelant).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [listKey, index, featuredFirst],
+  );
+  // Dépliage propre à un lieu : changer de lieu (autre liste) le referme.
+  const [expandedKey, setExpandedKey] = useState(null);
+  const expanded = expandedKey === listKey;
+  const { visible, hidden } = capZoneSpecies(order.ordered, expanded ? null : cap);
+  return {
+    names: visible,
+    hiddenCount: hidden.length,
+    expanded,
+    expand: () => setExpandedKey(listKey),
+    collapse: () => setExpandedKey(null),
+    featured: order.featured,
+    toSearch: order.toSearch,
+    capped: cap != null && order.ordered.length > cap,
   };
 }

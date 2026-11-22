@@ -1,0 +1,142 @@
+{
+ "_doc": "Étiquettes simples (plants.usage_label) du groupe d'usage « Mammifères ». Clé naturelle : plants.name (+ scientific_name). Valeur avant attendue : NULL. doute : cas à relire par Oliv.",
+ "groupe": "mammiferes",
+ "libelle": "Mammifères",
+ "boites": [
+  "mammiferes"
+ ],
+ "fiches": [
+  {
+   "name": "Chat",
+   "scientific_name": "Felis catus",
+   "usage_label": "un petit félin domestique"
+  },
+  {
+   "name": "Chien",
+   "scientific_name": "Canis familiaris",
+   "usage_label": "un mammifère domestique"
+  },
+  {
+   "name": "Hérisson d’Algérie",
+   "scientific_name": "Atelerix algirus",
+   "usage_label": "un petit mammifère à piquants"
+  },
+  {
+   "name": "Crocidure musette",
+   "scientific_name": "Crocidura russula",
+   "usage_label": "une musaraigne des jardins"
+  },
+  {
+   "name": "Pipistrelle commune",
+   "scientific_name": "Pipistrellus pipistrellus",
+   "usage_label": "une petite chauve-souris"
+  },
+  {
+   "name": "Pipistrelle de Kuhl",
+   "scientific_name": "Pipistrellus kuhlii",
+   "usage_label": "une très petite chauve-souris"
+  },
+  {
+   "name": "Renard roux",
+   "scientific_name": "Vulpes vulpes",
+   "usage_label": "un carnivore sauvage au pelage roux"
+  },
+  {
+   "name": "Belette",
+   "scientific_name": "Mustela nivalis",
+   "usage_label": "un tout petit carnivore allongé"
+  },
+  {
+   "name": "Loup doré africain (chacal)",
+   "scientific_name": "Canis lupaster",
+   "usage_label": "un cousin africain du loup"
+  },
+  {
+   "name": "Mangouste ichneumon",
+   "scientific_name": "Herpestes ichneumon",
+   "usage_label": "un carnivore gris à longue queue"
+  },
+  {
+   "name": "Genette commune",
+   "scientific_name": "Genetta genetta",
+   "usage_label": "un carnivore nocturne tacheté"
+  },
+  {
+   "name": "Lièvre du Cap",
+   "scientific_name": "Lepus capensis",
+   "usage_label": "un lièvre aux oreilles à pointe noire"
+  },
+  {
+   "name": "Lapin de garenne",
+   "scientific_name": "Oryctolagus cuniculus",
+   "usage_label": "un lapin sauvage"
+  },
+  {
+   "name": "Rat rayé",
+   "scientific_name": "Lemniscomys barbarus",
+   "usage_label": "un petit rongeur rayé"
+  },
+  {
+   "name": "Rat surmulot",
+   "scientific_name": "Rattus norvegicus",
+   "usage_label": "un gros rat des villes"
+  },
+  {
+   "name": "Souris grise",
+   "scientific_name": "Mus musculus",
+   "usage_label": "une souris des maisons"
+  },
+  {
+   "name": "Mérione du Maroc",
+   "scientific_name": "Meriones grandis",
+   "usage_label": "un rongeur des lieux sableux"
+  },
+  {
+   "name": "Porc-épic à crête",
+   "scientific_name": "Hystrix cristata",
+   "usage_label": "un grand rongeur à piquants",
+   "doute": "Nom trompeur (« porc »)."
+  },
+  {
+   "name": "Sanglier",
+   "scientific_name": "Sus scrofa",
+   "usage_label": "un cochon sauvage"
+  },
+  {
+   "name": "Mouton (race Sardi)",
+   "scientific_name": "Ovis aries",
+   "usage_label": "un mouton d'élevage marocain"
+  },
+  {
+   "name": "Chèvre",
+   "scientific_name": "Capra hircus",
+   "usage_label": "un petit mammifère d'élevage"
+  },
+  {
+   "name": "Vache",
+   "scientific_name": "Bos taurus",
+   "usage_label": "un grand mammifère d'élevage"
+  },
+  {
+   "name": "Âne",
+   "scientific_name": "Equus asinus",
+   "usage_label": "un animal de travail à longues oreilles"
+  },
+  {
+   "name": "Cheval Barbe",
+   "scientific_name": "Equus caballus",
+   "usage_label": "un cheval d'Afrique du Nord"
+  },
+  {
+   "name": "Mulet",
+   "scientific_name": "Equus asinus × Equus caballus",
+   "usage_label": "un croisement d'âne et de jument",
+   "doute": "Homonyme du mulet (poisson) : l'étiquette lève l'ambiguïté."
+  },
+  {
+   "name": "Grand dauphin",
+   "scientific_name": "Tursiops truncatus",
+   "usage_label": "un mammifère marin"
+  }
+ ]
+}

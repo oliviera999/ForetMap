@@ -3,9 +3,21 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { PlantCatalogFilterPanel } from '../../../src/components/biodiv/PlantCatalogFilterPanel.jsx';
 
 const PLANTS = [
-  { id: 1, group_1: 'Végétal', group_2: 'Arbre', group_3: 'Rosacée', habitat: 'Verger' },
-  { id: 2, group_1: 'Végétal', group_2: 'Herbacée', group_3: 'Fabacée', habitat: 'Prairie' },
-  { id: 3, group_1: 'Fungi', group_2: 'Basidio', group_3: '', habitat: 'Sous-bois' },
+  {
+    id: 1,
+    taxon_kingdom: 'Végétal',
+    taxon_group: 'Arbre',
+    taxon_family: 'Rosacée',
+    habitat: 'Verger',
+  },
+  {
+    id: 2,
+    taxon_kingdom: 'Végétal',
+    taxon_group: 'Herbacée',
+    taxon_family: 'Fabacée',
+    habitat: 'Prairie',
+  },
+  { id: 3, taxon_kingdom: 'Fungi', taxon_group: 'Basidio', taxon_family: '', habitat: 'Sous-bois' },
 ];
 
 function setup(overrides = {}) {

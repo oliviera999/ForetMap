@@ -1,0 +1,442 @@
+{
+ "_doc": "Étiquettes simples (plants.usage_label) du groupe d'usage « Oiseaux ». Clé naturelle : plants.name (+ scientific_name). Valeur avant attendue : NULL. doute : cas à relire par Oliv.",
+ "groupe": "oiseaux",
+ "libelle": "Oiseaux",
+ "boites": [
+  "oiseaux"
+ ],
+ "fiches": [
+  {
+   "name": "Merle noir",
+   "scientific_name": "Turdus merula",
+   "usage_label": "un oiseau noir des jardins"
+  },
+  {
+   "name": "Moineau domestique",
+   "scientific_name": "Passer domesticus",
+   "usage_label": "un petit oiseau des villes"
+  },
+  {
+   "name": "Moineau espagnol",
+   "scientific_name": "Passer hispaniolensis",
+   "usage_label": "un petit oiseau des cultures"
+  },
+  {
+   "name": "Bulbul des jardins",
+   "scientific_name": "Pycnonotus barbatus",
+   "usage_label": "un oiseau chanteur des jardins"
+  },
+  {
+   "name": "Étourneau unicolore",
+   "scientific_name": "Sturnus unicolor",
+   "usage_label": "un oiseau noir à reflets brillants"
+  },
+  {
+   "name": "Serin cini",
+   "scientific_name": "Serinus serinus",
+   "usage_label": "un tout petit oiseau jaune"
+  },
+  {
+   "name": "Chardonneret élégant",
+   "scientific_name": "Carduelis carduelis",
+   "usage_label": "un petit oiseau à face rouge"
+  },
+  {
+   "name": "Verdier d'Europe",
+   "scientific_name": "Chloris chloris",
+   "usage_label": "un petit oiseau vert au gros bec"
+  },
+  {
+   "name": "Bruant proyer",
+   "scientific_name": "Emberiza calandra",
+   "usage_label": "un oiseau brun chanteur des champs"
+  },
+  {
+   "name": "Pouillot véloce",
+   "scientific_name": "Phylloscopus collybita",
+   "usage_label": "un tout petit oiseau vert-brun"
+  },
+  {
+   "name": "Fauvette à tête noire",
+   "scientific_name": "Sylvia atricapilla",
+   "usage_label": "un petit oiseau gris à tête noire"
+  },
+  {
+   "name": "Fauvette mélanocéphale",
+   "scientific_name": "Curruca melanocephala",
+   "usage_label": "un petit oiseau à capuchon noir"
+  },
+  {
+   "name": "Cisticole des joncs",
+   "scientific_name": "Cisticola juncidis",
+   "usage_label": "un minuscule oiseau des herbes hautes"
+  },
+  {
+   "name": "Rousserolle effarvatte",
+   "scientific_name": "Acrocephalus scirpaceus",
+   "usage_label": "un petit oiseau des roseaux"
+  },
+  {
+   "name": "Rougequeue de Moussier",
+   "scientific_name": "Phoenicurus moussieri",
+   "usage_label": "un petit oiseau noir, blanc et roux"
+  },
+  {
+   "name": "Rougequeue noir",
+   "scientific_name": "Phoenicurus ochruros",
+   "usage_label": "un petit oiseau sombre à queue rousse"
+  },
+  {
+   "name": "Gorgebleue à miroir",
+   "scientific_name": "Luscinia svecica",
+   "usage_label": "un petit oiseau à gorge bleue"
+  },
+  {
+   "name": "Tarier pâtre",
+   "scientific_name": "Saxicola rubicola",
+   "usage_label": "un petit oiseau perché sur les buissons"
+  },
+  {
+   "name": "Pie-grièche à tête rousse",
+   "scientific_name": "Lanius senator",
+   "usage_label": "un oiseau chasseur à masque noir"
+  },
+  {
+   "name": "Mésange nord-africaine",
+   "scientific_name": "Cyanistes teneriffae",
+   "usage_label": "une petite mésange bleue"
+  },
+  {
+   "name": "Bergeronnette grise",
+   "scientific_name": "Motacilla alba",
+   "usage_label": "un oiseau à longue queue qui remue"
+  },
+  {
+   "name": "Bergeronnette printanière (ibérique)",
+   "scientific_name": "Motacilla flava iberiae",
+   "usage_label": "un oiseau à ventre jaune et longue queue"
+  },
+  {
+   "name": "Pipit farlouse",
+   "scientific_name": "Anthus pratensis",
+   "usage_label": "un petit oiseau brun des prairies"
+  },
+  {
+   "name": "Cochevis huppé",
+   "scientific_name": "Galerida cristata",
+   "usage_label": "une alouette huppée"
+  },
+  {
+   "name": "Huppe fasciée",
+   "scientific_name": "Upupa epops",
+   "usage_label": "un oiseau orangé à crête"
+  },
+  {
+   "name": "Choucas des tours",
+   "scientific_name": "Coloeus monedula",
+   "usage_label": "un petit corbeau à nuque grise"
+  },
+  {
+   "name": "Conure veuve",
+   "scientific_name": "Myiopsitta monachus",
+   "usage_label": "une perruche verte",
+   "doute": "Espèce introduite (perruche) ; nom « conure veuve » opaque."
+  },
+  {
+   "name": "Tourterelle turque",
+   "scientific_name": "Streptopelia decaocto",
+   "usage_label": "une tourterelle à collier noir"
+  },
+  {
+   "name": "Tourterelle des bois",
+   "scientific_name": "Streptopelia turtur",
+   "usage_label": "une tourterelle migratrice"
+  },
+  {
+   "name": "Tourterelle maillée",
+   "scientific_name": "Spilopelia senegalensis",
+   "usage_label": "une petite tourterelle rousse"
+  },
+  {
+   "name": "Pigeon biset",
+   "scientific_name": "Columba livia",
+   "usage_label": "un pigeon des villes"
+  },
+  {
+   "name": "Pigeon ramier",
+   "scientific_name": "Columba palumbus",
+   "usage_label": "un grand pigeon sauvage"
+  },
+  {
+   "name": "Hirondelle rustique",
+   "scientific_name": "Hirundo rustica",
+   "usage_label": "une hirondelle à longue queue"
+  },
+  {
+   "name": "Hirondelle de fenêtre",
+   "scientific_name": "Delichon urbicum",
+   "usage_label": "une hirondelle à ventre blanc"
+  },
+  {
+   "name": "Hirondelle paludicole",
+   "scientific_name": "Riparia paludicola",
+   "usage_label": "une hirondelle brune des berges"
+  },
+  {
+   "name": "Martinet noir",
+   "scientific_name": "Apus apus",
+   "usage_label": "un oiseau en faucille, toujours en vol"
+  },
+  {
+   "name": "Martinet pâle",
+   "scientific_name": "Apus pallidus",
+   "usage_label": "un martinet brun pâle"
+  },
+  {
+   "name": "Martin-pêcheur d'Europe",
+   "scientific_name": "Alcedo atthis",
+   "usage_label": "un petit oiseau pêcheur bleu"
+  },
+  {
+   "name": "Chevêche d'Athéna",
+   "scientific_name": "Athene noctua",
+   "usage_label": "une petite chouette"
+  },
+  {
+   "name": "Faucon crécerelle",
+   "scientific_name": "Falco tinnunculus",
+   "usage_label": "un petit rapace roux"
+  },
+  {
+   "name": "Épervier d'Europe",
+   "scientific_name": "Accipiter nisus",
+   "usage_label": "un rapace chasseur d'oiseaux"
+  },
+  {
+   "name": "Busard des roseaux",
+   "scientific_name": "Circus aeruginosus",
+   "usage_label": "un rapace des marais"
+  },
+  {
+   "name": "Buse féroce",
+   "scientific_name": "Buteo rufinus",
+   "usage_label": "un grand rapace à queue rousse"
+  },
+  {
+   "name": "Élanion blanc",
+   "scientific_name": "Elanus caeruleus",
+   "usage_label": "un petit rapace gris et blanc"
+  },
+  {
+   "name": "Canard colvert",
+   "scientific_name": "Anas platyrhynchos",
+   "usage_label": "un canard à tête verte"
+  },
+  {
+   "name": "Nette rousse",
+   "scientific_name": "Netta rufina",
+   "usage_label": "un canard plongeur à tête orange"
+  },
+  {
+   "name": "Sarcelle d'été",
+   "scientific_name": "Spatula querquedula",
+   "usage_label": "un petit canard migrateur"
+  },
+  {
+   "name": "Sarcelle marbrée",
+   "scientific_name": "Marmaronetta angustirostris",
+   "usage_label": "un petit canard pâle tacheté"
+  },
+  {
+   "name": "Canard souchet",
+   "scientific_name": "Spatula clypeata",
+   "usage_label": "un canard au large bec"
+  },
+  {
+   "name": "Fuligule nyroca",
+   "scientific_name": "Aythya nyroca",
+   "usage_label": "un petit canard plongeur brun"
+  },
+  {
+   "name": "Grèbe castagneux",
+   "scientific_name": "Tachybaptus ruficollis",
+   "usage_label": "un petit oiseau plongeur"
+  },
+  {
+   "name": "Gallinule poule-d'eau",
+   "scientific_name": "Gallinula chloropus",
+   "usage_label": "un oiseau d'eau noir au bec rouge"
+  },
+  {
+   "name": "Talève sultane",
+   "scientific_name": "Porphyrio porphyrio",
+   "usage_label": "un grand oiseau d'eau bleu-violet"
+  },
+  {
+   "name": "Foulque macroule",
+   "scientific_name": "Fulica atra",
+   "usage_label": "un oiseau d'eau noir au bec blanc"
+  },
+  {
+   "name": "Foulque caronculée",
+   "scientific_name": "Fulica cristata",
+   "usage_label": "un oiseau d'eau noir à boules rouges"
+  },
+  {
+   "name": "Héron cendré",
+   "scientific_name": "Ardea cinerea",
+   "usage_label": "un grand héron gris"
+  },
+  {
+   "name": "Héron pourpré",
+   "scientific_name": "Ardea purpurea",
+   "usage_label": "un héron au cou roux"
+  },
+  {
+   "name": "Héron garde-bœufs",
+   "scientific_name": "Bubulcus ibis",
+   "usage_label": "un petit héron blanc des champs"
+  },
+  {
+   "name": "Aigrette garzette",
+   "scientific_name": "Egretta garzetta",
+   "usage_label": "un petit héron blanc des marais"
+  },
+  {
+   "name": "Grande aigrette",
+   "scientific_name": "Ardea alba",
+   "usage_label": "un grand héron blanc"
+  },
+  {
+   "name": "Crabier chevelu",
+   "scientific_name": "Ardeola ralloides",
+   "usage_label": "un petit héron chamois"
+  },
+  {
+   "name": "Bihoreau gris",
+   "scientific_name": "Nycticorax nycticorax",
+   "usage_label": "un héron trapu de la nuit"
+  },
+  {
+   "name": "Blongios nain",
+   "scientific_name": "Ixobrychus minutus",
+   "usage_label": "un tout petit héron des roseaux"
+  },
+  {
+   "name": "Cigogne blanche",
+   "scientific_name": "Ciconia ciconia",
+   "usage_label": "un grand oiseau blanc aux pattes rouges"
+  },
+  {
+   "name": "Ibis falcinelle",
+   "scientific_name": "Plegadis falcinellus",
+   "usage_label": "un oiseau d'eau sombre à bec courbé"
+  },
+  {
+   "name": "Spatule blanche",
+   "scientific_name": "Platalea leucorodia",
+   "usage_label": "un oiseau blanc au bec en spatule"
+  },
+  {
+   "name": "Œdicnème criard",
+   "scientific_name": "Burhinus oedicnemus",
+   "usage_label": "un oiseau aux grands yeux jaunes"
+  },
+  {
+   "name": "Échasse blanche",
+   "scientific_name": "Himantopus himantopus",
+   "usage_label": "un oiseau aux très longues pattes roses"
+  },
+  {
+   "name": "Petit gravelot",
+   "scientific_name": "Charadrius dubius",
+   "usage_label": "un petit oiseau des rives à collier"
+  },
+  {
+   "name": "Gravelot à collier interrompu",
+   "scientific_name": "Charadrius alexandrinus",
+   "usage_label": "un petit oiseau pâle des plages"
+  },
+  {
+   "name": "Bécasseau variable",
+   "scientific_name": "Calidris alpina",
+   "usage_label": "un petit oiseau de vase au bec courbé"
+  },
+  {
+   "name": "Bécasseau sanderling",
+   "scientific_name": "Calidris alba",
+   "usage_label": "un petit oiseau pâle du bord des vagues"
+  },
+  {
+   "name": "Bécassine des marais",
+   "scientific_name": "Gallinago gallinago",
+   "usage_label": "un oiseau des marais au très long bec"
+  },
+  {
+   "name": "Chevalier culblanc",
+   "scientific_name": "Tringa ochropus",
+   "usage_label": "un oiseau des rives au croupion blanc"
+  },
+  {
+   "name": "Chevalier gambette",
+   "scientific_name": "Tringa totanus",
+   "usage_label": "un oiseau des rives aux pattes rouges"
+  },
+  {
+   "name": "Tournepierre à collier",
+   "scientific_name": "Arenaria interpres",
+   "usage_label": "un petit oiseau des plages trapu"
+  },
+  {
+   "name": "Courlis corlieu",
+   "scientific_name": "Numenius phaeopus",
+   "usage_label": "un oiseau de rivage au bec courbé"
+  },
+  {
+   "name": "Huîtrier pie",
+   "scientific_name": "Haematopus ostralegus",
+   "usage_label": "un oiseau de rivage noir et blanc"
+  },
+  {
+   "name": "Goéland leucophée",
+   "scientific_name": "Larus michahellis",
+   "usage_label": "un grand goéland à dos gris"
+  },
+  {
+   "name": "Goéland brun",
+   "scientific_name": "Larus fuscus",
+   "usage_label": "un grand goéland à dos sombre"
+  },
+  {
+   "name": "Goéland d'Audouin",
+   "scientific_name": "Ichthyaetus audouinii",
+   "usage_label": "un goéland au bec rouge sombre"
+  },
+  {
+   "name": "Mouette rieuse",
+   "scientific_name": "Chroicocephalus ridibundus",
+   "usage_label": "une petite mouette à bec rouge"
+  },
+  {
+   "name": "Sterne naine",
+   "scientific_name": "Sternula albifrons",
+   "usage_label": "une toute petite sterne"
+  },
+  {
+   "name": "Sterne caugek",
+   "scientific_name": "Thalasseus sandvicensis",
+   "usage_label": "une sterne au bec noir"
+  },
+  {
+   "name": "Grand cormoran",
+   "scientific_name": "Phalacrocorax carbo",
+   "usage_label": "un grand oiseau noir pêcheur"
+  },
+  {
+   "name": "Fou de Bassan",
+   "scientific_name": "Morus bassanus",
+   "usage_label": "un grand oiseau marin blanc",
+   "doute": "Nom trompeur (« fou »)."
+  }
+ ]
+}

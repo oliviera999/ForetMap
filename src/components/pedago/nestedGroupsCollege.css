@@ -1,0 +1,17 @@
+/* Groupes emboîtés — bascule « Pour aller plus loin » (chantier collège, flux C4). */
+
+.nested-groups-view__depth {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-3) 0;
+}
+
+.nested-groups-view__depth .btn {
+  min-height: 44px;
+}
+
+.nested-groups-view__depth .muted {
+  font-size: var(--text-sm);
+}

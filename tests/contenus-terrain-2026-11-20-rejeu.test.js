@@ -26,7 +26,16 @@ const MIGRATION_FILE = fs
 const SQL = fs.readFileSync(path.join(MIGRATIONS_DIR, MIGRATION_FILE), 'utf8');
 const STATEMENTS = splitSqlStatements(SQL);
 
-const RANGE = "question_code BETWEEN 'QF9873' AND 'QF9933'";
+// Codes à six caractères seulement : un test qui laisse un code aléatoire du type `QF98xxxx`
+// dans la base partagée (ordre CI : `test` puis `test:content`) tombe sinon dans l'intervalle.
+const RANGE = "question_code BETWEEN 'QF9873' AND 'QF9933' AND CHAR_LENGTH(question_code) = 6";
+// Lignes de notions des 61 questions : 168 posées le 20/11, retouchées ensuite par la migration
+// `college_quiz_paliers` (chantier collège, retri des paliers cycle 3 / cycle 4), qui voit les
+// liaisons catégorie → notions semées juste avant par `college_referentiel_notions`.
+const RANGE_NOTIONS = 220;
+// Après le rejeu de cette migration-ci (hors curseur : propre à ce test, jamais en prod), les 11
+// ajouts de l'autre cycle que le retri des paliers avait supprimés reviennent.
+const RANGE_NOTIONS_APRES_REJEU = 231;
 const RETRAITS = [
   'QF0010',
   'QF0011',
@@ -201,6 +210,15 @@ after(async () => {
   const maps = Object.keys(ZONES_VISITE);
   await run(`DELETE FROM visit_tutorials WHERE map_id IN (${marks(maps)})`, maps);
   for (const fn of undo.reverse()) await fn().catch(() => {});
+  // Le rejeu de cette migration-ci (hors curseur) fait revenir les ajouts de l'autre cycle que
+  // le retri des paliers (`college_quiz_paliers`, postérieure) avait retirés : on rejoue ce
+  // retri pour rendre la base dans l'état des migrations — sinon `test:content`, lancé après
+  // `npm test` sur la même base (CI), voit des questions sur deux cycles.
+  const paliers = fs.readdirSync(MIGRATIONS_DIR).find((f) => /_college_quiz_paliers\.sql$/.test(f));
+  if (paliers) {
+    const sql = fs.readFileSync(path.join(MIGRATIONS_DIR, paliers), 'utf8');
+    for (const stmt of splitSqlStatements(sql)) await run(stmt);
+  }
 });
 
 // ---------------------------------------------------------------------------------------
@@ -256,7 +274,8 @@ test('contenus du 20/11 : aucun identifiant auto-incrémenté de la production',
 
 test('contenus du 20/11 : sans parents, les blocs autonomes sont posés et rien n’échoue', async () => {
   // `initSchema()` a déjà appliqué la migration sur la base de test.
-  // Les sept lignes de référence du bloc 0 existent : les 61 questions et leurs 168 notions aussi.
+  // Les sept lignes de référence du bloc 0 existent : les 61 questions et leurs notions aussi
+  // (168 posées le 20/11, 220 après le retri des paliers de la migration `college_quiz_paliers`).
   assert.equal(
     await count(
       `SELECT COUNT(*) AS n FROM quiz_categories WHERE theme = 'sciences'
@@ -275,7 +294,10 @@ test('contenus du 20/11 : sans parents, les blocs autonomes sont posés et rien 
     4,
   );
   assert.equal(await count(`SELECT COUNT(*) AS n FROM quiz_questions WHERE ${RANGE}`), 61);
-  assert.equal(await count(`SELECT COUNT(*) AS n FROM quiz_question_notions WHERE ${RANGE}`), 168);
+  assert.equal(
+    await count(`SELECT COUNT(*) AS n FROM quiz_question_notions WHERE ${RANGE}`),
+    RANGE_NOTIONS,
+  );
   // Tutoriels renommés en production : faute du slug de production, le lien repris se pose
   // sur le slug que sème le dépôt, une seule fois.
   for (const [slug, code, ancien] of [
@@ -527,7 +549,10 @@ test('contenus du 20/11 : le doublon de clé n’est supprimé que si l’espèc
 
 test('contenus du 20/11 : questions, notions et liens rejoignent leurs parents', async () => {
   assert.equal(await count(`SELECT COUNT(*) AS n FROM quiz_questions WHERE ${RANGE}`), 61);
-  assert.equal(await count(`SELECT COUNT(*) AS n FROM quiz_question_notions WHERE ${RANGE}`), 168);
+  assert.equal(
+    await count(`SELECT COUNT(*) AS n FROM quiz_question_notions WHERE ${RANGE}`),
+    RANGE_NOTIONS_APRES_REJEU,
+  );
   assert.equal(
     await count(
       `SELECT COUNT(*) AS n FROM quiz_question_notions
