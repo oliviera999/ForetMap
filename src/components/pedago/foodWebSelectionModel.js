@@ -194,3 +194,22 @@ export const SELECTION_DEPTH_LABELS = Object.freeze({
 export function selectionDepthChoices(count) {
   return [0, 1, 2].filter((depth) => depth > 0 || count > 1);
 }
+
+/**
+ * Carte d'ouverture de « Voir le réseau trophique » depuis une fiche (chantier collège du
+ * 22/11/2026, lot 3) : la carte active si l'espèce y vit, sinon la première de ses cartes
+ * (parmi les cartes proposées à l'élève quand la liste est connue), sinon `''` (« Toutes les
+ * cartes »).
+ *
+ * @param {{ speciesMapIds: string[], activeMapId?: string|null, availableMapIds?: string[]|null }} input
+ * @returns {string}
+ */
+export function pickEntryMap({ speciesMapIds, activeMapId = null, availableMapIds = null }) {
+  const known = Array.isArray(availableMapIds) && availableMapIds.length > 0;
+  const list = (speciesMapIds || [])
+    .map((id) => String(id))
+    .filter((id) => !known || availableMapIds.map(String).includes(id));
+  const active = activeMapId == null ? '' : String(activeMapId);
+  if (active && list.includes(active)) return active;
+  return list[0] || '';
+}

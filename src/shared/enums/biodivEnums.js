@@ -244,14 +244,19 @@ const COLLEGE_INTERACTION_LABELS_SIMPLE = Object.freeze({
   parasitisme: 'parasite',
   competition: 'est en concurrence avec',
   symbiose: 'vit associée à',
+  // Chantier collège du 22/11/2026 (lot 3) : la mycophagie fait partie du cadrage « Réseau
+  // alimentaire » ; le mutualisme, montré à partir du cycle 4 (décision 8).
+  mycophagie: 'mange des champignons',
+  mutualisme: 's’entraident',
 });
 
 /**
  * Types d'interaction montrés au niveau Collège (réseau trophique « scolaire »). Sous-ensemble
  * volontaire ; `detritivorie` en fait partie depuis la migration 295, `frugivorie` et
  * `granivorie` depuis le chantier collège (décision 8 du 21/11/2026 : montrées à tout le
- * collège). `labelsSimple` : un libellé en verbe par valeur (voir ci-dessus) ; le libellé
- * savant reste `labels`.
+ * collège), `mycophagie` (montrée à tout le collège) et `mutualisme` (cycle 4 seulement, voir
+ * `CYCLE4_ONLY_INTERACTION_TYPE_ENUM`) depuis le chantier du 22/11/2026. `labelsSimple` : un
+ * libellé en verbe par valeur (voir ci-dessus) ; le libellé savant reste `labels`.
  */
 export const COLLEGE_INTERACTION_TYPE_ENUM = Object.freeze({
   ...defineSubset('COLLEGE_INTERACTION_TYPE_ENUM', INTERACTION_TYPE_ENUM, 'INTERACTION_TYPE_ENUM', {
@@ -267,6 +272,8 @@ export const COLLEGE_INTERACTION_TYPE_ENUM = Object.freeze({
       'parasitisme',
       'competition',
       'symbiose',
+      'mycophagie',
+      'mutualisme',
     ],
   }),
   labelsSimple: COLLEGE_INTERACTION_LABELS_SIMPLE,
@@ -293,7 +300,8 @@ export function interactionTypeLabelSimple(type, { withScientific = true, fallba
 }
 
 /**
- * Types d'interaction réservés au **cycle 4** et au-delà (décision 8 du 21/11/2026) : masqués
+ * Types d'interaction réservés au **cycle 4** et au-delà (décision 8 du 21/11/2026 ; mutualisme
+ * ajouté par la décision 8 du 22/11/2026, comme la symbiose et la compétition) : masqués
  * en cycle 3 par la règle de palier `foodweb_types_cycle4_only` de la table de visibilité
  * (`src/shared/pedagoVisibilityCore.js`). Sous-ensemble de `COLLEGE_INTERACTION_TYPE_ENUM`.
  * Appliqué depuis le flux C1 : la règle masque ces types au cycle 3 (`[]` ailleurs).
@@ -302,7 +310,7 @@ export const CYCLE4_ONLY_INTERACTION_TYPE_ENUM = defineSubset(
   'CYCLE4_ONLY_INTERACTION_TYPE_ENUM',
   INTERACTION_TYPE_ENUM,
   'INTERACTION_TYPE_ENUM',
-  { values: ['symbiose', 'competition'] },
+  { values: ['symbiose', 'competition', 'mutualisme'] },
 );
 
 /** Niveau de preuve d'une interaction. */

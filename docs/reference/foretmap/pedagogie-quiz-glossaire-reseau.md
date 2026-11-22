@@ -271,45 +271,66 @@ d'observation** pour l'écriture naturaliste libre.
   chaînes alimentaires réelles de la forêt comestible.
 - Le professeur (gestionnaire des plantes) crée et modifie les liens entre espèces —
   le graphe s'appuie sur le catalogue de biodiversité.
-- **Trois vues du graphe.** Par défaut, **Réseau alimentaire** ne montre que ce qui
+- **Trois vues du graphe.** Au lycée, **Réseau alimentaire** (vue par défaut) ne montre que ce qui
   transporte de la matière d’un être vivant vers celui qui le consomme : herbivorie,
   prédation, décomposition, détritivorie, frugivorie, granivorie, mycophagie,
   parasitisme. C’est la vue à présenter en classe pour une chaîne alimentaire.
   **Autres relations** isole pollinisation, plante hôte, symbiose, mutualisme,
   commensalisme, compétition, allélopathie, facilitation, et le cycle de l’azote
   (nitrification, excrétion, assimilation). **Tout** superpose les deux pour
-  l’exploration complète. Les filtres par type et le mode « isoler une espèce » restent
-  disponibles dans chaque vue.
+  l’exploration complète — c’est la vue d’ouverture **au collège** (dans les types de son
+  niveau) depuis le 22 novembre 2026. Les filtres par type et le mode « isoler une espèce »
+  restent disponibles dans chaque vue.
 
 - **La densité du réseau suit le niveau pédagogique** : en Collège, seuls les types
   d’interaction scolaires sont proposés, sans le niveau de preuve des liens ni l’efficacité
   de pollinisation ; en Lycée et Université, tout est visible — voir
   [Niveaux pédagogiques biodiversité](niveaux-pedagogiques-biodiversite.md).
 
-- **Au collège, le réseau part d’une espèce** (de la 6e à la 3e). Un réseau
-  de deux cents espèces d’un coup ne se lit pas à 11 ans : l’élève **choisit d’abord une
-  espèce de départ** — les **espèces phares** de la carte en tête de liste, puis une
-  recherche par nom — et voit ses voisins directs : ce qu’elle mange, qui la mange, qui
-  l’aide. Le bouton **Chaîne** élargit d’un cran (les voisins des voisins), **Voisins** y
-  revient, **Changer d’espèce** ramène au choix. Les espèces qui ne sont pas sur la carte
-  choisie n’apparaissent pas. Lycée, université et professeurs gardent le réseau complet,
-  inchangé.
+- **Au collège, l’élève compose une sélection d’espèces** (de la 6e à la 3e, depuis le
+  22 novembre 2026). Un réseau de deux cents espèces d’un coup ne se lit pas à 11 ans :
+  l’élève **touche une ou plusieurs espèces** — les **espèces phares** de la carte en tête,
+  puis une recherche par nom (une espèce sans aucune relation reste trouvable, avec la
+  mention « aucune relation enregistrée ») ; un second clic la retire. Une **barre de
+  sélection** au-dessus du graphe rappelle les espèces choisies (chacune avec sa croix
+  « Retirer »), propose **Tout retirer** et un champ **Ajouter une espèce**. Le graphe se
+  recompose à chaque changement, sans bouton « Valider ». Trois étendues : **Seulement les
+  liens entre mes espèces** (dès deux espèces), **Leurs voisins directs**, **La chaîne
+  autour**. La sélection est gardée quand on change de carte.
+- **Toucher une espèce du graphe, au collège, ouvre un petit panneau** : son nom, son
+  étiquette simple et deux boutons, **Ajouter à la sélection** (ou **Retirer de la
+  sélection**) et **Voir la fiche**. Au clavier, `Entrée` l’ouvre, `Échap` le ferme ; sur
+  téléphone, il s’affiche en bas de l’écran.
+- **Les espèces d’autres lieux sont grisées, plus jamais retirées.** Une relation qui sort
+  de la carte reste affichée : l’espèce extérieure apparaît grisée, avec la mention « vit
+  ailleurs : Sablettes, Daya… » (ou « n’est rattachée à aucune carte »), dans le graphe
+  comme dans la liste. Elle se sélectionne comme les autres. Le compost, la litière, les
+  fruits tombés, le bois mort, le biofilm ou le plancton ne sont jamais « ailleurs » : ils
+  comptent toujours comme présents.
+- **« Pour aller plus loin », au collège.** Ce bouton montre le réseau complet de la carte,
+  avec toutes les relations, comme au lycée ; **Revenir au réseau simplifié** retrouve la
+  sélection et le cadrage d’avant. Rien n’est caché définitivement. Lycée, université et
+  professeurs gardent le réseau complet, inchangé.
 - **Des verbes plutôt que des mots savants, au collège.** Chaque type de relation s’y lit
   d’abord comme un verbe, le mot savant en second : « mange des plantes (herbivorie) »,
   « mange des animaux (prédation) », « mange des fruits (frugivorie) », « mange des graines
   (granivorie) », « mange des débris (détritivorie) », « décompose », « pollinise »,
-  « pond sur (plante hôte) », « parasite ». La **frugivorie** et la **granivorie** sont
-  montrées à tout le collège ; la **symbiose** et la **compétition** au cycle 4 (5e à 3e)
-  seulement.
-- **Une espèce sans relation visible est annoncée.** Arrivé depuis une fiche (« Voir le
-  réseau ») ou une séance, si l’espèce n’a aucune relation montrée à ce niveau ou sur cette
-  carte, un message le dit — jamais un graphe vide — et l’élève peut choisir une autre
-  espèce.
+  « pond sur (plante hôte) », « parasite », « mange des champignons (mycophagie) »,
+  « s’entraident (mutualisme) ». La **frugivorie**, la **granivorie** et la **mycophagie**
+  sont montrées à tout le collège ; la **symbiose**, la **compétition** et le **mutualisme**
+  au cycle 4 (5e à 3e) seulement (la pollinisation, qui en est un cas, reste montrée dès la
+  6e).
+- **Une espèce sans relation visible est annoncée.** Si une espèce choisie n’a aucune
+  relation enregistrée, ou seulement des relations hors du cadrage ou réservées au cycle 4,
+  un message le dit — jamais un graphe vide — et la barre de sélection reste là pour en
+  ajouter une autre.
 - **Une séance peut montrer plusieurs espèces ensemble.** Dans l’éditeur de séance, une étape
   « Réseau trophique » accepte, en plus de l’espèce mise en avant, une liste d’**espèces
   montrées ensemble** (douze au plus) : l’élève ne voit que ces espèces et les liens qui les
   relient entre elles — idéal pour faire construire une chaîne précise. Il peut ensuite
-  élargir aux voisins.
+  élargir aux voisins, ajouter ou retirer des espèces. L’étape peut aussi imposer le
+  **cadrage** d’ouverture (Réseau alimentaire, Autres relations ou Tout) — réglage écrit
+  dans la séance (champ `preset`), pas encore dans l’éditeur.
 
 - **Dix-neuf types d’interaction.** Onze ont été ajoutés pour cesser de ranger sous un
   mot des relations différentes. Quelques cas concrets :
@@ -373,7 +394,9 @@ d'observation** pour l'écriture naturaliste libre.
 - **Arriver depuis une fiche plante isole l'espèce.** Le bouton « Voir le réseau
   trophique » d'une fiche ouvre l'onglet **sur le sous-réseau de cette espèce** (elle et
   ses voisines directes), **filtré sur la carte active** (celle choisie sur le plan de
-  travail) ; le bouton « Tout afficher » revient au réseau de cette carte. On peut encore
+  travail) ; le bouton « Tout afficher » revient au réseau de cette carte. Au collège, la
+  fiche ouvre une carte **où l’espèce vit** (la carte active si elle y est, sinon la première
+  de ses cartes, sinon « Toutes les cartes ») et la place dans la sélection. On peut encore
   élargir à « Toutes les cartes » dans le filtre. Si l'espèce n'a encore aucune
   interaction dans la carte ou la zone choisie, un message le dit au lieu de laisser
   croire à un bug.

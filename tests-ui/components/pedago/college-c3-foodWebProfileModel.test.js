@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import {
-  COLLEGE_FOCUS_DEPTHS,
   filterItemsForProfile,
   foodWebProfile,
   initialFocusDepth,

@@ -40,7 +40,8 @@ const COLLEGE_EXPECTED = Object.freeze({
   biomass_estimates: 'hide',
   curriculum_notions_lycee_plus: 'hide',
   taxonomy_line: 'hide',
-  meta_sections: 'hide',
+  // Décision 4 du 22/11/2026 : sections repliées, plus masquées.
+  meta_sections: 'collapsed',
   range_gauges: 'hide',
   nutrition_badge: 'hide',
   iucn_code: 'mots',
@@ -50,6 +51,8 @@ const COLLEGE_EXPECTED = Object.freeze({
   // Décision 1 du 22/11/2026 : espèces hors carte montrées (grisées) au collège.
   foodweb_offmap_species: 'show',
   foodweb_full_by_default: 'hide',
+  foodweb_default_preset: 'all',
+  foodweb_go_further: 'show',
   nested_groups_full_tree: 'hide',
   catalog_grouped: 'show',
   featured_first: 'show',
@@ -58,6 +61,7 @@ const COLLEGE_EXPECTED = Object.freeze({
 
 /** Clés du chantier propres au collège : masquées au lycée et à l'université. */
 const COLLEGE_ONLY_KEYS = [
+  'foodweb_go_further',
   'usage_label',
   'description_college',
   'catalog_grouped',
@@ -74,7 +78,7 @@ const PALIER_EXPECTED = Object.freeze({
   },
   quiz_entry_palier_max: { cycle3: 1, cycle4: 2, lycee: null, universite: null },
   foodweb_types_cycle4_only: {
-    cycle3: ['competition', 'symbiose'],
+    cycle3: ['competition', 'mutualisme', 'symbiose'],
     cycle4: [],
     lycee: [],
     universite: [],
@@ -123,6 +127,8 @@ const NEW_KEYS = [
   'description_college',
   'foodweb_offmap_species',
   'foodweb_full_by_default',
+  'foodweb_default_preset',
+  'foodweb_go_further',
   'nested_groups_full_tree',
   'catalog_grouped',
   'featured_first',
@@ -192,6 +198,7 @@ test('lycée et université : les clés du chantier ne changent rien', () => {
     for (const profile of ['lycee', 'universite']) {
       const value = core.visibilityFor(feature, profile);
       if (feature === 'iucn_code') assert.equal(value, 'code');
+      else if (feature === 'foodweb_default_preset') assert.equal(value, 'alimentaire');
       else if (feature === 'zone_tiles_cap') assert.equal(value, null);
       else if (COLLEGE_ONLY_KEYS.includes(feature)) assert.equal(value, 'hide', feature);
       else assert.equal(value, 'show', `${feature} / ${profile}`);
@@ -292,6 +299,7 @@ test('types réservés au cycle 4 : sous-ensemble des types du collège', () => 
   } = require('../lib/shared/biodivEnums');
   assert.deepEqual([...CYCLE4_ONLY_INTERACTION_TYPE_ENUM.values].sort(), [
     'competition',
+    'mutualisme',
     'symbiose',
   ]);
   for (const type of CYCLE4_ONLY_INTERACTION_TYPE_ENUM.values) {

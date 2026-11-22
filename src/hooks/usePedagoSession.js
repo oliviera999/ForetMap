@@ -73,13 +73,16 @@ export function runPedagoSessionStepAction(step, nav) {
   }
   if (type === A.OPEN_FOODWEB) {
     // `plantIds` (chantier collège, flux C3) : les espèces montrées, avec leurs liens
-    // mutuels ; `highlightPlantId` garde sa forme et son rôle.
+    // mutuels ; `highlightPlantId` garde sa forme et son rôle. `preset` (chantier du
+    // 22/11/2026, lot 3) : cadrage imposé à l'ouverture, lu par `FoodWebView`.
     const checked = validateStepActionPayload(type, payload);
     const plantIds = checked.ok ? checked.payload.plantIds || [] : [];
+    const preset = checked.ok ? checked.payload.preset || null : null;
     nav.setFoodWebRequest?.(
-      plantIds.length
+      plantIds.length || preset
         ? {
             plantIds,
+            preset,
             mapId: payload.mapId ? String(payload.mapId).trim() : null,
             nonce: Date.now(),
           }

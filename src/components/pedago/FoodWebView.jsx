@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useData } from '../../contexts/DataContext.jsx';
 import { FoodWebGraph } from './FoodWebGraph.jsx';
 import { itemsForPreset } from './foodWebGraphModel.js';
@@ -11,6 +11,7 @@ import { useFoodWebData } from '../../hooks/useFoodWebData.js';
 import { useFoodWebAdmin } from '../../hooks/useFoodWebAdmin.js';
 import { useFoodWebEdgeSelection } from '../../hooks/useFoodWebEdgeSelection.js';
 import { useFoodWebSelection } from '../../hooks/useFoodWebSelection.js';
+import { useFoodWebEntryMap } from '../../hooks/useFoodWebEntryMap.js';
 import {
   filterItemsForProfile,
   initialFocusDepth,
@@ -56,9 +57,14 @@ export function FoodWebView({
   const showUsageLabel = canShow('usage_label');
   const showAdvancedFoodWeb = canShow('foodweb_advanced');
   const showPollinationEfficacy = canShow('pollination_efficacy');
-  const profile = useFoodWebProfile();
+  // « Pour aller plus loin » (collège) : réseau complet de la carte, tous types ; le retour
+  // restaure le cadrage d'avant. Rien n'est caché définitivement.
+  const [goFurther, setGoFurther] = useState(false);
+  const profile = useFoodWebProfile({ goFurther });
   const { collegeMode, typeLabel } = profile;
-  const allowedInteractionTypes = profile.allowedTypes || [];
+  /** Sélection d'espèces active (collège, y compris « plus loin » pour la garder). */
+  const selectionEnabled = collegeMode || profile.goFurther;
+  const allowedInteractionTypes = profile.palierTypes || profile.allowedTypes || [];
 
   // Séance : étape `open_foodweb` avec `plantIds` (les espèces montrées, liens mutuels).
   const sessionCtx = usePedagoSessionContext();
@@ -69,7 +75,8 @@ export function FoodWebView({
     useFoodWebData({ initialMapId: focusRequest?.mapId || initialMapId, requestKey });
 
   const [interactionFilter, setInteractionFilter] = useState('');
-  const [graphPreset, setGraphPreset] = useState('alimentaire');
+  const [graphPreset, setGraphPreset] = useState(profile.defaultPreset);
+  const presetBeforeFurtherRef = useRef(null);
   const [viewMode, setViewMode] = useState('graph');
   const { plants = [] } = useData();
   const glossaryIndex = useGlossaryLinkIndex();
@@ -103,6 +110,33 @@ export function FoodWebView({
     if (key !== 'all') setInteractionFilter('');
   }, []);
 
+  // Séance : `preset` de l'étape (chantier du 22/11/2026) appliqué une fois par demande.
+  const sessionPreset = focusRequest?.preset || null;
+  useEffect(() => {
+    if (sessionPreset) changeGraphPreset(sessionPreset);
+  }, [sessionPreset, focusRequest?.nonce, changeGraphPreset]);
+
+  const toggleGoFurther = useCallback(() => {
+    if (goFurther) {
+      setGoFurther(false);
+      changeGraphPreset(presetBeforeFurtherRef.current || profile.defaultPreset);
+      return;
+    }
+    presetBeforeFurtherRef.current = graphPreset;
+    setGoFurther(true);
+    changeGraphPreset('all');
+  }, [goFurther, graphPreset, profile.defaultPreset, changeGraphPreset]);
+
+  // Fiche → « Voir le réseau trophique » : une carte où l'espèce vit (collège).
+  useFoodWebEntryMap({
+    enabled: selectionEnabled && !focusRequest?.mapId,
+    plantId: highlightPlantId,
+    requestKey,
+    activeMapId: initialMapId,
+    maps,
+    setMapId,
+  });
+
   // --- Espèces demandées (fiche « Voir le réseau », séance) et sélection (collège).
   const requestedSeeds = useMemo(() => {
     const fromSession = normalizeSeedIds(focusRequest?.plantIds);
@@ -110,7 +144,7 @@ export function FoodWebView({
   }, [focusRequest, highlightPlantId]);
 
   const sel = useFoodWebSelection({
-    enabled: collegeMode,
+    enabled: selectionEnabled,
     mapId,
     requested: requestedSeeds,
     requestKey,
@@ -170,7 +204,7 @@ export function FoodWebView({
   );
 
   const grouped = useMemo(() => groupRowsByType(viewItems), [viewItems]);
-  const highlightIds = collegeMode ? selection : normalizeSeedIds(highlightPlantId);
+  const highlightIds = selectionEnabled ? selection : normalizeSeedIds(highlightPlantId);
 
   const ready = !loading && !error;
   const pickerLayout = ready && collegeMode && selection.length === 0;
@@ -210,6 +244,23 @@ export function FoodWebView({
   ) : null;
 
   const seedNotice = <FoodWebSelectionNotice statuses={seedStatuses} />;
+  const furtherButton = profile.canGoFurther ? (
+    <div className="pedago-foodweb__further">
+      <button
+        type="button"
+        className={`btn btn-sm ${goFurther ? 'btn-secondary' : 'btn-primary'}`}
+        aria-pressed={goFurther}
+        onClick={toggleGoFurther}
+      >
+        {goFurther ? 'Revenir au réseau simplifié' : 'Pour aller plus loin'}
+      </button>
+      <span className="section-sub">
+        {goFurther
+          ? 'Tout le réseau de la carte, toutes les relations.'
+          : 'Voir tout le réseau de la carte, avec toutes les relations.'}
+      </span>
+    </div>
+  ) : null;
   const selectionBar =
     collegeMode && selection.length > 0 ? (
       <FoodWebSelectionBar sel={sel} speciesOf={speciesOf} />
@@ -242,6 +293,7 @@ export function FoodWebView({
         )}
       </header>
 
+      {furtherButton}
       {pickerLayout ? null : seedNotice}
 
       <div
@@ -329,7 +381,7 @@ export function FoodWebView({
                 items={viewItems}
                 selectedEdgeId={selectedEdgeId}
                 highlightPlantId={collegeMode ? null : highlightPlantId}
-                highlightPlantIds={collegeMode ? selection : null}
+                highlightPlantIds={selectionEnabled ? selection : null}
                 focusRequest={graphFocusRequest}
                 onSelectEdge={selectEdge}
                 onOpenPlant={onOpenPlant}

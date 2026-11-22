@@ -35,6 +35,7 @@ vi.mock('../../../src/components/pedago/FoodWebGraph.jsx', () => ({
     items = [],
     highlightPlantIds = null,
     focusRequest = null,
+    preset = null,
     nodeClickMode = 'isolate',
     onToggleSelection = null,
   }) => (
@@ -44,6 +45,7 @@ vi.mock('../../../src/components/pedago/FoodWebGraph.jsx', () => ({
         data-highlight={(highlightPlantIds || []).join(',')}
         data-focus={focusRequest ? `${focusRequest.ids.join(',')}@${focusRequest.depth}` : ''}
         data-click-mode={nodeClickMode}
+        data-preset={preset || ''}
       >
         {items.map((row) => (
           <li key={row.id}>{`arête ${row.id}`}</li>
@@ -61,19 +63,23 @@ vi.mock('../../../src/components/pedago/FoodWebGraph.jsx', () => ({
 import { FoodWebView } from '../../../src/components/pedago/FoodWebView.jsx';
 import { DataProvider } from '../../../src/contexts/DataContext.jsx';
 
-const CYCLE3_TYPES = ['herbivorie', 'predation', 'frugivorie', 'granivorie', 'decomposition'];
+const CYCLE3_TYPES = [
+  'pollinisation',
+  'herbivorie',
+  'predation',
+  'frugivorie',
+  'granivorie',
+  'decomposition',
+];
 
 function context({ college, cycle4 = false }) {
   if (!college) return { canShow: () => true, foodWebTypes: (all) => all };
-  const hidden = new Set([
-    'foodweb_full_by_default',
-    'foodweb_offmap_species',
-    'foodweb_advanced',
-    'pollination_efficacy',
-  ]);
-  const allowed = [...CYCLE3_TYPES, ...(cycle4 ? ['symbiose', 'competition'] : [])];
+  const hidden = new Set(['foodweb_full_by_default', 'foodweb_advanced', 'pollination_efficacy']);
+  const allowed = [...CYCLE3_TYPES, ...(cycle4 ? ['symbiose', 'competition', 'mutualisme'] : [])];
   return {
     canShow: (key) => !hidden.has(key),
+    // Table de visibilité du collège (chantier du 22/11/2026) : cadrage « Tout ».
+    visibility: (key) => (key === 'foodweb_default_preset' ? 'all' : 'show'),
     foodWebTypes: (all) => all.filter((t) => allowed.includes(t)),
   };
 }
@@ -105,11 +111,15 @@ const ITEMS = [
     to_elsewhere: [{ id: 'sablettes', label: 'Sablettes' }],
   }),
   r(6, 'competition', 7, 'Moineau', 4, 'Merle'),
+  r(7, 'pollinisation', 8, 'Abeille', 5, 'Mûrier'),
+  r(8, 'mutualisme', 2, 'Lapin', 1, 'Trèfle'),
 ];
 
-function mockApi({ featured = [] } = {}) {
+function mockApi({ featured = [], speciesMaps = {} } = {}) {
   apiMock.mockImplementation((path) => {
     const p = String(path);
+    const m = p.match(/^\/api\/food-web\/species\/(\d+)\/maps$/);
+    if (m) return Promise.resolve({ maps: speciesMaps[m[1]] || [] });
     if (p.startsWith('/api/zones')) return Promise.resolve([]);
     if (p.startsWith('/api/maps/')) {
       return Promise.resolve({
@@ -125,7 +135,14 @@ function mockApi({ featured = [] } = {}) {
 function renderView(props = {}) {
   return render(
     <DataProvider value={{ plants: [] }}>
-      <FoodWebView maps={[{ id: 'foret', label: 'Forêt' }]} initialMapId="foret" {...props} />
+      <FoodWebView
+        maps={[
+          { id: 'foret', label: 'Forêt' },
+          { id: 'n3', label: 'n3' },
+        ]}
+        initialMapId="foret"
+        {...props}
+      />
     </DataProvider>,
   );
 }
@@ -237,6 +254,59 @@ describe('réseau trophique — 6e (cycle 3)', () => {
   });
 });
 
+describe('réseau trophique — 6e : cadrage, séance, « Pour aller plus loin », carte', () => {
+  beforeEach(() => {
+    pedago.current = context({ college: true });
+  });
+
+  it('cadrage « Tout » par défaut : la pollinisation est montrée d’emblée', async () => {
+    mockApi();
+    renderView({ highlightPlantId: 8 });
+    await screen.findByTestId('foodweb-graph');
+    expect(screen.getByTestId('foodweb-graph').dataset.preset).toBe('all');
+    expect(graphItems()).toEqual(['arête 7']);
+  });
+
+  it('séance : le preset de l’étape s’applique', async () => {
+    mockApi();
+    session.current = {
+      foodWebRequest: { plantIds: [3], preset: 'alimentaire', mapId: 'foret', nonce: 3 },
+    };
+    renderView();
+    await screen.findByTestId('foodweb-graph');
+    expect(screen.getByTestId('foodweb-graph').dataset.preset).toBe('alimentaire');
+  });
+
+  it('« Pour aller plus loin » : réseau complet, puis retour au réseau simplifié', async () => {
+    mockApi();
+    renderView({ highlightPlantId: 2 });
+    await screen.findByTestId('foodweb-graph');
+    expect(graphItems()).not.toContain('arête 8');
+    fireEvent.click(screen.getByRole('button', { name: 'Pour aller plus loin' }));
+    expect(graphItems()).toEqual(expect.arrayContaining(['arête 4', 'arête 6', 'arête 8']));
+    expect(screen.getByTestId('foodweb-graph').dataset.clickMode).toBe('isolate');
+    fireEvent.click(screen.getByRole('button', { name: 'Revenir au réseau simplifié' }));
+    expect(graphItems().sort()).toEqual(['arête 1', 'arête 2']);
+    expect(screen.getByTestId('foodweb-graph').dataset.preset).toBe('all');
+    expect(screen.getByRole('group', { name: 'Ma sélection' }).textContent).toContain('Lapin');
+  });
+
+  it('fiche → réseau : s’ouvre sur une carte où l’espèce vit', async () => {
+    mockApi({ speciesMaps: { 2: [{ id: 'n3', label: 'n3' }] } });
+    renderView({ highlightPlantId: 2 });
+    await screen.findByTestId('foodweb-graph');
+    await vi.waitFor(() => expect(apiMock).toHaveBeenCalledWith('/api/food-web?mapId=n3'));
+  });
+
+  it('fiche → réseau : carte active gardée quand l’espèce y vit', async () => {
+    mockApi({ speciesMaps: { 2: [{ id: 'n3' }, { id: 'foret' }] } });
+    renderView({ highlightPlantId: 2 });
+    await screen.findByTestId('foodweb-graph');
+    await vi.waitFor(() => expect(apiMock).toHaveBeenCalledWith('/api/food-web/species/2/maps'));
+    expect(apiMock).not.toHaveBeenCalledWith('/api/food-web?mapId=n3');
+  });
+});
+
 describe('réseau trophique — 3e (cycle 4)', () => {
   it('la compétition apparaît, avec son verbe', async () => {
     pedago.current = context({ college: true, cycle4: true });
@@ -246,6 +316,12 @@ describe('réseau trophique — 3e (cycle 4)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Tout' }));
     fireEvent.change(screen.getByLabelText('Affichage'), { target: { value: 'list' } });
     await screen.findByRole('heading', { name: 'est en concurrence avec (compétition)' });
+    // Décision 8 du 22/11/2026 : mutualisme montré à partir du cycle 4.
+    fireEvent.change(screen.getByLabelText('Affichage'), { target: { value: 'graph' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Tout retirer' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Lapin' }));
+    fireEvent.change(screen.getByLabelText('Affichage'), { target: { value: 'list' } });
+    await screen.findByRole('heading', { name: 's’entraident (mutualisme)' });
   });
 });
 

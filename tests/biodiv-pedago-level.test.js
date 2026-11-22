@@ -151,22 +151,27 @@ test('biodivFeatureVisibility — collège masque individus / foodweb avancé, m
 });
 
 test('foodWebTypesForPedagoLevel filtre au collège', () => {
-  const all = [...COLLEGE_FOODWEB_TYPES, 'mutualisme', 'allelopathie'];
+  const all = [...COLLEGE_FOODWEB_TYPES, 'allelopathie'];
   // Étape seule = collège sans classe : types scolaires moins ceux du cycle 4.
   assert.deepEqual(
     foodWebTypesForPedagoLevel('college', all).sort(),
-    [...COLLEGE_FOODWEB_TYPES].filter((t) => !['symbiose', 'competition'].includes(t)).sort(),
+    [...COLLEGE_FOODWEB_TYPES]
+      .filter((t) => !['symbiose', 'competition', 'mutualisme'].includes(t))
+      .sort(),
   );
   assert.deepEqual(foodWebTypesForPedagoLevel('lycee', all), all);
 });
 
-test('foodWebTypesForPedagoLevel : symbiose et compétition réservées au cycle 4', () => {
-  const all = [...COLLEGE_FOODWEB_TYPES, 'mutualisme'];
-  const cycle4Only = ['symbiose', 'competition'];
+test('foodWebTypesForPedagoLevel : symbiose, compétition et mutualisme réservés au cycle 4', () => {
+  const all = [...COLLEGE_FOODWEB_TYPES, 'allelopathie'];
+  // Décision 8 du 22/11/2026 : mutualisme au cycle 4 ; mycophagie dès le cycle 3.
+  const cycle4Only = ['symbiose', 'competition', 'mutualisme'];
   const sixieme = { etape: 'college', niveau: 'cycle3', maxPalier: 1 };
   const troisieme = { etape: 'college', niveau: 'cycle4', maxPalier: 2 };
   const invite = { etape: 'college', niveau: null, maxPalier: 2 };
   const without = [...COLLEGE_FOODWEB_TYPES].filter((t) => !cycle4Only.includes(t)).sort();
+  assert.ok(without.includes('mycophagie'), 'mycophagie montrée en 6e');
+  assert.ok(!without.includes('mutualisme'), 'mutualisme absent en 6e');
   assert.deepEqual(foodWebTypesForPedagoLevel(sixieme, all).sort(), without);
   assert.deepEqual(foodWebTypesForPedagoLevel(invite, all).sort(), without);
   // Étape seule (`'college'`, sans classe connue) : règle du cycle 3.
@@ -175,6 +180,7 @@ test('foodWebTypesForPedagoLevel : symbiose et compétition réservées au cycle
     foodWebTypesForPedagoLevel(troisieme, all).sort(),
     [...COLLEGE_FOODWEB_TYPES].sort(),
   );
+  assert.ok(foodWebTypesForPedagoLevel(troisieme, all).includes('mutualisme'), 'mutualisme en 3e');
   assert.deepEqual(
     foodWebTypesForPedagoLevel({ etape: 'lycee', niveau: 'seconde', maxPalier: 3 }, all),
     all,

@@ -173,3 +173,60 @@
     border-radius: 16px 16px 0 0;
   }
 }
+
+/* « Pour aller plus loin » (barrière douce du collège, chantier du 22/11/2026). */
+.pedago-foodweb__further {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-2);
+}
+
+.pedago-foodweb__further .btn {
+  min-height: var(--tap-target, 44px);
+}
+
+.pedago-foodweb__start-chip--outside {
+  border-style: dashed;
+  color: var(--ink-dim);
+}
+
+.pedago-foodweb__chip-note {
+  color: var(--ink-dim);
+  font-size: var(--text-xs, 0.75rem);
+}
+
+.pedago-foodweb__selbar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.pedago-foodweb__selbar-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.pedago-foodweb__selchip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding-left: var(--space-2);
+  border: 1px solid var(--sage);
+  border-radius: 999px;
+  background: var(--surface-plain);
+}
+
+.pedago-foodweb__selchip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--tap-target, 44px);
+  min-height: var(--tap-target, 44px);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}

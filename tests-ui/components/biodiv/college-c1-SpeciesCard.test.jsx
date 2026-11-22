@@ -88,14 +88,16 @@ describe('Fiche espèce — profil collège', () => {
       expect(screen.queryByText(PLANT.description)).not.toBeInTheDocument();
       expect(screen.getByTestId('plant-usage-group')).toHaveTextContent('Arbres et arbustes');
       expect(screen.queryByText('Taxonomie')).not.toBeInTheDocument();
-      expect(screen.queryByText('Punica granatum')).not.toBeInTheDocument();
-      expect(screen.queryByText('Identité')).not.toBeInTheDocument();
-      expect(screen.queryByText('Écologie et usages')).not.toBeInTheDocument();
+      // Décision 4 du 22/11/2026 (`meta_sections` = `collapsed` au collège, flux C1) : les
+      // sections reviennent ; leur rendu replié et le nom scientifique qu'elles portent sont
+      // vérifiés par le flux C2 (`PlantMetaSections`).
+      expect(screen.getByText('Identité')).toBeInTheDocument();
+      expect(screen.getByText('Écologie et usages')).toBeInTheDocument();
       // Ressources gardée : sources, crédits et licences.
       expect(screen.getByText('Ressources')).toBeInTheDocument();
       expect(container.querySelector('.plant-range-gauges')).toBeNull();
-      expect(screen.queryByText('Autotrophe')).not.toBeInTheDocument();
-      expect(screen.queryByText(/10-35°C/)).not.toBeInTheDocument();
+      // Nutrition et plages : hors de l'en-tête au collège, leurs valeurs sont dans la section
+      // repliée (décision 4 du 22/11/2026 ; contrôle de l'en-tête : flux C2).
       // UICN en mots, sans sigle.
       expect(screen.getByText('Liste rouge : vulnérable')).toBeInTheDocument();
       expect(screen.queryByText('UICN VU')).not.toBeInTheDocument();

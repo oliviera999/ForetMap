@@ -49,7 +49,7 @@ test('le schéma annonce plantIds pour l’étape réseau trophique', async () =
   assert.equal(res.status, 200, res.text);
   const tool = res.body.result.tools.find((t) => t.name === TOOL);
   const schema = JSON.stringify(tool.inputSchema);
-  assert.ok(schema.includes(`${A.OPEN_FOODWEB} { mapId, highlightPlantId, plantIds }`));
+  assert.ok(schema.includes(`${A.OPEN_FOODWEB} { mapId, highlightPlantId, plantIds, preset }`));
   assert.match(schema, /liens mutuels/);
 });
 

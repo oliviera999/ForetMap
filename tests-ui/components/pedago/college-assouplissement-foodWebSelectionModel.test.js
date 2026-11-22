@@ -5,6 +5,7 @@ import {
   defaultSelectionDepth,
   filterSelectionCandidates,
   hasMutualLinks,
+  pickEntryMap,
   readStoredSelection,
   removeFromSelection,
   selectionCandidates,
@@ -114,5 +115,20 @@ describe('mémoire de session par carte', () => {
     expect(readStoredSelection(broken, 'n3')).toEqual([]);
     expect(() => writeStoredSelection(broken, 'n3', [1])).not.toThrow();
     expect(selectionStorageKey('')).toBe('foretmap.foodweb.selection.all');
+  });
+});
+
+describe('carte d’ouverture depuis une fiche', () => {
+  it('carte active si l’espèce y vit, sinon la première de ses cartes, sinon toutes', () => {
+    expect(pickEntryMap({ speciesMapIds: ['n3', 'foret'], activeMapId: 'foret' })).toBe('foret');
+    expect(pickEntryMap({ speciesMapIds: ['n3', 'dayat'], activeMapId: 'foret' })).toBe('n3');
+    expect(pickEntryMap({ speciesMapIds: [], activeMapId: 'foret' })).toBe('');
+    expect(
+      pickEntryMap({
+        speciesMapIds: ['cachee', 'dayat'],
+        activeMapId: 'foret',
+        availableMapIds: ['foret', 'dayat'],
+      }),
+    ).toBe('dayat');
   });
 });
