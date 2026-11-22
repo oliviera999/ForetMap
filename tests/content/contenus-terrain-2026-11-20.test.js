@@ -15,7 +15,9 @@ const { test, before } = require('node:test');
 const assert = require('node:assert/strict');
 const { initSchema, queryAll, queryOne } = require('../../database');
 
-const RANGE = "question_code BETWEEN 'QF9873' AND 'QF9933'";
+// Codes à six caractères seulement : un test qui laisse un code aléatoire du type `QF98xxxx`
+// dans la base partagée (ordre CI : `test` puis `test:content`) tombe sinon dans l'intervalle.
+const RANGE = "question_code BETWEEN 'QF9873' AND 'QF9933' AND CHAR_LENGTH(question_code) = 6";
 const RETRAITS = [
   'QF0010',
   'QF0011',

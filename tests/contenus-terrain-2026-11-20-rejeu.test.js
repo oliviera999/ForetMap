@@ -26,7 +26,9 @@ const MIGRATION_FILE = fs
 const SQL = fs.readFileSync(path.join(MIGRATIONS_DIR, MIGRATION_FILE), 'utf8');
 const STATEMENTS = splitSqlStatements(SQL);
 
-const RANGE = "question_code BETWEEN 'QF9873' AND 'QF9933'";
+// Codes à six caractères seulement : un test qui laisse un code aléatoire du type `QF98xxxx`
+// dans la base partagée (ordre CI : `test` puis `test:content`) tombe sinon dans l'intervalle.
+const RANGE = "question_code BETWEEN 'QF9873' AND 'QF9933' AND CHAR_LENGTH(question_code) = 6";
 // Lignes de notions des 61 questions : 168 posées le 20/11, retouchées ensuite par la migration
 // `college_quiz_paliers` (chantier collège, retri des paliers cycle 3 / cycle 4), qui voit les
 // liaisons catégorie → notions semées juste avant par `college_referentiel_notions`.
