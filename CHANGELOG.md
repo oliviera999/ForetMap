@@ -40,6 +40,14 @@ profil → Niveau de contenu → Complet (vue gestion) → Enregistrer** (demand
 - **Connecteur MCP** : `foretmap_rbac` gagne l'action `content_levels` (lecture).
 - Doc de référence (`niveaux-pedagogiques-biodiversite.md`, guide du prof, comptes), `API.md`,
   `MCP.md`.
+### Modifié — prise de contrôle sans double authentification
+
+- `POST /api/auth/admin/impersonate` ne refuse plus une session administrateur non validée
+  par le second facteur (fin du `403 MFA_REQUIRED`) et la session contrôlée n'est plus
+  révoquée faute d'`actorMfa` (fin de la raison `actor_mfa_required`). La session de
+  l'administrateur reste soumise à la politique de double authentification ; `actorMfa` sert
+  seulement à rendre une session validée à la sortie. Tests, `docs/API.md` et doc de
+  référence `double-authentification.md` mis à jour.
 
 ### Ajouté — élèves référents automatiques des tâches récurrentes (désactivé par défaut)
 

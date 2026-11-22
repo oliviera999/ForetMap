@@ -111,7 +111,6 @@ const googleAuthService = require('../lib/auth/googleAuthService');
 const { buildSessionPayload } = require('../lib/auth/sessionPayload');
 const { gateLoginSession } = require('../lib/auth/mfaLogin');
 const { carryMfaClaims, markSessionMfa } = require('../lib/auth/mfaClaims');
-const { getMfaEnforcement } = require('../lib/auth/mfaPolicy');
 const { buildLoginResponseBody, recordLoginTouch } = require('../lib/auth/loginResponse');
 
 const { normalizeOptionalString } = require('../lib/shared/httpHelpers');
@@ -1310,15 +1309,9 @@ router.post(
   '/admin/impersonate',
   requirePermission('admin.impersonate'),
   asyncHandler(async (req, res) => {
-    // Seul un administrateur dont la session a validé le second facteur prend la main sur
-    // un autre compte (réglage `security.totp.enforcement` différent de `off`).
-    if (!req.auth?.mfa && (await getMfaEnforcement()) !== 'off') {
-      return res.status(403).json({
-        error:
-          'Prise de contrôle réservée à une session validée par la double authentification : reconnectez-vous avec votre code.',
-        code: 'MFA_REQUIRED',
-      });
-    }
+    // Pas d'exigence de second facteur pour prendre la main : la session administrateur
+    // elle-même reste soumise à la politique de double authentification (hydratation), et
+    // la prise de contrôle est bornée par le rang et journalisée.
     const targetUserType = normalizeOptionalString(req.body?.userType)?.toLowerCase();
     const rawId = req.body?.userId;
     const targetUserId = rawId == null ? '' : String(rawId).trim();

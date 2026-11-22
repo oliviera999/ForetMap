@@ -79,8 +79,10 @@ la double authentification et que vous n'êtes pas connecté avec votre code : i
 s'enfermer dehors par mégarde. Elle le refuse aussi si le serveur n'a pas encore reçu sa clé
 de sécurité (à demander à la personne qui gère le serveur).
 
-**Voir comme un autre utilisateur** (prise de contrôle) n'est possible que depuis une session
-administrateur ouverte **avec** le code.
+**Voir comme un autre utilisateur** (prise de contrôle) ne demande **pas** la double
+authentification : un administrateur connecté peut prendre la main sur un compte de rang
+inférieur sans saisir de code, et le compte contrôlé n'a pas à en valider non plus. La prise
+de contrôle reste tracée dans le journal d'audit.
 
 **Suivre l'équipement** : la fiche de chaque compte (Profils → Comptes) indique si la double
 authentification est active et combien de codes de secours restent ; le journal de sécurité
