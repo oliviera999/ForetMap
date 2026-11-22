@@ -4991,6 +4991,7 @@ Routes publiques (lecture) sauf progression quiz. Voir aussi les routes GL `/api
 | GET | `/api/food-web` | non | Réseau trophique (`?mapId=`, `?zoneId=` ; `zoneId` prime sur `mapId`) |
 | GET | `/api/food-web/interaction-types` | non | Vocabulaire de l'éditeur : `{ types, evidenceLevels, pollinationEfficacies }` — 19 types depuis la migration `272` |
 | GET | `/api/food-web/interactions/:id/glossary` | non | Termes glossaire liés à une interaction |
+| GET | `/api/food-web/species/:id/maps` | non | Cartes **actives** où l'espèce est présente (présence commune : registre, zones, repères) : `{ plantId, maps: [{ id, label }] }`, triées par `sort_order` puis libellé ; `[]` si l'espèce n'est rattachée à aucune carte ; `404` si la fiche n'existe pas, `400` si l'identifiant est invalide. Sert à « Voir le réseau trophique » depuis une fiche (carte active si l'espèce y vit, sinon la première de ses cartes, sinon « Toutes les cartes ») |
 | POST | `/api/food-web/interactions` | prof (`plants.manage`) | Créer une interaction |
 | PUT | `/api/food-web/interactions/:id` | prof (`plants.manage`) | Modifier une interaction |
 
@@ -5015,15 +5016,21 @@ matière morte), l'allélopathie et la facilitation (deux relations de voisinage
 
 **Types montrés au collège** (`COLLEGE_INTERACTION_TYPE_ENUM`, `src/shared/enums/biodivEnums.js`) :
 `pollinisation`, `herbivorie`, `frugivorie`, `granivorie`, `predation`, `plante_hote`,
-`decomposition`, `detritivorie`, `parasitisme`, et, au **cycle 4 seulement**
-(`CYCLE4_ONLY_INTERACTION_TYPE_ENUM`, règle de palier `foodweb_types_cycle4_only`), `symbiose`
-et `competition` — frugivorie et granivorie depuis le chantier collège (décision 8 du
-21/11/2026). Chaque type du collège porte un libellé en verbe (`labelsSimple` : « mange des
-fruits », « pond sur »…), affiché avant le mot savant (`interactionTypeLabelSimple`). Le
-filtrage se fait côté interface (`GET /api/food-web` rend toujours tout) : au collège, pas de
-réseau complet par défaut — l'élève part d'une espèce (espèces phares de la carte, `is_featured`
-de `GET /api/maps/:id/species`, puis recherche), à profondeur 1 extensible à 2 ; les liens vers
-une espèce hors de la carte ou de la zone (`from_in_scope` / `to_in_scope` à 0) sont retirés.
+`decomposition`, `detritivorie`, `parasitisme`, `mycophagie`, et, au **cycle 4 seulement**
+(`CYCLE4_ONLY_INTERACTION_TYPE_ENUM`, règle de palier `foodweb_types_cycle4_only`), `symbiose`,
+`competition` et `mutualisme` — frugivorie et granivorie depuis le chantier collège (décision 8
+du 21/11/2026), mycophagie (« mange des champignons ») et mutualisme (« s’entraident », cycle 4)
+depuis le chantier du 22/11/2026. Chaque type du collège porte un libellé en verbe
+(`labelsSimple` : « mange des fruits », « pond sur »…), affiché avant le mot savant
+(`interactionTypeLabelSimple`). Le filtrage se fait côté interface (`GET /api/food-web` rend
+toujours tout) : au collège, pas de réseau complet par défaut — l'élève compose une
+**sélection** de plusieurs espèces (espèces phares de la carte, `is_featured` de
+`GET /api/maps/:id/species`, puis recherche ; un clic ajoute ou retire), à profondeur 0
+(liens entre les espèces choisies), 1 ou 2, cadrage « Tout » par défaut
+(`foodweb_default_preset`) ; un bouton « Pour aller plus loin » (`foodweb_go_further`) ouvre le
+réseau complet de la carte. Les liens vers une espèce hors de la carte ou de la zone
+(`from_in_scope` / `to_in_scope` à 0) sont **gardés** : l'espèce est grisée, avec la mention
+« vit ailleurs : … » tirée de `from_elsewhere` / `to_elsewhere` (décision 1 du 22/11/2026).
 
 > **Les 14 premiers types seulement sont partagés avec GL.** `gl_species_interactions` garde son
 > ENUM d'origine : `GET /api/gl/food-web/interaction-types` en expose 14, et les routes d'écriture
@@ -5074,6 +5081,15 @@ et la parité entre les deux fichiers, sont tenues par `tests/food-web-matter-fl
 > réseau. Les réponses filtrées portent en plus `from_in_scope` et `to_in_scope` (`1`/`0`) :
 > l'interface marque l'espèce hors périmètre au lieu de la masquer. La liste non filtrée
 > (`GET /api/food-web` sans paramètre) ne porte pas ces colonnes — tout y est dans le périmètre.
+> Une extrémité est **dans le périmètre** si l'espèce y est présente, si c'est l'environnement
+> (`to_id` nul) ou si la fiche est une ressource, un consortium ou un groupe fonctionnel
+> (`plants.entity_kind`, `FOODWEB_ALWAYS_IN_SCOPE_ENTITY_KINDS` : compost, litière, bois mort,
+> biofilm, plancton… ne sont rattachés à aucune carte). La rétention exige toujours une espèce
+> présente : une ressource seule ne fait pas entrer les liens d'autres lieux.
+> **`from_elsewhere` / `to_elsewhere`** (réponses filtrées seulement, chantier du 22/11/2026) :
+> pour une extrémité hors périmètre, les cartes **actives** où l'espèce est présente
+> (`[{ id, label }]`, même définition de présence), `[]` si elle n'est rattachée à aucune carte ;
+> `[]` aussi pour une extrémité dans le périmètre. Calcul en une requête groupée (pas de N+1).
 > Pour **`?mapId=`**, le périmètre est la présence commune (`lib/biodiv/presenceService.js`) :
 > espèces des **zones**, des **repères** et celles rattachées **directement** à la carte
 > (`map_species`) — la même liste que `GET /api/maps/:mapId/species`. Pour **`?zoneId=`**, ce
@@ -5250,7 +5266,7 @@ appelant `plants.manage` (préparation, suivi, démonstration).
 | DELETE  | `/api/pedago-sessions/:idOrSlug` | `plants.manage` | Supprime une séance : passages en cascade, tâches liées détachées (`pedago_session_id` à NULL), badges obtenus conservés. `{ ok, deleted, slug, runs_deleted, tasks_detached }` ; journal `delete_pedago_session`. |
 
 Actions d’étape (`action.type`) : `message`, `open_id_key`, `open_plant`, `open_foodweb`
-(`mapId`, `highlightPlantId`, `plantIds` facultatif), `open_quiz`, `open_glossary`, `open_individual` (`individualId`), `open_nested_groups`
+(`mapId`, `highlightPlantId`, `plantIds` et `preset` facultatifs), `open_quiz`, `open_glossary`, `open_individual` (`individualId`), `open_nested_groups`
 (`plantIds`, 2 à 6), `open_map_route` (`routeSlug`, `mapId`), `open_fresque` (`deckId`
 facultatif), `open_tutorial` (`tutorialId`). Source unique de cette liste :
 `src/shared/enums/pedagoStepActions.js` (miroir `lib/shared/pedagoStepActions.js`), lue par la
@@ -5267,6 +5283,12 @@ client et l’outil MCP) : **400** `étape N : plantIds …` pour une liste qui 
 identifiant invalide ou plus de 12 espèces. Une liste vide est retirée (forme de l’étape
 inchangée) ; `plantIds` n’est jamais déduit de la config de séance. Les espèces citées comptent
 parmi les cibles vérifiées à la publication.
+
+`payload.preset` (facultatif, chantier collège du 22/11/2026) : cadrage imposé à l’ouverture du
+réseau — `alimentaire` (réseau alimentaire), `relations` (autres relations, dont la
+pollinisation) ou `all` (tout) ; mêmes clés que les cadrages du graphe (`FOODWEB_STEP_PRESETS`,
+parité testée). **400** `étape N : preset : cadrage inconnu …` pour une autre valeur ; une chaîne
+vide est retirée. L’élève peut ensuite changer de cadrage.
 
 Étape `open_tutorial` : `payload.tutorialId` (identifiant de `GET /api/tutorials`) ; le tutoriel
 s’ouvre par-dessus la séance, avec son accusé de lecture pour un compte connecté. Contrôle **à

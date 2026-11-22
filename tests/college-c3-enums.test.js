@@ -53,8 +53,11 @@ test('interactionTypeLabelSimple : verbe puis mot savant, replis', () => {
     interactionTypeLabelSimple('herbivorie', { withScientific: false }),
     'mange des plantes',
   );
+  // Chantier du 22/11/2026 : mycophagie et mutualisme ont leur verbe.
+  assert.equal(interactionTypeLabelSimple('mycophagie'), 'mange des champignons (mycophagie)');
+  assert.equal(interactionTypeLabelSimple('mutualisme'), 's’entraident (mutualisme)');
   // Hors collège : le libellé savant ; inconnu : le repli.
-  assert.equal(interactionTypeLabelSimple('mutualisme'), 'Mutualisme');
+  assert.equal(interactionTypeLabelSimple('allelopathie'), 'Allélopathie');
   assert.equal(interactionTypeLabelSimple('bidon', { fallback: 'Interaction' }), 'Interaction');
   assert.equal(interactionTypeLabelSimple(''), '');
 });

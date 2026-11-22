@@ -20,6 +20,8 @@ export function FoodWebGraphZoomSearch({
   onSubmit,
   matches,
   addMode,
+  /** Libellé du bouton de recherche ; `null` : « Ajouter » / « Isoler » (comportement actuel). */
+  submitLabel = null,
 }) {
   return (
     <>
@@ -78,7 +80,7 @@ export function FoodWebGraphZoomSearch({
           className="pedago-foodweb-graph__tbtn"
           disabled={matches.length === 0}
         >
-          <IconSearch size={14} /> {addMode ? 'Ajouter' : 'Isoler'}
+          <IconSearch size={14} /> {submitLabel || (addMode ? 'Ajouter' : 'Isoler')}
         </button>
       </form>
     </>

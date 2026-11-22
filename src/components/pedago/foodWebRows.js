@@ -3,6 +3,7 @@
  * `FoodWebView.jsx`, chantier collège, flux C3).
  */
 
+import { readElsewhere, readInScope } from './foodWebGraphModel.js';
 import {
   DEFAULT_EVIDENCE_LEVEL,
   INTERACTION_TYPES,
@@ -55,15 +56,25 @@ export function editFormFromRow(row) {
   };
 }
 
-/** Extrémités orientées d'une interaction, prêtes à l'affichage. */
+/**
+ * Extrémités orientées d'une interaction, prêtes à l'affichage. Chaque extrémité porte
+ * `outOfScope` (hors de la carte ou de la zone) et `elsewhere` (cartes où elle vit, `null`
+ * sans information) pour la mention « vit ailleurs : … » de la liste.
+ */
 export function describeRow(row) {
   if (!row) return null;
   const oriented = orientInteraction(row.from_id, row.to_id, row.interaction_type);
   const endpoint = (id) => {
-    if (id == null) return { id: null, name: 'Environnement', emoji: '🌍' };
-    return Number(id) === Number(row.from_id)
-      ? { id: row.from_id, name: row.from_name, emoji: row.from_emoji }
-      : { id: row.to_id, name: row.to_name, emoji: row.to_emoji };
+    if (id == null) return { id: null, name: 'Environnement', emoji: '🌍', outOfScope: false };
+    const isFrom = Number(id) === Number(row.from_id);
+    const outOfScope = !readInScope(isFrom ? row.from_in_scope : row.to_in_scope);
+    return {
+      id: isFrom ? row.from_id : row.to_id,
+      name: isFrom ? row.from_name : row.to_name,
+      emoji: isFrom ? row.from_emoji : row.to_emoji,
+      outOfScope,
+      elsewhere: outOfScope ? readElsewhere(isFrom ? row.from_elsewhere : row.to_elsewhere) : null,
+    };
   };
   return {
     tail: endpoint(oriented.tailId),

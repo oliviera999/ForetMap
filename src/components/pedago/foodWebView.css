@@ -68,3 +68,165 @@
 .pedago-foodweb__selected-dot--typed {
   background: var(--fw-edge-color);
 }
+
+/* Espèces hors de la carte (décision 1 du 22/11/2026) : montrées, grisées, avec la mention
+   « vit ailleurs : … ». Le graphe garde son trait pointillé, la teinte passe au gris. */
+.pedago-foodweb-graph__node--outside {
+  fill: var(--surface-sunken);
+  stroke: var(--ink-dim);
+}
+
+.pedago-foodweb__node-wrap {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.pedago-foodweb__node--outside {
+  border-style: dashed;
+  color: var(--ink-dim);
+  background: var(--surface-sunken);
+  min-height: var(--tap-target, 44px);
+}
+
+.pedago-foodweb__elsewhere {
+  color: var(--ink-dim);
+  font-size: var(--text-xs, 0.75rem);
+  font-style: italic;
+}
+
+/* Panneau d'une espèce du graphe (collège, décision 3 du 22/11/2026) : ancré au nœud sur
+   grand écran, feuille basse sur téléphone. */
+.pedago-foodweb-graph__wrap {
+  position: relative;
+}
+
+.pedago-foodweb__node-panel {
+  position: absolute;
+  z-index: 5;
+  left: var(--space-2);
+  top: var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: min(280px, calc(100% - 2 * var(--space-2)));
+  padding: var(--space-card);
+  background: var(--surface-plain);
+  border: 1px solid var(--sage);
+  border-radius: 12px;
+  box-shadow: 0 6px 20px rgba(26, 61, 46, 0.18);
+}
+
+.pedago-foodweb__node-panel--anchored {
+  transform: translateX(-50%);
+}
+
+.pedago-foodweb__node-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.pedago-foodweb__node-panel-title,
+.pedago-foodweb__node-panel-label {
+  margin: 0;
+}
+
+.pedago-foodweb__node-panel-label {
+  color: var(--leaf);
+  font-size: var(--text-sm);
+}
+
+.pedago-foodweb__node-panel-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--tap-target, 44px);
+  min-height: var(--tap-target, 44px);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.pedago-foodweb__node-panel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.pedago-foodweb__node-panel-actions .btn {
+  min-height: var(--tap-target, 44px);
+}
+
+@media (max-width: 640px) {
+  .pedago-foodweb__node-panel,
+  .pedago-foodweb__node-panel--anchored {
+    position: fixed;
+    left: 0 !important;
+    right: 0;
+    top: auto !important;
+    bottom: 0;
+    width: 100%;
+    transform: none;
+    border-radius: 16px 16px 0 0;
+  }
+}
+
+/* « Pour aller plus loin » (barrière douce du collège, chantier du 22/11/2026). */
+.pedago-foodweb__further {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-2);
+}
+
+.pedago-foodweb__further .btn {
+  min-height: var(--tap-target, 44px);
+}
+
+.pedago-foodweb__start-chip--outside {
+  border-style: dashed;
+  color: var(--ink-dim);
+}
+
+.pedago-foodweb__chip-note {
+  color: var(--ink-dim);
+  font-size: var(--text-xs, 0.75rem);
+}
+
+.pedago-foodweb__selbar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.pedago-foodweb__selbar-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.pedago-foodweb__selchip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding-left: var(--space-2);
+  border: 1px solid var(--sage);
+  border-radius: 999px;
+  background: var(--surface-plain);
+}
+
+.pedago-foodweb__selchip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--tap-target, 44px);
+  min-height: var(--tap-target, 44px);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
