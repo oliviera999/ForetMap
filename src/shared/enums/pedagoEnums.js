@@ -133,7 +133,26 @@ export const QUIZ_THEME_ENUM = defineEnum('QUIZ_THEME_ENUM', {
 export const QUIZ_ANSWER_LETTER_ENUM = defineEnum('QUIZ_ANSWER_LETTER_ENUM', {
   values: ['A', 'B', 'C', 'D', 'E'],
   labels: { A: 'Choix A', B: 'Choix B', C: 'Choix C', D: 'Choix D', E: 'Choix E' },
-  columns: ['quiz_questions.reponse_correcte'],
+  // `user_quiz_attempts.choix_lettre` : lettre d'origine du choix retenu (migration
+  // `quiz_attempt_choice`), même domaine que la bonne réponse.
+  columns: ['quiz_questions.reponse_correcte', 'user_quiz_attempts.choix_lettre'],
+});
+
+/**
+ * Contexte d'une tentative de quiz (`user_quiz_attempts.contexte`, migration
+ * `quiz_attempt_choice`) : d'où vient la réponse. Étiquette statistique : `tirage` et
+ * `seance` sont annoncés par le client (`?origine=tirage`, `?pedagoSession=`), `seance`
+ * n'est retenu que si le serveur confirme la séance active ; `validation` vient du jeton.
+ */
+export const QUIZ_ATTEMPT_CONTEXTE_ENUM = defineEnum('QUIZ_ATTEMPT_CONTEXTE_ENUM', {
+  values: ['libre', 'tirage', 'validation', 'seance'],
+  labels: {
+    libre: 'Quiz libre',
+    tirage: 'Tirage au hasard',
+    validation: 'Validation d’une fiche',
+    seance: 'Séance pédagogique',
+  },
+  columns: ['user_quiz_attempts.contexte'],
 });
 
 /**

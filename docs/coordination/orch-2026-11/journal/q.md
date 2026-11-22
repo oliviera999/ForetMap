@@ -129,7 +129,37 @@ Côté client (deux lignes, aucune réponse HTTP ni écran changés) : `src/serv
    rétrocompatible de `clientSort`) ; `src/index.css` (styles des barres, par tokens).
 2. Validation de l'écart « HMAC de l'empreinte dans le jeton au lieu de l'empreinte en clair ».
 
+## Décisions de l'orchestrateur (22/11)
+
+- Plan validé ; écart « HMAC de l'empreinte dans le jeton » validé (à documenter dans
+  `docs/API.md` et dans les écarts du résumé final).
+- Extensions accordées : `lib/pedago/quizService.js`, `lib/pedago/quizRepository.js`,
+  `src/services/quizApi.js`, `src/hooks/useQuizSession.js` (réponse HTTP et écran inchangés ;
+  `origine` / `pedagoSession` = étiquettes non fiables, valeur invalide ignorée sans 400),
+  `src/shared/qcm/QuestionEditorPanel.jsx` (3ᵉ argument `{ refs }` de `clientSort` seulement,
+  test d'ordre G&L inchangé). **Refusé** : `src/index.css` → feuille dédiée importée par
+  `FMQuizChoiceStats.jsx`.
+- Numéro de travail 388 accepté ; `sql/schema_foretmap.sql` → intégration.
+
+## Avancement
+
+- Suites G&L **avant** : 1952 tests, 0 échec.
+- **Lot A fait** : `migrations/388_quiz_attempt_choice.sql`,
+  `tests/quiz-migration-attempt-choice.test.js`, `src/shared/enums/pedagoEnums.js` (+ miroir
+  `lib/shared/pedagoEnums.js`) — le test du référentiel des ENUM exige une définition pour
+  toute colonne ENUM : `QUIZ_ANSWER_LETTER_ENUM.columns` += `user_quiz_attempts.choix_lettre`,
+  nouveau `QUIZ_ATTEMPT_CONTEXTE_ENUM` (ajout rétrocompatible d'un module partagé). Rejouée deux
+  fois sur la base fraîche et sur la copie anonymisée (268 tentatives, aucune erreur, colonnes
+  NULL).
+
+## À faire par l'intégration
+
+- `sql/schema_foretmap.sql` : ajouter les cinq colonnes et l'index de la migration
+  `quiz_attempt_choice` à `user_quiz_attempts`.
+- Renuméroter `migrations/388_quiz_attempt_choice.sql` si C2 prend 388.
+- `src/shared/enums/pedagoEnums.js` : surveiller un conflit avec un autre flux qui y ajouterait
+  une définition (ajout en fin de bloc quiz).
+
 ## État
 
-- Plan écrit, en attente de validation. Aucun code.
-- Prochaine action : après réponse, lot A.
+- Prochaine action : lot B (enregistrement à la réponse), code déjà amorcé dans l'arbre.
