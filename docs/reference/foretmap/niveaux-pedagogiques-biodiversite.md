@@ -50,6 +50,10 @@ Public typique : cycles 3 et 4, découverte et sortie de terrain.
   (hypothèse / observé) ni d’efficacité du pollinisateur. La **détritivorie** — le ver de
   terre qui mange la litière — y figure depuis le 25 septembre 2026 : ces animaux portent
   la pastille « Détritivore » à tous les niveaux, et leur réseau montre ce qu’ils mangent.
+  Frugivorie et granivorie sont montrées à tout le collège ; symbiose et compétition au
+  cycle 4 seulement. Au collège, le réseau part d’une espèce choisie (voisins, puis chaîne)
+  et n’affiche que les espèces de la carte : voir « Le Réseau trophique » dans
+  `pedagogie-quiz-glossaire-reseau.md`.
 - Clés d’identification : **lecture** guidée (mode Questions, une fourche à la fois) ;
   le mode **Schéma** (arbre de la clé) reste disponible pour visualiser la structure.
 - Quiz et glossaire : notions de **cycle 3 et cycle 4** mises en avant — et seulement du
