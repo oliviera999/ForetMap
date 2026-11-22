@@ -31,7 +31,7 @@ describe('PlantSummaryBadges', () => {
   test('entrée « végétal » → préfère preferred_nutrients à nutrition', () => {
     render(
       <PlantSummaryBadges
-        plant={{ group_1: 'Végétal', nutrition: 'Autotrophe', preferred_nutrients: 'Azote' }}
+        plant={{ taxon_kingdom: 'Végétal', nutrition: 'Autotrophe', preferred_nutrients: 'Azote' }}
       />,
     );
     expect(screen.getByText('Azote')).toBeInTheDocument();

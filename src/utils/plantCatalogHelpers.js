@@ -2,7 +2,6 @@
  * Helpers purs de catalogue biodiversité — extraits de `foretmap-views.jsx` (O6).
  */
 
-import { normalizedPlantValue } from './plantFormValues.js';
 import { PRESENCE_VALIDATION_STATUS_ENUM } from '../shared/enums/biodivEnums.js';
 import {
   CATALOG_OTHER_GROUP_ID,
@@ -18,12 +17,10 @@ import {
  *
  * Lit `taxon_kingdom` (via `plantTaxonomyValue`) : la seule lecture de `group_1`, colonne
  * supprimée en migration 129 et jamais servie par l'API, rendait toujours `false` en
- * production (flux C4, refacto). Le repli `group_1` ne reste que pour la fixture de
- * `tests-ui/components/biodiv/PlantSummaryBlocks.test.jsx` (périmètre C1) : à retirer avec
- * elle (noté pour SI).
+ * production (flux C4, refacto).
  */
 export function isVegetalCatalogEntry(plant) {
-  const kingdom = plantTaxonomyValue(plant, 'kingdom') || normalizedPlantValue(plant?.group_1);
+  const kingdom = plantTaxonomyValue(plant, 'kingdom');
   return (kingdom || '').toLowerCase().includes('végétal');
 }
 
