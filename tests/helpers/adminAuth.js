@@ -68,6 +68,12 @@ async function ensureAdminTeacherAuthToken(options = {}) {
     ['teacher', teacher.id, adminRole.id],
   );
   await execute('UPDATE users SET assigned_role_id = ? WHERE id = ?', [adminRole.id, teacher.id]);
+  // Niveau de contenu « Complet (vue gestion) » (migration 387) : ce compte sert d'apprenant
+  // générique aux suites du verrouillage, du glossaire, des tutoriels… écrites quand un
+  // professeur voyait tout. Sans choix, il serait au cycle 3 (défaut d'un compte sans groupe,
+  // demande du 22/11/2026) et les questions de collège ne le verrouilleraient plus. Le défaut
+  // lui-même est couvert par tests/pedago-staff-content-level.test.js, sur des comptes neufs.
+  await execute("UPDATE users SET pedago_content_level = 'complet' WHERE id = ?", [teacher.id]);
 
   // Session d'administrateur complète, double authentification validée (`mfa`) : c'est ce
   // qu'obtient un administrateur après son code, et ce qu'exigent la prise de contrôle et la

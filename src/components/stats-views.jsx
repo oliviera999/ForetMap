@@ -758,7 +758,7 @@ function StudentProfileEditor({ student, onUpdated, onClose }) {
               </option>
             ))}
           </select>
-          <small style={{ display: 'block', opacity: 0.75, marginTop: 4 }}>
+          <small className="profile-content-level__hint">
             Règle les fiches, le vocabulaire du glossaire, les quiz, les questions de validation et
             le réseau trophique que tu consultes, comme pour un élève de ce niveau. Tes droits et
             les écrans de gestion ne changent pas. Sans choix : le niveau le plus haut de tes
@@ -768,8 +768,7 @@ function StudentProfileEditor({ student, onUpdated, onClose }) {
           {initialFieldsRef.current.pedago_content_level ? (
             <button
               type="button"
-              className="btn btn-ghost btn-sm"
-              style={{ marginTop: 6 }}
+              className="btn btn-ghost btn-sm profile-content-level__reset"
               onClick={resetContentLevel}
               disabled={contentLevelResetting || loading}
               data-testid="profile-pedago-content-level-reset"
