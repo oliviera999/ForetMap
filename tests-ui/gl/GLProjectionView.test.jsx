@@ -400,8 +400,11 @@ describe('GLProjectionView', () => {
       await waitFor(() => expect(screen.getByTestId('stub-board')).toBeTruthy());
       expect(screen.queryByTestId('gl-projection-accroche')).toBeNull();
       expect(screen.queryByTestId('stub-journal')).toBeNull();
-      expect(apiGlMock.mock.calls.some(([p]) => p === '/api/gl/games/9/tenir/ce-qui-change')).toBe(
-        true,
+      // L'appel peut partir après l'affichage du plateau (CI chargée) : on l'attend.
+      await waitFor(() =>
+        expect(
+          apiGlMock.mock.calls.some(([p]) => p === '/api/gl/games/9/tenir/ce-qui-change'),
+        ).toBe(true),
       );
       // La page du jour reste à portée d'un clic.
       fireEvent.click(screen.getByRole('button', { name: 'La page du jour' }));
