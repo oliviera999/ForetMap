@@ -102,7 +102,10 @@ test('élève sans groupe (défaut Collège) : seule la question de collège ver
   });
   assert.equal(state.ok, true);
   assert.deepEqual(codesOf(state), [qCollege]);
-  assert.equal(state.level_fallback, 'none');
+  // Chantier collège : sans classe, le collégien est au cycle 3 (palier 1, règle
+  // `quiz_entry_palier_max`). La question de collège sans notion de cycle 3 est de palier 2 :
+  // elle reste posée par le repli « questions de collège » (jamais le lycée).
+  assert.equal(state.level_fallback, 'college_levels');
 });
 
 // Chantier collège (novembre 2026) : un collégien n'est jamais interrogé au-delà du cycle 4.
