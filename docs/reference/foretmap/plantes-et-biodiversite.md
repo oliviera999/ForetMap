@@ -64,17 +64,24 @@ mange qui, qui aide qui »), les termes du glossaire et les questions de quiz qu
 rapportent (celles approuvées dans l'écran « Rattacher des questions aux contenus »).
 
 **Au collège, la fiche est allégée** (de la 6ᵉ à la 3ᵉ et dans la Visite sans compte ;
-décisions du 21 novembre 2026) :
+décisions du 21 novembre 2026, assouplies le 22 novembre : on **replie**, on ne retire plus) :
 
 - sous le nom, une **étiquette simple** (« Arbre fruitier », « Oiseau marin »…) quand la
   fiche en a une ;
-- la **description collège**, écrite pour des collégiens, remplace la description générale
-  quand elle existe ;
+- la **description collège**, écrite pour des collégiens, s'affiche en premier quand elle
+  existe ; la description générale reste lisible juste en dessous, dans un bloc replié
+  **« Description complète »** ;
 - la ligne **Taxonomie** est remplacée par le **groupe** de la fiche (« Arbres et arbustes »,
-  « Oiseaux »…) ; le nom scientifique et la classification latine ne s'affichent pas ;
-- les sections repliables **Identité** et **Écologie et usages**, les jauges de pH et de
-  température et la pastille **Nutrition** sont masquées ; la section **Ressources** (sources,
-  auteurs et licences des photos) reste ;
+  « Oiseaux »…) ; le nom scientifique ne s'affiche pas sous le nom de l'espèce ;
+- les sections **Identité** (autres noms, **nom scientifique**, cycle de vie, taille,
+  reproduction, origine…) et **Écologie et usages** (habitat, milieu, rôle dans le réseau…)
+  sont présentes, **repliées** : l'élève les ouvre d'un clic. Les jauges de pH et de
+  température et la pastille **Nutrition** de l'en-tête restent masquées : leurs valeurs sont
+  dans la section repliée. La section **Ressources** (sources, auteurs et licences des photos)
+  reste ;
+- la liste des **interactions** de la fiche emploie les mots du réseau trophique (« pond sur »,
+  « mange des animaux »…, le mot savant entre parenthèses) ; au lycée, le nom de la relation
+  (« Plante hôte », « Prédation »…). Plus aucun code technique n'y apparaît ;
 - le **statut UICN** s'écrit en mots (« Liste rouge : vulnérable ») plutôt qu'en sigle ;
 - le **danger**, le **risque sanitaire**, la **détermination** et les **sosies** restent
   identiques, en tête de fiche.
@@ -199,7 +206,11 @@ grands groupes faciles à reconnaître** (« groupes d’usage » : Oiseaux, Ins
 fleurs…), choisis par l’administration du contenu. Les groupes intermédiaires savants
 (Eucaryotes, Bilatériens, Amniotes…) disparaissent ; une espèce rangée dans un groupe retiré
 remonte au grand groupe le plus proche ; chaque boîte affiche son **nom simple** et son
-**caractère observable en mots simples** quand ils sont renseignés. Les choix proposés à
+**caractère observable en mots simples** quand ils sont renseignés. Depuis le 22 novembre
+2026, la boîte **« Animaux à quatre membres »** (squelette à l’intérieur du corps et quatre
+membres) fait partie de ces grands groupes : mammifères, oiseaux, lézards et serpents,
+amphibiens s’y rangent, eux-mêmes dans les Vertébrés, comme l’attend la séance « Les grands
+groupes » de 6ᵉ. Les choix proposés à
 l’élève pour placer une espèce ne contiennent que ces grands groupes, et la correction
 attend le grand groupe. Le bouton **« Pour aller plus loin »** reconstruit la même activité
 sur la **classification complète** (et **« Revenir aux grands groupes »** la réduit de

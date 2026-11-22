@@ -28,7 +28,24 @@ const DATA_DIR = path.join(ROOT, 'data', 'college-2026-11', 'D3');
 const MIGRATION_FILE = fs
   .readdirSync(path.join(ROOT, 'migrations'))
   .find((f) => /_college_quiz_paliers\.sql$/.test(f));
-const { decisions } = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'operations.json'), 'utf8'));
+const { decisions: allDecisions } = JSON.parse(
+  fs.readFileSync(path.join(DATA_DIR, 'operations.json'), 'utf8'),
+);
+
+/**
+ * Décisions D3 revues par une décision ultérieure d'Oliv, appliquée par une migration plus
+ * récente (qui l'emporte, migrations jouées dans l'ordre) :
+ * - QF9877, mini-quiz de la séance `6e-eau-de-nos-lieux` (cycle 3) : D3 l'avait tranchée au
+ *   cycle 4 ; la migration `college_assouplissement` (22/11/2026) lui rend la notion C3-ENV.
+ */
+const SUPERSEDED = new Map([['QF9877', 'college_assouplissement']]);
+const decisions = allDecisions.filter((d) => !SUPERSEDED.has(d.code));
+/** Migrations postérieures qui reviennent sur une décision D3 : rejouées après elle. */
+const SUPERSEDING_FILES = [...new Set(SUPERSEDED.values())].map((suffix) =>
+  fs
+    .readdirSync(path.join(ROOT, 'migrations'))
+    .find((f) => new RegExp(`^\\d+_${suffix}\\.sql$`).test(f)),
+);
 const categories = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'categories.json'), 'utf8'));
 
 /** Codes (parmi `codes`) qui portent au moins une notion effective du niveau donné. */
@@ -86,11 +103,12 @@ test('la migration générée est à jour de ses données', () => {
 });
 
 test('chaque décision porte un seul palier, et 445 questions doublement rattachées sont tranchées', () => {
-  const twoCycles = decisions.filter(
+  // Données D3 telles que décidées le 21/11 (décisions revues ensuite comprises).
+  const twoCycles = allDecisions.filter(
     (d) => d.before.some((n) => /^C3/.test(n)) && d.before.some((n) => /^C4/.test(n)),
   );
   assert.equal(twoCycles.length, 445);
-  for (const d of decisions) {
+  for (const d of allDecisions) {
     if (d.palier === 'lycee') continue;
     const keep = d.palier === 3 ? /^C3/ : /^C4/;
     const drop = d.palier === 3 ? /^C4/ : /^C3/;
@@ -190,6 +208,12 @@ test('la migration se rejoue sans erreur ni effet', async () => {
   const sql = fs.readFileSync(path.join(ROOT, 'migrations', MIGRATION_FILE), 'utf8');
   for (let i = 0; i < 2; i += 1) {
     for (const stmt of splitSqlStatements(sql)) await execute(stmt);
+  }
+  // Une décision revue plus tard (SUPERSEDED) est rétablie par la migration qui l'a revue,
+  // rejouée à la suite comme dans l'ordre normal des migrations.
+  for (const file of SUPERSEDING_FILES) {
+    const later = fs.readFileSync(path.join(ROOT, 'migrations', file), 'utf8');
+    for (const stmt of splitSqlStatements(later)) await execute(stmt);
   }
   assert.deepEqual(await snapshot(), before);
 });

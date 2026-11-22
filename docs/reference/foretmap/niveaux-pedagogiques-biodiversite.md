@@ -58,9 +58,10 @@ Public typique : cycles 3 et 4, découverte et sortie de terrain.
   terre qui mange la litière — y figure depuis le 25 septembre 2026 : ces animaux portent
   la pastille « Détritivore » à tous les niveaux, et leur réseau montre ce qu’ils mangent.
   Frugivorie, granivorie et mycophagie sont montrées à tout le collège ; symbiose,
-  compétition et mutualisme au cycle 4 seulement. Au collège, l’élève compose une sélection
-  d’espèces (cadrage « Tout »), les espèces d’autres lieux sont grisées avec la mention « vit
-  ailleurs », et « Pour aller plus loin » ouvre le réseau complet : voir « Le Réseau
+  compétition et mutualisme au cycle 4 seulement (la pollinisation dès le cycle 3). Au collège
+  (depuis le 22 novembre 2026), l’élève compose une **sélection** de plusieurs espèces (cadrage
+  « Tout ») ; les espèces d’autres lieux restent visibles, **grisées** (« vit ailleurs : … »),
+  et le bouton **« Pour aller plus loin »** montre le réseau complet de la carte : voir « Le Réseau
   trophique » dans `pedagogie-quiz-glossaire-reseau.md`.
 - Clés d’identification : **lecture** guidée (mode Questions, une fourche à la fois) ;
   le mode **Schéma** (arbre de la clé) reste disponible pour visualiser la structure.
@@ -136,17 +137,19 @@ ne règle que trois choses :
 | --------------------------------------------- | ----------------- | --------------------------------- | -------- |
 | Vocabulaire lié et listé d’emblée (glossaire) | termes « base »   | « base » et « approfondissement » | tous     |
 | Questions du quiz                             | celles du cycle 3 | jusqu’au cycle 4                  | inchangé |
-| Réseau : symbiose et compétition              | masquées          | montrées                          | montrées |
+| Réseau : symbiose, compétition, mutualisme    | masqués           | montrés                           | montrés  |
 
-Un collégien **sans classe connue** (Visite sans compte, élève sans niveau de classe) suit les
-règles du **cycle 3**. Une carte réglée « Lycée » ne fait jamais basculer un élève dont la
+Un collégien **sans classe connue** (élève sans niveau de classe, compte personnel sans groupe)
+suit les règles du **cycle 3**. La **Visite sans compte** (parents, visiteurs institutionnels)
+suit celles du **cycle 4** depuis le 22 novembre 2026 : même affichage collège, mais vocabulaire
+« approfondissement », questions jusqu’au cycle 4 et toutes les relations du collège. Une carte réglée « Lycée » ne fait jamais basculer un élève dont la
 classe est au collège : la classe passe avant la carte.
 
 ### Ordre quand plusieurs réglages coexistent
 
 Du plus fort au plus faible — **le plus précis l’emporte** :
 
-1. **Visite invitée** → toujours **Collège** — non contournable.
+1. **Visite invitée** → toujours **Collège**, au palier **cycle 4** — non contournable.
 2. **Aperçu professeur** « Affichage biodiversité — 6ᵉ (cycle 3) / 3ᵉ (cycle 4) / Lycée »
    (session uniquement) : pour vérifier ce que voit un élève, sans changer les réglages du site.
    Il passe devant le niveau de contenu du profil. Voir [Le menu Aperçu](#le-menu-aperçu)
@@ -307,7 +310,8 @@ Ce que ça change concrètement :
 ## Visite invitée
 
 > Décision validée : en **visite sans compte** (invité), le niveau est **toujours
-> Collège**.
+> Collège**, au palier **cycle 4** (décision du 22 novembre 2026 : la Visite s’adresse aux
+> parents et aux visiteurs institutionnels, pas à une classe de 6ᵉ).
 
 Objectifs : langage adapté aux familles et au grand public, pas d’estimations
 scientifiques avancées, pas d’outils de conception pédagogique. Les fiches et la
@@ -320,30 +324,33 @@ Voir aussi [Visite et mascottes](visite-et-mascottes.md).
 Légende : **O** = visible · **R** = replié / discret · **—** = masqué · **S** = seulement
 dans une séance guidée (onglet **Séances**) qui ouvre cet outil.
 
-| Élément                                       | Collège (6ᵉ à 3ᵉ, Visite) | Lycée    | Université |
-| --------------------------------------------- | ------------------------- | -------- | ---------- |
-| Fiche : nom, danger, risque sanitaire, sosies | O                         | O        | O          |
-| Fiche : étiquette simple sous le nom          | O                         | —        | —          |
-| Fiche : description collège (si elle existe)  | O                         | —        | —          |
-| Fiche : groupe (à la place de la Taxonomie)   | O                         | —        | —          |
-| Fiche : ligne Taxonomie, nom scientifique     | —                         | O        | O          |
-| Nom accepté, lien GBIF, classification latine | —                         | R        | O          |
-| Fiche : sections Identité et Écologie         | —                         | R        | R          |
-| Fiche : jauges pH / température, Nutrition    | —                         | O        | O          |
-| Statut UICN                                   | en mots                   | sigle    | sigle      |
-| Notes « Sur ce site »                         | O                         | O        | O          |
-| Fil des groupes et onglet Groupes             | O (arbre réduit)          | O        | O          |
-| Visite : vignettes avec nom scientifique      | — (étiquette simple)      | O        | O          |
-| Réseau : types scolaires                      | O                         | O        | O          |
-| Réseau : symbiose, compétition, mutualisme    | cycle 4 seulement         | O        | O          |
-| Réseau : types avancés + preuve du lien       | —                         | O        | O          |
-| Clé : lecteur                                 | O                         | O        | O          |
-| Clé : éditeur                                 | — (prof seulement)        | — (prof) | — (prof)   |
-| Quiz / glossaire : cycles 3–4                 | O                         | O        | O          |
-| Quiz / glossaire : lycée / ES                 | — ou en bas               | O        | O          |
-| Individu : label + mesures                    | — / S                     | O        | O          |
-| Individu : biomasse / CO₂                     | —                         | R        | O          |
-| Validation des dangers, admin clés / clades   | — (prof)                  | — (prof) | — (prof)   |
+| Élément                                                          | Collège (6ᵉ à 3ᵉ, Visite)           | Lycée    | Université |
+| ---------------------------------------------------------------- | ----------------------------------- | -------- | ---------- |
+| Fiche : nom, danger, risque sanitaire, sosies                    | O                                   | O        | O          |
+| Fiche : étiquette simple sous le nom                             | O                                   | —        | —          |
+| Fiche : description collège (si elle existe)                     | O                                   | —        | —          |
+| Fiche : description complète                                     | R (sous la description collège)     | O        | O          |
+| Fiche : groupe (à la place de la Taxonomie)                      | O                                   | —        | —          |
+| Fiche : ligne Taxonomie, nom scientifique sous le nom            | —                                   | O        | O          |
+| Nom accepté, lien GBIF, classification latine                    | —                                   | R        | O          |
+| Fiche : sections Identité (nom scientifique compris) et Écologie | R                                   | R        | R          |
+| Fiche : jauges pH / température, Nutrition                       | —                                   | O        | O          |
+| Statut UICN                                                      | en mots                             | sigle    | sigle      |
+| Notes « Sur ce site »                                            | O                                   | O        | O          |
+| Fil des groupes et onglet Groupes                                | O (arbre réduit)                    | O        | O          |
+| Visite : vignettes avec nom scientifique                         | — (étiquette simple)                | O        | O          |
+| Réseau : types scolaires                                         | O                                   | O        | O          |
+| Réseau : symbiose, compétition, mutualisme                       | cycle 4 seulement (Visite comprise) | O        | O          |
+| Réseau : espèces d’autres lieux                                  | grisées (« vit ailleurs »)          | O        | O          |
+| Réseau : réseau complet de la carte                              | R (« Pour aller plus loin »)        | O        | O          |
+| Réseau : types avancés + preuve du lien                          | —                                   | O        | O          |
+| Clé : lecteur                                                    | O                                   | O        | O          |
+| Clé : éditeur                                                    | — (prof seulement)                  | — (prof) | — (prof)   |
+| Quiz / glossaire : cycles 3–4                                    | O                                   | O        | O          |
+| Quiz / glossaire : lycée / ES                                    | — ou en bas                         | O        | O          |
+| Individu : label + mesures                                       | — / S                               | O        | O          |
+| Individu : biomasse / CO₂                                        | —                                   | R        | O          |
+| Validation des dangers, admin clés / clades                      | — (prof)                            | — (prof) | — (prof)   |
 
 ## Séances types (guide + lanceur app)
 

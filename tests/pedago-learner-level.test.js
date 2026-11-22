@@ -196,6 +196,8 @@ test('invité, aperçu et vue complète (choix « Complet » d’un compte non �
     prefCanRaise: true,
   });
   assert.equal(invite.etape, 'college');
+  // Visite sans compte au cycle 4 (décision 6 du 22/11/2026) : palier 2, notions du collège.
+  assert.equal(invite.niveau, 'cycle4');
   assert.equal(invite.maxPalier, 2);
   assert.equal(invite.sources.niveau, 'invite');
   const apercu = resolveLearnerLevel({ teacherPreview: 'college', session: SEANCE_LYCEE });

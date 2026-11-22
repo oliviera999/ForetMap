@@ -1,6 +1,14 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import { BiodivPedagoProvider } from '../../../src/contexts/BiodivPedagoContext.jsx';
+import { VISIBILITY_TABLE } from '../../../src/shared/pedagoVisibilityCore.js';
+
+/**
+ * Sections Identité / Écologie au collège : masquées tant que la brique `meta_sections` vaut
+ * `hide`, rendues **repliées** quand elle vaut `collapsed` (assouplissement du 22/11/2026, flux
+ * C1 pour la table, C2 pour le rendu). Le test suit la table, sans valeur en dur.
+ */
+const COLLEGE_META_SECTIONS = VISIBILITY_TABLE.meta_sections.college;
 
 /**
  * Chantier collège (flux C1, point 3) : la fiche espèce lue par un collégien (6e ou 3e,
@@ -85,19 +93,29 @@ describe('Fiche espèce — profil collège', () => {
       const { container } = renderFor(niveau);
       expect(screen.getByTestId('plant-usage-label')).toHaveTextContent('Arbre fruitier');
       expect(screen.getByText(PLANT.description_college)).toBeInTheDocument();
-      expect(screen.queryByText(PLANT.description)).not.toBeInTheDocument();
+      // Description complète : seulement dans le bloc replié qui suit la description collège.
+      const full = screen.getByTestId('plant-full-description');
+      expect(full.open).toBe(false);
+      expect(within(full).getByText(PLANT.description)).toBeInTheDocument();
+      expect(screen.getAllByText(PLANT.description)).toHaveLength(1);
       expect(screen.getByTestId('plant-usage-group')).toHaveTextContent('Arbres et arbustes');
       expect(screen.queryByText('Taxonomie')).not.toBeInTheDocument();
-      // Décision 4 du 22/11/2026 (`meta_sections` = `collapsed` au collège, flux C1) : les
-      // sections reviennent ; leur rendu replié et le nom scientifique qu'elles portent sont
-      // vérifiés par le flux C2 (`PlantMetaSections`).
-      expect(screen.getByText('Identité')).toBeInTheDocument();
-      expect(screen.getByText('Écologie et usages')).toBeInTheDocument();
+      // Nom scientifique jamais dans l'en-tête au collège.
+      expect(container.querySelector('.plant-scientific')).toBeNull();
+      if (COLLEGE_META_SECTIONS === 'hide') {
+        expect(screen.queryByText('Punica granatum')).not.toBeInTheDocument();
+        expect(screen.queryByText('Identité')).not.toBeInTheDocument();
+        expect(screen.queryByText('Écologie et usages')).not.toBeInTheDocument();
+      } else {
+        expect(screen.getByText('Identité').closest('details').open).toBe(false);
+        expect(screen.getByText('Écologie et usages').closest('details').open).toBe(false);
+      }
       // Ressources gardée : sources, crédits et licences.
       expect(screen.getByText('Ressources')).toBeInTheDocument();
+      // Jauges et pastilles (Nutrition, température) de l'en-tête : masquées au collège.
       expect(container.querySelector('.plant-range-gauges')).toBeNull();
-      // Nutrition et plages : hors de l'en-tête au collège, leurs valeurs sont dans la section
-      // repliée (décision 4 du 22/11/2026 ; contrôle de l'en-tête : flux C2).
+      expect(container.querySelector('.plant-badges')).toBeNull();
+      expect(screen.queryByText(/10-35°C/)).not.toBeInTheDocument();
       // UICN en mots, sans sigle.
       expect(screen.getByText('Liste rouge : vulnérable')).toBeInTheDocument();
       expect(screen.queryByText('UICN VU')).not.toBeInTheDocument();
@@ -120,6 +138,7 @@ describe('Fiche espèce — profil collège', () => {
       </BiodivPedagoProvider>,
     );
     expect(screen.getByText(PLANT.description)).toBeInTheDocument();
+    expect(screen.queryByTestId('plant-full-description')).not.toBeInTheDocument();
   });
 });
 
@@ -130,6 +149,7 @@ describe('Fiche espèce — profil lycée (inchangé)', () => {
     expect(screen.queryByTestId('plant-usage-label')).not.toBeInTheDocument();
     expect(screen.getByText(PLANT.description)).toBeInTheDocument();
     expect(screen.queryByText(PLANT.description_college)).not.toBeInTheDocument();
+    expect(screen.queryByTestId('plant-full-description')).not.toBeInTheDocument();
     const taxonomy = screen.getByText('Taxonomie').closest('.plant-taxonomy-line');
     expect(within(taxonomy).getByText(/Lythracées/)).toBeInTheDocument();
     expect(screen.queryByTestId('plant-usage-group')).not.toBeInTheDocument();
