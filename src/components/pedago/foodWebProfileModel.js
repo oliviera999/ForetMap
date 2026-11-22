@@ -1,10 +1,11 @@
 /**
- * Réseau trophique « borné » du collège (chantier collège du 21/11/2026, flux C3) — helpers
- * purs, sans DOM ni React, testables en Node comme en Vitest.
+ * Réseau trophique « borné » du collège (chantier collège du 21/11/2026, flux C3 ; sélection
+ * de plusieurs espèces depuis le chantier du 22/11/2026) — helpers purs, sans DOM ni React,
+ * testables en Node comme en Vitest.
  *
- * Au collège, le réseau ne s'ouvre pas en entier : l'élève choisit une **espèce de départ**
- * (les espèces phares de la carte en tête de liste, puis une recherche), et le graphe montre
- * ses voisins directs (profondeur 1), extensible à la chaîne (profondeur 2). Les types
+ * Au collège, le réseau ne s'ouvre pas en entier : l'élève compose une **sélection** d'espèces
+ * (`foodWebSelectionModel.js`), et le graphe montre leurs liens mutuels (profondeur 0), leurs
+ * voisins directs (1) ou la chaîne (2) — `itemsAroundSeeds`. Les types
  * d'interaction hors palier sont retirés **avant** la construction du graphe ; les espèces
  * hors de la carte restent, grisées (décision 1 du 22/11/2026 : marquer, ne plus masquer).
  * Lycée, université et vue prof : réseau complet, inchangé.
@@ -14,11 +15,6 @@
  * Ce module ne lit jamais le niveau lui-même : il reçoit un **profil** déjà résolu.
  */
 
-import { FOCUS_DEPTHS } from './foodWebGraphModel.js';
-
-/** Profondeurs proposées au collège : voisins directs, puis la chaîne. */
-export const COLLEGE_FOCUS_DEPTHS = Object.freeze([1, 2]);
-
 /** Profondeur d'ouverture au collège. */
 export const COLLEGE_DEFAULT_FOCUS_DEPTH = 1;
 
@@ -26,14 +22,13 @@ export const COLLEGE_DEFAULT_FOCUS_DEPTH = 1;
  * Profil d'affichage du réseau, construit à partir du contexte pédagogique.
  *
  * @param {{ fullByDefault?: boolean, allowedTypes?: string[]|null }} input
- * @returns {{ collegeMode: boolean, allowedTypes: string[]|null, focusDepths: readonly number[] }}
+ * @returns {{ collegeMode: boolean, allowedTypes: string[]|null }}
  */
 export function foodWebProfile({ fullByDefault = true, allowedTypes = null } = {}) {
   const collegeMode = !fullByDefault;
   return {
     collegeMode,
     allowedTypes: Array.isArray(allowedTypes) ? allowedTypes : null,
-    focusDepths: collegeMode ? COLLEGE_FOCUS_DEPTHS : FOCUS_DEPTHS,
   };
 }
 
@@ -68,11 +63,12 @@ function touches(row, id) {
 }
 
 /**
- * Où en est une espèce mise en avant (fiche, séance) dans le réseau courant ?
+ * Où en est une espèce mise en avant (fiche, séance) ou choisie (sélection du collège) dans le
+ * réseau courant ?
  *
  * - `absent` : aucune interaction enregistrée dans la sélection (carte, zone) ;
  * - `hidden` : des interactions existent, mais aucune n'est montrée à ce profil (types hors
- *   palier, espèces hors carte) — il faut le **dire**, pas afficher un graphe vide ;
+ *   palier, cadrage) — il faut le **dire**, pas afficher un graphe vide ;
  * - `visible` : au moins un lien montré.
  *
  * @param {object[]} rawItems toutes les lignes reçues

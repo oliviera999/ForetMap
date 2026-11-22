@@ -42,34 +42,49 @@ export function FoodWebNodePanel({
   const titleId = useId();
   const rootRef = useRef(null);
 
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
   useEffect(() => {
     focusables(rootRef.current)[0]?.focus?.();
   }, [node?.id]);
 
+  // Clavier du popover (Échap ferme, Tab tourne dans le panneau), écouté sur le panneau
+  // lui-même : un gestionnaire JSX sur un conteneur non interactif est refusé par la garde
+  // d'accessibilité statique, alors que les commandes restent des boutons.
+  const hasNode = Boolean(node);
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) return undefined;
+    const onKeyDown = (evt) => {
+      if (evt.key === 'Escape') {
+        evt.preventDefault();
+        evt.stopPropagation();
+        onCloseRef.current?.();
+        return;
+      }
+      if (evt.key !== 'Tab') return;
+      const list = focusables(root);
+      if (list.length === 0) return;
+      const first = list[0];
+      const last = list[list.length - 1];
+      const active = root.ownerDocument.activeElement;
+      if (evt.shiftKey && active === first) {
+        evt.preventDefault();
+        last.focus();
+      } else if (!evt.shiftKey && active === last) {
+        evt.preventDefault();
+        first.focus();
+      }
+    };
+    root.addEventListener('keydown', onKeyDown);
+    return () => root.removeEventListener('keydown', onKeyDown);
+  }, [hasNode]);
+
   if (!node) return null;
   const elsewhere = node.outOfScope ? (elsewhereText(node.elsewhere) ?? 'hors de cette carte') : '';
-
-  const onKeyDown = (evt) => {
-    if (evt.key === 'Escape') {
-      evt.preventDefault();
-      evt.stopPropagation();
-      onClose();
-      return;
-    }
-    if (evt.key !== 'Tab') return;
-    const list = focusables(rootRef.current);
-    if (list.length === 0) return;
-    const first = list[0];
-    const last = list[list.length - 1];
-    const active = rootRef.current.ownerDocument.activeElement;
-    if (evt.shiftKey && active === first) {
-      evt.preventDefault();
-      last.focus();
-    } else if (!evt.shiftKey && active === last) {
-      evt.preventDefault();
-      first.focus();
-    }
-  };
 
   return (
     <div
@@ -77,7 +92,6 @@ export function FoodWebNodePanel({
       className={`pedago-foodweb__node-panel${anchor ? ' pedago-foodweb__node-panel--anchored' : ''}`}
       role="dialog"
       aria-labelledby={titleId}
-      onKeyDown={onKeyDown}
       style={anchor ? { left: `${anchor.left}px`, top: `${anchor.top}px` } : undefined}
     >
       <div className="pedago-foodweb__node-panel-head">

@@ -67,7 +67,6 @@ describe('useFoodWebProfile', () => {
     const { result } = renderHook(() => useFoodWebProfile());
     expect(result.current.collegeMode).toBe(false);
     expect(result.current.typeLabel('frugivorie')).toBe('Frugivorie');
-    expect(result.current.focusDepths).toEqual([0, 1, 2]);
   });
 });
 

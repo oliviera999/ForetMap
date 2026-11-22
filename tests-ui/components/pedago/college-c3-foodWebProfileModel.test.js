@@ -7,7 +7,6 @@ import {
   normalizeSeedIds,
   seedLinkStatus,
 } from '../../../src/components/pedago/foodWebProfileModel.js';
-import { FOCUS_DEPTHS } from '../../../src/components/pedago/foodWebGraphModel.js';
 
 const row = (id, type, from, to, extra = {}) => ({
   id,
@@ -20,17 +19,15 @@ const row = (id, type, from, to, extra = {}) => ({
 });
 
 describe('foodWebProfile', () => {
-  it('lycée / prof : réseau complet, profondeurs historiques', () => {
+  it('lycée / prof : réseau complet', () => {
     const p = foodWebProfile({ fullByDefault: true });
     expect(p.collegeMode).toBe(false);
     expect(p).not.toHaveProperty('hideOffMap');
-    expect(p.focusDepths).toBe(FOCUS_DEPTHS);
   });
-  it('collège : profondeurs 1 et 2, hors carte jamais masqué', () => {
+  it('collège : hors carte jamais masqué', () => {
     const p = foodWebProfile({ fullByDefault: false, allowedTypes: ['a'] });
     expect(p.collegeMode).toBe(true);
     expect(p).not.toHaveProperty('hideOffMap');
-    expect([...p.focusDepths]).toEqual([1, 2]);
     expect(p.allowedTypes).toEqual(['a']);
   });
 });
