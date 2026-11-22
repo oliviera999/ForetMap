@@ -6,6 +6,8 @@ import { normalizedPlantValue } from '../../utils/plantFormValues.js';
 import { findFirstBiodivHeroPhotoCandidate } from '../../utils/biodivPlantForm.js';
 import { plantHasUnconfirmedPhotos } from '../../utils/plantPhotos.js';
 import { IconMarker } from '../../shared/icons.jsx';
+import { useBiodivPedago } from '../../contexts/BiodivPedagoContext.jsx';
+import './plantCatalogCollege.css';
 
 /** Tuile d'environ 88 px : vignette demandée pour un écran haute densité. */
 const TILE_THUMB_WIDTH = 200;
@@ -39,6 +41,11 @@ const TILE_THUMB_WIDTH = 200;
  * @param {import('react').ReactNode} [props.actions] Actions de fin de vignette (prof).
  * @param {string} [props.presenceHint] Mention de présence (« à chercher » pour une présence
  *   `a_confirmer` / `documentaire` dans le catalogue groupé du collège).
+ *
+ * Profil collège (chantier collège, intégration SI, mêmes briques que la vignette de la
+ * Visite) : pas de nom scientifique (`visit_tile_scientific_name`), étiquette simple
+ * (`usage_label`) sous le nom, et pour extrait la seule description collège
+ * (`description_college`) — jamais la description savante. Lycée et université inchangés.
  */
 export function PlantCatalogTile({
   plant,
@@ -58,12 +65,18 @@ export function PlantCatalogTile({
     [plant],
   );
   const photoSrc = photoCandidate?.kind === 'direct' ? photoCandidate.src : null;
+  const { canShow } = useBiodivPedago();
+  const showScientific = canShow('visit_tile_scientific_name');
+  const collegeTexts = canShow('description_college');
 
   if (!plant) return null;
 
   const name = normalizedPlantValue(plant.name) || 'Être vivant';
-  const scientific = normalizedPlantValue(plant.scientific_name);
-  const description = normalizedPlantValue(plant.description);
+  const scientific = showScientific ? normalizedPlantValue(plant.scientific_name) : '';
+  const usageLabel = canShow('usage_label') ? normalizedPlantValue(plant.usage_label) : '';
+  const description = collegeTexts
+    ? normalizedPlantValue(plant.description_college)
+    : normalizedPlantValue(plant.description);
   const open = () => onOpen?.(plant.id);
 
   return (
@@ -95,6 +108,7 @@ export function PlantCatalogTile({
             {name}
           </span>
           {scientific ? <span className="biodiv-tile__scientific">{scientific}</span> : null}
+          {usageLabel ? <span className="biodiv-tile__usage-label">{usageLabel}</span> : null}
           {plantHasUnconfirmedPhotos(plant) ? (
             <span className="biodiv-tile__pending">Photo à confirmer</span>
           ) : null}
