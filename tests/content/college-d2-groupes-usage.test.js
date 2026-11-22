@@ -22,6 +22,13 @@ const { initSchema, queryAll } = require('../../database');
 
 const data = loadData();
 
+/**
+ * Profondeur de l'arbre collège en base : 4 niveaux au plus pour les données D2 (instantané du
+ * 21/11), 5 depuis le retour de la boîte « Animaux à quatre membres » (clade `tetrapodes`,
+ * décision 5 du 22/11/2026, migration `college_assouplissement`).
+ */
+const MAX_DEPTH_COLLEGE = MAX_DEPTH + 1;
+
 before(async () => {
   await initSchema();
 });
@@ -71,12 +78,12 @@ test('base de test : boîtes marquées, ordres d’insectes créés et non visib
   }
 });
 
-test('base de test : profondeur collège ≤ 4 et aucune fiche d’un ordre déplacé restée sous insectes', async () => {
+test('base de test : profondeur collège ≤ 5 et aucune fiche d’un ordre déplacé restée sous insectes', async () => {
   const rows = await queryAll('SELECT id, parent_id, visible_college FROM clades');
   const byId = indexClades(rows);
   for (const r of rows) {
     if (Number(r.visible_college) !== 1) continue;
-    assert.ok(collegeDepth(byId, r.id) <= MAX_DEPTH, `${r.id} trop profond`);
+    assert.ok(collegeDepth(byId, r.id) <= MAX_DEPTH_COLLEGE, `${r.id} trop profond`);
   }
   const names = data.deplacements.map((d) => d.scientific_name);
   const stuck = await queryAll(
@@ -91,6 +98,6 @@ test('base de test : profondeur collège ≤ 4 et aucune fiche d’un ordre dép
   );
   for (const p of plants) {
     const g = usageGroupFor(byId, p.clade_id);
-    if (g) assert.ok(collegeDepth(byId, g.id) <= MAX_DEPTH);
+    if (g) assert.ok(collegeDepth(byId, g.id) <= MAX_DEPTH_COLLEGE);
   }
 });

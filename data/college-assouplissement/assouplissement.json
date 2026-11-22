@@ -1,0 +1,169 @@
+{
+  "_source": "Assouplissement du profil collège, décisions d'Oliv du 22/11/2026 (prompt C, § 2 et lot 6). Valeurs « avant » lues sur la copie anonymisée de la production du 22/11/2026 (schéma 387). Fiches et cartes désignées par leur nom (les identifiants diffèrent d'une base à l'autre) ; identifiants de production en commentaire.",
+  "clade": {
+    "id": "tetrapodes",
+    "name": "Tétrapodes",
+    "visible_college_avant": 0,
+    "visible_college": 1,
+    "label_simple": "Animaux à quatre membres",
+    "attribute_simple": "Squelette à l'intérieur du corps et quatre membres : pattes, ailes ou nageoires charnues"
+  },
+  "presences": [
+    {
+      "map_id": "n3",
+      "plant": "Abeille domestique",
+      "prod_id": 28
+    },
+    {
+      "map_id": "n3",
+      "plant": "Pucerons",
+      "prod_id": 59
+    },
+    {
+      "map_id": "n3",
+      "plant": "Mineuse de la tomate",
+      "prod_id": 329
+    },
+    {
+      "map_id": "n3",
+      "plant": "Escargot petit-gris",
+      "prod_id": 89
+    },
+    {
+      "map_id": "n3",
+      "plant": "Escargot espagnol",
+      "prod_id": 823
+    },
+    {
+      "map_id": "foret",
+      "plant": "Abeille domestique",
+      "prod_id": 28
+    }
+  ],
+  "seances": [
+    {
+      "slug": "6e-sol-de-n3",
+      "step_index": 2,
+      "step_id": "s3",
+      "title": "Son réseau trophique",
+      "action_type": "open_foodweb",
+      "highlight_plant": "Ver de compost",
+      "map_id": "n3",
+      "body_avant": "Dans le réseau, tape le nom de ton animal dans « rechercher une espèce », puis clique sur « isoler » : tu vois ce qu'il mange et qui le mange. Télécharge l'image (bouton PNG) pour la déposer sur olution.",
+      "body_apres": "Ajoute ton animal à la sélection, puis regarde ce qu'il mange et qui le mange. Télécharge l'image (bouton PNG) pour la déposer sur olution.",
+      "preset": "alimentaire"
+    },
+    {
+      "slug": "6e-biodiversite-deux-lieux",
+      "step_index": 1,
+      "step_id": "b2",
+      "title": "Les espèces de n³",
+      "action_type": "open_foodweb",
+      "highlight_plant": "Tomate",
+      "map_id": "n3",
+      "body_avant": "Le réseau de n³ s'ouvre sur la tomate du potager et les êtres vivants qui lui sont liés. Affiche ensuite tout le réseau : quels grands groupes y trouves-tu (plantes du potager, insectes, araignées, vers, oiseaux, poissons…) ?",
+      "body_apres": "Le réseau de n³ s'ouvre sur la tomate du potager et les êtres vivants qui lui sont liés. Appuie ensuite sur « Pour aller plus loin » pour voir tout le réseau : quels grands groupes y trouves-tu (plantes du potager, insectes, araignées, vers, oiseaux, poissons…) ?"
+    },
+    {
+      "slug": "6e-biodiversite-deux-lieux",
+      "step_index": 2,
+      "step_id": "b3",
+      "title": "Les espèces des Sablettes",
+      "action_type": "open_foodweb",
+      "highlight_plant": "Crabe vert",
+      "map_id": "sablettes",
+      "body_avant": "Le réseau des Sablettes s'ouvre sur le crabe vert, ce qu'il mange et ceux qui le mangent. Affiche ensuite tout le réseau : quels groupes y trouves-tu (algues, coquillages, crabes, oursins, poissons de mer, oiseaux marins…) ?",
+      "body_apres": "Le réseau des Sablettes s'ouvre sur le crabe vert, ce qu'il mange et ceux qui le mangent. Appuie ensuite sur « Pour aller plus loin » pour voir tout le réseau : quels groupes y trouves-tu (algues, coquillages, crabes, oursins, poissons de mer, oiseaux marins…) ?"
+    },
+    {
+      "slug": "6e-pollinisation",
+      "step_index": 2,
+      "step_id": "f3",
+      "title": "Qui transporte le pollen ?",
+      "action_type": "open_foodweb",
+      "highlight_plant": "Courgette",
+      "map_id": "n3",
+      "body_avant": "Dans le réseau, isole la courgette et repère les liens de pollinisation : quel insecte en est responsable ?",
+      "preset": "relations"
+    },
+    {
+      "slug": "6e-regimes-alimentaires",
+      "step_index": 1,
+      "step_id": "a2",
+      "title": "La pipistrelle de Kuhl",
+      "action_type": "open_foodweb",
+      "highlight_plant": "Pipistrelle de Kuhl",
+      "map_id": null,
+      "body_avant": "Cette petite chauve-souris chasse autour des lampadaires du lycée. Que mange-t-elle ? Quel est son régime alimentaire ?",
+      "preset": "alimentaire"
+    },
+    {
+      "slug": "6e-regimes-alimentaires",
+      "step_index": 2,
+      "step_id": "a3",
+      "title": "La caragouille rosée",
+      "action_type": "open_foodweb",
+      "highlight_plant": "Caragouille rosée",
+      "map_id": null,
+      "body_avant": "Cet escargot vit dans le potager de n³. Que mange-t-il ? Quel est son régime alimentaire ?",
+      "preset": "alimentaire"
+    },
+    {
+      "slug": "6e-regimes-alimentaires",
+      "step_index": 3,
+      "step_id": "a4",
+      "title": "Le tilapia de l'aquaponie",
+      "action_type": "open_foodweb",
+      "highlight_plant": "Tilapia du Nil",
+      "map_id": null,
+      "body_avant": "Le tilapia vit dans l'aquarium de l'aquaponie. Il mange des plantes, des larves de moustique et le biofilm (la fine couche vivante qui couvre les parois). Quel est son régime alimentaire ?",
+      "preset": "alimentaire"
+    },
+    {
+      "slug": "6e-regimes-alimentaires",
+      "step_index": 4,
+      "step_id": "a6",
+      "title": "Le ténébrion meunier",
+      "action_type": "open_foodweb",
+      "highlight_plant": "Ténébrion meunier",
+      "map_id": null,
+      "body_avant": "Cet insecte est élevé dans le terrarium Insectopolis de n³ ; sa larve est le « ver de farine ». Que mange-t-il ? Quel est son régime alimentaire ?",
+      "preset": "alimentaire"
+    }
+  ],
+  "notions_questions": [
+    {
+      "question_code": "QF9877",
+      "notion_id": "C3-ENV",
+      "mode": "ajout",
+      "motif": "Séance 6e-eau-de-nos-lieux (cycle 3) : le bilan d'eau de la daya relève du peuplement des milieux."
+    }
+  ],
+  "glossaire": [
+    {
+      "glossary_code": "FM0019",
+      "terme": "matière organique",
+      "niveau_avant": "approfondissement",
+      "niveau": "base",
+      "motif": "Notion C3-MAT du cycle 3."
+    }
+  ],
+  "fiches": {
+    "28": "Abeille domestique",
+    "57": "Piéride du chou",
+    "59": "Pucerons",
+    "74": "Chou",
+    "82": "Coccinelle à sept points",
+    "89": "Escargot petit-gris",
+    "310": "Martinet noir",
+    "329": "Mineuse de la tomate",
+    "662": "Faucheux",
+    "773": "Coccinelle des friches",
+    "783": "Mouche soldat noire",
+    "804": "Argiope à bandes",
+    "823": "Escargot espagnol",
+    "824": "Bulime tronqué",
+    "826": "Limace",
+    "837": "Seps à écailles nombreuses"
+  }
+}

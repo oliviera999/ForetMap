@@ -108,8 +108,9 @@ test('contenus du 20/11 : notions de cycle 3 ajoutées, notions de lycée hérit
   // des paliers) retouche ensuite ces questions : 220 lignes sur une base semée par les
   // migrations (200 avant que `college_referentiel_notions` ne sème, avant le retri, les
   // liaisons catégorie → notions de la production : le retri y pose alors les mêmes
-  // exclusions qu'en production).
-  assert.equal(notions.length, 220);
+  // exclusions qu'en production). La migration `college_assouplissement` (22/11/2026) rend
+  // C3-ENV à QF9877 (mini-quiz d'une séance de cycle 3) : 221 lignes.
+  assert.equal(notions.length, 221);
   // Chaque question a sa ligne de notions : au moins un ajout ou une exclusion.
   for (const q of questions) {
     assert.ok(
