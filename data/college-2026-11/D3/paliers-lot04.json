@@ -1,0 +1,302 @@
+[
+ {
+  "code": "QF0410",
+  "categorie": "glossaire_definitions",
+  "palier": "lycee",
+  "raison": "terme « avancé » du glossaire (commensalisme) : lycée"
+ },
+ {
+  "code": "QF9882",
+  "categorie": "glossaire_definitions",
+  "palier": 3,
+  "raison": "terme « base » du glossaire (croissance)"
+ },
+ {
+  "code": "QF9892",
+  "categorie": "glossaire_definitions",
+  "palier": 3,
+  "raison": "terme « base » du glossaire (potager)"
+ },
+ {
+  "code": "QF0351",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "reconnaître une espèce sur photo"
+ },
+ {
+  "code": "QF0352",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "reconnaître une espèce sur photo"
+ },
+ {
+  "code": "QF0353",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "reconnaître une espèce sur photo"
+ },
+ {
+  "code": "QF0354",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "reconnaître une espèce sur photo"
+ },
+ {
+  "code": "QF0355",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "reconnaître une espèce sur photo"
+ },
+ {
+  "code": "QF0356",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "reconnaître une espèce sur photo"
+ },
+ {
+  "code": "QF0357",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "reconnaître une espèce sur photo"
+ },
+ {
+  "code": "QF0358",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "reconnaître une espèce sur photo"
+ },
+ {
+  "code": "QF0359",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "reconnaître une espèce sur photo"
+ },
+ {
+  "code": "QF0360",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "reconnaître une espèce sur photo"
+ },
+ {
+  "code": "QF0361",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "reconnaître une espèce sur photo"
+ },
+ {
+  "code": "QF0362",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "reconnaître une espèce sur photo"
+ },
+ {
+  "code": "QF0363",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "reconnaître une espèce sur photo"
+ },
+ {
+  "code": "QF0364",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "reconnaître une espèce sur photo"
+ },
+ {
+  "code": "QF0413",
+  "categorie": "identification_especes",
+  "palier": 4,
+  "raison": "famille botanique (terme « approfondissement ») et rotation des cultures"
+ },
+ {
+  "code": "QF0415",
+  "categorie": "identification_especes",
+  "palier": 4,
+  "raison": "famille botanique (terme « approfondissement ») et rotation des cultures"
+ },
+ {
+  "code": "QF0417",
+  "categorie": "identification_especes",
+  "palier": 4,
+  "raison": "famille botanique (terme « approfondissement ») et rotation des cultures"
+ },
+ {
+  "code": "QF0419",
+  "categorie": "identification_especes",
+  "palier": "lycee",
+  "raison": "nom de famille savant en -idés (difficulté 3) : lycée"
+ },
+ {
+  "code": "QF0425",
+  "categorie": "identification_especes",
+  "palier": 4,
+  "raison": "famille botanique (terme « approfondissement ») et rotation des cultures"
+ },
+ {
+  "code": "QF0429",
+  "categorie": "identification_especes",
+  "palier": 4,
+  "raison": "famille botanique (terme « approfondissement ») et rotation des cultures"
+ },
+ {
+  "code": "QF0435",
+  "categorie": "identification_especes",
+  "palier": 4,
+  "raison": "famille botanique (terme « approfondissement ») et rotation des cultures"
+ },
+ {
+  "code": "QF0437",
+  "categorie": "identification_especes",
+  "palier": 4,
+  "raison": "famille botanique (terme « approfondissement ») et rotation des cultures"
+ },
+ {
+  "code": "QF0439",
+  "categorie": "identification_especes",
+  "palier": "lycee",
+  "raison": "nom de famille savant en -idés : lycée"
+ },
+ {
+  "code": "QF0522",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "reconnaître une plante et le produit qu’elle donne"
+ },
+ {
+  "code": "QF0529",
+  "categorie": "identification_especes",
+  "palier": 4,
+  "raison": "chlorophylle et organes des plantes aromatiques"
+ },
+ {
+  "code": "QF0530",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "origine des aliments : plantes aromatiques"
+ },
+ {
+  "code": "QF7009",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "observer une fleur"
+ },
+ {
+  "code": "QF7011",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "observer une fleur composée (capitule expliqué)"
+ },
+ {
+  "code": "QF7014",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "critères d’observation pour distinguer deux plantes"
+ },
+ {
+  "code": "QF7015",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "forme de la fleur"
+ },
+ {
+  "code": "QF7017",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "observer la tige"
+ },
+ {
+  "code": "QF7019",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "observer l’écorce"
+ },
+ {
+  "code": "QF7021",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "reconnaître un arbre à sa floraison"
+ },
+ {
+  "code": "QF7022",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "observer les feuilles"
+ },
+ {
+  "code": "QF7033",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "lieu de nidification d’un oiseau"
+ },
+ {
+  "code": "QF7039",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "reconnaître un oiseau"
+ },
+ {
+  "code": "QF7041",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "mode de vie d’un oiseau"
+ },
+ {
+  "code": "QF7043",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "distinguer deux oiseaux proches"
+ },
+ {
+  "code": "QF7044",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "lieu de nidification d’un oiseau"
+ },
+ {
+  "code": "QF7045",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "reconnaître le mâle d’un oiseau"
+ },
+ {
+  "code": "QF7047",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "reconnaître un papillon"
+ },
+ {
+  "code": "QF7058",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "reconnaître le mâle d’un oiseau"
+ },
+ {
+  "code": "QF7060",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "observer un papillon"
+ },
+ {
+  "code": "QF7061",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "lieu de nidification d’une abeille"
+ },
+ {
+  "code": "QF9420",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "reconnaître un oiseau"
+ },
+ {
+  "code": "QF9422",
+  "categorie": "identification_especes",
+  "palier": 4,
+  "raison": "domestication et variation des plumages"
+ },
+ {
+  "code": "QF9423",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "critère pour distinguer deux hirondelles"
+ }
+]

@@ -27,6 +27,12 @@ const SQL = fs.readFileSync(path.join(MIGRATIONS_DIR, MIGRATION_FILE), 'utf8');
 const STATEMENTS = splitSqlStatements(SQL);
 
 const RANGE = "question_code BETWEEN 'QF9873' AND 'QF9933'";
+// Lignes de notions des 61 questions : 168 posées le 20/11, retouchées ensuite par la migration
+// `college_quiz_paliers` (chantier collège, retri des paliers cycle 3 / cycle 4).
+const RANGE_NOTIONS = 200;
+// Après le rejeu de cette migration-ci (hors curseur : propre à ce test, jamais en prod), les 11
+// ajouts de l'autre cycle que le retri des paliers avait supprimés reviennent.
+const RANGE_NOTIONS_APRES_REJEU = 211;
 const RETRAITS = [
   'QF0010',
   'QF0011',
@@ -256,7 +262,8 @@ test('contenus du 20/11 : aucun identifiant auto-incrémenté de la production',
 
 test('contenus du 20/11 : sans parents, les blocs autonomes sont posés et rien n’échoue', async () => {
   // `initSchema()` a déjà appliqué la migration sur la base de test.
-  // Les sept lignes de référence du bloc 0 existent : les 61 questions et leurs 168 notions aussi.
+  // Les sept lignes de référence du bloc 0 existent : les 61 questions et leurs notions aussi
+  // (168 posées le 20/11, 200 après le retri des paliers de la migration `college_quiz_paliers`).
   assert.equal(
     await count(
       `SELECT COUNT(*) AS n FROM quiz_categories WHERE theme = 'sciences'
@@ -275,7 +282,10 @@ test('contenus du 20/11 : sans parents, les blocs autonomes sont posés et rien 
     4,
   );
   assert.equal(await count(`SELECT COUNT(*) AS n FROM quiz_questions WHERE ${RANGE}`), 61);
-  assert.equal(await count(`SELECT COUNT(*) AS n FROM quiz_question_notions WHERE ${RANGE}`), 168);
+  assert.equal(
+    await count(`SELECT COUNT(*) AS n FROM quiz_question_notions WHERE ${RANGE}`),
+    RANGE_NOTIONS,
+  );
   // Tutoriels renommés en production : faute du slug de production, le lien repris se pose
   // sur le slug que sème le dépôt, une seule fois.
   for (const [slug, code, ancien] of [
@@ -527,7 +537,10 @@ test('contenus du 20/11 : le doublon de clé n’est supprimé que si l’espèc
 
 test('contenus du 20/11 : questions, notions et liens rejoignent leurs parents', async () => {
   assert.equal(await count(`SELECT COUNT(*) AS n FROM quiz_questions WHERE ${RANGE}`), 61);
-  assert.equal(await count(`SELECT COUNT(*) AS n FROM quiz_question_notions WHERE ${RANGE}`), 168);
+  assert.equal(
+    await count(`SELECT COUNT(*) AS n FROM quiz_question_notions WHERE ${RANGE}`),
+    RANGE_NOTIONS_APRES_REJEU,
+  );
   assert.equal(
     await count(
       `SELECT COUNT(*) AS n FROM quiz_question_notions

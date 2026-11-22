@@ -1,0 +1,302 @@
+[
+ {
+  "code": "QF0524",
+  "categorie": "ecologie_reseaux",
+  "palier": 3,
+  "raison": "plante qui nourrit les insectes butineurs"
+ },
+ {
+  "code": "QF0539",
+  "categorie": "ecologie_reseaux",
+  "palier": 3,
+  "raison": "régime alimentaire d’un oiseau du campus"
+ },
+ {
+  "code": "QF7012",
+  "categorie": "ecologie_reseaux",
+  "palier": 3,
+  "raison": "fleurs visitées par les insectes butineurs"
+ },
+ {
+  "code": "QF7018",
+  "categorie": "ecologie_reseaux",
+  "palier": 3,
+  "raison": "insectes qui se nourrissent de nectar"
+ },
+ {
+  "code": "QF7035",
+  "categorie": "ecologie_reseaux",
+  "palier": 3,
+  "raison": "moucherons attirés par un fruit : nourriture et ponte"
+ },
+ {
+  "code": "QF7036",
+  "categorie": "ecologie_reseaux",
+  "palier": 3,
+  "raison": "qui mange qui dans le compost (chaîne alimentaire)"
+ },
+ {
+  "code": "QF7037",
+  "categorie": "ecologie_reseaux",
+  "palier": 3,
+  "raison": "régime alimentaire d’un rapace"
+ },
+ {
+  "code": "QF7040",
+  "categorie": "ecologie_reseaux",
+  "palier": 3,
+  "raison": "régime alimentaire : omnivore"
+ },
+ {
+  "code": "QF7042",
+  "categorie": "ecologie_reseaux",
+  "palier": 3,
+  "raison": "régime alimentaire d’un oiseau insectivore"
+ },
+ {
+  "code": "QF7046",
+  "categorie": "ecologie_reseaux",
+  "palier": 3,
+  "raison": "nourriture des adultes et des jeunes"
+ },
+ {
+  "code": "QF7048",
+  "categorie": "ecologie_reseaux",
+  "palier": 3,
+  "raison": "pièces buccales adaptées au régime (nectar)"
+ },
+ {
+  "code": "QF7050",
+  "categorie": "ecologie_reseaux",
+  "palier": 3,
+  "raison": "régime alimentaire d’animaux du sol"
+ },
+ {
+  "code": "QF7052",
+  "categorie": "ecologie_reseaux",
+  "palier": 3,
+  "raison": "animaux du sol qui fragmentent les feuilles mortes"
+ },
+ {
+  "code": "QF7053",
+  "categorie": "ecologie_reseaux",
+  "palier": 3,
+  "raison": "régime alimentaire d’une chauve-souris"
+ },
+ {
+  "code": "QF7056",
+  "categorie": "ecologie_reseaux",
+  "palier": 3,
+  "raison": "régime alimentaire d’un petit oiseau insectivore"
+ },
+ {
+  "code": "QF7064",
+  "categorie": "ecologie_reseaux",
+  "palier": 4,
+  "raison": "fourmis et pucerons : relation à bénéfice réciproque"
+ },
+ {
+  "code": "QF9002",
+  "categorie": "ecologie_reseaux",
+  "palier": 4,
+  "raison": "détritivore et décomposeur : distinction fine, transformation chimique"
+ },
+ {
+  "code": "QF9101",
+  "categorie": "ecologie_reseaux",
+  "palier": 4,
+  "raison": "réseau trophique (terme d’approfondissement)"
+ },
+ {
+  "code": "QF9102",
+  "categorie": "ecologie_reseaux",
+  "palier": 4,
+  "raison": "nécrophage : finesse du vocabulaire des régimes"
+ },
+ {
+  "code": "QF9260",
+  "categorie": "ecologie_reseaux",
+  "palier": 4,
+  "raison": "niches écologiques dans une mare"
+ },
+ {
+  "code": "QF9263",
+  "categorie": "ecologie_reseaux",
+  "palier": 3,
+  "raison": "plantes sauvages qui nourrissent et abritent la faune"
+ },
+ {
+  "code": "QF9268",
+  "categorie": "ecologie_reseaux",
+  "palier": 3,
+  "raison": "animal du sol qui se nourrit de litière"
+ },
+ {
+  "code": "QF9272",
+  "categorie": "ecologie_reseaux",
+  "palier": 4,
+  "raison": "décomposition de la lignine par les champignons"
+ },
+ {
+  "code": "QF9529",
+  "categorie": "ecologie_reseaux",
+  "palier": 3,
+  "raison": "fruits tombés, nourriture des détritivores"
+ },
+ {
+  "code": "QF9726",
+  "categorie": "ecologie_reseaux",
+  "palier": 3,
+  "raison": "camouflage, observation d’un animal"
+ },
+ {
+  "code": "QF9735",
+  "categorie": "ecologie_reseaux",
+  "palier": 3,
+  "raison": "mare et peuplement du milieu"
+ },
+ {
+  "code": "QF9763",
+  "categorie": "ecologie_reseaux",
+  "palier": 3,
+  "raison": "régime alimentaire d’un mollusque du littoral"
+ },
+ {
+  "code": "QF9765",
+  "categorie": "ecologie_reseaux",
+  "palier": 3,
+  "raison": "adaptation au milieu : fixation au rocher"
+ },
+ {
+  "code": "QF9768",
+  "categorie": "ecologie_reseaux",
+  "palier": 3,
+  "raison": "observation sans contact : cellules urticantes"
+ },
+ {
+  "code": "QF9769",
+  "categorie": "ecologie_reseaux",
+  "palier": 3,
+  "raison": "régime alimentaire d’un animal du littoral"
+ },
+ {
+  "code": "QF9779",
+  "categorie": "ecologie_reseaux",
+  "palier": 3,
+  "raison": "régime et abri d’un animal de la laisse de mer"
+ },
+ {
+  "code": "QF9781",
+  "categorie": "ecologie_reseaux",
+  "palier": 3,
+  "raison": "oiseaux qui chassent au bord de l’eau"
+ },
+ {
+  "code": "QF9799",
+  "categorie": "ecologie_reseaux",
+  "palier": 3,
+  "raison": "régime alimentaire : omnivore"
+ },
+ {
+  "code": "QF9808",
+  "categorie": "ecologie_reseaux",
+  "palier": 3,
+  "raison": "lieu de vie des larves de libellule (développement)"
+ },
+ {
+  "code": "QF9815",
+  "categorie": "ecologie_reseaux",
+  "palier": 3,
+  "raison": "comportement de chasse d’un rapace"
+ },
+ {
+  "code": "QF9829",
+  "categorie": "ecologie_reseaux",
+  "palier": 4,
+  "raison": "défense contre les prédateurs (relations entre êtres vivants)"
+ },
+ {
+  "code": "QF9830",
+  "categorie": "ecologie_reseaux",
+  "palier": 4,
+  "raison": "coloration d’avertissement (relations entre êtres vivants)"
+ },
+ {
+  "code": "QF9831",
+  "categorie": "ecologie_reseaux",
+  "palier": 4,
+  "raison": "dispersion des graines par les fourmis (relations entre êtres vivants)"
+ },
+ {
+  "code": "QF9834",
+  "categorie": "ecologie_reseaux",
+  "palier": 3,
+  "raison": "plante qui nourrit une chenille"
+ },
+ {
+  "code": "QF9835",
+  "categorie": "ecologie_reseaux",
+  "palier": 3,
+  "raison": "comportement alimentaire d’un oiseau"
+ },
+ {
+  "code": "QF9880",
+  "categorie": "ecologie_reseaux",
+  "palier": 3,
+  "raison": "la plante verte au début de la chaîne alimentaire"
+ },
+ {
+  "code": "QF9890",
+  "categorie": "ecologie_reseaux",
+  "palier": 3,
+  "raison": "rôle des décomposeurs, sels minéraux"
+ },
+ {
+  "code": "QF0094",
+  "categorie": "energie_matiere",
+  "palier": 4,
+  "raison": "cycle du carbone"
+ },
+ {
+  "code": "QF0532",
+  "categorie": "energie_matiere",
+  "palier": 3,
+  "raison": "origine des aliments : part des céréales"
+ },
+ {
+  "code": "QF9859",
+  "categorie": "energie_matiere",
+  "palier": 4,
+  "raison": "perte d’énergie le long d’une chaîne alimentaire"
+ },
+ {
+  "code": "QF9874",
+  "categorie": "energie_matiere",
+  "palier": 4,
+  "raison": "dioxyde de carbone, source de la matière des plantes (photosynthèse)"
+ },
+ {
+  "code": "QF9884",
+  "categorie": "energie_matiere",
+  "palier": 3,
+  "raison": "la lumière du Soleil à l’origine de l’énergie des êtres vivants"
+ },
+ {
+  "code": "QF9894",
+  "categorie": "energie_matiere",
+  "palier": 3,
+  "raison": "origine de la matière d’un animal, chaîne alimentaire"
+ },
+ {
+  "code": "QF9902",
+  "categorie": "energie_matiere",
+  "palier": 3,
+  "raison": "déchets des poissons transformés en engrais"
+ },
+ {
+  "code": "QF9909",
+  "categorie": "energie_matiere",
+  "palier": 3,
+  "raison": "détritivore qui recycle la matière morte"
+ }
+]

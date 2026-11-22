@@ -1,0 +1,211 @@
+{
+ "autonomes": [
+  {
+   "code": "QF0511",
+   "avant": "Au marqueur « Les 3 sœurs », quelles sont les trois plantes associées de la milpa ?",
+   "apres": "Dans la milpa, la culture des « trois sœurs », quelles sont les trois plantes associées ?"
+  },
+  {
+   "code": "QF0529",
+   "avant": "Le panneau distingue « les épices » et « les herbes » parmi les plantes aromatiques. Sur quel critère ?",
+   "apres": "Parmi les plantes aromatiques, on distingue souvent « les épices » et « les herbes ». Sur quel critère ?"
+  },
+  {
+   "code": "QF9201",
+   "avant": "Selon la fiche d’arrosage, pourquoi arroser à midi gaspille-t-il beaucoup plus d’eau ?",
+   "apres": "Selon le tutoriel « Arrosage au potager », pourquoi arroser à midi gaspille-t-il beaucoup plus d’eau ?"
+  },
+  {
+   "code": "QF9202",
+   "avant": "Tu enfonces un doigt à 5 cm : le sol est humide. Que faire d’après la fiche d’arrosage ?",
+   "apres": "Tu enfonces un doigt à 5 cm : le sol est humide. Que faire d’après le tutoriel « Arrosage au potager » ?"
+  },
+  {
+   "code": "QF9203",
+   "avant": "Pourquoi un filet d’eau chaque soir est-il pire, selon la fiche, qu’un arrosage abondant plus rare ?",
+   "apres": "Pourquoi un filet d’eau chaque soir est-il pire, selon le tutoriel « Arrosage au potager », qu’un arrosage abondant plus rare ?"
+  },
+  {
+   "code": "QF9204",
+   "avant": "La fiche d’arrosage déconseille surtout l’arrosage du soir parce que…",
+   "apres": "Le tutoriel « Arrosage au potager » déconseille surtout l’arrosage du soir parce que…"
+  },
+  {
+   "code": "QF9205",
+   "avant": "D’après la fiche de désherbage, que signale surtout un pissenlit qui s’installe ?",
+   "apres": "D’après le tutoriel « Le désherbage doux », que signale surtout un pissenlit qui s’installe ?"
+  },
+  {
+   "code": "QF9206",
+   "avant": "Pourquoi la fiche dit-elle que laisser fleurir un mouron « crée du travail pour trois saisons » ?",
+   "apres": "Pourquoi le tutoriel « Le désherbage doux » dit-il que laisser fleurir un mouron « crée du travail pour trois saisons » ?"
+  },
+  {
+   "code": "QF9207",
+   "avant": "Tu dois extraire du chiendent. Quel geste la fiche interdit clairement ?",
+   "apres": "Tu dois extraire du chiendent. Quel geste le tutoriel « Le désherbage doux » interdit-il clairement ?"
+  },
+  {
+   "code": "QF9208",
+   "avant": "Selon la fiche, pourquoi le labour « crée plus de problèmes qu’il n’en résout » face aux adventices ?",
+   "apres": "Selon le tutoriel « Le désherbage doux », pourquoi le labour « crée plus de problèmes qu’il n’en résout » face aux adventices ?"
+  },
+  {
+   "code": "QF9210",
+   "avant": "Dans la spirale d’aromatiques de la fiche jardin punk, où placer la menthe ?",
+   "apres": "Dans la spirale d’aromatiques du tutoriel « Le jardin punk », où placer la menthe ?"
+  },
+  {
+   "code": "QF9211",
+   "avant": "Qu’est-ce que le BRF dans la fiche jardin punk, et pourquoi est-il mis en avant ?",
+   "apres": "Qu’est-ce que le BRF dans le tutoriel « Le jardin punk », et pourquoi est-il mis en avant ?"
+  },
+  {
+   "code": "QF9212",
+   "avant": "« Les déchets n’existent pas » : quelle sortie du jardin la fiche juge-t-elle inacceptable ?",
+   "apres": "« Les déchets n’existent pas » : quelle sortie du jardin le tutoriel « Le jardin punk » juge-t-il inacceptable ?"
+  },
+  {
+   "code": "QF9215",
+   "avant": "Après rempotage, que prescrit la fiche ?",
+   "apres": "Après rempotage, que prescrit le tutoriel « Le rempotage » ?"
+  },
+  {
+   "code": "QF9216",
+   "avant": "Quel geste est explicitement le « mauvais » au démoulage ?",
+   "apres": "Selon le tutoriel « Le rempotage », quel geste est explicitement le « mauvais » au démoulage ?"
+  },
+  {
+   "code": "QF9217",
+   "avant": "Dans les Trois Sœurs, quel rôle le texte attribue spécifiquement au haricot ?",
+   "apres": "Dans les Trois Sœurs, quel rôle le tutoriel « Les associations de plantes » attribue-t-il spécifiquement au haricot ?"
+  },
+  {
+   "code": "QF9218",
+   "avant": "Pourquoi ne pas associer pomme de terre et tomate, d’après la fiche ?",
+   "apres": "Pourquoi ne pas associer pomme de terre et tomate, d’après le tutoriel « Les associations de plantes » ?"
+  },
+  {
+   "code": "QF9219",
+   "avant": "Pour que le souci protège efficacement tomates ou poivrons des nématodes à galles, que dit le texte ?",
+   "apres": "Pour que le souci protège efficacement tomates ou poivrons des nématodes à galles, que dit le tutoriel « Les associations de plantes » ?"
+  },
+  {
+   "code": "QF9220",
+   "avant": "L’allélopathie, dans la fiche associations, c’est…",
+   "apres": "L’allélopathie, dans le tutoriel « Les associations de plantes », c’est…"
+  },
+  {
+   "code": "QF9221",
+   "avant": "Un tas de compost pue l’œuf pourri. Que prescrit la fiche ?",
+   "apres": "Un tas de compost pue l’œuf pourri. Que prescrit le tutoriel « Le compostage » ?"
+  },
+  {
+   "code": "QF9222",
+   "avant": "Quel rapport C/N la fiche de compost donne-t-elle comme idéal, et comment l’approcher en volume ?",
+   "apres": "Quel rapport C/N le tutoriel « Le compostage » donne-t-il comme idéal, et comment l’approcher en volume ?"
+  },
+  {
+   "code": "QF9223",
+   "avant": "À quoi sert le test du cresson décrit dans la fiche compost ?",
+   "apres": "À quoi sert le test du cresson décrit dans le tutoriel « Le compostage » ?"
+  },
+  {
+   "code": "QF9224",
+   "avant": "Pourquoi les cendres de charbon de bois sont-elles sur la liste noire du compost ?",
+   "apres": "Pourquoi les cendres de charbon de bois sont-elles sur la liste noire du tutoriel « Le compostage » ?"
+  },
+  {
+   "code": "QF9225",
+   "avant": "Quelle formule la fiche « Eau au jardin » donne-t-elle pour le volume annuel récupérable ?",
+   "apres": "Quelle formule le tutoriel « L’eau au jardin » donne-t-il pour le volume annuel récupérable ?"
+  },
+  {
+   "code": "QF9227",
+   "avant": "Qu’est-ce que la « croûte de battance » dans la fiche eau ?",
+   "apres": "Qu’est-ce que la « croûte de battance » dans le tutoriel « L’eau au jardin » ?"
+  },
+  {
+   "code": "QF9228",
+   "avant": "Un sol passe de 1 % à 5 % de matière organique. Que dit la fiche sur sa rétention d’eau ?",
+   "apres": "Un sol passe de 1 % à 5 % de matière organique. Que dit le tutoriel « L’eau au jardin » sur sa rétention d’eau ?"
+  },
+  {
+   "code": "QF9229",
+   "avant": "Pourquoi la fiche semences dit-elle de ne pas récupérer les graines d’un hybride F1 ?",
+   "apres": "Pourquoi le tutoriel « Les semences » dit-il de ne pas récupérer les graines d’un hybride F1 ?"
+  },
+  {
+   "code": "QF9230",
+   "avant": "Pour la tomate, quelle étape spécifique le texte ajoute-t-il, et pourquoi ?",
+   "apres": "Pour la tomate, quelle étape spécifique le tutoriel « Les semences » ajoute-t-il, et pourquoi ?"
+  },
+  {
+   "code": "QF9231",
+   "avant": "« Règle des 100 » : si l’air est à 18 °C, que faut-il pour bien stocker les graines ?",
+   "apres": "« Règle des 100 » du tutoriel « Les semences » : si l’air est à 18 °C, que faut-il pour bien stocker les graines ?"
+  },
+  {
+   "code": "QF9232",
+   "avant": "Ton test de germination donne 2 levées sur 10. Que faire selon la fiche ?",
+   "apres": "Ton test de germination donne 2 levées sur 10. Que faire selon le tutoriel « Les semences » ?"
+  },
+  {
+   "code": "QF9233",
+   "avant": "Un cube de sol de 20 cm de côté livre 3 vers. Que conclure d’après « Lire son sol » ?",
+   "apres": "Un cube de sol de 20 cm de côté livre 3 vers. Que conclure d’après le tutoriel « Lire son sol » ?"
+  },
+  {
+   "code": "QF9234",
+   "avant": "Odeur d’œuf pourri en enfonçant la bêche : diagnostic de la fiche « Lire son sol » ?",
+   "apres": "Odeur d’œuf pourri en enfonçant la bêche : quel diagnostic donne le tutoriel « Lire son sol » ?"
+  },
+  {
+   "code": "QF9236",
+   "avant": "Du trèfle sauvage colonise une planche. Quelle action la fiche recommande-t-elle ?",
+   "apres": "Du trèfle sauvage colonise une planche. Quelle action le tutoriel « Lire son sol » recommande-t-il ?"
+  },
+  {
+   "code": "QF9237",
+   "avant": "Sans bactéries nitrifiantes, que resterait-il de l’azote organique selon « Sol vivant » ?",
+   "apres": "Sans bactéries nitrifiantes, que resterait-il de l’azote organique selon le tutoriel « Le sol vivant » ?"
+  },
+  {
+   "code": "QF9238",
+   "avant": "Pourquoi les fongicides sont-ils présentés comme une « ironie » pour un sol « protégé » ?",
+   "apres": "Pourquoi le tutoriel « Le sol vivant » présente-t-il les fongicides comme une « ironie » pour un sol « protégé » ?"
+  },
+  {
+   "code": "QF9239",
+   "avant": "Un couvert de trèfle pendant 3 mois : quel ordre de grandeur d’azote la fiche « Sol vivant » avance-t-elle ?",
+   "apres": "Un couvert de trèfle pendant 3 mois : quel ordre de grandeur d’azote le tutoriel « Le sol vivant » avance-t-il ?"
+  },
+  {
+   "code": "QF9240",
+   "avant": "L’humus, dans « Sol vivant », se distingue de la litière fraîche parce que…",
+   "apres": "L’humus, dans le tutoriel « Le sol vivant », se distingue de la litière fraîche parce que…"
+  },
+  {
+   "code": "QF9740",
+   "avant": "L'oued reçoit moins d'eau en fin d'été là où se trouve Dream Village. Pourquoi, d'après le tutoriel ?",
+   "apres": "L'oued reçoit moins d'eau en fin d'été là où se trouve Dream Village. Pourquoi, d'après le tutoriel « Bienvenue dans la vallée de l'Oued Melah » ?"
+  },
+  {
+   "code": "QF9749",
+   "avant": "Quelle algue est la seule algue marine protégée du Maroc, selon le tutoriel des Sablettes ?",
+   "apres": "Quelle algue est la seule algue marine protégée du Maroc, selon le tutoriel « Bienvenue à la plage des Sablettes » ?"
+  }
+ ],
+ "laisses": [
+  {
+   "code": "QF0503",
+   "question": "Le panneau dit que le ginkgo a repoussé après la bombe d’Hiroshima « le 6 mai 45 ». Quelle est la bonne date ?",
+   "raison": "La question demande de corriger une date erronée d’un panneau du campus : elle n’a pas de sens sans le panneau. À revoir par Oliv (corriger le panneau, puis retirer ou réécrire la question)."
+  },
+  {
+   "code": "QF0532",
+   "question": "Selon le panneau sur les céréales, quelle part des calories alimentaires de l’humanité les céréales fournissent-elles au début du XXIᵉ siècle ?",
+   "raison": "Le chiffre attendu (environ 45 %) est celui du panneau sur les céréales ; le rendre autonome demanderait une source chiffrée vérifiée (FAO). Laissé en l’état, à vérifier par Oliv."
+  }
+ ]
+}

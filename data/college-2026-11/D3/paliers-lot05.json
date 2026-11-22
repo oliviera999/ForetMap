@@ -1,0 +1,302 @@
+[
+ {
+  "code": "QF9425",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "distinguer le mâle et la femelle d’un oiseau"
+ },
+ {
+  "code": "QF9427",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "reconnaître un oiseau à son allure"
+ },
+ {
+  "code": "QF9428",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "reconnaître un rapace à son vol"
+ },
+ {
+  "code": "QF9430",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "comportement de nourrissage du poussin"
+ },
+ {
+  "code": "QF9433",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "critère pour reconnaître un oiseau"
+ },
+ {
+  "code": "QF9435",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "comportement d’un oiseau au nid"
+ },
+ {
+  "code": "QF9437",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "reconnaître une libellule"
+ },
+ {
+  "code": "QF9439",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "reconnaître un oiseau protégé"
+ },
+ {
+  "code": "QF9440",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "reconnaître un oiseau à son chant"
+ },
+ {
+  "code": "QF9515",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "critère pour distinguer deux plantes"
+ },
+ {
+  "code": "QF9521",
+  "categorie": "identification_especes",
+  "palier": 4,
+  "raison": "famille botanique (terme « approfondissement »)"
+ },
+ {
+  "code": "QF9532",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "reconnaître un insecte camouflé"
+ },
+ {
+  "code": "QF9535",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "reconnaître un reptile"
+ },
+ {
+  "code": "QF9538",
+  "categorie": "identification_especes",
+  "palier": "lycee",
+  "raison": "nom de famille savant en -idés : lycée"
+ },
+ {
+  "code": "QF9543",
+  "categorie": "identification_especes",
+  "palier": 4,
+  "raison": "caractère commun d’une famille botanique"
+ },
+ {
+  "code": "QF9549",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "critère pour distinguer deux arbustes"
+ },
+ {
+  "code": "QF9862",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "reconnaître un organisme sur photo"
+ },
+ {
+  "code": "QF9863",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "reconnaître un palmier sur photo"
+ },
+ {
+  "code": "QF9864",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "reconnaître un oiseau sur photo"
+ },
+ {
+  "code": "QF9865",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "reconnaître un arbre sur photo"
+ },
+ {
+  "code": "QF9866",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "reconnaître un animal du sol sur photo"
+ },
+ {
+  "code": "QF9867",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "reconnaître un oiseau sur photo"
+ },
+ {
+  "code": "QF9868",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "reconnaître un rapace sur photo"
+ },
+ {
+  "code": "QF9869",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "reconnaître un papillon sur photo"
+ },
+ {
+  "code": "QF9870",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "reconnaître des vers sur photo"
+ },
+ {
+  "code": "QF9871",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "reconnaître un échassier sur photo"
+ },
+ {
+  "code": "QF9872",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "reconnaître une plante sur photo"
+ },
+ {
+  "code": "QF9879",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "reconnaître une espèce sur photo"
+ },
+ {
+  "code": "QF9889",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "reconnaître une espèce sur photo"
+ },
+ {
+  "code": "QF9899",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "reconnaître une espèce sur photo"
+ },
+ {
+  "code": "QF9907",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "reconnaître une espèce sur photo"
+ },
+ {
+  "code": "QF9913",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "reconnaître une espèce sur photo"
+ },
+ {
+  "code": "QF9919",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "reconnaître une espèce sur photo"
+ },
+ {
+  "code": "QF9925",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "reconnaître une espèce sur photo"
+ },
+ {
+  "code": "QF9931",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "reconnaître une espèce sur photo"
+ },
+ {
+  "code": "QF9932",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "reconnaître une espèce sur photo"
+ },
+ {
+  "code": "QF9933",
+  "categorie": "identification_especes",
+  "palier": 3,
+  "raison": "reconnaître une espèce sur photo"
+ },
+ {
+  "code": "QF9878",
+  "categorie": "microbes_sante",
+  "palier": 3,
+  "raison": "levures et fabrication du pain (origine des aliments)"
+ },
+ {
+  "code": "QF9888",
+  "categorie": "microbes_sante",
+  "palier": 3,
+  "raison": "conservation des aliments par le froid"
+ },
+ {
+  "code": "QF9906",
+  "categorie": "microbes_sante",
+  "palier": 3,
+  "raison": "eau non potable : consigne de sécurité"
+ },
+ {
+  "code": "QF7010",
+  "categorie": "milieux_terrain",
+  "palier": 3,
+  "raison": "germination des graines à la lumière"
+ },
+ {
+  "code": "QF7013",
+  "categorie": "milieux_terrain",
+  "palier": 3,
+  "raison": "plante irritante : consigne de sécurité"
+ },
+ {
+  "code": "QF7016",
+  "categorie": "milieux_terrain",
+  "palier": 3,
+  "raison": "plante toxique : consigne de sécurité"
+ },
+ {
+  "code": "QF7025",
+  "categorie": "milieux_terrain",
+  "palier": 3,
+  "raison": "poussière de compost : consigne de sécurité"
+ },
+ {
+  "code": "QF7028",
+  "categorie": "milieux_terrain",
+  "palier": 3,
+  "raison": "migration d’un papillon"
+ },
+ {
+  "code": "QF7054",
+  "categorie": "milieux_terrain",
+  "palier": 3,
+  "raison": "animal trouvé au sol : consigne de sécurité"
+ },
+ {
+  "code": "QF7055",
+  "categorie": "milieux_terrain",
+  "palier": 3,
+  "raison": "migration d’un oiseau"
+ },
+ {
+  "code": "QF7062",
+  "categorie": "milieux_terrain",
+  "palier": 3,
+  "raison": "insecte peu agressif : consigne d’observation"
+ },
+ {
+  "code": "QF9720",
+  "categorie": "milieux_terrain",
+  "palier": 3,
+  "raison": "connaissance du lieu n³"
+ },
+ {
+  "code": "QF9721",
+  "categorie": "milieux_terrain",
+  "palier": 3,
+  "raison": "connaissance du lieu n³"
+ }
+]

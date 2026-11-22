@@ -102,7 +102,10 @@ test('contenus du 20/11 : notions de cycle 3 ajoutées, notions de lycée hérit
        JOIN curriculum_notions cn ON cn.id = n.notion_id
       WHERE n.${RANGE}`,
   );
-  assert.equal(notions.length, 168);
+  // 168 lignes posées le 20/11 ; la migration `college_quiz_paliers` (chantier collège, retri
+  // des paliers) retouche ensuite ces questions : 200 lignes sur une base semée par les
+  // migrations.
+  assert.equal(notions.length, 200);
   // Chaque question a sa ligne de notions : au moins un ajout ou une exclusion.
   for (const q of questions) {
     assert.ok(
@@ -112,10 +115,21 @@ test('contenus du 20/11 : notions de cycle 3 ajoutées, notions de lycée hérit
   }
   const ajouts = notions.filter((n) => n.mode === 'ajout');
   assert.ok(ajouts.filter((n) => n.niveau === 'cycle3').length >= 30, 'ajouts de cycle 3');
-  // Une notion exclue n'est jamais une notion de cycle 3 ou 4 : ce sont les notions de
-  // lycée héritées de la catégorie qui sont retirées.
+  // Le 20/11, seules des notions de lycée héritées étaient exclues. Depuis le retri des
+  // paliers (migration `college_quiz_paliers`), une notion de cycle 3 ou 4 peut l'être aussi,
+  // mais seulement si la question garde un ajout explicite de l'autre cycle : le palier est
+  // tranché, jamais vidé.
   for (const n of notions.filter((x) => x.mode === 'exclusion')) {
-    assert.ok(!['cycle3', 'cycle4'].includes(n.niveau), `${n.question_code} exclut ${n.notion_id}`);
+    if (!['cycle3', 'cycle4'].includes(n.niveau)) continue;
+    assert.ok(
+      ajouts.some(
+        (a) =>
+          a.question_code === n.question_code &&
+          ['cycle3', 'cycle4'].includes(a.niveau) &&
+          a.niveau !== n.niveau,
+      ),
+      `${n.question_code} exclut ${n.notion_id} sans garder l'autre cycle`,
+    );
   }
 });
 
