@@ -110,7 +110,11 @@ test('parcours élève : réseau trophique — dispositions, isolement, clavier,
   const fiche = page.getByRole('button', { name: /Fiche/ });
   await fiche.click();
   await expect(fiche).toHaveAttribute('aria-pressed', 'true');
-  const chaine = page.getByRole('button', { name: /^Chaîne$/ });
+  // Au collège, « Chaîne » existe aussi pour l'espèce de départ (profondeur, flux C3) : on vise
+  // l'étendue du réseau isolé.
+  const chaine = page
+    .getByRole('group', { name: 'Étendue du réseau isolé' })
+    .getByRole('button', { name: /^Chaîne$/ });
   await chaine.click();
   await expect(chaine).toHaveAttribute('aria-pressed', 'true');
   await page.getByRole('button', { name: /Tout afficher/ }).click();
