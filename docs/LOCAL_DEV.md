@@ -62,6 +62,48 @@ npm run db:init
 
 Cela applique le schéma et le seed sur **`foretmap_local`**.
 
+### Vérifier le schéma local et l'empreinte attendue
+
+Après un `git pull`, une migration ajoutée ou l'import d'un dump, commencez par un contrôle
+lecture seule :
+
+```bash
+npm run db:status
+```
+
+Le script compare d'abord `schema_version` aux fichiers `migrations/` :
+
+- code `0` : la base a appliqué la dernière migration connue ;
+- code `3` : des migrations sont en attente → lancer `npm run db:migrate` après sauvegarde si
+  la base contient des données utiles ;
+- code `4` : un fichier de migration a un numéro inférieur à `schema_version` sans avoir été
+  enregistré ; `db:migrate` ne peut pas le rejouer, il faut renuméroter cette migration.
+
+Hors `--quiet`, le même contrôle compare aussi la structure réelle à
+`sql/schema_fingerprint.json`. Ce signalement d'**écart de schéma** est informatif : il ne
+change pas le code de sortie et ne lance jamais de migration. Si la sortie indique que la base
+est « en retard » (`stale`), appliquez d'abord les migrations ; les autres écarts sont à
+reprendre par une migration idempotente dans une PR. Les tables `gl_*` et les tables étrangères
+connues sont exclues de cette empreinte.
+
+Quand vous ajoutez une migration qui modifie tables, colonnes, index, clés étrangères, vues ou
+valeurs `ENUM` / `SET`, régénérez l'empreinte depuis une base fraîche et à jour, puis commitez
+`sql/schema_fingerprint.json` avec la migration :
+
+```bash
+mysql --default-character-set=utf8mb4 -u <user> -p -e "DROP DATABASE IF EXISTS foretmap_empreinte; CREATE DATABASE foretmap_empreinte CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
+DB_NAME=foretmap_empreinte npm run db:migrate
+DB_NAME=foretmap_empreinte node scripts/schema-fingerprint.js --write
+```
+
+Pour diagnostiquer un dump local sans écrire dans le dépôt :
+
+```bash
+node scripts/schema-fingerprint.js --json
+node scripts/schema-fingerprint.js --out /tmp/ma-base.json
+node scripts/schema-fingerprint.js --expected /tmp/autre-empreinte.json
+```
+
 ### Police emoji (Noto Color Emoji, auto-hébergée)
 
 L’application sert `public/fonts/noto-color-emoji.woff2` pour afficher les emojis (carte, visite, badges, etc.) même lorsque le système n’a pas de police colorée complète — **sauf sur les appareils Apple**, qui passent avant elle sur leur `Apple Color Emoji` native et ne téléchargent donc jamais ce fichier. Raison : WebKit n’implémente ni COLRv1 ni COLRv0, et la voie OT-SVG qui lui resterait est instable (`docs/AUDIT_EMOJIS_APPLE_2026-09-17.md`). Il n’y a **pas** de `preload` de cette police : il annulerait l’`unicode-range` du `@font-face`. Après `npm install` ou une mise à jour de `@fontsource/noto-color-emoji`, régénérer la copie versionnée :
