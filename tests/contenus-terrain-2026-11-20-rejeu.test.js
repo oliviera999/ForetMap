@@ -10,6 +10,10 @@
 // d'un second passage.
 //
 // Le fichier est retrouvé par son suffixe : son numéro est attribué à l'intégration.
+//
+// La migration supprime aussi des lignes de la table figée `quiz_question_tutorials`, supprimée
+// depuis par la migration `retrait_t3_quiz_question_links`. Elle tourne toujours sur une base
+// fraîche avant ce retrait : le test recrée la table le temps du rejeu et la supprime à la fin.
 // Tests BDD partagée : exécution séquentielle ; tout ce qui est semé est retiré à la fin.
 
 require('./helpers/setup');
@@ -18,6 +22,10 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { initSchema, execute, queryOne, queryAll, splitSqlStatements } = require('../database');
+const {
+  recreateLegacyQuizLinkTables,
+  dropLegacyQuizLinkTables,
+} = require('./helpers/legacyQuizLinkTables');
 
 const MIGRATIONS_DIR = path.join(__dirname, '..', 'migrations');
 const MIGRATION_FILE = fs
@@ -31,10 +39,12 @@ const STATEMENTS = splitSqlStatements(SQL);
 const RANGE = "question_code BETWEEN 'QF9873' AND 'QF9933' AND CHAR_LENGTH(question_code) = 6";
 // Lignes de notions des 61 questions : 168 posées le 20/11, retouchées ensuite par la migration
 // `college_quiz_paliers` (chantier collège, retri des paliers cycle 3 / cycle 4), qui voit les
-// liaisons catégorie → notions semées juste avant par `college_referentiel_notions`.
-const RANGE_NOTIONS = 220;
+// liaisons catégorie → notions semées juste avant par `college_referentiel_notions`, puis par
+// la migration `college_assouplissement` (22/11/2026), qui rend C3-ENV à QF9877 : 221.
+const RANGE_NOTIONS = 221;
 // Après le rejeu de cette migration-ci (hors curseur : propre à ce test, jamais en prod), les 11
-// ajouts de l'autre cycle que le retri des paliers avait supprimés reviennent.
+// ajouts de l'autre cycle que le retri des paliers avait supprimés reviennent (dont QF9877 /
+// C3-ENV, déjà rendu par `college_assouplissement` : 10 lignes de plus).
 const RANGE_NOTIONS_APRES_REJEU = 231;
 const RETRAITS = [
   'QF0010',
@@ -172,6 +182,7 @@ async function leadsOf(number) {
 
 before(async () => {
   await initSchema();
+  await recreateLegacyQuizLinkTables(execute);
   configReconnaitre = (
     await queryOne(
       "SELECT config_json FROM pedago_sessions WHERE slug = 'college-reconaitre-sans-toucher'",
@@ -214,11 +225,17 @@ after(async () => {
   // le retri des paliers (`college_quiz_paliers`, postérieure) avait retirés : on rejoue ce
   // retri pour rendre la base dans l'état des migrations — sinon `test:content`, lancé après
   // `npm test` sur la même base (CI), voit des questions sur deux cycles.
-  const paliers = fs.readdirSync(MIGRATIONS_DIR).find((f) => /_college_quiz_paliers\.sql$/.test(f));
-  if (paliers) {
-    const sql = fs.readFileSync(path.join(MIGRATIONS_DIR, paliers), 'utf8');
+  // Puis la migration `college_assouplissement` (postérieure au retri), qui rend C3-ENV à
+  // QF9877 : sans elle, le retri rejoué la retirerait de nouveau.
+  const later = fs
+    .readdirSync(MIGRATIONS_DIR)
+    .filter((f) => /_(college_quiz_paliers|college_assouplissement)\.sql$/.test(f))
+    .sort();
+  for (const file of later) {
+    const sql = fs.readFileSync(path.join(MIGRATIONS_DIR, file), 'utf8');
     for (const stmt of splitSqlStatements(sql)) await run(stmt);
   }
+  await dropLegacyQuizLinkTables(execute).catch(() => {});
 });
 
 // ---------------------------------------------------------------------------------------
@@ -275,7 +292,8 @@ test('contenus du 20/11 : aucun identifiant auto-incrémenté de la production',
 test('contenus du 20/11 : sans parents, les blocs autonomes sont posés et rien n’échoue', async () => {
   // `initSchema()` a déjà appliqué la migration sur la base de test.
   // Les sept lignes de référence du bloc 0 existent : les 61 questions et leurs notions aussi
-  // (168 posées le 20/11, 220 après le retri des paliers de la migration `college_quiz_paliers`).
+  // (168 posées le 20/11, 220 après le retri des paliers de la migration `college_quiz_paliers`,
+  // 221 avec QF9877 / C3-ENV rendu par `college_assouplissement`).
   assert.equal(
     await count(
       `SELECT COUNT(*) AS n FROM quiz_categories WHERE theme = 'sciences'

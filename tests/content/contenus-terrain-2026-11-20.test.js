@@ -108,8 +108,9 @@ test('contenus du 20/11 : notions de cycle 3 ajoutées, notions de lycée hérit
   // des paliers) retouche ensuite ces questions : 220 lignes sur une base semée par les
   // migrations (200 avant que `college_referentiel_notions` ne sème, avant le retri, les
   // liaisons catégorie → notions de la production : le retri y pose alors les mêmes
-  // exclusions qu'en production).
-  assert.equal(notions.length, 220);
+  // exclusions qu'en production). La migration `college_assouplissement` (22/11/2026) rend
+  // C3-ENV à QF9877 (mini-quiz d'une séance de cycle 3) : 221 lignes.
+  assert.equal(notions.length, 221);
   // Chaque question a sa ligne de notions : au moins un ajout ou une exclusion.
   for (const q of questions) {
     assert.ok(
@@ -214,11 +215,8 @@ test('contenus du 20/11 : liens des questions vers des ressources présentes, so
   );
   assert.ok(versTutoriel.length >= 3);
   for (const l of versTutoriel) assert.equal(Number(l.is_gating), 0, l.question_code);
-  // Tables historiques figées : rien n'y est écrit pour ces questions.
-  for (const table of ['quiz_question_species', 'quiz_question_tutorials']) {
-    const row = await queryOne(`SELECT COUNT(*) AS n FROM ${table} WHERE ${RANGE}`);
-    assert.equal(Number(row.n), 0, table);
-  }
+  // Les tables historiques figées n'existent plus (migration `retrait_t3_quiz_question_links`) :
+  // `resource_question_links` est la seule source de ces liens.
 });
 
 test('contenus du 20/11 : la séance d’inventaire de n³ n’est jamais publiée par la reprise', async () => {

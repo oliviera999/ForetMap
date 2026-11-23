@@ -131,16 +131,54 @@ export function truncateNodeLabel(name, max = NODE_LABEL_MAX) {
 }
 
 /**
+ * Périmètre d'une extrémité lu dans une ligne de `GET /api/food-web` : `from_in_scope` /
+ * `to_in_scope` valent 1/0 (MySQL) ; l'absence de colonne (réseau sans carte, G&L) vaut « dans
+ * le périmètre ». Le serveur calcule le périmètre une seule fois (présence, environnement,
+ * ressources : `routes/food-web.js`) ; l'interface ne fait que le lire, par cette fonction.
+ */
+export function readInScope(value) {
+  return value == null ? true : Boolean(Number(value));
+}
+
+/**
+ * Cartes où vit une extrémité hors périmètre (`from_elsewhere` / `to_elsewhere`), normalisées
+ * en `{ id, label }[]` ; `null` quand la ligne ne porte pas l'information (G&L, réseau sans
+ * carte, ancienne API).
+ */
+export function readElsewhere(value) {
+  if (!Array.isArray(value)) return null;
+  return value
+    .filter((m) => m && m.id != null)
+    .map((m) => ({ id: String(m.id), label: String(m.label || m.id) }));
+}
+
+/**
+ * Mention d'une espèce hors périmètre (infobulle, nom accessible, panneau, liste) :
+ * « vit ailleurs : Sablettes, Daya » ; « n'est rattachée à aucune carte » si la liste est vide ;
+ * `null` sans information (le libellé générique de l'appelant s'applique).
+ *
+ * @param {{ id: string, label: string }[]|null|undefined} elsewhere
+ * @returns {string|null}
+ */
+export function elsewhereText(elsewhere) {
+  if (!Array.isArray(elsewhere)) return null;
+  if (elsewhere.length === 0) return 'n’est rattachée à aucune carte';
+  return `vit ailleurs : ${elsewhere.map((m) => m.label || m.id).join(', ')}`;
+}
+
+/**
  * Construit le modèle de graphe orienté écologiquement.
  * Chaque arête expose `tailId`/`headId` (sens d'affichage de la flèche).
  *
  * Les interactions sans espèce cible (`to_id` nul : nitrification du sol,
  * décomposition vers la litière…) sont rattachées à un nœud « environnement »
  * explicite — sans lui, la flèche pointait vers un point vide de la scène.
+ *
+ * Un nœud hors périmètre (`outOfScope`) porte `elsewhere` (cartes où il vit, ou `null`).
  */
 export function buildGraphModel(items) {
   const nodeMap = new Map();
-  const ensure = (id, name, emoji, role, inScope) => {
+  const ensure = (id, name, emoji, role, inScope, elsewhere) => {
     if (id == null) return;
     const key = Number(id);
     // `inScope === false` : espèce hors de la zone/carte filtrée, gardée pour ne
@@ -154,22 +192,39 @@ export function buildGraphModel(items) {
         emoji: emoji || '',
         role: role || null,
         outOfScope,
+        elsewhere: outOfScope ? elsewhere : null,
       });
       return;
     }
     const existing = nodeMap.get(key);
     if (role && !existing.role) existing.role = role;
-    if (!outOfScope) existing.outOfScope = false;
+    if (!outOfScope) {
+      existing.outOfScope = false;
+      existing.elsewhere = null;
+    } else if (existing.outOfScope && existing.elsewhere == null && elsewhere) {
+      existing.elsewhere = elsewhere;
+    }
   };
-
-  /** L'API renvoie 1/0 (MySQL) ; l'absence de colonne vaut « dans le périmètre ». */
-  const readScope = (value) => (value == null ? true : Boolean(Number(value)));
 
   const edges = [];
   let usesEnvNode = false;
   for (const row of items || []) {
-    ensure(row.from_id, row.from_name, row.from_emoji, row.from_role, readScope(row.from_in_scope));
-    ensure(row.to_id, row.to_name, row.to_emoji, row.to_role, readScope(row.to_in_scope));
+    ensure(
+      row.from_id,
+      row.from_name,
+      row.from_emoji,
+      row.from_role,
+      readInScope(row.from_in_scope),
+      readElsewhere(row.from_elsewhere),
+    );
+    ensure(
+      row.to_id,
+      row.to_name,
+      row.to_emoji,
+      row.to_role,
+      readInScope(row.to_in_scope),
+      readElsewhere(row.to_elsewhere),
+    );
     const oriented = orientInteraction(row.from_id, row.to_id, row.interaction_type);
     const tailId = oriented.tailId == null ? ENV_NODE_ID : oriented.tailId;
     const headId = oriented.headId == null ? ENV_NODE_ID : oriented.headId;

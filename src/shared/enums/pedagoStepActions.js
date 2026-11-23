@@ -58,7 +58,12 @@ export const PEDAGO_STEP_ACTION_ENUM = defineEnum('PEDAGO_STEP_ACTION_ENUM', {
 export const PEDAGO_STEP_ACTION_PAYLOAD_FIELDS = Object.freeze({
   [PEDAGO_STEP_ACTION.OPEN_ID_KEY]: Object.freeze(['keyIdOrSlug']),
   [PEDAGO_STEP_ACTION.OPEN_PLANT]: Object.freeze(['plantId']),
-  [PEDAGO_STEP_ACTION.OPEN_FOODWEB]: Object.freeze(['mapId', 'highlightPlantId', 'plantIds']),
+  [PEDAGO_STEP_ACTION.OPEN_FOODWEB]: Object.freeze([
+    'mapId',
+    'highlightPlantId',
+    'plantIds',
+    'preset',
+  ]),
   [PEDAGO_STEP_ACTION.OPEN_QUIZ]: Object.freeze(['questionCode', 'notionId', 'notionNiveau']),
   [PEDAGO_STEP_ACTION.OPEN_GLOSSARY]: Object.freeze(['termCode']),
   [PEDAGO_STEP_ACTION.OPEN_INDIVIDUAL]: Object.freeze(['individualId', 'mapId']),
@@ -80,6 +85,13 @@ export function isPedagoStepAction(type) {
 export const FOODWEB_STEP_MAX_PLANT_IDS = 12;
 
 /**
+ * Cadrages qu'une étape « réseau trophique » peut imposer (`preset`, chantier collège du
+ * 22/11/2026, lot 3) : mêmes clés que `GRAPH_PRESETS` du graphe (`foodWebGraphModel.js`, parité
+ * testée) — réseau alimentaire, autres relations, tout.
+ */
+export const FOODWEB_STEP_PRESETS = Object.freeze(['alimentaire', 'relations', 'all']);
+
+/**
  * Validation du `payload` propre à une action d'étape, partagée par le serveur
  * (`lib/pedagoSessions.js`), l'éditeur et l'outil MCP. Seuls les champs qui ont une règle sont
  * contrôlés ; les autres passent tels quels (comportement historique).
@@ -87,7 +99,8 @@ export const FOODWEB_STEP_MAX_PLANT_IDS = 12;
  * Réseau trophique : `plantIds` (facultatif) est une liste d'identifiants d'espèces (entiers
  * > 0, sans doublon, au plus `FOODWEB_STEP_MAX_PLANT_IDS`). L'élève voit ces espèces et leurs
  * liens mutuels (profondeur 0), en plus de `highlightPlantId`, qui garde sa forme. Une liste
- * vide est retirée : la forme d'une étape sans `plantIds` ne change pas.
+ * vide est retirée : la forme d'une étape sans `plantIds` ne change pas. `preset` (facultatif)
+ * impose le cadrage à l'ouverture (`FOODWEB_STEP_PRESETS`) ; vide, il est retiré ; inconnu, refusé.
  *
  * @param {string} type
  * @param {object} payload
@@ -96,8 +109,18 @@ export const FOODWEB_STEP_MAX_PLANT_IDS = 12;
 export function validateStepActionPayload(type, payload) {
   const out =
     payload && typeof payload === 'object' && !Array.isArray(payload) ? { ...payload } : {};
-  if (type !== PEDAGO_STEP_ACTION.OPEN_FOODWEB || out.plantIds == null)
-    return { ok: true, payload: out };
+  if (type !== PEDAGO_STEP_ACTION.OPEN_FOODWEB) return { ok: true, payload: out };
+  if (out.preset != null) {
+    const preset = String(out.preset).trim();
+    if (!preset) delete out.preset;
+    else if (!FOODWEB_STEP_PRESETS.includes(preset)) {
+      return {
+        ok: false,
+        error: `preset : cadrage inconnu (${preset}) — attendu : ${FOODWEB_STEP_PRESETS.join(', ')}`,
+      };
+    } else out.preset = preset;
+  }
+  if (out.plantIds == null) return { ok: true, payload: out };
   if (!Array.isArray(out.plantIds)) {
     return { ok: false, error: 'plantIds doit être une liste d’identifiants d’espèces' };
   }

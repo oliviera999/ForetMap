@@ -132,6 +132,16 @@ réponses**, pas le canal.
 Aucune donnée sensible (art. 9), aucun mot de passe en clair, aucune adresse IP en clair
 n'est transmise à Claude (les journaux techniques ne portent que des pseudonymes, § 2).
 
+Réponse choisie au quiz (22/11/2026, migration `quiz_attempt_choice`) : chaque tentative de
+quiz ForêtMap garde en plus la **lettre du choix retenu**, l'ordre d'affichage, le **temps de
+réponse** (donnée comportementale, mesurée côté serveur, au plus 15 min), le contexte (quiz
+libre, tirage, validation d'une fiche, séance) et l'empreinte de version de la question. Aucun
+identifiant nouveau ; finalité : améliorer les questions (distracteurs, discrimination). L'action
+`foretmap_quiz stats` et la route `GET /api/quiz/admin/questions/stats` n'en renvoient que des
+**agrégats par question** (effectifs, pourcentages, médianes), sans identifiant d'élève. Les
+lignes nominatives restent lisibles, comme le reste des tentatives, par le SQL de lecture sous
+bypass. Durée de conservation inchangée : celle du compte (suppression en cascade avec lui).
+
 Élèves référents automatiques (21/11/2026, migration `task_referents_auto`) : l'action
 `foretmap_tasks student_referents` et le script `student_referents_sync` lisent, par identifiant
 de compte (jamais le nom), le nombre d'occurrences validées de chaque série récurrente et les

@@ -1,4 +1,5 @@
 import { api } from './api';
+import { withPedagoSessionParam } from '../utils/pedagoSessionScope.js';
 
 /**
  * Client API du domaine quiz (`/api/quiz`), étape B2 de la piste B de l'audit du
@@ -62,10 +63,17 @@ export function drawQuizQuestion(params = {}) {
 
 /**
  * Présentation signée d'une question (choix mélangés, jeton de présentation).
+ *
+ * Le client annonce, pour les statistiques d'items (migration `quiz_attempt_choice`),
+ * l'origine de la présentation (`origine: 'tirage'` après un tirage) et la séance en cours
+ * (`?pedagoSession=`). Simples étiquettes : la réponse HTTP et l'écran n'en dépendent pas,
+ * et le serveur ne retient la séance que s'il la confirme.
  * @param {string} code
+ * @param {{ origine?: 'tirage' }} [options]
  */
-export function presentQuizQuestion(code) {
-  return api(quizApiPaths.present(code));
+export function presentQuizQuestion(code, { origine } = {}) {
+  const path = `${quizApiPaths.present(code)}${origine === 'tirage' ? '?origine=tirage' : ''}`;
+  return api(withPedagoSessionParam(path));
 }
 
 /**

@@ -8,9 +8,7 @@ const { test, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const request = require('supertest');
 const { app } = require('../server');
-const fs = require('node:fs');
-const path = require('node:path');
-const { initSchema, execute, queryOne, splitSqlStatements } = require('../database');
+const { initSchema, execute, queryOne } = require('../database');
 const { ensureAdminTeacherAuthToken } = require('./helpers/adminAuth');
 
 const stamp = Date.now();
@@ -72,23 +70,12 @@ before(async () => {
     2,
   );
   await insertQuestion(codeEditorial, 'Question rattachée éditorialement ?', 'Oui.', 3);
-
-  // Lien éditorial « questions liées » NON repris dans le modèle unifié : c'est le
-  // cas que la migration 144 ne pouvait pas couvrir (elle n'a copié qu'une fois), et que la
-  // migration 300 reprend (simulation d'une base d'avant la source unique).
-  await execute(
-    'INSERT IGNORE INTO quiz_question_tutorials (question_code, tutorial_id) VALUES (?, ?)',
-    [codeEditorial, tutorialId],
-  );
 });
 
 after(async () => {
   const codes = [codeCompost, codeHorsSujet, codeEditorial];
   for (const code of codes) {
     await execute('DELETE FROM resource_question_links WHERE question_code = ?', [code]).catch(
-      () => {},
-    );
-    await execute('DELETE FROM quiz_question_tutorials WHERE question_code = ?', [code]).catch(
       () => {},
     );
     await execute('DELETE FROM quiz_questions WHERE question_code = ?', [code]).catch(() => {});
@@ -171,11 +158,11 @@ test('POST /suggest rapproche la question du tutoriel qui traite son sujet', asy
   assert.ok(!codes.includes(codeHorsSujet), 'la question hors sujet ne doit pas être proposée');
 });
 
-test('POST /suggest ne lit plus quiz_question_tutorials : la migration 300 fait la reprise', async () => {
-  // Avant la source unique (audit du 25/09/2026, § 3.5, temps 1), un lien « questions
-  // liées » absent de RQL remontait ici en candidat (origin='import', confiance 1). Cette
-  // table n'est plus lue : la reprise est faite une fois pour toutes par la migration 300,
-  // en lien éditorial approuvé et non bloquant. `includeEditorial` est accepté et ignoré.
+test('POST /suggest : `includeEditorial` est accepté et sans effet', async () => {
+  // Avant la source unique (audit du 25/09/2026, § 3.5), un lien « questions liées » de
+  // l'ancienne table figée des tutoriels remontait ici en candidat. Cette table a été reprise
+  // par la migration 300 puis supprimée (migration `retrait_t3_quiz_question_links`) :
+  // `includeEditorial` reste accepté, et `stats.editorial_candidates` vaut toujours 0.
   const res = await request(app)
     .post('/api/learning-links/suggest')
     .set(auth())
@@ -183,21 +170,6 @@ test('POST /suggest ne lit plus quiz_question_tutorials : la migration 300 fait 
   assert.equal(res.status, 200);
   assert.ok(!res.body.candidates.some((c) => c.question_code === codeEditorial));
   assert.equal(res.body.stats.editorial_candidates, 0);
-
-  const sql = fs.readFileSync(
-    path.join(__dirname, '..', 'migrations', '300_learning_links_single_source.sql'),
-    'utf8',
-  );
-  for (const stmt of splitSqlStatements(sql)) await execute(stmt);
-  const link = await queryOne(
-    `SELECT origin, status, is_gating FROM resource_question_links
-      WHERE resource_type = 'tutorial' AND resource_ref = ? AND question_code = ?`,
-    [String(tutorialId), codeEditorial],
-  );
-  assert.deepEqual(
-    { origin: link?.origin, status: link?.status, is_gating: Number(link?.is_gating) },
-    { origin: 'editorial', status: 'approved', is_gating: 0 },
-  );
 });
 
 test('POST /suggest avec apply insère en statut « suggested »', async () => {

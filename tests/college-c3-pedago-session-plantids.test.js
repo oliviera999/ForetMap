@@ -40,7 +40,7 @@ after(async () => {
 test('plantIds est un champ documenté de l’étape réseau trophique', () => {
   assert.deepEqual(
     [...PEDAGO_STEP_ACTION_PAYLOAD_FIELDS[A.OPEN_FOODWEB]],
-    ['mapId', 'highlightPlantId', 'plantIds'],
+    ['mapId', 'highlightPlantId', 'plantIds', 'preset'],
   );
 });
 

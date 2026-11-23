@@ -2898,7 +2898,7 @@ Pour une mascotte spritesheet (ex. OLU), vérifier aussi l’asset statique serv
 | ------- | ------------------------------------- | ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | GET     | `/api/tutorials`                      | non                                  | Liste des tutoriels **actifs**, triés par `sort_order` puis titre ; chaque entrée inclut `zone_ids`, `marker_ids`, `zones_linked`, `markers_linked` (lieux pouvant appartenir à **plusieurs cartes**), `linked_tasks_count`                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | GET     | `/api/tutorials?include_inactive=1`   | oui (`tutorials.manage`, prof/admin) | Liste incluant les tutoriels archivés (`is_active = 0`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| GET     | `/api/tutorials/:id`                  | non                                  | Détail (actif seulement pour le public) ; query `include_inactive=1`, `include_content=1` pour la gestion ; mêmes champs de liaison carte que la liste                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| GET     | `/api/tutorials/:id`                  | non                                  | Détail (actif seulement pour le public) ; query `include_inactive=1`, `include_content=1` pour la gestion ; mêmes champs de liaison carte que la liste. **`linked_id_keys`** : `[{ id, slug, title, is_published }]`, clés de détermination qui proposent ce tutoriel « avant de commencer » (`id_key_tutorials`, lecture inverse de `GET /api/id-keys?tutorial_id=`), triées par titre — clés publiées seulement, brouillons compris pour `id_keys.manage` ; module des clés éteint : `[]`, sauf pour `id_keys.manage` |
 | GET     | `/api/tutorials/me/read-ids`          | JWT obligatoire                      | `{ "tutorial_ids": number[] }` — tutoriels que l’utilisateur connecté a **marqués comme lus** (engagement explicite)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | GET     | `/api/tutorials/import/scan`          | oui                                  | Scan du dossier serveur **`tutos/`** : pour chaque `*.html`, indique si la fiche est déjà en BDD ou **à importer**. Réponse `{ "report": { totals, items[] } }` avec `status` : `already_imported` \| `pending` \| `error`, et pour une fiche déjà en BDD `match_reason` : `source_file_path` \| `content` \| `slug` \| `title` \| `filename_stem` + `existing_tutorial_id`. Les critères sont essayés dans cet ordre ; le dernier (nom de fichier) exige que le radical du fichier (`fiche-<radical>-punk.html`) soit le **début** du slug existant et fasse au moins 4 caractères — une règle plus large classait « déjà en BDD » des fiches réellement nouvelles. |
 | POST    | `/api/tutorials/import/files`         | oui                                  | Importe les fiches `tutos/*.html` **absentes** de la BDD. Corps optionnel `{ "dryRun": true }` (simulation). Crée des tutoriels HTML actifs avec `html_content` intégré (titre extrait de la balise `<title>`, `sort_order` en fin de liste). Réponse `{ "report": { dryRun, totals, items[] } }`.                                                                                                                                                                                                                                                                                                                                                                   |
@@ -4975,8 +4975,8 @@ Routes publiques (lecture) sauf progression quiz. Voir aussi les routes GL `/api
 | GET | `/api/quiz/categories` | non | Catégories QCM (slug, nom, emoji, theme, description, `description_college` — description réécrite pour le collège, `null` sinon, migration `college_socle` —, order_index). `notionId` / `notionNiveau` ne laissent que les catégories rattachées à la notion (et restreignent le compte renvoyé avec `niveau`). `palierMax` (entier 1–5, chantier collège) : chaque catégorie porte `questionCount`, nombre de questions actives dont le palier d'entrée effectif ne dépasse pas `palierMax` (l'affichage collège masque les catégories à 0) ; **400** `palierMax invalide` hors de 1–5 |
 | GET | `/api/quiz/questions` | non | Liste questions (`theme`, `categorieSlug`, `niveau`, `q`, `notionId`, `notionNiveau`). `reponse_correcte` n’est présent **que** pour un appelant détenant `plants.manage` — même règle que le catalogue GL |
 | GET | `/api/quiz/draw` | non | Tirage QCM (`?illustrated=1` : questions avec photo ; `notionId` / `notionNiveau` : tirage par notion de programme ; `palierMax` (1–5) : seulement les questions dont le palier d'entrée effectif ne le dépasse pas — envoyé par l'affichage collège, 1 en cycle 3, 2 en cycle 4 ; **400** `palierMax invalide`) |
-| GET | `/api/quiz/questions/:code/present` | non (**oui avec contexte**) | Question présentée. **Avec contexte de validation** (`?resourceType=&resourceRef=`) : compte **exigé** depuis l'audit ForetMap du 19/11/2026 (P1) — sans compte, `401` `{ error, code: 'LOGIN_REQUIRED' }` ; le jeton porte alors l'identifiant du compte (claim `uid`). Sans contexte (Quiz libre), toujours public. Choix **mélangés** à chaque appel. La charge ne porte **pas** `photoLegende`, sauf pour `plants.manage` (voir « Présentation et réponse du quiz ForetMap ») |
-| POST | `/api/quiz/questions/:code/answer` | non (**oui avec contexte**) | Validation réponse. **Jeton à usage unique** : rejeu du même `presentationToken` refusé `409` « Présentation déjà utilisée » (interdit de brute-forcer les choix, y compris pour débloquer un conditionnement). **Contexte** (jeton présenté avec contexte, ou corps `{ resourceType, resourceRef }`) **sans compte** → `401` `LOGIN_REQUIRED` ; jeton présenté pour un **autre compte** → `403` `{ error, code: 'PRESENTATION_OTHER_ACCOUNT' }`. Ces refus ne consomment pas le jeton (P1, audit du 19/11/2026). Réponse : `{ correct, feedback, correctChoiceId?, glossaryTerms?, photoLegende?, cooldown? }` (voir « Présentation et réponse du quiz ForetMap ») |
+| GET | `/api/quiz/questions/:code/present` | non (**oui avec contexte**) | Question présentée. **Avec contexte de validation** (`?resourceType=&resourceRef=`) : compte **exigé** depuis l'audit ForetMap du 19/11/2026 (P1) — sans compte, `401` `{ error, code: 'LOGIN_REQUIRED' }` ; le jeton porte alors l'identifiant du compte (claim `uid`). Sans contexte (Quiz libre), toujours public. Choix **mélangés** à chaque appel. La charge ne porte **pas** `photoLegende`, sauf pour `plants.manage` (voir « Présentation et réponse du quiz ForetMap »). Étiquettes statistiques facultatives, déclarées par le client et **non fiables** : `?origine=tirage` (présentation qui suit `/draw`) et `?pedagoSession=<id ou slug>` ; une valeur inconnue est ignorée sans erreur (voir « Réponse choisie et statistiques d'items ») |
+| POST | `/api/quiz/questions/:code/answer` | non (**oui avec contexte**) | Validation réponse. **Jeton à usage unique** : rejeu du même `presentationToken` refusé `409` « Présentation déjà utilisée » (interdit de brute-forcer les choix, y compris pour débloquer un conditionnement). **Contexte** (jeton présenté avec contexte, ou corps `{ resourceType, resourceRef }`) **sans compte** → `401` `LOGIN_REQUIRED` ; jeton présenté pour un **autre compte** → `403` `{ error, code: 'PRESENTATION_OTHER_ACCOUNT' }`. Ces refus ne consomment pas le jeton (P1, audit du 19/11/2026). Réponse : `{ correct, feedback, correctChoiceId?, glossaryTerms?, photoLegende?, cooldown? }` (voir « Présentation et réponse du quiz ForetMap »). Avec un compte, la tentative enregistre aussi la lettre d'origine du choix, l'ordre présenté, la durée, le contexte et l'empreinte de version, **tous lus dans le jeton** ; aucun champ du corps n'y entre (migration `quiz_attempt_choice`) |
 | GET | `/api/quiz/me/progress` | élève | Progression |
 | GET | `/api/quiz/stats` | prof (`stats.read.all`) | Agrégation tentatives par élève et catégorie |
 | GET | `/api/quiz/admin/stats` | prof (`plants.manage`) | Agrégats catalogue (totaux, thèmes, catégories) |
@@ -4991,6 +4991,7 @@ Routes publiques (lecture) sauf progression quiz. Voir aussi les routes GL `/api
 | GET | `/api/food-web` | non | Réseau trophique (`?mapId=`, `?zoneId=` ; `zoneId` prime sur `mapId`) |
 | GET | `/api/food-web/interaction-types` | non | Vocabulaire de l'éditeur : `{ types, evidenceLevels, pollinationEfficacies }` — 19 types depuis la migration `272` |
 | GET | `/api/food-web/interactions/:id/glossary` | non | Termes glossaire liés à une interaction |
+| GET | `/api/food-web/species/:id/maps` | non | Cartes **actives** où l'espèce est présente (présence commune : registre, zones, repères) : `{ plantId, maps: [{ id, label }] }`, triées par `sort_order` puis libellé ; `[]` si l'espèce n'est rattachée à aucune carte ; `404` si la fiche n'existe pas, `400` si l'identifiant est invalide. Sert à « Voir le réseau trophique » depuis une fiche (carte active si l'espèce y vit, sinon la première de ses cartes, sinon « Toutes les cartes ») |
 | POST | `/api/food-web/interactions` | prof (`plants.manage`) | Créer une interaction |
 | PUT | `/api/food-web/interactions/:id` | prof (`plants.manage`) | Modifier une interaction |
 
@@ -5015,15 +5016,21 @@ matière morte), l'allélopathie et la facilitation (deux relations de voisinage
 
 **Types montrés au collège** (`COLLEGE_INTERACTION_TYPE_ENUM`, `src/shared/enums/biodivEnums.js`) :
 `pollinisation`, `herbivorie`, `frugivorie`, `granivorie`, `predation`, `plante_hote`,
-`decomposition`, `detritivorie`, `parasitisme`, et, au **cycle 4 seulement**
-(`CYCLE4_ONLY_INTERACTION_TYPE_ENUM`, règle de palier `foodweb_types_cycle4_only`), `symbiose`
-et `competition` — frugivorie et granivorie depuis le chantier collège (décision 8 du
-21/11/2026). Chaque type du collège porte un libellé en verbe (`labelsSimple` : « mange des
-fruits », « pond sur »…), affiché avant le mot savant (`interactionTypeLabelSimple`). Le
-filtrage se fait côté interface (`GET /api/food-web` rend toujours tout) : au collège, pas de
-réseau complet par défaut — l'élève part d'une espèce (espèces phares de la carte, `is_featured`
-de `GET /api/maps/:id/species`, puis recherche), à profondeur 1 extensible à 2 ; les liens vers
-une espèce hors de la carte ou de la zone (`from_in_scope` / `to_in_scope` à 0) sont retirés.
+`decomposition`, `detritivorie`, `parasitisme`, `mycophagie`, et, au **cycle 4 seulement**
+(`CYCLE4_ONLY_INTERACTION_TYPE_ENUM`, règle de palier `foodweb_types_cycle4_only`), `symbiose`,
+`competition` et `mutualisme` — frugivorie et granivorie depuis le chantier collège (décision 8
+du 21/11/2026), mycophagie (« mange des champignons ») et mutualisme (« s’entraident », cycle 4)
+depuis le chantier du 22/11/2026. Chaque type du collège porte un libellé en verbe
+(`labelsSimple` : « mange des fruits », « pond sur »…), affiché avant le mot savant
+(`interactionTypeLabelSimple`). Le filtrage se fait côté interface (`GET /api/food-web` rend
+toujours tout) : au collège, pas de réseau complet par défaut — l'élève compose une
+**sélection** de plusieurs espèces (espèces phares de la carte, `is_featured` de
+`GET /api/maps/:id/species`, puis recherche ; un clic ajoute ou retire), à profondeur 0
+(liens entre les espèces choisies), 1 ou 2, cadrage « Tout » par défaut
+(`foodweb_default_preset`) ; un bouton « Pour aller plus loin » (`foodweb_go_further`) ouvre le
+réseau complet de la carte. Les liens vers une espèce hors de la carte ou de la zone
+(`from_in_scope` / `to_in_scope` à 0) sont **gardés** : l'espèce est grisée, avec la mention
+« vit ailleurs : … » tirée de `from_elsewhere` / `to_elsewhere` (décision 1 du 22/11/2026).
 
 > **Les 14 premiers types seulement sont partagés avec GL.** `gl_species_interactions` garde son
 > ENUM d'origine : `GET /api/gl/food-web/interaction-types` en expose 14, et les routes d'écriture
@@ -5074,6 +5081,15 @@ et la parité entre les deux fichiers, sont tenues par `tests/food-web-matter-fl
 > réseau. Les réponses filtrées portent en plus `from_in_scope` et `to_in_scope` (`1`/`0`) :
 > l'interface marque l'espèce hors périmètre au lieu de la masquer. La liste non filtrée
 > (`GET /api/food-web` sans paramètre) ne porte pas ces colonnes — tout y est dans le périmètre.
+> Une extrémité est **dans le périmètre** si l'espèce y est présente, si c'est l'environnement
+> (`to_id` nul) ou si la fiche est une ressource, un consortium ou un groupe fonctionnel
+> (`plants.entity_kind`, `FOODWEB_ALWAYS_IN_SCOPE_ENTITY_KINDS` : compost, litière, bois mort,
+> biofilm, plancton… ne sont rattachés à aucune carte). La rétention exige toujours une espèce
+> présente : une ressource seule ne fait pas entrer les liens d'autres lieux.
+> **`from_elsewhere` / `to_elsewhere`** (réponses filtrées seulement, chantier du 22/11/2026) :
+> pour une extrémité hors périmètre, les cartes **actives** où l'espèce est présente
+> (`[{ id, label }]`, même définition de présence), `[]` si elle n'est rattachée à aucune carte ;
+> `[]` aussi pour une extrémité dans le périmètre. Calcul en une requête groupée (pas de N+1).
 > Pour **`?mapId=`**, le périmètre est la présence commune (`lib/biodiv/presenceService.js`) :
 > espèces des **zones**, des **repères** et celles rattachées **directement** à la carte
 > (`map_species`) — la même liste que `GET /api/maps/:mapId/species`. Pour **`?zoneId=`**, ce
@@ -5250,7 +5266,7 @@ appelant `plants.manage` (préparation, suivi, démonstration).
 | DELETE  | `/api/pedago-sessions/:idOrSlug` | `plants.manage` | Supprime une séance : passages en cascade, tâches liées détachées (`pedago_session_id` à NULL), badges obtenus conservés. `{ ok, deleted, slug, runs_deleted, tasks_detached }` ; journal `delete_pedago_session`. |
 
 Actions d’étape (`action.type`) : `message`, `open_id_key`, `open_plant`, `open_foodweb`
-(`mapId`, `highlightPlantId`, `plantIds` facultatif), `open_quiz`, `open_glossary`, `open_individual` (`individualId`), `open_nested_groups`
+(`mapId`, `highlightPlantId`, `plantIds` et `preset` facultatifs), `open_quiz`, `open_glossary`, `open_individual` (`individualId`), `open_nested_groups`
 (`plantIds`, 2 à 6), `open_map_route` (`routeSlug`, `mapId`), `open_fresque` (`deckId`
 facultatif), `open_tutorial` (`tutorialId`). Source unique de cette liste :
 `src/shared/enums/pedagoStepActions.js` (miroir `lib/shared/pedagoStepActions.js`), lue par la
@@ -5267,6 +5283,12 @@ client et l’outil MCP) : **400** `étape N : plantIds …` pour une liste qui 
 identifiant invalide ou plus de 12 espèces. Une liste vide est retirée (forme de l’étape
 inchangée) ; `plantIds` n’est jamais déduit de la config de séance. Les espèces citées comptent
 parmi les cibles vérifiées à la publication.
+
+`payload.preset` (facultatif, chantier collège du 22/11/2026) : cadrage imposé à l’ouverture du
+réseau — `alimentaire` (réseau alimentaire), `relations` (autres relations, dont la
+pollinisation) ou `all` (tout) ; mêmes clés que les cadrages du graphe (`FOODWEB_STEP_PRESETS`,
+parité testée). **400** `étape N : preset : cadrage inconnu …` pour une autre valeur ; une chaîne
+vide est retirée. L’élève peut ensuite changer de cadrage.
 
 Étape `open_tutorial` : `payload.tutorialId` (identifiant de `GET /api/tutorials`) ; le tutoriel
 s’ouvre par-dessus la séance, avec son accusé de lecture pour un compte connecté. Contrôle **à
@@ -5548,6 +5570,70 @@ d'appel (`/api/quiz`, `/api/gl/qcm`, `/api/gl/lore/qcm`, `/api/gl/games/:id/qcm/
   du compte (claim `uid`) — un autre compte qui y répond reçoit **403**. Les tirages libres
   (`/api/quiz/draw`, `/api/gl/qcm/draw`, `/api/gl/lore/qcm/draw`) l'excluent (cache mémoire de
   30 s, invalidé à chaque écriture de politique, de lien ou de réglage).
+- **Revendications propres au quiz ForetMap** (jeton `fm_quiz_present` seulement, migration
+  `quiz_attempt_choice`, 22/11/2026). Aucune ne révèle la bonne réponse :
+  - `qfp` : HMAC-SHA256 (`JWT_SECRET`) de l'**empreinte de version** de la question, lié au
+    `jti`. L'empreinte elle-même (SHA-256 de l'énoncé, des choix **et de la bonne réponse**) n'y
+    figure **jamais** en clair : l'élève, qui voit l'énoncé et les choix, la calculerait pour A
+    à E et lirait la bonne lettre. À la réponse, le serveur recalcule l'empreinte de la question
+    courante ; si le HMAC ne concorde pas (question modifiée pendant la validité du jeton),
+    l'empreinte de la tentative reste `NULL` ;
+  - `pat` : instant de présentation en millisecondes (durée de réponse côté serveur) ;
+  - `org: 'tirage'` et `ses` (séance) : étiquettes **déclarées par le client**
+    (`?origine=tirage`, `?pedagoSession=`), jamais décisives.
+  - La lettre d'origine du choix et l'ordre présenté viennent de `choiceLetters`, déjà porté
+    par le jeton des deux produits.
+
+  La charge du jeton **G&L est inchangée** : ces revendications ne sont ajoutées que par une
+  option facultative du module commun (`extraClaims` de `presentQuestion`), que seul
+  `/api/quiz` passe (`tests/quiz-gl-charge-inchangee.test.js`,
+  `tests/quiz-answer-choice.test.js`).
+
+### Réponse choisie et statistiques d'items (quiz ForetMap)
+
+Depuis la migration `quiz_attempt_choice` (22/11/2026), chaque tentative d'un compte
+(`user_quiz_attempts`) garde, en plus de `is_correct` :
+
+| Colonne              | Contenu                                                                                                  |
+| -------------------- | -------------------------------------------------------------------------------------------------------- |
+| `choix_lettre`       | lettre **d'origine** du choix retenu (celle de `quiz_questions`), jamais la position affichée            |
+| `ordre_presente`     | ordre affiché en lettres d'origine (`CADB`)                                                              |
+| `duree_ms`           | maintenant − `pat` du jeton (repli `iat`), borné à [0, 900 000] ms ; aucune valeur du client              |
+| `contexte`           | `validation` (jeton avec `resource`) > `seance` > `tirage` > `libre`                                     |
+| `question_empreinte` | SHA-256 tronqué (12 hex) de l'énoncé, des choix et de la bonne réponse (`lib/quizQuestionFingerprint.js`) |
+
+**Contexte** : `seance` n'est retenu que si la séance annoncée (`?pedagoSession=` à la
+présentation) est confirmée **côté serveur** pour ce compte (`loadActivePedagoSession` : séance
+publiée, module allumé, exécution démarrée et pas terminée depuis) ; sinon elle est ignorée,
+sans erreur. `tirage` suit `?origine=tirage`, que le client ajoute après `/draw`. Ces deux
+valeurs sont des étiquettes statistiques non fiables : elles ne changent ni la réponse HTTP ni
+le verrou. Une réponse refusée (`409` rejeu, `403` verrou, `401`, `403` autre compte) n'écrit
+toujours rien ; un visiteur sans compte n'écrit rien.
+
+**`GET /api/quiz/admin/questions/stats`** ajoute, par question (`stats[]`), calculé sur la
+**version courante** seulement (tentatives dont l'empreinte est celle de la question
+aujourd'hui) :
+
+- `version` : `{ empreinte, tentatives, choix_connus, success_rate, tentatives_versions_anterieures, tentatives_sans_version }`
+  — les tentatives historiques sans lettre comptent dans `attempts` / `success_rate`
+  (inchangés, toutes versions), pas dans la répartition ;
+- `repartition` : `[{ lettre, effectif, pourcentage, correcte }]` pour chaque choix proposé ;
+- `attracteurs` : lettres des distracteurs choisis **plus souvent** que la bonne réponse ;
+- `distracteurs_morts` : distracteurs choisis par **moins de 5 %** des réponses, évalués à partir
+  de **20** réponses (`distracteurs_morts_evalues`) ;
+- `discrimination` : `{ disponible, repondants, seuil_repondants, taille_groupes, reussite_groupe_fort, reussite_groupe_faible, indice, negative }`
+  — réussite (première réponse à la version courante) des **27 %** d'élèves les plus forts
+  moins celle des 27 % les plus faibles, la force étant le taux de réussite de l'élève sur ses
+  **autres** questions ; calculée à partir de **30** répondants distincts ;
+- `temps_median_ms` : `{ global, bonnes_reponses, mesures }` ;
+- `signaux` : `{ reussite_faible, attracteur, discrimination_negative }` ; `suspect` vaut vrai
+  si l'un d'eux l'est.
+
+Au niveau de la réponse : `effet_position` (`[{ nb_choix, reponses, attendu_pourcentage, positions: [{ position, effectif, pourcentage }] }]`,
+taux de choix par position affichée, toutes questions) et `seuils` (constantes du module
+`lib/quizQuestionStats.js`, pas des réglages). Calcul en SQL groupé, jamais une requête par
+élève ; agrégats seulement, aucun identifiant d'élève. Le connecteur MCP (`foretmap_quiz`,
+action `stats`) sert les mêmes champs (`docs/MCP.md`).
 
 ## Codes d’erreur
 
@@ -5644,14 +5730,14 @@ d'isolement : `tests/gating-products.test.js` ; caractérisation par produit :
 | POST | `/api/learning-links/suggest` | Rattachement automatique tutoriel ↔ question **par le contenu** (voir ci-dessous). Simulation par défaut. Les propositions sont insérées **non bloquantes** (lot 4 ; migration 214 aligne les propositions en attente). |
 | GET | `/api/learning-links/locks?includeExpired=&resourceType=` | **Élèves bloqués** par le conditionnement : qui, quelle fiche, quelle question ratée, combien d'erreurs, jusqu'à quand. |
 | DELETE | `/api/learning-links/locks` | Lève un verrou (`user_id`, `resource_type`, `resource_ref`, `question_code` optionnel). `404` si absent. |
-| GET | `/api/quiz/admin/questions/stats?onlyGating=&minAttempts=` | Taux de réussite par question, les plus ratées d'abord ; `suspect` signale celles qui méritent relecture. Le caractère bloquant est lu par `EXISTS` : une question rattachée à trois fiches ne compte plus trois fois ses tentatives (lot 6, C3). |
+| GET | `/api/quiz/admin/questions/stats?onlyGating=&minAttempts=` | Taux de réussite par question, les plus ratées d'abord ; `suspect` signale celles qui méritent relecture. Le caractère bloquant est lu par `EXISTS` : une question rattachée à trois fiches ne compte plus trois fois ses tentatives (lot 6, C3). Depuis la migration `quiz_attempt_choice` : statistiques d'items de la **version courante** (répartition des choix, attracteurs, distracteurs morts, discrimination, temps médian, `signaux`), `effet_position` et `seuils` — voir « Réponse choisie et statistiques d'items ». |
 
 #### Source unique des liens question ↔ ressource (migration 300)
 
 Les liens vivent dans **une seule table**, `resource_question_links`, lue et écrite par le service
 `lib/pedago/learningLinks.js` (audit du 25/09/2026, § 3.2.3). Les tables historiques
-`quiz_question_species` et `quiz_question_tutorials` sont **figées** : plus aucune lecture ni
-écriture applicative (temps 1 et 2 du retrait) ; leur suppression est une migration future.
+`quiz_question_species` et `quiz_question_tutorials`, figées par la migration 300 (temps 1 et 2 du
+retrait), sont **supprimées** par la migration `retrait_t3_quiz_question_links` (temps 3).
 
 | `origin`    | Qui l'écrit                                                                                 | Purgé par un traitement automatique ?        |
 | ----------- | ------------------------------------------------------------------------------------------- | -------------------------------------------- |
@@ -5962,7 +6048,8 @@ soit son statut, n'est jamais re-proposé).
 vers `resource_question_links` **une seule fois**, et les rattachements éditoriaux créés depuis
 remontaient ici en candidats (`origin='import'`, confiance `1`). Depuis la **migration 300**, cette
 reprise est faite une fois pour toutes (liens `origin='editorial'`, approuvés, non bloquants) et
-`quiz_question_tutorials` n'est plus lue : le paramètre est accepté mais sans effet, et
+`quiz_question_tutorials` est supprimée (migration `retrait_t3_quiz_question_links`) : le
+paramètre est accepté mais sans effet, et
 `stats.editorial_candidates` vaut toujours `0` (champ conservé pour l'écran professeur).
 
 Écran professeur : `src/components/pedago/admin/FMLearningLinksPanel.jsx`, dans l'onglet Quiz côté prof.

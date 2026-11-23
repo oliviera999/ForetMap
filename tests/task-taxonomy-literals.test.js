@@ -40,8 +40,9 @@ const OWNERS = new Set([
  * `jardinage` est aussi une catégorie pédagogique ; `seance` désigne une séance pédagogique.
  */
 const HOMONYMS = {
-  'src/shared/enums/pedagoEnums.js': ['jardinage'],
-  'lib/shared/pedagoEnums.js': ['jardinage'],
+  // `seance` : contexte d'une tentative de quiz (migration `quiz_attempt_choice`).
+  'src/shared/enums/pedagoEnums.js': ['jardinage', 'seance'],
+  'lib/shared/pedagoEnums.js': ['jardinage', 'seance'],
   'src/utils/learnerLevel.js': ['seance'],
   'lib/pedago/learnerLevel.js': ['seance'],
   'src/utils/pedagoSessionLink.js': ['seance'],

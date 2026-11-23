@@ -131,6 +131,38 @@ d'observation** pour l'écriture naturaliste libre.
   choix A à E, bonne réponse, et une explication propre à **chaque** choix possible
   (« Explication si l'élève choisit B »), plus l'explication affichée après une bonne
   réponse.
+- **Lire les statistiques d'une question** (novembre 2026). Depuis le 22/11/2026, chaque
+  réponse d'un élève connecté garde **le choix qu'il a fait** et le temps mis à répondre —
+  avant, on savait seulement si la réponse était juste ou fausse. Dans la fiche question, sous
+  chaque choix, une barre indique la part des élèves qui l'ont retenu (« Choisi par 48 % des
+  réponses (12 sur 25) »), la bonne réponse étant signalée en toutes lettres. Un encart sous
+  « Bonne réponse » résume le reste. Ces chiffres sont des **totaux** : aucun nom d'élève n'y
+  figure.
+  - **Seule la version actuelle compte.** Si vous modifiez l'énoncé, un choix ou la bonne
+    réponse, les réponses d'avant ne disent plus rien des nouveaux choix : elles sont mises de
+    côté (« Statistiques de la version actuelle : N réponses (M sur les versions
+    précédentes) »). Corriger une explication ne change pas la version. Les réponses données
+    avant le 22/11/2026 comptent dans le taux de réussite, pas dans la répartition des choix.
+  - **« Attire plus que la bonne réponse »** : un mauvais choix a été retenu plus souvent que
+    le bon. Soit une idée fausse est très répandue (« la plante tire sa matière du sol ») — la
+    question est alors précieuse, et c'est une notion à reprendre en classe —, soit la bonne
+    réponse enregistrée est fausse ou l'énoncé prête à confusion. **À relire en priorité.**
+  - **« Personne ne le choisit »** : moins de 5 % des réponses, à partir de 20 réponses. Ce
+    choix ne trompe personne et rend la question plus facile qu'elle n'en a l'air : le
+    remplacer par une erreur que les élèves font vraiment. Sous 20 réponses, l'encart dit
+    simplement que ce repérage n'est pas encore possible.
+  - **La discrimination** compare la réussite des élèves les plus à l'aise sur les autres
+    questions (les 27 % les plus forts) à celle des moins à l'aise (les 27 % les plus faibles).
+    Plus elle est haute, mieux la question distingue ceux qui ont compris ; proche de zéro, elle
+    ne distingue personne. **Négative** — les plus à l'aise la ratent plus que les autres —,
+    c'est presque toujours une question ambiguë ou une bonne réponse fausse. Elle n'est
+    calculée qu'à partir de 30 élèves différents.
+  - **Le temps médian** de réponse (pour toutes les réponses et pour les bonnes) aide à
+    repérer une question trop longue à lire ou, à l'inverse, devinée en un coup d'œil.
+  - **Liste « Suspectes d'abord »** : le tri de la liste des questions place en tête celles
+    qui méritent une relecture — taux de réussite très bas, choix qui attire plus que la bonne
+    réponse, ou discrimination négative.
+
 - **L'aperçu « Présenter »** montre la question telle que l'élève la verra —
   **illustration comprise**, avec sa légende et son crédit — et permet de répondre pour
   vérifier le retour pédagogique.
@@ -271,45 +303,66 @@ d'observation** pour l'écriture naturaliste libre.
   chaînes alimentaires réelles de la forêt comestible.
 - Le professeur (gestionnaire des plantes) crée et modifie les liens entre espèces —
   le graphe s'appuie sur le catalogue de biodiversité.
-- **Trois vues du graphe.** Par défaut, **Réseau alimentaire** ne montre que ce qui
+- **Trois vues du graphe.** Au lycée, **Réseau alimentaire** (vue par défaut) ne montre que ce qui
   transporte de la matière d’un être vivant vers celui qui le consomme : herbivorie,
   prédation, décomposition, détritivorie, frugivorie, granivorie, mycophagie,
   parasitisme. C’est la vue à présenter en classe pour une chaîne alimentaire.
   **Autres relations** isole pollinisation, plante hôte, symbiose, mutualisme,
   commensalisme, compétition, allélopathie, facilitation, et le cycle de l’azote
   (nitrification, excrétion, assimilation). **Tout** superpose les deux pour
-  l’exploration complète. Les filtres par type et le mode « isoler une espèce » restent
-  disponibles dans chaque vue.
+  l’exploration complète — c’est la vue d’ouverture **au collège** (dans les types de son
+  niveau) depuis le 22 novembre 2026. Les filtres par type et le mode « isoler une espèce »
+  restent disponibles dans chaque vue.
 
 - **La densité du réseau suit le niveau pédagogique** : en Collège, seuls les types
   d’interaction scolaires sont proposés, sans le niveau de preuve des liens ni l’efficacité
   de pollinisation ; en Lycée et Université, tout est visible — voir
   [Niveaux pédagogiques biodiversité](niveaux-pedagogiques-biodiversite.md).
 
-- **Au collège, le réseau part d’une espèce** (de la 6e à la 3e). Un réseau
-  de deux cents espèces d’un coup ne se lit pas à 11 ans : l’élève **choisit d’abord une
-  espèce de départ** — les **espèces phares** de la carte en tête de liste, puis une
-  recherche par nom — et voit ses voisins directs : ce qu’elle mange, qui la mange, qui
-  l’aide. Le bouton **Chaîne** élargit d’un cran (les voisins des voisins), **Voisins** y
-  revient, **Changer d’espèce** ramène au choix. Les espèces qui ne sont pas sur la carte
-  choisie n’apparaissent pas. Lycée, université et professeurs gardent le réseau complet,
-  inchangé.
+- **Au collège, l’élève compose une sélection d’espèces** (de la 6e à la 3e, depuis le
+  22 novembre 2026). Un réseau de deux cents espèces d’un coup ne se lit pas à 11 ans :
+  l’élève **touche une ou plusieurs espèces** — les **espèces phares** de la carte en tête,
+  puis une recherche par nom (une espèce sans aucune relation reste trouvable, avec la
+  mention « aucune relation enregistrée ») ; un second clic la retire. Une **barre de
+  sélection** au-dessus du graphe rappelle les espèces choisies (chacune avec sa croix
+  « Retirer »), propose **Tout retirer** et un champ **Ajouter une espèce**. Le graphe se
+  recompose à chaque changement, sans bouton « Valider ». Trois étendues : **Seulement les
+  liens entre mes espèces** (dès deux espèces), **Leurs voisins directs**, **La chaîne
+  autour**. La sélection est gardée quand on change de carte.
+- **Toucher une espèce du graphe, au collège, ouvre un petit panneau** : son nom, son
+  étiquette simple et deux boutons, **Ajouter à la sélection** (ou **Retirer de la
+  sélection**) et **Voir la fiche**. Au clavier, `Entrée` l’ouvre, `Échap` le ferme ; sur
+  téléphone, il s’affiche en bas de l’écran.
+- **Les espèces d’autres lieux sont grisées, plus jamais retirées.** Une relation qui sort
+  de la carte reste affichée : l’espèce extérieure apparaît grisée, avec la mention « vit
+  ailleurs : Sablettes, Daya… » (ou « n’est rattachée à aucune carte »), dans le graphe
+  comme dans la liste. Elle se sélectionne comme les autres. Le compost, la litière, les
+  fruits tombés, le bois mort, le biofilm ou le plancton ne sont jamais « ailleurs » : ils
+  comptent toujours comme présents.
+- **« Pour aller plus loin », au collège.** Ce bouton montre le réseau complet de la carte,
+  avec toutes les relations, comme au lycée ; **Revenir au réseau simplifié** retrouve la
+  sélection et le cadrage d’avant. Rien n’est caché définitivement. Lycée, université et
+  professeurs gardent le réseau complet, inchangé.
 - **Des verbes plutôt que des mots savants, au collège.** Chaque type de relation s’y lit
   d’abord comme un verbe, le mot savant en second : « mange des plantes (herbivorie) »,
   « mange des animaux (prédation) », « mange des fruits (frugivorie) », « mange des graines
   (granivorie) », « mange des débris (détritivorie) », « décompose », « pollinise »,
-  « pond sur (plante hôte) », « parasite ». La **frugivorie** et la **granivorie** sont
-  montrées à tout le collège ; la **symbiose** et la **compétition** au cycle 4 (5e à 3e)
-  seulement.
-- **Une espèce sans relation visible est annoncée.** Arrivé depuis une fiche (« Voir le
-  réseau ») ou une séance, si l’espèce n’a aucune relation montrée à ce niveau ou sur cette
-  carte, un message le dit — jamais un graphe vide — et l’élève peut choisir une autre
-  espèce.
+  « pond sur (plante hôte) », « parasite », « mange des champignons (mycophagie) »,
+  « s’entraident (mutualisme) ». La **frugivorie**, la **granivorie** et la **mycophagie**
+  sont montrées à tout le collège ; la **symbiose**, la **compétition** et le **mutualisme**
+  au cycle 4 (5e à 3e) seulement (la pollinisation, qui en est un cas, reste montrée dès la
+  6e).
+- **Une espèce sans relation visible est annoncée.** Si une espèce choisie n’a aucune
+  relation enregistrée, ou seulement des relations hors du cadrage ou réservées au cycle 4,
+  un message le dit — jamais un graphe vide — et la barre de sélection reste là pour en
+  ajouter une autre.
 - **Une séance peut montrer plusieurs espèces ensemble.** Dans l’éditeur de séance, une étape
   « Réseau trophique » accepte, en plus de l’espèce mise en avant, une liste d’**espèces
   montrées ensemble** (douze au plus) : l’élève ne voit que ces espèces et les liens qui les
   relient entre elles — idéal pour faire construire une chaîne précise. Il peut ensuite
-  élargir aux voisins.
+  élargir aux voisins, ajouter ou retirer des espèces. L’étape peut aussi imposer le
+  **cadrage** d’ouverture (Réseau alimentaire, Autres relations ou Tout) — réglage écrit
+  dans la séance (champ `preset`), pas encore dans l’éditeur.
 
 - **Dix-neuf types d’interaction.** Onze ont été ajoutés pour cesser de ranger sous un
   mot des relations différentes. Quelques cas concrets :
@@ -373,7 +426,9 @@ d'observation** pour l'écriture naturaliste libre.
 - **Arriver depuis une fiche plante isole l'espèce.** Le bouton « Voir le réseau
   trophique » d'une fiche ouvre l'onglet **sur le sous-réseau de cette espèce** (elle et
   ses voisines directes), **filtré sur la carte active** (celle choisie sur le plan de
-  travail) ; le bouton « Tout afficher » revient au réseau de cette carte. On peut encore
+  travail) ; le bouton « Tout afficher » revient au réseau de cette carte. Au collège, la
+  fiche ouvre une carte **où l’espèce vit** (la carte active si elle y est, sinon la première
+  de ses cartes, sinon « Toutes les cartes ») et la place dans la sélection. On peut encore
   élargir à « Toutes les cartes » dans le filtre. Si l'espèce n'a encore aucune
   interaction dans la carte ou la zone choisie, un message le dit au lieu de laisser
   croire à un bug.

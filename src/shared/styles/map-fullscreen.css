@@ -151,3 +151,8 @@ body.fm-map-fullscreen-active > .fm-map-fullscreen-layer {
 .map-view-root--map-fullscreen-active .map-view-toolbar {
   display: none;
 }
+
+/* Cale de défilement sous la feuille basse de la Visite (mobile) : hauteur passée par propriété personnalisée. */
+.visit-sheet-scroll-spacer {
+  height: var(--visit-sheet-spacer-h, 0);
+}

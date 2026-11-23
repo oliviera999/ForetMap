@@ -76,6 +76,7 @@
     "db:init": "node -e \"require('dotenv').config(); const { initSchema, seedData } = require('./database'); (async () => { await initSchema(); await seedData(); console.log('DB init OK'); process.exit(0); })()\"",
     "db:migrate": "node -e \"require('dotenv').config(); const { initSchema } = require('./database'); (async () => { await initSchema(); console.log('Migrations OK'); process.exit(0); })()\"",
     "db:status": "node scripts/db-migration-status.js",
+    "db:schema-fingerprint": "node scripts/schema-fingerprint.js",
     "db:t3-status": "node scripts/db-t3-status.js",
     "check:runtime": "node scripts/check-runtime.js",
     "gl:sim": "node tools/gl-sim/run.js",

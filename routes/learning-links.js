@@ -515,10 +515,10 @@ router.post(
 
     // Couples deja lies, tous statuts confondus (y compris rejetes : ne pas re-proposer).
     const existing = await learningLinks.listLinkKeys({ queryAll });
-    // `includeEditorial` n'a plus d'effet : la reprise des « questions liées » saisies dans
-    // `quiz_question_tutorials` est faite une fois pour toutes par la migration 300, et
-    // cette table n'est plus lue (temps 1 du retrait, audit du 25/09/2026, § 3.5). Le
-    // parametre reste accepte, et `stats.editorial_candidates` vaut toujours 0.
+    // `includeEditorial` n'a plus d'effet : la reprise des « questions liées » de l'ancienne
+    // table figée des tutoriels est faite une fois pour toutes par la migration 300, et cette
+    // table est supprimée (migration `retrait_t3_quiz_question_links`). Le parametre reste
+    // accepte, et `stats.editorial_candidates` vaut toujours 0.
     const seen = new Set(existing);
 
     // Tutoriels : rapprochement de CONTENU (le titre seul ne suffit pas).

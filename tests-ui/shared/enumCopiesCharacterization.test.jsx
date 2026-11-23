@@ -188,6 +188,8 @@ describe('niveaux pédagogiques (miroirs ESM)', () => {
       'parasitisme',
       'competition',
       'symbiose',
+      'mycophagie',
+      'mutualisme',
     ]);
     expect(biodivLevel.normalizePedagoLevel(' Lycée ')).toBe('lycee');
     expect(biodivLevel.normalizePedagoLevel('bidon')).toBeNull();

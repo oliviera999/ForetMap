@@ -36,6 +36,21 @@ describe('runPedagoSessionStepAction — réseau trophique', () => {
     expect(n.openPedagoFoodWeb).toHaveBeenLastCalledWith(null, null);
   });
 
+  it('preset seul (chantier du 22/11/2026) : demande transmise avec le cadrage', () => {
+    const n = nav();
+    runPedagoSessionStepAction(
+      step(A.OPEN_FOODWEB, { highlightPlantId: 6, preset: 'relations' }),
+      n,
+    );
+    expect(n.setFoodWebRequest.mock.calls.at(-1)[0]).toMatchObject({
+      plantIds: [],
+      preset: 'relations',
+    });
+    expect(n.openPedagoFoodWeb).toHaveBeenLastCalledWith(6, null);
+    runPedagoSessionStepAction(step(A.OPEN_FOODWEB, { preset: 'inconnu' }), n);
+    expect(n.setFoodWebRequest).toHaveBeenLastCalledWith(null);
+  });
+
   it('une autre étape efface la demande', () => {
     const n = nav();
     runPedagoSessionStepAction(step(A.MESSAGE, {}), n);

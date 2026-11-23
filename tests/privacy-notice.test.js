@@ -117,6 +117,23 @@ test('notice du plan e-nov : celle du plan public, sous son propre nom', async (
   assert.equal(enov.product, 'plan', 'mise en page du plan public');
 });
 
+test('notice ForêtMap : choix fait au quiz et temps de réponse (finalité, agrégats), tutoyée', async () => {
+  const { buildPrivacyNotice } = await loadNotice();
+  const notice = buildPrivacyNotice({ product: 'foret' });
+  const donnees = notice.sections.find((s) => s.id === 'donnees');
+  const line = donnees.items.find((item) => item.includes('le choix que tu as fait'));
+  assert.ok(line, 'phrase sur le choix fait au quiz absente');
+  assert.match(line, /le temps mis à répondre/);
+  assert.match(line, /servent à améliorer les questions/);
+  assert.match(line, /aucun nom d’élève/);
+  assert.doesNotMatch(line, /\bvous\b/i, 'texte élève tutoyé');
+  // Le quiz ForêtMap seulement : ni G&L ni les plans.
+  for (const product of ['gl', 'plan', 'staff']) {
+    const text = JSON.stringify(buildPrivacyNotice({ product }).sections);
+    assert.ok(!text.includes('le choix que tu as fait'), `${product} : phrase absente`);
+  }
+});
+
 test('notice ForêtMap : section « Tes badges » (sources, qui les voit, durée), tutoyée', async () => {
   const { buildPrivacyNotice, PRIVACY_RETENTION: R } = await loadNotice();
   const notice = buildPrivacyNotice({ product: 'foret' });

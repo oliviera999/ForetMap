@@ -3,6 +3,10 @@
 // Migration 300 : reprise dans `resource_question_links` des liens des tables historiques
 // `quiz_question_species` et `quiz_question_tutorials` (piste C, tranche « liens »).
 // Audit du 25/09/2026, § 1.3.3, § 3.2.3 et § 3.5. Tests BDD partagée : exécution séquentielle.
+//
+// Ces deux tables sont supprimées depuis par la migration `retrait_t3_quiz_question_links`.
+// La migration 300 tourne toujours sur une base fraîche, avant ce retrait : le test recrée les
+// tables le temps du rejeu (helper `legacyQuizLinkTables`) et les supprime à la fin.
 
 require('./helpers/setup');
 const { test, before, after } = require('node:test');
@@ -10,6 +14,10 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { initSchema, execute, queryOne, splitSqlStatements } = require('../database');
+const {
+  recreateLegacyQuizLinkTables,
+  dropLegacyQuizLinkTables,
+} = require('./helpers/legacyQuizLinkTables');
 
 const stamp = Date.now().toString(36).toUpperCase();
 const catSlug = `migcat${stamp.toLowerCase()}`.slice(0, 64);
@@ -46,6 +54,7 @@ async function rql(resourceType, resourceRef, questionCode) {
 
 before(async () => {
   await initSchema();
+  await recreateLegacyQuizLinkTables(execute);
   await execute(
     `INSERT IGNORE INTO quiz_categories (slug, nom, theme, order_index)
      VALUES (?, 'Migration liens', 'sciences', 995)`,
@@ -91,6 +100,7 @@ after(async () => {
   await execute('DELETE FROM quiz_categories WHERE slug = ?', [catSlug]).catch(() => {});
   await execute('DELETE FROM plants WHERE id = ?', [plantId]).catch(() => {});
   await execute('DELETE FROM tutorials WHERE id = ?', [tutorialId]).catch(() => {});
+  await dropLegacyQuizLinkTables(execute);
 });
 
 // ---------------------------------------------------------------------------------------

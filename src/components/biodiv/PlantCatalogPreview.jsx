@@ -132,14 +132,17 @@ export function PlantBiodiversityCatalogPreviewCard({
       ? `https://www.gbif.org/species/${Number(gbifKey)}`
       : null;
   const previewMapId = activeMapId || displayPlant.preview_map_id || null;
-  // Profil collège : étiquette simple sous le nom, description collège à la place de la
-  // description quand elle existe (table de visibilité, briques `usage_label` et
-  // `description_college`).
+  // Profil collège : étiquette simple sous le nom, description collège **en premier** quand
+  // elle existe (table de visibilité, briques `usage_label` et `description_college`) ; la
+  // description complète reste accessible dans un bloc replié « Description complète »
+  // (décision 4 du 22/11/2026 : on replie, on ne retire pas).
   const usageLabel = showUsageLabel ? normalizedPlantValue(displayPlant.usage_label) : '';
   const collegeDescription = preferCollegeDescription
     ? normalizedPlantValue(displayPlant.description_college)
     : '';
   const description = collegeDescription || displayPlant.description;
+  const fullDescription = collegeDescription ? normalizedPlantValue(displayPlant.description) : '';
+  const showFullDescription = !!fullDescription && fullDescription !== collegeDescription;
   return (
     <article className="biodiv-card fade-in" {...dataAttr}>
       <div className="biodiv-card-head">
@@ -196,6 +199,15 @@ export function PlantBiodiversityCatalogPreviewCard({
             <em style={{ color: '#bbb' }}>Pas de description</em>
           </p>
         )}
+        {showFullDescription ? (
+          <details
+            className="plant-more plant-full-description"
+            data-testid="plant-full-description"
+          >
+            <summary>Description complète</summary>
+            <MarkdownContent className="plant-row-desc">{fullDescription}</MarkdownContent>
+          </details>
+        ) : null}
         <PlantBiodivHeroPhoto
           plant={displayPlant}
           canConfirmPhotos={canConfirmPhotos && !photoBusy}

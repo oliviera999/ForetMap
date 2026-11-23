@@ -26,6 +26,11 @@
  * jeu de test, donc le flux de sortie les neutralise. Le fixture versionné ne contient ainsi
  * **aucune** adresse hors `@exemple.invalid` — ce que `tests/fixture-anonymise.test.js`
  * vérifie à chaque CI, en lisant l'archive telle qu'elle est versionnée.
+ *
+ * Même logique pour les **noms recopiés** par le jeu Gnomes & Licornes (qui a découvert un
+ * feuillet, qui a lancé un sort) : l'anonymiseur réécrit les comptes, pas ces copies. Le flux
+ * de sortie les remplace par le pseudonyme du joueur (`joueur<id>`), cf.
+ * `scripts/lib/fixturePseudonymes.js` ; `tests/fixture-pseudonymes.test.js` contrôle l'archive.
  */
 
 require('dotenv').config();
@@ -36,6 +41,7 @@ const zlib = require('zlib');
 const { spawn } = require('child_process');
 const { pipeline } = require('stream/promises');
 const { Transform } = require('stream');
+const { StringDecoder } = require('string_decoder');
 
 const { queryAll, queryOne, endPool } = require('../database');
 const {
@@ -45,6 +51,7 @@ const {
   BCRYPT_SQL_REGEXP,
   RESIDUAL_EXCEPTIONS,
 } = require('./anonymize-local-db');
+const { creerPseudonymiseurGl } = require('./lib/fixturePseudonymes');
 
 const FIXTURE_PATH = path.join(__dirname, '..', 'sql', 'fixtures', 'foretmap-anonymise.sql.gz');
 const ANON_EMAIL_DOMAIN = 'exemple.invalid';
@@ -151,6 +158,60 @@ async function volumetrie(database) {
   return rows.map((r) => `${r.t}~${r.n}`).join(', ');
 }
 
+/**
+ * Flux de sortie de l'export : consignes SQL en tête et en pied, neutralisation des adresses
+ * tolérées, pseudonymisation des noms recopiés par le jeu. Exporté pour les tests, qui y font
+ * passer un faux dump découpé en morceaux arbitraires.
+ */
+function creerFluxSortie() {
+  let neutralisees = 0;
+  let premierMorceau = true;
+  // Traitement ligne à ligne : un morceau du flux peut couper une ligne d'INSERT en deux, et
+  // la pseudonymisation des tables du jeu a besoin de la ligne entière pour lire ses valeurs.
+  let resteLigne = '';
+  // Un caractère multioctet peut aussi tomber à cheval sur deux morceaux.
+  const decodeur = new StringDecoder('utf8');
+  const pseudonymiseur = creerPseudonymiseurGl();
+  const traiterLignes = (lignes) =>
+    lignes
+      .map((l) => pseudonymiseur.ligne(l))
+      .join('\n')
+      .replace(EMAIL_JS_REGEXP, () => {
+        neutralisees += 1;
+        return NEUTRAL_EMAIL;
+      });
+  const flux = new Transform({
+    transform(chunk, _enc, done) {
+      let texte = decodeur.write(chunk);
+      if (premierMorceau) {
+        premierMorceau = false;
+        // 1. La ligne « sandbox mode » est une extension MariaDB que les analyseurs stricts
+        //    (dont `splitSqlStatements`) ne savent pas lire.
+        texte = texte.replace(/^\/\*M!\d+\\?-[^\n]*\n/, '');
+        // 2. `mariadb-dump` désactive bien les clés étrangères, mais dans un commentaire
+        //    versionné `/*!40014 … */` que l'importeur du dépôt ne rejoue pas : les tables
+        //    sortent par ordre alphabétique, donc `audit_log` est créée avant `users` et la
+        //    contrainte échoue. On pose donc les consignes en SQL ordinaire.
+        texte = `SET FOREIGN_KEY_CHECKS=0;\nSET UNIQUE_CHECKS=0;\n${texte}`;
+      }
+      const lignes = (resteLigne + texte).split('\n');
+      resteLigne = lignes.pop();
+      done(null, lignes.length ? `${traiterLignes(lignes)}\n` : '');
+    },
+    flush(done) {
+      done(
+        null,
+        `${traiterLignes([resteLigne + decodeur.end()])}\nSET FOREIGN_KEY_CHECKS=1;\nSET UNIQUE_CHECKS=1;\n`,
+      );
+    },
+  });
+
+  return {
+    flux,
+    compteurs: () => ({ neutralisees, pseudonymises: pseudonymiseur.stats.modifies }),
+  };
+}
+
 async function main() {
   const options = parseArgs(process.argv.slice(2));
 
@@ -219,34 +280,7 @@ async function main() {
   const env = { ...process.env };
   if (process.env.DB_PASS) env.MYSQL_PWD = process.env.DB_PASS;
 
-  let neutralisees = 0;
-  let premierMorceau = true;
-  const neutralise = new Transform({
-    transform(chunk, _enc, done) {
-      let texte = chunk.toString('utf8');
-      if (premierMorceau) {
-        premierMorceau = false;
-        // 1. La ligne « sandbox mode » est une extension MariaDB que les analyseurs stricts
-        //    (dont `splitSqlStatements`) ne savent pas lire.
-        texte = texte.replace(/^\/\*M!\d+\\?-[^\n]*\n/, '');
-        // 2. `mariadb-dump` désactive bien les clés étrangères, mais dans un commentaire
-        //    versionné `/*!40014 … */` que l'importeur du dépôt ne rejoue pas : les tables
-        //    sortent par ordre alphabétique, donc `audit_log` est créée avant `users` et la
-        //    contrainte échoue. On pose donc les consignes en SQL ordinaire.
-        texte = `SET FOREIGN_KEY_CHECKS=0;\nSET UNIQUE_CHECKS=0;\n${texte}`;
-      }
-      done(
-        null,
-        texte.replace(EMAIL_JS_REGEXP, () => {
-          neutralisees += 1;
-          return NEUTRAL_EMAIL;
-        }),
-      );
-    },
-    flush(done) {
-      done(null, '\nSET FOREIGN_KEY_CHECKS=1;\nSET UNIQUE_CHECKS=1;\n');
-    },
-  });
+  const sortie = creerFluxSortie();
 
   const enfant = spawn(binary, args, { env, stdio: ['ignore', 'pipe', 'inherit'] });
   // Le listener est posé AVANT d'attendre le flux : `close` est émis une seule fois, et sur un
@@ -256,7 +290,7 @@ async function main() {
   const fin = new Promise((resolve) => enfant.on('close', resolve));
   await pipeline(
     enfant.stdout,
-    neutralise,
+    sortie.flux,
     zlib.createGzip({ level: 9 }),
     fs.createWriteStream(options.output),
   );
@@ -272,9 +306,15 @@ async function main() {
   console.log(
     `\nFixture écrit : ${path.relative(process.cwd(), options.output)} (${(taille / 1048576).toFixed(2)} Mo)`,
   );
+  const { neutralisees, pseudonymises } = sortie.compteurs();
   if (neutralisees > 0) {
     console.log(
       `${neutralisees} adresse(s) tolérée(s) neutralisée(s) dans le flux (crédit d’illustration, contact éditorial) → ${NEUTRAL_EMAIL}.`,
+    );
+  }
+  if (pseudonymises > 0) {
+    console.log(
+      `${pseudonymises} nom(s) recopié(s) dans des tables du jeu pseudonymisé(s) → joueur<id>.`,
     );
   }
   console.log('Chargement dans une autre session : `npm run db:fixture:load`.');
@@ -294,4 +334,11 @@ if (require.main === module) {
     });
 }
 
-module.exports = { FIXTURE_PATH, ANON_EMAIL_DOMAIN, NEUTRAL_EMAIL, EMAIL_JS_REGEXP, parseArgs };
+module.exports = {
+  FIXTURE_PATH,
+  ANON_EMAIL_DOMAIN,
+  NEUTRAL_EMAIL,
+  EMAIL_JS_REGEXP,
+  parseArgs,
+  creerFluxSortie,
+};

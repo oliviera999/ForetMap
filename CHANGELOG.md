@@ -9,6 +9,200 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — réseau trophique du collège : on marque, on ne masque plus (chantier du 22/11/2026)
+
+Décisions d'Oliv du 22/11/2026 (1, 2, 3, 8) ; audit des restrictions du cycle 3 du même jour.
+
+- **Hors carte grisé, plus jamais retiré** : une relation qui sort de la carte reste affichée ;
+  l'espèce extérieure est grisée avec la mention « vit ailleurs : Sablettes, Daya… » (ou
+  « n’est rattachée à aucune carte »), dans le graphe et dans la liste. `GET /api/food-web`
+  (`?mapId=` / `?zoneId=`) renvoie `from_elsewhere` / `to_elsewhere` (cartes actives où vit
+  l'extrémité hors périmètre, une requête groupée). Les fiches `ressource`, `consortium` et
+  `groupe_fonctionnel` (compost, litière, bois mort, biofilm…) sont toujours dans le périmètre :
+  en 6e sur n3, le ver de compost passe de 0 à 6 liens visibles.
+- **Sélection de plusieurs espèces** au lieu d'une espèce de départ : un clic ajoute ou retire
+  (puces, barre de sélection, « Tout retirer », « Ajouter une espèce »), trois étendues (liens
+  entre mes espèces, voisins directs, chaîne), sélection gardée au changement de carte.
+- **Panneau d'une espèce du graphe** au collège (« Ajouter à la sélection » / « Retirer de la
+  sélection », « Voir la fiche ») : `FoodWebGraph` reçoit `nodeClickMode` (`'isolate'` par
+  défaut : lycée et Gnomes & Licornes inchangés).
+- **Cadrage « Tout »** par défaut au collège ; bouton **« Pour aller plus loin »** (réseau
+  complet de la carte) et « Revenir au réseau simplifié ».
+- **Types** : la mycophagie (« mange des champignons ») est montrée à tout le collège ; le
+  mutualisme (« s’entraident ») à partir du cycle 4, comme la symbiose et la compétition.
+- **Séances** : l'étape `open_foodweb` accepte `preset` (`alimentaire` | `relations` | `all`),
+  validé par le serveur et l'outil MCP `foretmap_pedago_sessions`.
+- **« Voir le réseau trophique » depuis une fiche** (collège) : ouvre une carte où l'espèce
+  vit et la sélectionne ; nouvelle route `GET /api/food-web/species/:id/maps`.
+- Table de visibilité : `meta_sections` passe à `collapsed` au collège (rendu replié : fiche
+  espèce) ; nouvelles clés `foodweb_default_preset` et `foodweb_go_further` ;
+  `foodweb_offmap_species` montré partout.
+- Refactorisation : une seule notion de périmètre (`FOODWEB_ALWAYS_IN_SCOPE_ENTITY_KINDS`,
+  `readInScope`), clic de nœud et panneau sortis de `FoodWebGraph.jsx`
+  (`useFoodWebNodeClick`, `FoodWebNodePanel`), code mort retiré (`hideOffMap`,
+  `FoodWebStartPicker`, `useFoodWebStartSpecies`, `START_SPECIES_LIST_MAX`).
+
+### Modifié — profil collège assoupli : fiche, Visite, données (décisions du 22/11/2026)
+
+- **Fiche espèce au collège** : les sections **Identité** et **Écologie et usages** reviennent,
+  **repliées** (brique `meta_sections` = `collapsed`, lue par `metaSectionDisplay`) ; le nom
+  scientifique, toujours absent de l'en-tête, est dans Identité. La description collège
+  s'affiche d'abord, la description générale suit dans un bloc replié « Description
+  complète ». Les interactions de la fiche affichent le libellé du profil (verbe au collège,
+  mot savant ailleurs) au lieu du code brut (`plante_hote`…), à tous les profils.
+- **Visite sans compte au palier cycle 4** (`GUEST_NIVEAU`, `resolveLearnerLevel` front et
+  serveur, parité testée) : glossaire jusqu'à `approfondissement`, questions de palier 2, types
+  d'interaction du cycle 4 ; affichage collège inchangé. Élève sans classe et compte personnel
+  sans groupe : toujours cycle 3.
+
+### Ajouté — migration `college_assouplissement`
+
+- Clade `tetrapodes` visible au collège, « Animaux à quatre membres » (arbre collège à 5
+  niveaux depuis la racine).
+- Présences confirmées sur le terrain : abeille domestique, pucerons, mineuse de la tomate,
+  escargot petit-gris, escargot espagnol (n3) ; abeille domestique (foret).
+- Séances 6e : consignes réécrites pour la sélection d'espèces et « Pour aller plus loin »,
+  `preset` des étapes `open_foodweb` (gardes sur la forme exacte d'avant).
+- QF9877 : notion C3-ENV en ajout (palier 1) ; glossaire : « matière organique » en `base`.
+- **20 questions de cycle 3** (QF9934 à QF9953) en `environnement_durable` et
+  `ravageurs_auxiliaires`, liens non bloquants vers les fiches (`resource_question_links`).
+  Source unique `data/college-assouplissement/lot4_quiz.json` ; migration générée et contrôlée
+  par `scripts/college-assouplissement/build-lot4-migration.js` (`--check`, `--db`). Questions
+  collège de palier 1 : 330 → 351 (`environnement_durable` 0 → 10, `ravageurs_auxiliaires`
+  3 → 13).
+- Tests : `college-c2-*` (UI : fiche aux profils 6e, 3e, 2de ; contexte de la Visite),
+  `tests/college-c2-visite-cycle4.test.js`, `tests/content/college-assouplissement.test.js`.
+- Docs : `docs/PROFIL_COLLEGE.md` (section « Assouplissement du 22/11/2026 »), docs de référence
+  de la fiche, des niveaux pédagogiques et des groupes emboîtés.
+
+### Ajouté — Quiz : réponse choisie et analyse des distracteurs
+
+- **Lot A — migration `quiz_attempt_choice`** : cinq colonnes `NULL` sur `user_quiz_attempts`
+  (`choix_lettre` lettre d'origine du choix retenu, `ordre_presente` ordre affiché en lettres
+  d'origine, `duree_ms` temps de réponse mesuré côté serveur, `contexte` libre / tirage /
+  validation / séance, `question_empreinte` empreinte de version de la question) et l'index
+  `(question_code, question_empreinte, choix_lettre)`. Les tentatives historiques restent sans
+  valeur. Référentiel des ENUM : `QUIZ_ANSWER_LETTER_ENUM` couvre aussi `choix_lettre`, nouveau
+  `QUIZ_ATTEMPT_CONTEXTE_ENUM`. Test `tests/quiz-migration-attempt-choice.test.js`.
+- **Lot B — enregistrement à la réponse** : `POST /api/quiz/questions/:code/answer` renseigne
+  les cinq colonnes, toutes lues dans le jeton de présentation vérifié (jamais dans le corps).
+  Lettre d'origine et ordre : `choiceLetters`, déjà porté par le jeton. Nouvelles revendications
+  ForetMap du jeton (aucune ne révèle la bonne réponse ; charge G&L inchangée) : `qfp` (HMAC de
+  l'empreinte de version, liée au `jti`), `pat` (instant de présentation), `org` et `ses`
+  (étiquettes déclarées par le client : `?origine=tirage`, `?pedagoSession=` sur `…/present`,
+  séance retenue seulement si le serveur la confirme active). Empreinte : nouveau module pur
+  `lib/quizQuestionFingerprint.js` (énoncé, choix, bonne réponse ; pas les feedbacks) ; `NULL`
+  si la question a changé entre présentation et réponse. Le client annonce le tirage et la
+  séance ; réponse HTTP et écran élève inchangés. Rejeu (409) et verrou (403) n'écrivent
+  toujours rien. Tests `quiz-question-fingerprint`, `quiz-answer-choice`.
+- **Lot C — statistiques d'items** : `GET /api/quiz/admin/questions/stats` ajoute, par question,
+  la **version courante** (`version` : empreinte, tentatives, `choix_connus`, réussite, tentatives
+  des versions antérieures et sans version), la **répartition des choix** (effectif, pourcentage,
+  bonne réponse marquée), les **distracteurs attracteurs** (choisis plus que la bonne réponse) et
+  **morts** (< 5 % à partir de 20 réponses), l'**indice de discrimination** (27 % les plus forts
+  contre 27 % les plus faibles, force = réussite sur les autres questions, à partir de 30
+  répondants, négatif signalé), le **temps médian** (global et bonnes réponses) et `signaux` ;
+  le drapeau `suspect` intègre attracteur et discrimination négative. Agrégat global
+  `effet_position` (taux de choix par position affichée) et `seuils`. SQL groupé, constantes
+  nommées dans `lib/quizQuestionStats.js` (partie G&L inchangée). Test
+  `quiz-question-stats-choices`.
+- **Lot D — connecteur et écran du professeur** : `foretmap_quiz` `stats` renvoie
+  `distractors.available: true` et, par question, version, répartition, attracteurs,
+  distracteurs morts, discrimination, temps médian et signaux (mêmes fonctions que la route) ;
+  `docs/MCP.md` à jour. Écran d'édition d'une question du quiz : sous chaque choix, barre du
+  pourcentage de choix (texte explicite, barre décorative) et badges « Attire plus que la bonne
+  réponse » / « Personne ne le choisit » ; encart version (« Statistiques de la version
+  actuelle : N réponses (M sur les versions précédentes) »), discrimination avec phrase d'aide,
+  temps médian, seuils non atteints dits comme tels. Liste : tri « Suspectes d'abord ». Panneau
+  partagé : `clientSort` reçoit un 3ᵉ argument facultatif `{ refs }`, sans effet sur les tris
+  G&L. Tests `tests-ui/FMQuizChoiceStats.test.jsx`, `tests/mcp-domain-quiz.test.js`.
+- **Lot E — données personnelles et documentation** : notice de confidentialité ForêtMap (« à
+  chaque réponse au quiz, le choix que tu as fait et le temps mis à répondre : ils servent à
+  améliorer les questions… », tutoyée, test dans `tests/privacy-notice.test.js`) ; registre du
+  connecteur (`docs/MCP_REGISTRE_TRAITEMENT.md` : nouvelles données, finalité, agrégats, durée
+  inchangée — celle du compte) ; `docs/API.md` (colonnes, contexte, champs des statistiques,
+  revendications ForêtMap du jeton qui ne révèlent pas la bonne réponse, charge G&L inchangée,
+  étiquettes `?origine=` / `?pedagoSession=` non fiables) ; doc professeur
+  `docs/reference/foretmap/pedagogie-quiz-glossaire-reseau.md` (lire la répartition, que faire
+  d'un attracteur, d'un distracteur mort, d'une discrimination négative). `lib/retention/`
+  inchangé : les tentatives suivent le compte.
+
+### Ajouté — Reprise de la dérive de schéma et contrôle d'écart prod/dépôt
+
+- **Migration `reprise_derive_schema`** (schéma seulement, sans effet en prod — vérifiée deux
+  fois sur la sauvegarde anonymisée du 22/11, `SHOW CREATE TABLE` identique avant / après) :
+  `plants.domestication`, `wild_ancestor`, `wild_ancestor_plant_id` (clé
+  `fk_plants_wild_ancestor`, index `idx_plants_domestication`) ; 7 valeurs de
+  `plants.health_risk` en fin de SET (ornithose, mycobactériose, aspergillose, toxocarose,
+  teigne, échinococcose, fièvre Q) ; `curriculum_notions.programme_ref` et `valide_jusqu_a` ;
+  table `id_key_runs` ; écarts connus depuis l'état des lieux du 25/09 (`audit_log.details` en
+  MEDIUMTEXT, défauts de `map_markers.note`, `zones.description`, `visit_tutorials.map_id`,
+  noms des clés et index du glossaire, `idx_group_members_group_role`,
+  `idx_map_species_status`) ; vue `v_id_key_integrity` en `SQL SECURITY INVOKER` (même résultat
+  que la vue de la prod). Aucune valeur reprise.
+- **Référentiel** : `HEALTH_RISK_ENUM` passe à 14 valeurs, nouveaux `DOMESTICATION_ENUM` et
+  `ID_KEY_RUN_STATUS_ENUM`. `lib/plantHealthRisk.js` et le formulaire de fiche lisent le
+  référentiel au lieu d'une copie.
+- **Contrôle d'écart prod/dépôt** : empreinte versionnée du schéma attendu
+  (`sql/schema_fingerprint.json`, hors `gl_*` et tables étrangères connues), régénérée depuis
+  une base fraîche par `node scripts/schema-fingerprint.js --write`. Écarts (tables, colonnes,
+  index, clés, vues, valeurs d'ENUM / SET en plus ou en moins, « à reprendre en migration »)
+  dans `npm run db:status`, le rapport de santé (`schema.drift`, règle `schema_drift`, `info`
+  par défaut) et `foretmap_db_status` (`schema_drift`). Jamais bloquant ; un test fait tomber
+  la PR qui oublie de régénérer l'empreinte.
+- **Connecteur** : un DDL exécuté par `foretmap_sql_execute` porte une mention d'information
+  (`schema_drift_note`) ; ses règles d'écriture sont inchangées (décision du 22/11).
+
+### Corrigé
+
+- Enregistrer une fiche qui portait un risque sanitaire ajouté en prod (ornithose, fièvre Q…)
+  ne l'efface plus ; ces sept risques sont proposés dans le formulaire.
+
+### Retiré — tables figées des liens question ↔ ressource (retrait T3)
+
+- **Migration `retrait_t3_quiz_question_links`** : suppression de `quiz_question_species` et
+  `quiz_question_tutorials`, figées depuis la migration 300 (source unique
+  `resource_question_links`). Le `DROP` n'est joué que si la table existe et si aucun de ses
+  liens ne manque dans la source unique ; idempotente. Prérequis vérifiés en lecture seule sur
+  la production le 22/11/2026 (0 lien manquant sur 771 et 247, aucune vue ni clé étrangère
+  entrante). Décision d'Oliv du 22/11/2026.
+- **Dernières lectures retirées** : connecteur MCP (chargeur et contrôle `quizQuestionSpecies`
+  de `foretmap_audit`, liste des tables de contenu de `foretmap_sql_select`), candidat
+  `quiz_question_links` de `npm run db:t3-status`, mention dans `SYNC_IGNORED_TABLES_RE`.
+- Tests : `tests/retrait-t3-quiz-question-links.test.js` (structure, ceinture, rejeu, garde
+  contre toute nouvelle lecture) ; les tests de rejeu des migrations anciennes recréent les
+  deux tables le temps du rejeu (`tests/helpers/legacyQuizLinkTables.js`).
+- `docs/RUNBOOK_RETRAITS_T3.md` : candidat marqué « fait ». **Avant le déploiement** :
+  sauvegarde vérifiée (`db-backup-verify`) et export des deux tables.
+
+### Modifié — connecteur : liens et crédits
+
+- `foretmap_get_species` (`qcm_codes`) et le filtre `species_id` de `foretmap_list_qcm` lisent
+  `resource_question_links` (liens approuvés) ; le filtre `species_id` s'applique aussi quand
+  `dataset` est omis (il était ignoré).
+- `foretmap_get_id_key` : image, auteur (`image_credit`) et licence (`image_licence`) de chaque
+  proposition, drapeau `image_credit_missing`, compteur `images_without_credit`.
+
+### Ajouté — tutoriels : clés liées
+
+- `GET /api/tutorials/:id` renvoie `linked_id_keys` : les clés de détermination qui proposent
+  le tutoriel « avant de commencer », triées par titre, avec la visibilité de
+  `GET /api/id-keys` (publiées ; brouillons pour `id_keys.manage` ; module des clés éteint →
+  liste vide, sauf pour le gestionnaire).
+
+### Modifié — séances : étape « Tutoriel »
+
+- L'aperçu suit l'interrupteur de l'onglet Tutoriels : onglet masqué, ni aperçu ni bouton
+  « Tutoriel », le bandeau invite l'élève à passer à l'étape suivante.
+- Déconnexion forcée relayée à l'accusé de lecture de l'aperçu ; plus de message « tutoriel
+  plus disponible » trompeur quand le compte vient d'être supprimé.
+- Scénario e2e `e2e/pedago-session-tutorial.spec.js` (aperçu, réouverture, onglet masqué ;
+  clés liées par l'API).
+
+### Corrigé — fixture anonymisée : noms recopiés par le jeu
+
+- La fixture anonymisée pseudonymise aussi les noms et pseudos restés dans des tables du jeu
+  (`joueur<id>`, règle appliquée par le flux d'export et contrôlée en CI).
 ### Corrigé — barre basse sur téléphone, plein écran carte en séance, suite de tests
 
 - **Contenu sous la barre basse (hors séance)** : sous 1024 px, le raccourci `padding:12px`

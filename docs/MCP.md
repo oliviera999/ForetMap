@@ -232,10 +232,10 @@ sinon SQL en lecture seule (`lib/mcp/domains/`) sous la permission applicative �
 | `foretmap_groups` (`groups`, essentiel)               | list, get, create é, update é, delete é, set_members é\*, set_scopes é, class_report\*, progression_recompute é                                                                                                                                                                            |
 | `foretmap_tutorials` (`tutorials`)                    | list, get, create é, update é, delete é, link é, unlink é, reads_stats, reads_detail\*                                                                                                                                                                                                     |
 | `foretmap_learning` (`learning`)                      | gating_get, gating_set é, links_list, overrides\*, override_release é\*, links_suggest, links_accept é, links_reject é                                                                                                                                                                     |
-| `foretmap_quiz` (`quiz`)                              | list, get, categories, stats (réussite par question, catégorie, notion ; distracteurs non disponibles), create é, update é (rattachements `plant_ids`, `glossary_codes`, `tutorial_ids` : voir sous le tableau), retire é, set_notions é                                                   |
+| `foretmap_quiz` (`quiz`)                              | list, get, categories, stats (réussite par question, catégorie, notion ; distracteurs : voir sous le tableau), create é, update é (rattachements `plant_ids`, `glossary_codes`, `tutorial_ids` : voir sous le tableau), retire é, set_notions é                                            |
 | `foretmap_glossary` (`glossary`)                      | list, get, set_notions é                                                                                                                                                                                                                                                                   |
 | `foretmap_curriculum` (`curriculum`)                  | notions, coverage (notions orphelines et partielles), set_links é                                                                                                                                                                                                                          |
-| `foretmap_pedago_sessions` (`pedago_sessions`)        | list, get, runs, runs_detail\*, create é, update é (étapes d’une séance libre : actions de `src/shared/enums/pedagoStepActions.js`, dont `open_tutorial` { tutorialId \| tutorialSlug } et `open_foodweb` { plantIds }), delete é, link_task é                                             |
+| `foretmap_pedago_sessions` (`pedago_sessions`)        | list, get, runs, runs_detail\*, create é, update é (étapes d’une séance libre : actions de `src/shared/enums/pedagoStepActions.js`, dont `open_tutorial` { tutorialId \| tutorialSlug } et `open_foodweb` { plantIds, preset : alimentaire \| relations \| all }), delete é, link_task é   |
 | `foretmap_species` (`species`, essentiel)             | list, get, create é, update é, delete é, aliases é, lookalikes é, photos é, hazard_review é, gbif_match, autofill_preview, registry_status é                                                                                                                                               |
 | `foretmap_food_web` (`food_web`)                      | list, types, create é, update é, delete é                                                                                                                                                                                                                                                  |
 | `foretmap_observations` (`observations`)              | queue\*, get\*, validate é, reject é, evidence, evidence_write é, stats, individuals, individual_write é                                                                                                                                                                                   |
@@ -273,6 +273,21 @@ Précisions du 21/11/2026 :
   `observations` (photos des observations refusées, observations refusées, observations jamais
   examinées ; jamais une observation validée). L'aperçu ne rend que des **comptages** et les
   durées appliquées (`lib/retention/policy.js`).
+
+**Distracteurs** (`foretmap_quiz`, `stats`, depuis la migration `quiz_attempt_choice` du
+22/11/2026) : `distractors.available` vaut `true`. Chaque ligne de `by_question` porte, sur la
+**version courante** de la question (empreinte de l'énoncé, des choix et de la bonne réponse) :
+`version` (tentatives, `choix_connus`, réussite, tentatives des versions antérieures et sans
+version), `repartition` (effectif et pourcentage par lettre d'origine, bonne réponse marquée),
+`attracteurs` (distracteurs choisis plus souvent que la bonne réponse), `distracteurs_morts`
+(moins de 5 % à partir de 20 réponses, `distracteurs_morts_evalues`), `discrimination` (27 % les
+plus forts contre 27 % les plus faibles, à partir de 30 répondants, `negative`),
+`temps_median_ms` et `signaux`. `distractors` donne les `seuils` et l'`effet_position` global
+(taux de choix par position affichée). Mêmes fonctions que
+`GET /api/quiz/admin/questions/stats` (`lib/quizQuestionStats.js`) ; l'analyse ignore les
+filtres de période (une répartition n'a de sens que pour un même jeu de choix). Agrégats
+seulement : aucun identifiant d'élève. Les tentatives antérieures à la migration n'ont pas de
+lettre : elles comptent dans la réussite, pas dans la répartition.
 
 **Rattachements d'une question** (`foretmap_quiz`, `create` et `update`) : `plant_ids`,
 `glossary_codes` et `tutorial_ids` (paramètres de l'action, ou champs de `data`) lient la
@@ -356,6 +371,18 @@ réordonnancement des projets.
 | `foretmap_recall` / `remember` / `forget`                                                                                                                                                                  | read + `mcp.use`                          | Mémoire du connecteur (§ 11.1)                                                                                                                                                                            |
 | `foretmap_health_report` / `_history`                                                                                                                                                                      | read + `admin.settings.read`              | Rapport de santé (§ 11.2)                                                                                                                                                                                 |
 | `foretmap_list_files` / `read_file` / `grep_files` / `cron_status`                                                                                                                                         | read + `mcp.write` ; `files_enabled`      | Journaux et fichiers du serveur en lecture seule (§ 11.3, § 11.4)                                                                                                                                         |
+
+Précisions du 22/11/2026 (flux T3) :
+
+- `foretmap_get_id_key` : chaque proposition rend son image avec l'auteur (`image_credit`) et la
+  licence (`image_licence`) ; une image sans auteur porte `image_credit_missing: true`, et
+  `images_without_credit` compte ces images pour toute la clé.
+- Liens question ↔ fiche : `foretmap_get_species` (`qcm_codes`) et le filtre `species_id` de
+  `foretmap_list_qcm` lisent `resource_question_links` (liens **approuvés**), seule source depuis
+  le retrait des tables figées `quiz_question_species` et `quiz_question_tutorials` (migration
+  `retrait_t3_quiz_question_links`). Le filtre `species_id` s'applique aussi quand `dataset` est
+  omis (défaut `foretmap`). Les deux tables sortent de la liste des tables de contenu de
+  `foretmap_sql_select`, et le contrôle `orphan_links` de `foretmap_audit` ne les lit plus.
 
 ### Contrôles de `foretmap_audit`
 
@@ -877,7 +904,7 @@ Collecte : `lib/mcp/health/collect.js` (chaque section bornée et indépendante 
 | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `process`  | version, Node, `NODE_ENV`, uptime, mémoire (RSS, tas)                                                                                                                   |
 | `database` | ping et latence                                                                                                                                                         |
-| `schema`   | version du schéma, dernière migration, migrations en attente                                                                                                            |
+| `schema`   | version du schéma, dernière migration, migrations en attente ; `drift` : contrôle d'écart prod/dépôt (ci-dessous)                                                       |
 | `tables`   | 12 plus grosses tables (taille, lignes approximatives — métadonnées `information_schema`, aucune ligne lue), total                                                      |
 | `http`     | 5xx et 429 sur 24 h et 7 j (tranches horaires en mémoire, `lib/logMetrics.js`) ; `coveredHours` = fenêtre réellement couverte depuis le dernier redémarrage             |
 | `restarts` | journal de cycle de vie sur 24 h (crash, échecs de démarrage, arrêts sur signal reçu, processus disparus sans trace avec heure de la mort et poids, verdict)            |
@@ -898,6 +925,7 @@ sinon vert (les constats `info` ne comptent pas). Seuils renvoyés dans `thresho
 | `app_unreachable` | —                                                                   | application injoignable (script cron)                     |
 | `database`        | latence ≥ 500 ms (`MCP_HEALTH_DB_LATENCY_WARN_MS`)                  | ping en échec, ou ≥ 2 000 ms (`…_CRIT_MS`)                |
 | `migrations`      | —                                                                   | migration(s) en attente                                   |
+| `schema_drift`    | `info` (`orange` si `MCP_HEALTH_SCHEMA_DRIFT_LEVEL=orange`)         | —                                                         |
 | `http_5xx_24h`    | ≥ 5 (`MCP_HEALTH_5XX_WARN`)                                         | ≥ 50 (`MCP_HEALTH_5XX_CRIT`), ou ≥ 5 % sur ≥ 100 requêtes |
 | `http_429_24h`    | ≥ 500 (`MCP_HEALTH_429_WARN`)                                       | —                                                         |
 | `restarts`        | crash, échec de démarrage ou processus tué sur 24 h                 | —                                                         |
@@ -906,6 +934,31 @@ sinon vert (les constats `info` ne comptent pas). Seuils renvoyés dans `thresho
 | `tls`             | expiration < 21 j (`MCP_HEALTH_TLS_WARN_DAYS`), contrôle impossible | < 7 j (`…_CRIT_DAYS`), certificat refusé                  |
 | `cron`            | tâche en échec, en retard ou bloquée par un seuil                   | —                                                         |
 | `audit`           | — (`info` : nombre de constats du corpus)                           | —                                                         |
+
+**Contrôle d'écart prod/dépôt** (flux F7, novembre 2026). Le connecteur garde ses écritures
+de structure en prod (`mcp.sql_ddl_enabled`, décision du 22/11) : rien n'est interdit ni bloqué,
+l'écart est **signalé**. `lib/schemaFingerprint.js` compare la structure réelle
+(`information_schema` : tables, colonnes avec type / nullabilité / défaut, valeurs d'ENUM et de
+SET, index, clés étrangères, noms des vues) à l'empreinte versionnée d'une base fraîche,
+`sql/schema_fingerprint.json`. Tables `gl_*` **exclues**, comme dans `foretmap_describe_schema` ;
+tables étrangères à l'application exclues aussi (liste `KNOWN_FOREIGN_TABLES`, aujourd'hui
+`doksvtal_zz_olution_fb_journal`). Normalisation : largeur des entiers, forme des défauts ;
+collations et commentaires ignorés. Résultat :
+
+- `foretmap_db_status` → `schema_drift` : `ok`, `total`, `counts` (tables, colonnes, valeurs
+  d'ENUM/SET, index, clés, vues), `messages` (une phrase par catégorie, terminée par « à
+  reprendre en migration »), `details` (écarts un par un, « en plus » = dans la base, absent du
+  dépôt ; « en moins » = attendu, absent de la base ; omis au-delà de 100), `stale` (base en
+  retard sur les migrations : écarts attendus). Le script stdio Cursor, qui passe par
+  `/api/admin/diagnostics`, répond `available: false` ;
+- rapport de santé → `schema.drift` et règle `schema_drift` (`info` par défaut : pas d'e-mail
+  d'alerte quotidien pour un écart connu en attente de décision) ;
+- `foretmap_sql_execute` → un DDL **exécuté** (ni simulé, ni en attente de confirmation) reçoit
+  `schema_drift_note`, une mention d'information ; aucune règle d'écriture n'est changée.
+
+Reprendre un écart : migration idempotente par PR (`ADD COLUMN IF NOT EXISTS` avec le type exact
+de la prod…), puis régénérer l'empreinte (`docs/EXPLOITATION.md`, « Contrôle d'écart du
+schéma »).
 
 **À la demande** : `foretmap_health_report` (admin), ou `GET /api/health/report` avec
 l'en-tête `X-Health-Token` (`docs/API.md`, « Rapport de santé »).
@@ -1141,7 +1194,7 @@ Hors réglages : `MCP_ENABLED` (interrupteur général, **désactivé** par déf
 | `mcp.sql_select_enabled`          | `true`            | `MCP_SQL_ENABLED`                          | `foretmap_sql_select`, `foretmap_describe_schema`, `foretmap_export`.                                                                                                  |
 | `mcp.sql_select_pool`             | `auto`            | `MCP_SQL_SELECT_POOL`                      | `auto` : compte `DB_MCP_USER` s'il existe, sinon pool principal en transaction READ ONLY ; `dedicated_only` : compte dédié exigé.                                      |
 | `mcp.sql_write_enabled`           | `true`            | `MCP_SQL_WRITE_ENABLED`                    | `foretmap_sql_execute` (DML).                                                                                                                                          |
-| `mcp.sql_ddl_enabled`             | `true`            | `MCP_SQL_DDL_ENABLED`                      | DDL / DCL dans `foretmap_sql_execute`.                                                                                                                                 |
+| `mcp.sql_ddl_enabled`             | `true`            | `MCP_SQL_DDL_ENABLED`                      | DDL / DCL dans `foretmap_sql_execute` ; un DDL exécuté porte `schema_drift_note` (§ 11.2).                                                                             |
 | `mcp.sql_max_affected_rows`       | `10000`           | `MCP_SQL_MAX_AFFECTED_ROWS`                | Plafond de lignes touchées par instruction (1 à 1 000 000).                                                                                                            |
 | `mcp.confirm_mode`                | `off`             | `MCP_CONFIRM_MODE`, `MCP_CONFIRM_REQUIRED` | Confirmation par code e-mail : `off`, `sensitive` (opérations sensibles du SQL d'écriture), `all_writes` (toute écriture). `MCP_CONFIRM_REQUIRED=true` ↔ `sensitive`.  |
 | `mcp.privacy_bypass`              | `true`            | `MCP_PRIVACY_BYPASS`                       | Données nominatives d'élèves (lecture et écriture) pour les porteurs de `mcp.privacy_bypass`.                                                                          |

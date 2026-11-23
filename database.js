@@ -300,8 +300,8 @@ const SYNC_DOMAIN_TABLES = {
     'glossary_terms',
     'glossary_term_tutorials',
     'quiz_questions',
-    // `quiz_question_tutorials` retirée (temps 2, audit du 25/09/2026, § 3.5) : plus aucune
-    // écriture applicative ; les liens vivent dans `resource_question_links` (ignorée).
+    // Les liens question ↔ tutoriel vivent dans `resource_question_links` (ignorée) ; l'ancienne
+    // table figée est supprimée (migration `retrait_t3_quiz_question_links`).
     'tasks',
     'task_tutorials',
     'task_markers',
@@ -348,7 +348,7 @@ const SYNC_DOMAIN_RES = Object.fromEntries(
 // par aucune route du cycle : un appel de Claude ou un job quotidien ne doit pas faire
 // recharger le catalogue de toute la classe.
 const SYNC_IGNORED_TABLES_RE =
-  /\b(?:gl_(?!classes\b)[a-z0-9_]+|mcp_[a-z0-9_]+|scheduled_job_runs|forum_[a-z0-9_]+|context_comment[a-z0-9_]*|user_plant_observation_events|species_interactions|glossary_term_species|quiz_question_species|user_quiz_attempts|resource_question_links|resource_gating_policy|resource_gating_cooldowns|learning_acknowledgements|species_observations|species_observation_photos|interaction_evidence|user_totp|user_totp_backup_codes)\b/i;
+  /\b(?:gl_(?!classes\b)[a-z0-9_]+|mcp_[a-z0-9_]+|scheduled_job_runs|forum_[a-z0-9_]+|context_comment[a-z0-9_]*|user_plant_observation_events|species_interactions|glossary_term_species|user_quiz_attempts|resource_question_links|resource_gating_policy|resource_gating_cooldowns|learning_acknowledgements|species_observations|species_observation_photos|interaction_evidence|user_totp|user_totp_backup_codes)\b/i;
 const syncDomainVersions = Object.fromEntries(
   Object.keys(SYNC_DOMAIN_TABLES).map((domain) => [domain, 0]),
 );

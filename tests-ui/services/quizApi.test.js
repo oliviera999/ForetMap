@@ -58,6 +58,24 @@ describe('quizApi', () => {
     ]);
   });
 
+  it('présentation après un tirage et séance en cours : étiquettes dans la requête', async () => {
+    await presentQuizQuestion('QF0042', { origine: 'tirage' });
+    await presentQuizQuestion('QF0042', { origine: 'autre' });
+    sessionStorage.setItem('foretmap.pedagoSession.v1', JSON.stringify({ id: 's-1' }));
+    try {
+      await presentQuizQuestion('QF0042', { origine: 'tirage' });
+      await presentQuizQuestion('QF0042');
+    } finally {
+      sessionStorage.removeItem('foretmap.pedagoSession.v1');
+    }
+    expect(apiMock.mock.calls).toEqual([
+      ['/api/quiz/questions/QF0042/present?origine=tirage'],
+      ['/api/quiz/questions/QF0042/present'],
+      ['/api/quiz/questions/QF0042/present?origine=tirage&pedagoSession=s-1'],
+      ['/api/quiz/questions/QF0042/present?pedagoSession=s-1'],
+    ]);
+  });
+
   it('progression, statistiques et chemins des panneaux partagés', async () => {
     await fetchQuizProgress();
     await fetchQuizAttemptStats();

@@ -76,7 +76,8 @@ beforeEach(() => {
     if (path.startsWith('/api/quiz/me/progress')) return Promise.resolve(progress);
     if (path.startsWith('/api/quiz/categories')) return Promise.resolve({ categories: CATEGORIES });
     if (path.startsWith('/api/quiz/draw')) return Promise.resolve({ question_code: 'QF0042' });
-    if (path.endsWith('/present')) return Promise.resolve(PRESENTATION);
+    // Après un tirage, la présentation annonce `?origine=tirage` (étiquette statistique).
+    if (/\/present(\?|$)/.test(path)) return Promise.resolve(PRESENTATION);
     if (path.endsWith('/answer') && method === 'POST') return Promise.resolve(answerResponse);
     if (path.startsWith('/api/glossary/terms/G-NODO')) {
       return Promise.resolve({ linkedPlants: [{ id: 7, name: 'Trèfle blanc', emoji: '☘️' }] });
@@ -113,7 +114,7 @@ describe('QuizView — montage et parcours élève', () => {
     await drawAndPresent();
 
     expect(paths()).toContain('/api/quiz/draw?categorieSlug=vivant&difficulte=2&illustrated=1');
-    expect(paths()).toContain('/api/quiz/questions/QF0042/present');
+    expect(paths()).toContain('/api/quiz/questions/QF0042/present?origine=tirage');
     expect(screen.getByText('Question QF0042')).toBeTruthy();
     expect(screen.getByText('A. Auteur — CC BY')).toBeTruthy();
     expect(screen.getAllByRole('radio')).toHaveLength(2);

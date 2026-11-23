@@ -60,6 +60,18 @@ export const ENTITY_KIND_DEFAULT = 'taxon';
 export const STUDENT_HIDDEN_ENTITY_KINDS = Object.freeze(['ressource']);
 
 /**
+ * Natures **toujours dans le périmètre** d'une carte ou d'une zone du réseau trophique (chantier
+ * collège du 22/11/2026, lot 1) : une ressource (compost, litière, bois mort), un consortium
+ * (biofilm) ou un groupe fonctionnel (plancton) n'est jamais rattaché à une carte, comme
+ * l'extrémité « environnement » d'un lien (`to_id` nul). Une relation qui y mène n'est donc
+ * jamais marquée « hors carte » de ce côté. Lu par `routes/food-web.js` (colonnes
+ * `from_in_scope` / `to_in_scope`) : c'est la seule définition du périmètre côté données.
+ */
+export const FOODWEB_ALWAYS_IN_SCOPE_ENTITY_KINDS = Object.freeze(
+  ENTITY_KIND_ENUM.values.filter((kind) => kind !== ENTITY_KIND_DEFAULT),
+);
+
+/**
  * La fiche est-elle masquée de la liste et de la recherche des élèves ?
  * Une fiche sans nature connue (base non migrée, objet partiel) n'est jamais masquée.
  * @param {{ entity_kind?: string|null }|null|undefined} plant
@@ -154,6 +166,15 @@ export const HEALTH_RISK_ENUM = defineEnum('HEALTH_RISK_ENUM', {
     'toxoplasmose',
     'vecteur',
     'allergie',
+    // Valeurs ajoutées en prod sans migration, reprises par la migration
+    // `reprise_derive_schema` : en fin de SET et dans l'ordre de la prod (encodage par bit).
+    'ornithose',
+    'mycobacteriose',
+    'aspergillose',
+    'toxocarose',
+    'teigne',
+    'echinococcose',
+    'fievre_q',
   ],
   labels: {
     rage: 'Rage',
@@ -163,8 +184,31 @@ export const HEALTH_RISK_ENUM = defineEnum('HEALTH_RISK_ENUM', {
     toxoplasmose: 'Toxoplasmose',
     vecteur: 'Vecteur de maladie',
     allergie: 'Allergie',
+    ornithose: 'Ornithose (psittacose)',
+    mycobacteriose: 'Mycobactériose',
+    aspergillose: 'Aspergillose',
+    toxocarose: 'Toxocarose',
+    teigne: 'Teigne',
+    echinococcose: 'Échinococcose',
+    fievre_q: 'Fièvre Q',
   },
   columns: ['plants.health_risk'],
+});
+
+/**
+ * Degré de domestication (`plants.domestication`, distinct de `origin_status`) : colonne créée
+ * en prod sans migration, reprise par la migration `reprise_derive_schema`. `feral` = forme
+ * domestique retournée à la vie libre ; NULL = non renseigné.
+ */
+export const DOMESTICATION_ENUM = defineEnum('DOMESTICATION_ENUM', {
+  values: ['sauvage', 'semi_domestique', 'domestique', 'feral'],
+  labels: {
+    sauvage: 'Sauvage',
+    semi_domestique: 'Semi-domestique',
+    domestique: 'Domestique',
+    feral: 'Retourné à l’état sauvage (féral)',
+  },
+  columns: ['plants.domestication'],
 });
 
 /** Type d'interaction biotique (réseau trophique). */
@@ -232,14 +276,19 @@ const COLLEGE_INTERACTION_LABELS_SIMPLE = Object.freeze({
   parasitisme: 'parasite',
   competition: 'est en concurrence avec',
   symbiose: 'vit associée à',
+  // Chantier collège du 22/11/2026 (lot 3) : la mycophagie fait partie du cadrage « Réseau
+  // alimentaire » ; le mutualisme, montré à partir du cycle 4 (décision 8).
+  mycophagie: 'mange des champignons',
+  mutualisme: 's’entraident',
 });
 
 /**
  * Types d'interaction montrés au niveau Collège (réseau trophique « scolaire »). Sous-ensemble
  * volontaire ; `detritivorie` en fait partie depuis la migration 295, `frugivorie` et
  * `granivorie` depuis le chantier collège (décision 8 du 21/11/2026 : montrées à tout le
- * collège). `labelsSimple` : un libellé en verbe par valeur (voir ci-dessus) ; le libellé
- * savant reste `labels`.
+ * collège), `mycophagie` (montrée à tout le collège) et `mutualisme` (cycle 4 seulement, voir
+ * `CYCLE4_ONLY_INTERACTION_TYPE_ENUM`) depuis le chantier du 22/11/2026. `labelsSimple` : un
+ * libellé en verbe par valeur (voir ci-dessus) ; le libellé savant reste `labels`.
  */
 export const COLLEGE_INTERACTION_TYPE_ENUM = Object.freeze({
   ...defineSubset('COLLEGE_INTERACTION_TYPE_ENUM', INTERACTION_TYPE_ENUM, 'INTERACTION_TYPE_ENUM', {
@@ -255,6 +304,8 @@ export const COLLEGE_INTERACTION_TYPE_ENUM = Object.freeze({
       'parasitisme',
       'competition',
       'symbiose',
+      'mycophagie',
+      'mutualisme',
     ],
   }),
   labelsSimple: COLLEGE_INTERACTION_LABELS_SIMPLE,
@@ -281,7 +332,8 @@ export function interactionTypeLabelSimple(type, { withScientific = true, fallba
 }
 
 /**
- * Types d'interaction réservés au **cycle 4** et au-delà (décision 8 du 21/11/2026) : masqués
+ * Types d'interaction réservés au **cycle 4** et au-delà (décision 8 du 21/11/2026 ; mutualisme
+ * ajouté par la décision 8 du 22/11/2026, comme la symbiose et la compétition) : masqués
  * en cycle 3 par la règle de palier `foodweb_types_cycle4_only` de la table de visibilité
  * (`src/shared/pedagoVisibilityCore.js`). Sous-ensemble de `COLLEGE_INTERACTION_TYPE_ENUM`.
  * Appliqué depuis le flux C1 : la règle masque ces types au cycle 3 (`[]` ailleurs).
@@ -290,7 +342,7 @@ export const CYCLE4_ONLY_INTERACTION_TYPE_ENUM = defineSubset(
   'CYCLE4_ONLY_INTERACTION_TYPE_ENUM',
   INTERACTION_TYPE_ENUM,
   'INTERACTION_TYPE_ENUM',
-  { values: ['symbiose', 'competition'] },
+  { values: ['symbiose', 'competition', 'mutualisme'] },
 );
 
 /** Niveau de preuve d'une interaction. */

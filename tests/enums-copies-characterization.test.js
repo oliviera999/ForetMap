@@ -63,6 +63,8 @@ test('biodivPedagoLevel : étapes, libellés, rangs et types du collège', () =>
       'parasitisme',
       'competition',
       'symbiose',
+      'mycophagie',
+      'mutualisme',
     ],
   );
   assert.equal(biodivLevel.normalizePedagoLevel(' Lycée '), 'lycee');
