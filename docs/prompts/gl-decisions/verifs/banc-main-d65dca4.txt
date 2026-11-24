@@ -1,0 +1,18 @@
+Banc passé sur main = d65dca4 (v1.263.7) le 24/11/2026 vers 15 h (heure de Casablanca), dans l'espace de travail de la session qui a préparé le kit.
+MariaDB 10.11, base foretmap_kit_sim, GL_SIM_DB exporté. Code de sortie 0 pour les deux scénarios.
+
+$ npm run gl:sim -- --scenario ensemble-unifie --runs 5 --seed 14
+  moyenne P1 : 5 exéc., séances 5, voile 25 %, pâlies 0 %, tenues 88 %, carnet 20 %, gnomes 63 %, Gini 0,13, Matthieu -0,13 · attendus 10/11 (manqués : partGnomes)
+  moyenne P2 : 5 exéc., séances 5, voile 0 %, pâlies 13 %, tenues 75 %, carnet 20 %, gnomes 67 %, Gini 0,1, Matthieu 0,13 · attendus 8/10 (manqués : equipesSousVoile, partGnomes)
+  moyenne P3 : 5 exéc., séances 5, voile 50 %, pâlies 10 %, tenues 70 %, carnet 20 %, gnomes 70 %, Gini 0,06, Matthieu 0,23 · attendus 9/10 (manqués : partGnomes)
+  moyenne P4 : 5 exéc., séances 5, voile 25 %, pâlies 20 %, tenues 80 %, carnet 20 %, gnomes 67 %, Gini 0,04, Matthieu 0,05 · attendus 8/11 (manqués : equipesSousVoile, partGnomes, doublePlafond)
+  difficulte P1 : 5 exéc., séances 5, voile 50 %, pâlies 13 %, tenues 63 %, carnet 20 %, gnomes 63 %, Gini 0,13, Matthieu -0,08 · attendus 9/10 (manqués : partGnomes)
+  difficulte P2 : 5 exéc., séances 5, voile 25 %, pâlies 25 %, tenues 63 %, carnet 0 %, gnomes 60 %, Gini 0,11, Matthieu -0,14 · attendus 8/9 (manqués : partGnomes)
+  difficulte P3 : 5 exéc., séances 5, voile 75 %, pâlies 20 %, tenues 70 %, carnet 0 %, gnomes 75 %, Gini 0,1, Matthieu -0,03 · attendus 8/9 (manqués : partGnomes)
+  difficulte P4 : 5 exéc., séances 5, voile 75 %, pâlies 50 %, tenues 50 %, carnet 0 %, gnomes 50 %, Gini 0,11, Matthieu -0,22 · attendus 10/10
+
+$ npm run gl:sim -- --scenario multi-appareils --runs 5 --seed 14
+  multi-appareils P1 : 5 exéc., séances 5, voile 25 %, pâlies 0 %, tenues 75 %, carnet 20 %, gnomes 50 %, Gini 0,16, Matthieu 0,04 · attendus 12/12
+
+Lecture : « attendus n/m (manqués : …) » sont des avertissements d'équilibrage du banc, pas des violations.
+Sur main, partGnomes, equipesSousVoile et doublePlafond sont déjà manqués à certains plateaux : ce n'est pas le fait du chantier.

@@ -1,0 +1,83 @@
+
+== moteur-1
+  taille 14.6 Ko
+
+== moteur-2
+  taille 20.6 Ko
+  (note) 3 étapes dans la fiche pour 1 au plan : étapes redécoupées
+
+== moteur-3
+  taille 27.2 Ko
+
+== moteur-4
+  taille 28.1 Ko
+  (note) 3 étapes dans la fiche pour 2 au plan : étapes redécoupées
+
+== moteur-5
+  taille 15.8 Ko
+
+== ecrans-1
+  taille 34.9 Ko
+
+== ecrans-2
+  taille 26.4 Ko
+
+== ecrans-3
+  taille 16.9 Ko
+
+== ecrans-4
+  taille 37.3 Ko
+  (note) 7 étapes dans la fiche pour 4 au plan : étapes redécoupées
+
+== ecrans-5
+  taille 17.1 Ko
+
+== ecrans-6
+  taille 32.0 Ko
+
+== ecrans-7
+  taille 27.3 Ko
+
+== ecrans-8
+  taille 33.1 Ko
+
+== ecrans-9
+  taille 28.8 Ko
+  [CHEMIN] admin/chapters/GLChapterMapPreview.jsx absent de main (et pas dans « Nouveaux »)
+
+== ecrans-10
+  taille 33.6 Ko
+
+== ecrans-11
+  taille 29.4 Ko
+
+== contenu-1
+  taille 38.8 Ko
+
+== contenu-2
+  taille 27.6 Ko
+
+== contenu-3
+  taille 35.0 Ko
+
+== contenu-4
+  taille 35.2 Ko
+
+== contenu-5
+  taille 36.3 Ko
+
+== contenu-6
+  taille 32.7 Ko
+
+== fin-1
+  taille 36.8 Ko
+  [ILLISIBLE] renvoi annexe X : …vérification seulement (ex-étape 1 de l'annexe C du prompt, la même que l'ex-étape 27)  …
+
+== fin-2
+  taille 36.8 Ko
+  [ILLISIBLE] renvoi annexe X : …documents pour le prof (ex-étape 4 de l'annexe C du prompt)  - **Constat vérifié** : les…
+
+== Fichiers « À toi » de deux lots sans dépendance entre eux
+  aucune
+
+== BILAN : CHEMIN=1, ILLISIBLE=2

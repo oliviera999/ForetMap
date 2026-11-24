@@ -27,3 +27,6 @@ docs/prompts/GL_ECRANS_DE_SEANCE_PROMPT.md
 docs/coordination/college-2026-11/snapshot/
 # Sources du chantier « fin novembre 2026 », versées mot pour mot depuis le projet Claude.
 docs/prompts/fin-novembre-2026/
+# Kit du chantier G&L « décisions », versé depuis le projet Claude (sources mot pour mot, tableaux
+# gardés compacts pour le contexte des sessions) : ne pas le reformater.
+docs/prompts/gl-decisions/

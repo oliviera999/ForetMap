@@ -1,0 +1,536 @@
+{
+  "chantier": "G&L décisions",
+  "cale_sur": {
+    "commit": "d65dca4",
+    "version": "1.263.7",
+    "date": "2026-11-24T13:47Z",
+    "derniere_migration": 391
+  },
+  "branche_integration": "claude/gl-decisions-integration",
+  "prefixe_branche_lot": "claude/gl-decisions-",
+  "vagues": {
+    "1": "La séance jouable et juste",
+    "2": "L'immersion",
+    "3": "Les règles v4 et la documentation"
+  },
+  "couloirs": {
+    "moteur": "Règles et moteur du tour (serveur) : lib/glTour.js, lib/glTenir*.js, lib/glChasse.js, lib/glEscalier.js, lib/glTrameDefis.js, src/shared/glSortMomentsCore.js",
+    "ecrans": "Écrans du tour et du plateau : src/gl/components/tenir/*, src/gl/components/mj/GLTourScreen.jsx, GLGameBoard.jsx, AppGL.jsx, src/gl/utils/glTenirMoment.js, src/gl/styles/*",
+    "contenu": "Données et contenu : data/gl/**, catalogues, migrations de données, routes/gl/lore.js, routes/gl/learning.js, Histoire, carnet, copiste, lexique",
+    "fin": "Règles v4 et documentation"
+  },
+  "lots": [
+    {
+      "id": "moteur-1",
+      "couloir": "moteur",
+      "vague": 1,
+      "titre": "Moteur du tour",
+      "etapes": [
+        "15",
+        "16",
+        "17-serveur",
+        "2"
+      ],
+      "ex_lot": "1 (sans l'étape 11)",
+      "attend": [],
+      "migrations": [],
+      "banc": "seuils",
+      "charge": "moyenne"
+    },
+    {
+      "id": "moteur-2",
+      "couloir": "moteur",
+      "vague": 1,
+      "titre": "Les rôles du tour s'échangent",
+      "etapes": [
+        "24 quinquies-R"
+      ],
+      "ex_lot": "2 (étape de l'addendum 4)",
+      "attend": [
+        "moteur-1",
+        "contenu-1",
+        "contenu-2"
+      ],
+      "migrations": [
+        "mig-regles-roles (ex N+8)"
+      ],
+      "banc": "seuils",
+      "charge": "moyenne"
+    },
+    {
+      "id": "moteur-3",
+      "couloir": "moteur",
+      "vague": 1,
+      "titre": "Escalier et règles de séance",
+      "etapes": [
+        "20",
+        "26",
+        "21",
+        "25"
+      ],
+      "ex_lot": "5",
+      "attend": [
+        "moteur-2",
+        "contenu-2",
+        "ecrans-1"
+      ],
+      "migrations": [
+        "mig-relance (ex N+3, seulement si l'import ne suffit pas)"
+      ],
+      "banc": "seuils",
+      "charge": "forte"
+    },
+    {
+      "id": "moteur-4",
+      "couloir": "moteur",
+      "vague": 1,
+      "titre": "La question de case récompensée et la sonde",
+      "etapes": [
+        "19",
+        "35"
+      ],
+      "ex_lot": "Q",
+      "attend": [
+        "moteur-3",
+        "ecrans-2"
+      ],
+      "migrations": [
+        "mig-cases-question (ex N+2)",
+        "mig-sonde (ex N+7)"
+      ],
+      "banc": "seuils",
+      "charge": "forte"
+    },
+    {
+      "id": "moteur-5",
+      "couloir": "moteur",
+      "vague": 1,
+      "titre": "Trame, Lumière, appareils",
+      "etapes": [
+        "6",
+        "QV2",
+        "7",
+        "4"
+      ],
+      "ex_lot": "4 (sans l'étape 10)",
+      "attend": [
+        "moteur-4"
+      ],
+      "migrations": [
+        "mig-lumiere-trame (ex N+1)"
+      ],
+      "banc": "seuils",
+      "charge": "moyenne"
+    },
+    {
+      "id": "ecrans-1",
+      "couloir": "ecrans",
+      "vague": 1,
+      "titre": "Portes et surfaces, bilan Team Spirit, onglets des biomes, message d'état",
+      "etapes": [
+        "14",
+        "27",
+        "12",
+        "29",
+        "B1",
+        "11"
+      ],
+      "ex_lot": "3, B, et l'étape 11 du lot 1",
+      "attend": [],
+      "migrations": [],
+      "banc": "fumée",
+      "charge": "moyenne"
+    },
+    {
+      "id": "ecrans-2",
+      "couloir": "ecrans",
+      "vague": 1,
+      "titre": "L'erreur d'Olu visible, la question sans sa réponse visible",
+      "etapes": [
+        "13",
+        "22-vent",
+        "30",
+        "33"
+      ],
+      "ex_lot": "6",
+      "attend": [
+        "ecrans-1",
+        "moteur-1"
+      ],
+      "migrations": [],
+      "banc": "fumée",
+      "charge": "moyenne"
+    },
+    {
+      "id": "ecrans-3",
+      "couloir": "ecrans",
+      "vague": 1,
+      "titre": "Les mascottes sautent de case en case",
+      "etapes": [
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "M5"
+      ],
+      "ex_lot": "M",
+      "attend": [
+        "ecrans-2"
+      ],
+      "migrations": [],
+      "banc": "fumée",
+      "charge": "moyenne"
+    },
+    {
+      "id": "ecrans-4",
+      "couloir": "ecrans",
+      "vague": 1,
+      "titre": "Au tableau, un seul écran d'équipe",
+      "etapes": [
+        "17-bouton",
+        "18",
+        "31",
+        "32"
+      ],
+      "ex_lot": "7",
+      "attend": [
+        "ecrans-3",
+        "moteur-4"
+      ],
+      "migrations": [],
+      "banc": "seuils",
+      "charge": "forte, reprise prévue"
+    },
+    {
+      "id": "ecrans-5",
+      "couloir": "ecrans",
+      "vague": 2,
+      "titre": "Le son : la projection chante",
+      "etapes": [
+        "S1",
+        "S2",
+        "S3"
+      ],
+      "ex_lot": "S (sans S4)",
+      "attend": [
+        "ecrans-4"
+      ],
+      "migrations": [],
+      "banc": "fumée",
+      "charge": "légère"
+    },
+    {
+      "id": "ecrans-6",
+      "couloir": "ecrans",
+      "vague": 2,
+      "titre": "Les mots du voyage à l'écran, « Mon sac », la visite d'Olu, le fond du plateau",
+      "etapes": [
+        "V1",
+        "V3",
+        "V6",
+        "SAC-1"
+      ],
+      "ex_lot": "V (écrans)",
+      "attend": [
+        "ecrans-5",
+        "contenu-2"
+      ],
+      "migrations": [],
+      "banc": "fumée",
+      "charge": "moyenne"
+    },
+    {
+      "id": "ecrans-7",
+      "couloir": "ecrans",
+      "vague": 2,
+      "titre": "La table de jeu I : matières, tablette d'équipe, gemmes, typographie, barre",
+      "etapes": [
+        "T1",
+        "T2",
+        "T3",
+        "T4",
+        "T5"
+      ],
+      "ex_lot": "T (première moitié)",
+      "attend": [
+        "ecrans-6",
+        "contenu-6"
+      ],
+      "migrations": [],
+      "banc": "fumée",
+      "charge": "forte"
+    },
+    {
+      "id": "ecrans-8",
+      "couloir": "ecrans",
+      "vague": 2,
+      "titre": "La table de jeu II : cinq onglets, « Mon sac » en deux états, surcouches, projection",
+      "etapes": [
+        "T6",
+        "SAC-2",
+        "T8",
+        "T9"
+      ],
+      "ex_lot": "T (seconde moitié ; T7 remplacée par SAC-2)",
+      "attend": [
+        "ecrans-7",
+        "contenu-6"
+      ],
+      "migrations": [],
+      "banc": "fumée",
+      "charge": "forte, reprise prévue"
+    },
+    {
+      "id": "ecrans-9",
+      "couloir": "ecrans",
+      "vague": 2,
+      "titre": "Le plateau : symboles gravés, figurines, voile qui pâlit, fil doré",
+      "etapes": [
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5"
+      ],
+      "ex_lot": "P",
+      "attend": [
+        "ecrans-8"
+      ],
+      "migrations": [],
+      "banc": "fumée",
+      "charge": "moyenne"
+    },
+    {
+      "id": "ecrans-10",
+      "couloir": "ecrans",
+      "vague": 2,
+      "titre": "La fouille et l'oiseau",
+      "etapes": [
+        "F1",
+        "F2",
+        "F3",
+        "F4",
+        "F5",
+        "F6"
+      ],
+      "ex_lot": "F",
+      "attend": [
+        "ecrans-9"
+      ],
+      "migrations": [],
+      "banc": "fumée",
+      "charge": "moyenne"
+    },
+    {
+      "id": "ecrans-11",
+      "couloir": "ecrans",
+      "vague": 2,
+      "titre": "Les moments forts et les sons du tour",
+      "etapes": [
+        "A1",
+        "A2",
+        "A3",
+        "A4",
+        "S4"
+      ],
+      "ex_lot": "A, et S4 du lot S",
+      "attend": [
+        "ecrans-10"
+      ],
+      "migrations": [],
+      "banc": "fumée",
+      "charge": "moyenne"
+    },
+    {
+      "id": "contenu-1",
+      "couloir": "contenu",
+      "vague": 1,
+      "titre": "Catalogues du tour : erreurs d'Olu, péripéties, retours, questions de lecture, mots du voyage",
+      "etapes": [
+        "24",
+        "24 bis",
+        "24 ter",
+        "24 quater",
+        "24 quinquies-Z",
+        "QV4"
+      ],
+      "ex_lot": "2 (catalogues)",
+      "attend": [],
+      "migrations": [],
+      "banc": "fumée",
+      "charge": "forte"
+    },
+    {
+      "id": "contenu-2",
+      "couloir": "contenu",
+      "vague": 1,
+      "titre": "Pistes de zone, badges, Passeur, textes d'écran, pseudo de la Lettre",
+      "etapes": [
+        "3",
+        "5",
+        "8",
+        "23",
+        "22-textes",
+        "10"
+      ],
+      "ex_lot": "2 (reste), et l'étape 10 du lot 4",
+      "attend": [
+        "contenu-1"
+      ],
+      "migrations": [],
+      "banc": "fumée",
+      "charge": "moyenne"
+    },
+    {
+      "id": "contenu-3",
+      "couloir": "contenu",
+      "vague": 1,
+      "titre": "Page Histoire : lue par une question, délai annoncé, textes, illustrations",
+      "etapes": [
+        "H1",
+        "H2",
+        "H3",
+        "H4"
+      ],
+      "ex_lot": "H",
+      "attend": [
+        "contenu-2"
+      ],
+      "migrations": [
+        "mig-histoire (ex N+4)"
+      ],
+      "banc": "fumée",
+      "charge": "forte, reprise prévue"
+    },
+    {
+      "id": "contenu-4",
+      "couloir": "contenu",
+      "vague": 1,
+      "titre": "Carnet de Sélène et notes du copiste : les données",
+      "etapes": [
+        "C1",
+        "C1 ter",
+        "C2"
+      ],
+      "ex_lot": "C (données)",
+      "attend": [
+        "contenu-3"
+      ],
+      "migrations": [
+        "mig-copiste-carnet (ex N+6)"
+      ],
+      "banc": "fumée",
+      "charge": "forte"
+    },
+    {
+      "id": "contenu-5",
+      "couloir": "contenu",
+      "vague": 2,
+      "titre": "Lexique du voyage, pages servies, vitrine, « +1 » du journal, traces de passage",
+      "etapes": [
+        "V2",
+        "QV5",
+        "V4",
+        "V5",
+        "JOURNAL-1",
+        "TRACES-1",
+        "SAC-3"
+      ],
+      "ex_lot": "V (données), et trois décisions du 24/11 après-midi",
+      "attend": [
+        "contenu-4",
+        "ecrans-4",
+        "ecrans-6"
+      ],
+      "migrations": [
+        "mig-pages-servies (remplace N+5 : base neuve et « Mon sac »)"
+      ],
+      "banc": "fumée",
+      "charge": "forte"
+    },
+    {
+      "id": "contenu-6",
+      "couloir": "contenu",
+      "vague": 2,
+      "titre": "Les marges du copiste",
+      "etapes": [
+        "C3",
+        "C4",
+        "C4 bis",
+        "C5",
+        "C6"
+      ],
+      "ex_lot": "C (application)",
+      "attend": [
+        "contenu-5"
+      ],
+      "migrations": [],
+      "banc": "fumée",
+      "charge": "forte"
+    },
+    {
+      "id": "fin-1",
+      "couloir": "fin",
+      "vague": 3,
+      "titre": "Décisions consignées et règles v4",
+      "etapes": [
+        "1",
+        "9",
+        "C-doc-1",
+        "C-doc-2",
+        "C-doc-3"
+      ],
+      "ex_lot": "8, et les étapes 1 à 3 de l'annexe C (lot 9)",
+      "attend": [
+        "moteur-1",
+        "moteur-2",
+        "moteur-3",
+        "moteur-4",
+        "moteur-5",
+        "ecrans-1",
+        "ecrans-2",
+        "ecrans-3",
+        "ecrans-4",
+        "ecrans-5",
+        "ecrans-6",
+        "ecrans-7",
+        "ecrans-8",
+        "ecrans-9",
+        "ecrans-10",
+        "ecrans-11",
+        "contenu-1",
+        "contenu-2",
+        "contenu-3",
+        "contenu-4",
+        "contenu-5",
+        "contenu-6"
+      ],
+      "migrations": [],
+      "banc": "complet",
+      "charge": "moyenne"
+    },
+    {
+      "id": "fin-2",
+      "couloir": "fin",
+      "vague": 3,
+      "titre": "Docs de référence, docs du prof, skills, vérifications complètes",
+      "etapes": [
+        "28",
+        "C-doc-4",
+        "C-doc-5",
+        "C-doc-6"
+      ],
+      "ex_lot": "9 (étapes 4 à 6 de l'annexe C)",
+      "attend": [
+        "fin-1"
+      ],
+      "migrations": [],
+      "banc": "complet",
+      "charge": "forte, reprise prévue"
+    }
+  ],
+  "plafond": {
+    "sessions_de_lot": 24,
+    "reprises": 8
+  }
+}

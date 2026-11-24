@@ -1,0 +1,412 @@
+{
+  "format": "copiste-notes v1",
+  "date": "2026-11-24",
+  "note": "41 notes du copiste et 4 enveloppes, extraites par script de `copiste-notes.md` (même dossier), textes mot pour mot : seul le retour à la ligne du Markdown devient une espace. Champs : code, liasse, ordre, titre (sans numéro), texte, source (ancien code repris, ou null), legende (enveloppes seulement, sinon null).",
+  "notes": [
+    {
+      "code": "cop-p1-01",
+      "liasse": "copiste-p1",
+      "ordre": 1,
+      "titre": "Le café",
+      "texte": "pardon pour la tache sur le mot de la boîte. je pose ma tasse partout, surtout là où il ne faut pas. le café refroidit toujours avant que je pense à le boire. c'est devenu mon horloge : une tasse froide, une heure de passée. parfois deux. parfois j'arrête de compter.",
+      "source": "cop-marg-quotidien",
+      "legende": null
+    },
+    {
+      "code": "cop-p1-02",
+      "liasse": "copiste-p1",
+      "ordre": 2,
+      "titre": "Comment on entre",
+      "texte": "elle écrit qu'on ne casse pas le miroir : on se laisse distraire par une bête, jusqu'à s'oublier. lewis carroll l'avait déjà raconté, avec alice qui passe de l'autre côté de la glace. tous les vieux contes commencent par une porte : un terrier, une armoire, une forêt. on n'en ressort jamais tout à fait pareil. vous, vous êtes passés. moi, je cherche encore la poignée.",
+      "source": "cop-mov-1",
+      "legende": null
+    },
+    {
+      "code": "cop-p1-03",
+      "liasse": "copiste-p1",
+      "ordre": 3,
+      "titre": "Les tropiques",
+      "texte": "on appelle la jungle « le poumon du monde ». raté : elle respire autant qu'elle souffle. c'est plutôt un estomac. une feuille tombe, et en quelques semaines les champignons, les termites et les petites bêtes l'ont mangée et rendue au sol. rien ne se perd. et c'est ici qu'arrive l'oiseau, dans son carnet. retenez-le. moi, je n'arrive plus à m'en débarrasser : il est dans presque chaque page. à force, j'ai l'impression qu'il me regarde recopier.",
+      "source": "cop-mov-2",
+      "legende": null
+    },
+    {
+      "code": "cop-p1-04",
+      "liasse": "copiste-p1",
+      "ordre": 4,
+      "titre": "En marge de la savane",
+      "texte": "le feu passe, tout noircit, et trois semaines plus tard c'est vert. l'herbe garde son cœur au ras du sol : le feu lui coupe les cheveux, il ne la tue pas. il m'a fallu des années pour comprendre ce qu'une herbe sait en naissant. et cette savane est jeune, quelques millions d'années à peine. à l'échelle de la terre, une gamine. ne vous fiez jamais à ce qui a l'air éternel. ni à ce qui a l'air fini.",
+      "source": "cop-bio-savane",
+      "legende": null
+    },
+    {
+      "code": "cop-p1-05",
+      "liasse": "copiste-p1",
+      "ordre": 5,
+      "titre": "Les gnomes",
+      "texte": "les gnomes, ce n'est pas un vieux conte. c'est un médecin suisse du XVIe siècle, paracelse, moitié génie, moitié charlatan, mon genre de gars. il les a inventés pour ranger le monde : des esprits de la terre, à côté de ceux de l'eau, de l'air et du feu. quatre siècles plus tard, on les a mis en plâtre sur les pelouses, avec un bonnet rouge. voilà ce qu'on fait des belles idées. les vôtres, gardez-les debout.",
+      "source": "cop-marg-paracelse",
+      "legende": null
+    },
+    {
+      "code": "cop-p1-06",
+      "liasse": "copiste-p1",
+      "ordre": 6,
+      "titre": "Aimer ce qui s'efface",
+      "texte": "elle tombe amoureuse de la jungle. moi, je recopie en serrant les dents, parce que je vois ses pages pâlir. alors une question me tient depuis le début : à quoi bon aimer ce qui ne dure pas ? j'ai remarqué un détail. ceux qui posent cette question sont presque toujours assis. elle, elle marche. je la pose quand même, la question. dans mon fauteuil.",
+      "source": "cop-insert-amour",
+      "legende": null
+    },
+    {
+      "code": "cop-p1-07",
+      "liasse": "copiste-p1",
+      "ordre": 7,
+      "titre": "Chacun pour sa peau",
+      "texte": "pour l'instant, elle se débrouille seule : elle grimpe seule, elle compte seule. c'est par là qu'on commence tous. moi, j'ai longtemps gardé mes affaires pour moi, porte fermée. le fauteuil a fini par prendre ma forme. et puis cette boîte, et vous, qui lisez ce que je n'arrivais pas à lire. bon. je me lève. pas vite. mais je me lève.",
+      "source": "cop-acte1",
+      "legende": null
+    },
+    {
+      "code": "cop-p2-01",
+      "liasse": "copiste-p2",
+      "ordre": 1,
+      "titre": "Les terres sèches",
+      "texte": "le sable, puis la garrigue. un pays qui ressemble au vôtre, et un peu au mien. ici, les couleurs s'en vont : elle appelle ça la grise. une couleur qui pâlit sans bruit, on ne la voit pas partir, on voit seulement qu'elle n'est plus là. je connais cette teinte. c'est celle que prend une pièce quand on ne relève plus les volets. elle, elle ravive un coin de garrigue. moi, à l'époque, j'avais laissé la poussière faire.",
+      "source": "cop-mov-3",
+      "legende": null
+    },
+    {
+      "code": "cop-p2-02",
+      "liasse": "copiste-p2",
+      "ordre": 2,
+      "titre": "En marge du Sahara",
+      "texte": "ce sable n'a pas toujours été là. il y a quelques milliers d'années, il y avait des lacs, des hippopotames, et des gens qui peignaient des girafes sur la roche. puis l'axe de la terre, qui tourne comme une toupie fatiguée, a penché d'un cheveu. la pluie est partie ailleurs. personne n'avait rien fait de mal. retenez ça : un monde peut changer sans coupable. et ce qui a changé une fois peut changer encore.",
+      "source": "cop-bio-sahara",
+      "legende": null
+    },
+    {
+      "code": "cop-p2-03",
+      "liasse": "copiste-p2",
+      "ordre": 3,
+      "titre": "D'où sort la boîte",
+      "texte": "vous voulez savoir d'où vient cette boîte. moi aussi. un carton sur le paillasson, un matin, sans adresse ni timbre. ou alors je l'ai trouvée et je me raconte qu'on me l'a confiée, pour faire plus joli. dedans, un carnet qui s'efface, une plaque polie, et son mot : « à la classe qui vient ». je ne suis pas une classe. un monsieur raisonnable aurait refermé le couvercle : des gnomes ? canular. moi j'ai ouvert. je ne crois pas tout ce carnet, et je le recopie quand même, lettre après lettre. les deux tiennent dans la même tête. c'est même à ça qu'on reconnaît une tête qui marche encore.",
+      "source": "cop-origine",
+      "legende": null
+    },
+    {
+      "code": "cop-p2-04",
+      "liasse": "copiste-p2",
+      "ordre": 4,
+      "titre": "En marge de la garrigue",
+      "texte": "il y a ici des pins qui gardent leurs graines enfermées pendant des années. il faut la chaleur d'un incendie pour que leurs cônes s'ouvrent. après le feu, ce sont eux qui repoussent les premiers. longtemps, j'ai trouvé ça sinistre. maintenant je trouve ça malin : certaines choses n'attendent pas que tout aille bien pour recommencer.",
+      "source": "cop-bio-medit",
+      "legende": null
+    },
+    {
+      "code": "cop-p2-05",
+      "liasse": "copiste-p2",
+      "ordre": 5,
+      "titre": "L'oxygène",
+      "texte": "un truc qui va vous étonner : la nature a déjà tout chamboulé, toute seule, bien avant nous. il y a des milliards d'années, des bestioles minuscules ont rempli l'air d'un gaz qui a empoisonné presque tout le vivant de l'époque. ce gaz, c'est l'oxygène. celui que vous respirez en lisant. le plus grand empoisonnement de l'histoire vous a offert vos poumons. alors « l'équilibre de la nature »… il n'y en a jamais eu. ce qui est nouveau aujourd'hui, c'est qu'on sait ce qu'on fait. et qu'on pourrait choisir.",
+      "source": "cop-marg-oxydation",
+      "legende": null
+    },
+    {
+      "code": "cop-p2-06",
+      "liasse": "copiste-p2",
+      "ordre": 6,
+      "titre": "Des baleines dans le sable",
+      "texte": "au milieu du désert, en égypte, il y a une vallée pleine de squelettes de baleines. pas une blague : il y a quarante millions d'années, là, c'était la mer. certaines de ces baleines avaient encore de toutes petites pattes arrière, un reste de l'époque où leurs ancêtres marchaient sur la terre. le sable garde ce qu'on croit perdu. il suffit d'apprendre à le lire. moi aussi, j'ai des cartons pleins de choses que je croyais finies. je ne les ouvre pas encore. un jour.",
+      "source": null,
+      "legende": null
+    },
+    {
+      "code": "cop-p2-07",
+      "liasse": "copiste-p2",
+      "ordre": 7,
+      "titre": "Deux façons de ne rien donner",
+      "texte": "on a tous en nous quelqu'un qui garde tout et compte ses gemmes au lieu d'en donner une. on a envie de le trouver petit. attendez. il y a pire que garder : ne plus rien vouloir du tout. ne plus chercher, ne plus compter, ne plus ouvrir le courrier. j'ai connu une après-midi comme ça. elle a duré longtemps. plus longtemps qu'une après-midi.",
+      "source": "cop-insert-grise",
+      "legende": null
+    },
+    {
+      "code": "cop-p2-08",
+      "liasse": "copiste-p2",
+      "ordre": 8,
+      "titre": "Un pont",
+      "texte": "au premier monde, elle grimpait à son arbre et laissait le reste se débrouiller. plus loin dans le carnet, elle se couche dans la boue pour qu'un autre passe sur son dos. personne ne lui a fait la morale entre-temps. un jour, elle a eu besoin de quelqu'un, et quelqu'un a eu besoin d'elle, dans la même heure. c'est tout. moi, ce matin, j'ai ouvert la fenêtre. ça n'a l'air de rien.",
+      "source": "cop-acte2",
+      "legende": null
+    },
+    {
+      "code": "cop-p3-01",
+      "liasse": "copiste-p3",
+      "ordre": 1,
+      "titre": "Les forêts tempérées",
+      "texte": "des arbres qui lâchent leurs feuilles plutôt que de geler avec. renoncer pour tenir : il y a une leçon là-dedans, je vous laisse la trouver, elle est trop belle pour que je la mâche. c'est ici qu'elle comprend le cœur de tout : nommer fait tenir la page. et c'est ici qu'arrive le petit. elle va lui apprendre à voir. j'ai hâte. ça faisait longtemps que je n'avais eu hâte de rien.",
+      "source": "cop-mov-4",
+      "legende": null
+    },
+    {
+      "code": "cop-p3-02",
+      "liasse": "copiste-p3",
+      "ordre": 2,
+      "titre": "En marge de la forêt d'automne",
+      "texte": "l'arbre ne meurt pas de l'hiver. avant le gel, il ferme le passage de la sève vers ses feuilles et les laisse tomber. il perd ce qu'il ne pourrait pas garder, et il passe l'hiver. moi, j'ai fait l'inverse : tout gardé, les cartons, les journaux, les rancunes. j'ai quand même tout perdu. l'arbre est plus malin que moi. ne le répétez pas.",
+      "source": "cop-bio-caduc",
+      "legende": null
+    },
+    {
+      "code": "cop-p3-03",
+      "liasse": "copiste-p3",
+      "ordre": 3,
+      "titre": "Nommer, à quoi bon ?",
+      "texte": "sa grande idée : nommer une bête, c'est la faire tenir. il existe tout un roman là-dessus, « l'histoire sans fin », de michael ende, un écrivain allemand : un monde qui disparaît, et un enfant qui le sauve en donnant un nom. moi, l'avocat du diable, je lève la main au fond : on nomme une fleur, la fleur fane quand même. et puis j'ai vu la faille dans mon raisonnement. elle ne joue pas à gagner. on ne bat pas le vent. elle dit seulement : tant qu'un nom passe d'une main à une autre, la chose existe encore, quelque part entre les deux. ce n'est pas un coffre, c'est un relais. un coffre, ça se vide. un relais, tant qu'il y a quelqu'un pour courir, ça continue.",
+      "source": "cop-insert-nommer",
+      "legende": null
+    },
+    {
+      "code": "cop-p3-04",
+      "liasse": "copiste-p3",
+      "ordre": 4,
+      "titre": "En marge de la lande",
+      "texte": "la petite plante collante qui attrape des insectes ne le fait pas par méchanceté : son sol ne lui donne presque pas d'azote, alors elle va le chercher dans les bêtes. et sous vos pieds, la tourbe : un sol qui ne pourrit presque pas, qui empile les plantes mortes depuis des milliers d'années et garde plus de carbone qu'une forêt de même taille. le coin le plus triste du paysage est parfois un coffre-fort. pensez-y, la prochaine fois qu'un endroit vous paraîtra moche. ou une personne.",
+      "source": "cop-bio-landes",
+      "legende": null
+    },
+    {
+      "code": "cop-p3-05",
+      "liasse": "copiste-p3",
+      "ordre": 5,
+      "titre": "« C'est naturel »",
+      "texte": "« c'est naturel, donc c'est bien » : le plus vieux piège du monde. deux philosophes, l'écossais david hume puis l'anglais george moore, l'ont démonté il y a longtemps : de ce que les choses sont, on ne peut pas déduire ce qu'elles doivent être. la nature n'a pas de morale. le bien, ce n'est pas un fait qu'on observe, c'est une décision qu'on prend. bonne nouvelle : personne ne décidera à votre place.",
+      "source": "cop-marg-nature",
+      "legende": null
+    },
+    {
+      "code": "cop-p3-06",
+      "liasse": "copiste-p3",
+      "ordre": 6,
+      "titre": "Un nom",
+      "texte": "ici, un nom ne se donne pas à la légère : nommer, c'est promettre de tenir la chose. elle ne le dit pas encore, mais c'est pour ça qu'elle n'ose pas nommer son oiseau, pendant toute une partie du voyage. gardez ça en tête. moi, j'ai longtemps évité de prononcer certains noms. il paraît que ça les garde. ça les garde surtout dans le noir.",
+      "source": "cop-marg-nom",
+      "legende": null
+    },
+    {
+      "code": "cop-p3-07",
+      "liasse": "copiste-p3",
+      "ordre": 7,
+      "titre": "Le petit",
+      "texte": "le petit arrive, et elle lui apprend à voir. elle ne fait pas ça pour que ça « serve ». elle le fait parce que c'est ça, être deux. un savoir gardé pour soi, c'est un caillou dans la poche ; donné, ça devient un pont. entre le moment où elle lui montre une bête et celui où il en nomme une, tout seul, plus loin, il s'est passé quelque chose qui n'était pas là avant. appelez ça comme vous voulez. moi, ça m'a donné envie de sortir acheter du pain. j'y suis allé.",
+      "source": "cop-insert-transmettre",
+      "legende": null
+    },
+    {
+      "code": "cop-p3-08",
+      "liasse": "copiste-p3",
+      "ordre": 8,
+      "titre": "Et si j'avais tout inventé ?",
+      "texte": "la chose qui me réveille la nuit : plus je recopie, plus son écriture ressemble à la mienne. les lettres, les manies, cette façon de couper une phrase en deux pour respirer. et si sélène n'avait jamais existé ? si je l'avais inventée, un jour où j'étais assis, pour me forcer à me lever ? je n'ai aucun moyen de trancher. et le plus drôle, c'est que ça ne change presque rien : vraie ou inventée, elle m'a fait lever. un vieux livre dit qu'on reconnaît l'arbre à ses fruits, pas à son acte de naissance. c'est d'ailleurs ce qu'on vous demande en sciences : ne pas croire une chose parce qu'elle est écrite, regarder si elle tient quand on vérifie.",
+      "source": "cop-doute-mid",
+      "legende": null
+    },
+    {
+      "code": "cop-p4-01",
+      "liasse": "copiste-p4",
+      "ordre": 1,
+      "titre": "Les grands froids",
+      "texte": "le plus long, le plus dur. ici, tout lâche en chaîne, un fil après l'autre : elle appelle ça le détricotage. c'est aussi ici qu'ils rencontrent l'homme assis. je vous préviens : je vais beaucoup parler de moi dans ce monde-là. pas par vanité. parce que l'homme assis, il faudra bien que je vous en dise quelque chose.",
+      "source": "cop-mov-5",
+      "legende": null
+    },
+    {
+      "code": "cop-p4-02",
+      "liasse": "copiste-p4",
+      "ordre": 2,
+      "titre": "En marge de la taïga",
+      "texte": "tout est lent ici, et vous allez bâiller. erreur. lent, ce n'est pas mort : c'est une vie qui compte le soleil. la plupart de ces arbres gardent leurs aiguilles toute l'année, pour ne pas perdre une minute de lumière quand le froid lâche. moi, j'ai laissé filer des années sans rien faire, alors je n'ai pas de leçon à donner à un sapin. juste une : ne confondez jamais lent et fini.",
+      "source": "cop-bio-taiga",
+      "legende": null
+    },
+    {
+      "code": "cop-p4-03",
+      "liasse": "copiste-p4",
+      "ordre": 3,
+      "titre": "Le film de la vie",
+      "texte": "un paléontologue américain, stephen jay gould, disait : si on rembobinait le film de la vie pour le rejouer, on n'obtiendrait jamais deux fois la même chose. ni les dinosaures, ni les baleines, ni vous. vous êtes un accident magnifique qui ne se reproduira pas. il y a de quoi avoir le vertige, ou dire merci. choisissez merci : c'est le même fait, mais c'est plus utile.",
+      "source": "cop-marg-gould",
+      "legende": null
+    },
+    {
+      "code": "cop-p4-04",
+      "liasse": "copiste-p4",
+      "ordre": 4,
+      "titre": "Elle oublie. moi aussi.",
+      "texte": "elle écrit sur ce qui s'efface : des noms, des chants, des couleurs. hier, j'ai cherché le nom de la rue où j'ai grandi. il n'est pas venu. ça m'a fait rire. puis ça ne m'a plus fait rire. ce qui pâlit dans son carnet pâlit un peu chez moi aussi, par les bords. si mes phrases se mettent à boiter vers la fin, ne corrigez pas. laissez. c'est ma page à moi qui […]",
+      "source": "cop-insert-effacement",
+      "legende": null
+    },
+    {
+      "code": "cop-p4-05",
+      "liasse": "copiste-p4",
+      "ordre": 5,
+      "titre": "Moi aussi, j'étais assis",
+      "texte": "l'homme assis du carnet, celui qui offre le thé dans son dernier coin vert, je le connais. pas lui : sa façon d'être assis. une histoire de moi, une seule, après on n'en parle plus. avant la boîte, j'étais assis. pas sur une chaise : dans ma tête, l'endroit le plus inconfortable pour rester assis longtemps. j'avais essayé de réparer quelque chose qui comptait. ça avait raté. alors j'en avais tiré une conclusion très solide : puisque réparer ne marche pas, autant ne plus rien tenter. plus on y pense, plus c'est solide. c'est juste impossible à vivre. l'homme du thé n'a pas tort, voilà ce qui fait peur. et puis cette boîte, et elle, qui marchait quand même et notait le nom des fleurs. je me suis levé pour ne pas avoir honte devant elle.",
+      "source": "cop-confession",
+      "legende": null
+    },
+    {
+      "code": "cop-p4-06",
+      "liasse": "copiste-p4",
+      "ordre": 6,
+      "titre": "La tasse",
+      "texte": "quand elle repasse par le coin vert, l'homme n'est plus là. sa tasse, oui : posée bien droite, vide. parti ? effacé ? elle ne tranche pas. moi non plus. (entre nous : j'espère qu'il s'est levé. je le dis tout bas.) et elle, alors ? son carnet est revenu sans elle. partie plus loin ? effacée ? encore en train de marcher quelque part, sur une page que je n'aurai jamais ? je fais des listes d'hypothèses comme d'autres font des mots croisés. aucune ne gagne. j'en garde une sous l'oreiller, la meilleure. je ne vous dirai pas laquelle.",
+      "source": "cop-marg-tasse",
+      "legende": null
+    },
+    {
+      "code": "cop-p4-07",
+      "liasse": "copiste-p4",
+      "ordre": 7,
+      "titre": "La glace",
+      "texte": "le bout. le soleil qui ne se couche plus, puis qui ne se lève plus. le ciel qui s'allume en silence : du vent venu du soleil qui frappe le haut de l'air, si vous voulez la version sans magie. moi, à ce stade, je préfère regarder. elle marche vers l'étoile du nord, celle qui ne bouge pas. en vrai, elle bouge, très lentement, depuis des milliers d'années. mais le temps d'une vie, elle tient lieu de nord. c'est tout ce qu'on demande à une étoile. ici, le carnet pâlit plus vite que partout. lisez vite. je recopie vite.",
+      "source": "cop-mov-6",
+      "legende": null
+    },
+    {
+      "code": "cop-p4-08",
+      "liasse": "copiste-p4",
+      "ordre": 8,
+      "titre": "En marge de la toundra",
+      "texte": "le soleil ne se couche plus, et tout fleurit d'un coup, en quelques semaines, comme si la toundra savait que ça ne durera pas. c'est ça qui rend la chose belle. on ne s'émerveille jamais de ce qui dure toujours, on s'y habitue. vous voulez le secret pour aimer quelque chose ? souvenez-vous qu'il y aura une fin.",
+      "source": "cop-bio-toundra",
+      "legende": null
+    },
+    {
+      "code": "cop-p4-09",
+      "liasse": "copiste-p4",
+      "ordre": 9,
+      "titre": "Me voilà dans la Trame",
+      "texte": "quelque chose a changé, ces derniers mondes. j'ai recommencé à avoir faim. à remarquer la lumière sur le mur, le matin. à vouloir le lendemain, juste pour voir. elle écrit partout que rien n'est seul : la bête, la plante, le sol et le climat se tiennent par la main sans le savoir. la trame. longtemps, j'ai cru que ça concernait les gnous et les champignons, pas moi. et puis un soir, en recopiant, je me suis vu dedans : un fil, moi aussi, relié à elle, à vous, à la personne qui lui avait confié la boîte avant elle, à l'oiseau même s'il n'existe pas. un fil tient tant qu'il peut ; quand il lâche, d'autres le rattrapent, et la toile tient. une araignée sait ça en naissant. il m'a fallu une vie.",
+      "source": "cop-trame",
+      "legende": null
+    },
+    {
+      "code": "cop-p4-10",
+      "liasse": "copiste-p4",
+      "ordre": 10,
+      "titre": "J'ai peur de finir",
+      "texte": "je ne sais plus quand j'ai eu envie de finir quelque chose pour la dernière fois. et là, c'est ridicule, j'ai peur d'arriver au bout du carnet. moi qui ne finissais rien, je traîne sur les dernières pages pour faire durer. une voyageuse que je n'ai jamais vue, un carnet, un oiseau qui n'existe pas : ils m'ont remis debout sans me demander mon avis. je n'ai qu'une façon de dire merci : continuer, et vous le passer. elle m'a sauvé la vie.",
+      "source": "cop-insert-peur",
+      "legende": null
+    },
+    {
+      "code": "cop-juin-01",
+      "liasse": "copiste-juin",
+      "ordre": 1,
+      "titre": "La couverture",
+      "texte": "sélène — le carnet sauvé de l'effacement. recopié, remis en ordre, et abîmé d'amour par une main qui n'a jamais dit son nom.",
+      "source": "cop-cover",
+      "legende": null
+    },
+    {
+      "code": "cop-juin-02",
+      "liasse": "copiste-juin",
+      "ordre": 2,
+      "titre": "Ce que j'ai sauvé",
+      "texte": "bon. voilà le topo. cette boîte m'est tombée dessus : un carnet qui s'efface, des pages dans tous les sens. j'aurais pu refermer, j'avais sûrement autre chose à faire. (quoi ? aucune idée. mais sûrement.) au lieu de ça, je me suis assis, et j'ai recopié. elle s'appelait sélène, du moins c'est ce qu'il restait de son nom sur la première page. elle a marché de la chaleur de l'équateur jusqu'à la glace, pour regarder le vivant et le mettre en mots avant qu'il pâlisse. puis son carnet est revenu sans elle. partie ? effacée ? encore en marche ? je n'ai jamais su. là où il manque, j'ai laissé manquer : les blancs ne sont pas des erreurs, ce sont les pages que je n'arrivais pas à lire. ce carnet n'est pas une punition, c'est une carte. et la honte n'a jamais rien réparé. pourquoi pour vous ? je ne vous connais même pas. bon. un peu pour vous. parce qu'elle l'a fait avant moi, et quelqu'un avant elle, et que là, maintenant, vous lisez : on est déjà trois ou quatre à tenir la même corde. c'est moins seul que ça en a l'air.",
+      "source": "cop-preface",
+      "legende": null
+    },
+    {
+      "code": "cop-juin-03",
+      "liasse": "copiste-juin",
+      "ordre": 3,
+      "titre": "La même corde",
+      "texte": "elle est arrivée au bout de ce qu'une personne seule peut tenir. le dernier pas, elle ne l'a pas écrit, et c'est très bien comme ça. au début, je me demandais si recopier servait à quelque chose : de l'eau versée dans un seau percé. je ne sais toujours pas. mais le carnet est arrivé jusqu'à moi, et vous l'avez tenu. pas seuls : regardez autour de vous. elle l'a écrit tout au début, je n'ai fait que recopier : la main qui garde tout finit vide. alors laissez traîner quelque chose pour ceux d'après. un nom, un caillou, un mot dans la boîte. ce qui compte, ce n'est pas ce qui s'efface derrière. c'est ce qu'on a le temps d'écrire devant.",
+      "source": "cop-acte3",
+      "legende": null
+    },
+    {
+      "code": "cop-juin-04",
+      "liasse": "copiste-juin",
+      "ordre": 4,
+      "titre": "Elle ne meurt pas ici",
+      "texte": "vous attendez la suite. moi aussi, je l'ai attendue : j'ai tourné la page, et il n'y avait rien. le carnet s'arrête là, sur un mot suspendu et du blanc. elle n'a pas écrit sa fin. personne n'écrit sa fin. j'aurais pu en inventer une, j'ai le crayon. une fin triste dans la neige, avec la petite musique qu'il faut. je n'en ai rien fait. je ne fabrique pas ce qu'elle n'a pas vécu. alors je la laisse là où elle s'est laissée elle-même : debout, au bord, en train de donner un nom. elle ne meurt pas dans ce carnet. elle cesse d'être lisible, ce n'est pas la même chose. quelque part, sur une page que je n'aurai jamais, elle fait encore un pas. quant au nom de l'oiseau : non. il est à elle, et à l'endroit où elle l'a dit.",
+      "source": "cop-finale",
+      "legende": null
+    },
+    {
+      "code": "cop-juin-05",
+      "liasse": "copiste-juin",
+      "ordre": 5,
+      "titre": "L'oiseau",
+      "texte": "à force de le recopier, je l'entends, surtout la nuit. je sais qu'il n'est pas là : il est parti avec elle. il critique mon écriture quand même. un cri, un seul, qui veut dire « tu fais des pâtés ». je fais des pâtés. je continue. un oiseau imaginaire ne me fera pas lâcher le crayon. il le sait.",
+      "source": "cop-marg-corbeau",
+      "legende": null
+    },
+    {
+      "code": "cop-juin-06",
+      "liasse": "copiste-juin",
+      "ordre": 6,
+      "titre": "Le crayon",
+      "texte": "voilà, elle vous tend le crayon. j'ai failli le garder pour moi, vieux réflexe. puis je me suis rappelé qu'un crayon, ça ne se garde pas : ça s'use en servant, ou ça sèche au fond d'un tiroir. je vous le passe. ne le gardez pas non plus.",
+      "source": "cop-marg-crayon",
+      "legende": null
+    },
+    {
+      "code": "cop-juin-07",
+      "liasse": "copiste-juin",
+      "ordre": 7,
+      "titre": "Ce que je n'ai pas pu",
+      "texte": "voilà. c'est tout ce que j'ai sauvé. le reste, le dernier pas, ce qu'il y a au-delà de l'étoile, n'est pas là : elle n'y était pas encore quand elle écrivait, et certaines choses ne se recopient pas, elles se vivent. elle n'a pas écrit le nom de son oiseau ; elle a écrit tout le reste, pour que quelqu'un, un jour, ait envie de nommer le sien. moi aussi, j'avais un nom. je pourrais l'écrire ici. une ligne. ce serait facile. alors non : on n'a pas besoin de signer ce qu'on transmet. il suffit que ça arrive. est-ce que tout ça est vrai, elle, le miroir, l'oiseau ? je ne le sais pas, et je ne le saurai sans doute jamais. j'ai fini par lâcher l'affaire : la bonne question, ce n'est pas « est-ce arrivé ? », c'est « est-ce que ça vous a changés ? ». une histoire qui remet debout est plus vraie que mille faits qui laissent assis. les pages blanches, après celle-ci, ne sont pas un défaut d'impression. c'est votre part. bon. j'ai assez parlé. l'oiseau trouve que je parle trop. il a raison. prenez le crayon. courez.",
+      "source": "cop-close",
+      "legende": null
+    },
+    {
+      "code": "cop-juin-08",
+      "liasse": "copiste-juin",
+      "ordre": 8,
+      "titre": "La lettre",
+      "texte": "si vous lisez ceci, c'est que vous êtes allés au bout. je m'en doutais : vous trouvez tout. moi, je n'ai jamais pu passer la plaque. j'ai regardé longtemps, je n'y ai vu que ma tête. elle l'avait écrit dans son mot : les grands ne voient que leur reflet. elle avait raison, et j'étais grand. alors j'ai fait la seule chose qu'un grand sait faire : recopier. ce que je pouvais lire, je l'ai recopié. le reste, je l'ai laissé en blanc, et j'ai rangé mes notes dans la boîte, un monde par enveloppe. le soir, en recopiant, je voyais son oiseau sur ma table. je sais bien qu'il n'y était pas : à force de lire ses pages, il était entré dans ma tête. il m'a tenu compagnie quand même. toute ma vie, je me suis demandé si c'était vrai. vous, vous y êtes allés. vous avez rendu lisibles des pages que je n'arrivais même pas à déchiffrer. mon nom, je ne vous le donne pas. au bout du carnet, il reste des pages blanches : une espèce que vous nommez, un lien que vous avez compris. ensuite, laissez la boîte à votre tour, pour des gens que vous ne connaîtrez pas. prenez le crayon. passez-le.",
+      "source": null,
+      "legende": null
+    },
+    {
+      "code": "cop-env-1",
+      "liasse": "copiste-enveloppe",
+      "ordre": 1,
+      "titre": "Enveloppe « baobab »",
+      "texte": "là-bas, on m'a souvent demandé si j'étais gnome ou [ici, je n'arrive pas à lire]. les deux, l'une après l'autre. mes plus belles pages sont écrites des deux […]. ce sont celles qui n'ont jamais [ici, je n'arrive pas à lire]. faites comme moi : changez de forme sans regret à chaque […].",
+      "source": null,
+      "legende": "une copie à trous de « Les formes de Sélène », d'une autre écriture"
+    },
+    {
+      "code": "cop-env-2",
+      "liasse": "copiste-enveloppe",
+      "ordre": 2,
+      "titre": "Enveloppe « dune »",
+      "texte": "trois pages ce mois-ci. le reste ne se laisse pas lire.",
+      "source": null,
+      "legende": "un bout de crayon usé jusqu'au bois, et une note"
+    },
+    {
+      "code": "cop-env-3",
+      "liasse": "copiste-enveloppe",
+      "ordre": 3,
+      "titre": "Enveloppe « feuille »",
+      "texte": "pages que je n'arrive pas à lire : le jardinier qui oublie. six semaines de lumière. le réseau sous les pieds. la forêt naine. le piège gluant. la mousse qui guérit. le moteur dans la nuit.",
+      "source": null,
+      "legende": "une liste"
+    },
+    {
+      "code": "cop-env-4",
+      "liasse": "copiste-enveloppe",
+      "ordre": 4,
+      "titre": "Enveloppe « flocon »",
+      "texte": "j'ai regardé longtemps. je n'y ai vu que ma tête.",
+      "source": null,
+      "legende": "une note"
+    }
+  ]
+}

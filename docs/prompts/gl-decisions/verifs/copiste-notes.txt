@@ -1,0 +1,99 @@
+Contrôle de sources/copiste-notes.json (script : /home/claude/kit/scripts/copiste_notes.py)
+Source : /mnt/project/claude_Copiste_notes_GL.md (29126 octets, sha256 843c200fe82bcc38)
+
+OK    45 entrées (trouvé : 45)
+OK    répartition 7 / 8 / 8 / 10 / 8 et 4 enveloppes (trouvé : {"copiste-p1": 7, "copiste-p2": 8, "copiste-p3": 8, "copiste-p4": 10, "copiste-juin": 8, "copiste-enveloppe": 4})
+OK    codes uniques (45 codes distincts)
+OK    forme des codes
+OK    ordre continu 1..7 dans copiste-p1
+OK    ordre continu 1..8 dans copiste-p2
+OK    ordre continu 1..8 dans copiste-p3
+OK    ordre continu 1..10 dans copiste-p4
+OK    ordre continu 1..8 dans copiste-juin
+OK    ordre continu 1..4 dans copiste-enveloppe
+OK    les sept champs sur chaque entrée
+OK    aucun titre ni texte vide
+OK    aucune double espace ni retour à la ligne dans un texte
+OK    légende sur les 4 enveloppes, et sur elles seules
+OK    titres sans numéro ni code entre parenthèses
+OK    chaque texte retrouvé à l'identique dans claude_Copiste_notes_GL.md (sous-chaîne) 
+OK    chaque texte retrouvé à l'identique dans l'annexe K.1 de l'addendum 3, l. 526-899 
+OK    chaque titre retrouvé en gras dans le source 
+OK    chaque légende retrouvée en italique dans le source 
+OK    sources/copiste-notes.md = copie octet pour octet du source
+OK    39 anciens codes repris, tous distincts (trouvé : 39)
+OK    `source` nul : les baleines, la lettre, les 4 enveloppes (trouvé : cop-p2-06, cop-juin-08, cop-env-1, cop-env-2, cop-env-3, cop-env-4)
+OK    le café reprend cop-marg-quotidien
+
+Simulation du test de contenu propre au copiste (titre + texte + légende) :
+OK    la dernière note de copiste-p4 se termine par « elle m'a sauvé la vie. »
+OK    aucun « morte », cri, « sud », « derrière vous », « tu » hors citation, visage avant son plateau
+
+Pour mémoire, mots du filtre commun du dépôt (src/shared/glGardeFousCore.js) présents dans les notes
+(permis dans la voix du copiste, décision du 24/11 à 14 h 55 : test avec sa propre liste) :
+  cop-p1-03 (Les tropiques) : raté
+  cop-p2-06 (Des baleines dans le sable) : perdu
+  cop-p3-02 (En marge de la forêt d'automne) : perdu
+  cop-p4-05 (Moi aussi, j'étais assis) : raté
+
+Laissé hors du JSON (présent dans copiste-notes.md) :
+  l. 50, cop-p1-01, parenthèse du titre (hors `source`) : repris de `cop-marg-quotidien`
+  l. 135, cop-p2-06, parenthèse du titre (hors `source`) : nouvelle ; reprend l'idée de `cop-bio-dfroid`, désert froid jamais joué
+  l. 280, cop-juin-02, parenthèse du titre (hors `source`) : `cop-preface`, la première page, lue en dernier
+  l. 328, cop-juin-08, parenthèse du titre (hors `source`) : sous le double fond de la boîte ; lue par le Passeur, puis dans l'app
+  l. 340, cop-juin-08, variante sans champ : *Variante surnom* (si la classe lui a donné un nom pendant l'année) : à la place de « mon nom, je ne vous le donne pas », « vous m'avez donné un nom toute l'année. gardez-le : moi, j'ai perdu le mien. »
+  l. 357, cop-env-4, parenthèse de mise en scène : puis on souffle sur la plaque : une grande main apparaît
+  règles d'écriture (l. 9-46) et tableaux de relecture (l. 89-99, 360-374) : non repris
+
+Tailles :
+  textes : 20171 signes en tout ; le plus court 49 (cop-env-4), le plus long 1083 (cop-juin-08)
+  copiste-notes.json : 30147 octets, sha256 897e730a1d219ed4
+
+Codes, dans l'ordre :
+  cop-p1-01    copiste-p1          1  Le café                                          source=cop-marg-quotidien
+  cop-p1-02    copiste-p1          2  Comment on entre                                 source=cop-mov-1
+  cop-p1-03    copiste-p1          3  Les tropiques                                    source=cop-mov-2
+  cop-p1-04    copiste-p1          4  En marge de la savane                            source=cop-bio-savane
+  cop-p1-05    copiste-p1          5  Les gnomes                                       source=cop-marg-paracelse
+  cop-p1-06    copiste-p1          6  Aimer ce qui s'efface                            source=cop-insert-amour
+  cop-p1-07    copiste-p1          7  Chacun pour sa peau                              source=cop-acte1
+  cop-p2-01    copiste-p2          1  Les terres sèches                                source=cop-mov-3
+  cop-p2-02    copiste-p2          2  En marge du Sahara                               source=cop-bio-sahara
+  cop-p2-03    copiste-p2          3  D'où sort la boîte                               source=cop-origine
+  cop-p2-04    copiste-p2          4  En marge de la garrigue                          source=cop-bio-medit
+  cop-p2-05    copiste-p2          5  L'oxygène                                        source=cop-marg-oxydation
+  cop-p2-06    copiste-p2          6  Des baleines dans le sable                       source=None
+  cop-p2-07    copiste-p2          7  Deux façons de ne rien donner                    source=cop-insert-grise
+  cop-p2-08    copiste-p2          8  Un pont                                          source=cop-acte2
+  cop-p3-01    copiste-p3          1  Les forêts tempérées                             source=cop-mov-4
+  cop-p3-02    copiste-p3          2  En marge de la forêt d'automne                   source=cop-bio-caduc
+  cop-p3-03    copiste-p3          3  Nommer, à quoi bon ?                             source=cop-insert-nommer
+  cop-p3-04    copiste-p3          4  En marge de la lande                             source=cop-bio-landes
+  cop-p3-05    copiste-p3          5  « C'est naturel »                                source=cop-marg-nature
+  cop-p3-06    copiste-p3          6  Un nom                                           source=cop-marg-nom
+  cop-p3-07    copiste-p3          7  Le petit                                         source=cop-insert-transmettre
+  cop-p3-08    copiste-p3          8  Et si j'avais tout inventé ?                     source=cop-doute-mid
+  cop-p4-01    copiste-p4          1  Les grands froids                                source=cop-mov-5
+  cop-p4-02    copiste-p4          2  En marge de la taïga                             source=cop-bio-taiga
+  cop-p4-03    copiste-p4          3  Le film de la vie                                source=cop-marg-gould
+  cop-p4-04    copiste-p4          4  Elle oublie. moi aussi.                          source=cop-insert-effacement
+  cop-p4-05    copiste-p4          5  Moi aussi, j'étais assis                         source=cop-confession
+  cop-p4-06    copiste-p4          6  La tasse                                         source=cop-marg-tasse
+  cop-p4-07    copiste-p4          7  La glace                                         source=cop-mov-6
+  cop-p4-08    copiste-p4          8  En marge de la toundra                           source=cop-bio-toundra
+  cop-p4-09    copiste-p4          9  Me voilà dans la Trame                           source=cop-trame
+  cop-p4-10    copiste-p4         10  J'ai peur de finir                               source=cop-insert-peur
+  cop-juin-01  copiste-juin        1  La couverture                                    source=cop-cover
+  cop-juin-02  copiste-juin        2  Ce que j'ai sauvé                                source=cop-preface
+  cop-juin-03  copiste-juin        3  La même corde                                    source=cop-acte3
+  cop-juin-04  copiste-juin        4  Elle ne meurt pas ici                            source=cop-finale
+  cop-juin-05  copiste-juin        5  L'oiseau                                         source=cop-marg-corbeau
+  cop-juin-06  copiste-juin        6  Le crayon                                        source=cop-marg-crayon
+  cop-juin-07  copiste-juin        7  Ce que je n'ai pas pu                            source=cop-close
+  cop-juin-08  copiste-juin        8  La lettre                                        source=None
+  cop-env-1    copiste-enveloppe   1  Enveloppe « baobab »                             source=None
+  cop-env-2    copiste-enveloppe   2  Enveloppe « dune »                               source=None
+  cop-env-3    copiste-enveloppe   3  Enveloppe « feuille »                            source=None
+  cop-env-4    copiste-enveloppe   4  Enveloppe « flocon »                             source=None
+
+RÉSULTAT : TOUT EST BON
