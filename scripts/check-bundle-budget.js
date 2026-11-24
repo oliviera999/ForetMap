@@ -55,7 +55,9 @@ const BUNDLE_BUDGETS = Object.freeze({
     // styles du studio narrateur et de l'administration des comptes quittent `src/index.css`
     // pour des feuilles importées par leurs écrans (chargés à la demande) : 359,8 Ko après.
     jsKb: 507,
-    cssKb: 365,
+    // CSS 365 → 360 le 24/11/2026 : styles des réglages et de la médiathèque chargés avec leurs
+    // vues (`src/components/admin-console.css`). Mesure : 359,8 Ko sur `main`, 355,6 Ko après.
+    cssKb: 360,
   }),
 });
 

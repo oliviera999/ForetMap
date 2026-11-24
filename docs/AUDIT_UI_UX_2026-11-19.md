@@ -118,6 +118,12 @@ administration des comptes sortis de `src/index.css` vers des feuilles chargées
 écrans : **359,8 Ko**, cliquet à 365 Ko. **Reste** côté CSS : `src/index.css` porte encore les
 réglages admin (`.settings-admin`), la médiathèque et la pédagogie, candidats au même traitement.
 
+**Corrigé** (24/11, branche `claude/ui-ux-css-admin-a-la-demande`) : les réglages admin
+(`.settings-admin*`, onglet Moodle, mascottes de visite, cartes), repris par la médiathèque,
+passent dans `src/components/admin-console.css`, importée par `settings-admin-views.jsx` et
+`media-library-views.jsx` : **355,6 Ko**, cliquet à 360 Ko. **Reste** : la pédagogie et le
+menu de la médiathèque (`.media-library-menu`, partagé avec d'autres écrans).
+
 ### U2 — 🔴 Indisponibilité vue par l'utilisateur
 
 Deux redémarrages du serveur pendant l'audit. Côté écran : bandeau « Serveur momentanément

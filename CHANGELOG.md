@@ -9,6 +9,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — écran de connexion : styles des réglages et de la médiathèque chargés à la demande (UI/UX, 24/11/2026)
+
+- Suite du lot précédent : les styles de la console des réglages (`.settings-admin*`, onglet
+  Moodle, mascottes de visite, cartes), repris par la médiathèque, quittent `src/index.css`
+  pour `src/components/admin-console.css`, importée par `settings-admin-views.jsx` et
+  `media-library-views.jsx` (déjà chargées à la demande). Règles déplacées telles quelles.
+  CSS de l'écran de connexion : **359,8 → 355,6 Ko** ; cliquet abaissé de 365 à **360 Ko**.
+
 ### Corrigé — budget CSS de l'écran de connexion (UI/UX lot 2, U1, 24/11/2026)
 
 - **Plafond franchi sur `main`** : le CSS chargé avant la connexion était passé à 372,9 Ko pour un

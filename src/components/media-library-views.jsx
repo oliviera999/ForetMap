@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { api } from '../services/api';
 import { MediaLibraryMenu } from './MediaLibraryMenu.jsx';
 import { IconMediaLibrary, IconWarning } from '../shared/icons.jsx';
+import './admin-console.css';
 
 function canUseClipboard() {
   return typeof navigator !== 'undefined' && !!navigator.clipboard?.writeText;
