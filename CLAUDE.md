@@ -5,6 +5,15 @@ Les règles de détail font autorité dans **`.cursor/rules/`** et **`.cursor/sk
 les dupliquer ici) ; ce fichier en donne la synthèse opérationnelle. Skills Claude Code dédiés
 sous **`.claude/skills/`**.
 
+## Où ce dépôt s'inscrit
+
+- **Projet Claude Code** : « ForêtMap & Gnomes et Licornes », seul projet Code de ce dépôt ; ses
+  instructions s'ajoutent à ce fichier.
+- **Projets de chat claude.ai** : « foretmap » (base de données, contenus de visite) et « Index du
+  projet G&L » (jeu, lore, visuels). Les décisions de contenu et de données s'y prennent ; le code
+  se fait ici. Un changement de structure de la base décidé dans le chat arrive documenté.
+- **Connecteur MCP `foretmap`** : il agit sur la **prod** (écriture immédiate).
+
 ## Vue d'ensemble
 
 - **ForetMap** : application de gestion d'une forêt comestible (Lycée Lyautey). Élèves
