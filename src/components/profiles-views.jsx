@@ -38,7 +38,7 @@ import {
   safeLocalStorageGetItem,
   safeLocalStorageSetItem,
 } from '../shared/platform/browserStorage.js';
-import './admin-console.css';
+import './profiles/profiles-admin.css';
 
 const PROFILES_SUB_TAB_KEY = 'foretmap.profiles.subTab';
 

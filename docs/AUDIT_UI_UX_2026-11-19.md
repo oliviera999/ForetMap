@@ -112,14 +112,17 @@ synchronisation — qu'`App.jsx` appelle même sans session : les sortir demande
 `App.jsx` en une porte non connectée et une application connectée, lot à part avec test de
 montage), le client d'API et `zod` (37 Ko).
 
-**Corrigé** (24/11, branche `claude/ui-ux-css-admin-a-la-demande`) : le plafond CSS de 372 Ko
-était dépassé sur `main` (372,9 Ko) après les lots de fin novembre. Les styles de la console
-d'administration — réglages, onglet Moodle, mascottes de visite, cartes, médiathèque, profils,
-comptes et groupes — quittent `src/index.css` pour `src/components/admin-console.css`, importée
-par les trois vues chargées à la demande qui les utilisent (`settings-admin-views.jsx`,
-`profiles-views.jsx`, `media-library-views.jsx`). CSS de l'écran de connexion **372,9 →
-360,5 Ko** (la feuille d'administration pèse 12,4 Ko et ne part qu'avec ces vues) ; cliquet CSS
-abaissé de 372 à **365 Ko**.
+**Corrigé** (lot 2, suite, 24/11, branche `claude/ui-ux-css-connexion`) : le CSS de l'écran de
+connexion avait franchi son plafond sur `main` (372,9 > 372 Ko). Studio narrateur et
+administration des comptes sortis de `src/index.css` vers des feuilles chargées avec leurs
+écrans : **359,8 Ko**, cliquet à 365 Ko. **Reste** côté CSS : `src/index.css` porte encore les
+réglages admin (`.settings-admin`), la médiathèque et la pédagogie, candidats au même traitement.
+
+**Corrigé** (24/11, branche `claude/ui-ux-css-admin-a-la-demande`) : les réglages admin
+(`.settings-admin*`, onglet Moodle, mascottes de visite, cartes), repris par la médiathèque,
+passent dans `src/components/admin-console.css`, importée par `settings-admin-views.jsx` et
+`media-library-views.jsx` : **355,6 Ko**, cliquet à 360 Ko. **Reste** : la pédagogie et le
+menu de la médiathèque (`.media-library-menu`, partagé avec d'autres écrans).
 
 ### U2 — 🔴 Indisponibilité vue par l'utilisateur
 

@@ -9,15 +9,25 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
-### Modifié — écran de connexion : styles d'administration chargés à la demande (UI/UX, 24/11/2026)
+### Modifié — écran de connexion : styles des réglages et de la médiathèque chargés à la demande (UI/UX, 24/11/2026)
 
-- Le budget CSS de l'écran de connexion était dépassé sur `main` (372,9 Ko pour un plafond de
-  372 Ko). Les styles de la console d'administration (réglages, onglet Moodle, mascottes de
-  visite, cartes, médiathèque, profils, comptes et groupes) quittent `src/index.css` pour
-  `src/components/admin-console.css`, importée par les trois vues chargées à la demande qui
-  s'en servent. CSS avant connexion : **372,9 → 360,5 Ko** ; cliquet abaissé à 365 Ko
-  (`scripts/check-bundle-budget.js`). Aucun changement visible : mêmes règles, même ordre
-  relatif aux feuilles partagées.
+- Suite du lot précédent : les styles de la console des réglages (`.settings-admin*`, onglet
+  Moodle, mascottes de visite, cartes), repris par la médiathèque, quittent `src/index.css`
+  pour `src/components/admin-console.css`, importée par `settings-admin-views.jsx` et
+  `media-library-views.jsx` (déjà chargées à la demande). Règles déplacées telles quelles.
+  CSS de l'écran de connexion : **359,8 → 355,6 Ko** ; cliquet abaissé de 365 à **360 Ko**.
+
+### Corrigé — budget CSS de l'écran de connexion (UI/UX lot 2, U1, 24/11/2026)
+
+- **Plafond franchi sur `main`** : le CSS chargé avant la connexion était passé à 372,9 Ko pour un
+  plafond de 372 Ko (`npm run check:bundle` rouge, donc toute PR rouge en CI).
+- Les styles du **studio narrateur** (`.fm-narrator-*`) et de **l'administration des comptes**
+  (`.profiles-*`) quittent `src/index.css` (−835 lignes) pour
+  `src/components/help/narrator-studio.css` et `src/components/profiles/profiles-admin.css`,
+  importés par leurs écrans, déjà chargés à la demande. Règles déplacées telles quelles ; aucun
+  autre sélecteur ne les vise, l'ordre de la cascade ne change rien.
+- CSS de l'écran de connexion : **372,9 → 359,8 Ko** ; cliquet abaissé de 372 à **365 Ko**
+  (`scripts/check-bundle-budget.js`).
 
 ### Modifié — réseau trophique du collège : on marque, on ne masque plus (chantier du 22/11/2026)
 

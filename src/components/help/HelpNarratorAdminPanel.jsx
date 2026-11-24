@@ -27,6 +27,7 @@ import {
 import { prepareMediaImport } from '../../shared/media/mediaImport.js';
 import { NarratorPortraitCard } from './NarratorPortraitCard.jsx';
 import { NarratorMediaPickerDialog } from './NarratorMediaPickerDialog.jsx';
+import './narrator-studio.css';
 
 const NARRATOR_ENDPOINT = '/api/settings/admin/help-narrator';
 const MEDIA_ENDPOINT = '/api/settings/admin/media-library';
