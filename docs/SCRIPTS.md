@@ -25,21 +25,28 @@ Imports WordPress GL : [GL_IMPORT_FROM_YO.md](GL_IMPORT_FROM_YO.md).
 
 ## 1. Je démarre (ou je reprends) en local
 
-| Je veux…                                                    | Lancer                                                                 |
-| ----------------------------------------------------------- | ---------------------------------------------------------------------- |
-| Tout installer d’un coup (Docker + `.env` + schéma + seed)  | `npm run local:setup`                                                  |
-| Juste (re)créer le schéma et le seed sur `foretmap_local`   | `npm run db:init`                                                      |
-| Uniquement les migrations, sans re-semer                    | `npm run db:migrate`                                                   |
-| La base est-elle en retard sur les migrations ?             | `npm run db:status` (lecture seule ; code 3 = en attente)              |
-| Peut-on supprimer une ancienne colonne (retrait, temps 3) ? | `npm run db:t3-status` (lecture seule ; `docs/RUNBOOK_RETRAITS_T3.md`) |
-| Contrôle de l'installation serveur (schéma, modules, build) | `npm run check:runtime` (aussi via « Run JS Script » de cPanel)        |
-| Vérifier Node / `.env` / MariaDB                            | `npm run check:local`                                                  |
-| Attendre que MySQL réponde (déjà dans `local:setup`)        | `node scripts/wait-mysql-ready.js`                                     |
-| Créer ou reset le compte prof admin                         | `npm run db:seed:teacher`                                              |
-| Lancer l’app                                                | `npm run dev` (API + watch) et, si besoin, `npm run dev:client` (Vite) |
+| Je veux…                                                    | Lancer                                                                           |
+| ----------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| Tout installer d’un coup (Docker + `.env` + schéma + seed)  | `npm run local:setup`                                                            |
+| Juste (re)créer le schéma et le seed sur `foretmap_local`   | `npm run db:init`                                                                |
+| Uniquement les migrations, sans re-semer                    | `npm run db:migrate`                                                             |
+| La base est-elle en retard sur les migrations ?             | `npm run db:status` (lecture seule ; code 3 = en attente)                        |
+| La structure de ma base diffère-t-elle du dépôt ?           | `npm run db:status` puis, si besoin, `node scripts/schema-fingerprint.js --json` |
+| Peut-on supprimer une ancienne colonne (retrait, temps 3) ? | `npm run db:t3-status` (lecture seule ; `docs/RUNBOOK_RETRAITS_T3.md`)           |
+| Contrôle de l'installation serveur (schéma, modules, build) | `npm run check:runtime` (aussi via « Run JS Script » de cPanel)                  |
+| Vérifier Node / `.env` / MariaDB                            | `npm run check:local`                                                            |
+| Attendre que MySQL réponde (déjà dans `local:setup`)        | `node scripts/wait-mysql-ready.js`                                               |
+| Créer ou reset le compte prof admin                         | `npm run db:seed:teacher`                                                        |
+| Lancer l’app                                                | `npm run dev` (API + watch) et, si besoin, `npm run dev:client` (Vite)           |
 
 **Après un `git pull` qui touche le front :** `npm run build` si tu sers `dist/`
 (`NODE_ENV=production`), sinon `npm run dev` suffit.
+
+**Après un `git pull` qui ajoute une migration :** `npm run db:status` indique si la base
+locale est en retard. La même sortie signale les écarts de structure avec
+`sql/schema_fingerprint.json` sans rien bloquer ; une migration qui change le schéma doit
+mettre à jour cette empreinte depuis une base fraîche (procédure détaillée :
+[LOCAL_DEV.md](LOCAL_DEV.md#vérifier-le-schéma-local-et-lempreinte-attendue)).
 
 **Police emoji manquante** (carrés à la place des pictos) :
 
