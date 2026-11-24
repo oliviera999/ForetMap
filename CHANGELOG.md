@@ -9,6 +9,18 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — G&L : kit du chantier « décisions » (documentation, 24/11/2026)
+
+- `docs/prompts/gl-decisions/` : tout ce dont les sessions Claude Code du chantier ont besoin, versé depuis le
+  projet Claude « Gnomes et Licornes ». Orchestration (`ORCHESTRATION.md`), règles communes des sessions de lot,
+  24 fiches de lot autonomes en trois couloirs et trois vagues (`lots/`, `plan.json`), registre des décisions
+  d'Oliv du 19 au 24/11 avec leur provenance, table d'équivalence ancien → nouveau, sources versées mot pour mot
+  (`sources/`), instantané de la prod du 24/11, « Oliv : avant, entre, après ». Il remplace le prompt orchestrateur
+  du 23-24/11 et ses quatre addenda, gardés pour trace dans `sources/ancien/`.
+- `.claude/agents/gl-decisions-lot.md` : le sous-agent d'un lot (sa propre copie du dépôt, Opus, effort élevé).
+- Dossier exclu de Prettier (`.prettierignore`). Aucun code applicatif, aucune migration, aucun fichier lu par le
+  build ou servi par l'application.
+
 ### Modifié — écran de connexion : styles des réglages et de la médiathèque chargés à la demande (UI/UX, 24/11/2026)
 
 - Suite du lot précédent : les styles de la console des réglages (`.settings-admin*`, onglet
