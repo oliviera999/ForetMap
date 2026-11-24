@@ -112,6 +112,12 @@ synchronisation — qu'`App.jsx` appelle même sans session : les sortir demande
 `App.jsx` en une porte non connectée et une application connectée, lot à part avec test de
 montage), le client d'API et `zod` (37 Ko).
 
+**Corrigé** (lot 2, suite, 24/11, branche `claude/ui-ux-css-connexion`) : le CSS de l'écran de
+connexion avait franchi son plafond sur `main` (372,9 > 372 Ko). Studio narrateur et
+administration des comptes sortis de `src/index.css` vers des feuilles chargées avec leurs
+écrans : **359,8 Ko**, cliquet à 365 Ko. **Reste** côté CSS : `src/index.css` porte encore les
+réglages admin (`.settings-admin`), la médiathèque et la pédagogie, candidats au même traitement.
+
 ### U2 — 🔴 Indisponibilité vue par l'utilisateur
 
 Deux redémarrages du serveur pendant l'audit. Côté écran : bandeau « Serveur momentanément
