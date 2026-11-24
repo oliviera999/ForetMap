@@ -51,8 +51,11 @@ const BUNDLE_BUDGETS = Object.freeze({
     // 509 → 507 le 22/11/2026 (niveau de contenu des professeurs) : la modale « Connexion
     // professeur » (`PinModal`, ~4,6 Ko) part à la demande ; le résolveur du niveau de contenu
     // en reprend ~1,4 Ko. Mesure : 508,8 Ko sur `main`, 504,6 Ko après.
+    // CSS 372 → 365 le 24/11/2026 : `main` mesurait 372,9 Ko (plafond dépassé) ; les styles de la
+    // console d'administration (réglages, Moodle, médiathèque, profils) quittent `index.css`
+    // pour `src/components/admin-console.css`, chargée avec ses vues. Mesure : 360,5 Ko après.
     jsKb: 507,
-    cssKb: 372,
+    cssKb: 365,
   }),
 });
 

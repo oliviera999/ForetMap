@@ -9,6 +9,16 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — écran de connexion : styles d'administration chargés à la demande (UI/UX, 24/11/2026)
+
+- Le budget CSS de l'écran de connexion était dépassé sur `main` (372,9 Ko pour un plafond de
+  372 Ko). Les styles de la console d'administration (réglages, onglet Moodle, mascottes de
+  visite, cartes, médiathèque, profils, comptes et groupes) quittent `src/index.css` pour
+  `src/components/admin-console.css`, importée par les trois vues chargées à la demande qui
+  s'en servent. CSS avant connexion : **372,9 → 360,5 Ko** ; cliquet abaissé à 365 Ko
+  (`scripts/check-bundle-budget.js`). Aucun changement visible : mêmes règles, même ordre
+  relatif aux feuilles partagées.
+
 ### Modifié — réseau trophique du collège : on marque, on ne masque plus (chantier du 22/11/2026)
 
 Décisions d'Oliv du 22/11/2026 (1, 2, 3, 8) ; audit des restrictions du cycle 3 du même jour.

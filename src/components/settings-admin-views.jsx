@@ -37,6 +37,7 @@ import { AdminSection } from '../shared/components/AdminSection.jsx';
 import { IconSettings, IconWarning } from '../shared/icons.jsx';
 import { FORETMAP_BRAND_DEFAULTS } from '../constants/brand.js';
 import { PLAN_BRAND_DEFAULTS } from '../plan/utils/planBrand.js';
+import './admin-console.css';
 
 const ACCUEIL_SECTION_IDS = ['auth', 'modules', 'content'];
 const PEDAGO_SECTION_IDS = ['tasks', 'progression', 'imports'];
