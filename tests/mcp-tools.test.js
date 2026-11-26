@@ -624,16 +624,17 @@ test('foretmap_usage_overview : fenêtre libre refusée (M6) ; journaux en liste
   );
   const logs = await fx.callTool(app, adminToken, 'foretmap_tail_logs', { lines: 200 });
   assert.equal(logs.isError, false);
-  // Les pseudonymes `id#xxxxxx` / `ip#xxxxxx` sont des empreintes hexadécimales tirées au hasard à chaque
-  // appel : l'une d'elles, sur une autre ligne du tampon, contient « 4217 » environ une fois
-  // sur quelques centaines de passages. On les retire avant de chercher une fuite, sinon le
-  // test échoue sans qu'aucune donnée n'ait fui.
-  const textSansPseudonymes = logs.text.replace(/\b(id|ip)#[0-9a-f]{6}/g, '$1#…');
-  for (const leak of [admin.id, admin.id.replace(/-/g, ''), '10.9.8.7', '4217', 'renard-roux']) {
+  // Les pseudonymes `id#…` / `ip#…` sont des empreintes hexadécimales tirées au hasard : une
+  // autre ligne du tampon peut contenir « 4217 » par collision. On les retire, et le sentinel
+  // numérique n'est cherché que sur la ligne de diagnostic (pas tout le tampon).
+  const textSansPseudonymes = logs.text.replace(/\b(id|ip)#[0-9a-f]+/gi, '$1#…');
+  for (const leak of [admin.id, admin.id.replace(/-/g, ''), '10.9.8.7', 'renard-roux']) {
     assert.ok(!textSansPseudonymes.includes(leak), `${leak} masqué`);
   }
   const line = logs.data.entries.find((l) => String(l.msg || '').startsWith(marker));
   assert.ok(line, 'ligne de diagnostic présente');
+  const lineSansPseudonymes = JSON.stringify(line).replace(/\b(id|ip)#[0-9a-f]+/gi, '$1#…');
+  assert.ok(!lineSansPseudonymes.includes('4217'), '4217 masqué');
   assert.match(line.msg, /id#[0-9a-f]{6}/);
   assert.equal(line.route, 'autre', 'chemin sans gabarit Express : jamais transmis');
   assert.equal(line.studentId, undefined);
