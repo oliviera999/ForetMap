@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
+import { api } from '../../services/api';
+import { fetchPlantDetail } from '../../services/plantCatalogDetail.js';
 
 /** Emoji catalogue plantes pour un nom d'être vivant (fiches Info zone/repère). */
 export function livingBeingEmoji(plants, name) {
@@ -84,6 +86,8 @@ export function LivingBeingsCatalogPanel({ plants, names, showHeading = true, to
   const list = useMemo(() => names || [], [names]);
   const listKey = list.join('\u0001');
   const [selectedName, setSelectedName] = useState(() => list[0] || null);
+  /** Fiches complètes chargées à la sélection quand la liste n'a que `_view: summary`. */
+  const [detailById, setDetailById] = useState({});
 
   useEffect(() => {
     if (!list.length) {
@@ -96,12 +100,37 @@ export function LivingBeingsCatalogPanel({ plants, names, showHeading = true, to
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [listKey]);
 
+  const selectedPlant = selectedName ? (plants || []).find((p) => p.name === selectedName) : null;
+
+  useEffect(() => {
+    if (!selectedPlant?.id || selectedPlant._view !== 'summary') return undefined;
+    const id = Number(selectedPlant.id);
+    if (!Number.isInteger(id) || id <= 0) return undefined;
+    let cancelled = false;
+    (async () => {
+      try {
+        const full = await fetchPlantDetail(api, id);
+        if (!cancelled) {
+          setDetailById((prev) => (prev[id] ? prev : { ...prev, [id]: full }));
+        }
+      } catch {
+        // Garde la ligne résumé (description éventuelle) si le détail échoue.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedPlant?.id, selectedPlant?._view]);
+
   if (!list.length) return null;
 
-  const selectedPlant = selectedName ? (plants || []).find((p) => p.name === selectedName) : null;
-  const desc = selectedPlant ? livingBeingCatalogText(selectedPlant.description) : null;
-  const role = selectedPlant ? livingBeingCatalogText(selectedPlant.ecosystem_role) : null;
-  const utility = selectedPlant ? livingBeingCatalogText(selectedPlant.human_utility) : null;
+  const displayPlant =
+    selectedPlant && detailById[Number(selectedPlant.id)]
+      ? detailById[Number(selectedPlant.id)]
+      : selectedPlant;
+  const desc = displayPlant ? livingBeingCatalogText(displayPlant.description) : null;
+  const role = displayPlant ? livingBeingCatalogText(displayPlant.ecosystem_role) : null;
+  const utility = displayPlant ? livingBeingCatalogText(displayPlant.human_utility) : null;
   const labelStyle = {
     ...CATALOG_PANEL_LABEL_STYLE,
   };
@@ -234,7 +263,7 @@ export function LivingBeingsCatalogPanel({ plants, names, showHeading = true, to
                   {utility || 'Non renseigné'}
                 </p>
               </div>
-              <CatalogRemarksSection plant={selectedPlant} />
+              <CatalogRemarksSection plant={displayPlant} />
             </>
           )}
         </div>

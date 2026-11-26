@@ -9,6 +9,16 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — catalogue plantes : vrai résumé SQL (lot 2 perf)
+
+- `GET /api/plants` : projection colonnes utiles (`listPlantsForCatalogSummary`) + `map_ids` +
+  photos ≤ 2 + aliases légers + `usage_group` — **sans** `buildFullCatalogRows`, sosies ni
+  notes de site ; TEXT longs (`nutrition`, `remarks`, rôles/utilité…) réservés à
+  `GET /api/plants/:id`.
+- Édition prof (`startEdit`) et panneau « êtres vivants » (zone/repère) chargent la fiche
+  complète au besoin quand la liste est en `_view: summary`.
+- Instantané `plants-species.golden.json` (`list_*`) régénéré sur la forme résumé.
+
 ### Corrigé — double sync / double `/me` juste après connexion (lot 1)
 
 - Le debounce auto de `fetchAll` ne démarre plus avant la fin du premier cycle
