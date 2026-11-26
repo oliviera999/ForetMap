@@ -9,6 +9,16 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — suites CI lots A–F (pagination tâches, MCP, rétention, fumée)
+
+- `AppSurfaceSmoke` : seed `foretmap_session` aligné sur les gardes `getStoredSessionAccountKey`
+  (loader bloqué après lot A).
+- MCP `foretmap_tasks` : lit `items` de l’enveloppe paginée ; `foretmap_species.get` passe par
+  `GET /api/plants/:id` (sosies absents de la vue summary).
+- Purge `user_plant_observation_events` : `LIMIT` entier (MariaDB refuse `LIMIT ?` sur DELETE).
+- Glossaire `?codes=` vide → 400 ; tests de liste tâches / golden plantes / rétention `jours`
+  alignés.
+
 ### Modifié — disponibilité, rétention et doc lieux (audit 26/11, lot F)
 
 - **S5=B** : `unhandledRejection` journalise en fatal + `recordCrash` sans `process.exit` ;

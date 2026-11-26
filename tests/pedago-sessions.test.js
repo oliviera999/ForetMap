@@ -337,11 +337,12 @@ test('lot 5 : lien tâche → séance (migration 286)', async () => {
       .set(auth())
       .send({ title: `Tâche KO ${stamp}`, pedago_session_id: 'seance-inexistante' })
       .expect(400);
-    const list = await request(app).get('/api/tasks').set(auth()).expect(200);
-    const items = Array.isArray(tasksListItems(list.body))
-      ? list.body
-      : list.body.tasks || list.body.items || [];
-    const listed = items.find((t) => t.id === taskId);
+    const { TASKS_LIST_TEST_LIMIT } = require('./helpers/tasksListResponse');
+    const list = await request(app)
+      .get(`/api/tasks?limit=${TASKS_LIST_TEST_LIMIT}`)
+      .set(auth())
+      .expect(200);
+    const listed = tasksListItems(list.body).find((t) => t.id === taskId);
     if (listed) assert.equal(listed.pedago_session_id, 'pedago-session-college-qui-mange');
     const cleared = await request(app)
       .put(`/api/tasks/${taskId}`)

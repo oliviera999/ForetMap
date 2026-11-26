@@ -357,7 +357,7 @@ describe('Lecture', () => {
       request(app).get(`/api/tasks?project_id=${project.id}&project_phase=preparer`),
     ).expect(200);
     assert.deepEqual(ids(byPhase), [a.body.id]);
-    assert.equal(byPhase.body[0].category, 'rangement');
+    assert.equal(tasksListItems(byPhase.body)[0].category, 'rangement');
     const bad = await auth(request(app).get('/api/tasks?category=cuisine')).expect(400);
     assert.match(bad.body.error, /Métier inconnu/);
   });

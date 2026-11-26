@@ -176,7 +176,10 @@ test('T3 — prof de classe : détail borné aux inscrits de ses groupes', async
   assert.deepStrictEqual(firstNames(detail.body.assignments), ['LvA']);
   assert.strictEqual(detail.body.assigned_count, 2, 'compteurs intacts');
 
-  const list = await asUser(profToken, 'get', '/api/tasks').expect(200);
+  const { TASKS_LIST_TEST_LIMIT } = require('./helpers/tasksListResponse');
+  const list = await asUser(profToken, 'get', `/api/tasks?limit=${TASKS_LIST_TEST_LIMIT}`).expect(
+    200,
+  );
   const row = tasksListItems(list.body).find((t) => t.id === taskId);
   assert.deepStrictEqual(firstNames(row.assignments), ['LvA'], 'liste et détail alignés');
 });
@@ -205,7 +208,12 @@ test('CR — mode group : le compte rendu de l’encadrement est visible des cam
 });
 
 test('T4 — proposant hors groupe masqué en liste et en détail (id et ligne de description)', async () => {
-  const list = await asUser(people.a.token, 'get', '/api/tasks').expect(200);
+  const { TASKS_LIST_TEST_LIMIT } = require('./helpers/tasksListResponse');
+  const list = await asUser(
+    people.a.token,
+    'get',
+    `/api/tasks?limit=${TASKS_LIST_TEST_LIMIT}`,
+  ).expect(200);
   const fromC = tasksListItems(list.body).find((t) => t.id === proposalByC);
   assert.ok(fromC, 'la proposition de C figure dans la liste');
   assert.strictEqual(fromC.proposed_by_student_id, null);

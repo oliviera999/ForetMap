@@ -57,9 +57,10 @@ async function detailFor(token) {
 }
 
 async function listRowFor(token) {
-  const req = request(app).get('/api/tasks');
+  const { tasksListItems, TASKS_LIST_TEST_LIMIT } = require('./helpers/tasksListResponse');
+  const req = request(app).get(`/api/tasks?limit=${TASKS_LIST_TEST_LIMIT}`);
   if (token) req.set('Authorization', `Bearer ${token}`);
-  return (await req.expect(200)).body.find((t) => t.id === taskId);
+  return tasksListItems((await req.expect(200)).body).find((t) => t.id === taskId);
 }
 
 test.before(async () => {

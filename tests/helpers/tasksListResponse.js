@@ -1,5 +1,8 @@
 'use strict';
 
+/** Plafond API (`TASKS_LIST_MAX_LIMIT`) — à passer en `?limit=` dans les tests de liste. */
+const TASKS_LIST_TEST_LIMIT = 500;
+
 /**
  * Extrait les tâches d'une réponse `GET /api/tasks` (enveloppe paginée ou tableau legacy).
  * @param {unknown} body
@@ -11,4 +14,4 @@ function tasksListItems(body) {
   return [];
 }
 
-module.exports = { tasksListItems };
+module.exports = { tasksListItems, TASKS_LIST_TEST_LIMIT };

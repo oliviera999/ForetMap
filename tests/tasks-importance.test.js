@@ -113,7 +113,11 @@ describe('Tâches — importance_level', () => {
       })
       .expect(201);
 
-    const list = await request(app).get('/api/tasks').query({ map_id: 'foret' }).expect(200);
+    const { TASKS_LIST_TEST_LIMIT } = require('./helpers/tasksListResponse');
+    const list = await request(app)
+      .get('/api/tasks')
+      .query({ map_id: 'foret', limit: TASKS_LIST_TEST_LIMIT })
+      .expect(200);
     assert.ok(Array.isArray(tasksListItems(list.body)));
     const subset = tasksListItems(list.body).filter((t) =>
       String(t.title || '').startsWith(`imp-${ts}-`),

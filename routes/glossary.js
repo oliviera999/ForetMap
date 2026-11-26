@@ -49,8 +49,10 @@ const GLOSSARY_TERMS_BY_CODES_MAX = 40;
  * @returns {{ codes: string[] } | { error: string }}
  */
 function parseGlossaryCodesQuery(raw) {
+  // Paramètre absent → liste complète. Présent mais vide / blanc → 400.
+  if (raw === undefined || raw === null) return { codes: null };
   const s = normalizeOptionalFilter(raw);
-  if (!s) return { codes: null };
+  if (!s) return { error: 'codes invalide' };
   const codes = [
     ...new Set(
       s
