@@ -49,8 +49,10 @@ async function createProject(body) {
   return res.body;
 }
 
+const { tasksListItems } = require('./helpers/tasksListResponse');
+
 function taskIdsOf(res) {
-  return (res.body || []).map((t) => t.id);
+  return tasksListItems(res.body).map((t) => t.id);
 }
 
 before(async () => {
@@ -356,6 +358,34 @@ describe('Archivage automatique (job quotidien)', () => {
     assert.ok(res.projectsArchived >= 1, 'au moins un projet archivé');
     const row = await queryOne('SELECT archived_at FROM task_projects WHERE id = ?', [project.id]);
     assert.ok(row.archived_at, 'projet validé ancien archivé automatiquement');
+  });
+
+  it('émet tasks:changed ciblé par mapId après archivage auto', async () => {
+    const realtime = require('../lib/realtime');
+    const emitted = [];
+    const prevEmit = realtime.emitTasksChanged;
+    realtime.emitTasksChanged = (payload) => emitted.push(payload);
+    try {
+      const oldTask = await createTask({
+        title: `Auto emit map ${Date.now()}`,
+        required_students: 1,
+        map_id: 'foret',
+      });
+      await validateTask(oldTask.id);
+      await execute(
+        'UPDATE tasks SET validated_at = DATE_SUB(NOW(), INTERVAL 200 DAY) WHERE id = ?',
+        [oldTask.id],
+      );
+
+      await runAutoArchiveJob();
+
+      assert.ok(
+        emitted.some((e) => e.reason === 'auto_archive' && e.mapId === 'foret'),
+        'émission Socket.IO avec mapId foret',
+      );
+    } finally {
+      realtime.emitTasksChanged = prevEmit;
+    }
   });
 });
 

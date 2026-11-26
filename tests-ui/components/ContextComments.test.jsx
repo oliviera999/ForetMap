@@ -56,76 +56,22 @@ beforeEach(() => {
   window.sessionStorage.clear();
 });
 
-describe('ContextComments (résumé fermé + liste à l’ouverture)', () => {
-  test('section fermée : un résumé counts, pas de liste', async () => {
-    getContextCommentCounts.mockResolvedValue({
-      counts: { t1: { total: 4, newestId: 40 } },
-    });
-
+describe('ContextComments (résumé à l’ouverture + temps réel)', () => {
+  test('section fermée au montage : pas d’appel réseau', async () => {
     renderComments();
-
-    await waitFor(() => expect(getContextCommentCounts).toHaveBeenCalled());
-    expect(listContextComments).not.toHaveBeenCalled();
     await waitFor(() => {
-      expect(document.querySelector('.context-comments-count')?.textContent).toBe('4');
+      expect(getContextCommentCounts).not.toHaveBeenCalled();
+      expect(listContextComments).not.toHaveBeenCalled();
     });
-    expect(screen.queryByText(/Aucun commentaire/)).toBeNull();
-    expect(document.querySelector('.context-comments-preview')).toBeNull();
-  });
-
-  test('section fermée avec commentaires jamais lus : pastille rouge avec tous les non-lus', async () => {
-    getContextCommentCounts.mockResolvedValue({
-      counts: { t1: { total: 2, newestId: 20 } },
-    });
-
-    renderComments();
-
-    await waitFor(() => {
-      expect(document.querySelector('.context-comments-count--unread')?.textContent).toBe('2');
-    });
-  });
-
-  test('section fermée déjà lue : pastille verte avec le total', async () => {
-    writeContextCommentReadCursor('student', 's1', 'task', 't1', 20, 2);
-    getContextCommentCounts.mockResolvedValue({
-      counts: { t1: { total: 2, newestId: 20 } },
-    });
-
-    renderComments();
-
-    await waitFor(() => {
-      expect(document.querySelector('.context-comments-count--read')?.textContent).toBe('2');
-    });
-    expect(document.querySelector('.context-comments-count--unread')).toBeNull();
-  });
-
-  test('nouveaux commentaires depuis la lecture : seuls les nouveaux sont comptés', async () => {
-    writeContextCommentReadCursor('student', 's1', 'task', 't1', 20, 2);
-    getContextCommentCounts.mockResolvedValue({
-      counts: { t1: { total: 5, newestId: 50 } },
-    });
-
-    renderComments();
-
-    await waitFor(() => {
-      expect(document.querySelector('.context-comments-count--unread')?.textContent).toBe('3');
-    });
-  });
-
-  test('aucun commentaire : pas de pastille', async () => {
-    renderComments();
-    await waitFor(() => expect(getContextCommentCounts).toHaveBeenCalled());
     expect(document.querySelector('.context-comments-count')).toBeNull();
+    expect(screen.queryByText(/Aucun commentaire/)).toBeNull();
   });
 
-  test('un seul appel liste complet à l’ouverture', async () => {
-    getContextCommentCounts.mockResolvedValue({
-      counts: { t1: { total: 2, newestId: 2 } },
-    });
-    listContextComments.mockResolvedValue({ items: makeComments(2), total: 2, page: 1 });
+  test('ouverture : un seul appel liste, pastille depuis le total', async () => {
+    listContextComments.mockResolvedValue({ items: makeComments(4), total: 4, page: 1 });
 
     renderComments();
-    await waitFor(() => expect(getContextCommentCounts).toHaveBeenCalled());
+    expect(getContextCommentCounts).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole('button', { name: /Commentaires/ }));
 
@@ -137,42 +83,47 @@ describe('ContextComments (résumé fermé + liste à l’ouverture)', () => {
       pageSize: 10,
     });
     await waitFor(() => {
-      expect(screen.getByText('Message 2')).toBeTruthy();
-      expect(screen.getByText('Message 1')).toBeTruthy();
+      expect(screen.getByText('Message 4')).toBeTruthy();
     });
-    expect(document.querySelector('.context-comments-count--unread')).toBeNull();
-    expect(document.querySelector('.context-comments-count--read')?.textContent).toBe('2');
+    expect(document.querySelector('.context-comments-count--read')?.textContent).toBe('4');
   });
 
-  test('repli : conserve le total affiché sans nouvel appel liste', async () => {
-    getContextCommentCounts.mockResolvedValue({
-      counts: { t1: { total: 3, newestId: 3 } },
+  test('ouverture déjà lue : pastille verte', async () => {
+    writeContextCommentReadCursor('student', 's1', 'task', 't1', 2, 2);
+    listContextComments.mockResolvedValue({ items: makeComments(2), total: 2, page: 1 });
+
+    renderComments();
+    fireEvent.click(screen.getByRole('button', { name: /Commentaires/ }));
+
+    await waitFor(() => {
+      expect(document.querySelector('.context-comments-count--read')?.textContent).toBe('2');
     });
+    expect(document.querySelector('.context-comments-count--unread')).toBeNull();
+  });
+
+  test('repli : conserve le total affiché sans nouvel appel', async () => {
     listContextComments.mockResolvedValue({ items: makeComments(3), total: 3, page: 1 });
 
     renderComments();
     const toggle = () => screen.getByRole('button', { name: /Commentaires/ });
-    await waitFor(() => expect(getContextCommentCounts).toHaveBeenCalled());
     fireEvent.click(toggle());
     await waitFor(() => expect(listContextComments).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(screen.getByText('Message 3')).toBeTruthy());
 
-    const countsBeforeCollapse = getContextCommentCounts.mock.calls.length;
     fireEvent.click(toggle());
     await waitFor(() => expect(screen.queryByText('Message 3')).toBeNull());
     expect(listContextComments).toHaveBeenCalledTimes(1);
+    expect(getContextCommentCounts).not.toHaveBeenCalled();
     expect(document.querySelector('.context-comments-count')?.textContent).toBe('3');
-    // Un second résumé peut partir au repli ; la liste complète ne doit pas être rappelée.
-    expect(getContextCommentCounts.mock.calls.length).toBeGreaterThanOrEqual(countsBeforeCollapse);
   });
 
   test('temps réel section fermée : pastille rouge + refresh résumé', async () => {
-    getContextCommentCounts
-      .mockResolvedValueOnce({ counts: { t1: { total: 0, newestId: 0 } } })
-      .mockResolvedValue({ counts: { t1: { total: 1, newestId: 11 } } });
+    getContextCommentCounts.mockResolvedValue({
+      counts: { t1: { total: 1, newestId: 11 } },
+    });
 
     renderComments();
-    await waitFor(() => expect(getContextCommentCounts).toHaveBeenCalledTimes(1));
+    expect(getContextCommentCounts).not.toHaveBeenCalled();
 
     window.dispatchEvent(
       new CustomEvent('foretmap_realtime', {
@@ -183,9 +134,13 @@ describe('ContextComments (résumé fermé + liste à l’ouverture)', () => {
       }),
     );
 
-    await waitFor(() => {
-      expect(document.querySelector('.context-comments-count--unread')?.textContent).toBe('1');
-    });
+    await waitFor(() => expect(getContextCommentCounts).toHaveBeenCalledTimes(1));
+    await waitFor(
+      () => {
+        expect(document.querySelector('.context-comments-count--unread')?.textContent).toBe('1');
+      },
+      { timeout: 3000 },
+    );
     expect(listContextComments).not.toHaveBeenCalled();
   });
 

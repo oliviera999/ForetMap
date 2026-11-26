@@ -1,6 +1,6 @@
 # Problemes potentiels du site ForetMap
 
-Date de reference: 2026-08-20
+Date de reference: 2026-11-26
 
 Ce document liste les principaux problemes potentiels identifies a ce jour.
 Il consolide les constats des audits internes, notamment:
@@ -59,7 +59,7 @@ Source et tracker detaille: `docs/AUDIT_OPTIMISATION.md`. Statuts: todo / wip / 
 - `O4` - [differe] `xlsx@0.18.5` (CVE-2023-30533 / CVE-2024-22363) via parsing uploads ; choix exceljs vs SheetJS CDN a trancher.
 - `O5` - [wip] `App.jsx` God component + prop-drilling x4 ; Contexts par domaine.
 - `O6` - [wip] Composants monolithiques + 0 test UI (~21k LOC) ; extraire logique pure + tests, puis decouper.
-- `O7` - [wip] `zod` installe mais jamais utilise ; middleware `validate(schema)` par endpoint.
+- `O7` - [wip] Adoption `zod` via `lib/validate.js` et middleware `validate({ body, query, params })` sur la plupart des routeurs ForetMap ; chantier incrémental (schémas exportés + tests no-DB de contrat).
 - `O8` - [wip] try/catch disperses + `respondInternalError` redefini ; `asyncHandler` deploye sur la plupart des routeurs, 5 occurrences residuelles de `respondInternalError` dans `routes/*.js` (`learning-links.js`, `settings.js`, `tasks.js`).
 - `O9` - [done] Helpers dupliques (`normalizeOptionalString` x25, pagination, `Lightbox` x2, compression image) ; mutualisation.
 - `O10` - [wip] Routes obeses (2000+ l.) + N+1 d'ecriture (boucles INSERT) ; services par domaine + INSERT multi-valeurs.
@@ -67,6 +67,7 @@ Source et tracker detaille: `docs/AUDIT_OPTIMISATION.md`. Statuts: todo / wip / 
 - `O12` - [done] ESLint sans react-hooks ; pas de Prettier ; 0 typage ; outillage durci.
 - `O13` - [done] Pas de `helmet` ; CORS ouvert par defaut ; `DEPLOY_SECRET` non constant-time ; durcissement.
 - `O14` - [done] Fichiers morts + `fs.readFileSync(package.json)` en chemin requete ; nettoyage.
+- `O15` - [done] Quiz remédiation : `GET /api/glossary/terms?codes=` (batch `linkedPlants`) remplace N appels `GET /terms/:code` (charge P4).
 
 ## Endpoint d'acces
 

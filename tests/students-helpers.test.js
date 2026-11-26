@@ -12,14 +12,12 @@ const {
   PSEUDO_RE,
   EMAIL_RE,
   TEMPLATE_COLUMNS,
-  ALLOWED_IMPORT_USER_TYPES,
   IMPORT_HEADER_ALIASES,
   IMPORT_ROLE_SLUGS,
   IMPORT_SKIPS_EMAIL_DOMAIN_RESTRICTIONS,
   normalizeVisitMascotPreference,
   asTrimmedString,
   hasOwn,
-  normalizeImportUserType,
   normalizeImportRoleSlug,
   describeUnknownImportRole,
   buildRoleAliasesFromDbRows,
@@ -53,7 +51,6 @@ describe('studentRouteHelpers (logique pure de routes/students.js, sans DB)', ()
     assert.equal(TEMPLATE_COLUMNS[0], 'Rôle');
     assert.match(TEMPLATE_COLUMNS[4], /Groupes/);
     assert.ok(!TEMPLATE_COLUMNS.some((c) => /affiliation/i.test(c)));
-    assert.deepEqual([...ALLOWED_IMPORT_USER_TYPES].sort(), ['student', 'teacher']);
     assert.equal(IMPORT_SKIPS_EMAIL_DOMAIN_RESTRICTIONS, true);
     assert.deepEqual(
       [...IMPORT_ROLE_SLUGS].sort(),
@@ -124,8 +121,8 @@ describe('studentRouteHelpers (logique pure de routes/students.js, sans DB)', ()
     assert.equal(normalizeImportRoleSlug('  Visiteur  '), 'visiteur');
     assert.equal(normalizeImportRoleSlug('tuteur'), 'prof_classe');
     assert.equal(normalizeImportRoleSlug('enseignant'), 'prof');
-    assert.equal(normalizeImportUserType('prof'), 'teacher');
-    assert.equal(normalizeImportUserType('eleve'), 'student');
+    assert.equal(userTypeForImportRoleSlug('prof'), 'teacher');
+    assert.equal(userTypeForImportRoleSlug('eleve_novice'), 'student');
     assert.equal(userTypeForImportRoleSlug('admin'), 'teacher');
     assert.equal(userTypeForImportRoleSlug('visiteur'), 'student');
     /*

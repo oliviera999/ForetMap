@@ -1,4 +1,5 @@
 'use strict';
+const { tasksListItems } = require('./helpers/tasksListResponse');
 
 require('./helpers/setup');
 const { describe, it, before } = require('node:test');
@@ -32,8 +33,8 @@ describe('Anti-LVE — liste tâches allégée', () => {
       .set('Authorization', `Bearer ${teacherToken}`)
       .expect(200);
 
-    assert.ok(Array.isArray(res.body));
-    const row = res.body.find((t) => t.id === taskId);
+    assert.ok(Array.isArray(tasksListItems(res.body)));
+    const row = tasksListItems(res.body).find((t) => t.id === taskId);
     assert.ok(row, 'tâche créée présente');
     assert.equal(row.species, undefined);
     assert.ok(Array.isArray(row.living_beings_list));
@@ -62,7 +63,7 @@ describe('Anti-LVE — liste tâches allégée', () => {
       .get(`/api/tasks?map_id=${mapId}`)
       .set('Authorization', `Bearer ${teacherToken}`)
       .expect(200);
-    const ids = activeRes.body.map((t) => t.id);
+    const ids = tasksListItems(activeRes.body).map((t) => t.id);
     assert.ok(ids.includes(activeId));
     assert.ok(!ids.includes(archivedId));
 
@@ -70,7 +71,7 @@ describe('Anti-LVE — liste tâches allégée', () => {
       .get(`/api/tasks?map_id=${mapId}&archived=archived`)
       .set('Authorization', `Bearer ${teacherToken}`)
       .expect(200);
-    const archIds = archRes.body.map((t) => t.id);
+    const archIds = tasksListItems(archRes.body).map((t) => t.id);
     assert.ok(archIds.includes(archivedId));
   });
 });
@@ -93,7 +94,7 @@ describe('Anti-LVE — zones liste sans body_json', () => {
     );
 
     const list = await request(app).get(`/api/zones?map_id=${mapId}`).expect(200);
-    const z = list.body.find((row) => row.id === zoneId);
+    const z = tasksListItems(list.body).find((row) => row.id === zoneId);
     assert.ok(z);
     assert.equal(z.visit_body_json, undefined);
     assert.equal(!!z.has_visit_body, true);

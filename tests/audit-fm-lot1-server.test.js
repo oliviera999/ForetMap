@@ -115,10 +115,13 @@ test('S10 — le journal fatal unhandledRejection garde la cause sous `err`', as
   assert.ok(handler, 'server.js pose un gestionnaire unhandledRejection');
 
   const calls = [];
+  let exitCalled = false;
   const realFatal = logger.fatal;
   const realExit = process.exit;
   logger.fatal = (...args) => calls.push(args);
-  process.exit = () => {};
+  process.exit = () => {
+    exitCalled = true;
+  };
   try {
     const reason = new Error('cause du rejet');
     handler(reason, Promise.resolve());
@@ -126,6 +129,7 @@ test('S10 — le journal fatal unhandledRejection garde la cause sous `err`', as
     assert.strictEqual(calls.length, 1);
     assert.strictEqual(calls[0][0].err, reason, 'la cause est passée sous `err`');
     assert.ok(!('reason' in calls[0][0]), '`reason` n’est pas sérialisé par Pino');
+    assert.equal(exitCalled, false, 'S5=B : pas d’arrêt du process');
   } finally {
     logger.fatal = realFatal;
     process.exit = realExit;

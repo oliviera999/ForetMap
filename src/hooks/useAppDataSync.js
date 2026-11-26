@@ -20,6 +20,7 @@ import {
   isOfflineError,
   subscribeNetworkStatus,
 } from '../shared/networkStatus.js';
+import { fetchAllTaskPages } from '../utils/tasksListResponse.js';
 
 /** Échec imputable au serveur (réseau ou 5xx) — jamais quand l'appareil est hors ligne. */
 function isServerSideFailure(err) {
@@ -337,7 +338,7 @@ export function useAppDataSync({
                   )
                 : skipDomain(),
               needsDomain('tasks')
-                ? safeApi(() => (mapQuery ? api(`/api/tasks?${mapQuery}`) : Promise.resolve([])))
+                ? safeApi(() => (mapQuery ? fetchAllTaskPages(api, mapQuery) : Promise.resolve([])))
                 : skipDomain(),
               needsDomain('tasks')
                 ? safeApi(() =>
@@ -374,6 +375,7 @@ export function useAppDataSync({
               if (Array.isArray(t)) {
                 // Actives seules (le backend force déjà active hors ?archived=) ;
                 // partition de sécurité si un client envoie encore archived=all.
+                // `fetchAllTaskPages` a déjà aplati l'enveloppe paginée.
                 const { active: activeTasks } = partitionByArchived(t);
                 setTasks((prev) => keepPrevIfEqual(prev, activeTasks));
               } else
@@ -570,19 +572,20 @@ export function useAppDataSync({
     if (!accountAtStart || !hasAuthenticatedShellRef.current) return;
     try {
       const mapQuery = `map_id=${encodeURIComponent(mapId)}`;
-      const [t, projects] = await Promise.all([
-        api(`/api/tasks?${mapQuery}&archived=archived`),
+      const [tRaw, projects] = await Promise.all([
+        fetchAllTaskPages(api, `${mapQuery}&archived=archived`),
         api(`/api/task-projects?${mapQuery}&archived=archived`).catch(() => []),
       ]);
       if (!hasAuthenticatedShellRef.current || getStoredSessionAccountKey() !== accountAtStart) {
         return;
       }
-      const archTasks = Array.isArray(t) ? partitionByArchived(t).archived : [];
+      const t = Array.isArray(tRaw) ? tRaw : [];
+      const archTasks = partitionByArchived(t).archived;
       // Si le backend a déjà filtré archived=archived, partition peut tout mettre en archived
       // ou tout en active selon archived_at — partitionByArchived trie sur archived_at.
-      const listTasks = Array.isArray(t)
-        ? t.filter((row) => row && row.archived_at != null && String(row.archived_at).trim() !== '')
-        : [];
+      const listTasks = t.filter(
+        (row) => row && row.archived_at != null && String(row.archived_at).trim() !== '',
+      );
       const listProjects = Array.isArray(projects)
         ? projects.filter(
             (row) => row && row.archived_at != null && String(row.archived_at).trim() !== '',

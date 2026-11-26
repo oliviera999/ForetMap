@@ -148,11 +148,8 @@ router.post(
 router.get(
   '/',
   asyncHandler(async (req, res) => {
-    // Audit §2.4/§3.7 : SELECT * conservé volontairement. Le front ne refait PAS de GET /plants/:id
-    // pour la fiche : la fiche complète, le formulaire d'édition (PlantEditForm) et les vues biodiv
-    // (PlantMetaSections, FoodWebView…) sont rendus depuis les lignes de cette liste — toutes les
-    // colonnes du catalogue (photos, remarques, écologie…) sont donc consommées. Table sans donnée sensible.
-    res.json(await speciesService.listCatalog());
+    // Liste allégée (`_view: summary`) : tuiles et parcours liste. Fiche complète → `GET /:id`.
+    res.json(await speciesService.listCatalogSummary());
   }),
 );
 
@@ -210,6 +207,14 @@ router.get('/gbif-match', requirePermission('plants.manage'), async (req, res) =
     res.status(502).json({ error: 'Impossible d’interroger GBIF pour le moment' });
   }
 });
+
+/** Fiche catalogue complète (lecture seule, sans permission). */
+router.get(
+  '/:id',
+  asyncHandler(async (req, res) => {
+    send(res, await speciesService.getCatalogPlant(req.params.id));
+  }),
+);
 
 router.put(
   '/:id/map-species/:mapId',

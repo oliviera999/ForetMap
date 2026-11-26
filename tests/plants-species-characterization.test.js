@@ -6,9 +6,8 @@
 //
 // Ce fichier FIGE ce que rendent aujourd'hui les routes de `routes/plants.js`, sur deux
 // fiches entièrement maîtrisées (une riche, une minimale) :
-//   - instantanés de `POST /api/plants`, de `GET /api/plants` (lignes des fiches de test)
-//     et de `PUT /api/plants/:id` — la liste est la seule lecture « fiche » du front, il
-//     n'existe pas de `GET /api/plants/:id` (404, figé lui aussi) ;
+//   - instantanés de `POST /api/plants`, de `GET /api/plants` (lignes résumé des fiches de test),
+//     de `GET /api/plants/:id` (fiche complète) et de `PUT /api/plants/:id` ;
 //   - création, modification, suppression et leurs erreurs ;
 //   - revue des dangers : 403 sans `plants.hazards.validate`, drapeau `hazard_reviewed`
 //     jamais écrit par la fiche ;
@@ -260,9 +259,9 @@ test('instantané — PUT /api/plants/:id partiel (les champs absents gardent le
   expectGolden('list_rich_after_put', await listRow(idA));
 });
 
-test('GET /api/plants/:id — aucune route de lecture unitaire', async () => {
-  const res = await request(app).get(`/api/plants/${idA}`);
-  expectGolden('get_by_id', { status: res.status, body: res.body });
+test('GET /api/plants/:id — fiche catalogue complète', async () => {
+  const res = await request(app).get(`/api/plants/${idA}`).expect(200);
+  expectGolden('get_by_id', res.body);
 });
 
 test('erreurs — nom requis, lien photo non HTTPS, fiche inconnue', async () => {

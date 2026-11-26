@@ -24,7 +24,7 @@ const logger = require('./lib/logger');
 // Jobs quotidiens (tâches récurrentes, archivage, purge des notifications, rappels) :
 // liste nommée partagée avec `foretmap_ops run_cron` (lancement à la demande).
 const { runDailyJobs } = require('./lib/dailyJobs');
-const { initRealtime, shutdownRealtime } = require('./lib/realtime');
+const { initRealtime, shutdownRealtime, runDetached } = require('./lib/realtime');
 const { checkCriticalAdminAccount } = require('./lib/rbac');
 const {
   recordBoot,
@@ -890,10 +890,14 @@ process.on('uncaughtException', (err) => {
   logger.fatal({ err }, 'Exception non capturée — arrêt du process');
   setTimeout(() => process.exit(1), 50);
 });
+// Audit code ForetMap 26/11/2026, S5=B : journaliser sans tuer le process (rejet détaché) ;
+// `uncaughtException` garde le fail-fast. Les chemins fire-and-forget passent par `runDetached`.
 process.on('unhandledRejection', (reason) => {
   recordCrash('unhandledRejection', reason);
-  logger.fatal({ err: reason }, 'Promesse rejetée non gérée — arrêt du process');
-  setTimeout(() => process.exit(1), 50);
+  logger.fatal(
+    { err: reason },
+    'Promesse rejetée non gérée — process maintenu (audit 26/11, S5=B)',
+  );
 });
 
 // ── Fonction de démarrage — appelable depuis app.js (Passenger) ou directement ──
@@ -1002,7 +1006,9 @@ function boot() {
       fs.appendFileSync(diagPath, `initDatabase: OK (tentative ${attempts})\n`);
       logger.info({ attempts }, 'BDD initialisée');
       // Première lecture du mode CSP dès que la base répond (sans bloquer : S4).
-      void cspAssetsMode.refresh();
+      runDetached(() => cspAssetsMode.refresh(), 'Rafraîchissement du cache CSP en échec', {
+        scope: 'csp_assets_mode',
+      });
       scheduleRecurringTaskSpawn();
       checkCriticalAdminAccount()
         .then((state) => {
@@ -1034,7 +1040,9 @@ function boot() {
       );
     },
   });
-  void databaseInitRetry.start();
+  runDetached(() => databaseInitRetry.start(), 'Boucle de reprise init BDD en échec', {
+    scope: 'database_init_retry',
+  });
 }
 
 if (require.main === module) {

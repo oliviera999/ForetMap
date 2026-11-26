@@ -516,22 +516,6 @@ export function parseMascotPack(raw, opts = {}) {
 }
 
 /**
- * @deprecated Utiliser parseMascotPack (v1 et v2).
- * @param {unknown} raw
- * @param {{ relaxAssetPrefix?: boolean, allowedFramesBasePrefixes?: string[] }} [opts]
- */
-export function parseMascotPackV1(raw, opts = {}) {
-  const fixed =
-    raw && typeof raw === 'object' && raw.mascotPackVersion == null
-      ? { ...raw, mascotPackVersion: 1 }
-      : raw;
-  if (fixed && typeof fixed === 'object' && Number(fixed.mascotPackVersion) === 2) {
-    return parseMascotPack(fixed, opts);
-  }
-  return parseMascotPack(fixed, opts);
-}
-
-/**
  * @param {z.infer<typeof mascotPackSchemaV1> & { framesBase: string } | z.infer<typeof mascotPackSchemaV2> & { framesBase: string }} pack
  */
 export function expandMascotPackToSpriteCut(pack) {

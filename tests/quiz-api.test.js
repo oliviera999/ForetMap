@@ -251,6 +251,31 @@ test('GET /api/quiz/admin/questions — liste admin complète', async () => {
   assert.match(String(res.body.items[0].question_code), /^QF/);
 });
 
+test('GET /api/quiz/admin/questions — filtre q (code question)', async () => {
+  const token = await ensureAdminTeacherAuthToken();
+  const baseline = await request(app)
+    .get('/api/quiz/admin/questions?theme=sciences&statut=actif&sort=code')
+    .set('Authorization', `Bearer ${token}`)
+    .expect(200);
+  const targetCode = baseline.body.items[0]?.question_code;
+  assert.ok(targetCode);
+
+  const filtered = await request(app)
+    .get(
+      `/api/quiz/admin/questions?statut=actif&sort=code&q=${encodeURIComponent(targetCode.slice(0, 6))}`,
+    )
+    .set('Authorization', `Bearer ${token}`)
+    .expect(200);
+  assert.ok(filtered.body.items.length > 0);
+  assert.ok(filtered.body.items.length <= baseline.body.items.length);
+  assert.ok(
+    filtered.body.items.every((item) =>
+      String(item.question_code).toLowerCase().includes(targetCode.slice(0, 6).toLowerCase()),
+    ),
+  );
+  assert.ok(filtered.body.items.some((item) => item.question_code === targetCode));
+});
+
 test('GET /api/quiz/admin/questions/:code puis PUT mise à jour', async () => {
   const token = await ensureAdminTeacherAuthToken();
   const list = await request(app)

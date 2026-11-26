@@ -1,4 +1,5 @@
 'use strict';
+const { tasksListItems } = require('./helpers/tasksListResponse');
 
 require('./helpers/setup');
 require('dotenv').config();
@@ -113,8 +114,10 @@ describe('Tâches — importance_level', () => {
       .expect(201);
 
     const list = await request(app).get('/api/tasks').query({ map_id: 'foret' }).expect(200);
-    assert.ok(Array.isArray(list.body));
-    const subset = list.body.filter((t) => String(t.title || '').startsWith(`imp-${ts}-`));
+    assert.ok(Array.isArray(tasksListItems(list.body)));
+    const subset = tasksListItems(list.body).filter((t) =>
+      String(t.title || '').startsWith(`imp-${ts}-`),
+    );
     assert.strictEqual(subset.length, 3);
     assert.strictEqual(subset[0].id, abs.body.id);
     assert.strictEqual(subset[1].id, low.body.id);

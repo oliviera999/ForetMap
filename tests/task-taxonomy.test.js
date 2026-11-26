@@ -1,4 +1,5 @@
 'use strict';
+const { tasksListItems } = require('./helpers/tasksListResponse');
 
 /**
  * Taxonomie des tâches (migration 329) : métier, format, phase de projet, type de projet.
@@ -340,7 +341,10 @@ describe('Lecture', () => {
       project_phase: 'realiser',
     });
     await createTask({ category: 'jardinage', format: 'flash', project_id: project.id });
-    const ids = (res) => res.body.map((t) => t.id).sort();
+    const ids = (res) =>
+      tasksListItems(res.body)
+        .map((t) => t.id)
+        .sort();
     const byCat = await auth(
       request(app).get(`/api/tasks?project_id=${project.id}&category=rangement,terrassement`),
     ).expect(200);

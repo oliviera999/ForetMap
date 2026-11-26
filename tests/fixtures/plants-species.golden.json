@@ -294,7 +294,6 @@
     "iucn_status": "LC",
     "life_cycle": "vivace",
     "lookalike_species": "Porcelle enracinée : tige ramifiée.",
-    "lookalikes": [],
     "map_ids": [],
     "map_site_notes": {},
     "name": "<nom A>",
@@ -348,28 +347,6 @@
         "source": "wikimedia_commons",
         "source_url": null,
         "url": "https://upload.wikimedia.org/wikipedia/commons/a/aa/Caracterisation_A.jpg"
-      },
-      {
-        "confirmed": true,
-        "credit": null,
-        "id": "<id>",
-        "kind": "photo_species",
-        "licence": null,
-        "sort_order": 1,
-        "source": "wikimedia_commons",
-        "source_url": null,
-        "url": "https://upload.wikimedia.org/wikipedia/commons/b/bb/Caracterisation_A2.jpg"
-      },
-      {
-        "confirmed": true,
-        "credit": null,
-        "id": "<id>",
-        "kind": "photo_flower",
-        "licence": null,
-        "sort_order": 0,
-        "source": "televersement",
-        "source_url": null,
-        "url": "/uploads/plants/0/photo_flower-1.jpg"
       }
     ],
     "photos_origin": "table",
@@ -422,7 +399,8 @@
     "usage_group": null,
     "usage_label": null,
     "wild_ancestor": null,
-    "wild_ancestor_plant_id": null
+    "wild_ancestor_plant_id": null,
+    "_view": "summary"
   },
   "list_minimal": {
     "accepted_scientific_name": null,
@@ -457,7 +435,6 @@
     "iucn_status": null,
     "life_cycle": null,
     "lookalike_species": null,
-    "lookalikes": [],
     "map_ids": [],
     "map_site_notes": {},
     "name": "<nom B>",
@@ -523,7 +500,8 @@
     "usage_group": null,
     "usage_label": null,
     "wild_ancestor": null,
-    "wild_ancestor_plant_id": null
+    "wild_ancestor_plant_id": null,
+    "_view": "summary"
   },
   "put_rich_partial": {
     "accepted_scientific_name": null,
@@ -719,6 +697,147 @@
     "iucn_status": "LC",
     "life_cycle": "vivace",
     "lookalike_species": "Porcelle enracinée : tige ramifiée.",
+    "map_ids": [],
+    "map_site_notes": {},
+    "name": "<nom A>",
+    "name_aliases": [
+      {
+        "alias": "Dent-de-lion caractérisation",
+        "kind": "nom_secondaire"
+      },
+      {
+        "alias": "Salade de taupe",
+        "kind": "nom_secondaire"
+      }
+    ],
+    "names_origin": "table",
+    "nutrition": null,
+    "origin_status": "indigene",
+    "phRange": {
+      "max": 7.5,
+      "min": 6.5,
+      "source": "columns"
+    },
+    "ph_max": "7.5",
+    "ph_min": "6.5",
+    "photo": "https://upload.wikimedia.org/wikipedia/commons/a/aa/Caracterisation_A.jpg",
+    "photo_credit": "Auteur caractérisation",
+    "photo_flower": "/uploads/plants/0/photo_flower-1.jpg",
+    "photo_fruit": null,
+    "photo_harvest_part": null,
+    "photo_leaf": null,
+    "photo_licence": "CC BY-SA 4.0",
+    "photo_species": "https://upload.wikimedia.org/wikipedia/commons/a/aa/Caracterisation_A.jpg\nhttps://upload.wikimedia.org/wikipedia/commons/b/bb/Caracterisation_A2.jpg",
+    "photos": [
+      {
+        "confirmed": true,
+        "credit": "Auteur caractérisation",
+        "id": "<id>",
+        "kind": "photo",
+        "licence": "CC BY-SA 4.0",
+        "sort_order": 0,
+        "source": "wikimedia_commons",
+        "source_url": null,
+        "url": "https://upload.wikimedia.org/wikipedia/commons/a/aa/Caracterisation_A.jpg"
+      },
+      {
+        "confirmed": true,
+        "credit": "Auteur caractérisation",
+        "id": "<id>",
+        "kind": "photo_species",
+        "licence": "CC BY-SA 4.0",
+        "sort_order": 0,
+        "source": "wikimedia_commons",
+        "source_url": null,
+        "url": "https://upload.wikimedia.org/wikipedia/commons/a/aa/Caracterisation_A.jpg"
+      }
+    ],
+    "photos_origin": "table",
+    "planting_recommendations": null,
+    "preferred_nutrients": null,
+    "remark_1": "Première remarque.",
+    "remark_2": "Deuxième remarque.",
+    "remark_3": "Troisième remarque.",
+    "remarks": "Première remarque.\n\nDeuxième remarque.\n\nTroisième remarque.",
+    "remarks_origin": "table",
+    "reproduction": null,
+    "scientific_name": "Taraxacum officinale",
+    "second_name": "Dent-de-lion caractérisation, Salade de taupe",
+    "secondary_names": ["Dent-de-lion caractérisation", "Salade de taupe"],
+    "size": null,
+    "sources": "https://fr.wikipedia.org/wiki/Pissenlit",
+    "taxon_class": null,
+    "taxon_family": "Astéracées",
+    "taxon_family_latin": null,
+    "taxon_genus": "Astéracées",
+    "taxon_group": "Angiosperme",
+    "taxon_kingdom": "Végétal (Chlorobiontes)",
+    "taxon_order": null,
+    "taxon_phylum": null,
+    "taxon_rank": null,
+    "taxonomy": {
+      "acceptedScientificName": null,
+      "className": null,
+      "family": "Astéracées",
+      "familyLatin": null,
+      "gbifAcceptedKey": null,
+      "gbifCheckedAt": null,
+      "gbifKey": null,
+      "genus": "Astéracées",
+      "group": "Angiosperme",
+      "kingdom": "Végétal (Chlorobiontes)",
+      "order": null,
+      "phylum": null,
+      "scientificName": "Taraxacum officinale"
+    },
+    "tempRange": {
+      "max": 25,
+      "min": 5,
+      "source": "columns"
+    },
+    "temp_max_c": 25,
+    "temp_min_c": 5,
+    "toxicity_level": "aucune",
+    "trophic_role": "producteur",
+    "usage_group": null,
+    "usage_label": null,
+    "wild_ancestor": null,
+    "wild_ancestor_plant_id": null,
+    "_view": "summary"
+  },
+  "get_by_id": {
+    "accepted_scientific_name": null,
+    "clade_id": null,
+    "description": "Rosette de feuilles dentées.",
+    "description_college": null,
+    "domestication": null,
+    "ecosystem_role": null,
+    "edit_revision": 0,
+    "emoji": "🌿",
+    "entity_kind": "taxon",
+    "gbif_accepted_key": null,
+    "gbif_checked_at": null,
+    "gbif_key": null,
+    "geographic_origin": null,
+    "habitat": "Pelouse",
+    "habitat_type": "terrestre",
+    "harvest_part": null,
+    "hazard_exposure": "contact",
+    "hazard_notes": "Latex légèrement irritant.",
+    "hazard_reviewed": 0,
+    "hazard_reviewed_at": null,
+    "hazard_reviewed_by": null,
+    "health_notes": null,
+    "health_risk": "allergie",
+    "human_utility": null,
+    "id": "A",
+    "identification_criteria": "Capitule jaune, latex blanc.",
+    "identification_period": "Printemps",
+    "is_edible": 1,
+    "is_ornamental": 0,
+    "iucn_status": "LC",
+    "life_cycle": "vivace",
+    "lookalike_species": "Porcelle enracinée : tige ramifiée.",
     "lookalikes": [],
     "map_ids": [],
     "map_site_notes": {},
@@ -801,9 +920,9 @@
     "planting_recommendations": null,
     "preferred_nutrients": null,
     "remark_1": "Première remarque.",
-    "remark_2": "Deuxième remarque.",
+    "remark_2": null,
     "remark_3": "Troisième remarque.",
-    "remarks": "Première remarque.\n\nDeuxième remarque.\n\nTroisième remarque.",
+    "remarks": "Première remarque.\n\nTroisième remarque.",
     "remarks_origin": "table",
     "reproduction": null,
     "scientific_name": "Taraxacum officinale",
@@ -848,12 +967,6 @@
     "usage_label": null,
     "wild_ancestor": null,
     "wild_ancestor_plant_id": null
-  },
-  "get_by_id": {
-    "body": {
-      "error": "Route introuvable"
-    },
-    "status": 404
   },
   "errors": {
     "anonymous_post": {

@@ -34,6 +34,20 @@ test('GET /api/glossary/terms — recherche LIKE et variantes', async () => {
   assert.ok(variant.body.items.some((item) => item.glossary_code === glossaryCode));
 });
 
+test('GET /api/glossary/terms?codes= — plantes liées en lot (remédiation quiz)', async () => {
+  const res = await request(app)
+    .get(`/api/glossary/terms?codes=${glossaryCode},FM-INEXISTANT`)
+    .expect(200);
+  assert.ok(Array.isArray(res.body.items));
+  assert.strictEqual(res.body.items.length, 1);
+  assert.strictEqual(res.body.items[0].glossary_code, glossaryCode);
+  assert.ok(Array.isArray(res.body.items[0].linkedPlants));
+});
+
+test('GET /api/glossary/terms?codes= — 400 si vide', async () => {
+  await request(app).get('/api/glossary/terms?codes=').expect(400);
+});
+
 test('GET /api/glossary/terms/:code — détail avec liens', async () => {
   const res = await request(app).get(`/api/glossary/terms/${glossaryCode}`).expect(200);
   assert.strictEqual(res.body.glossary_code, glossaryCode);

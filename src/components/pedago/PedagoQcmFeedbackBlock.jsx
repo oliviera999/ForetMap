@@ -1,4 +1,4 @@
-import { getQcmFeedbackText, shouldShowQcmAnswerPhase } from '../../shared/qcm/qcmFeedback.js';
+import { getQcmFeedbackText } from '../../shared/qcm/qcmFeedback.js';
 import { GlossaryInlineText } from '../GlossaryMarkdown.jsx';
 
 /**
@@ -45,6 +45,3 @@ export function PedagoQcmFeedbackBlock({
     </div>
   );
 }
-
-/** @deprecated Préférer `shouldShowQcmAnswerPhase` depuis `shared/qcm/qcmFeedback`. */
-export const shouldShowPedagoQcmAnswerPhase = shouldShowQcmAnswerPhase;

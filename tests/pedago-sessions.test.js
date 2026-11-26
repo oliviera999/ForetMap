@@ -1,4 +1,5 @@
 'use strict';
+const { tasksListItems } = require('./helpers/tasksListResponse');
 
 // Séances pédagogiques (pilotes A/B, migration 282).
 
@@ -337,7 +338,9 @@ test('lot 5 : lien tâche → séance (migration 286)', async () => {
       .send({ title: `Tâche KO ${stamp}`, pedago_session_id: 'seance-inexistante' })
       .expect(400);
     const list = await request(app).get('/api/tasks').set(auth()).expect(200);
-    const items = Array.isArray(list.body) ? list.body : list.body.tasks || list.body.items || [];
+    const items = Array.isArray(tasksListItems(list.body))
+      ? list.body
+      : list.body.tasks || list.body.items || [];
     const listed = items.find((t) => t.id === taskId);
     if (listed) assert.equal(listed.pedago_session_id, 'pedago-session-college-qui-mange');
     const cleared = await request(app)

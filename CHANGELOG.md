@@ -9,6 +9,53 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — disponibilité, rétention et doc lieux (audit 26/11, lot F)
+
+- **S5=B** : `unhandledRejection` journalise en fatal + `recordCrash` sans `process.exit` ;
+  `uncaughtException` conserve l’arrêt du process. Chemins boot : `runDetached` sur le cache
+  CSP et la reprise `initDatabase`.
+- **C7=A** : choix documenté — photos de lieux après contrôle API : **`302`** vers `/uploads/`
+  public, sans cloisonnement par produit (`docs/API.md`, `docs/reference/foretmap/carte-et-zones.md`).
+- **P8** : purge planifiée des doublons `user_plant_observation_events` au-delà de
+  `PLANT_OBSERVATION_EVENT_RETENTION_DAYS` (catégorie `observations`, `lib/retention/policy.js`).
+- **Dette résiduelle (non traitée dans ce lot)** — audit code 26/11 : **P9** (budget JS/CSS
+  écran de connexion), **P10** (feuilles Fontsource synchrones au boot), **P12** (dépendance
+  historique `xlsx` en dev — pas de remplacement dans ce lot).
+
+### Modifié — dette technique et charge quiz (audit 26/11, lot E)
+
+- Suppression des exports morts `parseMascotPackV1`, `shouldShowPedagoQcmAnswerPhase` et des
+  alias d'import dépréciés `normalizeImportUserType` / `ALLOWED_IMPORT_USER_TYPES` (tests alignés
+  sur `normalizeImportRoleSlug` / `userTypeForImportRoleSlug`).
+- `GET /api/glossary/terms?codes=` : chargement groupé des `linkedPlants` pour la remédiation
+  quiz (P4 charge) ; `useQuizSession` n'appelle plus une fiche `/terms/:code` par terme.
+- `docs/SITE_ISSUES.md` / `.json` : date de référence, correction de l'item O7 (zod utilisé via
+  `validate`).
+- `isN3Affiliated` : prop-drilling conservé (≈ 25 fichiers) ; valeur figée à `false` dans
+  `App.jsx` — retrait massif reporté.
+
+### Modifié — temps réel et commentaires contextuels (audit 26/11, lot D)
+
+- **Socket.IO tâches** : le job d’archivage automatique, la synchro des élèves référents et la
+  suppression d’élève émettent `tasks:changed` **avec `mapId`** dès que la carte est résoluble
+  (plus de diffusion large `domain:tasks` pour ces cas).
+- **Commentaires sur les tuiles** : section fermée au montage = aucun appel `/counts` ; chargement
+  à l’ouverture (liste paginée) ou au signal temps réel (section fermée).
+
+### Modifié — listes tâches / plantes / recherche admin (audit 26/11, lot B)
+
+- `GET /api/tasks` : pagination explicite `{ items, limit, offset, total, hasMore }`
+  (`limit` défaut 200, max 500) ; le front charge toutes les pages pour une carte.
+- `GET /api/plants` : catalogue résumé (`_view: summary`) ; fiche complète via
+  `GET /api/plants/:id` (aperçu catalogue).
+- Recherche `?q=` glossaire / questions admin QCM poussée davantage en SQL.
+
+### Modifié — stats prof : progression hors chemin chaud de `/all` (audit 26/11, lot C)
+
+- `GET /api/stats/all` n’attend plus `syncStudentPrimaryRoleFromProgress` par élève :
+  affichage du profil effectif en lecture seule, synchro éventuelle planifiée en tâche
+  détachée pour les comptes dont le palier pourrait être en retard.
+
 ### Corrigé — session : purge domaine et gardes de course au logout (audit 26/11, lot A)
 
 - Après déconnexion (`handleLogout` / `forceLogout`), les états domaine (cartes, zones,

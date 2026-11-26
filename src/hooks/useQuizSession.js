@@ -12,13 +12,11 @@ import { shouldShowQcmAnswerPhase } from '../shared/qcm/qcmFeedback.js';
 async function fetchLinkedPlantsForTerms(terms) {
   const codes = (terms || []).map((t) => t.glossary_code).filter(Boolean);
   if (codes.length === 0) return [];
-  const results = await Promise.allSettled(
-    codes.map((code) => api(`/api/glossary/terms/${encodeURIComponent(code)}`)),
-  );
+  const qs = new URLSearchParams({ codes: [...new Set(codes)].join(',') });
+  const data = await api(`/api/glossary/terms?${qs.toString()}`);
   const byId = new Map();
-  for (const res of results) {
-    if (res.status !== 'fulfilled') continue;
-    for (const plant of res.value?.linkedPlants || []) {
+  for (const item of data?.items || []) {
+    for (const plant of item?.linkedPlants || []) {
       if (plant?.id != null) byId.set(Number(plant.id), plant);
     }
   }

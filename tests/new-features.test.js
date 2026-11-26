@@ -1,3 +1,4 @@
+const { tasksListItems } = require('./helpers/tasksListResponse');
 require('./helpers/setup');
 const test = require('node:test');
 const assert = require('node:assert');
@@ -84,8 +85,8 @@ test('CRUD /api/task-projects fonctionne (prof)', async () => {
   const projectId = createRes.body.id;
 
   const listRes = await request(app).get('/api/task-projects?map_id=foret').expect(200);
-  assert.ok(Array.isArray(listRes.body));
-  assert.ok(listRes.body.some((p) => p.id === projectId));
+  assert.ok(Array.isArray(tasksListItems(listRes.body)));
+  assert.ok(tasksListItems(listRes.body).some((p) => p.id === projectId));
 
   const renamed = `${title} (modifié)`;
   const updateRes = await request(app)
@@ -211,8 +212,8 @@ test('POST /api/tasks accepte project_id et GET /api/tasks?project_id filtre cor
   const listRes = await request(app)
     .get(`/api/tasks?project_id=${encodeURIComponent(projectId)}`)
     .expect(200);
-  assert.ok(Array.isArray(listRes.body));
-  assert.ok(listRes.body.some((t) => t.id === taskRes.body.id));
+  assert.ok(Array.isArray(tasksListItems(listRes.body)));
+  assert.ok(tasksListItems(listRes.body).some((t) => t.id === taskRes.body.id));
 });
 
 test('projet : statut completed quand toutes les tâches liées sont done ou validated', async () => {
@@ -606,7 +607,7 @@ test('DELETE /api/tasks/:id/logs/:logId supprime un log', async () => {
     .get(`/api/tasks/${taskId}/logs`)
     .set('Authorization', 'Bearer ' + teacherToken)
     .expect(200);
-  assert.ok(!afterRes.body.find((l) => l.id === logId));
+  assert.ok(!tasksListItems(afterRes.body).find((l) => l.id === logId));
 });
 
 // ─── Audit log ───────────────────────────────────────────────────────────────
@@ -615,7 +616,7 @@ test("GET /api/audit renvoie un tableau d'actions", async () => {
     .get('/api/audit')
     .set('Authorization', 'Bearer ' + teacherToken)
     .expect(200);
-  assert.ok(Array.isArray(res.body));
+  assert.ok(Array.isArray(tasksListItems(res.body)));
 });
 
 test('GET /api/audit sans token renvoie 401', async () => {
@@ -793,7 +794,7 @@ test('GET /api/visit/content expose les contenus visite et les tutos choisis', a
 
   const tutosRes = await request(app).get('/api/tutorials').expect(200);
   const firstTutorial =
-    tutosRes.body.find((tutorial) => Number(tutorial?.is_active ?? 1) === 1)?.id ??
+    tasksListItems(tutosRes.body).find((tutorial) => Number(tutorial?.is_active ?? 1) === 1)?.id ??
     tutosRes.body[0]?.id;
   assert.ok(firstTutorial);
 
@@ -1098,7 +1099,7 @@ test('POST /api/tutorials/:id/cover-photo-upload enregistre cover_image_url', as
   assert.ok(up.body.tutorial?.cover_image_url);
 
   const list = await request(app).get('/api/tutorials').expect(200);
-  const row = list.body.find((t) => Number(t.id) === Number(tid));
+  const row = tasksListItems(list.body).find((t) => Number(t.id) === Number(tid));
   assert.ok(row?.cover_image_url);
 });
 
@@ -1293,10 +1294,10 @@ test('Les lieux créés depuis la visite existent aussi sur la carte', async () 
 
   const zonesRes = await request(app).get('/api/zones?map_id=foret').expect(200);
   const markersRes = await request(app).get('/api/map/markers?map_id=foret').expect(200);
-  assert.ok(zonesRes.body.some((z) => z.id === visitZoneA.body.id));
-  assert.ok(zonesRes.body.some((z) => z.id === visitZoneB.body.id));
-  assert.ok(markersRes.body.some((m) => m.id === visitMarkerA.body.id));
-  assert.ok(markersRes.body.some((m) => m.id === visitMarkerB.body.id));
+  assert.ok(tasksListItems(zonesRes.body).some((z) => z.id === visitZoneA.body.id));
+  assert.ok(tasksListItems(zonesRes.body).some((z) => z.id === visitZoneB.body.id));
+  assert.ok(tasksListItems(markersRes.body).some((m) => m.id === visitMarkerA.body.id));
+  assert.ok(tasksListItems(markersRes.body).some((m) => m.id === visitMarkerB.body.id));
 
   await request(app)
     .delete(`/api/visit/zones/${visitZoneA.body.id}`)

@@ -6,7 +6,7 @@ const { defaultAvatarUrlFor } = require('../lib/defaultAvatar');
 const { z, validate } = require('../lib/validate');
 const { getStudentProgressionConfig, syncStudentPrimaryRoleFromProgress } = require('../lib/rbac');
 const { getScopedStudentIds, canAccessStudentId } = require('../lib/groupScope');
-const { getOnlineUserIdSet } = require('../lib/realtime');
+const { getOnlineUserIdSet, runDetached } = require('../lib/realtime');
 const { attachPresenceStatus } = require('../lib/shared/presenceCore');
 const { isModuleEnabled } = require('../lib/shared/moduleGate');
 const { getAccountN3beurStatus } = require('../lib/n3beurStudents');
@@ -23,6 +23,10 @@ const {
   listStudentTaskAssignments,
   listScopedStudents,
 } = require('../lib/stats/statsReadModel');
+const {
+  readProgressionForStatsStudent,
+  runDetachedProgressionSyncForStudents,
+} = require('../lib/stats/statsProgressionRead');
 
 const router = express.Router();
 
@@ -192,13 +196,16 @@ router.get(
         fetchSiteEngagementTotals(),
         fetchAssignmentStatusCountsByStudent(scope),
       ]);
+    const detachSyncCandidates = [];
     const result = await mapWithConcurrency(students, STATS_STUDENT_AGG_CONCURRENCY, async (s) => {
       const agg = assignmentCounts.get(String(s.id)) || EMPTY_ASSIGNMENT_COUNTS;
       const done = agg.done;
-      const sync = await syncStudentPrimaryRoleFromProgress(s.id, done, progressionConfig);
-      const currentStep = (sync.steps || []).find(
-        (step) => String(step.roleSlug) === String(sync.currentRoleSlug),
+      const { progression, scheduleSync } = await readProgressionForStatsStudent(
+        s.id,
+        done,
+        progressionConfig,
       );
+      if (scheduleSync) detachSyncCandidates.push({ id: s.id, done });
       const extra = engagementStatsForUser(s.id, plantMap, tutMap);
       return {
         id: s.id,
@@ -218,14 +225,23 @@ router.get(
           plant_observation_events: extra.plant_observation_events,
           tutorials_read: extra.tutorials_read,
         },
-        progression: {
-          roleSlug: sync.currentRoleSlug,
-          roleDisplayName: sync.currentRoleDisplayName,
-          roleEmoji: currentStep?.emoji || null,
-          autoProgressionEnabled: sync.autoProgressionEnabled !== false,
-        },
+        progression,
       };
     });
+    if (detachSyncCandidates.length) {
+      const batch = detachSyncCandidates;
+      runDetached(
+        () =>
+          runDetachedProgressionSyncForStudents(
+            batch,
+            progressionConfig,
+            mapWithConcurrency,
+            STATS_STUDENT_AGG_CONCURRENCY,
+          ),
+        'Stats /all : synchro progression détachée',
+        { students: batch.length },
+      );
+    }
     result.sort((a, b) => b.stats.done - a.stats.done);
     let studentsOut = result;
     if (await isModuleEnabled('foret', 'presence')) {

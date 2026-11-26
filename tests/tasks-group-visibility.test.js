@@ -1,3 +1,4 @@
+const { tasksListItems } = require('./helpers/tasksListResponse');
 require('./helpers/setup');
 const test = require('node:test');
 const assert = require('node:assert');
@@ -76,7 +77,7 @@ async function listRowFor(student) {
     .get('/api/tasks')
     .set('Authorization', `Bearer ${student.token}`)
     .expect(200);
-  return res.body.find((t) => t.id === taskId);
+  return tasksListItems(res.body).find((t) => t.id === taskId);
 }
 
 test.before(async () => {

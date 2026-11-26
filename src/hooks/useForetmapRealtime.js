@@ -12,6 +12,7 @@ import { isSocketAuthRejection } from '../utils/realtimeAuthRejection';
 import { jitteredRefreshDelay } from '../utils/realtimeRefreshDelay';
 import { getSocketIoClientOptions } from '../utils/socketIoClientOptions';
 import { setForetmapSocket } from '../services/foretmapSocketRegistry';
+import { fetchAllTaskPages } from '../utils/tasksListResponse.js';
 
 /** Après notification Socket.IO : tâches = refetch léger côté API (priorité fraîcheur). */
 const TASKS_RT_DEBOUNCE_MS = 220;
@@ -112,7 +113,7 @@ export function useForetmapRealtime({
       const mapQuery = `map_id=${encodeURIComponent(mapId)}`;
       // Actives seulement — les archives se rechargent via loadArchivedTasks (vue Archivés).
       const [t, projects] = await Promise.all([
-        api(`/api/tasks?${mapQuery}`),
+        fetchAllTaskPages(api, mapQuery),
         api(`/api/task-projects?${mapQuery}`).catch(() => []),
       ]);
       // Audit 26/11 S3 : ignorer si déconnexion / changement de compte pendant l'await.
