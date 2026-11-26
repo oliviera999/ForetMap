@@ -26,6 +26,16 @@ describe('TasksViewHeader', () => {
     expect(h.setShowForm).toHaveBeenCalledWith(true);
   });
 
+  test('n3boss : survol / focus de « + Nouvelle tâche » déclenche onPrefetchNewTask', () => {
+    const onPrefetchNewTask = vi.fn();
+    renderHeader({ isTeacher: true, onPrefetchNewTask });
+    const btn = screen.getByRole('button', { name: '+ Nouvelle tâche' });
+    fireEvent.mouseEnter(btn);
+    expect(onPrefetchNewTask).toHaveBeenCalledTimes(1);
+    fireEvent.focus(btn);
+    expect(onPrefetchNewTask).toHaveBeenCalledTimes(2);
+  });
+
   test('n3boss : « + Projet » ouvre le formulaire projet vierge', () => {
     const h = renderHeader({ isTeacher: true });
     fireEvent.click(screen.getByRole('button', { name: '+ Projet' }));

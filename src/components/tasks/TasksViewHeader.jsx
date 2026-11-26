@@ -33,6 +33,7 @@ export function TasksViewHeader({
   setDuplicateTask,
   setShowForm,
   setShowProposalForm,
+  onPrefetchNewTask = null,
 }) {
   const publicSettings = usePublicSettings();
   const helpTasks = resolveHelpPanelSection('tasks', publicSettings);
@@ -79,6 +80,8 @@ export function TasksViewHeader({
             <button
               type="button"
               className="btn btn-primary btn-sm"
+              onMouseEnter={() => onPrefetchNewTask?.()}
+              onFocus={() => onPrefetchNewTask?.()}
               onClick={() => {
                 setNewTaskDefaultProjectId(null);
                 setEditTask(null);

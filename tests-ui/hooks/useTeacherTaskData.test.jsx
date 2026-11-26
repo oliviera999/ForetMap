@@ -1,10 +1,10 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
+import { renderHook, waitFor, act } from '@testing-library/react';
 
 vi.mock('../../src/services/api', () => ({ api: vi.fn() }));
 
 import { api } from '../../src/services/api';
-import { useTeacherTaskData } from '../../src/hooks/useTeacherTaskData.js';
+import { ASSIGNABLES_IDLE_MS, useTeacherTaskData } from '../../src/hooks/useTeacherTaskData.js';
 
 const STUDENTS = [
   { id: 2, first_name: 'Zoé', last_name: 'Martin' },
@@ -20,21 +20,41 @@ function mockApiOk({ students = STUDENTS, groups = [{ id: 1, name: 'G1' }], refe
   });
 }
 
-function setup(initialProps = { isTeacher: true, filterGroupId: '' }, setToast = vi.fn()) {
+function setup(
+  initialProps = { isTeacher: true, filterGroupId: '', loadReferents: false },
+  setToast = vi.fn(),
+) {
   return renderHook(
-    ({ isTeacher, filterGroupId }) => useTeacherTaskData(isTeacher, filterGroupId, setToast),
+    ({ isTeacher, filterGroupId, loadReferents }) =>
+      useTeacherTaskData(isTeacher, filterGroupId, setToast, { loadReferents }),
     { initialProps },
   );
+}
+
+/** Avance l’idle assignables (setTimeout ou requestIdleCallback selon l’environnement). */
+async function flushAssignablesIdle() {
+  await act(async () => {
+    vi.advanceTimersByTime(ASSIGNABLES_IDLE_MS);
+  });
+  // Laisser les promesses api se résoudre.
+  await act(async () => {
+    await Promise.resolve();
+  });
 }
 
 describe('useTeacherTaskData', () => {
   beforeEach(() => {
     api.mockReset();
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('hors mode prof : aucun appel réseau, listes vides', () => {
     mockApiOk();
-    const { result } = setup({ isTeacher: false, filterGroupId: '' });
+    const { result } = setup({ isTeacher: false, filterGroupId: '', loadReferents: false });
     expect(api).not.toHaveBeenCalled();
     expect(result.current.teacherStudents).toEqual([]);
     expect(result.current.groupOptions).toEqual([]);
@@ -42,27 +62,60 @@ describe('useTeacherTaskData', () => {
     expect(result.current.loadingTeacherStudents).toBe(false);
   });
 
-  it('mode prof : charge groupes, n3beurs (triés fr) et référents', async () => {
+  it('mode prof sans loadReferents : groupes tout de suite, assignables après idle, pas de référents', async () => {
     mockApiOk({ referents: [{ id: 9 }] });
-    const { result } = setup();
+    const { result } = setup({ isTeacher: true, filterGroupId: '', loadReferents: false });
+
+    await waitFor(() => expect(result.current.groupOptions).toEqual([{ id: 1, name: 'G1' }]));
+    expect(api.mock.calls.some(([url]) => String(url).includes('assignable-students'))).toBe(false);
+    expect(api.mock.calls.some(([url]) => String(url).includes('referent-candidates'))).toBe(false);
+    expect(result.current.referentCandidates).toEqual([]);
+
+    await flushAssignablesIdle();
     await waitFor(() => expect(result.current.teacherStudents).toHaveLength(2));
     expect(result.current.teacherStudents.map((s) => s.first_name)).toEqual(['Ali', 'Zoé']);
-    expect(result.current.groupOptions).toEqual([{ id: 1, name: 'G1' }]);
-    expect(result.current.referentCandidates).toEqual([{ id: 9 }]);
+    expect(result.current.referentCandidates).toEqual([]);
     expect(result.current.loadingTeacherStudents).toBe(false);
+  });
+
+  it('mode prof avec loadReferents : charge aussi les candidats référents', async () => {
+    mockApiOk({ referents: [{ id: 9 }] });
+    const { result } = setup({ isTeacher: true, filterGroupId: '', loadReferents: true });
+    await flushAssignablesIdle();
+    await waitFor(() => expect(result.current.teacherStudents).toHaveLength(2));
+    await waitFor(() => expect(result.current.referentCandidates).toEqual([{ id: 9 }]));
+    expect(api.mock.calls.some(([url]) => String(url).includes('referent-candidates'))).toBe(true);
+  });
+
+  it('passe loadReferents false → true : charge les référents à l’ouverture du formulaire', async () => {
+    mockApiOk({ referents: [{ id: 9 }] });
+    const { result, rerender } = setup({
+      isTeacher: true,
+      filterGroupId: '',
+      loadReferents: false,
+    });
+    await flushAssignablesIdle();
+    await waitFor(() => expect(result.current.teacherStudents).toHaveLength(2));
+    expect(result.current.referentCandidates).toEqual([]);
+
+    rerender({ isTeacher: true, filterGroupId: '', loadReferents: true });
+    await waitFor(() => expect(result.current.referentCandidates).toEqual([{ id: 9 }]));
   });
 
   it('accepte le format enveloppé `{ students: [...] }` de /api/tasks/assignable-students', async () => {
     mockApiOk({ students: { students: STUDENTS } });
     const { result } = setup();
+    await flushAssignablesIdle();
     await waitFor(() => expect(result.current.teacherStudents).toHaveLength(2));
   });
 
   it('refetch des n3beurs avec ?group_id= quand le filtre groupe change', async () => {
     mockApiOk();
     const { rerender } = setup();
+    await flushAssignablesIdle();
     await waitFor(() => expect(api).toHaveBeenCalledWith('/api/tasks/assignable-students'));
-    rerender({ isTeacher: true, filterGroupId: 'g 1' });
+    rerender({ isTeacher: true, filterGroupId: 'g 1', loadReferents: false });
+    await flushAssignablesIdle();
     await waitFor(() =>
       expect(api).toHaveBeenCalledWith('/api/tasks/assignable-students?group_id=g%201'),
     );
@@ -76,6 +129,7 @@ describe('useTeacherTaskData', () => {
     });
     const setToast = vi.fn();
     const { result } = setup(undefined, setToast);
+    await flushAssignablesIdle();
     await waitFor(() => expect(setToast).toHaveBeenCalled());
     expect(setToast.mock.calls[0][0]).toContain('boom');
     expect(result.current.loadingTeacherStudents).toBe(false);
@@ -87,7 +141,8 @@ describe('useTeacherTaskData', () => {
       throw new Error('boom');
     });
     const setToast = vi.fn();
-    const { result } = setup(undefined, setToast);
+    const { result } = setup({ isTeacher: true, filterGroupId: '', loadReferents: true }, setToast);
+    await flushAssignablesIdle();
     await waitFor(() => expect(result.current.teacherStudents).toHaveLength(2));
     expect(result.current.groupOptions).toEqual([]);
     expect(result.current.referentCandidates).toEqual([]);

@@ -68,11 +68,42 @@ export function MapTasksArea({
 }) {
   const [keepMapMounted, setKeepMapMounted] = useState(() => tab === 'map');
   const [keepTasksMounted, setKeepTasksMounted] = useState(() => tab === 'tasks');
+  /** Split bureau : carte d’abord, volet tâches au frame suivant (évite un gros commit unique). */
+  const [splitTasksReady, setSplitTasksReady] = useState(false);
 
   useEffect(() => {
     if (tab === 'map') setKeepMapMounted(true);
     if (tab === 'tasks') setKeepTasksMounted(true);
   }, [tab]);
+
+  useEffect(() => {
+    if (!useSplitMapTasks) {
+      setSplitTasksReady(false);
+      return undefined;
+    }
+    let cancelled = false;
+    let rafId = 0;
+    let timeoutId = 0;
+    const markReady = () => {
+      if (!cancelled) setSplitTasksReady(true);
+    };
+    if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
+      rafId = window.requestAnimationFrame(markReady);
+    } else {
+      timeoutId = window.setTimeout(markReady, 0);
+    }
+    return () => {
+      cancelled = true;
+      if (
+        rafId &&
+        typeof window !== 'undefined' &&
+        typeof window.cancelAnimationFrame === 'function'
+      ) {
+        window.cancelAnimationFrame(rafId);
+      }
+      if (timeoutId) window.clearTimeout(timeoutId);
+    };
+  }, [useSplitMapTasks]);
 
   const mapRequestProps = {
     routeRequest: mapRouteRequest,
@@ -142,7 +173,11 @@ export function MapTasksArea({
           </section>
           <section className="desktop-split-pane desktop-split-pane--tasks">
             <div className="desktop-split-scroll">
-              <Suspense fallback={PANEL_FALLBACK}>{tasksView}</Suspense>
+              {splitTasksReady ? (
+                <Suspense fallback={PANEL_FALLBACK}>{tasksView}</Suspense>
+              ) : (
+                PANEL_FALLBACK
+              )}
             </div>
           </section>
         </div>
