@@ -78,6 +78,12 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - `forceLogout` nullifie `studentRef` immédiatement (aligné sur `handleLogout`).
 - `fetchAll` et le rafraîchissement temps réel ignorent les réponses si le compte ou le
   jeton a changé pendant l’attente réseau (S1–S4, S6–S7).
+### Ajouté — audit du code ForetMap hors G&L (26/11/2026)
+
+- Instantané [`docs/AUDIT_CODE_FORETMAP_2026-11-26.md`](docs/AUDIT_CODE_FORETMAP_2026-11-26.md)
+  (bugs/courses de session, cohérence, performance, code mort) et entrée dans
+  [`docs/audits/README.md`](docs/audits/README.md). Suite de l'audit bugs du 19/11 ; aucun
+  correctif applicatif dans ce lot.
 
 ### Ajouté — G&L : kit du chantier « décisions » (documentation, 24/11/2026)
 
