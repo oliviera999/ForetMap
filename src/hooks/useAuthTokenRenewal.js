@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
-import { api, getAuthClaims } from '../services/api';
+import { getAuthClaims } from '../services/api';
+import { fetchAuthMe } from '../services/authMeRequest.js';
 
 /**
  * Renouvellement glissant de la session (côté client).
@@ -57,7 +58,7 @@ export function useAuthTokenRenewal({ enabled, mergeAuthMeResponse }) {
       if (!shouldAskTokenRenewal(getAuthClaims())) return;
       inFlight = true;
       try {
-        const data = await api('/api/auth/me');
+        const data = await fetchAuthMe();
         if (!cancelled) mergeAuthMeResponse(data);
       } catch (_) {
         // Coupure réseau ou redémarrage serveur : on retentera au prochain tick. Une
