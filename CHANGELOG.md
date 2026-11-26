@@ -17,6 +17,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   `GET /api/plants/:id`.
 - Édition prof (`startEdit`) et panneau « êtres vivants » (zone/repère) chargent la fiche
   complète au besoin quand la liste est en `_view: summary`.
+- Instantané `plants-species.golden.json` (`list_*`) régénéré sur la forme résumé.
 
 ### Corrigé — double sync / double `/me` juste après connexion (lot 1)
 
