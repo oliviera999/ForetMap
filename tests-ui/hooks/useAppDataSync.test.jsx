@@ -23,7 +23,7 @@ vi.mock('../../src/services/api', () => ({
   },
 }));
 
-import { api, AccountDeletedError } from '../../src/services/api';
+import { api, AccountDeletedError, getStoredSessionAccountKey } from '../../src/services/api';
 import { useAppDataSync } from '../../src/hooks/useAppDataSync.js';
 
 const MAPS = [{ id: 'm1', name: 'Forêt' }];
@@ -73,6 +73,7 @@ beforeEach(() => {
   window.localStorage.clear();
   window.localStorage.setItem('foretmap_active_map', 'm1');
   api.mockImplementation(async (path) => nominalResponse(path));
+  getStoredSessionAccountKey.mockReturnValue('teacher:T1');
   // Le hook journalise les échecs : on ne pollue pas la sortie des tests.
   vi.spyOn(console, 'error').mockImplementation(() => {});
 });
@@ -371,5 +372,94 @@ describe('useAppDataSync — porte des réglages publics', () => {
     await waitFor(() => expect(result.current.activeMapId).toBe('m2'));
     // Et rien n'a été mémorisé sur l'appareil : le réglage reste maître au prochain boot.
     expect(window.localStorage.getItem('foretmap_active_map')).toBeNull();
+  });
+});
+
+/**
+ * Audit 26/11 S1–S2 : après déconnexion, les données du compte précédent ne doivent
+ * plus rester affichables, et une réponse fetchAll en vol ne doit pas les réécrire.
+ */
+describe('useAppDataSync — purge session / course de compte', () => {
+  it('perdre le shell authentifié purge les domaines et remet loading', async () => {
+    const studentRef = { current: null };
+    const { result, rerender } = renderHook(
+      ({ hasAuthenticatedShell }) =>
+        useAppDataSync({
+          context: CONTEXT,
+          contextReady: true,
+          hasAuthenticatedShell,
+          studentRef,
+          forceLogout: () => {},
+          mergeAuthMeResponse: () => {},
+        }),
+      { initialProps: { hasAuthenticatedShell: true } },
+    );
+    await waitFor(() => expect(result.current.zones).toEqual(ZONES));
+    expect(result.current.plants).toEqual(PLANTS);
+
+    rerender({ hasAuthenticatedShell: false });
+    await waitFor(() => expect(result.current.loading).toBe(true));
+    expect(result.current.zones).toEqual([]);
+    expect(result.current.plants).toEqual([]);
+    expect(result.current.maps).toEqual([]);
+    expect(result.current.tasks).toEqual([]);
+  });
+
+  it('ignore les setState domaine si le compte a changé pendant le cycle', async () => {
+    let resolvePlants;
+    const plantsGate = new Promise((resolve) => {
+      resolvePlants = resolve;
+    });
+    api.mockImplementation(async (path) => {
+      if (path.startsWith('/api/plants')) {
+        await plantsGate;
+        return [{ id: 'p-stale', name: 'Ancien compte' }];
+      }
+      return nominalResponse(path);
+    });
+
+    const studentRef = { current: null };
+    const { result } = renderHook(() =>
+      useAppDataSync({
+        context: CONTEXT,
+        contextReady: true,
+        hasAuthenticatedShell: true,
+        studentRef,
+        forceLogout: () => {},
+        mergeAuthMeResponse: () => {},
+      }),
+    );
+    // Premier cycle : laisser les plantes se résoudre une fois.
+    await act(async () => {
+      resolvePlants();
+    });
+    await waitFor(() =>
+      expect(result.current.plants).toEqual([{ id: 'p-stale', name: 'Ancien compte' }]),
+    );
+
+    let resolvePlants2;
+    const plantsGate2 = new Promise((resolve) => {
+      resolvePlants2 = resolve;
+    });
+    api.mockImplementation(async (path) => {
+      if (path.startsWith('/api/plants')) {
+        await plantsGate2;
+        return [{ id: 'p-stale-2', name: 'Ne doit pas s’appliquer' }];
+      }
+      return nominalResponse(path);
+    });
+
+    let fetchPromise;
+    await act(async () => {
+      fetchPromise = result.current.fetchAll();
+    });
+    getStoredSessionAccountKey.mockReturnValue('teacher:OTHER');
+    await act(async () => {
+      resolvePlants2();
+      await fetchPromise;
+    });
+
+    // Compte changé : les plantes « stale-2 » ne doivent pas remplacer l'état.
+    expect(result.current.plants).toEqual([{ id: 'p-stale', name: 'Ancien compte' }]);
   });
 });

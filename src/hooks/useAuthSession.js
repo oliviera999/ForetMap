@@ -100,6 +100,9 @@ export function useAuthSession({
     (options = {}) => {
       if (options?.keepStorage) markWindowSessionClosed();
       else clearStoredSession();
+      // Aligné sur handleLogout : nullifier la ref tout de suite pour que fetchAll /
+      // realtime ne lisent plus l'ancien compte pendant le tick React suivant.
+      studentRef.current = null;
       setStudent(null);
       setSessionUser(null);
       setAuthClaims(null);
@@ -114,6 +117,7 @@ export function useAuthSession({
       setSessionValidationError,
       setStudent,
       setToast,
+      studentRef,
     ],
   );
 

@@ -45,11 +45,18 @@ vi.mock('socket.io-client', () => ({
   io: vi.fn(() => fakeSocket),
 }));
 
-vi.mock('../../src/services/api', () => ({
+const apiMocks = {
   api: vi.fn(async () => []),
+  getAuthToken: vi.fn(() => 'jeton-test'),
+  getStoredSessionAccountKey: vi.fn(() => 'teacher:T1'),
+};
+
+vi.mock('../../src/services/api', () => ({
+  api: (...a) => apiMocks.api(...a),
   API: '',
   withAppBase: (p) => p,
-  getAuthToken: () => 'jeton-test',
+  getAuthToken: () => apiMocks.getAuthToken(),
+  getStoredSessionAccountKey: () => apiMocks.getStoredSessionAccountKey(),
   AccountDeletedError: class AccountDeletedError extends Error {},
 }));
 
@@ -90,6 +97,10 @@ async function mountConnected(overrides) {
 beforeEach(() => {
   fakeSocket = createFakeSocket();
   io.mockClear();
+  apiMocks.api.mockReset();
+  apiMocks.api.mockResolvedValue([]);
+  apiMocks.getAuthToken.mockReturnValue('jeton-test');
+  apiMocks.getStoredSessionAccountKey.mockReturnValue('teacher:T1');
   vi.spyOn(console, 'warn').mockImplementation(() => {});
 });
 
@@ -181,5 +192,35 @@ describe('useForetmapRealtime — client chargé à la demande', () => {
     const { unmount } = await mountConnected();
     unmount();
     expect(fakeSocket.disconnect).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('useForetmapRealtime — garde de session (audit 26/11 S3)', () => {
+  it('n’applique pas les tâches si le compte change pendant le refetch', async () => {
+    let resolveTasks;
+    apiMocks.api.mockImplementation(async (path) => {
+      if (String(path).startsWith('/api/tasks')) {
+        await new Promise((r) => {
+          resolveTasks = r;
+        });
+        return [{ id: 't1', map_id: 'm1' }];
+      }
+      return [];
+    });
+    const setTasks = vi.fn();
+    await mountConnected({ setTasks });
+    act(() => {
+      fakeSocket.fire('tasks:changed', { mapId: 'm1' });
+    });
+    // Laisser le debounce (~220 ms + jitter) partir le refetch.
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 500));
+    });
+    apiMocks.getStoredSessionAccountKey.mockReturnValue('teacher:OTHER');
+    await act(async () => {
+      resolveTasks?.();
+      await Promise.resolve();
+    });
+    expect(setTasks).not.toHaveBeenCalled();
   });
 });

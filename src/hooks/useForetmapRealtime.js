@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { api, AccountDeletedError, API, withAppBase, getAuthToken } from '../services/api';
+import {
+  api,
+  AccountDeletedError,
+  API,
+  withAppBase,
+  getAuthToken,
+  getStoredSessionAccountKey,
+} from '../services/api';
 import { partitionByArchived } from '../utils/taskArchive';
 import { isSocketAuthRejection } from '../utils/realtimeAuthRejection';
 import { jitteredRefreshDelay } from '../utils/realtimeRefreshDelay';
@@ -96,6 +103,9 @@ export function useForetmapRealtime({
 
   const refreshTasksFromServer = useCallback(async () => {
     if (pauseDataRefreshRef?.current) return;
+    const accountAtStart = getStoredSessionAccountKey();
+    const tokenAtStart = getAuthToken();
+    if (!accountAtStart || !tokenAtStart) return;
     try {
       const mapId = String(activeMapIdRef.current || '').trim();
       if (!mapId) return;
@@ -105,6 +115,14 @@ export function useForetmapRealtime({
         api(`/api/tasks?${mapQuery}`),
         api(`/api/task-projects?${mapQuery}`).catch(() => []),
       ]);
+      // Audit 26/11 S3 : ignorer si déconnexion / changement de compte pendant l'await.
+      if (
+        !getAuthToken() ||
+        getStoredSessionAccountKey() !== accountAtStart ||
+        pauseDataRefreshRef?.current
+      ) {
+        return;
+      }
       if (!Array.isArray(t)) {
         console.warn(
           '[ForetMap] rafraîchissement tâches (temps réel) : réponse inattendue',
@@ -128,6 +146,9 @@ export function useForetmapRealtime({
   const refreshGardenFromServer = useCallback(
     async (options = {}) => {
       if (pauseDataRefreshRef?.current) return;
+      const accountAtStart = getStoredSessionAccountKey();
+      const tokenAtStart = getAuthToken();
+      if (!accountAtStart || !tokenAtStart) return;
       const includePlants = options.includePlants !== false;
       try {
         const mapId = String(activeMapIdRef.current || '').trim();
@@ -139,6 +160,13 @@ export function useForetmapRealtime({
             api('/api/plants'),
             api(`/api/map/markers?${mapQuery}`),
           ]);
+          if (
+            !getAuthToken() ||
+            getStoredSessionAccountKey() !== accountAtStart ||
+            pauseDataRefreshRef?.current
+          ) {
+            return;
+          }
           setZones(z);
           setPlants(p);
           setMarkers(m);
@@ -147,6 +175,13 @@ export function useForetmapRealtime({
             api(`/api/zones?${mapQuery}`),
             api(`/api/map/markers?${mapQuery}`),
           ]);
+          if (
+            !getAuthToken() ||
+            getStoredSessionAccountKey() !== accountAtStart ||
+            pauseDataRefreshRef?.current
+          ) {
+            return;
+          }
           setZones(z);
           setMarkers(m);
         }

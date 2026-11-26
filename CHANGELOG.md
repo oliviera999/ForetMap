@@ -9,6 +9,15 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — session : purge domaine et gardes de course au logout (audit 26/11, lot A)
+
+- Après déconnexion (`handleLogout` / `forceLogout`), les états domaine (cartes, zones,
+  tâches, plantes, repères…) sont vidés et `loading` repasse à vrai, pour ne plus afficher
+  les données du compte précédent sur un poste partagé.
+- `forceLogout` nullifie `studentRef` immédiatement (aligné sur `handleLogout`).
+- `fetchAll` et le rafraîchissement temps réel ignorent les réponses si le compte ou le
+  jeton a changé pendant l’attente réseau (S1–S4, S6–S7).
+
 ### Ajouté — G&L : kit du chantier « décisions » (documentation, 24/11/2026)
 
 - `docs/prompts/gl-decisions/` : tout ce dont les sessions Claude Code du chantier ont besoin, versé depuis le
