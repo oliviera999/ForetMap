@@ -60,18 +60,28 @@ describe('TasksStudentSections', () => {
   test('transmet les bonnes listes de tâches aux sections', () => {
     renderSections();
     const counts = screen.getAllByTestId('tile-section').map((el) => el.getAttribute('data-count'));
-    // En cours, Tâches à faire, Mes propositions, En attente de validation, En attente, Récemment validées
-    expect(counts).toEqual(['1', '2', '1', '3', '1', '1']);
+    // Tâches à faire, En cours, Mes propositions, En attente de validation, En attente, Récemment validées
+    expect(counts).toEqual(['2', '1', '1', '3', '1', '1']);
+  });
+
+  test('« Tâches à faire » précède « En cours (déjà prises) »', () => {
+    renderSections();
+    const todo = screen.getByText('Tâches à faire');
+    const progress = screen.getByText('En cours (déjà prises)');
+    expect(Boolean(todo.compareDocumentPosition(progress) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(
+      true,
+    );
   });
 
   test('place « En attente de validation » en tête quand validationFirst', () => {
     renderSections({ validationFirst: true });
     const sections = screen.getAllByTestId('tile-section');
     expect(sections[0]).toHaveTextContent('En attente de validation');
+    // Puis À faire (2), En cours (1), …
     expect(sections.map((el) => el.getAttribute('data-count'))).toEqual([
       '3',
-      '1',
       '2',
+      '1',
       '1',
       '1',
       '1',

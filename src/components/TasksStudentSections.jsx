@@ -12,7 +12,7 @@ import {
 /**
  * Sections par défaut de la vue Tâches côté élève — extrait de `tasks-views.jsx` (O6).
  *
- * Rend, dans l'ordre, les sections « En cours (déjà prises) », « Tâches à faire »,
+ * Rend, dans l'ordre, les sections « Tâches à faire », « En cours (déjà prises) »,
  * « Mes propositions », le bloc des projets actifs, puis « En attente de validation »,
  * « En attente » et « Récemment validées ». Avec `validationFirst` (rôle autorisé à
  * valider les tâches), « En attente de validation » passe en tête. Affiché lorsque
@@ -60,16 +60,7 @@ export function TasksStudentSections({
   return (
     <>
       {validationFirst && awaitingValidationSection}
-      <TaskTileSection
-        title={
-          <>
-            <IconSettings size={16} /> En cours (déjà prises)
-          </>
-        }
-        tasks={inProgressNotMine}
-        sectionListClass={sectionListClass}
-        taskTileProps={taskTileProps}
-      />
+      {/* « À faire » avant « En cours » : d'abord ce qui reste à prendre. */}
       <TaskTileSection
         title={
           <>
@@ -77,6 +68,16 @@ export function TasksStudentSections({
           </>
         }
         tasks={availableNotMine}
+        sectionListClass={sectionListClass}
+        taskTileProps={taskTileProps}
+      />
+      <TaskTileSection
+        title={
+          <>
+            <IconSettings size={16} /> En cours (déjà prises)
+          </>
+        }
+        tasks={inProgressNotMine}
         sectionListClass={sectionListClass}
         taskTileProps={taskTileProps}
       />

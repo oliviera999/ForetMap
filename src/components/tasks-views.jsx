@@ -11,7 +11,7 @@ import { getRoleTerms } from '../utils/n3-terminology';
 import { useHelp } from '../hooks/useHelp';
 import { useQuickAssign } from '../hooks/useQuickAssign';
 import { useTaskDragReorder } from '../hooks/useTaskDragReorder';
-import { computeStepInfoByTaskId, sortProjectTasksBySteps } from '../utils/taskProjectSteps.js';
+import { computeStepInfoByTaskId, groupProjectTasksById } from '../utils/taskProjectSteps.js';
 import { assignProjectColors } from '../utils/projectColors.js';
 import { useTaskFilters } from '../hooks/useTaskFilters';
 import { useTaskModals } from '../hooks/useTaskModals';
@@ -354,7 +354,13 @@ function TasksViewImpl({
     registerProjectDropHint,
     dropTaskToProject,
     moveTaskInProject,
-  } = useTaskDragReorder({ isTeacher, tasks, withLoad, setToast });
+  } = useTaskDragReorder({
+    isTeacher,
+    canReorder: isTeacher && teacherTaskPerms.canManageTasks,
+    tasks,
+    withLoad,
+    setToast,
+  });
 
   /** Marque `done_at` pour un assigné (tâche en mode collectif) — `POST /api/tasks/:id/done` côté n3boss. */
   const teacherMarkCollectiveAssignmentDone = useCallback(
@@ -802,24 +808,11 @@ function TasksViewImpl({
   const stepInfoByTaskId = useMemo(() => computeStepInfoByTaskId(tasks), [tasks]);
   /** Une couleur par projet (cartes de tâches + case du projet), indépendante des filtres. */
   const projectColorById = useMemo(() => assignProjectColors(sourceProjects), [sourceProjects]);
-  // Groupement projet → tâches calculé une seule fois ici (P2) : TaskProjectsBlock
-  // refaisait un `filter` de la liste complète pour chaque projet à chaque rendu.
-  // Projet numéroté : l'ordre des étapes du titre l'emporte (sur la priorité « à valider »).
-  const projectTasksById = useMemo(() => {
-    const byProject = new Map();
-    for (const t of allFilteredWithoutUrgent) {
-      const projectId = String(t?.project_id || '');
-      if (!projectId) continue;
-      const bucket = byProject.get(projectId);
-      if (bucket) bucket.push(t);
-      else byProject.set(projectId, [t]);
-    }
-    for (const [projectId, bucket] of byProject) {
-      const prioritized = validationFirst ? prioritizeTasksAwaitingValidation(bucket) : bucket;
-      byProject.set(projectId, sortProjectTasksBySteps(prioritized, stepInfoByTaskId));
-    }
-    return byProject;
-  }, [allFilteredWithoutUrgent, validationFirst, stepInfoByTaskId]);
+  // Groupement projet → tâches (P2) : ordre manuel / étapes, sans priorize « à valider ».
+  const projectTasksById = useMemo(
+    () => groupProjectTasksById(allFilteredWithoutUrgent, stepInfoByTaskId),
+    [allFilteredWithoutUrgent, stepInfoByTaskId],
+  );
   /**
    * Sections par statut (« À faire », « En cours », « Mes tâches »…) : incluent aussi les
    * tâches rattachées à un projet visible. Avant, elles n'apparaissaient que dans le bloc
@@ -979,7 +972,7 @@ function TasksViewImpl({
       openTasksTutorialPreview,
       tutorialReadIds: tasksTutorialReadIds,
       queuedDoneTaskIds: queuedDoneIds,
-      enableTaskDrag: isTeacher,
+      enableTaskDrag: isTeacher && teacherTaskPerms.canManageTasks,
       onTaskDragStart: startTaskDrag,
       onTaskDragEnd: clearTaskDragState,
       onOpenBiodiversityFromTaskName,

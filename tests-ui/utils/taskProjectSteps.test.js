@@ -3,6 +3,7 @@ import { describe, expect, test } from 'vitest';
 import {
   computeProjectStepInfo,
   computeStepInfoByTaskId,
+  groupProjectTasksById,
   parseTaskStepNumber,
   sameStepBucket,
   sortProjectTasksBySteps,
@@ -129,6 +130,20 @@ describe('sortProjectTasksBySteps', () => {
     const copy = [...tasks];
     sortProjectTasksBySteps(tasks, computeProjectStepInfo(tasks));
     expect(tasks).toEqual(copy);
+  });
+});
+
+describe('groupProjectTasksById', () => {
+  test('conserve l’ordre d’arrivée (sort_order) même si une tâche est terminée', () => {
+    const tasks = [
+      { id: 'a', project_id: 'p1', title: 'Alpha', status: 'available' },
+      { id: 'd', project_id: 'p1', title: 'Done', status: 'done' },
+      { id: 'b', project_id: 'p1', title: 'Bravo', status: 'available' },
+      { id: 'x', project_id: 'p2', title: 'Autre' },
+    ];
+    const byId = groupProjectTasksById(tasks, computeStepInfoByTaskId(tasks));
+    expect(byId.get('p1').map((t) => t.id)).toEqual(['a', 'd', 'b']);
+    expect(byId.get('p2').map((t) => t.id)).toEqual(['x']);
   });
 });
 

@@ -50,6 +50,37 @@ describe('useTaskDragReorder', () => {
     expect(result.current.taskDragPayload).toBeNull();
   });
 
+  it('canReorder=false bloque le drag même si isTeacher', () => {
+    const { result } = setup({ isTeacher: true, canReorder: false });
+    act(() => result.current.startTaskDrag(TASKS[0]));
+    expect(result.current.taskDragPayload).toBeNull();
+  });
+
+  it('dropTaskToProject accepte l’id via dataTransfer si l’état React est déjà vidé', async () => {
+    const { result, withLoad } = setup();
+    act(() => result.current.startTaskDrag(TASKS[1]));
+    // Simule un clear UI (dragend) avant le drop — le 3e arg reprend l’id.
+    act(() => result.current.clearTaskDragState());
+    await act(async () => {
+      result.current.dropTaskToProject('p1', '1', '2');
+    });
+    expect(withLoad).toHaveBeenCalledWith('2dnd:p1:1', expect.any(Function));
+    expect(api).toHaveBeenCalledWith(
+      '/api/tasks/reorder-project',
+      'POST',
+      expect.objectContaining({ project_id: 'p1' }),
+    );
+  });
+
+  it('registerProjectDropHint ne recrée pas l’objet si l’indice est inchangé', () => {
+    const { result } = setup();
+    act(() => result.current.startTaskDrag(TASKS[0]));
+    act(() => result.current.registerProjectDropHint('p1', '2'));
+    const first = result.current.taskDropHint;
+    act(() => result.current.registerProjectDropHint('p1', '2'));
+    expect(result.current.taskDropHint).toBe(first);
+  });
+
   it('registerProjectDropHint n’enregistre l’indice que pendant un drag, avec projet non vide', () => {
     const { result } = setup();
     act(() => result.current.registerProjectDropHint('p2', '3'));

@@ -9,6 +9,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — ordre des tâches de projet + sections « À faire » avant « En cours »
+
+- Bloc projet : l'ordre manuel (`sort_order` / glisser-déposer) n'est plus écrasé par la
+  priorité « en attente de validation » après refresh (régression perçue post-lots perf).
+- DnD HTML5 durci : ref synchrone + `preventDefault` avant le commit React ; repli
+  `dataTransfer` ; cartes `draggable` seulement avec `tasks.manage` (comme les flèches ↑↓).
+- Sections Tâches : **« À faire »** avant **« En cours »** (prof et élève).
+
 ### Modifié — cache SW plants/tutorials + purge terrain à la déconnexion (lot 4)
 
 - Profil ForetMap : `/api/plants` et `/api/tutorials` passent en stale-while-revalidate

@@ -110,6 +110,31 @@ export function sortProjectTasksBySteps(projectTasks, stepInfo) {
 }
 
 /**
+ * Regroupe les tâches filtrées par `project_id` pour le bloc projets, en conservant
+ * l'ordre d'arrivée (typiquement `sort_order` / GET) puis en appliquant les étapes
+ * numérotées. **Sans** remonter les tâches « terminées » en tête — l'ordre manuel du
+ * glisser-déposer doit survivre au refresh pour les validateurs.
+ *
+ * @param {Array<{ id?: unknown, project_id?: unknown }>} tasks
+ * @param {Map<string, { step: number, sub: string, parallel?: boolean }>} stepInfoByTaskId
+ * @returns {Map<string, Array>}
+ */
+export function groupProjectTasksById(tasks, stepInfoByTaskId) {
+  const byProject = new Map();
+  for (const t of Array.isArray(tasks) ? tasks : []) {
+    const projectId = String(t?.project_id || '');
+    if (!projectId) continue;
+    const bucket = byProject.get(projectId);
+    if (bucket) bucket.push(t);
+    else byProject.set(projectId, [t]);
+  }
+  for (const [projectId, bucket] of byProject) {
+    byProject.set(projectId, sortProjectTasksBySteps(bucket, stepInfoByTaskId));
+  }
+  return byProject;
+}
+
+/**
  * Deux tâches sont dans le même « compartiment » d'ordre manuel : même numéro (étape et
  * sous-lettre) ou toutes deux non numérotées. Le glisser-déposer et les flèches ↑↓ ne
  * réordonnent qu'à l'intérieur d'un compartiment — changer d'étape, c'est changer le
