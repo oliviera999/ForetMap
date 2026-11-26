@@ -79,21 +79,23 @@ const PWA_PROFILES = Object.freeze({
       '/api/maps',
       '/api/visit/content',
       '/api/glossary/terms',
+      // Catalogue et tutoriels : réponse immédiate depuis la copie, refresh en fond
+      // (lot perf cache). Restent cloisonnés `__fm_sw_user` tant qu'un Bearer est présent.
+      '/api/plants',
+      '/api/tutorials',
     ]),
     apiStaleWhileRevalidatePatterns: Object.freeze(['^/api/glossary/terms/[^/]+$']),
     /**
      * `/api/settings/public` : sans copie, un démarrage hors ligne attendait l'échec de cette
-     * requête avant de charger les données. `/api/task-projects` et `/api/tutorials` sont
-     * lus à chaque cycle de synchronisation. `/api/sync-state` n'y figure **jamais** : la
-     * sonde doit refléter l'état réel du serveur.
+     * requête avant de charger les données. `/api/task-projects` reste network-first
+     * (état volatile). `/api/sync-state` n'y figure **jamais** : la sonde doit refléter
+     * l'état réel du serveur. `tutorials/me/read-ids` reste NF (données par compte).
      */
     apiNetworkFirst: Object.freeze([
       '/api/zones',
-      '/api/plants',
       '/api/map/markers',
       '/api/tasks',
       '/api/task-projects',
-      '/api/tutorials',
       '/api/settings/public',
       // Sans elles, hors ligne : tutoriels liés vus « non lus » (la tâche ne pouvait plus être
       // marquée faite sans réseau) et « Mes observations » en erreur.

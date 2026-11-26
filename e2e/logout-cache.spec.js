@@ -36,13 +36,18 @@ test.describe('Déconnexion : purge cache SW + Clear-Site-Data', () => {
       await page.waitForTimeout(1500);
     }
 
-    // Force une entrée cloisonnée si le SW n'a pas encore écrit (CI / timing).
+    // Force une entrée cloisonnée + une copie terrain si le SW n'a pas encore écrit (CI / timing).
     await page.evaluate(async () => {
       if (!('caches' in window)) return;
       const cache = await caches.open('e2e-logout-probe');
       await cache.put(
         'https://example.invalid/api/tasks?__fm_sw_user=e2eprobe',
         new Response('{}', { headers: { 'Content-Type': 'application/json' } }),
+      );
+      const terrain = await caches.open('e2e-logout-probe-terrain');
+      await terrain.put(
+        'https://example.invalid/uploads/maps/foret.jpg',
+        new Response('x', { headers: { 'Content-Type': 'image/jpeg' } }),
       );
     });
 
@@ -57,17 +62,20 @@ test.describe('Déconnexion : purge cache SW + Clear-Site-Data', () => {
       .toBeNull();
 
     const remaining = await page.evaluate(async () => {
-      if (!('caches' in window)) return [];
-      const hits = [];
+      if (!('caches' in window)) return { userHits: [], terrainCaches: [] };
+      const userHits = [];
+      const terrainCaches = [];
       for (const name of await caches.keys()) {
+        if (/-terrain$/.test(name)) terrainCaches.push(name);
         const cache = await caches.open(name);
         for (const req of await cache.keys()) {
-          if (String(req.url).includes('__fm_sw_user')) hits.push(req.url);
+          if (String(req.url).includes('__fm_sw_user')) userHits.push(req.url);
         }
       }
-      return hits;
+      return { userHits, terrainCaches };
     });
-    expect(remaining).toEqual([]);
+    expect(remaining.userHits).toEqual([]);
+    expect(remaining.terrainCaches).toEqual([]);
 
     expect(logoutClearSiteData).toBeTruthy();
     expect(String(logoutClearSiteData)).toMatch(/cache/i);

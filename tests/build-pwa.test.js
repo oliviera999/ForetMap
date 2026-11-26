@@ -9,6 +9,7 @@ const path = require('path');
 const { PRODUCTS } = require('../lib/products');
 const {
   FORET_STATIC_ASSETS,
+  PWA_PROFILES,
   collectEntryFiles,
   htmlEntriesForProduct,
   precacheHash,
@@ -224,8 +225,34 @@ test('ForetMap hors ligne : réglages publics, projets et tutoriels en cache, ja
   for (const route of ['/api/settings/public', '/api/task-projects', '/api/tutorials']) {
     assert.ok(foret.serviceWorker.includes(`"${route}"`), route);
   }
+  // Catalogue + tutoriels : stale-while-revalidate (affichage immédiat, refresh fond).
+  assert.ok(foret.serviceWorker.includes('"/api/plants"'));
   // La sonde du polling différentiel doit refléter l'état réel du serveur.
   assert.ok(!foret.serviceWorker.includes('/api/sync-state'));
+});
+
+test('ForetMap : plants et tutorials en SWR, pas les lectures par compte', () => {
+  const profile = PWA_PROFILES.foret;
+  assert.ok(profile.apiStaleWhileRevalidate.includes('/api/plants'));
+  assert.ok(profile.apiStaleWhileRevalidate.includes('/api/tutorials'));
+  assert.ok(!profile.apiNetworkFirst.includes('/api/plants'));
+  assert.ok(!profile.apiNetworkFirst.includes('/api/tutorials'));
+  assert.ok(profile.apiNetworkFirst.includes('/api/tutorials/me/read-ids'));
+  assert.ok(profile.apiNetworkFirst.includes('/api/tasks'));
+  assert.ok(profile.apiNetworkFirst.includes('/api/species-observations/me'));
+
+  const foret = buildProductPwa(PRODUCTS.foret, {
+    viteManifest: FAKE_VITE_MANIFEST,
+    exists: () => true,
+  });
+  // Ordre dans le SW : bloc SWR puis NF — plants doit apparaître dans le premier bloc.
+  const swrIdx = foret.serviceWorker.indexOf('API_STALE_WHILE_REVALIDATE');
+  const nfIdx = foret.serviceWorker.indexOf('API_NETWORK_FIRST');
+  const plantsIdx = foret.serviceWorker.indexOf('"/api/plants"');
+  const tutorialsIdx = foret.serviceWorker.indexOf('"/api/tutorials"');
+  assert.ok(swrIdx >= 0 && nfIdx > swrIdx);
+  assert.ok(plantsIdx > swrIdx && plantsIdx < nfIdx);
+  assert.ok(tutorialsIdx > swrIdx && tutorialsIdx < nfIdx);
 });
 
 test('buildPwa écrit les SW et manifests de tous les produits + copies sw.js/manifest.json', () => {

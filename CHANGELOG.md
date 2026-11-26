@@ -9,6 +9,12 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — cache SW plants/tutorials + purge terrain à la déconnexion (lot 4)
+
+- Profil ForetMap : `/api/plants` et `/api/tutorials` passent en stale-while-revalidate
+  (affichage immédiat depuis la copie, refresh en fond) ; `me/read-ids` reste network-first.
+- Déconnexion : `clearTerrainCopy()` aligne le code sur la doc « sortie terrain ».
+
 ### Modifié — fenêtres tâches : référents à la demande, chunks lazy, split staggered (lot 3 perf)
 
 - `useTeacherTaskData` : candidats référents seulement si le formulaire est ouvert
