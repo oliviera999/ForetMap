@@ -43,12 +43,19 @@ test('GET /api/plants — lignes résumé', async () => {
   const list = await request(app).get('/api/plants').expect(200);
   const row = list.body.find((p) => Number(p.id) === Number(plantId));
   assert.ok(row, 'fiche absente de la liste');
+  assert.ok(row.id, 'id présent');
   assert.equal(row._view, 'summary');
   assert.equal(row.name, NAME);
   assert.ok(Array.isArray(row.photos));
   assert.ok(row.photos.length <= 2, 'photos plafonnées à 2');
   assert.equal(row.map_site_notes && Object.keys(row.map_site_notes).length, 0);
   assert.equal('lookalikes' in row, false);
+  assert.equal('lookalike_species' in row, false);
+  assert.equal('nutrition' in row, false);
+  assert.equal('remarks' in row, false);
+  assert.equal('remark_1' in row, false);
+  assert.equal('ecosystem_role' in row, false);
+  assert.equal('human_utility' in row, false);
 });
 
 test('GET /api/plants/:id — fiche complète', async () => {

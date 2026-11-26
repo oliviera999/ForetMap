@@ -669,9 +669,10 @@ du site**, l'une des trois façons d'être « présente sur ce site ». Enregist
 touche pas aux cartes déjà cochées (leurs informations de suivi sont conservées). Il voit le
 même catalogue en vignettes que les élèves — la pastille « Sur la carte » y suit la même
 règle que chez eux —, avec deux boutons par vignette : **modifier**
-(le formulaire s'ouvre en fenêtre, avec l'enregistrement automatique habituel) et
-**supprimer**. Cliquer la vignette elle-même ouvre la fiche telle que les élèves la
-voient. Les changements apparaissent en temps réel chez les utilisateurs connectés.
+(le formulaire s'ouvre en fenêtre après chargement de la fiche complète, avec
+l'enregistrement automatique habituel) et **supprimer**. Cliquer la vignette elle-même
+ouvre la fiche telle que les élèves la voient. Les changements apparaissent en temps réel
+chez les utilisateurs connectés.
 
 ### Le pré-remplissage automatique (multi-sources)
 

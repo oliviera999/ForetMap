@@ -20,6 +20,7 @@ import {
   persistPlantMapSiteNotes,
 } from '../utils/plantFormValues.js';
 import { formPhotosFromPlant } from '../utils/plantPhotos.js';
+import { fetchPlantDetail } from '../services/plantCatalogDetail.js';
 import { DialogShell } from './DialogShell';
 import { PlantEditForm } from './biodiv/PlantEditForm.jsx';
 import { PlantCatalogTile } from './biodiv/PlantCatalogTile.jsx';
@@ -104,13 +105,20 @@ function PlantManager({
   const plantEditSessionRef = useRef(null);
   const formRef = useRef(form);
   formRef.current = form;
-  const startEdit = (p) => {
-    plantEditSessionRef.current = createEditRevisionSession(p.edit_revision, {
-      confirmOverwrite: confirmPlantOverwrite,
-    });
-    setEditId(p.id);
-    setForm(extractPlantForm(p));
-    setShowAdd(false);
+  // Liste = vue résumé : charger la fiche complète avant le formulaire (sosies, notes de
+  // site, TEXT longs) — sinon un PUT depuis `extractPlantForm(p)` effacerait ces champs.
+  const startEdit = async (p) => {
+    try {
+      const full = await fetchPlantDetail(api, p.id);
+      plantEditSessionRef.current = createEditRevisionSession(full.edit_revision, {
+        confirmOverwrite: confirmPlantOverwrite,
+      });
+      setEditId(full.id);
+      setForm(extractPlantForm(full));
+      setShowAdd(false);
+    } catch (e) {
+      setToast('Erreur : ' + (e.message || String(e)));
+    }
   };
   // Corps relu au moment de l’envoi (pas au moment où le minuteur part) : une intégration
   // de photos enfilée avant peut avoir mis la liste à jour entre-temps.
