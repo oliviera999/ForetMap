@@ -9,6 +9,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — double sync / double `/me` juste après connexion (lot 1)
+
+- Le debounce auto de `fetchAll` ne démarre plus avant la fin du premier cycle
+  (`bootSyncReady`) ; baseline `/api/sync-state` posée en fin de premier boot.
+- `GET /api/auth/me` dédupliqué in-flight (`authMeRequest`) entre hydratation,
+  fin de `fetchAll` et renouvellement JWT ; skip si hydratation fraîche.
+- Budget JS connexion : plafond 508 → 510 Ko (module de dédup `/me`, mesure 509,1 Ko).
+
 ### Corrigé — lenteur perçue juste après connexion (shell + fenêtres)
 
 - Le loader plein écran attendait la fin de **tout** `fetchAll` (dont le catalogue plantes

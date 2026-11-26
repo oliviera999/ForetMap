@@ -23,7 +23,17 @@ vi.mock('../../src/services/api', () => ({
   },
 }));
 
+vi.mock('../../src/services/authMeRequest.js', async () => {
+  const actual = await vi.importActual('../../src/services/authMeRequest.js');
+  return {
+    ...actual,
+    fetchAuthMe: vi.fn(() => Promise.resolve({ auth: { role: 'teacher' } })),
+    wasAuthMeFetchedRecently: vi.fn(() => false),
+  };
+});
+
 import { api, AccountDeletedError, getStoredSessionAccountKey } from '../../src/services/api';
+import { wasAuthMeFetchedRecently } from '../../src/services/authMeRequest.js';
 import { useAppDataSync } from '../../src/hooks/useAppDataSync.js';
 
 const MAPS = [{ id: 'm1', name: 'Forêt' }];
@@ -74,6 +84,7 @@ beforeEach(() => {
   window.localStorage.setItem('foretmap_active_map', 'm1');
   api.mockImplementation(async (path) => nominalResponse(path));
   getStoredSessionAccountKey.mockReturnValue('teacher:T1');
+  wasAuthMeFetchedRecently.mockReturnValue(false);
   // Le hook journalise les échecs : on ne pollue pas la sortie des tests.
   vi.spyOn(console, 'error').mockImplementation(() => {});
 });
@@ -85,6 +96,36 @@ describe('useAppDataSync — coupure serveur', () => {
     expect(result.current.plants).toEqual(PLANTS);
     expect(result.current.markers).toEqual(MARKERS);
     expect(result.current.serverDown).toBe(false);
+  });
+
+  it('ne relance pas un 2ᵉ cycle plants pendant le boot (debounce après bootSyncReady)', async () => {
+    const syncPayload = {
+      bootId: 'boot-1',
+      writes: 1,
+      domains: {
+        maps: 1,
+        zones: 1,
+        tasks: 1,
+        plants: 1,
+        markers: 1,
+        tutorials: 1,
+        authMe: 1,
+      },
+    };
+    api.mockImplementation(async (path) => {
+      if (path.startsWith('/api/sync-state')) return syncPayload;
+      return nominalResponse(path);
+    });
+    const { result } = mountSync();
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    await waitFor(() => expect(result.current.plants).toEqual(PLANTS));
+    const plantsBefore = api.mock.calls.filter(([p]) => String(p).startsWith('/api/plants')).length;
+    // Laisser le debounce post-boot (250 ms) + marge : un skip ne doit pas recharger plants.
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 400));
+    });
+    const plantsAfter = api.mock.calls.filter(([p]) => String(p).startsWith('/api/plants')).length;
+    expect(plantsAfter).toBe(plantsBefore);
   });
 
   it('débloque loading avant la fin du catalogue plantes (chemin critique carte/tâches)', async () => {
@@ -320,6 +361,7 @@ describe('useAppDataSync — appareil hors ligne', () => {
     await waitFor(() => expect(result.current.zones).toEqual(ZONES));
 
     setOnline(false);
+    api.mockClear();
     api.mockImplementation(async () => {
       throw offlineError();
     });

@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 
-import { api, getAuthClaims, getStoredSession } from '../services/api';
+import { getAuthClaims, getStoredSession } from '../services/api';
+import { fetchAuthMe } from '../services/authMeRequest.js';
 
 /** Compte désigné par le jeton courant (`userType:userId`), chaîne vide sans jeton. */
 function currentAccountKey() {
@@ -17,12 +18,8 @@ function currentAccountKey() {
  * d'invalidité de session, on conserve silencieusement les états locaux
  * existants (le `.catch` no-op de l'ancien effet).
  *
- * Concern autonome et faiblement couplé : aucun état n'est déplacé ni créé.
- * `api` et `getStoredSession` proviennent du service partagé et sont importés
- * directement ici ; seul `mergeAuthMeResponse` (callback d'App.jsx) est passé
- * en paramètre. Iso-comportement : même garde `if (!session?.token) return`,
- * même appel, même gestion d'erreur et même dépendance (`mergeAuthMeResponse`)
- * que l'ancien `useEffect`.
+ * `fetchAuthMe` déduplique les appels in-flight avec la fin de `fetchAll` et le
+ * renouvellement JWT (lot perf réactivité).
  *
  * @param {object} params
  * @param {(d: object) => void} params.mergeAuthMeResponse - fusion de la réponse `/api/auth/me`.
@@ -34,7 +31,7 @@ export function useAuthMeHydration({ mergeAuthMeResponse }) {
     // Compte au départ de la requête : une déconnexion (ou un autre compte) entre-temps rend
     // la réponse caduque — elle ne doit pas rouvrir la session (audit du 19/11, F2).
     const accountAtStart = currentAccountKey();
-    api('/api/auth/me')
+    fetchAuthMe()
       .then((d) => {
         if (!accountAtStart || currentAccountKey() !== accountAtStart) return;
         mergeAuthMeResponse(d);

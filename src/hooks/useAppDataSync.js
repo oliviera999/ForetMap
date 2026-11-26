@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, AccountDeletedError, getStoredSessionAccountKey } from '../services/api';
+import { fetchAuthMe, wasAuthMeFetchedRecently } from '../services/authMeRequest.js';
 import {
   DATA_REFRESH_INTERVAL_MS,
   FETCH_ALL_AUTO_DEBOUNCE_MS,
@@ -97,6 +98,12 @@ export function useAppDataSync({
   // désactive brièvement le bouton pour éviter les doubles clics (le rafraîchissement
   // automatique toutes les 2 min n'est pas affecté).
   const [retryingServer, setRetryingServer] = useState(false);
+  /**
+   * Premier cycle `fetchAll` terminé : le debounce auto (carte / contexte) ne doit
+   * pas se programmer avant, sinon il empile un 2ᵉ cycle complet faute de baseline
+   * sync-state (lot perf réactivité).
+   */
+  const [bootSyncReady, setBootSyncReady] = useState(false);
 
   const failCountRef = useRef(0);
   /** Dernières cartes connues : repli quand `/api/maps` échoue (voir fetchAll). */
@@ -145,6 +152,7 @@ export function useAppDataSync({
     setLoading(true);
     setServerDown(false);
     setRetryingServer(false);
+    setBootSyncReady(false);
     failCountRef.current = 0;
     fetchAllPendingRef.current = false;
     initialFetchDoneRef.current = false;
@@ -414,7 +422,7 @@ export function useAppDataSync({
 
             if (isApplicableDomainResult(p)) setPlants((prev) => keepPrevIfEqual(prev, p));
             if (isApplicableDomainResult(tu)) setTutorials((prev) => keepPrevIfEqual(prev, tu));
-            if (needsDomain('authMe')) {
+            if (needsDomain('authMe') && !wasAuthMeFetchedRecently()) {
               const sess = studentRef.current;
               const isStudentSession = sess?.id && !sess.preview_mode;
               if (isStudentSession || isTeacherSnap) {
@@ -422,7 +430,7 @@ export function useAppDataSync({
                 // Compte au départ de la requête (élève comme prof, audit du 19/11, F2) : une
                 // réponse arrivée après une déconnexion ou un changement de compte est ignorée.
                 const accountAtStart = getStoredSessionAccountKey();
-                api('/api/auth/me')
+                fetchAuthMe()
                   .then((d) => {
                     if (sid && studentRef.current?.id !== sid) return;
                     if (!accountAtStart || getStoredSessionAccountKey() !== accountAtStart) return;
@@ -462,15 +470,27 @@ export function useAppDataSync({
                 rememberLastDataSyncAt(now);
                 setLastSyncAt(now);
               }
-              // Cycle complet réussi : baseline du polling différentiel. `syncState` a été
-              // sondé AVANT les refetchs — une écriture arrivée pendant le cycle rendra
-              // donc le prochain compteur différent → refetch (conservateur, jamais stale).
-              lastSyncStateRef.current = syncState
+              // Cycle complet réussi : baseline du polling différentiel.
+              // Au tout premier boot on n'a pas sondé avant les refetchs : on pose la
+              // baseline juste après pour que le prochain debounce puisse skipper.
+              let baselineState = syncState;
+              if (!baselineState && !isDeviceOffline()) {
+                try {
+                  const probed = await api('/api/sync-state');
+                  if (!staleAccount() && isValidSyncState(probed)) baselineState = probed;
+                } catch (err) {
+                  if (err instanceof AccountDeletedError) {
+                    forceLogout();
+                    return;
+                  }
+                }
+              }
+              lastSyncStateRef.current = baselineState
                 ? {
                     key: syncContextKey,
-                    bootId: syncState.bootId,
-                    writes: syncState.writes,
-                    domains: syncState.domains,
+                    bootId: baselineState.bootId,
+                    writes: baselineState.writes,
+                    domains: baselineState.domains,
                   }
                 : null;
               lastFetchedMapIdRef.current = resolvedMapId || null;
@@ -509,6 +529,7 @@ export function useAppDataSync({
         if (hasAuthenticatedShellRef.current && getStoredSessionAccountKey()) {
           initialFetchDoneRef.current = true;
           setLoading(false);
+          setBootSyncReady(true);
         }
       }
     })();
@@ -563,20 +584,19 @@ export function useAppDataSync({
   }, [hasAuthenticatedShell, contextReady, fetchAll]);
 
   useEffect(() => {
-    if (!hasAuthenticatedShell || !contextReady) return undefined;
+    if (!hasAuthenticatedShell || !contextReady || !bootSyncReady) return undefined;
     let cancelled = false;
     const id = window.setTimeout(() => {
       if (!cancelled) void fetchAll();
     }, FETCH_ALL_AUTO_DEBOUNCE_MS);
     // Debounce standard : sur changement de deps, on annule le fetch en attente et on
-    // reprogramme. Le fetch initial est déjà garanti par l'effet ci-dessus (fetchAll
-    // immédiat tant que initialFetchDoneRef est faux) ; ne pas annuler ici accumulait
-    // des timers et déclenchait plusieurs fetchAll pendant les rafales de deps au boot.
+    // reprogramme. Tant que le premier cycle n'est pas fini (`bootSyncReady`), on ne
+    // programme rien — sinon un 2ᵉ fetchAll complet partait faute de baseline sync.
     return () => {
       cancelled = true;
       window.clearTimeout(id);
     };
-  }, [hasAuthenticatedShell, activeMapId, contextReady, context, fetchAll]);
+  }, [hasAuthenticatedShell, activeMapId, contextReady, context, fetchAll, bootSyncReady]);
 
   /*
    * Retour du réseau : synchronisation complète immédiate, sans attendre le prochain tick
