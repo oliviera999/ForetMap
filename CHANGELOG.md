@@ -9,6 +9,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — fenêtres tâches : référents à la demande, chunks lazy, split staggered (lot 3 perf)
+
+- `useTeacherTaskData` : candidats référents seulement si le formulaire est ouvert
+  (`loadReferents`) ; n3beurs assignables après idle (~500 ms) pour laisser peindre la liste.
+- `TaskFormModal` déjà lazy ; `TaskProjectFormModal` / `LogModal` / `TaskLogsViewer` aussi ;
+  `prefetchTaskFormChunks` au survol/focus de « + Nouvelle tâche ».
+- Split bureau (`MapTasksArea`) : carte montée tout de suite, volet tâches au frame suivant.
+
 ### Modifié — catalogue plantes : vrai résumé SQL (lot 2 perf)
 
 - `GET /api/plants` : projection colonnes utiles (`listPlantsForCatalogSummary`) + `map_ids` +

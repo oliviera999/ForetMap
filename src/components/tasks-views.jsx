@@ -50,14 +50,7 @@ import {
   excludeTasksById,
   recentlyValidatedAssignedTasks,
 } from '../utils/taskStudentSections.js';
-import { LogModal, TaskLogsViewer } from './tasks/TaskLogModals.jsx';
-import { TaskProjectFormModal } from './tasks/TaskProjectFormModal.jsx';
 import { TaskTileCard } from './tasks/TaskTileCard.jsx';
-
-/** Formulaire création/édition : hors chunk liste (éditeur riche + Markdown). */
-const LazyTaskFormModal = lazyScreen(() =>
-  import('./tasks/TaskFormModal.jsx').then((m) => ({ default: m.TaskFormModal })),
-);
 import { TaskTileSection } from './tasks/TaskTileSection.jsx';
 import { TaskUrgencyBanner } from './tasks/TaskUrgencyBanner.jsx';
 import { RecurringSeriesOverview } from './tasks/RecurringSeriesOverview.jsx';
@@ -105,6 +98,31 @@ import {
 } from '../utils/taskListHelpers.js';
 import { teacherCollectiveAssigneeLoadKey } from '../utils/taskDisplayHelpers.js';
 import { IconCheck, IconPuzzle, IconSearch, IconUrgent } from '../shared/icons.jsx';
+
+/** Formulaire création/édition : hors chunk liste (éditeur riche + Markdown). */
+const LazyTaskFormModal = lazyScreen(() =>
+  import('./tasks/TaskFormModal.jsx').then((m) => ({ default: m.TaskFormModal })),
+);
+/** Projet / journal : chunks séparés, montés seulement quand la modale s’ouvre. */
+const LazyTaskProjectFormModal = lazyScreen(() =>
+  import('./tasks/TaskProjectFormModal.jsx').then((m) => ({ default: m.TaskProjectFormModal })),
+);
+const LazyLogModal = lazyScreen(() =>
+  import('./tasks/TaskLogModals.jsx').then((m) => ({ default: m.LogModal })),
+);
+const LazyTaskLogsViewer = lazyScreen(() =>
+  import('./tasks/TaskLogModals.jsx').then((m) => ({ default: m.TaskLogsViewer })),
+);
+
+/**
+ * Précharge les chunks du formulaire tâche (+ projet / journal) au survol du bouton
+ * « + Nouvelle tâche », pour que l’ouverture soit immédiate.
+ */
+export function prefetchTaskFormChunks() {
+  void import('./tasks/TaskFormModal.jsx');
+  void import('./tasks/TaskProjectFormModal.jsx');
+  void import('./tasks/TaskLogModals.jsx');
+}
 
 /** Référence stable pour « aucun projet validé à rendre » (évite un tableau neuf par rendu). */
 const EMPTY_PROJECT_LIST = Object.freeze([]);
@@ -232,7 +250,9 @@ function TasksViewImpl({
     resolveInitialTaskViewMode(safeLocalStorageGetItem('foretmap:tasks:viewMode', '')),
   );
   const { teacherStudents, groupOptions, referentCandidates, loadingTeacherStudents } =
-    useTeacherTaskData(isTeacher, filterGroupId, setToast);
+    useTeacherTaskData(isTeacher, filterGroupId, setToast, {
+      loadReferents: !!(showForm || editTask || duplicateTask || showProposalForm),
+    });
   /** Préremplit le sélecteur « Projet » à l’ouverture de « Nouvelle tâche » (y compris projet en attente). */
   const [newTaskDefaultProjectId, setNewTaskDefaultProjectId] = useState(null);
   const {
@@ -1114,43 +1134,51 @@ function TasksViewImpl({
         </Suspense>
       )}
       {showProjectForm && (
-        <TaskProjectFormModal
-          maps={maps}
-          zones={zones}
-          markers={markers}
-          tutorials={tutorials}
-          activeMapId={activeMapId}
-          editProject={editProject}
-          onClose={() => {
-            setShowProjectForm(false);
-            setEditProject(null);
-          }}
-          onSave={saveProject}
-        />
+        <Suspense fallback={null}>
+          <LazyTaskProjectFormModal
+            maps={maps}
+            zones={zones}
+            markers={markers}
+            tutorials={tutorials}
+            activeMapId={activeMapId}
+            editProject={editProject}
+            onClose={() => {
+              setShowProjectForm(false);
+              setEditProject(null);
+            }}
+            onSave={saveProject}
+          />
+        </Suspense>
       )}
       {logTask && (
-        <LogModal
-          task={logTask}
-          student={student}
-          onClose={() => setLogTask(null)}
-          onDone={async (response) => {
-            await onRefresh();
-            setToast(
-              taskDoneAlreadyClosedMessage(logTask.title, response?.already_closed) ||
-                'Merci pour le retour — ça aide toute l’équipe ✓',
-            );
-          }}
-          onForceLogout={onForceLogout}
-          offlineAllowed={
-            !!offlineAccountId && !hasUnreadLinkedTutorials(logTask, tasksTutorialReadIds)
-          }
-          onQueued={() => {
-            refreshQueuedDone();
-            setToast(TASK_DONE_QUEUED_TOAST);
-          }}
-        />
+        <Suspense fallback={null}>
+          <LazyLogModal
+            task={logTask}
+            student={student}
+            onClose={() => setLogTask(null)}
+            onDone={async (response) => {
+              await onRefresh();
+              setToast(
+                taskDoneAlreadyClosedMessage(logTask.title, response?.already_closed) ||
+                  'Merci pour le retour — ça aide toute l’équipe ✓',
+              );
+            }}
+            onForceLogout={onForceLogout}
+            offlineAllowed={
+              !!offlineAccountId && !hasUnreadLinkedTutorials(logTask, tasksTutorialReadIds)
+            }
+            onQueued={() => {
+              refreshQueuedDone();
+              setToast(TASK_DONE_QUEUED_TOAST);
+            }}
+          />
+        </Suspense>
       )}
-      {logsTask && <TaskLogsViewer task={logsTask} onClose={() => setLogsTask(null)} />}
+      {logsTask && (
+        <Suspense fallback={null}>
+          <LazyTaskLogsViewer task={logsTask} onClose={() => setLogsTask(null)} />
+        </Suspense>
+      )}
 
       <TaskConfirmDialog confirmTask={confirmTask} onClose={() => setConfirmTask(null)} />
 
@@ -1177,6 +1205,7 @@ function TasksViewImpl({
         setDuplicateTask={setDuplicateTask}
         setShowForm={setShowForm}
         setShowProposalForm={setShowProposalForm}
+        onPrefetchNewTask={prefetchTaskFormChunks}
       />
       {isTeacher && <TaskImportPanel setToast={setToast} onRefresh={onRefresh} />}
       {!isTeacher && (
@@ -1363,4 +1392,5 @@ const TasksView = React.memo(TasksViewImpl);
 TasksView.displayName = 'TasksView';
 
 export { TaskFormModal } from './tasks/TaskFormModal.jsx';
-export { TasksView, LogModal, TaskLogsViewer, TaskTileCard };
+export { LogModal, TaskLogsViewer } from './tasks/TaskLogModals.jsx';
+export { TasksView, TaskTileCard };

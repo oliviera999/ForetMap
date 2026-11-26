@@ -1,5 +1,5 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 
 import { MapTasksArea } from '../../../src/components/app/MapTasksArea.jsx';
 
@@ -54,6 +54,26 @@ describe('MapTasksArea', () => {
     await waitFor(() => expect(screen.getByTestId('tasks-view')).toBeInTheDocument());
     expect(probes.map[0].embedded).toBe(true);
     expect(probes.map[0].onNavigateToTasksForLocation).toBeUndefined();
+  });
+
+  test('vue scindée : carte immédiate, tâches seulement après rAF (splitTasksReady)', async () => {
+    let rafCb = null;
+    const rafSpy = vi.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => {
+      rafCb = cb;
+      return 42;
+    });
+    try {
+      render(<MapTasksArea {...baseProps} useSplitMapTasks tab="maptasks" />);
+      await waitFor(() => expect(screen.getByTestId('map-view')).toBeInTheDocument());
+      expect(screen.queryByTestId('tasks-view')).toBeNull();
+      expect(typeof rafCb).toBe('function');
+      await act(async () => {
+        rafCb(0);
+      });
+      await waitFor(() => expect(screen.getByTestId('tasks-view')).toBeInTheDocument());
+    } finally {
+      rafSpy.mockRestore();
+    }
   });
 
   test('vue scindée sans module tutoriels : aria-label court', () => {
