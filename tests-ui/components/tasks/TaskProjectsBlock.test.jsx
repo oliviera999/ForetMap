@@ -139,4 +139,34 @@ describe('TaskProjectsBlock', () => {
     await user.click(screen.getByRole('button', { name: /Semis de printemps/i }));
     expect(screen.queryByRole('button', { name: /^Monter/ })).toBeNull();
   });
+
+  test('dragOver : preventDefault dès text/plain même sans taskDragPayload React', async () => {
+    const user = userEvent.setup();
+    const onProjectTaskDragOver = vi.fn();
+    const onDropTaskToProject = vi.fn();
+    renderBlock({
+      isTeacher: true,
+      canReorderProjectTasks: true,
+      onProjectTaskDragOver,
+      onDropTaskToProject,
+      // Pas encore de payload React (fenêtre avant commit de startTaskDrag).
+      taskDragPayload: null,
+    });
+    await user.click(screen.getByRole('button', { name: /Semis de printemps/i }));
+    const slot = screen.getByTestId('task-tile-t1').parentElement;
+    const dragOver = new Event('dragover', { bubbles: true, cancelable: true });
+    Object.defineProperty(dragOver, 'dataTransfer', {
+      value: { types: ['text/plain'], dropEffect: 'none', getData: () => 't2' },
+    });
+    slot.dispatchEvent(dragOver);
+    expect(dragOver.defaultPrevented).toBe(true);
+    expect(onProjectTaskDragOver).toHaveBeenCalledWith('p1', 't1');
+
+    const drop = new Event('drop', { bubbles: true, cancelable: true });
+    Object.defineProperty(drop, 'dataTransfer', {
+      value: { types: ['text/plain'], getData: () => 't2' },
+    });
+    slot.dispatchEvent(drop);
+    expect(onDropTaskToProject).toHaveBeenCalledWith('p1', 't1', 't2');
+  });
 });

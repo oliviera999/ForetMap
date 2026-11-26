@@ -61,8 +61,8 @@ describe('TasksTeacherSections', () => {
   test('transmet les bonnes listes de tâches aux sections', () => {
     renderSections();
     const counts = screen.getAllByTestId('tile-section').map((el) => el.getAttribute('data-count'));
-    // Propositions, En cours, À faire, En attente de validation, En attente, Validées
-    expect(counts).toEqual(['1', '1', '2', '3', '1', '1']);
+    // Propositions, À faire, En cours, En attente de validation, En attente, Validées
+    expect(counts).toEqual(['1', '2', '1', '3', '1', '1']);
   });
 
   test('les propositions des élèves sont la première section', () => {
@@ -70,16 +70,26 @@ describe('TasksTeacherSections', () => {
     expect(screen.getAllByTestId('tile-section')[0]).toHaveTextContent('Propositions n3beurs (1)');
   });
 
+  test('« À faire » précède « En cours »', () => {
+    renderSections();
+    const todo = screen.getByText('À faire');
+    const progress = screen.getByText('En cours');
+    expect(Boolean(todo.compareDocumentPosition(progress) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(
+      true,
+    );
+  });
+
   test('validationFirst : « En attente de validation » juste après les propositions', () => {
     renderSections({ validationFirst: true });
     const sections = screen.getAllByTestId('tile-section');
     expect(sections[0]).toHaveTextContent('Propositions n3beurs (1)');
     expect(sections[1]).toHaveTextContent('En attente de validation (3)');
+    // Puis À faire (2), En cours (1), …
     expect(sections.map((el) => el.getAttribute('data-count'))).toEqual([
       '1',
       '3',
-      '1',
       '2',
+      '1',
       '1',
       '1',
     ]);

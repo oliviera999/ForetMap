@@ -43,6 +43,27 @@ export function compareProjectsForDisplay(a, b) {
 
 const EMPTY_PROJECT_TASKS = Object.freeze([]);
 
+/** Vrai si le dataTransfer porte encore un drag de tâche (`text/plain`), même avant le setState React. */
+function dataTransferHasTaskId(dataTransfer) {
+  try {
+    const types = dataTransfer?.types;
+    if (!types) return false;
+    if (typeof types.includes === 'function') return types.includes('text/plain');
+    if (typeof types.contains === 'function') return types.contains('text/plain');
+    return Array.from(types).includes('text/plain');
+  } catch {
+    return false;
+  }
+}
+
+function readDraggedTaskId(dataTransfer) {
+  try {
+    return String(dataTransfer?.getData?.('text/plain') || '').trim();
+  } catch {
+    return '';
+  }
+}
+
 function TaskProjectsBlock({
   visibleProjects,
   projectTasksById,
@@ -123,9 +144,9 @@ function TaskProjectsBlock({
             const loadingDuplicate = !!loading[`${p.id}projectduplicate`];
             const loadingDelete = !!loading[`${p.id}projectdelete`];
             const loadingArchive = !!loading[`${p.id}projectarchive`];
-            const canReceiveTaskDrop = !!(isTeacher && taskDragPayload?.taskId);
+            const dragPayloadActive = !!(isTeacher && taskDragPayload?.taskId);
             const projectCardDropActive =
-              canReceiveTaskDrop &&
+              dragPayloadActive &&
               taskDropHint?.projectId === projectDropId &&
               !taskDropHint?.beforeTaskId;
             return (
@@ -134,15 +155,20 @@ function TaskProjectsBlock({
                 className={`task-card task-project-card task-project-card--colored ${projectColorClass(projectColorById, p.id)} ${expanded ? 'task-project-card--expanded' : 'task-project-card--collapsed'} ${projectCardDropActive ? 'task-card--drop-target' : ''}`}
                 style={{ padding: 12 }}
                 onDragOver={(event) => {
-                  if (!canReceiveTaskDrop) return;
+                  // Autoriser le drop dès qu'un drag prof est en cours — y compris avant le
+                  // commit React de startTaskDrag (sinon le navigateur refuse le dépôt).
+                  if (!isTeacher) return;
+                  if (!taskDragPayload?.taskId && !dataTransferHasTaskId(event.dataTransfer)) {
+                    return;
+                  }
                   event.preventDefault();
                   event.dataTransfer.dropEffect = 'move';
                   onProjectTaskDragOver?.(projectDropId, '');
                 }}
                 onDrop={(event) => {
-                  if (!canReceiveTaskDrop) return;
+                  if (!isTeacher) return;
                   event.preventDefault();
-                  onDropTaskToProject?.(projectDropId, '');
+                  onDropTaskToProject?.(projectDropId, '', readDraggedTaskId(event.dataTransfer));
                 }}
               >
                 <div
@@ -514,19 +540,29 @@ function TaskProjectsBlock({
                                 return (
                                   <div
                                     key={t.id}
-                                    className={`task-project-drop-slot ${showOrderControls ? 'task-project-drop-slot--with-order' : ''} ${canReceiveTaskDrop && taskDropHint?.projectId === projectDropId && taskDropHint?.beforeTaskId === String(t.id) ? 'task-project-drop-slot--active' : ''}`}
+                                    className={`task-project-drop-slot ${showOrderControls ? 'task-project-drop-slot--with-order' : ''} ${dragPayloadActive && taskDropHint?.projectId === projectDropId && taskDropHint?.beforeTaskId === String(t.id) ? 'task-project-drop-slot--active' : ''}`}
                                     onDragOver={(event) => {
-                                      if (!canReceiveTaskDrop) return;
+                                      if (!isTeacher) return;
+                                      if (
+                                        !taskDragPayload?.taskId &&
+                                        !dataTransferHasTaskId(event.dataTransfer)
+                                      ) {
+                                        return;
+                                      }
                                       event.preventDefault();
                                       event.stopPropagation();
                                       event.dataTransfer.dropEffect = 'move';
                                       onProjectTaskDragOver?.(projectDropId, String(t.id));
                                     }}
                                     onDrop={(event) => {
-                                      if (!canReceiveTaskDrop) return;
+                                      if (!isTeacher) return;
                                       event.preventDefault();
                                       event.stopPropagation();
-                                      onDropTaskToProject?.(projectDropId, String(t.id));
+                                      onDropTaskToProject?.(
+                                        projectDropId,
+                                        String(t.id),
+                                        readDraggedTaskId(event.dataTransfer),
+                                      );
                                     }}
                                   >
                                     {showOrderControls && (

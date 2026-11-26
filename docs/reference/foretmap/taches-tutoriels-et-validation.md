@@ -65,12 +65,13 @@ La numérotation n'est prise en compte que si **au moins deux** tâches du proje
 numérotées : une tâche isolée comme « 3 graines par godet » ne déclenche rien. Un nombre à
 quatre chiffres (une année) n'est jamais lu comme une étape.
 
-**Réordonner** : le professeur peut changer l'ordre des tâches d'un projet en les
-**glissant-déposant** (souris), ou avec les **flèches ↑ ↓** à gauche de chaque carte (tablette,
-téléphone, clavier). Dans un projet numéroté, on ne réordonne qu'**à l'intérieur d'une même
-étape** (par exemple entre deux tâches « 2 ») : pour faire changer une tâche d'étape, modifiez
-le numéro au début de son titre. Les tâches restent aussi regroupées par phase quand le projet
-en utilise.
+**Réordonner** : le professeur qui gère les tâches peut changer l'ordre des tâches d'un
+projet en les **glissant-déposant** (souris), ou avec les **flèches ↑ ↓** à gauche de chaque
+carte (tablette, téléphone, clavier). L'ordre ainsi choisi est **conservé** dans la case du
+projet (y compris après un rechargement), indépendamment du statut de chaque tâche. Dans un
+projet numéroté, on ne réordonne qu'**à l'intérieur d'une même étape** (par exemple entre deux
+tâches « 2 ») : pour faire changer une tâche d'étape, modifiez le numéro au début de son
+titre. Les tâches restent aussi regroupées par phase quand le projet en utilise.
 
 Le statut « **terminé** » d'un projet est **automatique** : dès que toutes ses tâches sont
 faites ou validées, le projet passe terminé — et il redevient actif si une nouvelle tâche
@@ -163,17 +164,35 @@ parce que son projet a été validé) : elle rejoint alors « ✅ Validées » c
 « Proposée » reste, elle, dans l'encart : quelque chose est encore attendu de l'équipe
 pédagogique.
 
+## Ordre des sections sur l'écran Tâches
+
+Hors filtres actifs, l'écran Tâches présente d'abord l'encart **« 🚨 Urgent ! »** (s'il y a
+des tâches urgentes encore à traiter), puis :
+
+- **Côté professeur** : « Propositions », puis **« À faire »**, puis **« En cours »**, le
+  bloc des projets, « En attente de validation », « En attente », « Validées ».
+- **Côté élève** : « Mes tâches », puis **« Tâches à faire »**, puis **« En cours (déjà
+  prises) »**, « Mes propositions », le bloc des projets, « En attente de validation »,
+  « En attente », « Récemment validées ».
+
+Les tâches **à faire** passent donc **avant** celles **en cours** : on voit d'abord ce qui
+reste libre, puis ce qui tourne déjà. Dans la **case d'un projet**, l'ordre est celui du
+réordonnancement manuel (ou des numéros d'étape) — pas celui des sections par statut.
+
 ## Les tâches à valider passent en premier
 
 Pour toute personne **autorisée à valider les tâches** (en général les professeurs, et tout
 rôle à qui ce droit a été donné), l'écran Tâches met en avant ce qui attend sa décision :
 
 - la section **« ⏳ En attente de validation »** s'affiche **en tête**, juste après les
-  « Propositions » des élèves et avant « En cours » et « À faire » ;
+  « Propositions » des élèves (côté professeur) et **avant** « À faire » et « En cours » ;
 - dans les autres regroupements qui mélangent plusieurs statuts — l'encart « 🚨 Urgent ! »,
-  les blocs de projets, « Mes tâches » et les résultats filtrés — les tâches terminées en
-  attente de validation sont **placées en haut**, le reste gardant son ordre habituel. Seule
-  exception : dans un projet aux étapes numérotées, l'ordre des numéros l'emporte.
+  « Mes tâches » et les résultats filtrés — les tâches terminées en attente de validation
+  sont **placées en haut**, le reste gardant son ordre habituel.
+
+**Exception — case d'un projet** : l'ordre manuel (glisser-déposer / flèches) et les étapes
+numérotées du titre l'emportent toujours. Une tâche « terminée » n'est **pas** remontée en
+tête de la case au détriment de cet ordre.
 
 Les personnes sans ce droit voient l'ordre habituel : « En attente de validation » reste
 plus bas, après les tâches sur lesquelles elles peuvent agir.

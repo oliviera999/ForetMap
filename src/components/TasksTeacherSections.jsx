@@ -12,7 +12,7 @@ import {
 /**
  * Sections de la vue Tâches côté n3boss (prof/admin) — extrait de `tasks-views.jsx` (O6).
  *
- * Rend, dans l'ordre, « Propositions » (toujours en tête), « En cours », « À faire », le
+ * Rend, dans l'ordre, « Propositions » (toujours en tête), « À faire », « En cours », le
  * bloc des projets actifs, puis « En attente de validation », « En attente » et
  * « Validées ». Avec `validationFirst` (droit de valider les tâches), la section
  * « En attente de validation » remonte juste après les propositions. Présentation pure : ne fait que composer
@@ -73,16 +73,7 @@ export function TasksTeacherSections({
         taskTileProps={taskTileProps}
       />
       {validationFirst && awaitingValidationSection}
-      <TaskTileSection
-        title={
-          <>
-            <IconSettings size={16} /> En cours
-          </>
-        }
-        tasks={inProgress}
-        sectionListClass={sectionListClass}
-        taskTileProps={taskTileProps}
-      />
+      {/* « À faire » avant « En cours » : le travail encore libre d'abord, puis ce qui tourne. */}
       <TaskTileSection
         title={
           <>
@@ -90,6 +81,16 @@ export function TasksTeacherSections({
           </>
         }
         tasks={available}
+        sectionListClass={sectionListClass}
+        taskTileProps={taskTileProps}
+      />
+      <TaskTileSection
+        title={
+          <>
+            <IconSettings size={16} /> En cours
+          </>
+        }
+        tasks={inProgress}
         sectionListClass={sectionListClass}
         taskTileProps={taskTileProps}
       />
