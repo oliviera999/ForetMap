@@ -402,6 +402,14 @@ version **allégée** de la photo ; la photo complète n'est téléchargée qu'�
 Une photo introuvable est remplacée par un pictogramme au lieu d'une image cassée, et la
 place de chaque photo est réservée pendant le chargement : la page ne « saute » plus.
 
+### Après la connexion : la carte et les tâches d’abord
+
+Dès que le compte est reconnu, l’application affiche **d’abord** la carte, les zones et
+les tâches du plan ouvert. Les fiches d’êtres vivants et les tutoriels arrivent juste
+après, sans bloquer le reste de l’écran : on peut déjà ouvrir une fenêtre (créer une
+tâche, consulter la carte…) pendant que ces listes se terminent. Changer de plan ne
+recharge que ce qui dépend de ce plan (pas tout le catalogue).
+
 ### La pastille d'état en bas d'écran
 
 Une petite **pastille discrète**, fixe en bas d'écran (dans ForetMap comme dans

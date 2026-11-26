@@ -3,8 +3,13 @@
  *
  * Le serveur expose `GET /api/sync-state` → `{ bootId, writes }` : identité du
  * process Node et compteur global d'écritures SQL. Si rien n'a été écrit depuis le
- * dernier cycle complet réussi DANS LE MÊME CONTEXTE CLIENT (même carte, même rôle…),
- * le cycle de polling peut être sauté : 1 requête légère au lieu de ~8 lourdes.
+ * dernier cycle complet réussi DANS LE MÊME CONTEXTE CLIENT (même rôle, mêmes
+ * défauts de carte…), le cycle de polling peut être sauté : 1 requête légère au
+ * lieu de ~8 lourdes.
+ *
+ * Le **plan actif** n'entre plus dans la clé de contexte (lot perf 11/2026) : un
+ * changement de plan ne doit forcer que le rechargement des domaines scopés carte
+ * (zones, tâches, repères), pas le catalogue plantes ni les tutoriels.
  *
  * Garde-fous :
  * - toute erreur / réponse invalide de la sonde → cycle complet (comportement
@@ -54,6 +59,52 @@ export const ALL_SYNC_DOMAINS = [
   'authMe',
 ];
 
+/**
+ * Domaines liés au plan actif : à recharger quand l'utilisateur change de carte,
+ * même si `/api/sync-state` n'a pas bougé (les compteurs ne portent pas le map_id).
+ */
+export const MAP_SCOPED_SYNC_DOMAINS = Object.freeze(['zones', 'tasks', 'markers']);
+
+/**
+ * Domaines lourds / globaux : hors chemin critique du premier affichage post-connexion
+ * (carte + tâches). Chargés juste après le déblocage du loader.
+ */
+export const DEFERRED_BOOT_SYNC_DOMAINS = Object.freeze(['plants', 'tutorials']);
+
+/**
+ * Clé de contexte **sans** plan actif : rôle, visite, droits tutoriels, défauts admin.
+ * Sérialisation stable pour la porte différentielle.
+ *
+ * @param {object} params
+ * @param {string|number|null} [params.studentId]
+ * @param {boolean} [params.effectiveIsTeacher]
+ * @param {boolean} [params.showPublicVisit]
+ * @param {boolean} [params.canManageTutorials]
+ * @param {string} [params.defaultMapStudent]
+ * @param {string} [params.defaultMapTeacher]
+ * @param {string} [params.defaultMapVisit]
+ * @returns {string}
+ */
+export function buildFetchAllSyncContextKey({
+  studentId = null,
+  effectiveIsTeacher = false,
+  showPublicVisit = false,
+  canManageTutorials = false,
+  defaultMapStudent = '',
+  defaultMapTeacher = '',
+  defaultMapVisit = '',
+} = {}) {
+  return JSON.stringify({
+    studentId: studentId ?? null,
+    effectiveIsTeacher: !!effectiveIsTeacher,
+    showPublicVisit: !!showPublicVisit,
+    canManageTutorials: !!canManageTutorials,
+    defaultMapStudent: defaultMapStudent ?? '',
+    defaultMapTeacher: defaultMapTeacher ?? '',
+    defaultMapVisit: defaultMapVisit ?? '',
+  });
+}
+
 function isValidDomainMap(domains) {
   if (!domains || typeof domains !== 'object') return false;
   return ALL_SYNC_DOMAINS.every((domain) => Number.isFinite(domains[domain]));
@@ -77,4 +128,37 @@ export function resolveChangedSyncDomains({ prev, next, contextKey }) {
     if (prev.domains[domain] !== next.domains[domain]) changed.add(domain);
   }
   return changed;
+}
+
+/**
+ * Domaines à recharger pour ce cycle, en tenant compte d'un changement de plan.
+ *
+ * @param {object} params
+ * @param {{ key: string, bootId: string, writes: number, domains?: object }|null} params.prev
+ * @param {{ bootId: string, writes: number, domains?: object }|null} params.next
+ * @param {string} params.contextKey
+ * @param {boolean} params.mapChanged — plan actif ≠ dernier plan hydraté avec succès
+ * @param {boolean} [params.allowMapScopedWithoutBaseline] — déjà hydraté une fois : un
+ *   changement de plan seul ne doit pas relancer plantes/tutoriels même sans baseline
+ *   sync (fenêtre juste après connexion, avant la 2ᵉ sonde).
+ * @returns {Set<string>|null} null = cycle complet
+ */
+export function resolveFetchDomainsForCycle({
+  prev,
+  next,
+  contextKey,
+  mapChanged,
+  allowMapScopedWithoutBaseline = false,
+}) {
+  const changed = resolveChangedSyncDomains({ prev, next, contextKey });
+  if (!mapChanged) return changed;
+  if (changed === null) {
+    // Sonde / baseline absente ou incomplète : si la coquille a déjà été peuplée,
+    // borner au plan évite de re-télécharger ~350 Ko de plantes à chaque changement.
+    if (allowMapScopedWithoutBaseline) return new Set(MAP_SCOPED_SYNC_DOMAINS);
+    return null;
+  }
+  const out = new Set(changed);
+  for (const domain of MAP_SCOPED_SYNC_DOMAINS) out.add(domain);
+  return out;
 }

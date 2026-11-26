@@ -1,10 +1,13 @@
 import { describe, expect, test } from 'vitest';
 import {
   ALL_SYNC_DOMAINS,
+  buildFetchAllSyncContextKey,
   canSkipFetchAllCycle,
   isValidSyncState,
+  MAP_SCOPED_SYNC_DOMAINS,
   MAX_CONSECUTIVE_SYNC_SKIPS,
   resolveChangedSyncDomains,
+  resolveFetchDomainsForCycle,
 } from '../../src/utils/fetchAllSyncGate.js';
 
 const baseline = { key: 'ctx-1', bootId: 'boot-a', writes: 42 };
@@ -132,5 +135,69 @@ describe('fetchAllSyncGate (polling différentiel)', () => {
         consecutiveSkips: MAX_CONSECUTIVE_SYNC_SKIPS,
       }),
     ).toBe(false);
+  });
+
+  test('buildFetchAllSyncContextKey ignore le plan actif (même rôle → même clé)', () => {
+    const a = buildFetchAllSyncContextKey({
+      studentId: 12,
+      effectiveIsTeacher: false,
+      defaultMapStudent: 'foret',
+    });
+    const b = buildFetchAllSyncContextKey({
+      studentId: 12,
+      effectiveIsTeacher: false,
+      defaultMapStudent: 'foret',
+    });
+    expect(a).toBe(b);
+    expect(a).not.toContain('activeMapId');
+  });
+
+  test('resolveFetchDomainsForCycle : changement de plan → domaines scopés carte seulement', () => {
+    const prev = { ...baseline, domains: domainMap() };
+    const next = { bootId: 'boot-a', writes: 42, domains: domainMap() };
+    const domains = resolveFetchDomainsForCycle({
+      prev,
+      next,
+      contextKey: 'ctx-1',
+      mapChanged: true,
+    });
+    expect([...domains].sort()).toEqual([...MAP_SCOPED_SYNC_DOMAINS].sort());
+    expect(domains.has('plants')).toBe(false);
+    expect(domains.has('tutorials')).toBe(false);
+  });
+
+  test('resolveFetchDomainsForCycle : mapChanged + écriture tasks → union', () => {
+    const prev = { ...baseline, domains: domainMap() };
+    const next = { bootId: 'boot-a', writes: 44, domains: domainMap({ tasks: 9, plants: 6 }) };
+    const domains = resolveFetchDomainsForCycle({
+      prev,
+      next,
+      contextKey: 'ctx-1',
+      mapChanged: true,
+    });
+    expect(domains.has('tasks')).toBe(true);
+    expect(domains.has('plants')).toBe(true);
+    expect(domains.has('zones')).toBe(true);
+    expect(domains.has('markers')).toBe(true);
+  });
+
+  test('resolveFetchDomainsForCycle : sans baseline, allowMapScoped → plan seulement', () => {
+    expect(
+      resolveFetchDomainsForCycle({
+        prev: null,
+        next: null,
+        contextKey: 'ctx-1',
+        mapChanged: true,
+        allowMapScopedWithoutBaseline: false,
+      }),
+    ).toBeNull();
+    const domains = resolveFetchDomainsForCycle({
+      prev: null,
+      next: null,
+      contextKey: 'ctx-1',
+      mapChanged: true,
+      allowMapScopedWithoutBaseline: true,
+    });
+    expect([...domains].sort()).toEqual([...MAP_SCOPED_SYNC_DOMAINS].sort());
   });
 });
