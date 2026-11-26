@@ -6,7 +6,7 @@ vi.mock('../../src/services/api', async (importOriginal) => ({
 }));
 
 const { api } = await import('../../src/services/api');
-const { collectFieldTripUrls, prepareFieldTrip, FIELD_TRIP_EXTERNAL_PHOTOS_MAX } =
+const { collectFieldTripUrls, prepareFieldTrip, clearTerrainCopy, FIELD_TRIP_EXTERNAL_PHOTOS_MAX } =
   await import('../../src/services/fieldTripPrep.js');
 
 const ORIGIN = 'https://foretmap.test';
@@ -117,5 +117,20 @@ describe('prepareFieldTrip', () => {
       fetchImpl,
     });
     expect(result.failed).toBe(1);
+  });
+});
+
+describe('clearTerrainCopy', () => {
+  test('supprime uniquement les caches dont le nom finit par -terrain', async () => {
+    const deleted = [];
+    globalThis.caches = {
+      keys: async () => ['foretmap-foret-abc', 'foretmap-foret-abc-terrain', 'autre-terrain'],
+      delete: async (name) => {
+        deleted.push(name);
+        return true;
+      },
+    };
+    expect(await clearTerrainCopy()).toBe(2);
+    expect(deleted).toEqual(['foretmap-foret-abc-terrain', 'autre-terrain']);
   });
 });

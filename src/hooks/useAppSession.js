@@ -17,6 +17,7 @@ import {
   purgeCachedUserMedia,
 } from '../utils/localDataCleanup';
 import { clearOutboxMirror } from '../services/offlineOutboxMirror.js';
+import { clearTerrainCopy } from '../services/fieldTripPrep.js';
 import { useAuthSession } from './useAuthSession';
 import { useOauthRedirectSession } from './useOauthRedirectSession';
 import { useSessionWindowSync } from './useSessionWindowSync';
@@ -360,9 +361,10 @@ export function useAppSession({
         }
         void purgeCachedUserMedia();
       }
-      // Toujours : copies d'API du compte + miroir outbox + session.
+      // Toujours : copies d'API du compte + miroir outbox + copie terrain + session.
       void purgeCachedAuthenticatedApi();
       void clearOutboxMirror();
+      void clearTerrainCopy();
       // Après confirmation éventuelle : sinon Clear-Site-Data "storage" effacerait les files
       // non envoyées sans prévenir.
       void notifyServerLogout('/api/auth/logout');

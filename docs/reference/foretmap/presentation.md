@@ -460,12 +460,13 @@ Au-delà de la pastille, l'application protège ce qui est déjà affiché :
 - **Les données affichées peuvent donc dater** de quelques minutes le temps d'un
   incident : c'est volontaire, et le bandeau le signale.
 - **Tablette partagée : la déconnexion efface les données gardées hors ligne.** Les listes
-  que l'appareil garde pour fonctionner sans réseau (tâches, fiches, repères) sont retirées
-  à la déconnexion, pour que l'élève suivant ne les lise pas. Le contenu public de la visite
-  reste disponible hors ligne (depuis septembre 2026). Par défaut, la déconnexion efface
-  aussi les actions en attente d'envoi de cet élève et les photos gardées hors ligne, après
-  un avertissement s'il reste des actions non envoyées (réglage « Effacer de l'appareil, à la
-  déconnexion… », section Confidentialité — voir le modèle de sécurité).
+  que l'appareil garde pour fonctionner sans réseau (tâches, fiches, repères), ainsi que la
+  copie « Préparer la sortie terrain », sont retirées à la déconnexion, pour que l'élève
+  suivant ne les lise pas. Le contenu public de la visite reste disponible hors ligne
+  (depuis septembre 2026). Par défaut, la déconnexion efface aussi les actions en attente
+  d'envoi de cet élève et les photos gardées hors ligne, après un avertissement s'il reste
+  des actions non envoyées (réglage « Effacer de l'appareil, à la déconnexion… », section
+  Confidentialité — voir le modèle de sécurité).
 - **Plusieurs onglets ouverts : ils suivent le même compte** (depuis novembre 2026). Se
   déconnecter dans un onglet déconnecte aussi les autres, avec le message « Vous avez été
   déconnecté depuis un autre onglet. ». Si quelqu'un d'autre se connecte dans un onglet,
@@ -561,7 +562,11 @@ attendent ; ou bouton du bandeau) rassemble :
 - **« Préparer la sortie terrain »** : à faire avec du Wi-Fi avant de partir. L'application
   garde d'un geste la carte active, les photos des zones et repères, les fiches espèces et
   les tutoriels, avec une barre d'avancement puis un bilan (« Prêt pour la sortie ✓ (124
-  éléments gardés) »). Chaque préparation remplace la précédente ;
+  éléments gardés) »). Chaque préparation remplace la précédente ; à la déconnexion, cette
+  copie terrain est aussi retirée de l'appareil (tablette partagée) ;
+- **Catalogue et tutoriels déjà synchronisés** : au retour sur l'écran ou hors ligne bref,
+  la dernière copie s'affiche tout de suite pendant qu'une mise à jour part en arrière-plan
+  (sans attendre les 4 secondes du réseau faible) ;
 - le **stockage de l'appareil** : place utilisée, bouton **« Protéger les données hors
   ligne »** (le navigateur s'engage alors à ne pas effacer les actions en attente pour faire
   de la place), alerte quand l'appareil est presque plein. L'application fait aussi cette
