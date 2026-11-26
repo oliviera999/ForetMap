@@ -1,4 +1,5 @@
 'use strict';
+const { tasksListItems } = require('./helpers/tasksListResponse');
 
 require('./helpers/setup');
 require('dotenv').config();
@@ -97,7 +98,7 @@ describe('Tâches — réordonnancement projet', () => {
       .get('/api/tasks')
       .query({ map_id: 'foret', project_id: project.body.id })
       .expect(200);
-    const ids = sortedRows.body.map((row) => row.id);
+    const ids = tasksListItems(sortedRows.body).map((row) => row.id);
     assert.deepStrictEqual(ids, [t3.body.id, t1.body.id, t2.body.id]);
   });
 
@@ -152,7 +153,7 @@ describe('Tâches — réordonnancement projet', () => {
       .query({ map_id: 'foret', project_id: project.body.id })
       .expect(200);
     assert.deepStrictEqual(
-      list.body.map((row) => row.id),
+      tasksListItems(list.body).map((row) => row.id),
       [existing.body.id, toAttach.body.id],
     );
   });

@@ -1,3 +1,4 @@
+const { tasksListItems } = require('./helpers/tasksListResponse');
 require('./helpers/setup');
 const test = require('node:test');
 const assert = require('node:assert');
@@ -479,9 +480,9 @@ test('GET /api/tasks/:id/logs refuse le profil visiteur', async () => {
 
 test('GET /api/maps renvoie les cartes configurées', async () => {
   const res = await request(app).get('/api/maps').expect(200);
-  assert.ok(Array.isArray(res.body));
-  assert.ok(res.body.some((m) => m.id === 'foret'));
-  assert.ok(res.body.some((m) => m.id === 'n3'));
+  assert.ok(Array.isArray(tasksListItems(res.body)));
+  assert.ok(tasksListItems(res.body).some((m) => m.id === 'foret'));
+  assert.ok(tasksListItems(res.body).some((m) => m.id === 'n3'));
 });
 
 // ─── Zones d'infrastructure (via catégories) ──────────────────────────────
@@ -1142,7 +1143,7 @@ test('GET /api/tasks côté élève expose assigned_count global', async () => {
     .get('/api/tasks?map_id=foret')
     .set('Authorization', `Bearer ${studentARes.body.authToken}`)
     .expect(200);
-  const task = listRes.body.find((t) => t.id === taskId);
+  const task = tasksListItems(listRes.body).find((t) => t.id === taskId);
   assert.ok(task);
   assert.strictEqual(Number(task.assigned_count), 2);
   assert.ok(Array.isArray(task.assignments));
@@ -1411,8 +1412,8 @@ test('Zones et tâches supportent le filtrage multi-cartes', async () => {
 
   const n3Zones = await request(app).get('/api/zones?map_id=n3').expect(200);
   const foretZones = await request(app).get('/api/zones?map_id=foret').expect(200);
-  assert.ok(n3Zones.body.some((z) => z.id === zoneN3.body.id));
-  assert.ok(!foretZones.body.some((z) => z.id === zoneN3.body.id));
+  assert.ok(tasksListItems(n3Zones.body).some((z) => z.id === zoneN3.body.id));
+  assert.ok(!tasksListItems(foretZones.body).some((z) => z.id === zoneN3.body.id));
 
   const n3Task = await request(app)
     .post('/api/tasks')
@@ -1428,13 +1429,15 @@ test('Zones et tâches supportent le filtrage multi-cartes', async () => {
     .expect(201);
 
   const tasksN3 = await request(app).get('/api/tasks?map_id=n3').expect(200);
-  assert.ok(tasksN3.body.some((t) => t.id === n3Task.body.id));
+  assert.ok(tasksListItems(tasksN3.body).some((t) => t.id === n3Task.body.id));
   assert.ok(
-    tasksN3.body.some((t) => (t.map_id_resolved || t.map_id || t.zone_map_id || null) == null),
+    tasksListItems(tasksN3.body).some(
+      (t) => (t.map_id_resolved || t.map_id || t.zone_map_id || null) == null,
+    ),
   );
 
   const tasksForet = await request(app).get('/api/tasks?map_id=foret').expect(200);
-  assert.ok(!tasksForet.body.some((t) => t.id === n3Task.body.id));
+  assert.ok(!tasksListItems(tasksForet.body).some((t) => t.id === n3Task.body.id));
 });
 
 test('Tâche liée à plusieurs zones et repères sur la même carte', async () => {
@@ -1704,8 +1707,8 @@ test('Photos repère : POST liste GET data DELETE', async () => {
   assert.ok(pid);
 
   const list = await request(app).get(`/api/map/markers/${mid}/photos`).expect(200);
-  assert.ok(Array.isArray(list.body));
-  const row = list.body.find((p) => Number(p.id) === Number(pid));
+  assert.ok(Array.isArray(tasksListItems(list.body)));
+  const row = tasksListItems(list.body).find((p) => Number(p.id) === Number(pid));
   assert.ok(row);
   assert.match(String(row.image_url || ''), /^\/uploads\/markers\//);
   if (row.thumb_url) assert.match(String(row.thumb_url), /\.thumb\.jpe?g$/i);

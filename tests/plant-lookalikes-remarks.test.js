@@ -138,8 +138,9 @@ describe('sosies et remarques — base et API', () => {
   }
 
   async function listRow(id) {
-    const res = await request(app).get('/api/plants').expect(200);
-    return res.body.find((p) => Number(p.id) === Number(id));
+    // Fiche détail : la liste `GET /api/plants` est en vue summary (sans sosies).
+    const res = await request(app).get(`/api/plants/${id}`).expect(200);
+    return res.body;
   }
 
   test('migration 305 — colonne, reprise des remarques, table, idempotence, contrôle T3', async () => {

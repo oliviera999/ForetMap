@@ -7,7 +7,7 @@ require('./helpers/setup');
  *
  * Une connexion ou une déconnexion Socket.IO pendant que la base ne répond pas (pool fermé,
  * saturé, cache des réglages périmé) produisait un rejet non géré dans la présence en ligne :
- * `server.js` arrête alors le process (`unhandledRejection` → `process.exit(1)`).
+ * un rejet non attrapé remontait en `unhandledRejection` (S1 corrigé via `runDetached` ; S5=B n’arrête plus le process).
  *
  * Rejeu : `getSettingValue` est remplacé, **avant** le chargement de `lib/realtime.js` et de
  * `lib/shared/moduleGate.js` (qui le déstructurent), par une version qui échoue à la demande

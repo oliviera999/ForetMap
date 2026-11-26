@@ -79,8 +79,16 @@ beforeEach(() => {
     // Après un tirage, la présentation annonce `?origine=tirage` (étiquette statistique).
     if (/\/present(\?|$)/.test(path)) return Promise.resolve(PRESENTATION);
     if (path.endsWith('/answer') && method === 'POST') return Promise.resolve(answerResponse);
-    if (path.startsWith('/api/glossary/terms/G-NODO')) {
-      return Promise.resolve({ linkedPlants: [{ id: 7, name: 'Trèfle blanc', emoji: '☘️' }] });
+    if (path.startsWith('/api/glossary/terms?codes=')) {
+      const codes = decodeURIComponent(path.split('codes=')[1] || '')
+        .split(',')
+        .map((c) => c.trim());
+      const items = codes.map((glossary_code) => ({
+        glossary_code,
+        linkedPlants:
+          glossary_code === 'G-NODO' ? [{ id: 7, name: 'Trèfle blanc', emoji: '☘️' }] : [],
+      }));
+      return Promise.resolve({ items });
     }
     if (path.startsWith('/api/glossary/terms/')) return Promise.resolve({ linkedPlants: [] });
     return Promise.resolve({});
@@ -154,8 +162,10 @@ describe('QuizView — montage et parcours élève', () => {
     const plantChip = await screen.findByRole('button', { name: '☘️ Trèfle blanc' });
     fireEvent.click(plantChip);
     expect(onOpenPlant).toHaveBeenCalledWith(7);
-    expect(paths()).toContain('/api/glossary/terms/G-AZOTE');
-    expect(paths()).toContain('/api/glossary/terms/G-NODO');
+    expect(paths().some((p) => p.startsWith('/api/glossary/terms?codes='))).toBe(true);
+    const batchCall = paths().find((p) => p.startsWith('/api/glossary/terms?codes='));
+    expect(batchCall).toContain('G-AZOTE');
+    expect(batchCall).toContain('G-NODO');
 
     await waitFor(() =>
       expect(paths().filter((p) => p === '/api/quiz/me/progress').length).toBe(progressCalls + 1),

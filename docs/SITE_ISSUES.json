@@ -1,6 +1,6 @@
 {
   "title": "Problemes potentiels du site ForetMap",
-  "reference_date": "2026-08-20",
+  "reference_date": "2026-11-26",
   "sources": [
     "docs/AUDIT_BUGS_INCOHERENCES.md",
     "docs/AUDIT_PHOTOS_BIODIVERSITE.md",
@@ -119,7 +119,8 @@
       {
         "id": "O7",
         "status": "wip",
-        "summary": "zod jamais utilise ; middleware validate(schema)"
+        "summary": "Adoption zod via lib/validate.js sur la plupart des routeurs",
+        "details": "middleware validate({ body, query, params }) ; rollout incrémental avec schémas exportés et tests no-DB"
       },
       {
         "id": "O8",
@@ -155,6 +156,12 @@
         "id": "O14",
         "status": "done",
         "summary": "Fichiers morts ; fs.readFileSync(package.json) en chemin requete"
+      },
+      {
+        "id": "O15",
+        "status": "done",
+        "summary": "Quiz remédiation : batch GET /api/glossary/terms?codes=",
+        "details": "linkedPlants en un aller-retour ; remplace N fiches /terms/:code (charge P4)"
       }
     ],
     "resolved": [

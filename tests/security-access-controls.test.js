@@ -1,4 +1,5 @@
 'use strict';
+const { tasksListItems } = require('./helpers/tasksListResponse');
 
 /**
  * Contrôle d'accès des lieux, des parcours, de la Visite et des tâches — filet de
@@ -209,7 +210,7 @@ async function addVisitZone(zoneId, mapId, visitRoleSlugs) {
 
 /** Titres des parcours d'une réponse de catalogue. */
 function routeTitles(res) {
-  return (Array.isArray(res.body) ? res.body : []).map((r) => r.title).sort();
+  return (Array.isArray(tasksListItems(res.body)) ? res.body : []).map((r) => r.title).sort();
 }
 
 test.beforeEach(async () => {
@@ -396,8 +397,9 @@ test('R9 — tâche proposée par un élève : un anonyme n’apprend ni son nom
   assert.ok(taskId, 'identifiant de la tâche proposée');
   created.tasks.push(taskId);
 
-  const list = await request(app).get('/api/tasks').expect(200);
-  const listed = list.body.find((t) => t.id === taskId);
+  const { TASKS_LIST_TEST_LIMIT } = require('./helpers/tasksListResponse');
+  const list = await request(app).get(`/api/tasks?limit=${TASKS_LIST_TEST_LIMIT}`).expect(200);
+  const listed = tasksListItems(list.body).find((t) => t.id === taskId);
   assert.ok(listed, 'la tâche reste listée');
   assert.ok(!JSON.stringify(listed).includes('Nomsurete'), 'nom de l’élève servi à un anonyme');
   assert.equal(listed.proposed_by_student_id, null);
@@ -429,17 +431,18 @@ test('R9 — référents : un anonyme ne reçoit pas leur identité', async () =
   assert.equal(created1.status, 201, JSON.stringify(created1.body));
   created.tasks.push(created1.body.id);
 
-  const list = await request(app).get('/api/tasks').expect(200);
-  const listed = list.body.find((t) => t.id === created1.body.id);
+  const { TASKS_LIST_TEST_LIMIT } = require('./helpers/tasksListResponse');
+  const list = await request(app).get(`/api/tasks?limit=${TASKS_LIST_TEST_LIMIT}`).expect(200);
+  const listed = tasksListItems(list.body).find((t) => t.id === created1.body.id);
   assert.ok(listed);
   assert.deepEqual(listed.referents_linked, []);
   assert.deepEqual(listed.referent_user_ids, []);
 
   const staff = await request(app)
-    .get('/api/tasks')
+    .get(`/api/tasks?limit=${TASKS_LIST_TEST_LIMIT}`)
     .set('Authorization', `Bearer ${adminToken}`)
     .expect(200);
-  const staffRow = staff.body.find((t) => t.id === created1.body.id);
+  const staffRow = tasksListItems(staff.body).find((t) => t.id === created1.body.id);
   assert.ok((staffRow.referent_user_ids || []).includes(referent.userId));
 });
 

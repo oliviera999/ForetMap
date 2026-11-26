@@ -126,7 +126,9 @@ qu'on veut). Sa fiche rassemble :
   lieux » plus bas ;
 - une **description** libre (avec mise en forme) ;
 - un réglage **« Qui peut voir ce lieu »** et des **compléments réservés** (voir plus bas) ;
-- des **photos** avec légende, que le professeur peut réordonner et supprimer ;
+- des **photos** avec légende, que le professeur peut réordonner et supprimer ; après le contrôle
+  d’accès à la liste, l’image s’affiche depuis un **lien public** du site (ne pas y déposer de
+  cliché sensible sur un lieu masqué) ;
 - des **textes publics** (sous-titre, accroche, bloc dépliable, images) : ce que le grand
   public lira au même endroit, pendant une visite **comme sur le Plan Lyautey** ;
 - des **alias de recherche** (autres noms séparés par `;`) et un choix de **surfaces

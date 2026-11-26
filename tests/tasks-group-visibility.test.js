@@ -1,3 +1,4 @@
+const { tasksListItems } = require('./helpers/tasksListResponse');
 require('./helpers/setup');
 const test = require('node:test');
 const assert = require('node:assert');
@@ -72,11 +73,12 @@ function firstNames(rows) {
 }
 
 async function listRowFor(student) {
+  const { TASKS_LIST_TEST_LIMIT } = require('./helpers/tasksListResponse');
   const res = await request(app)
-    .get('/api/tasks')
+    .get(`/api/tasks?limit=${TASKS_LIST_TEST_LIMIT}`)
     .set('Authorization', `Bearer ${student.token}`)
     .expect(200);
-  return res.body.find((t) => t.id === taskId);
+  return tasksListItems(res.body).find((t) => t.id === taskId);
 }
 
 test.before(async () => {

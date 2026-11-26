@@ -8,6 +8,7 @@ import {
   fetchPlantObservationCounts,
 } from '../PlantSpeciesDiscoveryAcknowledge';
 import { api, getAuthToken } from '../../services/api';
+import { fetchPlantDetail } from '../../services/plantCatalogDetail.js';
 import { useGatingSummary } from '../../hooks/useGatingSummary';
 import { usePublicSettings } from '../../contexts/PublicSettingsContext.jsx';
 import { useSession } from '../../contexts/SessionContext.jsx';
@@ -378,15 +379,41 @@ export function PlantCatalogPreviewModal({
     // Présence déjà connue de l'écran appelant (contenu de visite, `site_species`).
     mapSpeciesPresence = null,
   } = useData();
+  const [detailPlant, setDetailPlant] = useState(null);
+
+  useEffect(() => {
+    if (!plant?.id) {
+      setDetailPlant(null);
+      return undefined;
+    }
+    if (plant._view !== 'summary') {
+      setDetailPlant(plant);
+      return undefined;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const full = await fetchPlantDetail(api, plant.id);
+        if (!cancelled) setDetailPlant(full);
+      } catch {
+        if (!cancelled) setDetailPlant(plant);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [plant]);
+
+  const displayPlant = detailPlant ?? plant;
   // Présence sur la carte active : même définition que le catalogue (serveur). Rafraîchie
   // quand zones, repères ou fiches sont rechargés ; partagée avec le catalogue ouvert.
   const presence = useMapSpeciesPresence(activeMapId, {
     watch: [zones, markers, dataPlants],
-    enabled: !!plant,
+    enabled: !!displayPlant,
     species: Array.isArray(mapSpeciesPresence) ? mapSpeciesPresence : null,
   });
   const presenceKnown = presence.byPlantId instanceof Map;
-  const presenceEntry = presenceEntryForPlant(presence.byPlantId, plant);
+  const presenceEntry = presenceEntryForPlant(presence.byPlantId, displayPlant);
   const contextCommentsEnabled = publicSettings?.modules?.context_comments_enabled !== false;
   /**
    * Commentaires de fiche : route authentifiée. La fiche est désormais ouvrable depuis la
@@ -396,18 +423,18 @@ export function PlantCatalogPreviewModal({
   const hasSession = typeof getAuthToken === 'function' && !!getAuthToken();
   const [obs, setObs] = useState({ my: 0, site: 0 });
   // L'aperçu plein écran n'annonçait rien : l'élève y découvrait le contrôle après coup.
-  const plantIds = useMemo(() => (plant?.id ? [plant.id] : []), [plant?.id]);
+  const plantIds = useMemo(() => (displayPlant?.id ? [displayPlant.id] : []), [displayPlant?.id]);
   const { summaries: gatingSummaries } = useGatingSummary('plant', plantIds);
 
   useEffect(() => {
-    if (!plant?.id) {
+    if (!displayPlant?.id) {
       setObs({ my: 0, site: 0 });
       return undefined;
     }
     let cancelled = false;
     (async () => {
-      const map = await fetchPlantObservationCounts([plant.id]);
-      const row = map[String(plant.id)] || map[plant.id];
+      const map = await fetchPlantObservationCounts([displayPlant.id]);
+      const row = map[String(displayPlant.id)] || map[displayPlant.id];
       if (cancelled || !row) return;
       setObs({
         my: Number(row.my_observation_count) || 0,
@@ -417,12 +444,12 @@ export function PlantCatalogPreviewModal({
     return () => {
       cancelled = true;
     };
-  }, [plant?.id]);
+  }, [displayPlant?.id]);
 
-  if (!plant) return null;
+  if (!displayPlant) return null;
   return (
     <DialogShell
-      open={!!plant}
+      open={!!displayPlant}
       onClose={onClose}
       overlayClassName="modal-overlay modal-overlay--tuto-preview"
       dialogClassName="log-modal tuto-preview-modal"
@@ -439,18 +466,18 @@ export function PlantCatalogPreviewModal({
           <IconClose size={16} />
         </button>
         <h3 id="plant-catalog-preview-title">
-          <IconBiodiv size={16} /> {plant.name}
+          <IconBiodiv size={16} /> {displayPlant.name}
         </h3>
       </div>
       <div className="tuto-preview-modal__body tuto-preview-modal__body--biodiv-scroll">
         <PlantBiodiversityCatalogPreviewCard
-          plant={plant}
+          plant={displayPlant}
           zones={zones}
           markers={markers}
           maps={maps}
           presenceKnown={presenceKnown}
           presenceEntry={presenceEntry}
-          gatingSummary={gatingSummaries.get(String(plant.id)) || null}
+          gatingSummary={gatingSummaries.get(String(displayPlant.id)) || null}
           myObservationCount={obs.my}
           siteObservationCount={obs.site}
           onObservationAcknowledged={(_id, next) => {

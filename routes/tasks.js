@@ -45,6 +45,11 @@ const {
   validatePedagoSessionId,
 } = require('../lib/tasks/taskService');
 const { withEditRevision, withoutRevisionField } = require('../lib/editRevision');
+const { parsePositiveInt } = require('../lib/shared/httpHelpers');
+
+/** Pagination liste tâches (audit 26/11 P1) : défaut 200, plafond 500. */
+const TASKS_LIST_DEFAULT_LIMIT = 200;
+const TASKS_LIST_MAX_LIMIT = 500;
 const {
   TaskActionError,
   deleteTaskAction,
@@ -279,7 +284,19 @@ router.get(
     if (archivedSql) where.push(archivedSql);
     const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
     const orderSql = `ORDER BY ${taskImportanceOrderBySql('t.')}`;
-    const tasks = await queryAll(`${sqlBase} ${whereSql} ${orderSql}`, params);
+    const limit = Math.min(
+      TASKS_LIST_MAX_LIMIT,
+      parsePositiveInt(req.query.limit, TASKS_LIST_DEFAULT_LIMIT),
+    );
+    const offsetRaw = Number.parseInt(req.query.offset, 10);
+    const pageOffset = Number.isFinite(offsetRaw) && offsetRaw >= 0 ? offsetRaw : 0;
+    const countRow = await queryOne(`SELECT COUNT(*) AS total FROM tasks t ${whereSql}`, params);
+    const total = Number(countRow?.total) || 0;
+    const tasks = await queryAll(`${sqlBase} ${whereSql} ${orderSql} LIMIT ? OFFSET ?`, [
+      ...params,
+      limit,
+      pageOffset,
+    ]);
     const taskIds = tasks.map((t) => t.id);
     const proposedTaskIds = tasks
       .filter((t) => normalizeTaskStatusForRead(t?.status) === 'proposed')
@@ -353,18 +370,28 @@ router.get(
       }
     }
     // Sans compte : aucune identité d'élève ni de référent.
-    if (!auth) return res.json(enriched.map(redactTaskForAnonymous));
-    // Proposant masqué comme dans le détail (identifiant et ligne « Proposition n3beur »)
-    // quand le lecteur ne le voit pas (audit du 19/11/2026, T4). Contexte partagé : le
-    // périmètre du lecteur n'est résolu qu'une fois pour toute la liste.
-    const viewerCtx = createViewerContext(auth);
-    const assigneesMode = await getAssigneesVisibilityMode();
-    for (const row of enriched) {
-      await redactProposerForViewer(auth, row, { ctx: viewerCtx, mode: assigneesMode });
-      // Référents élèves : même règle que les inscrits (élèves référents automatiques, lot 6).
-      await filterReferentsForViewer(auth, row, { ctx: viewerCtx, mode: assigneesMode });
+    let items = !auth ? enriched.map(redactTaskForAnonymous) : enriched;
+    if (auth) {
+      // Proposant masqué comme dans le détail (identifiant et ligne « Proposition n3beur »)
+      // quand le lecteur ne le voit pas (audit du 19/11/2026, T4). Contexte partagé : le
+      // périmètre du lecteur n'est résolu qu'une fois pour toute la liste.
+      const viewerCtx = createViewerContext(auth);
+      const assigneesMode = await getAssigneesVisibilityMode();
+      for (const row of items) {
+        await redactProposerForViewer(auth, row, { ctx: viewerCtx, mode: assigneesMode });
+        // Référents élèves : même règle que les inscrits (élèves référents automatiques, lot 6).
+        await filterReferentsForViewer(auth, row, { ctx: viewerCtx, mode: assigneesMode });
+      }
     }
-    res.json(enriched);
+    // Enveloppe paginée (audit 26/11 P1) — plus de tableau nu non borné.
+    const hasMore = pageOffset + items.length < total;
+    res.json({
+      items,
+      limit,
+      offset: pageOffset,
+      total,
+      hasMore,
+    });
   }),
 );
 

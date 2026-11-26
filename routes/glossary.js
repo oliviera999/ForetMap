@@ -41,6 +41,33 @@ const glossaryTermsCache = getNamedMemoryTtlCache('glossary:terms:v1', {
 });
 const GLOSSARY_TERMS_CACHE_KEY = 'all';
 
+/** Lot P4 charge / audit 26/11 E : remédiation quiz (plantées liées), au plus N termes par requête. */
+const GLOSSARY_TERMS_BY_CODES_MAX = 40;
+
+/**
+ * @param {unknown} raw Valeur de `?codes=` (codes séparés par virgules).
+ * @returns {{ codes: string[] } | { error: string }}
+ */
+function parseGlossaryCodesQuery(raw) {
+  // Paramètre absent → liste complète. Présent mais vide / blanc → 400.
+  if (raw === undefined || raw === null) return { codes: null };
+  const s = normalizeOptionalFilter(raw);
+  if (!s) return { error: 'codes invalide' };
+  const codes = [
+    ...new Set(
+      s
+        .split(/[,;\s]+/)
+        .map((c) => String(c || '').trim())
+        .filter(Boolean),
+    ),
+  ];
+  if (!codes.length) return { error: 'codes invalide' };
+  if (codes.length > GLOSSARY_TERMS_BY_CODES_MAX) {
+    return { error: `codes : maximum ${GLOSSARY_TERMS_BY_CODES_MAX} termes` };
+  }
+  return { codes };
+}
+
 const router = express.Router();
 
 const glossaryCodeParamsSchema = z.unknown().superRefine((p, ctx) => {
@@ -52,6 +79,45 @@ const glossaryCodeParamsSchema = z.unknown().superRefine((p, ctx) => {
 router.get(
   '/terms',
   asyncHandler(async (req, res) => {
+    const codesParsed = parseGlossaryCodesQuery(req.query?.codes);
+    if (codesParsed.error) return res.status(400).json({ error: codesParsed.error });
+    if (codesParsed.codes) {
+      const placeholders = codesParsed.codes.map(() => '?').join(',');
+      const activeRows = await queryAll(
+        `SELECT glossary_code
+           FROM glossary_terms
+          WHERE statut = 'actif' AND glossary_code IN (${placeholders})`,
+        codesParsed.codes,
+      );
+      const active = new Set(activeRows.map((row) => row.glossary_code));
+      const plantRows = await queryAll(
+        `SELECT gts.glossary_code, p.id, p.name, p.emoji, p.scientific_name
+           FROM glossary_term_species gts
+           JOIN plants p ON p.id = gts.plant_id
+          WHERE gts.glossary_code IN (${placeholders})
+          ORDER BY gts.glossary_code ASC, p.name ASC`,
+        codesParsed.codes,
+      );
+      const linkedByCode = new Map(codesParsed.codes.map((code) => [code, []]));
+      for (const row of plantRows) {
+        const bucket = linkedByCode.get(row.glossary_code);
+        if (!bucket) continue;
+        bucket.push({
+          id: row.id,
+          name: row.name,
+          emoji: row.emoji,
+          scientific_name: row.scientific_name,
+        });
+      }
+      const items = codesParsed.codes
+        .filter((code) => active.has(code))
+        .map((glossary_code) => ({
+          glossary_code,
+          linkedPlants: linkedByCode.get(glossary_code) || [],
+        }));
+      return res.json({ items });
+    }
+
     const q = normalizeOptionalFilter(req.query?.q);
     const niveau = normalizeOptionalFilter(req.query?.niveau);
     const categorie = normalizeOptionalFilter(req.query?.categorie);
@@ -94,6 +160,15 @@ router.get(
       sql += ' AND (terme LIKE ? OR variantes LIKE ?)';
       const needle = `%${q}%`;
       params.push(needle, needle);
+      // Jetons ≥ 2 car. : AND SQL pour réduire le jeu avant l'affinage JS (accents / tokens).
+      const tokens = q.split(/[\s,;|/\\-]+/).filter((t) => t.length >= 2);
+      if (tokens.length > 1) {
+        for (const token of tokens) {
+          sql += ' AND (terme LIKE ? OR variantes LIKE ?)';
+          const tokenNeedle = `%${token}%`;
+          params.push(tokenNeedle, tokenNeedle);
+        }
+      }
     }
     sql += ' ORDER BY categorie ASC, terme ASC';
 
@@ -105,6 +180,7 @@ router.get(
 
     let items = await queryAll(sql, params);
     if (q) {
+      // Le LIKE SQL ci-dessus préfiltre ; cet affinage conserve accents et sémantique multi-jetons.
       items = items.filter((term) => glossaryTermMatchesQuery(term, q));
     }
     if (cacheable) glossaryTermsCache.set(GLOSSARY_TERMS_CACHE_KEY, items);

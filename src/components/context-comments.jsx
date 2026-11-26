@@ -170,18 +170,16 @@ function ContextComments({
     };
   }, [body, contextType, contextId]);
 
-  // Section ouverte : liste paginée complète. Section fermée : résumé léger (badge + non-lus),
-  // coalescé en un seul GET /counts pour toute la liste visible.
+  // Section ouverte : liste paginée (total + non-lus depuis la première page). Fermée au montage :
+  // pas d’appel réseau (évite N résumés sur une liste de tâches) ; le temps réel ou une ouverture
+  // ultérieure charge les données.
   useEffect(() => {
     if (!contextType || contextId == null || contextId === '') return;
-    if (isOpen) {
-      summarySeqRef.current += 1;
-      setExpandedReactionsByComment({});
-      void load(1);
-      return;
-    }
-    void loadSummary();
-  }, [isOpen, contextType, contextId, load, loadSummary]);
+    if (!isOpen) return;
+    summarySeqRef.current += 1;
+    setExpandedReactionsByComment({});
+    void load(1);
+  }, [isOpen, contextType, contextId, load]);
 
   useEffect(() => {
     if (!contextType || contextId == null || contextId === '') return undefined;

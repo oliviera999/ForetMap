@@ -49,8 +49,10 @@ async function createProject(body) {
   return res.body;
 }
 
+const { tasksListItems, TASKS_LIST_TEST_LIMIT } = require('./helpers/tasksListResponse');
+
 function taskIdsOf(res) {
-  return (res.body || []).map((t) => t.id);
+  return tasksListItems(res.body).map((t) => t.id);
 }
 
 before(async () => {
@@ -129,23 +131,33 @@ describe('Archivage des tâches', () => {
       .set('Authorization', `Bearer ${teacherToken}`)
       .expect(200);
 
+    // Listes paginées : on vérifie la présence via la portée `archived` (peu d’items)
+    // et la cohérence des totaux pour `active` / `all` (évite les faux négatifs si total > limit).
     const active = await request(app)
-      .get('/api/tasks')
+      .get('/api/tasks?limit=1')
       .set('Authorization', `Bearer ${teacherToken}`)
       .expect(200);
-    assert.ok(!taskIdsOf(active).includes(task.id), 'archivée absente de la liste active');
+    assert.ok(!taskIdsOf(active).includes(task.id), 'archivée absente de la page active');
 
     const onlyArchived = await request(app)
-      .get('/api/tasks?archived=archived')
+      .get(`/api/tasks?archived=archived&limit=${TASKS_LIST_TEST_LIMIT}`)
       .set('Authorization', `Bearer ${teacherToken}`)
       .expect(200);
     assert.ok(taskIdsOf(onlyArchived).includes(task.id), 'archivée présente en portée archived');
 
     const all = await request(app)
-      .get('/api/tasks?archived=all')
+      .get('/api/tasks?archived=all&limit=1')
       .set('Authorization', `Bearer ${teacherToken}`)
       .expect(200);
-    assert.ok(taskIdsOf(all).includes(task.id), 'archivée présente en portée all');
+    const totalActive = Number(active.body?.total) || 0;
+    const totalArchived = Number(onlyArchived.body?.total) || 0;
+    const totalAll = Number(all.body?.total) || 0;
+    assert.strictEqual(
+      totalAll,
+      totalActive + totalArchived,
+      'portée all = active + archived (totaux paginés)',
+    );
+    assert.ok(totalArchived >= 1, 'au moins une tâche archivée comptée');
   });
 
   it('un élève ne voit jamais les archives (portée forcée à active)', async () => {
@@ -155,13 +167,22 @@ describe('Archivage des tâches', () => {
       .set('Authorization', `Bearer ${teacherToken}`)
       .expect(200);
 
-    const asStudent = await request(app)
-      .get('/api/tasks?archived=all')
+    const asStudentDefault = await request(app)
+      .get('/api/tasks?limit=1')
+      .set('Authorization', `Bearer ${studentToken}`)
+      .expect(200);
+    const asStudentAll = await request(app)
+      .get('/api/tasks?archived=all&limit=1')
       .set('Authorization', `Bearer ${studentToken}`)
       .expect(200);
     assert.ok(
-      !taskIdsOf(asStudent).includes(task.id),
+      !taskIdsOf(asStudentAll).includes(task.id),
       'un élève ne doit pas voir de tâche archivée même avec ?archived=all',
+    );
+    assert.strictEqual(
+      Number(asStudentAll.body?.total) || 0,
+      Number(asStudentDefault.body?.total) || 0,
+      'côté élève, ?archived=all est forcé à active (même total)',
     );
   });
 
@@ -356,6 +377,34 @@ describe('Archivage automatique (job quotidien)', () => {
     assert.ok(res.projectsArchived >= 1, 'au moins un projet archivé');
     const row = await queryOne('SELECT archived_at FROM task_projects WHERE id = ?', [project.id]);
     assert.ok(row.archived_at, 'projet validé ancien archivé automatiquement');
+  });
+
+  it('émet tasks:changed ciblé par mapId après archivage auto', async () => {
+    const realtime = require('../lib/realtime');
+    const emitted = [];
+    const prevEmit = realtime.emitTasksChanged;
+    realtime.emitTasksChanged = (payload) => emitted.push(payload);
+    try {
+      const oldTask = await createTask({
+        title: `Auto emit map ${Date.now()}`,
+        required_students: 1,
+        map_id: 'foret',
+      });
+      await validateTask(oldTask.id);
+      await execute(
+        'UPDATE tasks SET validated_at = DATE_SUB(NOW(), INTERVAL 200 DAY) WHERE id = ?',
+        [oldTask.id],
+      );
+
+      await runAutoArchiveJob();
+
+      assert.ok(
+        emitted.some((e) => e.reason === 'auto_archive' && e.mapId === 'foret'),
+        'émission Socket.IO avec mapId foret',
+      );
+    } finally {
+      realtime.emitTasksChanged = prevEmit;
+    }
   });
 });
 

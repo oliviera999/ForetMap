@@ -50,6 +50,16 @@ afterEach(() => {
   consoleErrorSpy.mockRestore();
 });
 
+/**
+ * Aligne le mock `getStoredSession` et `localStorage` : `useAppDataSync` lit la clé de
+ * compte via `getStoredSessionAccountKey()` (stockage réel). Sans `user`/`token` en
+ * stockage, le cycle abort et le loader reste affiché (gardes audit 26/11 S2).
+ */
+function seedAuthenticatedSession(stored) {
+  session.stored = stored;
+  window.localStorage.setItem('foretmap_session', JSON.stringify(stored));
+}
+
 /** Une erreur de rendu React passe par `console.error` (« The above error occurred… »). */
 function renderErrors() {
   return consoleErrorSpy.mock.calls
@@ -88,7 +98,10 @@ describe('Surfaces du shell App — fumée', () => {
    * bandeaux, modales globales) : c'est l'arbre que le découpage déplace dans des composants.
    */
   test('ForêtMap, session élève : le shell authentifié se monte sans erreur', async () => {
-    session.stored = { student: { id: 'S1', first_name: 'Ada', last_name: 'L' } };
+    seedAuthenticatedSession({
+      student: { id: 'S1', first_name: 'Ada', last_name: 'L' },
+      user: { id: 'S1', userType: 'student', displayName: 'Ada L' },
+    });
     session.claims = { roleSlug: 'eleve', userId: 'S1', permissions: [] };
     const { container } = render(<App />);
     await waitFor(() =>
@@ -102,7 +115,9 @@ describe('Surfaces du shell App — fumée', () => {
   });
 
   test('ForêtMap, session prof : le shell authentifié se monte sans erreur', async () => {
-    session.stored = { user: { id: 'T1', userType: 'teacher', displayName: 'Prof Martin' } };
+    seedAuthenticatedSession({
+      user: { id: 'T1', userType: 'teacher', displayName: 'Prof Martin' },
+    });
     session.claims = { roleSlug: 'prof', userId: 'T1', permissions: ['teacher.access'] };
     const { container } = render(<App />);
     await waitFor(() =>

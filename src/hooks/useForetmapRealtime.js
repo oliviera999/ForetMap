@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { api, AccountDeletedError, API, withAppBase, getAuthToken } from '../services/api';
+import {
+  api,
+  AccountDeletedError,
+  API,
+  withAppBase,
+  getAuthToken,
+  getStoredSessionAccountKey,
+} from '../services/api';
 import { partitionByArchived } from '../utils/taskArchive';
 import { isSocketAuthRejection } from '../utils/realtimeAuthRejection';
 import { jitteredRefreshDelay } from '../utils/realtimeRefreshDelay';
@@ -20,6 +27,9 @@ const GARDEN_RT_DEBOUNCE_MS = 400;
  * renouvelé) ne le recharge pas.
  */
 const loadSocketIoClient = () => import('socket.io-client');
+
+/** Pagination tâches : hors fermeture statique de l'écran de connexion (budget U1). */
+const loadTasksListResponse = () => import('../utils/tasksListResponse.js');
 
 /**
  * Raisons `garden:changed` où la liste globale `/api/plants` ne change pas : on ne refetch que zones + repères de la carte active.
@@ -96,15 +106,22 @@ export function useForetmapRealtime({
 
   const refreshTasksFromServer = useCallback(async () => {
     if (pauseDataRefreshRef?.current) return;
+    const accountAtStart = getStoredSessionAccountKey();
+    if (!accountAtStart) return;
     try {
       const mapId = String(activeMapIdRef.current || '').trim();
       if (!mapId) return;
       const mapQuery = `map_id=${encodeURIComponent(mapId)}`;
       // Actives seulement — les archives se rechargent via loadArchivedTasks (vue Archivés).
+      const { fetchAllTaskPages } = await loadTasksListResponse();
       const [t, projects] = await Promise.all([
-        api(`/api/tasks?${mapQuery}`),
+        fetchAllTaskPages(api, mapQuery),
         api(`/api/task-projects?${mapQuery}`).catch(() => []),
       ]);
+      // Audit 26/11 S3 : ignorer si déconnexion / changement de compte pendant l'await.
+      if (pauseDataRefreshRef?.current || getStoredSessionAccountKey() !== accountAtStart) {
+        return;
+      }
       if (!Array.isArray(t)) {
         console.warn(
           '[ForetMap] rafraîchissement tâches (temps réel) : réponse inattendue',
@@ -128,7 +145,11 @@ export function useForetmapRealtime({
   const refreshGardenFromServer = useCallback(
     async (options = {}) => {
       if (pauseDataRefreshRef?.current) return;
+      const accountAtStart = getStoredSessionAccountKey();
+      if (!accountAtStart) return;
       const includePlants = options.includePlants !== false;
+      const stale = () =>
+        pauseDataRefreshRef?.current || getStoredSessionAccountKey() !== accountAtStart;
       try {
         const mapId = String(activeMapIdRef.current || '').trim();
         if (!mapId) return;
@@ -139,6 +160,7 @@ export function useForetmapRealtime({
             api('/api/plants'),
             api(`/api/map/markers?${mapQuery}`),
           ]);
+          if (stale()) return;
           setZones(z);
           setPlants(p);
           setMarkers(m);
@@ -147,6 +169,7 @@ export function useForetmapRealtime({
             api(`/api/zones?${mapQuery}`),
             api(`/api/map/markers?${mapQuery}`),
           ]);
+          if (stale()) return;
           setZones(z);
           setMarkers(m);
         }

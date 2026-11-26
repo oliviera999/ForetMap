@@ -95,8 +95,10 @@ describe('useAuthSession', () => {
 
   it('forceLogout : purge la session et réinitialise les états', () => {
     const { params, result } = renderAuthSession();
+    params.studentRef.current = { id: 'S1', first_name: 'Léa' };
     act(() => result.current.forceLogout());
     expect(apiMocks.clearStoredSession).toHaveBeenCalledTimes(1);
+    expect(params.studentRef.current).toBeNull();
     expect(params.setStudent).toHaveBeenCalledWith(null);
     expect(params.setSessionUser).toHaveBeenCalledWith(null);
     expect(params.setAuthClaims).toHaveBeenCalledWith(null);

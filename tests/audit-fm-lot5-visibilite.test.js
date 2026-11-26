@@ -1,4 +1,5 @@
 'use strict';
+const { tasksListItems } = require('./helpers/tasksListResponse');
 
 /**
  * Audit ForetMap du 19/11/2026, lot 5 — visibilité dans les tâches :
@@ -175,30 +176,45 @@ test('T3 — prof de classe : détail borné aux inscrits de ses groupes', async
   assert.deepStrictEqual(firstNames(detail.body.assignments), ['LvA']);
   assert.strictEqual(detail.body.assigned_count, 2, 'compteurs intacts');
 
-  const list = await asUser(profToken, 'get', '/api/tasks').expect(200);
-  const row = list.body.find((t) => t.id === taskId);
+  const { TASKS_LIST_TEST_LIMIT } = require('./helpers/tasksListResponse');
+  const list = await asUser(profToken, 'get', `/api/tasks?limit=${TASKS_LIST_TEST_LIMIT}`).expect(
+    200,
+  );
+  const row = tasksListItems(list.body).find((t) => t.id === taskId);
   assert.deepStrictEqual(firstNames(row.assignments), ['LvA'], 'liste et détail alignés');
 });
 
 test('T3 — prof de classe : journal limité à ses élèves et à l’encadrement', async () => {
   const logs = await asUser(profToken, 'get', `/api/tasks/${taskId}/logs`).expect(200);
-  const comments = logs.body.map((l) => l.comment).sort();
+  const comments = tasksListItems(logs.body)
+    .map((l) => l.comment)
+    .sort();
   assert.deepStrictEqual(comments, ['Note de l’encadrement', 'Rapport LvA']);
-  assert.ok(!logs.body.some((l) => l.student_id === people.c.id), 'rien de C (hors groupe)');
+  assert.ok(
+    !tasksListItems(logs.body).some((l) => l.student_id === people.c.id),
+    'rien de C (hors groupe)',
+  );
 });
 
 test('CR — mode group : le compte rendu de l’encadrement est visible des camarades', async () => {
   const logs = await asUser(people.a.token, 'get', `/api/tasks/${taskId}/logs`).expect(200);
-  const comments = logs.body.map((l) => l.comment).sort();
+  const comments = tasksListItems(logs.body)
+    .map((l) => l.comment)
+    .sort();
   assert.deepStrictEqual(comments, ['Note de l’encadrement', 'Rapport LvA']);
 
   const asB = await asUser(people.b.token, 'get', `/api/tasks/${taskId}/logs`).expect(200);
-  assert.ok(asB.body.some((l) => l.comment === 'Note de l’encadrement'));
+  assert.ok(tasksListItems(asB.body).some((l) => l.comment === 'Note de l’encadrement'));
 });
 
 test('T4 — proposant hors groupe masqué en liste et en détail (id et ligne de description)', async () => {
-  const list = await asUser(people.a.token, 'get', '/api/tasks').expect(200);
-  const fromC = list.body.find((t) => t.id === proposalByC);
+  const { TASKS_LIST_TEST_LIMIT } = require('./helpers/tasksListResponse');
+  const list = await asUser(
+    people.a.token,
+    'get',
+    `/api/tasks?limit=${TASKS_LIST_TEST_LIMIT}`,
+  ).expect(200);
+  const fromC = tasksListItems(list.body).find((t) => t.id === proposalByC);
   assert.ok(fromC, 'la proposition de C figure dans la liste');
   assert.strictEqual(fromC.proposed_by_student_id, null);
   assert.doesNotMatch(fromC.description, /Proposition n3beur/);
@@ -209,7 +225,7 @@ test('T4 — proposant hors groupe masqué en liste et en détail (id et ligne d
   assert.doesNotMatch(detail.body.description, /Proposition n3beur/);
 
   // Camarade (même groupe, mode group) : le proposant reste visible.
-  const fromB = list.body.find((t) => t.id === proposalByB);
+  const fromB = tasksListItems(list.body).find((t) => t.id === proposalByB);
   assert.strictEqual(fromB.proposed_by_student_id, people.b.id);
   assert.match(fromB.description, /Proposition n3beur/);
 

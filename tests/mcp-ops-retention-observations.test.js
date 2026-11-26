@@ -112,6 +112,7 @@ test('retention_preview observations : comptages et durées, rien n’est suppri
     photo_refusee: policy.OBSERVATION_REFUSED_PHOTO_RETENTION_DAYS,
     observation_refusee: policy.OBSERVATION_REFUSED_RETENTION_DAYS,
     observation_non_examinee: policy.OBSERVATION_PENDING_RETENTION_DAYS,
+    plant_observation_event: policy.PLANT_OBSERVATION_EVENT_RETENTION_DAYS,
   });
 
   // Aperçu seulement : l'observation échue, sa ligne de photo et son fichier sont intacts.

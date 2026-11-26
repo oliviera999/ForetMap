@@ -21,6 +21,9 @@ import {
   subscribeNetworkStatus,
 } from '../shared/networkStatus.js';
 
+/** Pagination tâches : hors fermeture statique de l'écran de connexion (budget U1). */
+const loadTasksListResponse = () => import('../utils/tasksListResponse.js');
+
 /** Échec imputable au serveur (réseau ou 5xx) — jamais quand l'appareil est hors ligne. */
 function isServerSideFailure(err) {
   if (isOfflineError(err)) return false;
@@ -106,6 +109,8 @@ export function useAppDataSync({
   const syncSkipCountRef = useRef(0);
   /** Instantané des paramètres lus par fetchAll (évite de recréer fetchAll à chaque rendu). */
   const fetchAllContextRef = useRef({});
+  /** Session authentifiée (lu par fetchAll / purge — pas dans les deps de fetchAll). */
+  const hasAuthenticatedShellRef = useRef(hasAuthenticatedShell);
 
   // Snapshot lu par fetchAll : posé en effet (pas pendant le rendu — fragile en
   // rendu concurrent, un rendu interrompu pourrait laisser un snapshot jamais
@@ -113,6 +118,43 @@ export function useAppDataSync({
   useEffect(() => {
     fetchAllContextRef.current = { activeMapId, ...context };
   });
+
+  useEffect(() => {
+    hasAuthenticatedShellRef.current = hasAuthenticatedShell;
+  }, [hasAuthenticatedShell]);
+
+  /**
+   * Remet à zéro les états domaine + marqueurs de sync (audit 26/11 S1).
+   * À appeler dès qu'il n'y a plus de shell authentifié, pour ne pas afficher
+   * les données du compte précédent pendant le debounce du prochain fetchAll.
+   */
+  const purgeDomainState = useCallback(() => {
+    setMaps(DEFAULT_MAPS);
+    lastMapsRef.current = DEFAULT_MAPS;
+    setZones([]);
+    setTasks([]);
+    setTaskProjects([]);
+    setArchivedTasks([]);
+    setArchivedTaskProjects([]);
+    setPlants([]);
+    setMarkers([]);
+    setTutorials([]);
+    setLoading(true);
+    setServerDown(false);
+    setRetryingServer(false);
+    failCountRef.current = 0;
+    fetchAllPendingRef.current = false;
+    initialFetchDoneRef.current = false;
+    lastSyncStateRef.current = null;
+    syncSkipCountRef.current = 0;
+  }, []);
+
+  // Perte de session (logout / forceLogout) : purger immédiatement les données affichées.
+  useEffect(() => {
+    if (hasAuthenticatedShell) return undefined;
+    purgeDomainState();
+    return undefined;
+  }, [hasAuthenticatedShell, purgeDomainState]);
 
   const fetchAll = useCallback(() => {
     if (fetchAllRunPromiseRef.current) {
@@ -138,6 +180,15 @@ export function useAppDataSync({
             break;
           }
           fetchAllPendingRef.current = false;
+          // Garde de session (audit 26/11 S2) : une réponse arrivée après logout /
+          // changement de compte ne doit pas réécrire l'état domaine.
+          const accountAtCycleStart = getStoredSessionAccountKey();
+          const staleAccount = () =>
+            !hasAuthenticatedShellRef.current ||
+            getStoredSessionAccountKey() !== accountAtCycleStart;
+          if (!accountAtCycleStart || staleAccount()) {
+            break;
+          }
           const snap = fetchAllContextRef.current;
           const {
             activeMapId: mapIdState,
@@ -165,6 +216,7 @@ export function useAppDataSync({
           if (initialFetchDoneRef.current && !isDeviceOffline()) {
             try {
               const probed = await api('/api/sync-state');
+              if (staleAccount()) break;
               if (isValidSyncState(probed)) syncState = probed;
             } catch (err) {
               // Un compte supprimé se voit aussi depuis la sonde : sans ce cas, l'échec
@@ -215,6 +267,7 @@ export function useAppDataSync({
             };
 
             const mapsRes = await safeApi(() => api('/api/maps'));
+            if (staleAccount()) break;
             // `/api/maps` en échec : on repart des cartes déjà connues. Sans elles,
             // `resolvedMapId` deviendrait nul, `mapQuery` vide, et TOUS les autres domaines
             // seraient « rechargés » à vide — l'écran se viderait pour une seule requête ratée.
@@ -280,7 +333,11 @@ export function useAppDataSync({
                   )
                 : skipDomain(),
               needsDomain('tasks')
-                ? safeApi(() => (mapQuery ? api(`/api/tasks?${mapQuery}`) : Promise.resolve([])))
+                ? safeApi(async () => {
+                    if (!mapQuery) return [];
+                    const { fetchAllTaskPages } = await loadTasksListResponse();
+                    return fetchAllTaskPages(api, mapQuery);
+                  })
                 : skipDomain(),
               needsDomain('tasks')
                 ? safeApi(() =>
@@ -298,6 +355,8 @@ export function useAppDataSync({
               needsDomain('tutorials') ? safeApi(() => api(tutorialsEndpoint)) : skipDomain(),
             ]);
 
+            if (staleAccount()) break;
+
             if (resolvedMapId !== mapIdState) {
               setActiveMapId(resolvedMapId);
             }
@@ -310,6 +369,7 @@ export function useAppDataSync({
               if (Array.isArray(t)) {
                 // Actives seules (le backend force déjà active hors ?archived=) ;
                 // partition de sécurité si un client envoie encore archived=all.
+                // `fetchAllTaskPages` a déjà aplati l'enveloppe paginée.
                 const { active: activeTasks } = partitionByArchived(t);
                 setTasks((prev) => keepPrevIfEqual(prev, activeTasks));
               } else
@@ -405,8 +465,12 @@ export function useAppDataSync({
         }
       } finally {
         fetchAllRunPromiseRef.current = null;
-        initialFetchDoneRef.current = true;
-        setLoading(false);
+        // Si la session a disparu pendant le cycle, purgeDomainState a déjà remis
+        // loading/refs : ne pas les écraser ici (course logout → login).
+        if (hasAuthenticatedShellRef.current && getStoredSessionAccountKey()) {
+          initialFetchDoneRef.current = true;
+          setLoading(false);
+        }
       }
     })();
     fetchAllRunPromiseRef.current = job;
@@ -498,18 +562,25 @@ export function useAppDataSync({
     const mapId = String(activeMapId || '').trim();
     if (!mapId) return;
     if (!context?.effectiveIsTeacher) return;
+    const accountAtStart = getStoredSessionAccountKey();
+    if (!accountAtStart || !hasAuthenticatedShellRef.current) return;
     try {
       const mapQuery = `map_id=${encodeURIComponent(mapId)}`;
-      const [t, projects] = await Promise.all([
-        api(`/api/tasks?${mapQuery}&archived=archived`),
+      const { fetchAllTaskPages } = await loadTasksListResponse();
+      const [tRaw, projects] = await Promise.all([
+        fetchAllTaskPages(api, `${mapQuery}&archived=archived`),
         api(`/api/task-projects?${mapQuery}&archived=archived`).catch(() => []),
       ]);
-      const archTasks = Array.isArray(t) ? partitionByArchived(t).archived : [];
+      if (!hasAuthenticatedShellRef.current || getStoredSessionAccountKey() !== accountAtStart) {
+        return;
+      }
+      const t = Array.isArray(tRaw) ? tRaw : [];
+      const archTasks = partitionByArchived(t).archived;
       // Si le backend a déjà filtré archived=archived, partition peut tout mettre en archived
       // ou tout en active selon archived_at — partitionByArchived trie sur archived_at.
-      const listTasks = Array.isArray(t)
-        ? t.filter((row) => row && row.archived_at != null && String(row.archived_at).trim() !== '')
-        : [];
+      const listTasks = t.filter(
+        (row) => row && row.archived_at != null && String(row.archived_at).trim() !== '',
+      );
       const listProjects = Array.isArray(projects)
         ? projects.filter(
             (row) => row && row.archived_at != null && String(row.archived_at).trim() !== '',

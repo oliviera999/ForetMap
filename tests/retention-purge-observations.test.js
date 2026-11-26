@@ -174,6 +174,7 @@ test('simulation : des comptages, aucune ligne ni aucun fichier supprimé', asyn
     photo_refusee: policy.OBSERVATION_REFUSED_PHOTO_RETENTION_DAYS,
     observation_refusee: policy.OBSERVATION_REFUSED_RETENTION_DAYS,
     observation_non_examinee: policy.OBSERVATION_PENDING_RETENTION_DAYS,
+    plant_observation_event: policy.PLANT_OBSERVATION_EVENT_RETENTION_DAYS,
   });
   for (const key of Object.keys(cases)) await assertUntouched(key);
 
