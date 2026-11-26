@@ -18,6 +18,8 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - Purge `user_plant_observation_events` : `LIMIT` entier (MariaDB refuse `LIMIT ?` sur DELETE).
 - Glossaire `?codes=` vide → 400 ; tests de liste tâches / golden plantes / rétention `jours`
   alignés.
+- `tasks-archive` : assertions `archived=all` via totaux paginés (évite faux négatif si
+  `total` > limite de page).
 
 ### Modifié — disponibilité, rétention et doc lieux (audit 26/11, lot F)
 
