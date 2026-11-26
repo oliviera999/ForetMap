@@ -258,6 +258,8 @@
 
     /* ── LOADER ── */
     .loader { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; gap:16px; background:var(--cream); }
+    /* Fallback Suspense d'un panneau (carte / tâches) : pas plein viewport. */
+    .loader.loader--panel { height:auto; min-height:40vh; padding:1.5rem; }
     .loader-leaf { font-size:3rem; animation:sway 1.5s ease-in-out infinite; }
     @keyframes sway { 0%,100%{transform:rotate(-8deg)} 50%{transform:rotate(8deg)} }
     .loader p { color:var(--leaf); font-size:var(--text-base); letter-spacing:.05em; }

@@ -11,9 +11,7 @@ const TasksView = lazyScreen(() =>
   import('../tasks-views').then((m) => ({ default: m.TasksView })),
 );
 
-const PANEL_FALLBACK = (
-  <AppLoader text="Chargement…" style={{ minHeight: '40vh', padding: '1.5rem' }} />
-);
+const PANEL_FALLBACK = <AppLoader text="Chargement…" className="loader--panel" />;
 
 /**
  * Zone carte + tâches partagée par les branches prof et élève d'App.jsx (D4) :
