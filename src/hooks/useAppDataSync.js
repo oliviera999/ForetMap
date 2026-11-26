@@ -6,9 +6,10 @@ import {
   getFetchAllLoopAbortReason,
 } from '../constants/app-runtime';
 import {
+  buildFetchAllSyncContextKey,
   canSkipFetchAllCycle,
   isValidSyncState,
-  resolveChangedSyncDomains,
+  resolveFetchDomainsForCycle,
 } from '../utils/fetchAllSyncGate.js';
 import { pickDefaultMapId, resolveScopedMapId, visibleMapsForScope } from '../utils/appMapScope';
 import { keepPrevIfEqual } from '../utils/stableCollection';
@@ -107,6 +108,8 @@ export function useAppDataSync({
   /** Sync-state `{ key, bootId, writes }` du dernier cycle fetchAll complet réussi (polling différentiel). */
   const lastSyncStateRef = useRef(null);
   const syncSkipCountRef = useRef(0);
+  /** Dernier plan pour lequel zones/tâches/repères ont été hydratés avec succès. */
+  const lastFetchedMapIdRef = useRef(null);
   /** Instantané des paramètres lus par fetchAll (évite de recréer fetchAll à chaque rendu). */
   const fetchAllContextRef = useRef({});
   /** Session authentifiée (lu par fetchAll / purge — pas dans les deps de fetchAll). */
@@ -147,6 +150,7 @@ export function useAppDataSync({
     initialFetchDoneRef.current = false;
     lastSyncStateRef.current = null;
     syncSkipCountRef.current = 0;
+    lastFetchedMapIdRef.current = null;
   }, []);
 
   // Perte de session (logout / forceLogout) : purger immédiatement les données affichées.
@@ -204,10 +208,19 @@ export function useAppDataSync({
           // en base depuis le dernier cycle complet réussi dans le même contexte
           // client, on saute le cycle (1 requête légère au lieu de ~8). Toute erreur
           // de sonde ou redémarrage serveur → cycle complet (comportement historique).
-          const syncContextKey = JSON.stringify({
-            snap,
+          // Le plan actif est volontairement hors clé : un changement de carte ne doit
+          // pas invalider la baseline ni recharger plantes/tutoriels (lot perf 11/2026).
+          const syncContextKey = buildFetchAllSyncContextKey({
             studentId: studentRef.current?.id ?? null,
+            effectiveIsTeacher: isTeacherSnap,
+            showPublicVisit: visitSnap,
+            canManageTutorials: canTutorialsSnap,
+            defaultMapStudent,
+            defaultMapTeacher,
+            defaultMapVisit,
           });
+          const requestedMapChanged =
+            String(mapIdState || '') !== String(lastFetchedMapIdRef.current || '');
           let syncState = null;
           // Pas de sonde au tout premier chargement : elle ajouterait un aller-retour
           // avant les premières données. La baseline s'établit au cycle suivant.
@@ -230,6 +243,7 @@ export function useAppDataSync({
             }
           }
           if (
+            !requestedMapChanged &&
             canSkipFetchAllCycle({
               prev: lastSyncStateRef.current,
               next: syncState,
@@ -298,33 +312,30 @@ export function useAppDataSync({
             });
             const mapQuery = resolvedMapId ? `map_id=${encodeURIComponent(resolvedMapId)}` : '';
 
-            // Refetch ciblé (compteurs par domaine de /api/sync-state) : seuls les
-            // domaines dont le compteur a bougé sont rechargés — `/api/maps` reste
-            // toujours rechargée (minuscule, et nécessaire à la résolution de carte).
-            // Un changement de carte pendant le cycle invalide le ciblage : les
-            // domaines non rechargés porteraient encore les données de l'ancienne carte.
-            const changedDomains =
-              resolvedMapId !== mapIdState
-                ? null
-                : resolveChangedSyncDomains({
-                    prev: lastSyncStateRef.current,
-                    next: syncState,
-                    contextKey: syncContextKey,
-                  });
+            // Refetch ciblé (compteurs /api/sync-state + changement de plan) :
+            // `/api/maps` reste toujours rechargée (minuscule, résolution de carte).
+            const effectiveMapChanged =
+              String(resolvedMapId || '') !== String(lastFetchedMapIdRef.current || '');
+            const changedDomains = resolveFetchDomainsForCycle({
+              prev: lastSyncStateRef.current,
+              next: syncState,
+              contextKey: syncContextKey,
+              mapChanged: effectiveMapChanged,
+              allowMapScopedWithoutBaseline:
+                initialFetchDoneRef.current && !!lastFetchedMapIdRef.current,
+            });
             const needsDomain = (domain) => !changedDomains || changedDomains.has(domain);
             const skipDomain = () => Promise.resolve(FETCH_DOMAIN_SKIPPED);
 
             const tutorialsEndpoint = canTutorialsSnap
               ? '/api/tutorials?include_inactive=1'
               : '/api/tutorials';
-            // Polling / sync : tâches et projets **actifs** seulement. Les archives
-            // (prof) se chargent à l'ouverture de la vue « Archivés » via loadArchivedTasks
-            // — évite de sérialiser tout l'historique à chaque cycle (pression LVE).
-            // `Promise.resolve([])` sans carte active reste un vide **légitime** (rien à
-            // afficher), à distinguer d'un échec réseau — d'où safeApi sans valeur de repli.
-            // Hors chrome prof : filtrer `surface=map` pour honorer « Masquer sur Carte ».
-            // Les gestionnaires (chrome prof) gardent la liste complète pour éditer.
-            const [z, t, taskProjectsRes, p, m, tu] = await Promise.all([
+            // Chemin critique post-connexion (carte / tâches) : zones, tâches, projets,
+            // repères. Plantes + tutoriels suivent ensuite pour débloquer le loader plus tôt
+            // (catalogue ~350 Ko sinon retarde toutes les fenêtres).
+            // Polling : tâches/projets **actifs** seulement (archives via loadArchivedTasks).
+            // Hors chrome prof : `surface=map` ; gestionnaires : liste complète.
+            const [z, t, taskProjectsRes, m] = await Promise.all([
               needsDomain('zones')
                 ? safeApi(() =>
                     mapQuery
@@ -344,7 +355,6 @@ export function useAppDataSync({
                     mapQuery ? api(`/api/task-projects?${mapQuery}`) : Promise.resolve([]),
                   )
                 : skipDomain(),
-              needsDomain('plants') ? safeApi(() => api('/api/plants')) : skipDomain(),
               needsDomain('markers')
                 ? safeApi(() =>
                     mapQuery
@@ -352,7 +362,6 @@ export function useAppDataSync({
                       : Promise.resolve([]),
                   )
                 : skipDomain(),
-              needsDomain('tutorials') ? safeApi(() => api(tutorialsEndpoint)) : skipDomain(),
             ]);
 
             if (staleAccount()) break;
@@ -383,8 +392,27 @@ export function useAppDataSync({
               );
               setTaskProjects((prev) => keepPrevIfEqual(prev, activeProjects));
             }
-            if (isApplicableDomainResult(p)) setPlants((prev) => keepPrevIfEqual(prev, p));
             if (isApplicableDomainResult(m)) setMarkers((prev) => keepPrevIfEqual(prev, m));
+
+            // Débloque l'UI principale dès que carte/tâches sont hydratables — sans
+            // attendre le catalogue plantes ni les tutoriels (sensation « lent après
+            // connexion » sur toutes les fenêtres).
+            if (
+              hasAuthenticatedShellRef.current &&
+              getStoredSessionAccountKey() === accountAtCycleStart
+            ) {
+              initialFetchDoneRef.current = true;
+              setLoading(false);
+            }
+
+            const [p, tu] = await Promise.all([
+              needsDomain('plants') ? safeApi(() => api('/api/plants')) : skipDomain(),
+              needsDomain('tutorials') ? safeApi(() => api(tutorialsEndpoint)) : skipDomain(),
+            ]);
+
+            if (staleAccount()) break;
+
+            if (isApplicableDomainResult(p)) setPlants((prev) => keepPrevIfEqual(prev, p));
             if (isApplicableDomainResult(tu)) setTutorials((prev) => keepPrevIfEqual(prev, tu));
             if (needsDomain('authMe')) {
               const sess = studentRef.current;
@@ -416,6 +444,16 @@ export function useAppDataSync({
               // coupure. Pas de baseline — sans quoi le polling différentiel considérerait
               // ces domaines à jour et ne les rechargerait qu'à la prochaine écriture.
               lastSyncStateRef.current = null;
+              // Plan hydraté pour la coquille (zones/tâches) même si plantes/tutoriels ont
+              // échoué : évite de re-tout-charger au prochain changement de plan.
+              if (
+                !mapsFailed &&
+                isApplicableDomainResult(z) &&
+                isApplicableDomainResult(t) &&
+                isApplicableDomainResult(m)
+              ) {
+                lastFetchedMapIdRef.current = resolvedMapId || null;
+              }
             } else {
               // Hors ligne, un cycle « réussi » ne fait que relire les copies du service
               // worker : il ne date pas les données.
@@ -435,6 +473,7 @@ export function useAppDataSync({
                     domains: syncState.domains,
                   }
                 : null;
+              lastFetchedMapIdRef.current = resolvedMapId || null;
             }
             if (serverSideFailures > 0) {
               failCountRef.current += 1;

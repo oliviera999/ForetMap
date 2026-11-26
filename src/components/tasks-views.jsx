@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { Suspense, useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { lazyScreen } from '../shared/lazyScreen.jsx';
 
 import {
   api,
@@ -51,8 +52,12 @@ import {
 } from '../utils/taskStudentSections.js';
 import { LogModal, TaskLogsViewer } from './tasks/TaskLogModals.jsx';
 import { TaskProjectFormModal } from './tasks/TaskProjectFormModal.jsx';
-import { TaskFormModal } from './tasks/TaskFormModal.jsx';
 import { TaskTileCard } from './tasks/TaskTileCard.jsx';
+
+/** Formulaire création/édition : hors chunk liste (éditeur riche + Markdown). */
+const LazyTaskFormModal = lazyScreen(() =>
+  import('./tasks/TaskFormModal.jsx').then((m) => ({ default: m.TaskFormModal })),
+);
 import { TaskTileSection } from './tasks/TaskTileSection.jsx';
 import { TaskUrgencyBanner } from './tasks/TaskUrgencyBanner.jsx';
 import { RecurringSeriesOverview } from './tasks/RecurringSeriesOverview.jsx';
@@ -1079,32 +1084,34 @@ function TasksViewImpl({
         />
       )}
       {(showForm || editTask || duplicateTask || showProposalForm) && (
-        <TaskFormModal
-          key={editTask?.id || duplicateTask?.id || (showProposalForm ? 'proposal' : 'new')}
-          zones={zones}
-          markers={markers}
-          maps={maps}
-          taskProjects={taskProjects}
-          tutorials={tutorials}
-          plants={plants}
-          referentCandidates={referentCandidates}
-          students={teacherStudents}
-          activeMapId={activeMapId}
-          editTask={editTask || duplicateTask}
-          isDuplicate={!!duplicateTask}
-          isProposal={!isTeacher && (showProposalForm || editTask?.status === 'proposed')}
-          enableInitialAssignment={isTeacher}
-          roleTerms={roleTerms}
-          defaultProjectId={!editTask && !duplicateTask ? newTaskDefaultProjectId : null}
-          onClose={() => {
-            setShowForm(false);
-            setEditTask(null);
-            setDuplicateTask(null);
-            setShowProposalForm(false);
-            setNewTaskDefaultProjectId(null);
-          }}
-          onSave={showProposalForm && !isTeacher ? proposeTask : saveTask}
-        />
+        <Suspense fallback={null}>
+          <LazyTaskFormModal
+            key={editTask?.id || duplicateTask?.id || (showProposalForm ? 'proposal' : 'new')}
+            zones={zones}
+            markers={markers}
+            maps={maps}
+            taskProjects={taskProjects}
+            tutorials={tutorials}
+            plants={plants}
+            referentCandidates={referentCandidates}
+            students={teacherStudents}
+            activeMapId={activeMapId}
+            editTask={editTask || duplicateTask}
+            isDuplicate={!!duplicateTask}
+            isProposal={!isTeacher && (showProposalForm || editTask?.status === 'proposed')}
+            enableInitialAssignment={isTeacher}
+            roleTerms={roleTerms}
+            defaultProjectId={!editTask && !duplicateTask ? newTaskDefaultProjectId : null}
+            onClose={() => {
+              setShowForm(false);
+              setEditTask(null);
+              setDuplicateTask(null);
+              setShowProposalForm(false);
+              setNewTaskDefaultProjectId(null);
+            }}
+            onSave={showProposalForm && !isTeacher ? proposeTask : saveTask}
+          />
+        </Suspense>
       )}
       {showProjectForm && (
         <TaskProjectFormModal
@@ -1355,4 +1362,5 @@ function TasksViewImpl({
 const TasksView = React.memo(TasksViewImpl);
 TasksView.displayName = 'TasksView';
 
-export { TaskFormModal, TasksView, LogModal, TaskLogsViewer, TaskTileCard };
+export { TaskFormModal } from './tasks/TaskFormModal.jsx';
+export { TasksView, LogModal, TaskLogsViewer, TaskTileCard };

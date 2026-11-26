@@ -1,5 +1,5 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 
 import { MapTasksArea } from '../../../src/components/app/MapTasksArea.jsx';
 
@@ -45,13 +45,13 @@ describe('MapTasksArea', () => {
     probes.tasks.length = 0;
   });
 
-  test('vue scindée : région carte + tâches, MapView embedded, pas de vue solo', () => {
+  test('vue scindée : région carte + tâches, MapView embedded, pas de vue solo', async () => {
     render(<MapTasksArea {...baseProps} useSplitMapTasks tab="maptasks" />);
     expect(
       screen.getByRole('region', { name: 'Vue carte, tâches et tutoriels' }),
     ).toBeInTheDocument();
-    expect(screen.getByTestId('map-view')).toBeInTheDocument();
-    expect(screen.getByTestId('tasks-view')).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByTestId('map-view')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByTestId('tasks-view')).toBeInTheDocument());
     expect(probes.map[0].embedded).toBe(true);
     expect(probes.map[0].onNavigateToTasksForLocation).toBeUndefined();
   });
@@ -68,7 +68,7 @@ describe('MapTasksArea', () => {
     expect(screen.getByRole('region', { name: 'Vue carte et tâches' })).toBeInTheDocument();
   });
 
-  test('asymétrie prof préservée : MapView du split sans canSelfAssignTasks, TasksView avec', () => {
+  test('asymétrie prof préservée : MapView du split sans canSelfAssignTasks, TasksView avec', async () => {
     render(
       <MapTasksArea
         {...baseProps}
@@ -81,22 +81,25 @@ describe('MapTasksArea', () => {
         hasPermissionInRole={() => true}
       />,
     );
+    await waitFor(() => expect(probes.map[0]).toBeTruthy());
+    await waitFor(() => expect(probes.tasks[0]).toBeTruthy());
     expect(probes.map[0].canSelfAssignTasks).toBeUndefined();
     expect(probes.tasks[0].canSelfAssignTasks).toBe(true);
     expect(probes.tasks[0].hasPermission).toEqual(expect.any(Function));
   });
 
-  test('onglet carte seul : MapView non embedded avec navigation vers les tâches', () => {
+  test('onglet carte seul : MapView non embedded avec navigation vers les tâches', async () => {
     render(<MapTasksArea {...baseProps} tab="map" />);
-    expect(screen.getByTestId('map-view')).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByTestId('map-view')).toBeInTheDocument());
     expect(screen.queryByTestId('tasks-view')).toBeNull();
     expect(probes.map[0].embedded).toBeUndefined();
     expect(probes.map[0].onNavigateToTasksForLocation).toBe(baseProps.onNavigateToTasksForLocation);
   });
 
-  test('onglet tâches seul : TasksView câblé avec les props élève', () => {
+  test('onglet tâches seul : TasksView câblé avec les props élève', async () => {
     render(<MapTasksArea {...baseProps} tab="tasks" canEnrollOnTasks={false} canSelfAssignTasks />);
     expect(screen.queryByTestId('map-view')).toBeNull();
+    await waitFor(() => expect(probes.tasks[0]).toBeTruthy());
     expect(probes.tasks[0]).toMatchObject({
       isTeacher: false,
       canEnrollOnTasks: false,
@@ -104,6 +107,16 @@ describe('MapTasksArea', () => {
       canViewOtherUsersIdentity: true,
     });
     expect(probes.tasks[0].hasPermission).toBeUndefined();
+  });
+
+  test('keep-alive mobile : la carte reste montée (masquée) après passage aux tâches', async () => {
+    const { rerender } = render(<MapTasksArea {...baseProps} tab="map" />);
+    await waitFor(() => expect(screen.getByTestId('map-view')).toBeInTheDocument());
+    rerender(<MapTasksArea {...baseProps} tab="tasks" />);
+    await waitFor(() => expect(screen.getByTestId('tasks-view')).toBeInTheDocument());
+    expect(screen.getByTestId('map-view')).toBeInTheDocument();
+    const mapWrap = screen.getByTestId('map-view').parentElement;
+    expect(mapWrap?.hidden).toBe(true);
   });
 
   test('gating élève : canAccessSoloMapTasks=false bloque carte et tâches hors split', () => {

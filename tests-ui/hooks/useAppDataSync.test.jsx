@@ -87,6 +87,72 @@ describe('useAppDataSync — coupure serveur', () => {
     expect(result.current.serverDown).toBe(false);
   });
 
+  it('débloque loading avant la fin du catalogue plantes (chemin critique carte/tâches)', async () => {
+    let resolvePlants;
+    const plantsGate = new Promise((resolve) => {
+      resolvePlants = resolve;
+    });
+    api.mockImplementation(async (path) => {
+      if (path.startsWith('/api/plants')) {
+        await plantsGate;
+        return PLANTS;
+      }
+      return nominalResponse(path);
+    });
+    const { result } = mountSync();
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.zones).toEqual(ZONES);
+    expect(result.current.markers).toEqual(MARKERS);
+    // Plantes encore en vol : l'UI principale est déjà utilisable.
+    expect(result.current.plants).toEqual([]);
+    await act(async () => {
+      resolvePlants();
+    });
+    await waitFor(() => expect(result.current.plants).toEqual(PLANTS));
+  });
+
+  it('un changement de carte ne recharge pas le catalogue plantes', async () => {
+    const MAPS_TWO = [
+      { id: 'm1', name: 'Forêt' },
+      { id: 'm2', name: 'N3' },
+    ];
+    const ZONES_M2 = [{ id: 'z2', name: 'Zone B' }];
+    api.mockImplementation(async (path) => {
+      if (path.startsWith('/api/maps')) return MAPS_TWO;
+      if (path.startsWith('/api/sync-state')) {
+        return {
+          bootId: 'boot-1',
+          writes: 1,
+          domains: {
+            maps: 1,
+            zones: 1,
+            tasks: 1,
+            plants: 1,
+            markers: 1,
+            tutorials: 1,
+            authMe: 1,
+          },
+        };
+      }
+      if (path.includes('map_id=m2') && path.startsWith('/api/zones')) return ZONES_M2;
+      if (path.includes('map_id=m2') && path.startsWith('/api/map/markers')) return [];
+      return nominalResponse(path);
+    });
+    const { result } = mountSync();
+    await waitFor(() => expect(result.current.plants).toEqual(PLANTS));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    api.mockClear();
+    await act(async () => {
+      result.current.setActiveMapId('m2');
+    });
+    await waitFor(() => expect(result.current.zones).toEqual(ZONES_M2));
+
+    const plantCalls = api.mock.calls.filter(([path]) => String(path).startsWith('/api/plants'));
+    expect(plantCalls).toHaveLength(0);
+    expect(result.current.plants).toEqual(PLANTS);
+  });
+
   it('un domaine en échec conserve les données déjà affichées (jamais de vidage)', async () => {
     const { result } = mountSync();
     await waitFor(() => expect(result.current.zones).toEqual(ZONES));

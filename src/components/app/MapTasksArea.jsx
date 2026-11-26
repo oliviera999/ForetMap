@@ -1,5 +1,17 @@
-import { MapView } from '../map-views';
-import { TasksView } from '../tasks-views';
+import { Suspense, useEffect, useState } from 'react';
+import { lazyScreen } from '../../shared/lazyScreen.jsx';
+import { AppLoader } from './AppLoader.jsx';
+
+/**
+ * Carte et tâches hors du chunk shell initial : le shell connecté s'affiche plus tôt
+ * après connexion ; le premier onglet charge son morceau à la demande.
+ */
+const MapView = lazyScreen(() => import('../map-views').then((m) => ({ default: m.MapView })));
+const TasksView = lazyScreen(() =>
+  import('../tasks-views').then((m) => ({ default: m.TasksView })),
+);
+
+const PANEL_FALLBACK = <AppLoader text="Chargement…" className="loader--panel" />;
 
 /**
  * Zone carte + tâches partagée par les branches prof et élève d'App.jsx (D4) :
@@ -18,7 +30,8 @@ import { TasksView } from '../tasks-views';
  * - `hasPermission` / `hasPermissionInRole` : volontairement absents côté
  *   élève (undefined → défaut `() => false` des vues, cf. note O5 d'App.jsx).
  *
- * Un seul bloc est rendu à la fois (split OU carte OU tâches) — iso-rendu.
+ * Mobile : une fois un onglet visité, il reste monté mais masqué (`hidden`) pour
+ * éviter le coût de remontage (image de plan, tuiles) à chaque aller-retour.
  */
 export function MapTasksArea({
   isTeacher,
@@ -53,6 +66,14 @@ export function MapTasksArea({
   onTasksFocusRequestHandled = null,
   onStartPedagoSession = null,
 }) {
+  const [keepMapMounted, setKeepMapMounted] = useState(() => tab === 'map');
+  const [keepTasksMounted, setKeepTasksMounted] = useState(() => tab === 'tasks');
+
+  useEffect(() => {
+    if (tab === 'map') setKeepMapMounted(true);
+    if (tab === 'tasks') setKeepTasksMounted(true);
+  }, [tab]);
+
   const mapRequestProps = {
     routeRequest: mapRouteRequest,
     onRouteRequestHandled: onMapRouteRequestHandled,
@@ -63,6 +84,49 @@ export function MapTasksArea({
     focusRequest: tasksFocusRequest,
     onFocusRequestHandled: onTasksFocusRequestHandled,
   };
+
+  const mapView = (
+    <MapView
+      maps={maps}
+      onMapChange={onMapChange}
+      isTeacher={isTeacher}
+      student={student}
+      canSelfAssignTasks={useSplitMapTasks ? splitMapCanSelfAssignTasks : canSelfAssignTasks}
+      canEnrollOnTasks={canEnrollOnTasks}
+      onZoneUpdate={onZoneUpdate}
+      onRefresh={onRefresh}
+      embedded={useSplitMapTasks || undefined}
+      onLocationTasksFocus={onLocationTasksFocus}
+      onNavigateToTasksForLocation={useSplitMapTasks ? undefined : onNavigateToTasksForLocation}
+      onOpenPlantCatalogPreview={onOpenPlantCatalogPreview}
+      onPersistVisitMascotId={onPersistVisitMascotId}
+      onForceLogout={onForceLogout}
+      {...mapRequestProps}
+    />
+  );
+
+  const tasksView = (
+    <TasksView
+      maps={maps}
+      onMapChange={onMapChange}
+      isTeacher={isTeacher}
+      student={student}
+      canSelfAssignTasks={canSelfAssignTasks}
+      canEnrollOnTasks={canEnrollOnTasks}
+      canViewOtherUsersIdentity={canViewOtherUsersIdentity}
+      hasPermission={hasPermission}
+      hasPermissionInRole={hasPermissionInRole}
+      onRefresh={onRefresh}
+      onForceLogout={onForceLogout}
+      onTaskFormOverlayOpenChange={onTaskFormOverlayOpenChange}
+      mapLocationFocus={mapLocationFocus}
+      onMapLocationFocusChange={onMapLocationFocusChange}
+      onOpenPlantCatalogPreview={onOpenPlantCatalogPreview}
+      onStartPedagoSession={onStartPedagoSession}
+      {...tasksRequestProps}
+    />
+  );
+
   return (
     <>
       {useSplitMapTasks && (
@@ -74,86 +138,24 @@ export function MapTasksArea({
           }
         >
           <section className="desktop-split-pane desktop-split-pane--map">
-            <MapView
-              maps={maps}
-              onMapChange={onMapChange}
-              isTeacher={isTeacher}
-              student={student}
-              canSelfAssignTasks={splitMapCanSelfAssignTasks}
-              canEnrollOnTasks={canEnrollOnTasks}
-              onZoneUpdate={onZoneUpdate}
-              onRefresh={onRefresh}
-              embedded
-              onLocationTasksFocus={onLocationTasksFocus}
-              onOpenPlantCatalogPreview={onOpenPlantCatalogPreview}
-              onPersistVisitMascotId={onPersistVisitMascotId}
-              onForceLogout={onForceLogout}
-              {...mapRequestProps}
-            />
+            <Suspense fallback={PANEL_FALLBACK}>{mapView}</Suspense>
           </section>
           <section className="desktop-split-pane desktop-split-pane--tasks">
             <div className="desktop-split-scroll">
-              <TasksView
-                maps={maps}
-                onMapChange={onMapChange}
-                isTeacher={isTeacher}
-                student={student}
-                canSelfAssignTasks={canSelfAssignTasks}
-                canEnrollOnTasks={canEnrollOnTasks}
-                canViewOtherUsersIdentity={canViewOtherUsersIdentity}
-                hasPermission={hasPermission}
-                hasPermissionInRole={hasPermissionInRole}
-                onRefresh={onRefresh}
-                onForceLogout={onForceLogout}
-                onTaskFormOverlayOpenChange={onTaskFormOverlayOpenChange}
-                mapLocationFocus={mapLocationFocus}
-                onMapLocationFocusChange={onMapLocationFocusChange}
-                onOpenPlantCatalogPreview={onOpenPlantCatalogPreview}
-                onStartPedagoSession={onStartPedagoSession}
-                {...tasksRequestProps}
-              />
+              <Suspense fallback={PANEL_FALLBACK}>{tasksView}</Suspense>
             </div>
           </section>
         </div>
       )}
-      {!useSplitMapTasks && tab === 'map' && canAccessSoloMapTasks && (
-        <MapView
-          maps={maps}
-          onMapChange={onMapChange}
-          isTeacher={isTeacher}
-          student={student}
-          canSelfAssignTasks={canSelfAssignTasks}
-          canEnrollOnTasks={canEnrollOnTasks}
-          onZoneUpdate={onZoneUpdate}
-          onRefresh={onRefresh}
-          onLocationTasksFocus={onLocationTasksFocus}
-          onNavigateToTasksForLocation={onNavigateToTasksForLocation}
-          onOpenPlantCatalogPreview={onOpenPlantCatalogPreview}
-          onPersistVisitMascotId={onPersistVisitMascotId}
-          onForceLogout={onForceLogout}
-          {...mapRequestProps}
-        />
+      {!useSplitMapTasks && canAccessSoloMapTasks && keepMapMounted && (
+        <div hidden={tab !== 'map'} aria-hidden={tab !== 'map'}>
+          <Suspense fallback={tab === 'map' ? PANEL_FALLBACK : null}>{mapView}</Suspense>
+        </div>
       )}
-      {!useSplitMapTasks && tab === 'tasks' && canAccessSoloMapTasks && (
-        <TasksView
-          maps={maps}
-          onMapChange={onMapChange}
-          isTeacher={isTeacher}
-          student={student}
-          canSelfAssignTasks={canSelfAssignTasks}
-          canEnrollOnTasks={canEnrollOnTasks}
-          canViewOtherUsersIdentity={canViewOtherUsersIdentity}
-          hasPermission={hasPermission}
-          hasPermissionInRole={hasPermissionInRole}
-          onRefresh={onRefresh}
-          onForceLogout={onForceLogout}
-          onTaskFormOverlayOpenChange={onTaskFormOverlayOpenChange}
-          mapLocationFocus={mapLocationFocus}
-          onMapLocationFocusChange={onMapLocationFocusChange}
-          onOpenPlantCatalogPreview={onOpenPlantCatalogPreview}
-          onStartPedagoSession={onStartPedagoSession}
-          {...tasksRequestProps}
-        />
+      {!useSplitMapTasks && canAccessSoloMapTasks && keepTasksMounted && (
+        <div hidden={tab !== 'tasks'} aria-hidden={tab !== 'tasks'}>
+          <Suspense fallback={tab === 'tasks' ? PANEL_FALLBACK : null}>{tasksView}</Suspense>
+        </div>
       )}
     </>
   );

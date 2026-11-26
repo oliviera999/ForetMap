@@ -9,6 +9,18 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — lenteur perçue juste après connexion (shell + fenêtres)
+
+- Le loader plein écran attendait la fin de **tout** `fetchAll` (dont le catalogue plantes
+  ~350 Ko) : rien n’était utilisable tant que ce lot n’était pas fini. L’UI principale se
+  débloque désormais dès que carte / zones / tâches / repères sont prêts ; plantes et
+  tutoriels suivent en arrière-plan.
+- Changement de plan : ne recharge plus plantes ni tutoriels (domaines scopés carte
+  seulement) — la clé de sync ne contient plus le plan actif.
+- `MapView` / `TasksView` et le formulaire de tâche (`TaskFormModal`) sont chargés à la
+  demande ; sur mobile, carte et tâches restent montés une fois visités (évite le
+  remontage à chaque onglet).
+
 ### Corrigé — suites CI lots A–F (pagination tâches, MCP, rétention, fumée)
 
 - `AppSurfaceSmoke` : seed `foretmap_session` aligné sur les gardes `getStoredSessionAccountKey`

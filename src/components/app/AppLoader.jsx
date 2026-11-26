@@ -8,12 +8,14 @@ export const FULL_PAGE_LOADER_STYLE = { height: '60vh' };
  *
  * @param {object} props
  * @param {React.ReactNode} props.text Message affiché sous la feuille.
- * @param {object} [props.style] Style inline du conteneur.
+ * @param {string} [props.className] Classes additionnelles du conteneur (ex. `loader--panel`).
+ * @param {object} [props.style] Style inline du conteneur (préférer une classe CSS).
  * @param {string} [props.textClassName] Classe du paragraphe (ex. `section-sub`).
  */
-export function AppLoader({ text, style, textClassName }) {
+export function AppLoader({ text, className, style, textClassName }) {
+  const rootClass = className ? `loader ${className}` : 'loader';
   return (
-    <div className="loader" style={style}>
+    <div className={rootClass} style={style}>
       <div className="loader-leaf">
         <IconLeaf size={48} />
       </div>
