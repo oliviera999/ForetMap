@@ -35,6 +35,8 @@ const FORBIDDEN_MODULES = [
   'src/components/pedago/GlossaryPopover.jsx',
   'src/components/pedago/SessionsView.jsx',
   'src/components/app/authenticatedShellParts.js',
+  // Pagination tâches (lot B) : réservée au shell connecté / temps réel.
+  'src/utils/tasksListResponse.js',
 ];
 
 /** Spécificateurs des imports et réexports statiques d'un fichier (pas les `import()`). */

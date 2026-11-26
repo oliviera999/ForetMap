@@ -20,7 +20,9 @@ import {
   isOfflineError,
   subscribeNetworkStatus,
 } from '../shared/networkStatus.js';
-import { fetchAllTaskPages } from '../utils/tasksListResponse.js';
+
+/** Pagination tâches : hors fermeture statique de l'écran de connexion (budget U1). */
+const loadTasksListResponse = () => import('../utils/tasksListResponse.js');
 
 /** Échec imputable au serveur (réseau ou 5xx) — jamais quand l'appareil est hors ligne. */
 function isServerSideFailure(err) {
@@ -181,7 +183,10 @@ export function useAppDataSync({
           // Garde de session (audit 26/11 S2) : une réponse arrivée après logout /
           // changement de compte ne doit pas réécrire l'état domaine.
           const accountAtCycleStart = getStoredSessionAccountKey();
-          if (!hasAuthenticatedShellRef.current || !accountAtCycleStart) {
+          const staleAccount = () =>
+            !hasAuthenticatedShellRef.current ||
+            getStoredSessionAccountKey() !== accountAtCycleStart;
+          if (!accountAtCycleStart || staleAccount()) {
             break;
           }
           const snap = fetchAllContextRef.current;
@@ -211,12 +216,7 @@ export function useAppDataSync({
           if (initialFetchDoneRef.current && !isDeviceOffline()) {
             try {
               const probed = await api('/api/sync-state');
-              if (
-                !hasAuthenticatedShellRef.current ||
-                getStoredSessionAccountKey() !== accountAtCycleStart
-              ) {
-                break;
-              }
+              if (staleAccount()) break;
               if (isValidSyncState(probed)) syncState = probed;
             } catch (err) {
               // Un compte supprimé se voit aussi depuis la sonde : sans ce cas, l'échec
@@ -267,12 +267,7 @@ export function useAppDataSync({
             };
 
             const mapsRes = await safeApi(() => api('/api/maps'));
-            if (
-              !hasAuthenticatedShellRef.current ||
-              getStoredSessionAccountKey() !== accountAtCycleStart
-            ) {
-              break;
-            }
+            if (staleAccount()) break;
             // `/api/maps` en échec : on repart des cartes déjà connues. Sans elles,
             // `resolvedMapId` deviendrait nul, `mapQuery` vide, et TOUS les autres domaines
             // seraient « rechargés » à vide — l'écran se viderait pour une seule requête ratée.
@@ -338,7 +333,11 @@ export function useAppDataSync({
                   )
                 : skipDomain(),
               needsDomain('tasks')
-                ? safeApi(() => (mapQuery ? fetchAllTaskPages(api, mapQuery) : Promise.resolve([])))
+                ? safeApi(async () => {
+                    if (!mapQuery) return [];
+                    const { fetchAllTaskPages } = await loadTasksListResponse();
+                    return fetchAllTaskPages(api, mapQuery);
+                  })
                 : skipDomain(),
               needsDomain('tasks')
                 ? safeApi(() =>
@@ -356,12 +355,7 @@ export function useAppDataSync({
               needsDomain('tutorials') ? safeApi(() => api(tutorialsEndpoint)) : skipDomain(),
             ]);
 
-            if (
-              !hasAuthenticatedShellRef.current ||
-              getStoredSessionAccountKey() !== accountAtCycleStart
-            ) {
-              break;
-            }
+            if (staleAccount()) break;
 
             if (resolvedMapId !== mapIdState) {
               setActiveMapId(resolvedMapId);
@@ -572,6 +566,7 @@ export function useAppDataSync({
     if (!accountAtStart || !hasAuthenticatedShellRef.current) return;
     try {
       const mapQuery = `map_id=${encodeURIComponent(mapId)}`;
+      const { fetchAllTaskPages } = await loadTasksListResponse();
       const [tRaw, projects] = await Promise.all([
         fetchAllTaskPages(api, `${mapQuery}&archived=archived`),
         api(`/api/task-projects?${mapQuery}&archived=archived`).catch(() => []),

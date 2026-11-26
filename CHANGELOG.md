@@ -20,6 +20,8 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   alignés.
 - `tasks-archive` : assertions `archived=all` via totaux paginés (évite faux négatif si
   `total` > limite de page).
+- Budget entrée connexion : `tasksListResponse` en `import()` ; plafond JS 507→508 Ko
+  (gardes session lots A–B, hooks encore montés hors shell).
 
 ### Modifié — disponibilité, rétention et doc lieux (audit 26/11, lot F)
 

@@ -51,10 +51,14 @@ const BUNDLE_BUDGETS = Object.freeze({
     // 509 → 507 le 22/11/2026 (niveau de contenu des professeurs) : la modale « Connexion
     // professeur » (`PinModal`, ~4,6 Ko) part à la demande ; le résolveur du niveau de contenu
     // en reprend ~1,4 Ko. Mesure : 508,8 Ko sur `main`, 504,6 Ko après.
+    // 507 → 508 le 26/11/2026 (audit lots A–B) : gardes de course session / purge domaine dans
+    // `useAppDataSync` + `useForetmapRealtime` (hooks montés dès l'écran de connexion). La
+    // pagination `tasksListResponse` reste en `import()` pour ne pas gonfler la fermeture.
+    // Mesure : 506,3 Ko sur `main`, 507,1 Ko après (pagination hors bundle statique).
     // CSS 372 → 365 le 24/11/2026 : `main` était passé à 372,9 Ko (plafond franchi). Les
     // styles du studio narrateur et de l'administration des comptes quittent `src/index.css`
     // pour des feuilles importées par leurs écrans (chargés à la demande) : 359,8 Ko après.
-    jsKb: 507,
+    jsKb: 508,
     // CSS 365 → 360 le 24/11/2026 : styles des réglages et de la médiathèque chargés avec leurs
     // vues (`src/components/admin-console.css`). Mesure : 359,8 Ko sur `main`, 355,6 Ko après.
     cssKb: 360,
