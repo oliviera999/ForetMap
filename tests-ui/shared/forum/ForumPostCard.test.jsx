@@ -51,6 +51,11 @@ describe('ForumPostCard', () => {
     expect(screen.getByText('Bonjour la forêt')).toBeInTheDocument();
   });
 
+  test('avec shareUrl : propose de copier le lien du message', () => {
+    renderCard({ shareUrl: 'https://exemple.test/?fil=t1&message=p1' });
+    expect(screen.getByLabelText('Copier le lien de ce message')).toBeInTheDocument();
+  });
+
   test('message supprimé : marqueur seul, ni réactions ni actions', () => {
     renderCard({ post: post({ is_deleted: 1 }) });
     expect(screen.getByText('[message supprimé]')).toBeInTheDocument();

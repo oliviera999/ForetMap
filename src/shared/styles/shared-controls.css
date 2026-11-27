@@ -346,3 +346,58 @@ details.admin-section > summary {
 .fm-location-links__audience[open] > summary {
   margin-bottom: 4px;
 }
+
+/* Icône discrète « copier le lien direct » (forum, fiche lieu, tâche). */
+.copy-deep-link-footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  margin-top: 10px;
+  padding-top: 6px;
+  border-top: 1px solid var(--gl-border, rgba(26, 71, 49, 0.12));
+}
+
+.copy-deep-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  margin: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--gl-color-text-muted, var(--ink-muted, #6b7280));
+  cursor: pointer;
+  opacity: 0.55;
+  transition:
+    opacity var(--motion-fast, 0.12s) ease,
+    color var(--motion-fast, 0.12s) ease,
+    background var(--motion-fast, 0.12s) ease;
+}
+
+.copy-deep-link:hover,
+.copy-deep-link:focus-visible {
+  opacity: 1;
+  color: var(--gl-color-primary, var(--forest, #1a4731));
+  background: var(--tint-success, rgba(26, 71, 49, 0.06));
+  outline: none;
+}
+
+.copy-deep-link.is-copied {
+  opacity: 1;
+  color: var(--gl-color-primary, var(--forest, #1a4731));
+}
+
+@media (pointer: fine) {
+  .copy-deep-link {
+    min-width: 36px;
+    min-height: 36px;
+  }
+}
+
+.copy-deep-link--inline {
+  margin-left: auto;
+  opacity: 0.45;
+}

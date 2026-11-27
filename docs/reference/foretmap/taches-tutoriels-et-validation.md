@@ -241,7 +241,9 @@ faire défiler la page.
 - **Arriver depuis une notification ou un lien direct** : la liste retire d'abord les
   filtres qui pourraient cacher la tâche, pose le bon statut (« Terminée (à valider) » pour
   une tâche à valider, « En retard » pour un rappel de retard…), puis **amène la tâche à
-  l'écran et l'encadre quelques secondes** pour qu'on la repère d'un coup d'œil.
+  l'écran et l'encadre quelques secondes** pour qu'on la repère d'un coup d'œil. En bas de
+  chaque carte de tâche, une petite icône de lien **copie** ce lien direct dans le
+  presse-papiers.
 - **L'affichage** est mémorisé d'une visite à l'autre. À la toute première visite, les
   écrans étroits (téléphone) démarrent en **condensé** — une ligne par tâche — pour en
   montrer davantage d'un coup ; les grands écrans démarrent en **tuiles**. Chacun peut en

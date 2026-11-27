@@ -70,6 +70,12 @@ describe('TaskTileCard', () => {
     expect(screen.getByText('Arroser les tomates')).toBeInTheDocument();
   });
 
+  test('propose une icône pour copier le lien direct de la tâche', () => {
+    render(<TaskTileCard {...makeProps()} />);
+    expect(screen.getByTestId('copy-deep-link-footer')).toBeInTheDocument();
+    expect(screen.getByLabelText('Copier le lien de cette tâche')).toBeInTheDocument();
+  });
+
   test('côté n3boss : expose les actions de gestion (modifier / supprimer)', () => {
     render(<TaskTileCard {...makeProps({ isTeacher: true })} />);
     expect(screen.getByLabelText('Modifier la tâche')).toBeInTheDocument();

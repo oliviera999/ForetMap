@@ -45,6 +45,7 @@ import {
   useLocationTaskAssignment,
 } from './useLocationModalState.js';
 import { IconMarker, IconSave } from '../../shared/icons.jsx';
+import { buildCurrentDeepLinkUrl } from '../../utils/deepLinkTarget.js';
 
 function MarkerModal({
   marker,
@@ -260,6 +261,12 @@ function MarkerModal({
       dialogStyle={{ paddingTop: 16 }}
       toast={toast}
       onToastDone={() => setToast(null)}
+      shareUrl={buildCurrentDeepLinkUrl({
+        type: 'place',
+        kind: 'marker',
+        id: String(marker.id),
+        mapId: marker.map_id || null,
+      })}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
         <div style={{ flex: 1, minWidth: 0 }}>

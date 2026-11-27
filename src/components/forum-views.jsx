@@ -10,6 +10,7 @@ import {
   isForumModerator,
   parseReactionEmojiList,
 } from '../shared/forum/forumHelpers.js';
+import { buildCurrentDeepLinkUrl } from '../utils/deepLinkTarget.js';
 
 const FORETMAP_LIMITS = Object.freeze({ titleMin: 4, titleMax: 180, bodyMax: 4000 });
 
@@ -88,6 +89,7 @@ function ForumView({
       refreshSignal={refreshSignal}
       threadRequest={threadRequest}
       onThreadRequestHandled={onThreadRequestHandled}
+      buildShareUrl={buildCurrentDeepLinkUrl}
       readOnlyNote={
         <p className="forum-muted">
           Tu consultes le forum en <strong>lecture seule</strong>. La participation (nouveaux

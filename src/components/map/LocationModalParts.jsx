@@ -11,6 +11,7 @@
  */
 import { useCallback } from 'react';
 import { TimedToast } from '../../shared/components/TimedToast.jsx';
+import { DeepLinkShareFooter } from '../../shared/components/CopyDeepLinkButton.jsx';
 import { useExitAnimation } from '../../shared/hooks/useExitAnimation.js';
 import { DialogShell } from '../DialogShell';
 import { ContextComments } from '../context-comments';
@@ -99,6 +100,9 @@ export function LocationModalShell({
   dialogStyle,
   toast,
   onToastDone,
+  /** URL de lien direct déjà résolue (`?lieu=…`) : icône discrète en pied de fiche. */
+  shareUrl = '',
+  shareLabel = 'Copier le lien de ce lieu',
   children,
 }) {
   const { closing, runExit } = useExitAnimation();
@@ -119,6 +123,7 @@ export function LocationModalShell({
         <IconClose size={16} />
       </button>
       {children}
+      {shareUrl ? <DeepLinkShareFooter url={shareUrl} label={shareLabel} /> : null}
     </DialogShell>
   );
 }
