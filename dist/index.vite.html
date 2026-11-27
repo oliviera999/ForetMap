@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+    <!-- PWA core -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#1a4731" />
+
+    <!-- iOS PWA -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="ForêtMap" />
+
+    <!-- Android / Chrome -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="application-name" content="ForêtMap" />
+
+    <!-- SEO / description -->
+    <meta name="description" content="Gestion et cartographie de la forêt comestible du Lycée Lyautey" />
+
+    <title>ForêtMap – Lycée Lyautey</title>
+
+    <!-- Icons -->
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/pwa-icon-192.png" />
+    <link rel="apple-touch-icon" sizes="192x192" href="/pwa-icon-192.png" />
+
+    <!-- Polices auto-hébergées (src/shared/fonts/) : aucun appel à Google Fonts (RGPD). -->
+    <!-- PAS de preload de la police emoji auto-hébergée : un preload de police est
+         inconditionnel et prioritaire (il part avant même l'analyse du CSS), ce qui annulait
+         l'`unicode-range` du @font-face et imposait 5,7 Mo à tous les appareils — dont ceux
+         qui, depuis que 'Apple Color Emoji' est en tête de pile, ne la demandent jamais.
+         Le FOUT que ce preload évitait ne concerne plus que le parc non-Apple, où
+         `font-display: swap` fait le travail. docs/AUDIT_EMOJIS_APPLE_2026-09-17.md § 4. -->
+    <script type="module" crossorigin src="/assets/main-BO7dVea5.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/rolldown-runtime-XKyaHtl9.js">
+    <link rel="modulepreload" crossorigin href="/assets/icons-DLPkQdsV.js">
+    <link rel="modulepreload" crossorigin href="/assets/react-vendor-C4JJtGyn.js">
+    <link rel="modulepreload" crossorigin href="/assets/useDialogA11y-CjD1-Dt_.js">
+    <link rel="modulepreload" crossorigin href="/assets/dragReleaseClickGuard-pyDCdMdM.js">
+    <link rel="modulepreload" crossorigin href="/assets/previewStorage-DgVT1xQQ.js">
+    <link rel="modulepreload" crossorigin href="/assets/journalDraftQueue-aQ36YLPl.js">
+    <link rel="modulepreload" crossorigin href="/assets/localDataCleanup-DifNynYH.js">
+    <link rel="modulepreload" crossorigin href="/assets/ImageLightboxProvider-DgYuXko-.js">
+    <link rel="modulepreload" crossorigin href="/assets/preload-helper-BLdHbfdN.js">
+    <link rel="modulepreload" crossorigin href="/assets/TotpChallenge-CvAe_QXs.js">
+    <link rel="stylesheet" crossorigin href="/assets/dragReleaseClickGuard-DKelHO6a.css">
+    <link rel="stylesheet" crossorigin href="/assets/localDataCleanup-BpdSH9YF.css">
+    <link rel="stylesheet" crossorigin href="/assets/ImageLightboxProvider-DK8W7_8X.css">
+    <link rel="stylesheet" crossorigin href="/assets/main-BbRfE2ej.css">
+    <link rel="stylesheet" crossorigin href="/assets/foretmap-styles-n26wEL69.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>

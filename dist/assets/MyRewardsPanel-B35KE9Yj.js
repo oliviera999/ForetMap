@@ -1,0 +1,1 @@
+import{at as e}from"./main-BO7dVea5.js";import{t}from"./RewardsPanel-CpD41N65.js";import{t as n}from"./react-vendor-C4JJtGyn.js";var r=n();function i(n){let i=e()?.content?.help?.narrator||null;return(0,r.jsx)(t,{narrator:i,...n})}export{i as t};

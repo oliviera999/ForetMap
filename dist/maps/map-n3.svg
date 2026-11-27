@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" role="img" aria-label="Carte N3">
+  <rect width="1600" height="1000" fill="#e8f5e9"/>
+  <rect x="24" y="24" width="1552" height="952" rx="24" fill="#f7fbf7" stroke="#cce3d0" stroke-width="4"/>
+  <text x="800" y="420" text-anchor="middle" font-family="Arial, sans-serif" font-size="104" fill="#1a4731" font-weight="700">
+    Carte N3
+  </text>
+  <text x="800" y="500" text-anchor="middle" font-family="Arial, sans-serif" font-size="36" fill="#4f7a63">
+    Fallback N3
+  </text>
+</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" role="img" aria-label="Carte N3">
+  <rect width="1600" height="1000" fill="#e8f5e9"/>
+  <rect x="24" y="24" width="1552" height="952" rx="24" fill="#f7fbf7" stroke="#cce3d0" stroke-width="4"/>
+  <text x="800" y="420" text-anchor="middle" font-family="Arial, sans-serif" font-size="104" fill="#1a4731" font-weight="700">
+    Carte N3
+  </text>
+  <text x="800" y="500" text-anchor="middle" font-family="Arial, sans-serif" font-size="36" fill="#4f7a63">
+    Image de zone N3 intýgrýe
+  </text>
+  <text x="800" y="560" text-anchor="middle" font-family="Arial, sans-serif" font-size="28" fill="#6b8f78">
+    (remplaýable ultýrieurement par une photo/plan plus dýtaillý)
+  </text>
+</svg>

@@ -1,0 +1,1 @@
+var e=`foretmap.biodivPedagoPreview`;function t(){try{if(typeof sessionStorage>`u`)return null;let e=String(sessionStorage.getItem(`foretmap.biodivPedagoPreview`)||``).trim();return e&&e.length<=32?e:null}catch{return null}}export{t as n,e as t};

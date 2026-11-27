@@ -1,0 +1,1 @@
+import{i as e}from"./AppDialogsProvider-kiDUsDYR.js";import{t}from"./react-vendor-C4JJtGyn.js";var n=t();function r({tone:t=`neutral`,className:r=``,children:i}){return(0,n.jsx)(`span`,{className:e(`gl-badge`,`gl-badge--${t}`,r),children:i})}export{r as t};
