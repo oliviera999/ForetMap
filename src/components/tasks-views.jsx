@@ -809,9 +809,12 @@ function TasksViewImpl({
   /** Une couleur par projet (cartes de tâches + case du projet), indépendante des filtres. */
   const projectColorById = useMemo(() => assignProjectColors(sourceProjects), [sourceProjects]);
   // Groupement projet → tâches (P2) : ordre manuel / étapes, sans priorize « à valider ».
+  // Source = `allFiltered` (pas `allFilteredWithoutUrgent`) : une tâche « Urgent ! » quitte
+  // les sections de statut pour l'encart du haut, mais reste visible dans la case de son
+  // projet (sinon compteur à 0 et message « Aucune tâche liée… » alors que le lien existe).
   const projectTasksById = useMemo(
-    () => groupProjectTasksById(allFilteredWithoutUrgent, stepInfoByTaskId),
-    [allFilteredWithoutUrgent, stepInfoByTaskId],
+    () => groupProjectTasksById(allFiltered, stepInfoByTaskId),
+    [allFiltered, stepInfoByTaskId],
   );
   /**
    * Sections par statut (« À faire », « En cours », « Mes tâches »…) : incluent aussi les
