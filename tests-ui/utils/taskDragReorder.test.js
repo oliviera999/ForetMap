@@ -1,5 +1,8 @@
 import { describe, test, expect } from 'vitest';
-import { computeReorderedProjectTaskIds } from '../../src/utils/taskDragReorder.js';
+import {
+  computeReorderedProjectTaskIds,
+  swapTaskIdsInOrder,
+} from '../../src/utils/taskDragReorder.js';
 
 const TASKS = [
   { id: 'a', project_id: 'p1' },
@@ -8,6 +11,17 @@ const TASKS = [
   { id: 'x', project_id: 'p2' },
   { id: 'z', project_id: '' },
 ];
+
+describe('swapTaskIdsInOrder', () => {
+  test('échange deux ids présents', () => {
+    expect(swapTaskIdsInOrder(['a', 'b', 'c'], 'c', 'a')).toEqual(['c', 'b', 'a']);
+  });
+
+  test('id absent : liste inchangée (nouvelle copie quand entrée valide)', () => {
+    const src = ['a', 'b'];
+    expect(swapTaskIdsInOrder(src, 'a', 'z')).toEqual(['a', 'b']);
+  });
+});
 
 describe('computeReorderedProjectTaskIds', () => {
   test('sans beforeTaskId : la tâche glissée arrive en fin de projet cible', () => {

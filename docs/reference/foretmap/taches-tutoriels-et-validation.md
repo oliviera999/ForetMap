@@ -65,13 +65,18 @@ La numérotation n'est prise en compte que si **au moins deux** tâches du proje
 numérotées : une tâche isolée comme « 3 graines par godet » ne déclenche rien. Un nombre à
 quatre chiffres (une année) n'est jamais lu comme une étape.
 
-**Réordonner** : le professeur qui gère les tâches peut changer l'ordre des tâches d'un
-projet en les **glissant-déposant** (souris), ou avec les **flèches ↑ ↓** à gauche de chaque
-carte (tablette, téléphone, clavier). L'ordre ainsi choisi est **conservé** dans la case du
-projet (y compris après un rechargement), indépendamment du statut de chaque tâche. Dans un
-projet numéroté, on ne réordonne qu'**à l'intérieur d'une même étape** (par exemple entre deux
-tâches « 2 ») : pour faire changer une tâche d'étape, modifiez le numéro au début de son
-titre. Les tâches restent aussi regroupées par phase quand le projet en utilise.
+**Réordonner (liste générale)** : le professeur qui gère les tâches dispose de **flèches ↑ ↓**
+à gauche de chaque carte dans les sections (« À faire », « En cours », etc.). Elles
+changent l'**ordre d'apparition** des tâches les unes par rapport aux autres ; cet ordre est
+**conservé** après un rechargement.
+
+**Réordonner dans un projet** : dans la case d'un projet dépliée, on peut aussi
+**glisser-déposer** (souris) ou utiliser les **flèches ↑ ↓**. Les phases du projet
+**ne bloquent plus** ces flèches : une tâche peut monter ou descendre d'une phase à l'autre.
+Dans un projet numéroté, on ne réordonne toujours qu'**à l'intérieur d'une même étape**
+(par exemple entre deux tâches « 2 ») : pour faire changer une tâche d'étape, modifiez le
+numéro au début de son titre. L'affichage peut encore **regrouper** les tâches par phase
+pour la lecture.
 
 Le statut « **terminé** » d'un projet est **automatique** : dès que toutes ses tâches sont
 faites ou validées, le projet passe terminé — et il redevient actif si une nouvelle tâche
@@ -177,8 +182,9 @@ des tâches urgentes encore à traiter), puis :
   « En attente », « Récemment validées ».
 
 Les tâches **à faire** passent donc **avant** celles **en cours** : on voit d'abord ce qui
-reste libre, puis ce qui tourne déjà. Dans la **case d'un projet**, l'ordre est celui du
-réordonnancement manuel (ou des numéros d'étape) — pas celui des sections par statut.
+reste libre, puis ce qui tourne déjà. **Dans chaque section**, l'ordre est celui choisi
+avec les flèches (ou, à défaut, l'importance puis l'échéance). Dans la **case d'un projet**,
+l'ordre est celui du réordonnancement manuel (ou des numéros d'étape).
 
 ## Les tâches à valider passent en premier
 
@@ -191,9 +197,9 @@ rôle à qui ce droit a été donné), l'écran Tâches met en avant ce qui atte
   « Mes tâches » et les résultats filtrés — les tâches terminées en attente de validation
   sont **placées en haut**, le reste gardant son ordre habituel.
 
-**Exception — case d'un projet** : l'ordre manuel (glisser-déposer / flèches) et les étapes
-numérotées du titre l'emportent toujours. Une tâche « terminée » n'est **pas** remontée en
-tête de la case au détriment de cet ordre.
+**Exception — case d'un projet** : l'ordre manuel (glisser-déposer / flèches, y compris
+entre phases) et les étapes numérotées du titre l'emportent toujours. Une tâche
+« terminée » n'est **pas** remontée en tête de la case au détriment de cet ordre.
 
 Les personnes sans ce droit voient l'ordre habituel : « En attente de validation » reste
 plus bas, après les tâches sur lesquelles elles peuvent agir.

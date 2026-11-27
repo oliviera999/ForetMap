@@ -363,6 +363,7 @@ const WRITE_ROUTES = Object.freeze({
   'POST /api/tasks/proposals':
     'garde interne : resolveStudentActionContext(…, tasks.propose), identité tirée du jeton',
   'POST /api/tasks/reorder-project': 'permission:tasks.manage',
+  'POST /api/tasks/reorder': 'permission:tasks.manage',
   'POST /api/tutorials': 'permission:tutorials.manage',
   'DELETE /api/tutorials/:id': 'permission:tutorials.manage',
   'PUT /api/tutorials/:id': 'permission:tutorials.manage',

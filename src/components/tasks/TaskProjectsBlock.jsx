@@ -523,11 +523,18 @@ function TaskProjectsBlock({
                               {group.label && (
                                 <h4 className="task-project-phase-heading">{group.label}</h4>
                               )}
-                              {group.tasks.map((t, groupIndex) => {
-                                /* Voisins dans la liste affichée (même phase) ; une flèche ne
-                                   franchit jamais une étape numérotée du titre. */
-                                const prevTask = group.tasks[groupIndex - 1];
-                                const nextTask = group.tasks[groupIndex + 1];
+                              {group.tasks.map((t) => {
+                                /* Voisins dans la liste plate du projet (les phases ne
+                                   bornent plus les flèches). Une flèche ne franchit jamais
+                                   une étape numérotée du titre. */
+                                const flatIndex = projectTasks.findIndex(
+                                  (row) => String(row.id) === String(t.id),
+                                );
+                                const prevTask = flatIndex > 0 ? projectTasks[flatIndex - 1] : null;
+                                const nextTask =
+                                  flatIndex >= 0 && flatIndex < projectTasks.length - 1
+                                    ? projectTasks[flatIndex + 1]
+                                    : null;
                                 const canMoveUp =
                                   !!prevTask && sameStepBucket(stepInfoByTaskId, t.id, prevTask.id);
                                 const canMoveDown =

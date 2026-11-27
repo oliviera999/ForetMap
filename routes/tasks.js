@@ -459,6 +459,65 @@ router.post(
   }),
 );
 
+/**
+ * Réordonnancement global (flèches ↑↓ hors projet) : densifie `sort_order` = 1..n
+ * pour exactement les ids fournis (actives, non archivées). Le client envoie la liste
+ * ordonnée complète du périmètre affiché (ex. tâches de la carte courante).
+ * `map_id` optionnel : audit / événement temps réel uniquement.
+ */
+router.post(
+  '/reorder',
+  requirePermission('tasks.manage'),
+  asyncHandler(async (req, res) => {
+    const orderedTaskIdsInput = normalizeIdArray(req.body?.task_ids);
+    const mapId = normalizeOptionalId(req.body?.map_id);
+    if (!orderedTaskIdsInput.length)
+      return res.status(400).json({ error: 'Liste de tâches requise' });
+    if (mapId && !(await mapExists(mapId)))
+      return res.status(400).json({ error: 'Carte introuvable' });
+
+    const orderedTaskIds = [];
+    const seen = new Set();
+    for (const tid of orderedTaskIdsInput) {
+      const normalized = String(tid || '').trim();
+      if (!normalized || seen.has(normalized)) continue;
+      seen.add(normalized);
+      orderedTaskIds.push(normalized);
+    }
+    if (!orderedTaskIds.length) return res.status(400).json({ error: 'Liste de tâches requise' });
+
+    const placeholders = orderedTaskIds.map(() => '?').join(',');
+    const scopeRows = await queryAll(
+      `SELECT id FROM tasks
+        WHERE archived_at IS NULL AND id IN (${placeholders})`,
+      orderedTaskIds,
+    );
+    const knownIds = new Set(scopeRows.map((row) => String(row.id)));
+    if (knownIds.size !== orderedTaskIds.length) {
+      return res.status(400).json({ error: 'La liste contient une tâche introuvable ou archivée' });
+    }
+
+    await withTransaction(async (tx) => {
+      for (let idx = 0; idx < orderedTaskIds.length; idx += 1) {
+        await tx.execute('UPDATE tasks SET sort_order = ? WHERE id = ?', [
+          idx + 1,
+          orderedTaskIds[idx],
+        ]);
+      }
+    });
+
+    logAudit('reorder_tasks', 'task', null, 'Ordre des tâches', {
+      req,
+      payload: {
+        map_id: mapId || null,
+        task_count: orderedTaskIds.length,
+      },
+    });
+    emitTasksChanged({ reason: 'reorder_tasks', mapId: mapId || null });
+    res.json({ success: true, map_id: mapId || null, ordered_task_ids: orderedTaskIds });
+  }),
+);
+
 async function getScopedAssignableStudentIds(auth) {
   const scope = await getScopedStudentIds(auth);
   return scope.all ? null : scope.studentIds;

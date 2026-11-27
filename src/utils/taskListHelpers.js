@@ -15,8 +15,18 @@ export const TASK_IMPORTANCE_SORT_WEIGHT = Object.fromEntries(
   TASK_IMPORTANCE_LEVEL_ENUM.values.map((level, index) => [level, index + 1]),
 );
 
-/** Même logique que GET /api/tasks : importance explicite d’abord (poids décroissant), puis sans importance, puis date limite. */
+/**
+ * Même logique que GET /api/tasks : d'abord les tâches à `sort_order > 0` (ordre manuel),
+ * puis importance explicite (poids décroissant), puis sans importance, puis date limite.
+ */
 export function compareTasksByImportanceThenDueDate(a, b) {
+  const soA = Number(a?.sort_order) || 0;
+  const soB = Number(b?.sort_order) || 0;
+  const pinnedA = soA > 0 ? 0 : 1;
+  const pinnedB = soB > 0 ? 0 : 1;
+  if (pinnedA !== pinnedB) return pinnedA - pinnedB;
+  if (pinnedA === 0 && soA !== soB) return soA - soB;
+
   const rawA = String(a?.importance_level || '')
     .trim()
     .toLowerCase();

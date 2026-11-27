@@ -236,6 +236,10 @@ export function partitionTasksByEffectiveStatus(regularFiltered) {
     const bucket = bucketByStatus[taskSectionStatus(t)];
     if (bucket) bucket.push(t);
   }
+  // Ordre manuel (`sort_order`) puis importance / échéance — aligné sur GET /api/tasks.
+  for (const key of Object.keys(buckets)) {
+    buckets[key].sort(compareTasksByImportanceThenDueDate);
+  }
   return buckets;
 }
 

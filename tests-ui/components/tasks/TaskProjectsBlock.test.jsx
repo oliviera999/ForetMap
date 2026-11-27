@@ -140,6 +140,26 @@ describe('TaskProjectsBlock', () => {
     expect(screen.queryByRole('button', { name: /^Monter/ })).toBeNull();
   });
 
+  test('flèches franchissent les phases (bornage assoupli)', async () => {
+    const user = userEvent.setup();
+    const onMoveProjectTask = vi.fn();
+    const tasks = [
+      { id: 'a', title: 'Observer', project_phase: 'concevoir' },
+      { id: 'b', title: 'Construire', project_phase: 'realiser' },
+    ];
+    renderBlock({
+      isTeacher: true,
+      canReorderProjectTasks: true,
+      onMoveProjectTask,
+      projectTasksById: new Map([['p1', tasks]]),
+      stepInfoByTaskId: new Map(),
+    });
+    await user.click(screen.getByRole('button', { name: /Semis de printemps/i }));
+    expect(screen.getByRole('button', { name: 'Descendre « Observer »' })).not.toBeDisabled();
+    await user.click(screen.getByRole('button', { name: 'Descendre « Observer »' }));
+    expect(onMoveProjectTask).toHaveBeenLastCalledWith('b', 'p1', 'a');
+  });
+
   test('dragOver : preventDefault dès text/plain même sans taskDragPayload React', async () => {
     const user = userEvent.setup();
     const onProjectTaskDragOver = vi.fn();

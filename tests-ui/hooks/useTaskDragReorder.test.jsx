@@ -201,3 +201,38 @@ describe('useTaskDragReorder — projets numérotés (étapes du titre)', () => 
     expect(result.current.taskDragPayload).toBeNull();
   });
 });
+
+describe('useTaskDragReorder — flèches globales (sections)', () => {
+  const SECTION = [
+    { id: 'a', map_id: 'foret', sort_order: 1 },
+    { id: 'b', map_id: 'foret', sort_order: 2 },
+    { id: 'c', map_id: 'foret', sort_order: 3 },
+  ];
+
+  beforeEach(() => {
+    api.mockReset();
+    api.mockResolvedValue({});
+  });
+
+  it('moveTaskInSection échange avec le voisin et POST /api/tasks/reorder', async () => {
+    const { result } = setup({
+      tasks: SECTION,
+      activeMapId: 'foret',
+      filterMap: 'active',
+    });
+    await act(async () => {
+      expect(result.current.moveTaskInSection('b', 'up', SECTION)).toBe(true);
+    });
+    expect(api).toHaveBeenCalledWith('/api/tasks/reorder', 'POST', {
+      task_ids: ['b', 'a', 'c'],
+      map_id: 'foret',
+    });
+  });
+
+  it('moveTaskInSection borné en tête/fin de section', () => {
+    const { result, withLoad } = setup({ tasks: SECTION });
+    expect(result.current.moveTaskInSection('a', 'up', SECTION)).toBe(false);
+    expect(result.current.moveTaskInSection('c', 'down', SECTION)).toBe(false);
+    expect(withLoad).not.toHaveBeenCalled();
+  });
+});
