@@ -9,6 +9,21 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — carte : la mascotte marche vraiment jusqu’à une zone ou un repère
+
+**Changement visible :** sur la carte de travail, cliquer une zone ou un repère fait
+désormais **marcher** la mascotte (cycle de marche) pendant le trajet ; l’animation du
+lieu (lecture de carte / inspection) ne joue qu’**à l’arrivée**, comme sur le plan de
+Visite. Avant, cette animation partait au clic et écrasait la marche → translation CSS
+sans cycle de marche (alors qu’un clic sur le vide animait correctement).
+
+- Cause : `useMapViewMascot` émettait `MAP_READ_OPEN` / `MARKER_INSPECT_OPEN` immédiatement ;
+  `resolveVisitMascotState` priorise l’état transitoire sur `walking`.
+- Correctif : ces événements sont différés via `scheduleAfterMove({ onArrive })`, aligné sur
+  la Visite.
+- Tests : `tests-ui/hooks/useMapViewMascot.test.jsx`. Doc :
+  `docs/reference/foretmap/carte-et-zones.md`.
+
 ### Corrigé — ordre des tâches de projet + sections « À faire » avant « En cours »
 
 - Bloc projet : l'ordre manuel (`sort_order` / glisser-déposer) n'est plus écrasé par la
