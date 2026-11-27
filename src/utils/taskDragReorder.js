@@ -1,8 +1,8 @@
 /**
- * Réordonnancement des tâches d'un projet par glisser-déposer (n3boss).
+ * Réordonnancement des tâches (n3boss) : projet (glisser-déposer) et liste globale (flèches ↑↓).
  *
- * Extrait de `tasks-views.jsx` (O6) : calcul pur de la liste ordonnée d'ids envoyée à
- * `POST /api/tasks/reorder-project` — sans React ni I/O, testable unitairement
+ * Calcul pur des listes d'ids envoyées à `POST /api/tasks/reorder-project` et
+ * `POST /api/tasks/reorder` — sans React ni I/O, testable unitairement
  * (`tests-ui/utils/taskDragReorder.test.js`).
  */
 
@@ -33,4 +33,26 @@ export function computeReorderedProjectTaskIds(
     dragTaskId,
     ...targetIdsWithoutDragged.slice(insertAt),
   ];
+}
+
+/**
+ * Échange deux ids dans une liste ordonnée (flèches ↑↓ d'une section). Ne mute pas
+ * l'entrée ; renvoie la même référence si un id est absent.
+ * @param {Array<string|number>} orderedIds
+ * @param {string|number} idA
+ * @param {string|number} idB
+ * @returns {string[]}
+ */
+export function swapTaskIdsInOrder(orderedIds, idA, idB) {
+  const list = (Array.isArray(orderedIds) ? orderedIds : []).map((id) => String(id));
+  const a = String(idA || '');
+  const b = String(idB || '');
+  if (!a || !b || a === b) return list;
+  const i = list.indexOf(a);
+  const j = list.indexOf(b);
+  if (i < 0 || j < 0) return list;
+  const next = list.slice();
+  next[i] = b;
+  next[j] = a;
+  return next;
 }

@@ -42,6 +42,61 @@ beforeEach(async () => {
   teacherToken = await refreshAdminTeacherToken();
 });
 
+describe('Tâches — réordonnancement global', () => {
+  it('POST /api/tasks/reorder densifie sort_order et influence GET /api/tasks', async () => {
+    const ts = Date.now();
+    const t1 = await request(app)
+      .post('/api/tasks')
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .send({ title: `global-${ts}-1`, required_students: 1, map_id: 'foret' })
+      .expect(201);
+    const t2 = await request(app)
+      .post('/api/tasks')
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .send({ title: `global-${ts}-2`, required_students: 1, map_id: 'foret' })
+      .expect(201);
+    const t3 = await request(app)
+      .post('/api/tasks')
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .send({ title: `global-${ts}-3`, required_students: 1, map_id: 'foret' })
+      .expect(201);
+
+    await request(app)
+      .post('/api/tasks/reorder')
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .send({ task_ids: [t3.body.id, t1.body.id, t2.body.id], map_id: 'foret' })
+      .expect(200);
+
+    const list = await request(app).get('/api/tasks').query({ map_id: 'foret' }).expect(200);
+    const ids = tasksListItems(list.body).map((row) => row.id);
+    const focused = ids.filter((id) => [t1.body.id, t2.body.id, t3.body.id].includes(id));
+    assert.deepStrictEqual(focused, [t3.body.id, t1.body.id, t2.body.id]);
+
+    const so3 = await queryOne('SELECT sort_order FROM tasks WHERE id = ?', [t3.body.id]);
+    const so1 = await queryOne('SELECT sort_order FROM tasks WHERE id = ?', [t1.body.id]);
+    assert.equal(Number(so3.sort_order), 1);
+    assert.equal(Number(so1.sort_order), 2);
+  });
+
+  it('POST /api/tasks/reorder refuse une tâche archivée', async () => {
+    const ts = Date.now();
+    const created = await request(app)
+      .post('/api/tasks')
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .send({ title: `global-arch-${ts}`, required_students: 1, map_id: 'foret' })
+      .expect(201);
+    await request(app)
+      .post(`/api/tasks/${created.body.id}/archive`)
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .expect(200);
+    await request(app)
+      .post('/api/tasks/reorder')
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .send({ task_ids: [created.body.id] })
+      .expect(400);
+  });
+});
+
 describe('Tâches — réordonnancement projet', () => {
   it('POST /api/tasks/reorder-project persiste sort_order et influence GET /api/tasks', async () => {
     const ts = Date.now();

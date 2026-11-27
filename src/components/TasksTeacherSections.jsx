@@ -31,6 +31,8 @@ import {
  * @param {string} props.sectionListClass classe CSS de la liste selon le mode d'affichage
  * @param {object} props.taskTileProps props communes passées à chaque `TaskTileSection`
  * @param {object} props.taskProjectsBlockProps props communes du `TaskProjectsBlock`
+ * @param {boolean} [props.canReorderTasks] flèches ↑↓ (`tasks.manage`)
+ * @param {Function} [props.onMoveTaskInSection] `(taskId, 'up'|'down', sectionTasks) => void`
  */
 export function TasksTeacherSections({
   inProgress,
@@ -45,7 +47,10 @@ export function TasksTeacherSections({
   sectionListClass,
   taskTileProps,
   taskProjectsBlockProps,
+  canReorderTasks = false,
+  onMoveTaskInSection = null,
 }) {
+  const orderProps = { canReorderTasks, onMoveTaskInSection };
   const awaitingValidationSection = (
     <TaskTileSection
       title={
@@ -56,6 +61,7 @@ export function TasksTeacherSections({
       tasks={done}
       sectionListClass={sectionListClass}
       taskTileProps={taskTileProps}
+      {...orderProps}
     />
   );
   return (
@@ -71,6 +77,7 @@ export function TasksTeacherSections({
         tasks={proposed}
         sectionListClass={sectionListClass}
         taskTileProps={taskTileProps}
+        {...orderProps}
       />
       {validationFirst && awaitingValidationSection}
       {/* « À faire » avant « En cours » : le travail encore libre d'abord, puis ce qui tourne. */}
@@ -83,6 +90,7 @@ export function TasksTeacherSections({
         tasks={available}
         sectionListClass={sectionListClass}
         taskTileProps={taskTileProps}
+        {...orderProps}
       />
       <TaskTileSection
         title={
@@ -93,6 +101,7 @@ export function TasksTeacherSections({
         tasks={inProgress}
         sectionListClass={sectionListClass}
         taskTileProps={taskTileProps}
+        {...orderProps}
       />
       <TaskProjectsBlock {...taskProjectsBlockProps} visibleProjects={activeProjects} />
       {!validationFirst && awaitingValidationSection}
@@ -105,6 +114,7 @@ export function TasksTeacherSections({
         tasks={onHold}
         sectionListClass={sectionListClass}
         taskTileProps={taskTileProps}
+        {...orderProps}
       />
       <TaskTileSection
         title={
@@ -115,6 +125,7 @@ export function TasksTeacherSections({
         tasks={validated}
         sectionListClass={sectionListClass}
         taskTileProps={taskTileProps}
+        {...orderProps}
       />
     </>
   );

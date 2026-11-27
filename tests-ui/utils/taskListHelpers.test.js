@@ -54,6 +54,15 @@ describe('compareTasksByImportanceThenDueDate', () => {
     expect(TASK_IMPORTANCE_SORT_WEIGHT.absolute).toBeGreaterThan(TASK_IMPORTANCE_SORT_WEIGHT.high);
     expect(TASK_IMPORTANCE_SORT_WEIGHT.not_important).toBe(1);
   });
+
+  test('sort_order > 0 prime sur l’importance', () => {
+    const tasks = [
+      { id: 'late', importance_level: 'absolute', sort_order: 2 },
+      { id: 'first', importance_level: 'low', sort_order: 1 },
+      { id: 'unpinned', importance_level: 'absolute', sort_order: 0 },
+    ];
+    expect(sort(tasks)).toEqual(['first', 'late', 'unpinned']);
+  });
 });
 
 describe('normalizeDateOnly', () => {

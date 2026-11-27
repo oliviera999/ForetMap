@@ -48,6 +48,13 @@ sans cycle de marche (alors qu’un clic sur le vide animait correctement).
   `required_students` : affectation individuelle, affectation rapide et affectation de
   groupe. Le plafond reste opposable aux auto-inscriptions élèves.
 - Doc de référence (tâches / guide du prof) et `docs/API.md` alignés.
+### Ajouté — flèches ↑↓ d'ordre global des tâches (hors projet)
+
+- Sections Tâches (prof `tasks.manage`) : flèches ↑↓ à gauche de chaque carte pour changer
+  l'ordre d'apparition ; `POST /api/tasks/reorder` densifie `sort_order`.
+- Tri d'affichage aligné sur l'API : `sort_order > 0` puis importance / échéance.
+- Case projet : les flèches ne sont plus bornées par la phase (seules les étapes numérotées
+  du titre restent un compartiment).
 
 ### Corrigé — ordre des tâches de projet + sections « À faire » avant « En cours »
 

@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { api } from '../services/api';
-import { computeReorderedProjectTaskIds } from '../utils/taskDragReorder.js';
+import { computeReorderedProjectTaskIds, swapTaskIdsInOrder } from '../utils/taskDragReorder.js';
 import {
   computeProjectStepInfo,
   sameStepBucket,
   sortProjectTasksBySteps,
 } from '../utils/taskProjectSteps.js';
+import { compareTasksByImportanceThenDueDate } from '../utils/taskListHelpers.js';
+import { taskEffectiveMapId, taskMapIdMatchesFilter } from '../utils/taskLocationPicker.js';
 
 /** Message affiché quand un dépôt franchirait une étape numérotée du projet. */
 export const STEP_MOVE_REFUSED_MESSAGE =
@@ -31,10 +33,20 @@ export const STEP_MOVE_REFUSED_MESSAGE =
  * @param {boolean} [params.isTeacher]
  * @param {boolean} [params.canReorder] droit de réordonner (`tasks.manage`)
  * @param {Array} params.tasks
+ * @param {string} [params.activeMapId] carte courante (filtre + payload reorder global)
+ * @param {string} [params.filterMap] filtre carte de la vue (`active` / `all` / id)
  * @param {(key: string, fn: () => Promise<void>) => Promise<void>} params.withLoad
  * @param {(msg: string) => void} params.setToast
  */
-export function useTaskDragReorder({ isTeacher, canReorder, tasks, withLoad, setToast }) {
+export function useTaskDragReorder({
+  isTeacher,
+  canReorder,
+  tasks,
+  activeMapId = 'foret',
+  filterMap = 'active',
+  withLoad,
+  setToast,
+}) {
   const allowReorder = canReorder ?? !!isTeacher;
   /** Payload de drag & drop actif (prof/admin) pour déplacer / réordonner les tâches dans un projet. */
   const [taskDragPayload, setTaskDragPayload] = useState(null);
@@ -154,6 +166,47 @@ export function useTaskDragReorder({ isTeacher, canReorder, tasks, withLoad, set
     if (!stillExists) clearTaskDragState();
   }, [clearTaskDragState, taskDragPayload, tasks]);
 
+  /**
+   * Flèches ↑↓ hors projet : échange `taskId` avec son voisin de section, densifie
+   * `sort_order` sur toutes les tâches du filtre carte courant.
+   * @param {string} taskId
+   * @param {'up'|'down'} direction
+   * @param {Array<{ id: unknown }>} sectionTasks liste affichée de la section
+   */
+  const moveTaskInSection = useCallback(
+    (taskIdRaw, direction, sectionTasks) => {
+      const taskId = String(taskIdRaw || '').trim();
+      if (!allowReorder || !taskId) return false;
+      const section = Array.isArray(sectionTasks) ? sectionTasks : [];
+      const idx = section.findIndex((task) => String(task.id) === taskId);
+      if (idx < 0) return false;
+      const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+      if (swapIdx < 0 || swapIdx >= section.length) return false;
+      const neighborId = String(section[swapIdx].id);
+
+      const mapScoped = (tasks || [])
+        .filter((task) => taskMapIdMatchesFilter(taskEffectiveMapId(task), filterMap, activeMapId))
+        .slice()
+        .sort(compareTasksByImportanceThenDueDate);
+      const orderedIds = mapScoped.map((task) => String(task.id));
+      const nextIds = swapTaskIdsInOrder(orderedIds, taskId, neighborId);
+      if (nextIds === orderedIds || nextIds.join(',') === orderedIds.join(',')) return false;
+
+      const mapIdForPayload =
+        filterMap === 'active' || filterMap === 'all' ? activeMapId : filterMap || activeMapId;
+      const loadKey = `${taskId}reorder:${direction}:${neighborId}`;
+      void withLoad(loadKey, async () => {
+        await api('/api/tasks/reorder', 'POST', {
+          task_ids: nextIds,
+          map_id: mapIdForPayload || undefined,
+        });
+        setToast('Ordre des tâches mis à jour ✓');
+      });
+      return true;
+    },
+    [allowReorder, tasks, filterMap, activeMapId, withLoad, setToast],
+  );
+
   return {
     taskDragPayload,
     taskDropHint,
@@ -162,5 +215,6 @@ export function useTaskDragReorder({ isTeacher, canReorder, tasks, withLoad, set
     registerProjectDropHint,
     dropTaskToProject,
     moveTaskInProject,
+    moveTaskInSection,
   };
 }

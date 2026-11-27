@@ -354,10 +354,13 @@ function TasksViewImpl({
     registerProjectDropHint,
     dropTaskToProject,
     moveTaskInProject,
+    moveTaskInSection,
   } = useTaskDragReorder({
     isTeacher,
     canReorder: isTeacher && teacherTaskPerms.canManageTasks,
     tasks,
+    activeMapId,
+    filterMap,
     withLoad,
     setToast,
   });
@@ -1325,6 +1328,8 @@ function TasksViewImpl({
           sectionListClass={sectionListClass}
           taskTileProps={taskTileProps}
           taskProjectsBlockProps={taskProjectsBlockProps}
+          canReorderTasks={isTeacher && teacherTaskPerms.canManageTasks && !isArchivedView}
+          onMoveTaskInSection={moveTaskInSection}
         />
       ) : (
         <>
