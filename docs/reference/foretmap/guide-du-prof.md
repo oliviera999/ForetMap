@@ -241,8 +241,9 @@ propre compte. Sans photo, son avatar est dessiné par l'application à partir d
 - **Fiche modifiée entre-temps.** Si un collègue a modifié la même tâche pendant que vous
   l'éditiez, une fenêtre « Fiche modifiée entre-temps » apparaît : rechargez la fiche et refaites
   votre changement, plutôt que d'écraser le sien.
-- **Trop d'élèves inscrits.** Le nombre d'élèves requis limite les inscriptions ; augmentez-le
-  si vous voulez ouvrir la tâche à plus d'élèves.
+- **Trop d'élèves inscrits.** Le nombre d'élèves requis limite les **auto-inscriptions**
+  des élèves. Vous pouvez toujours en inscrire d'autres (affectation rapide ou groupe) au-delà
+  de ce nombre ; augmentez-le seulement si vous voulez aussi rouvrir la tâche aux élèves.
 - **Élève inscrit par erreur.** Il se désinscrit lui-même avec « ↩️ Me retirer ».
 - **Retrouver les tâches récurrentes.** Le cadre « Séries récurrentes » donne une vue
   d'ensemble des séries en cours, et son bouton « Filtrer récurrentes » n'affiche qu'elles.
@@ -368,7 +369,7 @@ compte : adressez-vous à l'administrateur de l'établissement pour :
 | ----------------------------------------------- | ------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Un élève ne voit pas sa classe                  | Inscrit sans code de classe : il est dans les comptes en attente    | Le rattacher depuis le sous-onglet Groupes.                                                                                                                                               |
 | Le code de classe ne fonctionne plus            | Le code a été régénéré                                              | Redonner le nouveau code affiché dans les réglages du groupe.                                                                                                                             |
-| Un élève ne peut pas s'inscrire sur une tâche   | Nombre d'élèves requis atteint, ou tâche affectée à un autre groupe | Augmenter le nombre requis ou vérifier l'affectation.                                                                                                                                     |
+| Un élève ne peut pas s'inscrire sur une tâche   | Nombre d'élèves requis atteint, ou tâche affectée à un autre groupe | Inscrire l'élève vous-même (l'équipe pédagogique n'est pas plafonnée), ou augmenter le nombre requis / vérifier l'affectation.                                                            |
 | Un élève reste novice malgré son travail        | Tâches terminées mais pas encore validées                           | Valider ses tâches en attente ; vérifier qu'un profil n'est pas imposé au groupe.                                                                                                         |
 | « Marquer terminée » ne passe pas               | Photo demandée sans réseau, ou photo manquante                      | Prendre la photo et réessayer une fois le réseau revenu.                                                                                                                                  |
 | Le travail d'un élève hors ligne n'apparaît pas | L'appareil n'a pas encore retrouvé le réseau                        | Rouvrir l'application avec une connexion : l'envoi se fait tout seul. Le bouton nuage de l'en-tête (écran « Hors ligne ») montre ce qui attend encore, et pourquoi un envoi a été refusé. |

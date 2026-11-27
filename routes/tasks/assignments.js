@@ -178,7 +178,11 @@ router.post(
       }
     }
 
-    if (task.assignments.length >= task.required_students) {
+    // Capacité `required_students` : opposable à l'auto-inscription n3beur seulement.
+    // Un n3boss (ou compte habilité `tasks.validate`) peut inscrire au-delà — les places
+    // « prévues » restent le plafond vu des élèves, pas un plafond absolu.
+    const bypassCapacity = action.actorUserType !== 'student';
+    if (!bypassCapacity && task.assignments.length >= task.required_students) {
       return res.status(400).json({ error: 'Plus de place disponible sur cette tâche' });
     }
 
@@ -200,6 +204,7 @@ router.post(
           lastName: action.lastName,
           assignedAt: nowDbTimestamp(),
           maxActive: enrollmentLimit,
+          bypassCapacity,
         }),
       );
       if (!outcome.ok) {
@@ -260,11 +265,9 @@ router.post(
     // Un groupe mêle souvent des profils : seuls les membres n3beurs sont inscriptibles.
     const students = await listN3beurStudents(scope.studentIds);
     if (!students.length) return res.status(400).json({ error: 'Aucun n3beur dans ce groupe' });
-    // Toute l'inscription de groupe se fait **sous le verrou** de la ligne `tasks` : sans
-    // cela, `maxSlots` était calculé à partir d'une lecture antérieure (getTaskWithAssignments)
-    // et une inscription concurrente pouvait faire dépasser `required_students` (l'index unique
-    // de la migration 170 ne couvre que le doublon n3beur, pas la capacité). Même garde que le
-    // chemin individuel (`claimAssignmentSeat`).
+    // Inscription de groupe sous le verrou de la ligne `tasks` (statut relu avant écriture).
+    // Réservée à `tasks.assign.group` : on inscrit tous les n3beurs du groupe encore absents,
+    // même au-delà de `required_students` (même bypass que l'affectation individuelle n3boss).
     const outcome = await withTransaction(async (tx) => {
       const locked = await tx.queryOne(
         'SELECT id, status, completion_mode, required_students FROM tasks WHERE id = ? FOR UPDATE',
@@ -281,9 +284,7 @@ router.post(
         [task.id],
       );
       const already = new Set(assignedRows.map((a) => String(a.student_id || '')));
-      const maxSlots = Math.max(0, Number(locked.required_students || 1) - assignedRows.length);
 
-      // `skipped` compte les déjà-affectés rencontrés AVANT que les créneaux soient pleins.
       const toAssign = [];
       let skipped = 0;
       for (const student of students) {
@@ -291,7 +292,6 @@ router.post(
           skipped += 1;
           continue;
         }
-        if (toAssign.length >= maxSlots) break;
         toAssign.push(student);
       }
       if (toAssign.length > 0) {

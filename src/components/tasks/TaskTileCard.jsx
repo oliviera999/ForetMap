@@ -673,8 +673,10 @@ function TaskTileCardImpl({
                         }}
                       >
                         {quickAssignDelta.toAdd.length > 0
-                          ? `${quickAssignDelta.toAdd.length}/${quickAssignSlotsAfterRemovals} place${quickAssignSlotsAfterRemovals > 1 ? 's' : ''} pour les ajouts`
-                          : `${getAvailableSlots(t)} place${getAvailableSlots(t) > 1 ? 's' : ''} libre${getAvailableSlots(t) > 1 ? 's' : ''}`}
+                          ? quickAssignDelta.toAdd.length > quickAssignSlotsAfterRemovals
+                            ? `${quickAssignDelta.toAdd.length} ajout${quickAssignDelta.toAdd.length > 1 ? 's' : ''} (${quickAssignDelta.toAdd.length - quickAssignSlotsAfterRemovals} au-delà des places prévues)`
+                            : `${quickAssignDelta.toAdd.length}/${quickAssignSlotsAfterRemovals} place${quickAssignSlotsAfterRemovals > 1 ? 's' : ''} pour les ajouts`
+                          : `${getAvailableSlots(t)} place${getAvailableSlots(t) > 1 ? 's' : ''} libre${getAvailableSlots(t) > 1 ? 's' : ''} (élèves)`}
                       </span>
                       <div style={{ display: 'flex', gap: 8 }}>
                         <button

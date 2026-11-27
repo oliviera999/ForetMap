@@ -117,7 +117,7 @@ Chaque tâche décrit précisément le travail attendu :
 | Niveau de danger     | Sans danger · Danger potentiel · Dangereux · Très dangereux.                                                                                                                                         |
 | Niveau de difficulté | Facile · Moyen · Compliqué · Super compliqué.                                                                                                                                                        |
 | Degré d'importance   | Pas important · Peu important · Modéré · Important · Urgent ! (l'importance sert au tri de la liste ; « Urgent ! » ouvre en plus l'encart du même nom, voir ci-dessous).                             |
-| Élèves requis        | Le nombre de places : quand elles sont prises, plus personne ne peut s'inscrire.                                                                                                                     |
+| Élèves requis        | Le nombre de places **ouvertes aux élèves** : quand elles sont prises, un élève ne peut plus s'inscrire tout seul. L'équipe pédagogique peut encore en inscrire au-delà.                             |
 | Mode de validation   | **Individuel** (un élève termine la tâche pour tous) ou **collectif** (chaque inscrit doit marquer sa part faite).                                                                                   |
 | Dates                | Une **date de départ** (avant elle, impossible de s'inscrire) et une **date limite** (affichée en « Dans N jours / En retard »).                                                                     |
 | Référents            | Des professeurs (ou élèves expérimentés) « à qui s'adresser » ; recommandés si la tâche est difficile ou dangereuse.                                                                                 |
@@ -515,10 +515,11 @@ profils) ou le rattacher à une classe qui confère le statut élève — voir
 ## Les outils collectifs du professeur
 
 - **Affecter un groupe** : « 👥 Affecter groupe » inscrit d'un coup les élèves d'un
-  groupe, dans la limite des places restantes de la tâche — et seulement ceux qui ont un
+  groupe — y compris au-delà du nombre de places prévues — et seulement ceux qui ont un
   profil élève. Une **affectation rapide** par cases à cocher et une **attribution dès la
   création** existent aussi (celle-ci relève automatiquement le nombre de places si la
-  sélection dépasse).
+  sélection dépasse). L'affectation rapide peut aussi dépasser les places prévues : ce
+  plafond ne s'applique qu'aux inscriptions faites par les élèves eux-mêmes.
 - **Affectation rapide, ordre de la liste** : les élèves **déjà inscrits sur la tâche**
   sont affichés **en tête** de la liste à cocher (leur case est cochée d'office), les
   autres suivent dans l'ordre habituel. L'équipe en place se lit donc d'un coup d'œil,

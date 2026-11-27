@@ -36,6 +36,12 @@ sans cycle de marche (alors qu’un clic sur le vide animait correctement).
   la Visite.
 - Tests : `tests-ui/hooks/useMapViewMascot.test.jsx`. Doc :
   `docs/reference/foretmap/carte-et-zones.md`.
+### Modifié — inscription n3boss au-delà des places prévues
+
+- Un n3boss (ou compte habilité à inscrire pour un n3beur) peut dépasser
+  `required_students` : affectation individuelle, affectation rapide et affectation de
+  groupe. Le plafond reste opposable aux auto-inscriptions élèves.
+- Doc de référence (tâches / guide du prof) et `docs/API.md` alignés.
 
 ### Corrigé — ordre des tâches de projet + sections « À faire » avant « En cours »
 
