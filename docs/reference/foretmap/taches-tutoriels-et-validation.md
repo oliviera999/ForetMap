@@ -158,11 +158,12 @@ un titre qu'elle ne reconnaît pas ne reçoit aucune proposition.
 
 Les tâches marquées **« Urgent ! »** sont regroupées en haut de l'écran Tâches, dans un
 encart à elles — elles n'apparaissent donc pas dans la section de leur statut tant qu'elles
-y figurent. **Une tâche urgente quitte cet encart dès qu'elle est validée** (directement, ou
-parce que son projet a été validé) : elle rejoint alors « ✅ Validées » côté professeur,
-« ✅ Récemment validées » côté élève. Une tâche « Terminée » (en attente de validation) ou
-« Proposée » reste, elle, dans l'encart : quelque chose est encore attendu de l'équipe
-pédagogique.
+y figurent. **Elles restent visibles dans la case de leur projet** (compteur et liste
+dépliée), comme les autres tâches du projet. **Une tâche urgente quitte cet encart dès
+qu'elle est validée** (directement, ou parce que son projet a été validé) : elle rejoint
+alors « ✅ Validées » côté professeur, « ✅ Récemment validées » côté élève. Une tâche
+« Terminée » (en attente de validation) ou « Proposée » reste, elle, dans l'encart :
+quelque chose est encore attendu de l'équipe pédagogique.
 
 ## Ordre des sections sur l'écran Tâches
 

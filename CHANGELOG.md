@@ -9,6 +9,12 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — tâches « Urgent ! » absentes de la case projet
+
+- Une tâche liée à un projet et marquée **Urgent !** réapparaît dans la case de son projet
+  (compteur + liste dépliée). Elle restait seulement dans l'encart « 🚨 Urgent ! », ce qui
+  faisait croire que le rattachement au projet avait échoué.
+
 ### Corrigé — mascotte sprite_cut : plus de flash blanc entre les états
 
 **Changement visible :** en changeant d’animation (marche ↔ inspect ↔ idle…), le sprite
