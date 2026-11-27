@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { describe, test, expect, beforeEach } from 'vitest';
 import {
+  buildCurrentDeepLinkUrl,
   buildDeepLinkUrl,
   clearPendingDeepLink,
   consumeDeepLinkFromLocation,
@@ -62,6 +63,19 @@ describe('buildDeepLinkUrl', () => {
       const url = new URL(buildDeepLinkUrl('https://exemple.test/', target));
       expect(readDeepLinkTargetFromSearch(url.search)).toEqual(target);
     }
+  });
+});
+
+describe('buildCurrentDeepLinkUrl', () => {
+  test('ancre le lien sur l’origine courante', () => {
+    window.history.replaceState(null, '', '/app/');
+    const url = buildCurrentDeepLinkUrl({ type: 'thread', id: 't1' });
+    expect(url).toContain(window.location.origin);
+    expect(url).toContain('fil=t1');
+  });
+
+  test('cible invalide : chaîne vide', () => {
+    expect(buildCurrentDeepLinkUrl({ type: 'thread' })).toBe('');
   });
 });
 

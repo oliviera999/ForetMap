@@ -1,3 +1,5 @@
+import { withAppBase } from '../shared/appBase.js';
+
 /**
  * Liens directs vers un élément précis de l'application :
  * - `?tache=<id>` (option `&carte=<id>`) : la tâche, mise en évidence dans la liste ;
@@ -70,6 +72,20 @@ export function buildDeepLinkUrl(origin, target) {
     return `${base}/`;
   }
   return `${base}/?${params.toString()}`;
+}
+
+/**
+ * Lien direct prêt à copier, ancré sur l'origine courante (+ base Vite).
+ * Chaîne vide si la cible est invalide ou hors navigateur.
+ */
+export function buildCurrentDeepLinkUrl(
+  target,
+  win = typeof window !== 'undefined' ? window : null,
+) {
+  if (!win?.location?.origin || !target?.type || !target?.id) return '';
+  const origin = `${win.location.origin}${withAppBase('/')}`;
+  const url = buildDeepLinkUrl(origin, target);
+  return url.includes('?') ? url : '';
 }
 
 function stripDeepLinkParams(win) {

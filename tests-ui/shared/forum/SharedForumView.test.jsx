@@ -263,6 +263,32 @@ describe('SharedForumView — panneau Signalements', () => {
   });
 });
 
+describe('SharedForumView — lien direct', () => {
+  test('avec buildShareUrl : icône en pied de discussion et sur chaque message', async () => {
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText: vi.fn().mockResolvedValue(undefined) },
+    });
+    const buildShareUrl = vi.fn((target) => {
+      const base = `https://exemple.test/?fil=${target.id}`;
+      return target.postId ? `${base}&message=${target.postId}` : base;
+    });
+    const adapter = fakeAdapter();
+    renderView(adapter, { buildShareUrl });
+    await screen.findByText('Où planter les fraisiers ?');
+
+    const footers = screen.getAllByTestId('copy-deep-link-footer');
+    expect(footers.length).toBeGreaterThanOrEqual(1);
+    const buttons = screen.getAllByTestId('copy-deep-link');
+    // Pied de discussion + un bouton par message.
+    expect(buttons.length).toBeGreaterThanOrEqual(1 + POSTS_A.length);
+
+    fireEvent.click(buttons[0]);
+    await waitFor(() => expect(navigator.clipboard.writeText).toHaveBeenCalled());
+    expect(String(navigator.clipboard.writeText.mock.calls[0][0])).toMatch(/fil=/);
+  });
+});
+
 describe('SharedForumView — ouverture depuis une notification', () => {
   test('ouvre le sujet demandé, amène la réponse visée et ne rejoue pas la demande', async () => {
     const scrollIntoView = vi.fn();

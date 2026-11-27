@@ -61,6 +61,7 @@ import { ZoneTutorialsStudentPanel } from './ZoneTutorialsPanel.jsx';
 import { LocationVisitAside, useScrollIntoViewOnMount } from './mapModalShared.jsx';
 import { useLocationModalData } from './useLocationModalData.js';
 import { useVisitMediaBlocks } from './useVisitMediaBlocks.js';
+import { buildCurrentDeepLinkUrl } from '../../utils/deepLinkTarget.js';
 import {
   LocationCommentsSection,
   LocationEmptyInfo,
@@ -341,6 +342,12 @@ function ZoneInfoModal({
       dialogStyle={{ paddingTop: 16 }}
       toast={toast}
       onToastDone={() => setToast(null)}
+      shareUrl={buildCurrentDeepLinkUrl({
+        type: 'place',
+        kind: 'zone',
+        id: String(zone.id),
+        mapId: zone.map_id || null,
+      })}
     >
       <ZoneInfoModalHeader
         zone={zone}

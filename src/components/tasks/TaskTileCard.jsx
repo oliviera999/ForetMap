@@ -31,10 +31,13 @@ import { assignmentMatchesStudent, isStudentAssignedToTask } from '../../utils/t
 import './task-referents.css';
 import { ContextComments } from '../context-comments';
 import { MarkdownContent } from '../MarkdownContent.jsx';
+import { DeepLinkShareFooter } from '../../shared/components/CopyDeepLinkButton.jsx';
 import { Tooltip } from '../../shared/components/Tooltip.jsx';
 import { tutorialPreviewCanEmbed } from '../TutorialPreviewModal';
 import { ImageLightbox } from '../../shared/components/ImageLightbox.jsx';
 import { FallbackImage } from '../../shared/components/FallbackImage.jsx';
+import { taskEffectiveMapId } from '../../utils/taskLocationPicker.js';
+import { buildCurrentDeepLinkUrl } from '../../utils/deepLinkTarget.js';
 import {
   IconArchive,
   IconCheck,
@@ -897,6 +900,16 @@ function TaskTileCardImpl({
               canParticipateContextComments={canParticipateContextComments}
             />
           )}
+          {t?.id ? (
+            <DeepLinkShareFooter
+              url={buildCurrentDeepLinkUrl({
+                type: 'task',
+                id: String(t.id),
+                mapId: taskEffectiveMapId(t) || null,
+              })}
+              label="Copier le lien de cette tâche"
+            />
+          ) : null}
         </>
       )}
     </div>

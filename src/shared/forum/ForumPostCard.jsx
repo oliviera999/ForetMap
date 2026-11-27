@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { formatDateTimeFr } from '../platform/datetime-fr';
 import { UserContentImagesGrid } from '../components/AttachmentImagesPicker.jsx';
+import { CopyDeepLinkButton } from '../components/CopyDeepLinkButton.jsx';
 import { SharedForumMarkdown } from './SharedForumMarkdown.jsx';
 import { forumBtn } from './forumUi.js';
 
@@ -33,6 +34,8 @@ export function ForumPostCard({
   onReport,
   onQuote,
   onEdit,
+  /** URL de lien direct vers ce message ; active l'icône de copie si non vide. */
+  shareUrl = '',
 }) {
   const p = post;
   const deleted = !!Number(p.is_deleted);
@@ -209,25 +212,24 @@ export function ForumPostCard({
         ))}
       {!deleted &&
         !editing &&
-        canUseForumActions &&
-        (canDelete || canReport || canEdit || canQuote) && (
+        (shareUrl || (canUseForumActions && (canDelete || canReport || canEdit || canQuote))) && (
           <div className="forum-post-actions">
-            {canQuote && (
+            {canUseForumActions && canQuote && (
               <button type="button" className={forumBtn('ghost')} onClick={() => onQuote?.(p)}>
                 Citer
               </button>
             )}
-            {canEdit && (
+            {canUseForumActions && canEdit && (
               <button type="button" className={forumBtn('ghost')} onClick={startEdit}>
                 Modifier
               </button>
             )}
-            {canDelete && (
+            {canUseForumActions && canDelete && (
               <button type="button" className={forumBtn('ghost')} onClick={() => onDelete(p.id)}>
                 Supprimer
               </button>
             )}
-            {canReport && !reportOpen && (
+            {canUseForumActions && canReport && !reportOpen && (
               <button
                 type="button"
                 className={forumBtn('ghost')}
@@ -237,6 +239,13 @@ export function ForumPostCard({
                 Signaler
               </button>
             )}
+            {shareUrl ? (
+              <CopyDeepLinkButton
+                url={shareUrl}
+                label="Copier le lien de ce message"
+                className="copy-deep-link--inline"
+              />
+            ) : null}
           </div>
         )}
       {!deleted && canUseForumActions && canReport && reportOpen && (

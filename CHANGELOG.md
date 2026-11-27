@@ -9,6 +9,13 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — icône discrète pour copier le lien direct
+
+- Pied de discussion forum, de chaque message, des fiches lieu (zone / repère) et des
+  cartes de tâche : une icône de lien copie le deep link (`?fil=`, `?lieu=`, `?tache=`)
+  dans le presse-papiers, avec confirmation « Lien copié ».
+- Composant partagé `CopyDeepLinkButton` + repli clipboard hors HTTPS.
+
 ### Corrigé — tâches « Urgent ! » absentes de la case projet
 
 - Une tâche liée à un projet et marquée **Urgent !** réapparaît dans la case de son projet

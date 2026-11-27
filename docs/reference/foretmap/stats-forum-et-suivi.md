@@ -193,6 +193,10 @@ Une tâche, un lieu ou un sujet du forum peut s'ouvrir par un **lien direct** (c
 courriel ou l'ENT, par exemple). Si la personne n'est pas encore connectée, le lien est
 retenu : il s'ouvre juste après la connexion.
 
+Sur la fiche concernée, une **petite icône de lien** apparaît discrètement en bas (discussion
+du forum, message, fiche d'une zone ou d'un repère, carte d'une tâche). Un clic **copie le
+lien** dans le presse-papiers : plus besoin de le reconstruire à la main.
+
 > ⚠️ **Points d'attention**
 >
 > - Les notifications de lieux et de propositions ne s'affichaient avant que **si la console

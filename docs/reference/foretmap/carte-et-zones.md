@@ -243,10 +243,12 @@ Cartographie.
    comportement se règle dans l'administration (voir « Zoom sur le lieu avant sa fiche »
    plus bas). La fiche s'ouvre avec ses onglets — Tâches,
    Tutoriels, Info, Photos (l'onglet Tâches ou Tutoriels n'apparaît que s'il y a
-   quelque chose à montrer). Tant que la fiche d'une **zone** est ouverte, cette zone
-   reste **mise en avant** sur le plan (remplissage plus marqué) et les autres zones
-   sont **légèrement estompées**, pour repérer d'un coup d'œil où l'on se trouve —
-   sans cadre ni contour noir autour de la forme.
+   quelque chose à montrer). En bas de la fiche, une petite icône de lien **copie le
+   lien direct** vers ce lieu (pour le coller dans un courriel ou l'ENT). Tant que la
+   fiche d'une **zone** est ouverte, cette zone reste **mise en avant** sur le plan
+   (remplissage plus marqué) et les autres zones sont **légèrement estompées**, pour
+   repérer d'un coup d'œil où l'on se trouve — sans cadre ni contour noir autour de la
+   forme.
 3. Dans l'onglet **Tâches**, il coche une ou plusieurs tâches disponibles à cet
    endroit et les **prend en charge** directement.
 4. Un bouton permet aussi d'**ouvrir l'onglet Tâches de l'application filtré sur ce

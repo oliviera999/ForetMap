@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AppInlineToast } from '../components/AppInlineToast.jsx';
 import { useAppDialogs } from '../components/AppDialogsProvider.jsx';
+import { DeepLinkShareFooter } from '../components/CopyDeepLinkButton.jsx';
 import { formatDateTimeFr } from '../platform/datetime-fr';
 import { IconLock } from '../icons.jsx';
 import { ForumPostCard } from './ForumPostCard.jsx';
@@ -50,6 +51,12 @@ export function SharedForumView({
   threadListAttrs = undefined,
   threadRequest = null,
   onThreadRequestHandled = null,
+  /**
+   * Constructeur de lien direct (ForetMap). S'il est fourni, active l'icône de
+   * copie en pied de discussion et sur chaque message. Ex. `buildCurrentDeepLinkUrl`.
+   * @type {null | ((target: object) => string)}
+   */
+  buildShareUrl = null,
 }) {
   const [toast, setToast] = useState('');
   const {
@@ -672,6 +679,15 @@ export function SharedForumView({
                         reportReason={reportReasonByPost[p.id] || ''}
                         maxBodyLength={limits.bodyMax}
                         Markdown={Markdown}
+                        shareUrl={
+                          buildShareUrl && selectedThreadId && p.id
+                            ? buildShareUrl({
+                                type: 'thread',
+                                id: String(selectedThreadId),
+                                postId: String(p.id),
+                              })
+                            : ''
+                        }
                         onSetReactionsExpanded={(postId, expanded) =>
                           setExpandedReactionsByPost((prev) => ({ ...prev, [postId]: expanded }))
                         }
@@ -716,6 +732,13 @@ export function SharedForumView({
                   </p>
                 )
               )}
+
+              {buildShareUrl && selectedThreadId ? (
+                <DeepLinkShareFooter
+                  url={buildShareUrl({ type: 'thread', id: String(selectedThreadId) })}
+                  label="Copier le lien de cette discussion"
+                />
+              ) : null}
             </>
           )}
         </section>
