@@ -9,6 +9,34 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — mascotte sprite_cut : plus de flash blanc entre les états
+
+**Changement visible :** en changeant d’animation (marche ↔ inspect ↔ idle…), le sprite
+`sprite_cut` ne passe plus par une **phase blanche** / un trou de peinture : la frame
+précédente reste affichée jusqu’à ce que la suivante soit décodée, et toutes les frames
+du pack sont préchargées dès le montage.
+
+- Cause : remount `key={état}` + `img.src` changé avant décodage + preload limité à l’état
+  courant → l’`<img>` se vidait un instant (fond blanc du shell).
+- Correctif : hold-until-ready, preload de toutes les `stateFrames`, plus de remount par état
+  (`VisitMapMascotSpriteCut`).
+- Tests : `tests-ui/components/VisitMapMascotSpriteCut.test.jsx`.
+
+### Corrigé — carte : la mascotte marche vraiment jusqu’à une zone ou un repère
+
+**Changement visible :** sur la carte de travail, cliquer une zone ou un repère fait
+désormais **marcher** la mascotte (cycle de marche) pendant le trajet ; l’animation du
+lieu (lecture de carte / inspection) ne joue qu’**à l’arrivée**, comme sur le plan de
+Visite. Avant, cette animation partait au clic et écrasait la marche → translation CSS
+sans cycle de marche (alors qu’un clic sur le vide animait correctement).
+
+- Cause : `useMapViewMascot` émettait `MAP_READ_OPEN` / `MARKER_INSPECT_OPEN` immédiatement ;
+  `resolveVisitMascotState` priorise l’état transitoire sur `walking`.
+- Correctif : ces événements sont différés via `scheduleAfterMove({ onArrive })`, aligné sur
+  la Visite.
+- Tests : `tests-ui/hooks/useMapViewMascot.test.jsx`. Doc :
+  `docs/reference/foretmap/carte-et-zones.md`.
+
 ### Corrigé — ordre des tâches de projet + sections « À faire » avant « En cours »
 
 - Bloc projet : l'ordre manuel (`sort_order` / glisser-déposer) n'est plus écrasé par la

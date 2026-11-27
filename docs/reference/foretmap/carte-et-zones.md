@@ -230,8 +230,10 @@ Cartographie.
    geste, un **double-tap** zoome sur le point touché (un second double-tap réajuste le
    plan), un glisser rapide continue sur sa lancée, et la molette ou les boutons +/−
    gardent le point visé sous le pointeur. Si une **mascotte** est affichée, un clic sur le
-   plan — y compris **hors** de toute zone ou repère — la fait marcher jusqu'au point
-   touché ; un clic sur un lieu l'y amène aussi en ouvrant la fiche.
+   plan — y compris **hors** de toute zone ou repère — la fait **marcher** jusqu'au point
+   touché (animation de marche). Un clic sur un lieu l'y envoie aussi : elle **marche**
+   jusqu'au point, **puis** joue l'animation du lieu (elle lit la carte pour une zone,
+   inspecte pour un repère) au moment où la fiche s'ouvre — comme sur le plan de Visite.
 2. Il **touche une zone ou un repère** : la carte fait d'abord un **zoom bref et fluide** sur
    le lieu (une zone est cadrée en entier avec une marge, un repère est grossi à un niveau
    fixe ; le zoom est plafonné), **puis seulement** la fiche s'ouvre. Quand il **referme la

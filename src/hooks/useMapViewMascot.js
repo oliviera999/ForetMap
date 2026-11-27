@@ -213,12 +213,16 @@ function useMapViewMascot({
 
   /**
    * Exécute une action (ex. ouvrir modale zone/repère) après la fin du déplacement mascotte.
+   * Optionnellement joue `onArrive` à l'arrivée (avant l'ouverture) — même contrat que la
+   * Visite (`scheduleVisitDetailPanelOpen`) : lecture de carte / inspection **après** la
+   * marche, sinon l'état transitoire écrase `walking` pendant toute la translation CSS.
    * @param {() => void} action
    * @param {{ xp: number, yp: number }} targetXpYp
    * @param {{ xp: number, yp: number }} moveFromPct position avant moveTo
+   * @param {{ onArrive?: () => void }} [options]
    */
   const scheduleAfterMove = useCallback(
-    (action, targetXpYp, moveFromPct) => {
+    (action, targetXpYp, moveFromPct, { onArrive = null } = {}) => {
       clearDetailAfterMove();
       const prev =
         moveFromPct && Number.isFinite(moveFromPct.xp) && Number.isFinite(moveFromPct.yp)
@@ -227,13 +231,15 @@ function useMapViewMascot({
       const target = clampMapMascotPctForViewport(targetXpYp.xp, targetXpYp.yp, fitHeightPx);
       const dist = Math.hypot(target.xp - prev.xp, target.yp - prev.yp);
       const delay = dist < 0.08 || prefersReducedMotion ? 0 : MAP_VIEW_MASCOT_MOVE_MS;
-      if (delay === 0) {
+      const run = () => {
+        detailAfterMoveTimeoutRef.current = null;
+        if (typeof onArrive === 'function') onArrive();
         action();
+      };
+      if (delay === 0) {
+        run();
       } else {
-        detailAfterMoveTimeoutRef.current = window.setTimeout(() => {
-          detailAfterMoveTimeoutRef.current = null;
-          action();
-        }, delay);
+        detailAfterMoveTimeoutRef.current = window.setTimeout(run, delay);
       }
     },
     [clearDetailAfterMove, fitHeightPx, prefersReducedMotion],
@@ -243,11 +249,19 @@ function useMapViewMascot({
     (zone, openZone) => {
       const fromPct = { ...mascotPctRef.current };
       const c = visitZoneCentroidPct(zone);
-      if (c) moveTo(c.xp, c.yp);
-      emitMascotEvent(VISIT_MASCOT_INTERACTION_EVENT.MAP_READ_OPEN);
-      showDialog('map_read');
-      if (c) scheduleAfterMove(() => openZone(zone), c, fromPct);
-      else openZone(zone);
+      // Animation lieu à l'arrivée seulement : pendant la marche, `walking` doit gagner
+      // (sinon MAP_READ écrase le cycle de marche → translation CSS sans animation).
+      const onArrive = () => {
+        emitMascotEvent(VISIT_MASCOT_INTERACTION_EVENT.MAP_READ_OPEN);
+        showDialog('map_read');
+      };
+      if (c) {
+        moveTo(c.xp, c.yp);
+        scheduleAfterMove(() => openZone(zone), c, fromPct, { onArrive });
+      } else {
+        onArrive();
+        openZone(zone);
+      }
     },
     [moveTo, scheduleAfterMove, showDialog, emitMascotEvent],
   );
@@ -257,10 +271,12 @@ function useMapViewMascot({
       const fromPct = { ...mascotPctRef.current };
       const xp = Number(marker.x_pct);
       const yp = Number(marker.y_pct);
+      const onArrive = () => {
+        emitMascotEvent(VISIT_MASCOT_INTERACTION_EVENT.MARKER_INSPECT_OPEN);
+        showDialog('inspect');
+      };
       moveTo(xp, yp);
-      emitMascotEvent(VISIT_MASCOT_INTERACTION_EVENT.MARKER_INSPECT_OPEN);
-      showDialog('inspect');
-      scheduleAfterMove(() => openMarker(marker), { xp, yp }, fromPct);
+      scheduleAfterMove(() => openMarker(marker), { xp, yp }, fromPct, { onArrive });
     },
     [moveTo, scheduleAfterMove, showDialog, emitMascotEvent],
   );
