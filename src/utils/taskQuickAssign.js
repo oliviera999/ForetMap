@@ -22,7 +22,12 @@ export function computeQuickAssignDelta(task, selectedIds, teacherStudents) {
   return { toAdd, toRemove };
 }
 
-/** Le delta est-il applicable (statuts ouverts + places suffisantes) ? Le contrôle `isTeacher` reste côté composant. */
+/**
+ * Le delta est-il applicable (statuts ouverts) ?
+ * Réservé au panneau n3boss : les places `required_students` ne bloquent pas (l'API laisse
+ * l'équipe pédagogique dépasser le plafond opposable aux élèves). Le contrôle `isTeacher`
+ * reste côté composant.
+ */
 export function canApplyQuickAssign(task, selectedIds, teacherStudents) {
   if (!task) return false;
   const { toAdd, toRemove } = computeQuickAssignDelta(task, selectedIds, teacherStudents);
@@ -33,8 +38,6 @@ export function canApplyQuickAssign(task, selectedIds, teacherStudents) {
   if (toAdd.length > 0) {
     if (task.status === 'proposed' || task.status === 'done' || task.status === 'validated')
       return false;
-    const slotsAfterRemovals = getAvailableSlots(task) + toRemove.length;
-    if (toAdd.length > slotsAfterRemovals) return false;
   }
   return true;
 }
@@ -57,22 +60,25 @@ export function quickAssignHintText(task, selectedIds, teacherStudents) {
       return 'Idée encore en discussion : inscriptions pas encore ouvertes';
     if (task.status === 'done' || task.status === 'validated')
       return 'C’est déjà plié pour celle-ci';
-    const slotsAfterRemovals = getAvailableSlots(task) + toRemove.length;
-    if (toAdd.length > slotsAfterRemovals) {
-      return `Pas assez de places (max. ${slotsAfterRemovals} après retrait${toRemove.length > 1 ? 's' : ''})`;
-    }
   }
   const parts = [];
   if (toRemove.length > 0)
     parts.push(`Retirer ${toRemove.length} n3beur${toRemove.length > 1 ? 's' : ''}`);
-  if (toAdd.length > 0) parts.push(`Inscrire ${toAdd.length} n3beur${toAdd.length > 1 ? 's' : ''}`);
+  if (toAdd.length > 0) {
+    const slotsAfterRemovals = getAvailableSlots(task) + toRemove.length;
+    const beyond = Math.max(0, toAdd.length - slotsAfterRemovals);
+    parts.push(`Inscrire ${toAdd.length} n3beur${toAdd.length > 1 ? 's' : ''}`);
+    if (beyond > 0) {
+      parts.push(`dont ${beyond} au-delà des places prévues pour les élèves`);
+    }
+  }
   return parts.join(' · ');
 }
 
 /**
- * Exécute le plan d'affectation rapide : retraits d'abord (ils libèrent des places),
- * puis inscriptions tant qu'il reste des places. Les erreurs sont comptées sans
- * interrompre le lot (sauf « plus de place », qui stoppe les inscriptions).
+ * Exécute le plan d'affectation rapide n3boss : retraits d'abord, puis toutes les
+ * inscriptions demandées (le plafond `required_students` n'arrête plus le lot — l'API
+ * l'autorise pour l'équipe pédagogique). Les erreurs sont comptées sans interrompre le lot.
  * `apiCall(path, method, body)` est injecté — retourne les compteurs pour le toast.
  */
 export async function executeQuickAssignPlan(apiCall, task, { toAdd, toRemove }) {
@@ -92,12 +98,10 @@ export async function executeQuickAssignPlan(apiCall, task, { toAdd, toRemove })
       if (!firstRemoveError) firstRemoveError = e.message || 'Erreur inconnue';
     }
   }
-  let slotsRemaining = getAvailableSlots(task) + removeOk;
   let addOk = 0;
   let addFail = 0;
   let firstAddError = '';
   for (const targetStudent of toAdd) {
-    if (slotsRemaining <= 0) break;
     try {
       await apiCall(`/api/tasks/${task.id}/assign`, 'POST', {
         firstName: targetStudent.first_name,
@@ -105,16 +109,9 @@ export async function executeQuickAssignPlan(apiCall, task, { toAdd, toRemove })
         studentId: targetStudent.id,
       });
       addOk += 1;
-      slotsRemaining -= 1;
     } catch (e) {
       addFail += 1;
       if (!firstAddError) firstAddError = e.message || 'Erreur inconnue';
-      if (
-        String(e.message || '')
-          .toLowerCase()
-          .includes('plus de place')
-      )
-        break;
     }
   }
   return { removeOk, removeFail, firstRemoveError, addOk, addFail, firstAddError };

@@ -81,11 +81,10 @@ describe('canApplyQuickAssign', () => {
     expect(canApplyQuickAssign(task({ status: 'validated' }), ['1'], STUDENTS)).toBe(false);
   });
 
-  test('faux si plus d’ajouts que de places (en comptant les retraits)', () => {
+  test('vrai même au-delà des places prévues (bypass n3boss)', () => {
     const t = task({ required_students: 1, assignments: [{ student_id: '2' }] });
-    // 0 place dispo, on ajoute 2 et on ne retire personne
-    expect(canApplyQuickAssign(t, ['1', '2', '3'], STUDENTS)).toBe(false);
-    // 1 retrait libère 1 place pour 1 ajout
+    // 0 place « élève », mais l'affectation n3boss peut dépasser
+    expect(canApplyQuickAssign(t, ['1', '2', '3'], STUDENTS)).toBe(true);
     expect(canApplyQuickAssign(t, ['1'], STUDENTS)).toBe(true);
   });
 });
@@ -117,7 +116,7 @@ describe('quickAssignHintText', () => {
     );
   });
 
-  test('ajout bloqué : proposed, done et manque de places', () => {
+  test('ajout bloqué : proposed et done ; au-delà des places signalé sans bloquer', () => {
     expect(quickAssignHintText(task({ status: 'proposed' }), ['1'], STUDENTS)).toBe(
       'Idée encore en discussion : inscriptions pas encore ouvertes',
     );
@@ -126,7 +125,7 @@ describe('quickAssignHintText', () => {
     );
     const t = task({ required_students: 1, assignments: [{ student_id: '2' }] });
     expect(quickAssignHintText(t, ['1', '2', '3'], STUDENTS)).toBe(
-      'Pas assez de places (max. 0 après retrait)',
+      'Inscrire 2 n3beurs · dont 2 au-delà des places prévues pour les élèves',
     );
   });
 
@@ -166,9 +165,9 @@ describe('executeQuickAssignPlan', () => {
     expect(calls[1].body).toEqual({ firstName: 'Léa', lastName: 'Martin', studentId: 1 });
   });
 
-  test('s’arrête d’inscrire quand il n’y a plus de place (places + retraits réussis)', async () => {
+  test('inscrit tous les ajouts même au-delà des places prévues (bypass n3boss)', async () => {
     const apiCall = vi.fn(async () => {});
-    // 2 places, 2 inscrits → 0 dispo ; 1 retrait libère 1 place pour 1 seul ajout.
+    // 2 places, 2 inscrits → 0 dispo « élève » ; 1 retrait + 2 ajouts : les deux ajouts partent.
     const t = task({
       required_students: 2,
       assignments: [{ student_id: '2' }, { student_id: '3' }],
@@ -177,16 +176,17 @@ describe('executeQuickAssignPlan', () => {
       toAdd: [STUDENTS[0], { id: 4, first_name: 'Max', last_name: 'Roux' }],
       toRemove: [STUDENTS[2]],
     });
-    expect(outcome.addOk).toBe(1);
-    expect(apiCall).toHaveBeenCalledTimes(2); // 1 unassign + 1 assign
+    expect(outcome.addOk).toBe(2);
+    expect(apiCall).toHaveBeenCalledTimes(3); // 1 unassign + 2 assign
   });
 
-  test('compte les échecs sans interrompre, garde la première erreur, stoppe sur « plus de place »', async () => {
+  test('compte les échecs sans interrompre et garde la première erreur', async () => {
     const apiCall = vi
       .fn()
       .mockRejectedValueOnce(new Error('retrait interdit'))
       .mockResolvedValueOnce({})
-      .mockRejectedValueOnce(new Error('Plus de place sur cette tâche'));
+      .mockRejectedValueOnce(new Error('Compte hors périmètre'))
+      .mockResolvedValueOnce({});
     const t = task({ required_students: 4, assignments: [{ student_id: '3' }] });
     const outcome = await executeQuickAssignPlan(apiCall, t, {
       toAdd: [STUDENTS[0], STUDENTS[1], { id: 4, first_name: 'Max', last_name: 'Roux' }],
@@ -196,12 +196,11 @@ describe('executeQuickAssignPlan', () => {
       removeOk: 0,
       removeFail: 1,
       firstRemoveError: 'retrait interdit',
-      addOk: 1,
+      addOk: 2,
       addFail: 1,
-      firstAddError: 'Plus de place sur cette tâche',
+      firstAddError: 'Compte hors périmètre',
     });
-    // L'erreur « plus de place » interrompt la boucle : pas de 4e appel.
-    expect(apiCall).toHaveBeenCalledTimes(3);
+    expect(apiCall).toHaveBeenCalledTimes(4);
   });
 });
 

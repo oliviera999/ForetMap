@@ -207,6 +207,17 @@ describe('claimAssignmentSeat : la course lecture-de-route / validation', () => 
     assert.strictEqual(executes.length, 0, 'aucune insertion au-delà de la capacité');
   });
 
+  it('autorise le dépassement quand bypassCapacity est posé (inscription n3boss)', async () => {
+    const { tx, executes } = fakeTx({
+      lockedStatus: 'available',
+      assignedCount: 2,
+      requiredStudents: 2,
+    });
+    const outcome = await claimAssignmentSeat(tx, { ...seatParams, bypassCapacity: true });
+    assert.deepStrictEqual(outcome, { ok: true, status: 'in_progress' });
+    assert.match(String(executes[0].sql), /INSERT INTO task_assignments/i);
+  });
+
   it('refuse quand la tâche a disparu', async () => {
     const { tx } = fakeTx({ lockedStatus: 'available', missing: true });
     assert.deepStrictEqual(await claimAssignmentSeat(tx, seatParams), {

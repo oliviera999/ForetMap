@@ -1,8 +1,9 @@
 'use strict';
 
 // Non-régression B4 (audit 2026-07) : l'inscription à une tâche ne doit accepter ni doublon
-// pour un même n3beur, ni dépassement de `required_students`, y compris sous requêtes
-// concurrentes (index unique migration 170 + contrôle de capacité sérialisé).
+// pour un même n3beur, y compris sous requêtes concurrentes (index unique migration 170).
+// Capacité `required_students` : opposable aux auto-inscriptions n3beur ; un n3boss peut
+// dépasser (bypass pédagogique, places prévues ≠ plafond absolu).
 //
 // L'usurpation d'identité par le nom (B1) est couverte séparément par
 // `tests/tasks-identity-usurpation.test.js`.
@@ -11,6 +12,7 @@ require('./helpers/setup');
 require('dotenv').config();
 const { describe, it, before } = require('node:test');
 const assert = require('node:assert');
+const crypto = require('node:crypto');
 const request = require('supertest');
 const { app } = require('../server');
 const { initSchema, queryOne, queryAll, execute } = require('../database');
@@ -24,6 +26,8 @@ const bob = { firstName: `Bob${stamp}`, lastName: 'Ident' };
 let teacherToken;
 let aliceId;
 let bobId;
+let aliceToken;
+let bobToken;
 
 /**
  * Inscrit un n3beur via le jeton n3boss (`tasks.manage`).
@@ -105,6 +109,7 @@ before(async () => {
     .send({ ...alice, password: 'pass1234' });
   assert.strictEqual(regA.status, 201, `inscription Alice: ${JSON.stringify(regA.body)}`);
   aliceId = regA.body.id;
+  aliceToken = regA.body.authToken;
   await setStudentPrimaryRole(aliceId, 'eleve_novice');
 
   const regB = await request(app)
@@ -112,7 +117,23 @@ before(async () => {
     .send({ ...bob, password: 'pass1234' });
   assert.strictEqual(regB.status, 201, `inscription Bob: ${JSON.stringify(regB.body)}`);
   bobId = regB.body.id;
+  bobToken = regB.body.authToken;
   await setStudentPrimaryRole(bobId, 'eleve_novice');
+
+  // Sans groupe, `ensureStudentPermission` ramène le compte à visiteur (403 avant capacité).
+  const role = await queryOne("SELECT id FROM roles WHERE slug = 'eleve_novice' LIMIT 1");
+  const groupId = crypto.randomUUID();
+  await execute(
+    `INSERT INTO \`groups\` (id, slug, name, kind, default_role_id, is_active, created_at, updated_at)
+     VALUES (?, ?, ?, 'class', ?, 1, NOW(), NOW())`,
+    [groupId, `b4-cap-${stamp}`, `B4 cap ${stamp}`, role?.id ?? null],
+  );
+  for (const uid of [aliceId, bobId]) {
+    await execute(
+      "INSERT INTO group_members (group_id, user_type, user_id, joined_at) VALUES (?, 'student', ?, NOW())",
+      [groupId, uid],
+    );
+  }
 });
 
 describe('B4 — inscription : pas de doublon ni de dépassement de capacité', () => {
@@ -141,16 +162,43 @@ describe('B4 — inscription : pas de doublon ni de dépassement de capacité', 
     assert.strictEqual(rows.length, 1, `une seule ligne: ${JSON.stringify(rows)}`);
   });
 
-  it('ne dépasse pas `required_students` même en requêtes concurrentes', async () => {
-    const taskId = await createTask('B4 capacite concurrente', { required_students: 1 });
+  it('un n3boss peut dépasser `required_students` (y compris en concurrence)', async () => {
+    const taskId = await createTask('B4 capacite n3boss', { required_students: 1 });
     const [a, b] = await Promise.all([
       assignAsTeacher(taskId, aliceId),
       assignAsTeacher(taskId, bobId),
     ]);
 
     const rows = await assignmentsOf(taskId);
-    assert.strictEqual(rows.length, 1, `une seule place: ${JSON.stringify(rows)}`);
-    const statuses = [a.status, b.status].sort();
-    assert.deepStrictEqual(statuses, [200, 400], 'une réussite, un refus explicite');
+    assert.strictEqual(
+      rows.length,
+      2,
+      `deux inscrits malgré 1 place prévue: ${JSON.stringify(rows)}`,
+    );
+    assert.deepStrictEqual([a.status, b.status].sort(), [200, 200]);
+  });
+
+  it('refuse une 2ᵉ inscription n3boss seulement pour un doublon, pas pour la capacité', async () => {
+    const taskId = await createTask('B4 n3boss au-delà', { required_students: 1 });
+    await assignAsTeacher(taskId, aliceId).expect(200);
+    const beyond = await assignAsTeacher(taskId, bobId);
+    assert.strictEqual(beyond.status, 200, `inscription au-delà: ${JSON.stringify(beyond.body)}`);
+    assert.strictEqual((await assignmentsOf(taskId)).length, 2);
+  });
+
+  it('un n3beur ne peut pas s’auto-inscrire au-delà de `required_students`', async () => {
+    const taskId = await createTask('B4 capacite eleve', { required_students: 1 });
+    const first = await request(app)
+      .post(`/api/tasks/${taskId}/assign`)
+      .set('Authorization', `Bearer ${aliceToken}`)
+      .send({ studentId: aliceId });
+    assert.strictEqual(first.status, 200, `1re inscription: ${JSON.stringify(first.body)}`);
+    const second = await request(app)
+      .post(`/api/tasks/${taskId}/assign`)
+      .set('Authorization', `Bearer ${bobToken}`)
+      .send({ studentId: bobId });
+    assert.strictEqual(second.status, 400, `2e inscription: ${JSON.stringify(second.body)}`);
+    assert.match(String(second.body.error || ''), /Plus de place/i);
+    assert.strictEqual((await assignmentsOf(taskId)).length, 1);
   });
 });

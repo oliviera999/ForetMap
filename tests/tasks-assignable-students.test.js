@@ -206,4 +206,24 @@ describe('Listes d’utilisateurs de la gestion des tâches : n3beurs seulement'
     assert.ok(ids.includes(visiteurDeGroupe.id));
     assert.ok(!ids.includes(profClasse.id), 'le prof de classe ne doit pas être inscrit');
   });
+
+  it('POST /api/tasks/:id/assign-group inscrit au-delà de required_students', async () => {
+    const taskRes = await request(app)
+      .post('/api/tasks')
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .send({ title: `Affectation groupe dépassement ${Date.now()}`, required_students: 1 })
+      .expect(201);
+    const taskId = taskRes.body.id;
+
+    const res = await request(app)
+      .post(`/api/tasks/${taskId}/assign-group`)
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .send({ group_id: groupId })
+      .expect(200);
+    assert.equal(res.body.assigned, 2);
+    assert.equal(
+      (await queryAll('SELECT id FROM task_assignments WHERE task_id = ?', [taskId])).length,
+      2,
+    );
+  });
 });
