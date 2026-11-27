@@ -14,8 +14,40 @@ function resolveSpriteCutStateSpec(spriteCutConfig = null, mascotState = VISIT_M
   return { srcs: [], fps: 1 };
 }
 
+/**
+ * Toutes les URLs de frames d'un pack sprite_cut (tous les états).
+ * Sert au préchargement : sans ça, un changement d'état (marche → inspect) charge
+ * la 1ʳᵉ frame trop tard et l'`<img>` remplacé laisse une phase vide/blanche.
+ * @param {{ stateFrames?: Record<string, { srcs?: unknown[] }> } | null} spriteCut
+ * @returns {string[]}
+ */
+export function collectSpriteCutFrameUrls(spriteCut) {
+  const frames = spriteCut?.stateFrames;
+  if (!frames || typeof frames !== 'object') return [];
+  const out = [];
+  const seen = new Set();
+  for (const spec of Object.values(frames)) {
+    if (!Array.isArray(spec?.srcs)) continue;
+    for (const raw of spec.srcs) {
+      const url = String(raw || '').trim();
+      if (!url || seen.has(url)) continue;
+      seen.add(url);
+      out.push(url);
+    }
+  }
+  return out;
+}
+
 /** URLs déjà préchargées (module) : évite de re-télécharger les frames à chaque changement d'état. */
 const preloadedSpriteCutUrls = new Set();
+
+function preloadSpriteCutUrl(url) {
+  const u = String(url || '').trim();
+  if (!u || preloadedSpriteCutUrls.has(u)) return;
+  preloadedSpriteCutUrls.add(u);
+  const img = new Image();
+  img.src = u;
+}
 
 /** Durée par frame (ms) : `frameDwellMs` si aligné sur `srcs`, sinon uniforme depuis `fps`. */
 function computeDwellMsForSrcs(stateSpec, srcsLength) {
@@ -27,6 +59,27 @@ function computeDwellMsForSrcs(stateSpec, srcsLength) {
     return custom.map((n) => Math.max(33, Math.round(Number(n) || uniform)));
   }
   return Array(srcsLength).fill(uniform);
+}
+
+/**
+ * Attend que `wantedSrc` soit décodable avant d'appeler `onReady`.
+ * Si déjà en cache (`complete`), applique synchronement — pas de trou de peinture.
+ * @returns {() => void} cleanup
+ */
+export function whenSpriteCutSrcReady(wantedSrc, onReady) {
+  const url = String(wantedSrc || '').trim();
+  if (!url) return () => {};
+  let cancelled = false;
+  const img = new Image();
+  const apply = () => {
+    if (!cancelled) onReady(url);
+  };
+  img.onload = apply;
+  img.src = url;
+  if (img.complete && img.naturalWidth > 0) apply();
+  return () => {
+    cancelled = true;
+  };
 }
 
 function VisitMapMascotSpriteCut({
@@ -52,6 +105,8 @@ function VisitMapMascotSpriteCut({
   );
   const [frameIndex, setFrameIndex] = useState(0);
   const [failedSrcs, setFailedSrcs] = useState(() => new Set());
+  /** Dernière frame réellement peinte : on ne bascule qu'une fois la suivante prête. */
+  const [displaySrc, setDisplaySrc] = useState('');
 
   const dwellKey = useMemo(
     () => (Array.isArray(stateSpec?.frameDwellMs) ? JSON.stringify(stateSpec.frameDwellMs) : ''),
@@ -61,6 +116,11 @@ function VisitMapMascotSpriteCut({
   const spriteAnimKey = useMemo(
     () => [mascotId, mascotState, srcs.join('|'), fps, dwellKey].join('::'),
     [mascotId, mascotState, srcs, fps, dwellKey],
+  );
+
+  const packPreloadKey = useMemo(
+    () => `${mascotId}::${collectSpriteCutFrameUrls(cut).join('|')}`,
+    [mascotId, cut],
   );
 
   const workingSrcs = useMemo(() => srcs.filter((u) => !failedSrcs.has(u)), [srcs, failedSrcs]);
@@ -76,15 +136,11 @@ function VisitMapMascotSpriteCut({
     setFailedSrcs(new Set());
   }, [spriteAnimKey]);
 
+  // Précharge **tous** les états du pack dès le montage / changement de pack — pas seulement
+  // l'état courant (sinon marche→inspect flash blanc sur la 1ʳᵉ frame non encore en cache).
   useEffect(() => {
-    if (srcs.length === 0) return undefined;
-    srcs.forEach((url) => {
-      if (preloadedSpriteCutUrls.has(url)) return;
-      preloadedSpriteCutUrls.add(url);
-      const img = new Image();
-      img.src = url;
-    });
-  }, [spriteAnimKey, srcs]);
+    collectSpriteCutFrameUrls(cut).forEach(preloadSpriteCutUrl);
+  }, [packPreloadKey, cut]);
 
   useEffect(() => {
     if (workingSrcs.length <= 1 || prefersReducedMotion) return undefined;
@@ -104,11 +160,30 @@ function VisitMapMascotSpriteCut({
     workingSrcs.length === 0 ? 0 : prefersReducedMotion ? 0 : frameIndex % workingSrcs.length;
   const currentSrc = workingSrcs[safeIndex] || '';
 
+  // Changement de mascotte : abandonner l'ancienne silhouette. (Pas sur un simple
+  // changement d'état — on garde la frame peinte pour éviter le flash blanc.)
+  useEffect(() => {
+    setDisplaySrc('');
+  }, [mascotId]);
+
+  // Hold-until-ready : garder la frame précédente tant que la suivante n'est pas décodée.
+  // Évite le trou blanc quand on change `src` (navigateur qui vide l'`<img>` avant paint).
+  // Placé **après** le reset mascotte pour que le chargement de la nouvelle frame gagne.
+  useEffect(() => {
+    if (!currentSrc) {
+      if (workingSrcs.length === 0) setDisplaySrc('');
+      return undefined;
+    }
+    if (currentSrc === displaySrc) return undefined;
+    return whenSpriteCutSrcReady(currentSrc, setDisplaySrc);
+  }, [currentSrc, displaySrc, workingSrcs.length]);
+
   const onImgError = () => {
-    if (!currentSrc) return;
+    const broken = displaySrc || currentSrc;
+    if (!broken) return;
     setFailedSrcs((prev) => {
       const next = new Set(prev);
-      next.add(currentSrc);
+      next.add(broken);
       return next;
     });
     setFrameIndex(0);
@@ -116,6 +191,8 @@ function VisitMapMascotSpriteCut({
 
   const canRender =
     workingSrcs.length > 0 && Number(cut?.frameWidth) > 0 && Number(cut?.frameHeight) > 0;
+  const paintedSrc = displaySrc || '';
+  const showPainted = canRender && !!paintedSrc;
   const fallbackSilhouette = mascotConfig?.fallbackSilhouette || 'gnome';
   const displayScale = (() => {
     const s = Number(cut?.displayScale);
@@ -133,14 +210,13 @@ function VisitMapMascotSpriteCut({
       data-mascot-shape={fallbackSilhouette}
       aria-hidden="true"
     >
-      {!canRender ? (
+      {!showPainted ? (
         <div className="visit-map-mascot-static" aria-hidden="true">
           {fallback}
         </div>
       ) : null}
-      {canRender ? (
+      {showPainted ? (
         <div
-          key={spriteAnimKey}
           className={`visit-map-mascot-sprite-cut${cut.pixelated ? ' visit-map-mascot-spritesheet--pixelated' : ''}`}
           style={{
             width: `${cut.frameWidth}px`,
@@ -151,7 +227,8 @@ function VisitMapMascotSpriteCut({
           role="presentation"
           aria-hidden="true"
         >
-          <img src={currentSrc} alt="" decoding="async" draggable={false} onError={onImgError} />
+          {/* Pas de remount par état : on met à jour src uniquement quand displaySrc est prêt. */}
+          <img src={paintedSrc} alt="" decoding="async" draggable={false} onError={onImgError} />
         </div>
       ) : null}
     </div>

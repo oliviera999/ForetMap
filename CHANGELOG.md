@@ -9,6 +9,19 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — mascotte sprite_cut : plus de flash blanc entre les états
+
+**Changement visible :** en changeant d’animation (marche ↔ inspect ↔ idle…), le sprite
+`sprite_cut` ne passe plus par une **phase blanche** / un trou de peinture : la frame
+précédente reste affichée jusqu’à ce que la suivante soit décodée, et toutes les frames
+du pack sont préchargées dès le montage.
+
+- Cause : remount `key={état}` + `img.src` changé avant décodage + preload limité à l’état
+  courant → l’`<img>` se vidait un instant (fond blanc du shell).
+- Correctif : hold-until-ready, preload de toutes les `stateFrames`, plus de remount par état
+  (`VisitMapMascotSpriteCut`).
+- Tests : `tests-ui/components/VisitMapMascotSpriteCut.test.jsx`.
+
 ### Corrigé — carte : la mascotte marche vraiment jusqu’à une zone ou un repère
 
 **Changement visible :** sur la carte de travail, cliquer une zone ou un repère fait
