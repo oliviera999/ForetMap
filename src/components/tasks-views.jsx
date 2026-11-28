@@ -413,6 +413,14 @@ function TasksViewImpl({
   const assignGroupToTask = useCallback(
     async (task) => {
       const status = taskEffectiveStatus(task);
+      if (status === 'proposed') {
+        setToast('Idée encore en discussion : inscriptions pas encore ouvertes');
+        return;
+      }
+      if (status === 'done') {
+        setToast('C’est déjà plié pour celle-ci');
+        return;
+      }
       if (['on_hold', 'project_completed', 'project_validated', 'validated'].includes(status)) {
         setToast('Affectation groupe indisponible pour ce statut.');
         return;

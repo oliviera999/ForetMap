@@ -70,6 +70,30 @@ const ASSIGN_REFUSAL_PROPOSED = {
 };
 const ASSIGN_REFUSAL_DONE = { error: 'C’est déjà plié pour celle-ci', code: 'task_done' };
 
+/**
+ * Refus d'affectation de groupe alignés sur l'inscription individuelle.
+ * Une tâche `done` (collective) recalculée après un ajout repasse `in_progress` :
+ * la file de validation se vide. Une tâche `done` (simple) resterait faite, et la
+ * validation créditerait ensuite toute la classe. `proposed` n'est pas encore ouverte.
+ * @param {string} status statut normalisé
+ * @returns {{ http: number, error: string, code?: string } | null}
+ */
+function assignGroupStatusRefusal(status) {
+  if (status === 'validated') return { http: 400, error: 'Tâche déjà validée' };
+  if (status === 'on_hold')
+    return { http: 400, error: 'Tâche en attente : inscription indisponible' };
+  if (status === 'proposed') return { http: 400, ...ASSIGN_REFUSAL_PROPOSED };
+  if (status === 'done') return { http: 400, ...ASSIGN_REFUSAL_DONE };
+  return null;
+}
+
+function sendAssignGroupRefusal(res, refusal) {
+  return res.status(refusal.http).json({
+    error: refusal.error,
+    ...(refusal.code ? { code: refusal.code } : {}),
+  });
+}
+
 /** Statuts qu'un « fait » ne peut pas faire reculer (garde SQL plus bas). */
 const CLOSED_TASK_STATUSES = new Set(['validated', 'on_hold']);
 
@@ -255,7 +279,27 @@ router.post(
     if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
     if (task.archived_at != null)
       return res.status(400).json({ error: 'Tâche archivée : inscription indisponible' });
-    if (task.status === 'validated') return res.status(400).json({ error: 'Tâche déjà validée' });
+    // Mêmes portes que l'inscription individuelle : une tâche faite ou encore proposée
+    // n'accepte pas de nouvelle classe. Sans ça, le dépassement de `required_students`
+    // inscrivait tout le groupe sur une tâche pleine déjà « faite » — en mode collectif
+    // le recalcul la renvoyait « en cours » (sortie de la file de validation), et en mode
+    // simple la validation ultérieure créditait des élèves qui n'avaient rien fait.
+    const statusRefusal = assignGroupStatusRefusal(normalizeTaskStatusForRead(task.status));
+    if (statusRefusal) return sendAssignGroupRefusal(res, statusRefusal);
+    if (task.project_status === 'on_hold') {
+      return res.status(400).json({ error: 'Projet en attente : inscription indisponible' });
+    }
+    if (task.project_status === 'completed') {
+      return res.status(400).json({ error: 'Projet terminé : inscription indisponible' });
+    }
+    if (task.project_status === 'validated') {
+      return res.status(400).json({ error: 'Projet validé : inscription indisponible' });
+    }
+    if (isTaskBeforeStartDate(task)) {
+      return res
+        .status(400)
+        .json({ error: 'Date de départ non atteinte : inscription indisponible' });
+    }
     const groupId = normalizeOptionalId(req.body?.group_id);
     if (!groupId) return res.status(400).json({ error: 'group_id requis' });
     const scope = await getScopedStudentIds(req.auth, { groupId });
@@ -275,9 +319,8 @@ router.post(
       );
       if (!locked) return { http: 404, error: 'Tâche introuvable' };
       const lockedStatus = normalizeTaskStatusForRead(locked.status);
-      if (lockedStatus === 'validated') return { http: 400, error: 'Tâche déjà validée' };
-      if (lockedStatus === 'on_hold')
-        return { http: 400, error: 'Tâche en attente : inscription indisponible' };
+      const lockedRefusal = assignGroupStatusRefusal(lockedStatus);
+      if (lockedRefusal) return lockedRefusal;
 
       const assignedRows = await tx.queryAll(
         'SELECT student_id FROM task_assignments WHERE task_id = ?',
@@ -324,7 +367,7 @@ router.post(
       };
     });
 
-    if (outcome.http) return res.status(outcome.http).json({ error: outcome.error });
+    if (outcome.http) return sendAssignGroupRefusal(res, outcome);
     const { assigned, skipped, assignedIds } = outcome;
     const updated = await getTaskWithAssignments(task.id);
     emitTasksChanged({ reason: 'assign_group', taskId: task.id, mapId: resolveTaskMapId(updated) });

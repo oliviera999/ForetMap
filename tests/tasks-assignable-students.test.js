@@ -226,4 +226,83 @@ describe('Listes d’utilisateurs de la gestion des tâches : n3beurs seulement'
       2,
     );
   });
+
+  it('POST /api/tasks/:id/assign-group ne rouvre pas une tâche collective déjà faite', async () => {
+    const taskRes = await request(app)
+      .post('/api/tasks')
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .send({
+        title: `Collective faite ${Date.now()}`,
+        required_students: 1,
+        completion_mode: 'all_assignees_done',
+      })
+      .expect(201);
+    const taskId = taskRes.body.id;
+
+    await request(app)
+      .post(`/api/tasks/${taskId}/assign`)
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .send({ studentId: n3beur.id })
+      .expect(200);
+    await execute('UPDATE task_assignments SET done_at = NOW() WHERE task_id = ?', [taskId]);
+    await execute("UPDATE tasks SET status = 'done' WHERE id = ?", [taskId]);
+
+    const res = await request(app)
+      .post(`/api/tasks/${taskId}/assign-group`)
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .send({ group_id: groupId })
+      .expect(400);
+    assert.equal(res.body.code, 'task_done');
+
+    const rows = await queryAll('SELECT student_id FROM task_assignments WHERE task_id = ?', [
+      taskId,
+    ]);
+    assert.deepEqual(
+      rows.map((row) => String(row.student_id)),
+      [n3beur.id],
+    );
+    const status = await queryOne('SELECT status FROM tasks WHERE id = ?', [taskId]);
+    assert.equal(status.status, 'done');
+  });
+
+  it('POST /api/tasks/:id/assign-group refuse une proposition et une date de départ future', async () => {
+    const proposedRes = await request(app)
+      .post('/api/tasks')
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .send({ title: `Proposition groupe ${Date.now()}`, required_students: 1 })
+      .expect(201);
+    await execute("UPDATE tasks SET status = 'proposed' WHERE id = ?", [proposedRes.body.id]);
+    const proposed = await request(app)
+      .post(`/api/tasks/${proposedRes.body.id}/assign-group`)
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .send({ group_id: groupId })
+      .expect(400);
+    assert.equal(proposed.body.code, 'task_proposed');
+    assert.equal(
+      (await queryAll('SELECT id FROM task_assignments WHERE task_id = ?', [proposedRes.body.id]))
+        .length,
+      0,
+    );
+
+    const futureRes = await request(app)
+      .post('/api/tasks')
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .send({
+        title: `Départ futur ${Date.now()}`,
+        required_students: 1,
+        start_date: '2099-01-01',
+      })
+      .expect(201);
+    const future = await request(app)
+      .post(`/api/tasks/${futureRes.body.id}/assign-group`)
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .send({ group_id: groupId })
+      .expect(400);
+    assert.match(String(future.body.error || ''), /Date de départ/i);
+    assert.equal(
+      (await queryAll('SELECT id FROM task_assignments WHERE task_id = ?', [futureRes.body.id]))
+        .length,
+      0,
+    );
+  });
 });

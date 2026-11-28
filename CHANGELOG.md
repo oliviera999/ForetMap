@@ -9,6 +9,15 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — affectation de groupe sur une tâche déjà faite
+
+- « Affecter groupe » sur une tâche collective déjà terminée (places prises, toutes les
+  parts faites) inscrivait toute la classe et la faisait repasser « en cours », donc
+  sortir de la file de validation. Sur une tâche simplement « faite », la classe était
+  aussi inscrite et créditée à la validation. Le refus est maintenant le même que pour
+  une inscription individuelle : idée encore en discussion, tâche déjà faite, date de
+  départ non atteinte, projet clos.
+
 ### Ajouté — icône discrète pour copier le lien direct
 
 - Pied de discussion forum, de chaque message, des fiches lieu (zone / repère) et des
