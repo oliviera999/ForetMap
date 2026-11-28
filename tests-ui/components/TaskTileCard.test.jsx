@@ -82,6 +82,30 @@ describe('TaskTileCard', () => {
     expect(screen.getByLabelText('Supprimer la tâche')).toBeInTheDocument();
   });
 
+  test('côté n3boss : « Affecter groupe » est fermé sur une tâche déjà faite', () => {
+    const groups = [{ id: 'g1', name: '6e A' }];
+    const { rerender } = render(
+      <TaskTileCard {...makeProps({ isTeacher: true, groupOptions: groups })} />,
+    );
+    expect(screen.getByRole('button', { name: /Affecter groupe/ })).toBeEnabled();
+    rerender(
+      <TaskTileCard
+        {...makeProps({
+          isTeacher: true,
+          groupOptions: groups,
+          t: {
+            id: 'task-1',
+            title: 'Arroser les tomates',
+            status: 'done',
+            required_students: 1,
+            assignments: [],
+          },
+        })}
+      />,
+    );
+    expect(screen.getByRole('button', { name: /Affecter groupe/ })).toBeDisabled();
+  });
+
   test('côté n3beur : pas de bouton de suppression de tâche', () => {
     render(
       <TaskTileCard

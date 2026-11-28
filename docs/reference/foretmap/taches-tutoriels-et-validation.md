@@ -525,10 +525,14 @@ profils) ou le rattacher à une classe qui confère le statut élève — voir
 
 - **Affecter un groupe** : « 👥 Affecter groupe » inscrit d'un coup les élèves d'un
   groupe — y compris au-delà du nombre de places prévues — et seulement ceux qui ont un
-  profil élève. Une **affectation rapide** par cases à cocher et une **attribution dès la
-  création** existent aussi (celle-ci relève automatiquement le nombre de places si la
-  sélection dépasse). L'affectation rapide peut aussi dépasser les places prévues : ce
-  plafond ne s'applique qu'aux inscriptions faites par les élèves eux-mêmes.
+  profil élève. Le bouton reste fermé sur une idée encore en discussion, sur une tâche
+  déjà marquée faite (elle attend la validation), sur un projet en attente, terminé ou
+  validé, et tant que la date de départ n'est pas arrivée : la classe ne doit pas être
+  inscrite sur un travail qui n'est pas ouvert. Une **affectation rapide** par cases à
+  cocher et une **attribution dès la création** existent aussi (celle-ci relève
+  automatiquement le nombre de places si la sélection dépasse). L'affectation rapide peut
+  aussi dépasser les places prévues : ce plafond ne s'applique qu'aux inscriptions faites
+  par les élèves eux-mêmes.
 - **Affectation rapide, ordre de la liste** : les élèves **déjà inscrits sur la tâche**
   sont affichés **en tête** de la liste à cocher (leur case est cochée d'office), les
   autres suivent dans l'ordre habituel. L'équipe en place se lit donc d'un coup d'œil,

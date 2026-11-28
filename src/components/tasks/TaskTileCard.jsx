@@ -626,9 +626,14 @@ function TaskTileCardImpl({
                   !Array.isArray(groupOptions) ||
                   groupOptions.length === 0 ||
                   !!loading[`${t.id}assign-group`] ||
-                  ['on_hold', 'project_completed', 'project_validated', 'validated'].includes(
-                    taskEffectiveStatus(t),
-                  )
+                  [
+                    'on_hold',
+                    'project_completed',
+                    'project_validated',
+                    'validated',
+                    'done',
+                    'proposed',
+                  ].includes(taskEffectiveStatus(t))
                 }
                 onClick={() => assignGroupToTask?.(t)}
                 title="Affecter en masse les membres d’un groupe"
